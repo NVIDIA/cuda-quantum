@@ -5,23 +5,34 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "nlohmann/json.hpp"
 #include <pybind11/embed.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
-#include "nlohmann/json.hpp"
 
 #include "py_optimizer.h"
 
+#include "common/SerializedCodeExecutionContext.h"
+#include "common/RemoteKernelExecutor.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
+#include "llvm/Support/Base64.h"
+#include "mlir/CAPI/IR.h"
+#include "utils/LinkedLibraryHolder.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
+#include "utils/OpaqueArguments.h"
 
 #include <fstream>
 #include <iostream>
 
 using json = nlohmann::json;
+using namespace mlir;
 
 namespace cudaq {
 
@@ -30,79 +41,32 @@ void bindOptimizationResult(py::module &mod) {
   py::class_<optimization_result>(mod, "OptimizationResult");
 }
 
-json convert_py_object_to_json(const py::object &obj);
-
-json convert_py_dict_to_json(const py::dict &dict) {
-  json obj;
-
-  // for (auto item : dict) {
-  //   std::string key = item.first.cast<std::string>();
-  //   obj[key] = convert_py_object_to_json(py::reinterpret_borrow<py::object>(item.second));
-  // }
-  for (const auto &item : dict) {
-    obj[py::str(item.first)] = py::str(item.second);
-  }
-
-  return obj;
-}
-
-json convert_py_object_to_json(const py::object &obj) {
-  if (py::isinstance<py::str>(obj)) {
-    return obj.cast<std::string>();
-  } else if (py::isinstance<py::int_>(obj)) {
-    return obj.cast<int>();
-  } else if (py::isinstance<py::float_>(obj)) {
-    return obj.cast<double>();
-  } else if (py::isinstance<py::bool_>(obj)) {
-    return obj.cast<bool>();
-  } else if (py::isinstance<py::list>(obj)) {
-    json json_list = json::array();
-    for (auto item : obj.cast<py::list>()) {
-      json_list.push_back(convert_py_object_to_json(py::reinterpret_borrow<py::object>(item)));
-    }
-    return json_list;
-  } else if (py::isinstance<py::dict>(obj)) {
-    return convert_py_dict_to_json(obj.cast<py::dict>());
-  } else {
-    return py::str(obj).cast<std::string>();
-  }
-}
-
-std::tuple<py::object, py::object> get_base_modules() {
-  py::object marshal = py::module::import("marshal");
-  py::object base64 = py::module_::import("base64");
-  py::object dumps = marshal.attr("dumps");
-  py::object base64_encode = base64.attr("b64encode");
-  return std::make_tuple(dumps, base64_encode);
-}
-
 std::string get_base64_encoded_str(const std::string &source_code) {
-  auto [dumps, base64_encode] = get_base_modules();
-  
-  // Serialize the compiled code using marshal dumps
-  py::bytes serialized_code = dumps(source_code);
-
   // Encode the serialized data to Base64
-  py::object base64_encoded_code = base64_encode(serialized_code);
-
-  return py::str(base64_encoded_code);
+  return llvm::encodeBase64(source_code);
 }
 
 std::string get_base64_encoded_str(const py::dict &namespace_dict) {
-  auto [dumps, base64_encode] = get_base_modules();
+  py::object json = py::module_::import("json");
   
-  json json_locals = convert_py_dict_to_json(namespace_dict);
+  py::exec(R"(
+    import json
 
-  // Serialize the namespace_dict using json dumps
-  py::bytes serialized_dict_string = json_locals.dump();
-
-  // Encode the serialized namespace_dict to Base64 encoded object
-  py::object base64_encoded_dict = base64_encode(serialized_dict_string);
-
-  return py::str(base64_encoded_dict);
+    class CustomEncoder(json.JSONEncoder):
+      def default(self, obj):
+        try:
+          return super().default(obj);
+        except TypeError:
+          return str(obj);
+  )");
+  py::object custom_encoder = py::globals()["CustomEncoder"];
+  py::object json_string = json.attr("dumps")(namespace_dict, py::arg("cls")=custom_encoder);
+  std::string json_cpp_string = json_string.cast<std::string>();
+  return llvm::encodeBase64(json_cpp_string);
 }
 
-json serialize_data(std::string &source_code, py::dict &locals, py::dict &globals) {
+json serialize_data(std::string &source_code, py::dict &locals,
+                    py::dict &globals) {
   std::string encoded_code_str = get_base64_encoded_str(source_code);
   std::string encoded_locals_str = get_base64_encoded_str(locals);
   std::string encoded_globals_str = get_base64_encoded_str(globals);
@@ -120,7 +84,8 @@ std::string extract_cudaq_target_parameter(const std::string &line) {
   std::string search_str = "cudaq.set_target(";
   auto start_pos = line.find(search_str);
 
-  if (start_pos != std::string::npos && line.substr(0, start_pos).find("#") == std::string::npos) {
+  if (start_pos != std::string::npos &&
+      line.substr(0, start_pos).find("#") == std::string::npos) {
     start_pos += search_str.length();
     auto end_pos = line.find(")", start_pos);
     if (end_pos != std::string::npos) {
@@ -136,20 +101,23 @@ std::string extract_cudaq_target_parameter(const std::string &line) {
 
 std::string read_file(const std::string &file_path) {
   std::ifstream file_handle(file_path);
-  if(!file_handle) {
+  if (!file_handle) {
     throw std::runtime_error("Failed to open file: " + file_path);
   }
 
-  return std::string((std::istreambuf_iterator<char>(file_handle)), std::istreambuf_iterator<char>());
+  return std::string((std::istreambuf_iterator<char>(file_handle)),
+                     std::istreambuf_iterator<char>());
 }
 
-std::string get_file_content(const py::object &inspect, const py::function &func) {
+std::string get_file_content(const py::object &inspect,
+                             const py::function &func) {
   // Get the source file of the function
   py::object source_file;
   try {
     source_file = inspect.attr("getfile")(func);
   } catch (py::error_already_set &e) {
-    throw std::runtime_error("Failed to get source file: " + std::string(e.what()));
+    throw std::runtime_error("Failed to get source file: " +
+                             std::string(e.what()));
   }
 
   // Read the entire source file
@@ -158,13 +126,15 @@ std::string get_file_content(const py::object &inspect, const py::function &func
   return file_content;
 }
 
-py::object get_source_code(const py::object &inspect, const py::function &func) {
+py::object get_source_code(const py::object &inspect,
+                           const py::function &func) {
   // Get the source code
   py::object source_code;
   try {
     source_code = inspect.attr("getsource")(func);
   } catch (py::error_already_set &e) {
-    throw std::runtime_error("Failed to get source code: " + std::string(e.what()));
+    throw std::runtime_error("Failed to get source code: " +
+                             std::string(e.what()));
   }
 
   return source_code;
@@ -181,51 +151,62 @@ py::object get_parent_frame_info(const py::object &inspect) {
   return stack[0];
 }
 
-std::tuple<py::dict, py::dict> get_locals_and_globals(const py::object &parent_frame_info) {
+std::tuple<py::dict, py::dict>
+get_locals_and_globals(const py::object &parent_frame_info) {
   py::dict locals;
   py::dict globals;
   try {
     locals = parent_frame_info.attr("frame").attr("f_locals");
     globals = parent_frame_info.attr("frame").attr("f_globals");
   } catch (py::error_already_set &e) {
-    throw std::runtime_error("Failed to get frame locals and globals: " + std::string(e.what()));
+    throw std::runtime_error("Failed to get frame locals and globals: " +
+                             std::string(e.what()));
   }
 
   return std::make_tuple(locals, globals);
 }
 
-py::object get_compiled_code(const std::string &combined_code, const py::object &builtins) {
+py::object get_compiled_code(const std::string &combined_code,
+                             const py::object &builtins) {
   py::object compiled_code;
   try {
     py::object compile = builtins.attr("compile");
     compiled_code = compile(combined_code, "<string>", "exec");
   } catch (py::error_already_set &e) {
-    throw std::runtime_error("Failed to compile code: " + std::string(e.what()));
+    throw std::runtime_error("Failed to compile code: " +
+                             std::string(e.what()));
   }
 
   return compiled_code;
 }
 
-json get_serialized_code(std::string &source_code, py::dict &locals, py::dict &globals) {
-  // Serialize the compiled code, locals, and globals
-  json serialized_data;
+SerializedCodeExecutionContext *get_serialized_code(std::string &source_code, py::dict &locals,
+                         py::dict &globals) {
+  // Serialize the source code, locals, and globals
+  json serialized_data, empty_json;
   try {
     serialized_data = serialize_data(source_code, locals, globals);
   } catch (py::error_already_set &e) {
-    throw std::runtime_error("Failed to serialized data: " + std::string(e.what()));
+    throw std::runtime_error("Failed to serialized data: " +
+                             std::string(e.what()));
   }
 
-  return serialized_data;
+  SerializedCodeExecutionContext *serializedCodeExecutionContext = new SerializedCodeExecutionContext(serialized_data["source_code"], serialized_data["locals"], serialized_data["globals"]);
+
+  return serializedCodeExecutionContext;
 }
 
-std::tuple<std::string, std::string> extract_func_call_and_cudaq_target(const std::string &file_content, const py::object &func) {
+std::tuple<std::string, std::string>
+extract_func_call_and_cudaq_target(const std::string &file_content,
+                                   const py::object &func) {
   // Split the file content into lines and process each line
   std::istringstream file_stream(file_content);
   std::string line;
   std::string func_call;
   std::string cudaq_target;
   while (std::getline(file_stream, line)) {
-    if (line.find(func.attr("__name__").cast<std::string>()) != std::string::npos) {
+    if (line.find(func.attr("__name__").cast<std::string>()) !=
+        std::string::npos) {
       func_call = line;
     }
     if (line.find("cudaq.set_target") != std::string::npos) {
@@ -251,13 +232,50 @@ std::string create_return_string(const std::string &func_call) {
   return "";
 }
 
-json call_rest_api(const json &serialize_data_object) {
-  json response;
-
-  // TODO Implement the client request
+void call_rest_api(SerializedCodeExecutionContext *serializeCodeExecutionObject, const py::dict &locals, const py::dict &globals) {
+  std::unique_ptr<cudaq::RemoteRuntimeClient> m_client 
+    = cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest");
   
+  py::object kernel = locals["kernel"];
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto &platform = get_platform();
+  auto *ctx = platform.get_exec_ctx();
+  using namespace mlir;
 
-  return response;
+  ModuleOp mod = unwrap(kernelMod);
+  auto *mlirContext = mod->getContext();
+
+  std::cout << "Extracting required parameters..." << std::endl;
+  std::cout << "Kernel: " << kernel << std::endl;
+
+  std::cout << "Global namespace:\n" << std::endl;
+  std::cout << py::globals() << std::endl;
+  // auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
+
+  py::list attributes = kernel.attr("__dict__").attr("items")();
+  for (auto item : attributes) {
+    py::tuple item_arr = item.cast<py::tuple>();
+    auto key = item_arr[0];
+    auto value = item_arr[1];
+    std::cout << key.cast<std::string>() << ": " << py::str(value).cast<std::string>() << std::endl;
+  }
+
+  std::cout << "Making a REST request..." << std::endl;
+  std::string errorMsg;
+  const bool requestOkay = m_client->sendRequest(*mlirContext, *ctx, *serializeCodeExecutionObject, "", kernelName,
+                              nullptr, nullptr, 0, &errorMsg);
+  
+  if (!requestOkay)
+      throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+}
+
+std::string trim(const std::string &str) {
+  std::stringstream ss;
+  ss << str;
+  std::string trimmed;
+  ss >> trimmed;
+  return trimmed;
 }
 
 void bindGradientStrategies(py::module &mod) {
@@ -336,50 +354,110 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
           "Set the upper value bound for the optimization parameters.")
       .def(
           "optimize",
+          // objective_function
+          // use C++ function
           [](OptimizerT &opt, const int dim, py::function &func) {
-            // write a function to detect if cudaq.set_target has been used and fetch its value
+            // write a function to detect if cudaq.set_target has been used and
+            // fetch its value
 
             py::object inspect = py::module::import("inspect");
-            py::object sys = py::module::import("sys");
 
             // Get source file content
             std::string file_content = get_file_content(inspect, func);
-            
+
             // Extract function call and cudaq target from the file content
-            auto [func_call, cudaq_target] = extract_func_call_and_cudaq_target(file_content, func);
+            auto [func_call, cudaq_target] =
+                extract_func_call_and_cudaq_target(file_content, func);
 
             // Run this only if the cudaq target is set to nvqc
-            if (cudaq_target == "nvqc") {
+            if (cudaq_target == "remote-mqpu") {
               // Get source code
               py::object source_code = get_source_code(inspect, func);
-            
+
+              /*
               // Combine the function source and its call
               std::ostringstream code;
-              code << R"()" << source_code.cast<std::string>() + "\n" + func_call << R"()";
-              std::string combined_code = code.str();
+              code << R"(
+# Define the objective function
+def objective_function(x):
+  return (x - 3) ** 2 + 4
+
+class Optimizer:
+  def __init__(self, func):
+    self.func = func
+  def optimize(self, initial_guess):
+    current_guess = initial_guess
+    learning_rate = 0.1
+    for _ in range(100):  # Run 100 iterations
+      gradient = 2 * (current_guess - 3)
+      current_guess -= learning_rate * gradient
+    return current_guess
+
+optimizer = Optimizer(objective_function)
+
+result, parameter = optimizer.optimize(0), 1.234
+              )";
+              */
+              
+              // std::string combined_code = code.str();
+              std::string combined_code = source_code.cast<std::string>() + func_call;
+
               std::cout << combined_code << std::endl;
 
               // Get the parent frame info
               py::object parent_frame_info = get_parent_frame_info(inspect);
 
               // Get locals and globals for the current frame
-              auto [locals, globals] = get_locals_and_globals(parent_frame_info);
-              
+              auto [locals, globals] =
+                  get_locals_and_globals(parent_frame_info);
+
               // Use for compiling the source code
               // py::object builtins = py::module::import("builtins");
+              // std::string compiled_code =
+              // py::str(get_compiled_code(combined_code,
+              // builtins)).cast<std::string>();
+
               std::cout << "Executing python code" << std::endl;
-              py::exec(combined_code, globals, locals);
-              std::cout << "Finished executing python code" << std::endl;
+              std::cout << "Locals:\n" << locals << std::endl;
+              std::cout << "Globals:\n" << globals << std::endl;
+              // py::module traceback = py::module::import("traceback");
+              // try {
+              //   py::exec(combined_code, globals, locals);
+              // } catch (py::error_already_set &e) {
+              //   std::cerr << "Caught an error: " << e.what() << std::endl;
+              //   if (e.trace()) {
+              //     std::cerr << "Traceback:" << std::endl;
+              //     std::cerr << e.trace() << std::endl;
+              //   }
+              //   py::list tb_list = traceback.attr("format_tb")(e.trace());
+              //   std::vector<std::string> tb_strings;
+              //   for (py::handle str : tb_list) {
+              //     tb_strings.push_back(str.cast<std::string>());
+              //   }
+              //   std::cout << "Traceback:\n" << std::endl;
+              //   for (const auto &tb_str : tb_strings) {
+              //     std::cout << tb_str;
+              //   }
+              //   e.restore();
+              //   throw;
+              //   // throw std::runtime_error("Failed to execute code: " +
+              //   //                          std::string(e.what()));
+              // }
+              // std::cout << "Finished executing python code" << std::endl;
+              // std::cout << "Locals:\n" << locals << std::endl;
+              // std::cout << "Globals:\n" << globals << std::endl;
 
               // Serialize the compiled code, locals, and globals
-              json serialized_data_object = get_serialized_code(combined_code, locals, globals);
+              SerializedCodeExecutionContext *serialized_code_execution_object =
+                  get_serialized_code(combined_code, locals, globals);
 
               // Call the REST API to /job
-              // json response = call_rest_api(serialized_data_object);
+              call_rest_api(serialized_code_execution_object, locals, globals);
 
               // return a empty tuple to suppress the compile error for now
               // TODO Need to return the proper value from response
-              return std::make_tuple<double, std::vector<double>>(0.0, std::vector<double>());
+              return std::make_tuple<double, std::vector<double>>(
+                  0.0, std::vector<double>());
             }
 
             return opt.optimize(dim, [&](std::vector<double> x,

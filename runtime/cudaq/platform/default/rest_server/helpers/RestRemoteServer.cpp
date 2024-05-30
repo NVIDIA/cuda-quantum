@@ -254,6 +254,7 @@ public:
 
   virtual void handleRequest(std::size_t reqId,
                              cudaq::ExecutionContext &io_context,
+                             cudaq::SerializedCodeExecutionContext &serializedCodeExecutionContext,
                              const std::string &backendSimName,
                              std::string_view ir, std::string_view kernelName,
                              void *kernelArgs, std::uint64_t argsSize,
@@ -575,7 +576,7 @@ protected:
         throw std::runtime_error("Failed to decode input IR");
       }
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
-      handleRequest(reqId, request.executionContext, request.simulator, codeStr,
+      handleRequest(reqId, request.executionContext, request.serializedCodeExecutionContext, request.simulator, codeStr,
                     request.entryPoint, request.args.data(),
                     request.args.size(), request.seed);
       json resultJson;
@@ -606,11 +607,11 @@ protected:
       return false;
     }
 
-    cudaq::RequestValidator validator;
+    // cudaq::RequestValidator validator;
 
-    if (in_request.serializedCodeExecutionContext.code != NULL) {
-      return validator.validateRequest(in_request.serializedCodeExecutionContext, outValidationMessage);
-    }
+    // if (in_request.serializedCodeExecutionContext.code != NULL) {
+    //   return validator.validateRequest(in_request.serializedCodeExecutionContext, outValidationMessage);
+    // }
 
     return true;
   }

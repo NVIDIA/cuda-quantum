@@ -95,7 +95,7 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
                                "machine for auto-launch a REST server.");
 
     /// Step 2: Create process and set URL
-    llvm::StringRef argv[] = {serverApp.get(), "--port", port.value()};
+    llvm::StringRef argv[] = {serverApp.get(), "--port", "3030"}; //port.value()};
     std::string errorMsg;
     bool executionFailed = false;
     auto processInfo =

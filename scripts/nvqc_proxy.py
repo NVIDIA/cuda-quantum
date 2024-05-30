@@ -13,6 +13,10 @@ import requests
 import socketserver
 import sys
 import time
+import base64
+import py
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
@@ -63,39 +67,86 @@ class Server(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
 
+    async def handle_job_request(self, request_json):
+        serialized_ctx = request_json['serializedCodeExecutionContext']
+        print(serialized_ctx)
+        source_code = base64.b64decode(serialized_ctx['source_code']).decode('utf-8')
+        locals_dict = eval(base64.b64decode(serialized_ctx['locals']).decode('utf-8'))
+        globals_dict = eval(base64.b64decode(serialized_ctx['globals']).decode('utf-8'))
+
+        loop = asyncio.get_running_loop()
+        with ProcessPoolExecutor() as pool:
+            result = await loop.run_in_executor(pool, self.execute_code_in_subprocess, source_code, locals_dict, globals_dict)
+
+        return result
+    
+    @staticmethod
+    def execute_code_in_subprocess(source_code, locals_dict, globals_dict):
+        try:
+            # subprocess
+            # Execute the code
+            exec(source_code, globals_dict, locals_dict)
+
+            result = {
+                "status": "success",
+                "locals": locals_dict,
+                "globals": globals_dict
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+
     def do_POST(self):
         if self.path == '/job':
-            qpud_up = False
-            retries = 0
+            # qpud_up = False
+            # retries = 0
             qpud_url = 'http://localhost:' + str(QPUD_PORT)
-            while (not qpud_up):
-                try:
-                    ping_response = requests.get(qpud_url)
-                    qpud_up = (ping_response.status_code == HTTPStatus.OK)
-                except:
-                    qpud_up = False
-                if not qpud_up:
-                    retries += 1
-                    if retries > 100:
-                        print("PROXY EXIT: TOO MANY RETRIES!")
-                        sys.exit()
-                    print(
-                        "Main application is down, retrying (retry_count = {})..."
-                        .format(retries))
-                    time.sleep(0.1)
+            # while (not qpud_up):
+            #     try:
+            #         ping_response = requests.get(qpud_url)
+            #         qpud_up = (ping_response.status_code == HTTPStatus.OK)
+            #     except:
+            #         qpud_up = False
+            #     if not qpud_up:
+            #         retries += 1
+            #         if retries > 100:
+            #             print("PROXY EXIT: TOO MANY RETRIES!")
+            #             sys.exit()
+            #         print(
+            #             "Main application is down, retrying (retry_count = {})..."
+            #             .format(retries))
+            #         time.sleep(0.1)
 
             content_length = int(self.headers['Content-Length'])
             if content_length:
-                res = requests.request(method=self.command,
-                                       url=qpud_url + self.path,
-                                       headers=self.headers,
-                                       data=self.rfile.read(content_length))
-                self.send_response(HTTPStatus.OK)
-                self.send_header('Content-Type', 'application/json')
-                message = json.dumps(res.json()).encode('utf-8')
-                self.send_header("Content-Length", str(len(message)))
-                self.end_headers()
-                self.wfile.write(message)
+                request_data = self.rfile.read(content_length)
+                request_json = json.loads(request_data)
+
+                if 'serializedCodeExecutionContext' in request_json:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    result = loop.run_until_complete(self.handle_job_request(request_json))
+                    loop.close()
+
+                    self.send_response(HTTPStatus.OK)
+                    self.send_header('Content-Type', 'application/json')
+                    message = json.dumps(result).encode('utf-8')
+                    self.send_header('Content-Length', str(len(message)))
+                    self.end_headers()
+                    self.wfile.write(message)
+                else:
+                    res = requests.request(method=self.command,
+                                        url=qpud_url + self.path,
+                                        headers=self.headers,
+                                        data=request_data)
+                    self.send_response(HTTPStatus.OK)
+                    self.send_header('Content-Type', 'application/json')
+                    message = json.dumps(res.json()).encode('utf-8')
+                    self.send_header("Content-Length", str(len(message)))
+                    self.end_headers()
+                    self.wfile.write(message)
             else:
                 self.send_response(HTTPStatus.BAD_REQUEST)
                 self.send_header("Content-Length", "0")

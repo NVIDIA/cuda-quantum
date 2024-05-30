@@ -21,28 +21,28 @@ namespace cudaq {
 /// how a serialized code should be executed.
 class SerializedCodeExecutionContext {
 public:
-  /// @brief The source code of the objective function and its call as a string.
-  std::string code;
+  /// @brief The source code of the objective function and its call as a Base64
+  /// string.
+  std::string source_code;
 
-  /// @brief The local namespace of the objective function as a json object.
-  json locals;
+  /// @brief The local namespace of the objective function as a Base64 string.
+  std::string locals;
 
-  /// @brief The global namespace of the objective function as a json object.
-  json globals;
+  /// @brief The global namespace of the objective function as a Base64 string.
+  std::string globals;
 
-  /// @brief A computed optimal value
-  std::optional<double> optimalValue = std::nullopt;
+  // /// @brief A computed optimal value
+  // std::optional<double> optimalValue = std::nullopt;
 
-  /// @brief The optimal parameters returned on execution.
-  std::vector<double> optimalParameters;
+  // /// @brief The optimal parameters returned on execution.
+  // std::vector<double> optimalParameters;
 
   SerializedCodeExecutionContext() = default;
-  SerializedCodeExecutionContext(std::string c, json l, json g)
-      : code(std::move(c)), locals(std::move(l)), globals(std::move(g)) {}
+  SerializedCodeExecutionContext(std::string c, std::string l, std::string g)
+      : source_code(std::move(c)), locals(std::move(l)), globals(std::move(g)) {}
   ~SerializedCodeExecutionContext() = default;
 
   // Serialization
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext, code, locals,
-                                 globals);
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext, code, locals, globals);
 };
 } // namespace cudaq

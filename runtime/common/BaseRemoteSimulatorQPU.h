@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
+#include "common/SerializedCodeExecutionContext.h"
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
@@ -16,6 +17,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <fstream>
+#include <iostream>
 
 namespace cudaq {
 
@@ -45,6 +47,7 @@ public:
   virtual bool supportsConditionalFeedback() override { return true; }
 
   virtual void setTargetBackend(const std::string &backend) override {
+    std::cout << "Backend: " << backend << std::endl;
     auto parts = cudaq::split(backend, ';');
     if (parts.size() % 2 != 0)
       throw std::invalid_argument("Unexpected backend configuration string. "
@@ -90,9 +93,11 @@ public:
                                                                /*shots=*/1);
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
+
+    cudaq::SerializedCodeExecutionContext serializedCodeContext;
     std::string errorMsg;
     const bool requestOkay =
-        m_client->sendRequest(*m_mlirContext, executionContext, m_simName, name,
+        m_client->sendRequest(*m_mlirContext, executionContext, serializedCodeContext, m_simName, name,
                               kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
