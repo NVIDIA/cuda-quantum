@@ -31,8 +31,12 @@ struct EnableInlinerInterface : public mlir::DialectInlinerInterface {
           return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
     return true;
   }
-  bool isLegalToInline(mlir::Operation *op, mlir::Region *, bool,
+  bool isLegalToInline(mlir::Operation *op, mlir::Region *dest, bool,
                        mlir::IRMapping &) const final {
+    if (auto destFunc = dest->getParentOfType<mlir::func::FuncOp>())
+      if (destFunc.getName().ends_with(".thunk"))
+        if (auto srcFunc = op->getParentOfType<mlir::func::FuncOp>())
+          return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
     return true;
   }
   bool isLegalToInline(mlir::Operation *call, mlir::Operation *callable,

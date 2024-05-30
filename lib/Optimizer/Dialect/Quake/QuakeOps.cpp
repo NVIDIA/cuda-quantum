@@ -914,6 +914,10 @@ bool cudaq::EnableInlinerInterface::isLegalToInline(Operation *call,
   if (auto applyOp = dyn_cast<quake::ApplyOp>(call))
     if (applyOp.applyToVariant())
       return false;
+  if (auto destFunc = call->getParentOfType<mlir::func::FuncOp>())
+    if (destFunc.getName().ends_with(".thunk"))
+      if (auto srcFunc = call->getParentOfType<mlir::func::FuncOp>())
+        return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
   return true;
 }
 
