@@ -154,7 +154,7 @@ We know our qubit can have 2 distinct states: :math:`\ket{0}` and
 :math:`\ket{1}`. Maybe we need a 1 dimensional line whose verticies can
 represent each of the aforementioned states.
 
-We also know that qubits’ can be in an equal superposition states:
+We also know that qubits can be in an equal superposition states:
 :math:`\ket{+}` and :math:`\ket{-}`. This now forces us to extend our
 1-D line to a 2-D cartesian coordinate system.
 
@@ -255,7 +255,7 @@ Some notation conventions
 -------------------------
 
 Qubit counting starts from 0 and the 0th qubit is represented on the
-left most side in Dirac notation. For e.g. in :math:`\ket{01}` the 0th
+left most side in Dirac notation. For e.g. in :math:`\ket{01}` the 0th 
 qubit is in state :math:`\ket{0}` and the first in state
 :math:`\ket{1}`.
 
