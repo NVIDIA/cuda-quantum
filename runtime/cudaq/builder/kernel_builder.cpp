@@ -559,12 +559,6 @@ __nvqpp_getStateVectorData_fp32(StateVectorStorage &stateVectorStorage,
                                 std::intptr_t index) {
   return getStateVectorData<float>(stateVectorStorage, index);
 }
-
-/// Runtime callback to get the state pointer of a captured `cudaq::state`.
-cudaq::state *__nvqpp_getStatePtr(StateVectorStorage &stateVectorStorage,
-                                  std::intptr_t index) {
-  return std::get<cudaq::state *>(stateVectorStorage[index]);
-}
 }
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder,
@@ -628,25 +622,11 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder,
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, cudaq::state *state,
                   StateVectorStorage &stateVectorStorage) {
   auto *context = builder.getContext();
-  auto index = stateVectorStorage.size();
-  stateVectorStorage.emplace_back(StateVectorVariant(state));
-  const char *getStatePtrCallback = "__nvqpp_getStatePtr";
-  {
-    auto parentModule =
-        builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
-    IRBuilder irb(context);
-
-    if (failed(irb.loadIntrinsic(parentModule, getStatePtrCallback)))
-      throw std::runtime_error("loading callbacks should never fail");
-  }
   auto statePtrTy = cudaq::cc::PointerType::get(cc::StateType::get(context));
-  std::intptr_t vecStor = reinterpret_cast<std::intptr_t>(&stateVectorStorage);
-  auto vecPtr = builder.create<arith::ConstantIntOp>(vecStor, 64);
-  auto idxOp = builder.create<arith::ConstantIntOp>(index, 64);
-  auto statePtr = builder
-                      .create<func::CallOp>(statePtrTy, getStatePtrCallback,
-                                            ValueRange{vecPtr, idxOp})
-                      .getResult(0);
+  auto statePtr = builder.create<cc::CastOp>(
+      builder.getLoc(), statePtrTy,
+      builder.create<arith::ConstantIntOp>(
+          reinterpret_cast<std::intptr_t>(state), 64));
   // Add the initialize state op
   Value qubits = builder.create<quake::AllocaOp>(
       quake::VeqType::get(context, state->get_num_qubits()));
