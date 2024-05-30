@@ -12,6 +12,7 @@
 #include "cudaq/algorithms/draw.h"
 #include "common/FmtCore.h"
 #include <algorithm>
+#include <iostream>
 #include <utility>
 
 using namespace cudaq;
@@ -383,41 +384,44 @@ private:
   }
 };
 
-std::string cudaq::__internal__::draw(const Trace &trace) {
-  if (trace.begin() == trace.end())
-    return "<empty trace>";
+// auto [min_dwire_it, max_dwire_it] =
+//     std::minmax_element(controls.begin(), controls.end());
+// auto min_dwire = std::min(*min_dwire_it, wires.front());
+// auto max_dwire = std::max(*max_dwire_it, wires.back());
 
-  using Layer = std::vector<std::size_t>;
+namespace {
+std::vector<int> convertToIDs(const std::vector<QuditInfo> &qudits) {
+  std::vector<int> ids;
+  ids.reserve(qudits.size());
+  std::transform(qudits.cbegin(), qudits.cend(), std::back_inserter(ids),
+                 [](auto &info) { return info.id; });
+  return ids;
+}
 
-  Diagram diagram(trace.getNumQudits());
+using Layer = std::vector<std::size_t>;
 
-  // Separate the instructions in layers.  Each layer must contain gates that
-  // can be drawn in the same diagram layer.  For example, if I have a
-  // CX(0, 2) and a X(1), then I cannot draw those gates on the same layer
-  // in the circuit diagram
+// Separate the instructions in layers.  Each layer must contain gates that
+// can be drawn in the same diagram layer.  For example, if I have a
+// CX(0, 2) and a X(1), then I cannot draw those gates on the same layer
+// in the circuit diagram
+std::vector<Layer> layers_from_trace(const Trace &trace) {
+
   std::vector<Layer> layers;
-  std::vector<int> wire_layer(diagram.num_wires(), -1);
-
-  auto convertToIDs = [](const std::vector<QuditInfo> &qudits) {
-    std::vector<int> ids;
-    ids.reserve(qudits.size());
-    std::transform(qudits.cbegin(), qudits.cend(), std::back_inserter(ids),
-                   [](auto &info) { return info.id; });
-    return ids;
-  };
+  std::vector<int> wire_layer(trace.getNumQudits(), -1);
 
   std::size_t ref = 0;
   for (const auto &inst : trace) {
     std::vector<Diagram::Wire> wires = convertToIDs(inst.targets);
-    std::sort(wires.begin(), wires.end());
+    const auto minmax_wires = std::minmax_element(begin(wires), end(wires));
+    auto min_dwire = *minmax_wires.first;
+    auto max_dwire = *minmax_wires.second;
 
-    auto min_dwire = wires.front();
-    auto max_dwire = wires.back();
-
-    std::vector<Diagram::Wire> controls = convertToIDs(inst.controls);
-    for (auto control : controls) {
-      min_dwire = std::min(control, min_dwire);
-      max_dwire = std::max(control, max_dwire);
+    if (!inst.controls.empty()) {
+      const std::vector<Diagram::Wire> controls = convertToIDs(inst.controls);
+      const auto minmax_dwire_controls =
+          std::minmax_element(begin(controls), end(controls));
+      min_dwire = std::min(*minmax_dwire_controls.first, min_dwire);
+      max_dwire = std::max(*minmax_dwire_controls.second, max_dwire);
     }
 
     int layer = -1;
@@ -429,28 +433,33 @@ std::string cudaq::__internal__::draw(const Trace &trace) {
       layers.emplace_back();
     }
     layers.at(layer).emplace_back(ref);
+    // advance wire layer
     for (auto i = min_dwire; i <= max_dwire; ++i)
       wire_layer.at(i) = layer;
     ref += 1;
   }
+  return layers;
+}
 
+std::vector<std::unique_ptr<Diagram::Operator>>
+boxes_from_trace(const Trace &trace) {
   std::vector<std::unique_ptr<Diagram::Operator>> boxes;
-  ref = 0;
+  boxes.reserve(std::distance(trace.begin(), trace.end()));
+
+  std::size_t ref = 0;
   for (const auto &inst : trace) {
     std::vector<Diagram::Wire> wires = convertToIDs(inst.targets);
     std::sort(wires.begin(), wires.end());
 
     auto min_target = wires.front();
     auto max_target = wires.back();
-
     bool overlap = false;
     std::vector<Diagram::Wire> controls = convertToIDs(inst.controls);
-    wires.reserve(wires.size() + controls.size());
     for (auto control : controls) {
-      wires.push_back(control);
       if (control > min_target && control < max_target)
         overlap = true;
     }
+    wires.insert(wires.end(), controls.begin(), controls.end());
 
     int padding = 1;
     std::string name = inst.params.empty()
@@ -474,6 +483,20 @@ std::string cudaq::__internal__::draw(const Trace &trace) {
     boxes.push_back(std::move(shape));
     ref += 1;
   }
+  return boxes;
+}
+
+} // namespace
+
+std::string cudaq::__internal__::draw(const Trace &trace) {
+  if (trace.begin() == trace.end()) {
+    return "<empty trace>";
+  }
+
+  const auto layers = layers_from_trace(trace);
+
+  std::vector<std::unique_ptr<Diagram::Operator>> boxes =
+      boxes_from_trace(trace);
 
   std::vector<int> layer_width(layers.size(), 0);
   // set the width of the layers
@@ -488,6 +511,7 @@ std::string cudaq::__internal__::draw(const Trace &trace) {
         std::max(layer_width.at(layer), boxes[ref]->width());
   }
 
+  Diagram diagram(trace.getNumQudits());
   // Draw labels
   std::size_t prefix_size = 0u;
   std::vector<std::string> prefix(diagram.height(), "");
