@@ -383,11 +383,6 @@ private:
   }
 };
 
-// auto [min_dwire_it, max_dwire_it] =
-//     std::minmax_element(controls.begin(), controls.end());
-// auto min_dwire = std::min(*min_dwire_it, wires.front());
-// auto max_dwire = std::max(*max_dwire_it, wires.back());
-
 namespace {
 std::vector<int> convertToIDs(const std::vector<QuditInfo> &qudits) {
   std::vector<int> ids;
@@ -485,18 +480,10 @@ boxes_from_trace(const Trace &trace) {
   return boxes;
 }
 
-} // namespace
-
-std::string cudaq::__internal__::draw(const Trace &trace) {
-  if (trace.begin() == trace.end()) {
-    return "<empty trace>";
-  }
-
-  const auto layers = layers_from_trace(trace);
-
+std::string string_diagram_from_trace(const Trace &trace,
+                                      const std::vector<Layer> &layers) {
   std::vector<std::unique_ptr<Diagram::Operator>> boxes =
       boxes_from_trace(trace);
-
   std::vector<int> layer_width(layers.size(), 0);
   // set the width of the layers
   for (size_t ref = 0; ref < boxes.size(); ++ref) {
@@ -566,5 +553,17 @@ std::string cudaq::__internal__::draw(const Trace &trace) {
     }
     start = cutting_point.at(i);
   }
+  return str;
+}
+
+} // namespace
+
+std::string cudaq::__internal__::draw(const Trace &trace) {
+  if (trace.begin() == trace.end()) {
+    return "<empty trace>";
+  }
+
+  const auto layers = layers_from_trace(trace);
+  const auto str = string_diagram_from_trace(trace, layers);
   return str;
 }
