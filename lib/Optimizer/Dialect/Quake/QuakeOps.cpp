@@ -914,7 +914,7 @@ bool cudaq::EnableInlinerInterface::isLegalToInline(Operation *call,
   if (auto applyOp = dyn_cast<quake::ApplyOp>(call))
     if (applyOp.applyToVariant())
       return false;
-  return !(callable->hasAttr(cudaq::entryPointAttrName));
+  return true;
 }
 
 using EffectsVectorImpl =
