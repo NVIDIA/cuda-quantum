@@ -118,13 +118,13 @@ def test_quantinuum_exp_pauli():
 
 
 def test_u3_emulatation():
+
     @cudaq.kernel
     def check_x():
         q = cudaq.qubit()
         u3(np.pi, np.pi, np.pi / 2, q)
 
-    with pytest.raises(RuntimeError) as error:
-        counts = cudaq.sample(check_x)
+    counts = cudaq.sample(check_x)
 
 
 # leave for gdb debugging
