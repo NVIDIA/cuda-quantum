@@ -159,6 +159,11 @@ inline mlir::Value createF64Constant(mlir::Location loc,
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
 
+/// Create a temporary on the stack. The temporary is created such that it is
+/// \em{not} control dependent (other than on function entry).
+mlir::Value createLLVMTemporary(mlir::Location loc, mlir::OpBuilder &builder,
+                                mlir::Type type, std::size_t size = 1);
+
 //===----------------------------------------------------------------------===//
 
 inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
@@ -172,7 +177,7 @@ inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
 mlir::Value packIsArrayAndLengthArray(mlir::Location loc,
                                       mlir::ConversionPatternRewriter &rewriter,
                                       mlir::ModuleOp parentModule,
-                                      mlir::Value numOperands,
+                                      std::size_t numOperands,
                                       mlir::ValueRange operands);
 mlir::FlatSymbolRefAttr
 createLLVMFunctionSymbol(mlir::StringRef name, mlir::Type retType,
