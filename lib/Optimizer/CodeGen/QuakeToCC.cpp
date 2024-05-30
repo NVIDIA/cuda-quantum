@@ -313,7 +313,7 @@ public:
       }
       auto buffer = rewriter.create<cudaq::cc::AllocaOp>(loc, f64Ty, numParams);
       for (auto iter : llvm::enumerate(adaptor.getParameters())) {
-        auto i = iter.index();
+        std::int32_t i = iter.index();
         auto p = iter.value();
         auto ptr = rewriter.create<cudaq::cc::ComputePtrOp>(
             loc, ptrF64Ty, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
