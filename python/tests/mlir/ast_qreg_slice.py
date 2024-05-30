@@ -78,6 +78,7 @@ def test_slice():
 # CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_14]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.z %[[VAL_16]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_17:.*]] = cc.alloca !cc.array<i64 x 5>
+# CHECK:           %[[VAL_172:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<!cc.array<i64 x ?>>
 # CHECK:           %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_17]][0] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
 # CHECK:           cc.store %[[VAL_3]], %[[VAL_18]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_17]][1] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
@@ -88,7 +89,7 @@ def test_slice():
 # CHECK:           cc.store %[[VAL_1]], %[[VAL_21]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_22:.*]] = cc.compute_ptr %[[VAL_17]][4] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
 # CHECK:           cc.store %[[VAL_5]], %[[VAL_22]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_23:.*]] = cc.stdvec_init %[[VAL_17]], %[[VAL_5]] : (!cc.ptr<!cc.array<i64 x 5>>, i64) -> !cc.stdvec<i64>
+# CHECK:           %[[VAL_23:.*]] = cc.stdvec_init %[[VAL_172]], %[[VAL_5]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
 # CHECK:           %[[VAL_24:.*]] = cc.alloca !cc.stdvec<i64>
 # CHECK:           cc.store %[[VAL_23]], %[[VAL_24]] : !cc.ptr<!cc.stdvec<i64>>
 # CHECK:           %[[VAL_25:.*]] = cc.load %[[VAL_24]] : !cc.ptr<!cc.stdvec<i64>>
