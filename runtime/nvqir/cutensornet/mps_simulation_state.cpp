@@ -392,15 +392,9 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
       -> std::tuple<Eigen::MatrixXcd, Eigen::VectorXd, Eigen::MatrixXcd> {
     assert(U.cols() == S.size());
     assert(V.cols() == S.size());
-    if (S.size() <= bondDim) {
-      Eigen::MatrixXcd newU(U.rows(), bondDim);
-      newU.leftCols(U.cols()) = U;
-      Eigen::MatrixXcd newV(V.rows(), bondDim);
-      newV.leftCols(V.cols()) = V;
-      Eigen::VectorXd newS(bondDim);
-      newS.head(S.size()) = S;
-      return {newU, newS, newV};
-    }
+    if (S.size() <= bondDim)
+      return {U, S, V};
+
     // Truncation
     Eigen::MatrixXcd newU(U.rows(), bondDim);
     newU = U.leftCols(bondDim);
@@ -417,7 +411,6 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
     const Eigen::MatrixXcd V_orig = svd.matrixV();
     const Eigen::VectorXd S_orig = svd.singularValues();
     const auto [U, S, V] = enforceBondDim(U_orig, S_orig, V_orig);
-    assert(S.size() == bondDim);
     numSingularValues.emplace_back(S.size());
     reshapedMat = (i != (numQubits - 2))
                       ? reshapeMatrix(S.asDiagonal() * V.adjoint())

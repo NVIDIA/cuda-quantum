@@ -62,6 +62,39 @@ CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecGeneral) {
   }
 }
 
+// Same as test_state_vector_init with some dummy gates
+struct test_state_vector_init_gate {
+  void operator()(const std::vector<cudaq::complex> &stateVec) __qpu__ {
+    cudaq::qvector q(stateVec);
+    // Identity
+    cudaq::exp_pauli(1.0, q, "XXXXX");
+    cudaq::exp_pauli(-1.0, q, "XXXXX");
+    mz(q);
+  }
+};
+
+CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecWithGate) {
+  constexpr int numQubits = 5;
+  // Large number of shots
+  constexpr int numShots = 1000000;
+  const auto stateVec = randomState(numQubits);
+  auto counts =
+      cudaq::sample(numShots, test_state_vector_init_gate{}, stateVec);
+  counts.dump();
+  for (const auto &[bitStrOrg, count] : counts) {
+    auto bitStr = bitStrOrg;
+    std::reverse(bitStr.begin(), bitStr.end());
+    const int val = std::stoi(bitStr, nullptr, 2);
+    const double prob = 1.0 * count / numShots;
+    const double expectedProb = std::norm(stateVec[val]);
+    if (expectedProb > 1e-6) {
+      const double relError = std::abs(expectedProb - prob) / expectedProb;
+      // Less than 20% difference (relative)
+      EXPECT_LT(relError, 0.2);
+    }
+  }
+}
+
 struct test_allocation {
   void operator()() __qpu__ {
     cudaq::qubit q;
