@@ -13,5 +13,7 @@ Tutorials that give an in depth view of CUDA-Q and its applications in Python.
     /examples/python/tutorials/multi_gpu_workflows.ipynb
     /examples/python/tutorials/multiple_qubits.ipynb
     /examples/python/tutorials/noisy_simulations.ipynb
+    /examples/python/tutorials/qaoa.ipynb
     /examples/python/tutorials/quantum_bits.ipynb
+    /examples/python/tutorials/quantum_fourier_transform.ipynb
     /examples/python/tutorials/vqe.ipynb
