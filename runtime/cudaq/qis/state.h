@@ -18,6 +18,7 @@ namespace cudaq {
 class state_helper;
 
 using tensor = SimulationState::Tensor;
+
 /// @brief The cudaq::state encapsulate backend simulation state vector or
 /// density matrix data.
 class state {
@@ -36,7 +37,7 @@ public:
   /// @brief Copy constructor (default)
   state(const state &other) = default;
   /// @brief Copy assignment
-  state &operator=(state other);
+  state &operator=(state &&other);
 
   /// @brief Convenience function for extracting from a known vector.
   std::complex<double> operator[](std::size_t idx);
