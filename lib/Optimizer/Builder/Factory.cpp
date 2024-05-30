@@ -74,14 +74,14 @@ cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy) {
 Value factory::packIsArrayAndLengthArray(Location loc,
                                          ConversionPatternRewriter &rewriter,
                                          ModuleOp parentModule,
-                                         Value numOperands,
+                                         std::size_t numOperands,
                                          ValueRange operands) {
-  // Create an integer array where the kth element is N if the kth
-  // control operand is a veq<N>, and 0 otherwise.
+  // Create an integer array where the kth element is N if the kth control
+  // operand is a veq<N>, and 0 otherwise.
   auto i64Type = rewriter.getI64Type();
   auto context = rewriter.getContext();
-  Value isArrayAndLengthArr = rewriter.create<LLVM::AllocaOp>(
-      loc, LLVM::LLVMPointerType::get(i64Type), numOperands);
+  Value isArrayAndLengthArr = createLLVMTemporary(
+      loc, rewriter, LLVM::LLVMPointerType::get(i64Type), numOperands);
   auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
   Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
   auto getSizeSymbolRef = opt::factory::createLLVMFunctionSymbol(
@@ -197,6 +197,23 @@ cc::LoopOp factory::createInvariantLoop(
       });
   loop->setAttr("invariant", builder.getUnitAttr());
   return loop;
+}
+
+/// Create a temporary on the stack. The temporary is created such that it is
+/// \em{not} control dependent (other than on function entry).
+Value factory::createLLVMTemporary(Location loc, OpBuilder &builder, Type type,
+                                   std::size_t size) {
+  Operation *op = builder.getBlock()->getParentOp();
+  auto func = dyn_cast<LLVM::LLVMFuncOp>(op);
+  if (!func)
+    func = op->getParentOfType<LLVM::LLVMFuncOp>();
+  assert(func && "must be in a function");
+  auto *entryBlock = &func.getRegion().front();
+  assert(entryBlock && "function must have an entry block");
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToStart(entryBlock);
+  Value len = genLlvmI64Constant(loc, builder, size);
+  return builder.create<LLVM::AllocaOp>(loc, type, ArrayRef<Value>{len});
 }
 
 // This builder will transform the monotonic loop into an invariant loop during
