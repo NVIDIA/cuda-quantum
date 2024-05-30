@@ -12,7 +12,6 @@
 #include "cudaq/algorithms/draw.h"
 #include "common/FmtCore.h"
 #include <algorithm>
-#include <iostream>
 #include <utility>
 
 using namespace cudaq;
