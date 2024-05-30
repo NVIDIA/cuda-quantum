@@ -371,10 +371,8 @@ public:
       auto structTy = LLVM::LLVMStructType::getLiteral(context, structTys);
 
       // Allocate the char span struct
-      Value alloca = rewriter.create<LLVM::AllocaOp>(
-          loc, LLVM::LLVMPointerType::get(structTy),
-          ArrayRef<Value>{
-              cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
+      Value alloca = cudaq::opt::factory::createLLVMTemporary(
+          loc, rewriter, LLVM::LLVMPointerType::get(structTy));
 
       // We'll need these constants
       auto zero = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 0);
@@ -408,10 +406,8 @@ public:
     // Here we know we have a pauli word expressed as `{i8*, i64}`.
     // Allocate a stack slot for it and store what we have to that pointer,
     // pass the pointer to NVQIR
-    Value alloca = rewriter.create<LLVM::AllocaOp>(
-        loc, LLVM::LLVMPointerType::get(pauliWord.getType()),
-        ArrayRef<Value>{
-            cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
+    Value alloca = cudaq::opt::factory::createLLVMTemporary(
+        loc, rewriter, LLVM::LLVMPointerType::get(pauliWord.getType()));
     rewriter.create<LLVM::StoreOp>(loc, pauliWord, alloca);
     auto castedPauli = rewriter.create<LLVM::BitcastOp>(
         loc, cudaq::opt::factory::getPointerType(context), alloca);
@@ -530,8 +526,7 @@ public:
       // and $0$ otherwise.
       Value isArrayAndLengthArr =
           cudaq::opt::factory::packIsArrayAndLengthArray(
-              loc, rewriter, parentModule, numControlOperands,
-              adaptor.getControls());
+              loc, rewriter, parentModule, numControls, adaptor.getControls());
       args.push_back(isArrayAndLengthArr);
       args.push_back(
           rewriter.create<LLVM::ConstantOp>(loc, i64Type, numTargetOperands));
@@ -682,19 +677,13 @@ public:
              LLVM::LLVMPointerType::get(instOpQISFunctionType)},
             parentModule, true);
 
-    // numControls could be more than num operands,
-    // e.g. ctrls = {veq<2>, ref} is 3 and not 2 controls
-    // We need an i64 array encoding 0 if control operand is a ref, and N if
-    // control operand is a veq<N>.
-    Value numControlOperands =
-        cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls);
-
     // Create an integer array where the kth element is N if the kth
     // control operand is a veq<N>, and 0 otherwise.
     Value isArrayAndLengthArr = cudaq::opt::factory::packIsArrayAndLengthArray(
-        loc, rewriter, parentModule, numControlOperands, adaptor.getControls());
+        loc, rewriter, parentModule, numControls, adaptor.getControls());
 
-    funcArgs.push_back(numControlOperands);
+    funcArgs.push_back(
+        cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls));
     funcArgs.push_back(isArrayAndLengthArr);
     funcArgs.push_back(ctrlOpPointer);
     funcArgs.append(instOperands.begin(), instOperands.end());
@@ -869,19 +858,13 @@ public:
              LLVM::LLVMPointerType::get(instOpQISFunctionType)},
             parentModule, true);
 
-    // numControls could be more than num operands,
-    // e.g. ctrls = {veq<2>, ref} is 3 and not 2 controls
-    // We need an i64 array encoding 0 if control operand is a ref, and N if
-    // control operand is a veq<N>.
-    Value numControlOperands =
-        cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls);
-
     // Create an integer array where the kth element is N if the kth
     // control operand is a veq<N>, and 0 otherwise.
     Value isArrayAndLengthArr = cudaq::opt::factory::packIsArrayAndLengthArray(
-        loc, rewriter, parentModule, numControlOperands, adaptor.getControls());
+        loc, rewriter, parentModule, numControls, adaptor.getControls());
 
-    funcArgs.push_back(numControlOperands);
+    funcArgs.push_back(
+        cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls));
     funcArgs.push_back(isArrayAndLengthArr);
     funcArgs.push_back(ctrlOpPointer);
     funcArgs.append(instOperands.begin(), instOperands.end());
