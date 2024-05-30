@@ -352,16 +352,17 @@ public:
   LLVM::GlobalOp createRegisterName(Location loc, ModuleOp mod,
                                     ConversionPatternRewriter &rewriter,
                                     StringAttr nameAttr) const {
-    auto mzName = [&]() -> std::string {
-      if (nameAttr)
-        return nameAttr.getValue().str();
+    std::string mzName;
+    if (nameAttr) {
+      mzName = nameAttr.getValue().str();
+    } else {
       // No name was given. Use a hash based on the source file location of the
       // measurement operation, to give something that ought to be relatively
       // unique.
       std::size_t hash = mlir::hash_value(loc);
       hash = (hash ^ (hash >> 16)) & 0xFFFF;
-      return "r" + std::to_string(hash);
-    }();
+      mzName = std::string("r") + std::to_string(hash);
+    }
     OpBuilder::InsertionGuard guard(rewriter);
     auto builder = cudaq::IRBuilder::atBlockEnd(mod.getBody());
     return builder.genCStringLiteralAppendNul(loc, mod, mzName);
