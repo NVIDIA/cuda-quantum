@@ -314,17 +314,10 @@ def test_kernel_simulation_dtype_capture_f32():
     state = cudaq.State.from_data(c)
 
     @cudaq.kernel
-<<<<<<< HEAD
     def kernel():
         q = cudaq.qvector(state)
 
     counts = cudaq.sample(kernel)
-=======
-    def kernel2():
-        q = cudaq.qvector(state)
-
-    counts = cudaq.sample(kernel2)
->>>>>>> b5ce9a754a477364f942c588394946379575bfb9
     print(counts)
     assert '11' in counts
     assert '00' in counts
@@ -389,3 +382,31 @@ def test_init_from_other_kernel_state_f32():
     assert '00' in counts
     assert not '10' in counts
     assert not '01' in counts
+
+
+def test_inner_kernels_state():
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=cudaq.complex())
+    state = cudaq.State.from_data(c)
+
+    @cudaq.kernel
+    def kernel0():
+
+        @cudaq.kernel
+        def kernel1():
+            q1 = cudaq.qvector(state)
+
+        kernel1()
+
+        @cudaq.kernel
+        def kernel2():
+            q2 = cudaq.qvector(state)
+
+        kernel2()
+
+    counts = cudaq.sample(kernel0)
+    print(counts)
+    assert '1111' in counts
+    assert '1100' in counts
+    assert '0011' in counts
+    assert '0000' in counts

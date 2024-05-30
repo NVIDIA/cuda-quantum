@@ -557,7 +557,7 @@ def test_kernel_error_invalid_initializer_f64():
 
     with pytest.raises(RuntimeError) as e:
         qubits = kernel.qalloc("hello")
-    assert 'invalid initializer argument type for qalloc' in repr(e)
+    assert 'invalid initializer argument for qalloc: hello' in repr(e)
 
 
 @skipIfNvidiaNotInstalled
@@ -569,7 +569,7 @@ def test_kernel_error_invalid_initializer_f32():
 
     with pytest.raises(RuntimeError) as e:
         qubits = kernel.qalloc("hello")
-    assert 'invalid initializer argument type for qalloc' in repr(e)
+    assert 'invalid initializer argument for qalloc: hello' in repr(e)
 
 
 # qalloc(int)
