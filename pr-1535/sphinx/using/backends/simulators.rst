@@ -1,9 +1,9 @@
-CUDA Quantum Simulation Backends
+CUDA-Q Simulation Backends
 *********************************
 
 .. _nvidia-backend:
 
-The simulation backends that are currently available in CUDA Quantum are as follows.
+The simulation backends that are currently available in CUDA-Q are as follows.
 
 State Vector Simulators
 ==================================
@@ -55,7 +55,7 @@ Multi-node multi-GPU
 
 The :code:`nvidia-mgpu` target provides a state vector simulator accelerated with 
 the :code:`cuStateVec` library but with support for Multi-Node, Multi-GPU distribution of the 
-state vector. 
+state vector, in addition to a single GPU.
 
 The multi-node multi-GPU simulator expects to run within an MPI context.
 To execute a program on the :code:`nvidia-mgpu` target, use the following commands (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
@@ -68,7 +68,7 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 
     .. note::
 
-      If you installed CUDA Quantum via :code:`pip`, you will need to install the necessary MPI dependencies separately;
+      If you installed CUDA-Q via :code:`pip`, you will need to install the necessary MPI dependencies separately;
       please follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/#description>`__.
 
     In addition to using MPI in the simulator, you can use it in your application code by installing `mpi4py <https://mpi4py.readthedocs.io/>`__, and 
@@ -96,6 +96,32 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 .. note:: 
 
   This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter either an error stating `invalid simulator requested` (missing CUDA libraries), or an error along the lines of `failed to launch kernel` (missing MPI installation). See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+
+The :code:`nvidia-mgpu` backend has additional performance improvements to
+help reduce your simulation runtimes, even on a single GPU. One of the
+performance improvements is to fuse multiple gates together during runtime. For
+example, :code:`x(qubit0)` and :code:`x(qubit1)` can be fused together into a
+single 4x4 matrix operation on the state vector rather than 2 separate 2x2
+matrix operations on the state vector. This fusion reduces memory bandwidth on
+the GPU because the state vector is transferred into and out of memory fewer
+times. By default, up to 4 gates are fused together for single-GPU simulations,
+and up to 6 gates are fused together for multi-GPU simulations. The number of
+gates fused can **significantly** affect performance of some circuits, so users
+can override the default fusion level by setting the setting `CUDAQ_MGPU_FUSE`
+environment variable to another integer value as shown below.
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 python3 program.py [...] --target nvidia-mgpu
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target nvidia-mgpu program.cpp [...] -o program.x
+        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 ./program.x
 
 .. _OpenMP CPU-only:
 
@@ -137,7 +163,7 @@ Tensor Network Simulators
 
 .. _tensor-backends:
 
-CUDA Quantum provides a couple of tensor-network simulator targets accelerated with 
+CUDA-Q provides a couple of tensor-network simulator targets accelerated with 
 the :code:`cuTensorNet` library. 
 These backends are available for use from both C++ and Python.
 
@@ -177,7 +203,7 @@ If you have *multiple GPUs* available on your system, you can use MPI to automat
 
 .. note::
 
-  If you installed the CUDA Quantum Python wheels, distribution across multiple GPUs is currently not supported for this backend.
+  If you installed the CUDA-Q Python wheels, distribution across multiple GPUs is currently not supported for this backend.
   We will add support for it in future releases. For more information, see this `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/920>`__.
 
 Use the following commands to enable distribution across multiple GPUs (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
@@ -205,7 +231,7 @@ Use the following commands to enable distribution across multiple GPUs (adjust t
 .. note::
 
   If the `CUTENSORNET_COMM_LIB` environment variable is not set, MPI parallelization on the :code:`tensornet` backend may fail.
-  If you are using a CUDA Quantum container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA Quantum from source, please follow the instructions for `activating the distributed interface <https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/getting_started.html#install-cutensornet-from-nvidia-devzone>`__ for the `cuTensorNet` library. This requires 
+  If you are using a CUDA-Q container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA-Q from source, please follow the instructions for `activating the distributed interface <https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone>`__ for the `cuTensorNet` library. This requires 
   :ref:`installing CUDA development dependencies <additional-cuda-tools>`, and setting the `CUTENSORNET_COMM_LIB`
   environment variable to the newly built `libcutensornet_distributed_interface_mpi.so` library.
 
@@ -231,10 +257,6 @@ Matrix product state
 
 The :code:`tensornet-mps` backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable. 
 The :code:`tensornet-mps` backend only supports single-GPU simulation. Its approximate nature allows the :code:`tensornet-mps` backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.
-
-.. warning:: 
-
-  The :code:`tensornet-mps` cannot handle quantum gates acting on more than two qubit operands. It will throw an error when this constraint is not satisfied.
 
 To execute a program on the :code:`tensornet-mps` target, use the following commands:
 
@@ -281,7 +303,7 @@ Default Simulator
 
 .. _default-simulator:
 
-If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA Quantum makes a default choice for the simulator.
+If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA-Q makes a default choice for the simulator.
 
 If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to `nvidia`. This will utilize the :ref:`cuQuantum single-GPU state vector simulator <cuQuantum single-GPU>`.  
 On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:`OpenMP CPU-only simulator <OpenMP CPU-only>`.
@@ -289,7 +311,7 @@ On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:
 The default simulator can be overridden by the environment variable `CUDAQ_DEFAULT_SIMULATOR`. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
 This environment variable can be set to any non-hardware backend. Any invalid value is ignored.
 
-For CUDA Quantum Python API, the environment variable at the time when `cudaq` module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.
+For CUDA-Q Python API, the environment variable at the time when `cudaq` module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.
 
 For example,
 

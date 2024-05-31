@@ -11,7 +11,7 @@
 // nvq++ mpi.cpp -DCUDAQ_ENABLE_MPI_EXAMPLE=1 -o mpi.x && mpiexec -np 4 ./mpi.x
 // ```
 
-// This example demonstrates CUDA Quantum MPI support.
+// This example demonstrates CUDA-Q MPI support.
 
 #ifndef CUDAQ_ENABLE_MPI_EXAMPLE
 #define CUDAQ_ENABLE_MPI_EXAMPLE 0
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
   };
 
   // In addition to the built-in `MQPU` platform, users can construct MPI
-  // application directly using CUDA Quantum MPI support.
+  // application directly using CUDA-Q MPI support.
   const auto allParams =
       cudaq::random_vector(-M_PI, M_PI, cudaq::mpi::num_ranks());
 
