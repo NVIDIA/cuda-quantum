@@ -127,6 +127,14 @@ if [ -z "${llvm_projects##*runtimes;*}" ]; then
   echo "- including runtime components"
   llvm_runtimes+="libcxx;libcxxabi;libunwind;compiler-rt;"
   projects=("${projects[@]/runtimes}")
+  projects=("${projects[@]/libcxx}")
+  projects=("${projects[@]/libcxxabi}")
+  projects=("${projects[@]/libunwind}")
+  projects=("${projects[@]/compiler-rt}")
+elif [ -z "${llvm_projects##*compiler-rt;*}" ]; then
+  echo "- including compiler-rt"
+  llvm_runtimes+="compiler-rt;"
+  projects=("${projects[@]/compiler-rt}")
 fi
 
 llvm_projects=`printf "%s;" "${projects[@]}"`

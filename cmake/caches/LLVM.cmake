@@ -20,7 +20,7 @@ set(LLVM_BUILD_TESTS OFF CACHE BOOL "")
 set(LLVM_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(LLVM_ENABLE_OCAMLDOC OFF CACHE BOOL "")
 
-if(DEFINED LLVM_ENABLE_RUNTIMES AND NOT LLVM_ENABLE_RUNTIMES STREQUAL "")
+if(DEFINED LLVM_ENABLE_RUNTIMES AND LLVM_ENABLE_RUNTIMES MATCHES "libcxx")
     message(STATUS "Setting defaults to use LLVM runtimes.")
 
     # If we want to build dynamic libraries for the unwinder,

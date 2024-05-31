@@ -82,7 +82,9 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
-RUN bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}
+# Build compiler-rt (only) since it is needed for code coverage tools
+RUN LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' \
+    bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}
 
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \
