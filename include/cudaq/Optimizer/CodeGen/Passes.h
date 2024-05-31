@@ -34,6 +34,8 @@ void registerConvertToQIRPass();
 /// cudaq-translate command line `--convert-to` parameter)
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
+void addLowerToCCPipeline(mlir::OpPassManager &pm);
+
 /// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions
 /// or in the provided allowed list.
 std::unique_ptr<mlir::Pass>
@@ -54,6 +56,8 @@ void registerTargetPipelines();
 void registerCodeGenDialect(mlir::DialectRegistry &registry);
 
 mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
+
+void registerToExecutionManagerCCPipeline();
 
 // declarative passes
 #define GEN_PASS_DECL
