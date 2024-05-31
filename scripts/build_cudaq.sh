@@ -91,17 +91,16 @@ if [ -n "$install_toolchain" ]; then
 fi
 
 # Check if a suitable CUDA version is installed
-cuda_driver=${CUDA_HOME:-/usr/local/cuda}/bin/nvcc
+cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
 if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -lt "8" ] && [ "$cuda_major" -eq "11" ]); then
   echo "CUDA version requirement not satisfied (required: >= 11.8, got: $cuda_version)."
   echo "GPU-accelerated components will be omitted from the build."
-  nvcc_found=false
+  unset cuda_driver
 else 
   echo "CUDA version $cuda_version detected."
-  nvcc_found=true
   if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUQUANTUM_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
     echo "No cuQuantum installation detected. Please set the environment variable CUQUANTUM_INSTALL_PREFIX to enable cuQuantum integration."
     echo "Some backends will be omitted from the build."
@@ -137,7 +136,7 @@ echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_INSTALL_PREFIX='"$CUDAQ_INSTALL_PREFIX"' \
   -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
-  -DCMAKE_CUDA_COMPILER='"$($nvcc_found && echo $cuda_driver || echo)"' \
+  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
   -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \

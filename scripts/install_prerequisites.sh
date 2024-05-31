@@ -312,7 +312,7 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
 fi
 
 # [cuQuantum and cuTensor] Needed for GPU-accelerated components
-cuda_driver=${CUDA_HOME:-/usr/local/cuda}/bin/nvcc
+cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 if [ -n "$cuda_version" ]; then
   if [ -n "$CUQUANTUM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep cuquantum)" ]; then
