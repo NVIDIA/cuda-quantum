@@ -20,8 +20,8 @@ bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
 
 namespace cudaq {
 __attribute__((weak)) ExecutionManager *getExecutionManager() {
-  std::cerr << "Error: must link with an execution manager implementation.\n";
-  return nullptr;
+  throw std::runtime_error(
+      "Error: must link with an execution manager implementation.");
 }
 } // namespace cudaq
 
