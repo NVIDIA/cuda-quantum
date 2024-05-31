@@ -427,5 +427,5 @@ void OQCServerHelper::updatePassPipeline(
 
 } // namespace cudaq
 
-// Register the OQC server helper in the CUDAQ server helper factory
+// Register the OQC server helper in the CUDA-Q server helper factory
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::OQCServerHelper, oqc)

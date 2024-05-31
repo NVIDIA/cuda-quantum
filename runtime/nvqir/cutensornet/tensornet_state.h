@@ -17,7 +17,7 @@ namespace nvqir {
 /// already has some gates applied to.
 constexpr std::int64_t InvalidTensorIndexValue = -1;
 
-/// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
+/// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDA-Q
 /// simulator implementation.
 class TensorNetState {
   std::size_t m_numQubits;
@@ -31,10 +31,12 @@ public:
   TensorNetState(std::size_t numQubits, cutensornetHandle_t handle);
 
   /// @brief Apply a unitary gate
-  /// @param qubitIds Qubit operands
+  /// @param controlQubits Controlled qubit operands
+  /// @param targetQubits Target qubit operands
   /// @param gateDeviceMem Gate unitary matrix in device memory
   /// @param adjoint Apply the adjoint of gate matrix if true
-  void applyGate(const std::vector<int32_t> &qubitIds, void *gateDeviceMem,
+  void applyGate(const std::vector<int32_t> &controlQubits,
+                 const std::vector<int32_t> &targetQubits, void *gateDeviceMem,
                  bool adjoint = false);
 
   /// @brief Apply a projector matrix (non-unitary)

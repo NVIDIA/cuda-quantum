@@ -18,8 +18,6 @@ class SimulatorMPS : public SimulatorTensorNetBase {
   // Default relative cutoff
   double m_relCutoff = 1e-5;
   std::vector<void *> m_mpsTensors_d;
-  // List of auxiliary qubits that were used for controlled-gate decomposition.
-  std::vector<std::size_t> m_auxQubitsForGateDecomp;
 
 public:
   SimulatorMPS() : SimulatorTensorNetBase() {
@@ -82,21 +80,80 @@ public:
           m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
   }
 
-  virtual void applyGate(const GateApplicationTask &task) override {
-    // Check that we don't apply gates on 3+ qubits (not supported in MPS)
-    if (task.controls.size() + task.targets.size() > 2) {
-      const std::string gateDesc = task.operationName +
-                                   containerToString(task.controls) +
-                                   containerToString(task.targets);
-      throw std::runtime_error("MPS simulator: Gates on 3 or more qubits are "
-                               "unsupported. Encountered: " +
-                               gateDesc);
-    }
-    SimulatorTensorNetBase::applyGate(task);
-  }
-
   virtual std::size_t calculateStateDim(const std::size_t numQubits) override {
     return numQubits;
+  }
+
+  static std::vector<std::complex<double>> generateXX(double theta) {
+    const auto halfTheta = theta / 2.;
+    const std::complex<double> cos = std::cos(halfTheta);
+    const std::complex<double> isin = {0., std::sin(halfTheta)};
+    // Row-major
+    return {cos, 0.,    0.,  -isin, 0.,    cos, -isin, 0.,
+            0.,  -isin, cos, 0.,    -isin, 0.,  0.,    cos};
+  };
+
+  static std::vector<std::complex<double>> generateYY(double theta) {
+    const auto halfTheta = theta / 2.;
+    const std::complex<double> cos = std::cos(halfTheta);
+    const std::complex<double> isin = {0., std::sin(halfTheta)};
+    // Row-major
+    return {cos, 0.,    0.,  isin, 0.,   cos, -isin, 0.,
+            0.,  -isin, cos, 0.,   isin, 0.,  0.,    cos};
+  };
+
+  static std::vector<std::complex<double>> generateZZ(double theta) {
+    const std::complex<double> itheta2 = {0., theta / 2.0};
+    const std::complex<double> exp_itheta2 = std::exp(itheta2);
+    const std::complex<double> exp_minus_itheta2 = std::exp(-1.0 * itheta2);
+    // Row-major
+    return {exp_minus_itheta2, 0., 0., 0., 0., exp_itheta2,      0., 0., 0., 0.,
+            exp_itheta2,       0., 0., 0., 0., exp_minus_itheta2};
+  };
+
+  virtual void applyExpPauli(double theta,
+                             const std::vector<std::size_t> &controls,
+                             const std::vector<std::size_t> &qubitIds,
+                             const cudaq::spin_op &op) override {
+    // Special handling for equivalence of Rxx(theta), Ryy(theta), Rzz(theta)
+    // expressed as exp_pauli.
+    //  Note: for MPS, the runtime is ~ linear with the number of 2-body gates
+    //  (gate split procedure).
+    // Hence, we check if this is a Rxx(theta), Ryy(theta), or Rzz(theta), which
+    // are commonly-used gates and apply the operation directly (the base
+    // decomposition will result in 2 CNOT gates).
+    const auto shouldHandlePauliOp =
+        [](const cudaq::spin_op &opToCheck) -> bool {
+      const std::string opStr = opToCheck.to_string(false);
+      return opStr == "XX" || opStr == "YY" || opStr == "ZZ";
+    };
+    if (controls.empty() && qubitIds.size() == 2 && shouldHandlePauliOp(op)) {
+      flushGateQueue();
+      cudaq::info("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
+                  op.to_string(false), qubitIds[0], qubitIds[1]);
+      const GateApplicationTask task = [&]() {
+        const std::string opStr = op.to_string(false);
+        // Note: Rxx(angle) ==  exp(-i*angle/2 XX)
+        // i.e., exp(i*theta XX) == Rxx(-2 * theta)
+        if (opStr == "XX") {
+          // Note: use a special name so that the gate matrix caching procedure
+          // works properly.
+          return GateApplicationTask("Rxx", generateXX(-2.0 * theta), {},
+                                     qubitIds, {theta});
+        } else if (opStr == "YY") {
+          return GateApplicationTask("Ryy", generateYY(-2.0 * theta), {},
+                                     qubitIds, {theta});
+        } else if (opStr == "ZZ") {
+          return GateApplicationTask("Rzz", generateZZ(-2.0 * theta), {},
+                                     qubitIds, {theta});
+        }
+        __builtin_unreachable();
+      }();
+      applyGate(task);
+      return;
+    }
+    // Let the base class to handle this Pauli rotation
+    SimulatorTensorNetBase::applyExpPauli(theta, controls, qubitIds, op);
   }
 
   virtual std::string name() const override { return "tensornet-mps"; }
@@ -111,243 +168,18 @@ public:
     m_mpsTensors_d.clear();
   }
 
-  void deallocateStateImpl() override {
-    m_auxQubitsForGateDecomp.clear();
-    SimulatorTensorNetBase::deallocateStateImpl();
-  }
-
   /// @brief Return the state vector data
   cudaq::State getStateData() override {
     LOG_API_TIME();
-    if (m_state->getNumQubits() - m_auxQubitsForGateDecomp.size() > 64)
+    if (m_state->getNumQubits() > 64)
       throw std::runtime_error("State vector data is too large.");
     // Handle empty state (e.g., no qubit allocation)
     if (!m_state)
       return cudaq::State{{0}, {}};
-    const uint64_t svDim =
-        (1ull << (m_state->getNumQubits() - m_auxQubitsForGateDecomp.size()));
-    const std::vector<int32_t> projectedModes(m_auxQubitsForGateDecomp.begin(),
-                                              m_auxQubitsForGateDecomp.end());
+    const std::uint64_t svDim = (1ull << m_state->getNumQubits());
     // Returns the main qubit register state (auxiliary qubits are projected to
     // zero state)
-    return cudaq::State{{svDim}, m_state->getStateVector(projectedModes)};
-  }
-
-  std::vector<size_t> addAuxQubits(std::size_t n) {
-    if (m_state->isDirty())
-      throw std::runtime_error(
-          "[MPS Simulator] Unable to perform multi-control gate decomposition "
-          "due to dynamical circuits.");
-    std::vector<size_t> aux(n);
-    std::iota(aux.begin(), aux.end(), m_state->getNumQubits());
-    m_state = std::make_unique<TensorNetState>(m_state->getNumQubits() + n,
-                                               m_cutnHandle);
-    return aux;
-  }
-
-  template <typename QuantumOperation>
-  void
-  decomposeMultiControlledInstruction(const std::vector<double> &params,
-                                      const std::vector<std::size_t> &controls,
-                                      const std::vector<std::size_t> &targets) {
-    if (controls.size() <= 1) {
-      enqueueQuantumOperation<QuantumOperation>(params, controls, targets);
-      return;
-    }
-
-    // CCNOT decomposition
-    const auto ccnot = [&](std::size_t a, std::size_t b, std::size_t c) {
-      enqueueQuantumOperation<nvqir::h<double>>({}, {}, {c});
-      enqueueQuantumOperation<nvqir::x<double>>({}, {b}, {c});
-      enqueueQuantumOperation<nvqir::tdg<double>>({}, {}, {c});
-      enqueueQuantumOperation<nvqir::x<double>>({}, {a}, {c});
-      enqueueQuantumOperation<nvqir::t<double>>({}, {}, {c});
-      enqueueQuantumOperation<nvqir::x<double>>({}, {b}, {c});
-      enqueueQuantumOperation<nvqir::tdg<double>>({}, {}, {c});
-      enqueueQuantumOperation<nvqir::x<double>>({}, {a}, {c});
-      enqueueQuantumOperation<nvqir::t<double>>({}, {}, {b});
-      enqueueQuantumOperation<nvqir::t<double>>({}, {}, {c});
-      enqueueQuantumOperation<nvqir::h<double>>({}, {}, {c});
-      enqueueQuantumOperation<nvqir::x<double>>({}, {a}, {b});
-      enqueueQuantumOperation<nvqir::t<double>>({}, {}, {a});
-      enqueueQuantumOperation<nvqir::tdg<double>>({}, {}, {b});
-      enqueueQuantumOperation<nvqir::x<double>>({}, {a}, {b});
-    };
-
-    // Collects the given list of control qubits into the given auxiliary
-    // qubits, using all but the last qubits in the auxiliary list as scratch
-    // qubits.
-    //
-    // For example, if the controls list is 6 qubits, the auxiliary list must be
-    // 5 qubits, and the state from the 6 control qubits will be collected into
-    // the last qubit of the auxiliary array.
-    const auto collectControls = [&](const std::vector<std::size_t> &ctls,
-                                     const std::vector<std::size_t> &aux,
-                                     bool reverse = false) {
-      std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> ccnotList;
-      for (int i = 0; i < static_cast<int>(ctls.size()) - 1; i += 2)
-        ccnotList.emplace_back(
-            std::make_tuple(ctls[i], ctls[i + 1], aux[i / 2]));
-
-      for (int i = 0; i < static_cast<int>(ctls.size()) / 2 - 1; ++i)
-        ccnotList.emplace_back(std::make_tuple(aux[i * 2], aux[(i * 2) + 1],
-                                               aux[i + ctls.size() / 2]));
-
-      if (ctls.size() % 2 != 0)
-        ccnotList.emplace_back(std::make_tuple(
-            ctls[ctls.size() - 1], aux[ctls.size() - 3], aux[ctls.size() - 2]));
-
-      if (reverse)
-        std::reverse(ccnotList.begin(), ccnotList.end());
-
-      for (const auto &[a, b, c] : ccnotList)
-        ccnot(a, b, c);
-    };
-
-    if (m_auxQubitsForGateDecomp.size() < controls.size() - 1) {
-      const auto aux =
-          addAuxQubits(controls.size() - 1 - m_auxQubitsForGateDecomp.size());
-      m_auxQubitsForGateDecomp.insert(m_auxQubitsForGateDecomp.end(),
-                                      aux.begin(), aux.end());
-    }
-
-    collectControls(controls, m_auxQubitsForGateDecomp);
-
-    // Add to the singly-controlled instruction queue
-    enqueueQuantumOperation<QuantumOperation>(
-        params, {m_auxQubitsForGateDecomp[controls.size() - 2]}, targets);
-
-    collectControls(controls, m_auxQubitsForGateDecomp, true);
-  };
-
-// Gate implementations:
-// Here, we forward all the call to the multi-control decomposition helper.
-// Decomposed gates are added to the queue.
-#define CIRCUIT_SIMULATOR_ONE_QUBIT(NAME)                                      \
-  using CircuitSimulator::NAME;                                                \
-  void NAME(const std::vector<std::size_t> &controls,                          \
-            const std::size_t qubitIdx) override {                             \
-    decomposeMultiControlledInstruction<nvqir::NAME<double>>(                  \
-        {}, controls, std::vector<std::size_t>{qubitIdx});                     \
-  }
-
-#define CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(NAME)                            \
-  using CircuitSimulator::NAME;                                                \
-  void NAME(const double angle, const std::vector<std::size_t> &controls,      \
-            const std::size_t qubitIdx) override {                             \
-    decomposeMultiControlledInstruction<nvqir::NAME<double>>(                  \
-        {angle}, controls, std::vector<std::size_t>{qubitIdx});                \
-  }
-
-  /// @brief The X gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT(x)
-  /// @brief The Y gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT(y)
-  /// @brief The Z gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT(z)
-  /// @brief The H gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT(h)
-  /// @brief The S gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT(s)
-  /// @brief The T gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT(t)
-  /// @brief The Sdg gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT(sdg)
-  /// @brief The Tdg gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT(tdg)
-  /// @brief The RX gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(rx)
-  /// @brief The RY gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(ry)
-  /// @brief The RZ gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(rz)
-  /// @brief The Phase gate
-  CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(r1)
-// Undef those preprocessor defines.
-#undef CIRCUIT_SIMULATOR_ONE_QUBIT
-#undef CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM
-
-  // Swap gate implementation
-  using CircuitSimulator::swap;
-  void swap(const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
-            const std::size_t tgtIdx) override {
-    if (ctrlBits.empty())
-      return SimulatorTensorNetBase::swap(ctrlBits, srcIdx, tgtIdx);
-    // Controlled swap gate: using cnot decomposition of swap gate to perform
-    // decomposition.
-    const auto size = ctrlBits.size();
-    std::vector<std::size_t> ctls(size + 1);
-    std::copy(ctrlBits.begin(), ctrlBits.end(), ctls.begin());
-    {
-      ctls[size] = tgtIdx;
-      decomposeMultiControlledInstruction<nvqir::x<double>>({}, ctls, {srcIdx});
-    }
-    {
-      ctls[size] = srcIdx;
-      decomposeMultiControlledInstruction<nvqir::x<double>>({}, ctls, {tgtIdx});
-    }
-    {
-      ctls[size] = tgtIdx;
-      decomposeMultiControlledInstruction<nvqir::x<double>>({}, ctls, {srcIdx});
-    }
-  }
-
-  // `exp-pauli` gate implementation: forward the middle-controlled Rz to the
-  // decomposition helper.
-  void applyExpPauli(double theta, const std::vector<std::size_t> &controls,
-                     const std::vector<std::size_t> &qubitIds,
-                     const cudaq::spin_op &op) override {
-    if (op.is_identity()) {
-      if (controls.empty()) {
-        // exp(i*theta*Id) is noop if this is not a controlled gate.
-        return;
-      } else {
-        // Throw an error if this exp_pauli(i*theta*Id) becomes a non-trivial
-        // gate due to control qubits.
-        // FIXME: revisit this once
-        // https://github.com/NVIDIA/cuda-quantum/issues/483 is implemented.
-        throw std::logic_error("Applying controlled global phase via exp_pauli "
-                               "of identity operator is not supported");
-      }
-    }
-    std::vector<std::size_t> qubitSupport;
-    std::vector<std::function<void(bool)>> basisChange;
-    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
-      if (type != cudaq::pauli::I)
-        qubitSupport.push_back(qubitIds[qubitIdx]);
-
-      if (type == cudaq::pauli::Y)
-        basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
-        });
-      else if (type == cudaq::pauli::X)
-        basisChange.emplace_back(
-            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
-    });
-
-    if (!basisChange.empty())
-      for (auto &basis : basisChange)
-        basis(false);
-
-    std::vector<std::pair<std::size_t, std::size_t>> toReverse;
-    for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
-      x({qubitSupport[i]}, qubitSupport[i + 1]);
-      toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
-    }
-
-    // Perform multi-control decomposition.
-    decomposeMultiControlledInstruction<nvqir::rz<double>>(
-        {-2.0 * theta}, controls, {qubitSupport.back()});
-
-    std::reverse(toReverse.begin(), toReverse.end());
-    for (auto &[i, j] : toReverse)
-      x({i}, j);
-
-    if (!basisChange.empty()) {
-      std::reverse(basisChange.begin(), basisChange.end());
-      for (auto &basis : basisChange)
-        basis(true);
-    }
+    return cudaq::State{{svDim}, m_state->getStateVector()};
   }
 };
 } // end namespace nvqir

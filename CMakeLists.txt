@@ -129,6 +129,7 @@ option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
+option(CUDAQ_ENABLE_CC "Enable CUDA Quantum code coverage generation." OFF)
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -163,6 +164,9 @@ if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
 endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
+endif()
+if(NOT CUDAQ_ENABLE_CC)
+  SET(CUDAQ_ENABLE_CC $ENV{CUDAQ_ENABLE_CC})
 endif()
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
@@ -546,6 +550,15 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
+# Code coverage setup
+# ==============================================================================
+if(CUDAQ_ENABLE_CC)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+  endif()
+endif(CUDAQ_ENABLE_CC)
 
 # Directory setup
 # ==============================================================================

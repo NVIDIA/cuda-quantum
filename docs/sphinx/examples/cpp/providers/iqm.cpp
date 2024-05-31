@@ -20,7 +20,7 @@ struct adonis_ghz {
     cudaq::qvector q(5);
     h(q[0]);
 
-    // Note that the CUDA Quantum compiler will automatically generate the
+    // Note that the CUDA-Q compiler will automatically generate the
     // necessary instructions to swap qubits to satisfy the required
     // connectivity constraints for the Adonis QPU. In this program, that means
     // that despite QB1 not being physically connected to QB2, the user can

@@ -48,11 +48,11 @@ others tools to support specialized development workflows. To work with our
 development container please install the [Development Containers
 extension][dev_container_extension].
 
-Create a local clone of your fork of the CUDA Quantum repository, navigate to
-that folder, and open VS Code by executing the command `code .`. You should now
-get a pop up offering to open the folder in the container. Please select this
-option to work in a pre-configured environment that contains all necessary
-dependencies to build CUDA Quantum:
+Create a local clone of your fork of the CUDA-Q repository, navigate to that
+folder, and open VS Code by executing the command `code .`. You should now get a
+pop up offering to open the folder in the container. Please select this option
+to work in a pre-configured environment that contains all necessary dependencies
+to build CUDA-Q:
 
 - On Mac/Linux: Select the option `Open Folder in Container`
 - On Windows: Select the option `Clone Repository in Container Volume` for the
@@ -69,9 +69,9 @@ The container also defines which extensions will be [loaded
 automatically](.devcontainer/devcontainer.json) when launching it. This does not
 impact your VS Code configuration outside the container environment.
 
-You should now be all set to build CUDA Quantum and run tests. Please open a
-terminal in VS Code and follow the instructions [here](./Building.md) to confirm
-that everything works as expected.
+You should now be all set to build CUDA-Q and run tests. Please open a terminal
+in VS Code and follow the instructions [here](./Building.md) to confirm that
+everything works as expected.
 
 [vs_code]: https://code.visualstudio.com/download
 [dev_container_extension]:
@@ -86,12 +86,11 @@ The development container in this repository is configured with extensions to
 facilitate working with MLIR and LLVM files. The [MLIR
 extension][mlir_extension] requires a language server to work properly. The
 `cudaq-lsp-server` tool in this repository extends the [MLIR Language
-Server](https://mlir.llvm.org/docs/Tools/MLIRLSP/) to add support for CUDA
-Quantum specific dialects. It recognizes files with extensions `.mlir` and
-`.qke`.
+Server](https://mlir.llvm.org/docs/Tools/MLIRLSP/) to add support for CUDA-Q
+specific dialects. It recognizes files with extensions `.mlir` and `.qke`.
 
-The `cudaq-lsp-server` is built when running the [CUDA Quantum build
-script](./scripts/build_cudaq.sh) as described in [Building CUDA Quantum from
+The `cudaq-lsp-server` is built when running the [CUDA-Q build
+script](./scripts/build_cudaq.sh) as described in [Building CUDA-Q from
 Source](./Building.md). If you customize the installation location, you will
 need to either add that location to your path, or edit the value of
 `mlir.server_path` in your workspace settings for the extension to work
@@ -104,18 +103,18 @@ properly.
 
 If you have followed the instructions for working inside the provided
 development container (recommended) you are all set and can proceed to [Getting
-Started with Developing CUDA Quantum](./Building.md).
+Started with Developing CUDA-Q](./Building.md).
 
 If you do not leverage the container definition provided in this repository, you
 will need to manually install all prerequisites for building the code on this
 repository, and configure your preferred IDE for working with Python, C++, MLIR,
 and LLVM components. To install all necessary build and runtime dependencies,
 please follow the instructions in our [official guide][data_center_install] for
-building and installing CUDA Quantum from source. The guide details how to get
-a fully featured CUDA Quantum installation that can be deployed on a system other
-than the one used for the build. For development purposes, components/certain
-prerequisites can be omitted as needed, and additional tools and flags for
-debugging purposes may be beneficial.
+building and installing CUDA-Q from source. The guide details how to get a fully
+featured CUDA-Q installation that can be deployed on a system other than the one
+used for the build. For development purposes, components/certain prerequisites
+can be omitted as needed, and additional tools and flags for debugging purposes
+may be beneficial.
 
 [data_center_install]:
-    https://nvidia.github.io/cuda-quantum/latest/data_center_install.html
+    https://nvidia.github.io/cuda-quantum/latest/using/install/data_center_install.html

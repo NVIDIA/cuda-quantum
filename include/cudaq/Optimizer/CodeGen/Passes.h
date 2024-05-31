@@ -20,6 +20,9 @@ namespace mlir {
 class MLIRContext;
 class Pass;
 class PassManager;
+namespace LLVM {
+class LLVMStructType;
+}
 } // namespace mlir
 
 namespace cudaq::opt {
@@ -46,11 +49,13 @@ std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
 std::unique_ptr<mlir::Pass>
 createConvertToQIRFuncPass(llvm::StringRef convertTo);
 
-// Functions to support removing measurements from QIR
-std::unique_ptr<mlir::Pass> createRemoveMeasurementsPass();
-
 /// Register target pipelines.
 void registerTargetPipelines();
+
+/// Register CodeGenDialect with the provided DialectRegistry.
+void registerCodeGenDialect(mlir::DialectRegistry &registry);
+
+mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
 
 // declarative passes
 #define GEN_PASS_DECL

@@ -392,18 +392,13 @@ protected:
       // Collect all functions that are defined in this module Ops.
       const std::vector<llvm::StringRef> allFunctionNames = [&]() {
         std::vector<llvm::StringRef> allFuncs;
-        for (auto &op : *module.getBody()) {
-          auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op);
-          if (!funcOp)
-            continue;
-          if (funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName)) {
+        for (auto &op : *module.getBody())
+          if (auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op))
             allFuncs.emplace_back(funcOp.getName());
-          }
-        }
         return allFuncs;
       }();
       // Note: run this verification as a standalone step to decouple IR
-      // conversion and verfication.
+      // conversion and verification.
       // Verification condition: all function definitions can only make function
       // calls to:
       //  (1) NVQIR-compliance functions, or
@@ -606,7 +601,7 @@ protected:
     // We only support MLIR payload on the NVCF server.
     if (in_request.format != cudaq::CodeFormat::MLIR) {
       outValidationMessage =
-          "Unsupported input format: only CUDA Quantum MLIR data is allowed.";
+          "Unsupported input format: only CUDA-Q MLIR data is allowed.";
       return false;
     }
 

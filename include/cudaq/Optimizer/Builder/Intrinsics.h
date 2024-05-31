@@ -34,9 +34,9 @@ static constexpr const char stdvecBoolCtorFromInitList[] =
 static constexpr const char stdvecBoolUnpackToInitList[] =
     "__nvqpp_vector_bool_to_initializer_list";
 
-/// Builder for lowering the clang AST to an IR for CUDA Quantum. Lowering
+/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering
 /// includes the transformation of both quantum and classical computation.
-/// Different features of the CUDA Quantum programming model are lowered into
+/// Different features of the CUDA-Q programming model are lowered into
 /// different dialects of MLIR. This builder makes heavy use of the Quake
 /// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
 ///

@@ -90,7 +90,7 @@ public:
   ///   (1)
   ///   cond_br %cond, ^bb1, ^bb3
   /// ^bb1:
-  ///   (2)
+  ///   (2) ; break -> ^bb3
   ///   br ^bb0 [or ^bb2]
   /// [ ^bb2:
   ///     (3)
@@ -118,6 +118,32 @@ public:
   /// ^bb3:
   ///   (3)
   /// ```
+  ///
+  /// Pythonic case:
+  /// ```mlir
+  /// (0)
+  /// quake.loop while { (1) } do { (2) } step { (3) } else { (4) }
+  /// (5)
+  /// ```
+  /// becomes
+  /// ```mlir
+  ///   (0)
+  ///   br ^bb0
+  /// ^bb0:
+  ///   (1)
+  ///   cond_br %cond, ^bb1, ^bb3
+  /// ^bb1:
+  ///   (2)  ; break -> ^bb4
+  ///   br ^bb2
+  /// ^bb2:
+  ///   (3)
+  ///   br ^bb0
+  /// ^bb3:
+  ///   (4)
+  ///   br ^bb4
+  /// ^bb4:
+  ///   (5)
+  /// ```
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loopOp,
                                 PatternRewriter &rewriter) const override {
     auto loc = loopOp.getLoc();
@@ -131,7 +157,7 @@ public:
     loopOperands.append(loopOp.getOperands().begin(),
                         loopOp.getOperands().end());
 
-    auto *whileBlock = &loopOp.getWhileRegion().front();
+    auto *whileBlock = loopOp.getWhileBlock();
     auto whileCond = cast<cudaq::cc::ConditionOp>(whileBlock->getTerminator());
     if (loopOp.getNumResults() != 0) {
       Block *continueBlock = rewriter.createBlock(
@@ -141,13 +167,15 @@ public:
       endBlock = continueBlock;
     }
     auto comparison = whileCond.getCondition();
-    auto *bodyBlock = &loopOp.getBodyRegion().front();
+    auto *bodyBlock = loopOp.getDoEntryBlock();
     auto *condBlock =
         loopOp.hasStep()
-            ? &loopOp.getStepRegion().front()
+            ? loopOp.getStepBlock()
             : (loopOp.isPostConditional() ? bodyBlock : whileBlock);
 
-    updateBodyBranches(&loopOp.getBodyRegion(), rewriter, condBlock, endBlock);
+    if (failed(updateBodyBranches(&loopOp.getBodyRegion(), rewriter, condBlock,
+                                  endBlock)))
+      return failure();
     if (loopOp.isPostConditional()) {
       // Branch from `initBlock` to getBodyRegion().front().
       rewriter.setInsertionPointToEnd(initBlock);
@@ -163,13 +191,15 @@ public:
       // Move the while region between the body and end block.
       rewriter.inlineRegionBefore(loopOp.getWhileRegion(), endBlock);
     } else {
+      auto *elseBlock =
+          loopOp.hasPythonElse() ? loopOp.getElseEntryBlock() : endBlock;
       // Branch from `initBlock` to whileRegion().front().
       rewriter.setInsertionPointToEnd(initBlock);
       rewriter.create<cf::BranchOp>(loc, whileBlock, loopOperands);
       // Replace the condition op with a `cf.cond_br` op.
       rewriter.setInsertionPointToEnd(whileBlock);
       rewriter.create<cf::CondBranchOp>(loc, comparison, bodyBlock,
-                                        whileCond.getResults(), endBlock,
+                                        whileCond.getResults(), elseBlock,
                                         whileCond.getResults());
       rewriter.eraseOp(whileCond);
       // Move the while and body region blocks between initBlock and endBlock.
@@ -178,7 +208,7 @@ public:
       // If there is a step region, replace the continue op with a branch and
       // move the region between the body region and end block.
       if (loopOp.hasStep()) {
-        auto *stepBlock = &loopOp.getStepRegion().front();
+        auto *stepBlock = loopOp.getStepBlock();
         auto *terminator = stepBlock->getTerminator();
         rewriter.setInsertionPointToEnd(stepBlock);
         rewriter.create<cf::BranchOp>(loc, whileBlock,
@@ -186,27 +216,41 @@ public:
         rewriter.eraseOp(terminator);
         rewriter.inlineRegionBefore(loopOp.getStepRegion(), endBlock);
       }
+      if (loopOp.hasPythonElse()) {
+        if (failed(updateBodyBranches(&loopOp.getElseRegion(), rewriter,
+                                      endBlock, static_cast<Block *>(nullptr))))
+          return failure();
+        rewriter.inlineRegionBefore(loopOp.getElseRegion(), endBlock);
+      }
     }
-    rewriter.replaceOp(loopOp, whileCond.getResults());
+    rewriter.replaceOp(loopOp, endBlock->getArguments());
     return success();
   }
 
-  // Replace all the ContinueOp and BreakOp in the body region with branches to
-  // the correct basic blocks.
-  void updateBodyBranches(Region *bodyRegion, PatternRewriter &rewriter,
-                          Block *continueBlock, Block *breakBlock) const {
+  /// Replace all the ContinueOp and BreakOp in the body region with branches to
+  /// the correct basic blocks. If there is a BreakOp and no break block target,
+  /// return failure.
+  LogicalResult updateBodyBranches(Region *bodyRegion,
+                                   PatternRewriter &rewriter,
+                                   Block *continueBlock,
+                                   Block *breakBlock) const {
+    assert(continueBlock && "continue block target must exist");
     // Walk body region and replace all continue and break ops.
     for (Block &block : *bodyRegion) {
       auto *terminator = block.getTerminator();
       rewriter.setInsertionPointToEnd(&block);
-      if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(terminator))
+      if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(terminator)) {
         rewriter.replaceOpWithNewOp<cf::BranchOp>(cont, continueBlock,
                                                   cont.getOperands());
-      else if (auto brk = dyn_cast<cudaq::cc::BreakOp>(terminator))
+      } else if (auto brk = dyn_cast<cudaq::cc::BreakOp>(terminator)) {
+        if (!breakBlock)
+          return failure();
         rewriter.replaceOpWithNewOp<cf::BranchOp>(brk, breakBlock,
                                                   brk.getOperands());
+      }
       // Other ad-hoc control flow within the register need not be rewritten.
     }
+    return success();
   }
 };
 
