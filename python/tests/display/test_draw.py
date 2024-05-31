@@ -14,9 +14,13 @@ import pytest
 
 @cudaq.kernel
 def bar(qvec: cudaq.qview):
-    rx(np.e, qvec[0])
+    #FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
+    # rx(np.e, qvec[0])2.71828182845904523536028
+    rx(2.71828182845904523536028, qvec[0])
     ry(np.pi, qvec[1])
-    cudaq.adjoint(rz, np.pi, qvec[2])
+    #FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
+    # cudaq.adjoint(rz, np.pi, qvec[2])
+    rz(-np.pi, qvec[2])
 
 
 @cudaq.kernel
@@ -79,8 +83,6 @@ q3 : ┤ h ├──────────────────────
     # fmt: on
     expected_str = expected_str[1:]
     produced_string = cudaq.draw(kernel)
-    print()
-    print(produced_string)
     assert expected_str == produced_string
 
 
