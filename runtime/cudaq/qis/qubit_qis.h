@@ -693,6 +693,22 @@ void exp_pauli(double theta, QubitRange &&qubits, const char *pauliWord) {
                                spin_op::from_word(pauliWord));
 }
 
+/// @brief Apply a general Pauli rotation, takes a qubit register and the size
+/// must be equal to the Pauli word length.
+#if CUDAQ_USE_STD20
+template <typename QubitRange>
+  requires(std::ranges::range<QubitRange>)
+#else
+template <
+    typename QubitRange,
+    typename = std::enable_if_t<!std::is_same_v<
+        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
+#endif
+void exp_pauli(double theta, QubitRange &&qubits,
+               cudaq::pauli_word &pauliWord) {
+  exp_pauli(theta, qubits, pauliWord.str().c_str());
+}
+
 /// @brief Apply a general Pauli rotation, takes a variadic set of
 /// qubits, and the number of qubits must be equal to the Pauli word length.
 template <typename... QubitArgs>

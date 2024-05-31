@@ -779,6 +779,17 @@ inline bool isCharPointerType(mlir::Type t) {
   return false;
 }
 
+/// Is \p t of type `pauli_word`?
+inline bool isCharspanPointerType(mlir::Type t) {
+  if (auto ptrTy = dyn_cast<cc::PointerType>(t)) {
+    mlir::Type eleTy = ptrTy.getElementType();
+    if (auto ptrTy = dyn_cast<cc::CharspanType>(eleTy)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 inline bool isCudaqStateType(mlir::Type t) { return isa<cc::StateType>(t); }
 
 } // namespace cudaq

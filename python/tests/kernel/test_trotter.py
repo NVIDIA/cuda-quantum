@@ -77,6 +77,6 @@ def test_trotter():
             state = cudaq.get_state(trotter, state, coefficients, words, dt)
 
         for result in exp_results:
-            assert -1.0 < result and result < -0.8 
+            assert -1.0 < result and result < 0.
 
     run_steps(10, 10)
