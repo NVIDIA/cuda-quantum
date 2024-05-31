@@ -619,6 +619,22 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder,
   return QuakeValue(builder, qubits);
 }
 
+QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, cudaq::state *state,
+                  StateVectorStorage &stateVectorStorage) {
+  auto *context = builder.getContext();
+  auto statePtrTy = cudaq::cc::PointerType::get(cc::StateType::get(context));
+  auto statePtr = builder.create<cc::CastOp>(
+      builder.getLoc(), statePtrTy,
+      builder.create<arith::ConstantIntOp>(
+          reinterpret_cast<std::intptr_t>(state), 64));
+  // Add the initialize state op
+  Value qubits = builder.create<quake::AllocaOp>(
+      quake::VeqType::get(context, state->get_num_qubits()));
+  qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
+                                                    statePtr);
+  return QuakeValue(builder, qubits);
+}
+
 QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
   llvm::APFloat d(val);
   Value constant =
