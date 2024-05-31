@@ -1,4 +1,4 @@
-CUDA Quantum Backends
+CUDA-Q Backends
 **********************
 
 .. toctree::
@@ -10,7 +10,7 @@ CUDA Quantum Backends
       NVIDIA Quantum Cloud <nvqc.rst>
       Multi-Processor Platforms <platform.rst>
 
-**The following is a comprehensive list of the available targets in CUDA Quantum:**
+**The following is a comprehensive list of the available targets in CUDA-Q:**
 
 * :ref:`density-matrix-cpu <default-simulator>`
 * :ref:`ionq <ionq-backend>`
