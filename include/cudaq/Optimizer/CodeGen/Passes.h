@@ -17,6 +17,7 @@
 #include "mlir/Pass/PassRegistry.h"
 
 namespace mlir {
+class LLVMTypeConverter;
 class MLIRContext;
 class Pass;
 class PassManager;
@@ -60,6 +61,7 @@ void registerCodeGenDialect(mlir::DialectRegistry &registry);
 mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
 
 void registerToExecutionManagerCCPipeline();
+void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 
 // declarative passes
 #define GEN_PASS_DECL

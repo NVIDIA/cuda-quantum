@@ -180,53 +180,15 @@ public:
 
 } // namespace
 
-LLVM::LLVMStructType cudaq::opt::lambdaAsPairOfPointers(MLIRContext *context) {
-  auto ptrTy = cudaq::opt::factory::getPointerType(context);
-  SmallVector<Type> pairOfPointers = {ptrTy, ptrTy};
-  return LLVM::LLVMStructType::getLiteral(context, pairOfPointers);
-}
-
 void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
   typeConverter.addConversion(
       [](quake::VeqType type) { return getArrayType(type.getContext()); });
   typeConverter.addConversion(
       [](quake::RefType type) { return getQubitType(type.getContext()); });
-  typeConverter.addConversion([](cc::CallableType type) {
-    return lambdaAsPairOfPointers(type.getContext());
-  });
-  typeConverter.addConversion([&typeConverter](cc::SpanLikeType type) {
-    auto eleTy = typeConverter.convertType(type.getElementType());
-    return factory::stdVectorImplType(eleTy);
-  });
   typeConverter.addConversion([](quake::MeasureType type) {
     return IntegerType::get(type.getContext(), 1);
   });
-  typeConverter.addConversion([&typeConverter](cc::PointerType type) {
-    auto eleTy = type.getElementType();
-    if (isa<NoneType>(eleTy))
-      return factory::getPointerType(type.getContext());
-    eleTy = typeConverter.convertType(eleTy);
-    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
-      // If array has a static size, it becomes an LLVMArrayType.
-      assert(arrTy.isUnknownSize());
-      return factory::getPointerType(
-          typeConverter.convertType(arrTy.getElementType()));
-    }
-    return factory::getPointerType(eleTy);
-  });
-  typeConverter.addConversion([&typeConverter](cc::ArrayType type) -> Type {
-    auto eleTy = typeConverter.convertType(type.getElementType());
-    if (type.isUnknownSize())
-      return type;
-    return LLVM::LLVMArrayType::get(eleTy, type.getSize());
-  });
-  typeConverter.addConversion([&typeConverter](cc::StructType type) -> Type {
-    SmallVector<Type> members;
-    for (auto t : type.getMembers())
-      members.push_back(typeConverter.convertType(t));
-    return LLVM::LLVMStructType::getLiteral(type.getContext(), members,
-                                            type.getPacked());
-  });
+  cudaq::opt::populateCCTypeConversions(&typeConverter);
 }
 
 std::unique_ptr<Pass> cudaq::opt::createConvertToQIRPass() {

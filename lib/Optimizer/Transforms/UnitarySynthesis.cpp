@@ -27,7 +27,9 @@
 #include <xtensor/xarray.hpp>
 #include <xtensor/xcomplex.hpp>
 
+#include <map>
 #include <queue>
+#include <utility>
 
 #define DEBUG_TYPE "unitary-synthesis"
 
@@ -46,11 +48,9 @@ namespace {
 /// International Conference on Quantum Computing and Engineering (QCE), Denver,
 /// CO, USA, 2020, pp. 223-234, doi: 10.1109/QCE49297.2020.00036.
 
-/// The gate-set of U3 and CNOT is universal for quantum computing, meaning that
-/// any unitary matrix can be represented by a circuit consisting of only those
-/// gates.
-struct DefaultGateSet {};
-struct U3 : public DefaultGateSet {
+/// Using the universal gate-set of U3 and CNOT as the default
+namespace DefaultGateSet {
+struct U3 {
   double theta;
   double phi;
   double lambda;
@@ -64,7 +64,7 @@ struct U3 : public DefaultGateSet {
   }
 };
 
-struct CNot : public DefaultGateSet {
+struct CNot {
   size_t control;
   size_t target;
 
@@ -73,22 +73,60 @@ struct CNot : public DefaultGateSet {
     target = t;
   }
 };
+} // namespace DefaultGateSet
+
+/// One step (node) in the circuit (tree)
+struct Node {
+  std::vector<std::variant<DefaultGateSet::U3, DefaultGateSet::CNot>> elements;
+  size_t cnotCount;
+
+  bool operator<(const Node &right) const {
+    return cnotCount < right.cnotCount;
+  }
+
+  Node() { cnotCount = 0; }
+
+  Node(DefaultGateSet::U3 op) {
+    elements.emplace_back(op);
+    cnotCount = 0;
+  }
+
+  Node(DefaultGateSet::CNot op) {
+    elements.emplace_back(op);
+    cnotCount = 1;
+  }
+};
 
 /// TBD
 class AStarSearchSynthesis {
 
   using Matrix = xt::xarray<std::complex<double>>;
 
-  // One step in the circuit
-  using Node = std::vector<DefaultGateSet>;
-
   Matrix targetUnitary;
+
+  size_t dimension;
+
+  size_t qubitCount;
+
+  size_t cnotCounter;
 
   // an acceptability threshold
   double epsilon;
 
   // CNOT count limit δ
   size_t delta;
+
+  /// implement n choose c with c = 2
+  /// TODO: Compute only once
+  std::vector<std::pair<size_t, size_t>> computeCombinationPairs(size_t count) {
+    std::vector<std::pair<size_t, size_t>> result;
+    for (size_t i = 0; i < count - 1; i++) {
+      for (size_t j = i + 1; j < count; j++) {
+        result.emplace_back(std::make_pair(i, j));
+      }
+    }
+    return result;
+  }
 
   ///  successor function s(n), takes a node as input and returns a list of
   ///  nodes  Given a node n as input, s(n) generates a successor by appending
@@ -97,10 +135,32 @@ class AStarSearchSynthesis {
   ///  the two-qubit gates  allowed by the given topology. The one-qubit gates
   ///  are placed immediately  after the CNOT, on the qubit lines that the CNOT
   ///  affects. A list of all  successors generated from n this way is returned.
-  std::vector<Node> successorFunction(Node n);
+  std::vector<Node> successorFunction(Node n) {
+
+    auto potentialCNots = computeCombinationPairs(qubitCount);
+
+    if (potentialCNots.empty()) {
+      return {n};
+    }
+
+    std::vector<Node> successors;
+
+    for (auto couple : potentialCNots) {
+      auto s = n;
+      /// TODO: Confirm qubit ordering
+      s.elements.emplace_back(
+          DefaultGateSet::CNot(couple.first, couple.second));
+      s.cnotCount++;
+      s.elements.emplace_back(DefaultGateSet::U3(couple.first));
+      s.elements.emplace_back(DefaultGateSet::U3(couple.second));
+      successors.push_back(s);
+    }
+
+    return successors;
+  }
 
   ///  optimization function p(n,Utarget), which takes a node and a unitary as
-  ///  input  and returns a distance value The optimization function,
+  ///  input  and returns a distance value. The optimization function,
   ///  p(n,Utarget), is used  to find the closest matching circuit to a target
   ///  unitary given a circuit  structure. Given a node n and a unitary Utarget,
   ///  let U(n,x) represent the  unitary implemented by the circuit structure
@@ -108,11 +168,17 @@ class AStarSearchSynthesis {
   ///  parameterized gates in the circuit structure.  D(U(n,x),Utarget) is used
   ///  as an objective function, and is given to a  numerical optimizer, which
   ///  finds d = minxD(U(n,x),Utarget). The function  p(n,Utarget) returns d.
+  double optimizationFunction(Node n) {
+    // dummy
+    return epsilon;
+  }
 
-  double optimizationFunction(Node n);
-
-  /// heuristic function employed by A*   h(n) = p(n,Utarget)∗9.3623/
-  double heuristicFunction(double distance);
+  /// heuristic function employed by A*
+  /// h(n) = p(n,Utarget)∗9.3623
+  double heuristicFunction(double distance) {
+    // dummy
+    return 9.3623;
+  }
 
   /// distance function based on the Hilbert-Schmidt inner product
   /// D(U,Utarget) = 1− ⟨U, Utarget⟩HS / N = 1− Tr(U†Utarget)/N
@@ -123,11 +189,12 @@ class AStarSearchSynthesis {
     return distance;
   }
 
+  /// Identity gate on each qubit
   Node buildRootNode() {
     Node root;
-    size_t targetCount = std::log2(targetUnitary.shape().size());
-    for (size_t q = 0; q < targetCount; q++) {
-      root.emplace_back(U3(q));
+    root.cnotCount = 0;
+    for (size_t q = 0; q < qubitCount; q++) {
+      root.elements.emplace_back(DefaultGateSet::U3(q));
     }
     return root;
   }
@@ -135,11 +202,13 @@ class AStarSearchSynthesis {
 public:
   // constructor
   AStarSearchSynthesis(std::vector<std::complex<double>> m) {
-    std::size_t dim = std::sqrt(m.size());
-    std::vector<std::size_t> shape = {dim, dim};
-    this->targetUnitary = xt::adapt(m, shape);
-    this->epsilon = 1e-10;
-    this->delta = 512;
+    dimension = std::sqrt(m.size());
+    std::vector<std::size_t> shape = {dimension, dimension};
+    targetUnitary = xt::adapt(m, shape);
+    qubitCount = std::log2(targetUnitary.shape().size());
+    epsilon = 1e-10;
+    delta = 512;
+    cnotCounter = 0;
   }
 
   /// Synthesis algorithm
@@ -156,16 +225,17 @@ public:
       // n ← pop from queue
       Node n = pq.top();
       pq.pop();
+      cnotCounter += n.cnotCount;
       // for all ni ∈S(n) do
       for (auto ni : successorFunction(n)) {
         // di ← P(ni, Utarget)
         auto di = optimizationFunction(ni);
         // if di < ε then
-        if (di < epsilon) {
+        if (di <= epsilon) {
           return ni;
         }
         // if CNOT count of ni < δ then
-        if (delta) {
+        if (cnotCounter < delta) {
           // push ni onto queue with priority H(di)+CNOT count of ni
           pq.push(ni);
         }
@@ -200,20 +270,41 @@ struct ReplaceUnitaryOp : public OpRewritePattern<quake::UnitaryOp> {
       /// look-up first
       /// TODO: Add all known gates to the cache beforehand
 
-      // Create an instance of the synthesis class, get "list" of replacement
-      // operations If empty list, failed to synthesize, else, use
-      // rewriter.create(...) calls to replace
       auto result = AStarSearchSynthesis(targetUnitary).synthesize();
 
-      if (result.empty()) {
+      if (result.elements.empty()) {
         op.emitOpError("failed to decompose the custom unitary");
       }
-      /// TODO: Expand the replacer logic
-      Value zero = rewriter.create<arith::ConstantFloatOp>(
-          loc, APFloat{0.0}, rewriter.getF64Type());
-      std::array<Value, 3> parameters = {zero, zero, zero};
-      for (auto t : targets) {
-        rewriter.create<quake::U3Op>(loc, parameters, controls, t);
+
+      /// TODO: Save across unitaries? Or can it be automatically optimized?
+      std::map<APFloat, Value> paramValMap;
+
+      for (auto op : result.elements) {
+        if (0 == op.index()) {
+          // insert U3
+          auto gate = std::get<DefaultGateSet::U3>(op);
+          std::array<APFloat, 3> inParams = {
+              APFloat{gate.theta}, APFloat{gate.phi}, APFloat{gate.lambda}};
+          std::array<Value, 3> outParams;
+          for (size_t i = 0; i < inParams.size(); i++) {
+            if (paramValMap.find(inParams[i]) == paramValMap.end()) {
+              Value val = rewriter.create<arith::ConstantFloatOp>(
+                  loc, inParams[i], rewriter.getF64Type());
+              paramValMap[inParams[i]] = val;
+              outParams[i] = val;
+            } else {
+              outParams[i] = paramValMap[inParams[i]];
+            }
+          }
+
+          rewriter.create<quake::U3Op>(loc, outParams, controls,
+                                       targets[gate.qubit_idx]);
+        } else if (1 == op.index()) {
+          // insert cnot
+          auto gate = std::get<DefaultGateSet::CNot>(op);
+          rewriter.create<quake::XOp>(loc, targets[gate.control],
+                                      targets[gate.target]);
+        }
       }
 
     } else {
