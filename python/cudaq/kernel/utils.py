@@ -306,11 +306,6 @@ def mlirTypeToPyType(argType):
 
     if cc.CharspanType.isinstance(argType):
         return pauli_word
-    
-    # if cc.PointerType.isinstance(argType):
-    #     eleTy = cc.PointerType.getElementType(argType)
-    #     if IntegerType.isinstance(eleTy):
-    #         return str
 
     def getListType(eleType: type):
         ## [PYTHON_VERSION_FIX]
@@ -336,12 +331,6 @@ def mlirTypeToPyType(argType):
             ty = complex if F64Type.isinstance(
                 ComplexType(eleTy).element_type) else np.complex64
             return getListType(ty)
-        # if cc.PointerType.isinstance(eleTy):
-        #     # String (represented as int*)
-        #     eleTy = cc.PointerType.getElementType(eleTy)
-        #     if IntegerType.isinstance(eleTy):
-        #         return getListType(str)
-
 
     emitFatalError(
         f"Cannot infer CUDA-Q type from provided Python type ({argType})")

@@ -65,7 +65,7 @@ def run_steps(steps: int, spins: int):
         ham.for_each_term(lambda term: result.append(term.get_coefficient()))
         return result
 
-    # Collect pauli words from a spin operator so we can pass them to a kernel
+    # Collect Pauli words from a spin operator so we can pass them to a kernel
     def termWords(op: cudaq.SpinOperator) -> list[str]:
         result = []
         ham.for_each_term(lambda term: result.append(term.to_string(False)))
@@ -102,5 +102,5 @@ def run_steps(steps: int, spins: int):
 
 
 start_time = time.time()
-run_steps(100, 25)
+run_steps(10, 25)
 print(f"Total time: {time.time() - start_time}s")

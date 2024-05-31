@@ -2013,9 +2013,8 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
       [](quake::VeqType type) { return getArrayType(type.getContext()); });
   typeConverter.addConversion(
       [](quake::RefType type) { return getQubitType(type.getContext()); });
-  typeConverter.addConversion([](cc::StateType type) {
-    return factory::stateImplType(type);
-  });
+  typeConverter.addConversion(
+      [](cc::StateType type) { return factory::stateImplType(type); });
   typeConverter.addConversion([](cc::CallableType type) {
     return lambdaAsPairOfPointers(type.getContext());
   });

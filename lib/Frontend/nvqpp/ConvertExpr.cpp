@@ -1425,7 +1425,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto span = builder.create<cc::LoadOp>(loc, v);
           processedArgs.push_back(span);
         } else {
-          v.getType().dump();
           reportClangError(x, mangler, "could not determine string argument");
         }
       };
