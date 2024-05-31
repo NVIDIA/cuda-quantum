@@ -84,6 +84,78 @@ public:
     return numQubits;
   }
 
+  static std::vector<std::complex<double>> generateXX(double theta) {
+    const auto halfTheta = theta / 2.;
+    const std::complex<double> cos = std::cos(halfTheta);
+    const std::complex<double> isin = {0., std::sin(halfTheta)};
+    // Row-major
+    return {cos, 0.,    0.,  -isin, 0.,    cos, -isin, 0.,
+            0.,  -isin, cos, 0.,    -isin, 0.,  0.,    cos};
+  };
+
+  static std::vector<std::complex<double>> generateYY(double theta) {
+    const auto halfTheta = theta / 2.;
+    const std::complex<double> cos = std::cos(halfTheta);
+    const std::complex<double> isin = {0., std::sin(halfTheta)};
+    // Row-major
+    return {cos, 0.,    0.,  isin, 0.,   cos, -isin, 0.,
+            0.,  -isin, cos, 0.,   isin, 0.,  0.,    cos};
+  };
+
+  static std::vector<std::complex<double>> generateZZ(double theta) {
+    const std::complex<double> itheta2 = {0., theta / 2.0};
+    const std::complex<double> exp_itheta2 = std::exp(itheta2);
+    const std::complex<double> exp_minus_itheta2 = std::exp(-1.0 * itheta2);
+    // Row-major
+    return {exp_minus_itheta2, 0., 0., 0., 0., exp_itheta2,      0., 0., 0., 0.,
+            exp_itheta2,       0., 0., 0., 0., exp_minus_itheta2};
+  };
+
+  virtual void applyExpPauli(double theta,
+                             const std::vector<std::size_t> &controls,
+                             const std::vector<std::size_t> &qubitIds,
+                             const cudaq::spin_op &op) override {
+    // Special handling for equivalence of Rxx(theta), Ryy(theta), Rzz(theta)
+    // expressed as exp_pauli.
+    //  Note: for MPS, the runtime is ~ linear with the number of 2-body gates
+    //  (gate split procedure).
+    // Hence, we check if this is a Rxx(theta), Ryy(theta), or Rzz(theta), which
+    // are commonly-used gates and apply the operation directly (the base
+    // decomposition will result in 2 CNOT gates).
+    const auto shouldHandlePauliOp =
+        [](const cudaq::spin_op &opToCheck) -> bool {
+      const std::string opStr = opToCheck.to_string(false);
+      return opStr == "XX" || opStr == "YY" || opStr == "ZZ";
+    };
+    if (controls.empty() && qubitIds.size() == 2 && shouldHandlePauliOp(op)) {
+      flushGateQueue();
+      cudaq::info("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
+                  op.to_string(false), qubitIds[0], qubitIds[1]);
+      const GateApplicationTask task = [&]() {
+        const std::string opStr = op.to_string(false);
+        // Note: Rxx(angle) ==  exp(-i*angle/2 XX)
+        // i.e., exp(i*theta XX) == Rxx(-2 * theta)
+        if (opStr == "XX") {
+          // Note: use a special name so that the gate matrix caching procedure
+          // works properly.
+          return GateApplicationTask("Rxx", generateXX(-2.0 * theta), {},
+                                     qubitIds, {theta});
+        } else if (opStr == "YY") {
+          return GateApplicationTask("Ryy", generateYY(-2.0 * theta), {},
+                                     qubitIds, {theta});
+        } else if (opStr == "ZZ") {
+          return GateApplicationTask("Rzz", generateZZ(-2.0 * theta), {},
+                                     qubitIds, {theta});
+        }
+        __builtin_unreachable();
+      }();
+      applyGate(task);
+      return;
+    }
+    // Let the base class to handle this Pauli rotation
+    SimulatorTensorNetBase::applyExpPauli(theta, controls, qubitIds, op);
+  }
+
   virtual std::string name() const override { return "tensornet-mps"; }
   CircuitSimulator *clone() override {
     thread_local static auto simulator = std::make_unique<SimulatorMPS>();

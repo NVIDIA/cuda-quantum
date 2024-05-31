@@ -8,8 +8,8 @@
 
 #pragma once
 
-/// This file provides some common QIR function name string s
-/// for use throughout our MLIR lowering infrastructure.
+/// This file provides some common QIR function names for use throughout our
+/// MLIR lowering infrastructure.
 
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 
