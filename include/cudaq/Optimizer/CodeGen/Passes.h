@@ -23,8 +23,6 @@ class PassManager;
 } // namespace mlir
 
 namespace cudaq::opt {
-
-std::unique_ptr<mlir::Pass> createConvertToQIRPass();
 void registerConvertToQIRPass();
 
 /// Convert (generic) QIR to the profile-specific QIR for a specific target.

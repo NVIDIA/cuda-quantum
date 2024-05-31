@@ -196,9 +196,6 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
     if id == 'complex':
         return ComplexType.get(F64Type.get())
-    
-    # if id == 'str':
-    #     return cc.PointerType.get(ctx, IntegerType.get_signless(64))
 
     localEmitFatalError(
         f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
