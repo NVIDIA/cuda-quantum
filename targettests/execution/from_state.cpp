@@ -9,7 +9,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
 
-// //include <cudaq.h>
+#include <cudaq.h>
 
 // __qpu__ void test(std::vector<cudaq::complex> inState) {
 //   cudaq::qvector q = inState;
@@ -27,8 +27,28 @@
 
 // }
 
+
+__qpu__ void test(cudaq::state* inState) {
+  cudaq::qvector q(inState);
+}
+
+// CHECK: size 2
+
+int main() {
+  std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  auto state = cudaq::state::from_data(vec);
+  auto counts = cudaq::sample(test, &state);
+  counts.dump();
+
+  printf("size %zu\n", counts.size());
+
+
+}
+/*
 #include <cudaq.h>
 #include <iostream>
+#include <string>
+#include <complex>
 
 // Alternating up/down spins
 struct initState {
@@ -39,20 +59,40 @@ struct initState {
   }
 };
 
+std::vector<double> term_coefficients(cudaq::spin_op op) {
+  std::vector<double> result{};
+  op.for_each_term([&](cudaq::spin_op &term) {
+    const auto coeff = term.get_coefficient().real();
+    result.push_back(coeff);
+  });
+  return result;
+}
+
+std::vector<std::string> term_strings(cudaq::spin_op op) {
+  std::vector<std::string> result{};
+  op.for_each_term([&](cudaq::spin_op &term) {
+    const auto coeff = term.to_string(false);
+    result.push_back(coeff);
+  });
+  return result;
+}
+
 struct trotter {
   // Note: This performs a single-step Trotter on top of an initial state, e.g.,
   // result state of the previous Trotter step.
-  void operator()(cudaq::state initial_state, std::vector<double> data, int n_spins, double dt) __qpu__ {
+  void operator()(cudaq::state *initial_state, std::vector<double> coefficients, std::vector<std::string> terms,  double dt) __qpu__ {
     cudaq::qvector q(initial_state);
-    cudaq::spin_op ham(data, n_spins);
-    ham.for_each_term([&](cudaq::spin_op &term) {
-      const auto coeff = term.get_coefficient();
-      const auto pauliWord = term.to_string(false);
-      const double theta = coeff.real() * dt;
+    for (std::size_t i = 0; i < coefficients.size(); ++i) {
+      const auto coeff = coefficients[i];
+      const auto pauliWord = terms[i];
+      const double theta = coeff * dt;
       cudaq::exp_pauli(dt, q, pauliWord.c_str());
-    });
+    }
   }
 };
+
+int SPINS = 10; // 25
+int STEPS = 1000; // 100
 
 int main() {
   const double g = 1.0;
@@ -60,8 +100,8 @@ int main() {
   const double Jy = 1.0;
   const double Jz = g;
   const double dt = 0.05;
-  const int n_steps = 100;
-  const int n_spins = 25;
+  const int n_steps = STEPS;
+  const int n_spins = SPINS;
   const double omega = 2 * M_PI;
   const auto heisenbergModelHam = [&](double t) -> cudaq::spin_op {
     cudaq::spin_op tdOp(n_spins);
@@ -88,10 +128,12 @@ int main() {
     const auto start = std::chrono::high_resolution_clock::now();
     auto ham = heisenbergModelHam(i * dt);
     auto data = ham.getDataRepresentation();
+    auto coefficients = term_coefficients(ham);
+    auto terms = term_strings(ham);
     auto magnetization_exp_val =
-        cudaq::observe(trotter{}, average_magnetization, state, data, n_spins, dt);
+        cudaq::observe(trotter{}, average_magnetization, &state, coefficients, terms, dt);
     expResults.emplace_back(magnetization_exp_val.expectation());
-    state = cudaq::get_state(trotter{}, state, data, n_spins, dt);
+    state = cudaq::get_state(trotter{}, &state, coefficients, terms, dt);
     const auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
@@ -104,4 +146,4 @@ int main() {
   return 0;
 
   std::cout << "hello" << std::endl;
-}
+}*/

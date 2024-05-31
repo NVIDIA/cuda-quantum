@@ -152,8 +152,10 @@ public:
         fromComplex = true;
         eleTy = complexTy.getBody()[0];
       }
-      if (eleTy == rewriter.getI8Type())
+      if (eleTy == rewriter.getI8Type()) {
+        std::cout << "RAII rewrite" << std::endl;
         functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
+      }
       if (eleTy == rewriter.getF64Type())
         functionName =
             fromComplex
@@ -2017,7 +2019,9 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
   typeConverter.addConversion(
       [](quake::RefType type) { return getQubitType(type.getContext()); });
   typeConverter.addConversion(
-      [](cc::StateType type) { return factory::stateImplType(type); });
+      [](cc::StateType type) { 
+        std::cout << "State type conversion" << std::endl;
+        return factory::stateImplType(type); });
   typeConverter.addConversion([](cc::CallableType type) {
     return lambdaAsPairOfPointers(type.getContext());
   });
