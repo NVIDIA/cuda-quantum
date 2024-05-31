@@ -999,7 +999,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
+  pm.addPass(cudaq::opt::createConvertToQIR());
   pm.addPass(createCanonicalizerPass());
 
   if (failed(pm.run(module)))
