@@ -1086,6 +1086,57 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     });
     EXPECT_NEAR(e, -1.13, 1e-2);
   }
+  {
+    // XX
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(2);
+    kernel.exp_pauli(theta, "XX", qubits[0], qubits[1]);
+    kernel.h(qubits);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.rz(2.0 * theta, qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.h(qubits);
+    std::cout << kernel << "\n";
+    for (const auto &angle : cudaq::linspace(-M_PI, M_PI, 10)) {
+      auto counts = cudaq::sample(kernel, angle);
+      EXPECT_EQ(counts.size(), 1);
+      EXPECT_EQ(counts.begin()->first, "00");
+    }
+  }
+  {
+    // YY
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(2);
+    kernel.exp_pauli(theta, "YY", qubits[0], qubits[1]);
+    kernel.rx(M_PI_2, qubits[0]);
+    kernel.rx(M_PI_2, qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.rz(2.0 * theta, qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.rx(-M_PI_2, qubits[0]);
+    kernel.rx(-M_PI_2, qubits[1]);
+    std::cout << kernel << "\n";
+    for (const auto &angle : cudaq::linspace(-M_PI, M_PI, 10)) {
+      auto counts = cudaq::sample(kernel, angle);
+      EXPECT_EQ(counts.size(), 1);
+      EXPECT_EQ(counts.begin()->first, "00");
+    }
+  }
+  {
+    // ZZ
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(2);
+    kernel.exp_pauli(theta, "ZZ", qubits[0], qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.rz(2.0 * theta, qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    std::cout << kernel << "\n";
+    for (const auto &angle : cudaq::linspace(-M_PI, M_PI, 10)) {
+      auto counts = cudaq::sample(kernel, angle);
+      EXPECT_EQ(counts.size(), 1);
+      EXPECT_EQ(counts.begin()->first, "00");
+    }
+  }
 }
 
 CUDAQ_TEST(BuilderTester, checkControlledRotations) {
