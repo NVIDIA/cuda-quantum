@@ -31,8 +31,8 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-struct CCTypeConverter : public TypeConverter {
-  CCTypeConverter() {
+struct QuakeTypeConverter : public TypeConverter {
+  QuakeTypeConverter() {
     addConversion([](quake::VeqType ty) {
       return cudaq::cc::PointerType::get(
           cudaq::opt::getCudaqQubitSpanType(ty.getContext()));
@@ -55,8 +55,8 @@ struct QuakeToCCPass : public cudaq::opt::impl::QuakeToCCBase<QuakeToCCPass> {
     auto op = getOperation();
     auto *context = &getContext();
     RewritePatternSet patterns(context);
-    CCTypeConverter ccTypeConverter;
-    cudaq::opt::populateQuakeToCCPatterns(ccTypeConverter, patterns);
+    QuakeTypeConverter quakeTypeConverter;
+    cudaq::opt::populateQuakeToCCPatterns(quakeTypeConverter, patterns);
     ConversionTarget target(*context);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            func::FuncDialect, LLVM::LLVMDialect>();

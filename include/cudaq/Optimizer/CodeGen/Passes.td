@@ -32,6 +32,15 @@ def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
+def CCToLLVM : Pass<"cc-to-llvm", "mlir::ModuleOp"> {
+  let summary = "Convert CC dialect (and others) to LLVM-IR.";
+  let description = [{
+    Complete the conversion of modules from 'CC dialect' to LLVM-IR dialect.
+    This is the final step before generating LLVM code. It would typically be
+    used after `-quake-to-cc` when a simulator is the target.
+  }];
+}
+
 def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{
