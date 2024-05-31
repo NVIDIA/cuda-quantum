@@ -57,7 +57,7 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 // CHECK:           %[[VAL_14:.*]] = llvm.mlir.addressof @test_0.kernelName : !llvm.ptr<array<7 x i8>>
 // CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_14]] : (!llvm.ptr<array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_16:.*]] = cc.func_ptr %[[VAL_4]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}> x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_8]][0, 1] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>
 // CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>) -> i64
 // CHECK:           call @altLaunchKernel(%[[VAL_15]], %[[VAL_16]], %[[VAL_17]], %[[VAL_10]], %[[VAL_19]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
@@ -121,7 +121,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           %[[VAL_14:.*]] = llvm.mlir.addressof @test_1.kernelName : !llvm.ptr<array<7 x i8>>
 // CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_14]] : (!llvm.ptr<array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_16:.*]] = cc.func_ptr %[[VAL_4]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}> x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_8]][0, 1] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>
 // CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>) -> i64
 // CHECK:           call @altLaunchKernel(%[[VAL_15]], %[[VAL_16]], %[[VAL_17]], %[[VAL_10]], %[[VAL_19]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()

@@ -15,10 +15,12 @@ add_cudaq_library(OptCodeGen
   CodeGenDialect.cpp
   CodeGenOps.cpp
   CodeGenTypes.cpp
+  ConvertToCC.cpp
   ConvertToQIRProfile.cpp
   ConvertToQIR.cpp
   Passes.cpp
   Pipelines.cpp
+  QuakeToCC.cpp
   QuakeToLLVM.cpp
   RemoveMeasurements.cpp
   TranslateToIQMJson.cpp
