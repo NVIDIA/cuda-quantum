@@ -19,6 +19,7 @@ from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
+from .captured_data import CapturedDataStorage
 
 State = cudaq_runtime.State
 
@@ -106,16 +107,13 @@ class PyASTBridge(ast.NodeVisitor):
     and synthesize them away with an internal C++ MLIR pass. 
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, capturedDataStorage: CapturedDataStorage, **kwargs):
         """
         The constructor. Initializes the `mlir.Value` stack, the `mlir.Context`, and the 
         `mlir.Module` that we will be building upon. This class keeps track of a 
         symbol table, which maps variable names to constructed `mlir.Values`. 
         """
         self.valueStack = deque()
-        self.cudaqStateID = 0
-        self.cudaqStateIDs = kwargs[
-            'cudaqStateIDs'] if 'cudaqStateIDs' in kwargs else None
         self.knownResultType = kwargs[
             'knownResultType'] if 'knownResultType' in kwargs else None
         if 'existingModule' in kwargs:
@@ -130,6 +128,20 @@ class PyASTBridge(ast.NodeVisitor):
             cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
             self.loc = Location.unknown(context=self.ctx)
             self.module = Module.create(loc=self.loc)
+
+        # Create a new captured data storage or use the existing one
+        # passed from the current kernel decorator.
+        self.capturedDataStorage = capturedDataStorage
+        if (self.capturedDataStorage == None):
+            self.capturedDataStorage = CapturedDataStorage(ctx=self.ctx,
+                                                           loc=self.loc,
+                                                           name=None,
+                                                           module=self.module)
+        else:
+            self.capturedDataStorage.setKernelContext(ctx=self.ctx,
+                                                      loc=self.loc,
+                                                      name=None,
+                                                      module=self.module)
 
         # If the driver of this AST bridge instance has indicated
         # that there is a return type from analysis on the Python AST,
@@ -196,10 +208,6 @@ class PyASTBridge(ast.NodeVisitor):
             "\n\t (offending source -> " + ast.unparse(astNode) + ")" if
             hasattr(ast, 'unparse') and astNode is not None else '') + Color.END
         raise CompilerError(msg)
-
-    def getNewCudaqStateID(self):
-        self.cudaqStateID += 1
-        return self.name + str(self.cudaqStateID)
 
     def validateArgumentAnnotations(self, astModule):
         """
@@ -465,7 +473,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def ifPointerThenLoad(self, value):
         """
-        If the given value is of pointer type, load the pointer 
+        If the given value is of pointer type, load the pointer
         and return that new value.
         """
         if cc.PointerType.isinstance(value.type):
@@ -835,6 +843,9 @@ class PyASTBridge(ast.NodeVisitor):
             createLambda = cc.CreateLambdaOp(ty)
             initRegion = createLambda.initRegion
             initBlock = Block.create_at_start(initRegion, [])
+            # TODO: process all captured variables in the main function
+            # definition first to avoid reusing code not defined in the
+            # same or parent scope of the produced MLIR.
             with InsertionPoint(initBlock):
                 [self.visit(n) for n in node.body]
                 cc.ReturnOp([])
@@ -856,6 +867,7 @@ class PyASTBridge(ast.NodeVisitor):
             argNames = [arg.arg for arg in node.args.args]
 
             self.name = node.name
+            self.capturedDataStorage.name = self.name
 
             # the full function name in MLIR is `__nvqpp__mlirgen__` + the function name
             if not self.disableNvqppPrefix:
@@ -3366,51 +3378,6 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             self.emitFatalError(f"unhandled binary operator - {node.op}", node)
 
-    def __store_state(self, value: State):
-        # Compute a unique ID for the state data
-        stateID = self.getNewCudaqStateID()
-        stateTy = cc.StateType.get(self.ctx)
-        statePtrTy = cc.PointerType.get(self.ctx, stateTy)
-
-        # Generate a function that stores the state value in a global
-        globalTy = statePtrTy
-        globalName = f'nvqpp.cudaq.state.{stateID}'
-        setStateName = f'nvqpp.set.cudaq.state.{stateID}'
-        with InsertionPoint.at_block_begin(self.module.body):
-            cc.GlobalOp(TypeAttr.get(globalTy), globalName, external=True)
-            setStateFunc = func.FuncOp(setStateName,
-                                       FunctionType.get(inputs=[statePtrTy],
-                                                        results=[]),
-                                       loc=self.loc)
-            entry = setStateFunc.add_entry_block()
-            with InsertionPoint(entry):
-                zero = self.getConstantInt(0)
-                address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
-                                         FlatSymbolRefAttr.get(globalName))
-                ptr = cc.ComputePtrOp(
-                    cc.PointerType.get(self.ctx, statePtrTy), address, [zero],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-
-                cc.StoreOp(entry.arguments[0], ptr)
-                func.ReturnOp([])
-
-        # Record the unique hash value
-        if stateID not in self.cudaqStateIDs:
-            self.cudaqStateIDs.append(stateID)
-
-        # Store the state into a global variable
-        cudaq_runtime.storePointerToCudaqState(self.name, stateID, value)
-
-        # Return the pointer to the stored state
-        zero = self.getConstantInt(0)
-        address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
-                                 FlatSymbolRefAttr.get(globalName)).result
-        ptr = cc.ComputePtrOp(
-            cc.PointerType.get(self.ctx, statePtrTy), address, [zero],
-            DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)).result
-        statePtr = cc.LoadOp(ptr).result
-        return statePtr
-
     def visit_Name(self, node):
         """
         Visit `ast.Name` nodes and extract the correct value from the symbol table.
@@ -3461,7 +3428,7 @@ class PyASTBridge(ast.NodeVisitor):
             value = self.capturedVars[node.id]
 
             if isinstance(value, State):
-                self.pushValue(self.__store_state(value))
+                self.pushValue(self.capturedDataStorage.storeCudaqState(value))
                 return
 
             if isinstance(value, (list, np.ndarray)) and isinstance(
@@ -3541,7 +3508,8 @@ class PyASTBridge(ast.NodeVisitor):
             node)
 
 
-def compile_to_mlir(astModule, metadata, **kwargs):
+def compile_to_mlir(astModule, metadata,
+                    capturedDataStorage: CapturedDataStorage, **kwargs):
     """
     Compile the given Python AST Module for the CUDA-Q 
     kernel FunctionDef to an MLIR `ModuleOp`. 
@@ -3560,11 +3528,10 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
     parentVariables = kwargs[
         'parentVariables'] if 'parentVariables' in kwargs else {}
-    cudaqStateIDs = kwargs['cudaqStateIDs']
 
     # Create the AST Bridge
-    bridge = PyASTBridge(verbose=verbose,
-                         cudaqStateIDs=cudaqStateIDs,
+    bridge = PyASTBridge(capturedDataStorage,
+                         verbose=verbose,
                          knownResultType=returnType,
                          returnTypeIsFromPython=True,
                          locationOffset=lineNumberOffset,
@@ -3614,7 +3581,8 @@ def compile_to_mlir(astModule, metadata, **kwargs):
         if funcName != vis.kernelName and funcName in depKernels:
             # Build an AST Bridge and visit the dependent kernel
             # function. Provide the dependent kernel source location as well.
-            PyASTBridge(existingModule=bridge.module,
+            PyASTBridge(capturedDataStorage,
+                        existingModule=bridge.module,
                         locationOffset=depKernels[funcName][1]).visit(
                             depKernels[funcName][0])
 
