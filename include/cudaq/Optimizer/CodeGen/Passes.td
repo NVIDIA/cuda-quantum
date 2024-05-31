@@ -32,6 +32,15 @@ def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
+def CCToLLVM : Pass<"cc-to-llvm", "mlir::ModuleOp"> {
+  let summary = "Convert CC dialect (and others) to LLVM-IR.";
+  let description = [{
+    Complete the conversion of modules from 'CC dialect' to LLVM-IR dialect.
+    This is the final step before generating LLVM code. It would typically be
+    used after `-quake-to-cc` when a simulator is the target.
+  }];
+}
+
 def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{
@@ -82,7 +91,8 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
   let description = [{
-    This is a (function) subpass of the pipeline to convert to specific QIR Profile.
+    This is a (function) subpass of the pipeline to convert to specific QIR
+    Profile.
 
     Each function with a body is analyzed for qubit allocations and qubit
     measurements. Attributes for the total count of qubits are added to the
