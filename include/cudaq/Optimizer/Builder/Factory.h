@@ -235,6 +235,7 @@ bool isAArch64(mlir::ModuleOp);
 /// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`.
 bool structUsesTwoArguments(mlir::Type ty);
 
+std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
 } // namespace factory
 } // namespace opt
 } // namespace cudaq

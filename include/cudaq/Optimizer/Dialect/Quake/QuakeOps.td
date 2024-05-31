@@ -668,7 +668,7 @@ def MzOp : Measurement<"mz"> {
   let extraClassDeclaration = OpBaseDeclaration;
 }
 
-def DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
+def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   let summary = "Converts a measurement to a classical integral value.";
   let description = [{
     Quake's measurement operators return a value of type `!quake.measure`. The
@@ -823,7 +823,7 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 // Unitary quantum transformations
 //===----------------------------------------------------------------------===//
 
-def ExpPauliOp : QuakeOp<"exp_pauli"> {
+def quake_ExpPauliOp : QuakeOp<"exp_pauli"> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
     This operation affects a general Pauli tensor product rotation on 
