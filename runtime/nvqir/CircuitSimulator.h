@@ -220,7 +220,7 @@ public:
   applyCustomOperation(const std::vector<std::complex<double>> &matrix,
                        const std::vector<std::size_t> &controls,
                        const std::vector<std::size_t> &targets,
-                       const std::string_view = "") = 0;
+                       const std::string_view customUnitaryName = "") = 0;
 
 #define CIRCUIT_SIMULATOR_ONE_QUBIT(NAME)                                      \
   void NAME(const std::size_t qubitIdx) {                                      \
