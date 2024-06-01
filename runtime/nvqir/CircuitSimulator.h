@@ -219,7 +219,8 @@ public:
   virtual void
   applyCustomOperation(const std::vector<std::complex<double>> &matrix,
                        const std::vector<std::size_t> &controls,
-                       const std::vector<std::size_t> &targets) = 0;
+                       const std::vector<std::size_t> &targets,
+                       const std::string_view = "") = 0;
 
 #define CIRCUIT_SIMULATOR_ONE_QUBIT(NAME)                                      \
   void NAME(const std::size_t qubitIdx) {                                      \
@@ -1015,7 +1016,8 @@ public:
   /// @brief Apply a custom quantum operation
   void applyCustomOperation(const std::vector<std::complex<double>> &matrix,
                             const std::vector<std::size_t> &controls,
-                            const std::vector<std::size_t> &targets) override {
+                            const std::vector<std::size_t> &targets,
+                            const std::string_view customName) override {
     flushAnySamplingTasks();
     auto numRows = std::sqrt(matrix.size());
     auto numQubits = std::log2(numRows);
@@ -1056,7 +1058,10 @@ public:
                      });
     }
     if (cudaq::details::should_log(cudaq::details::LogLevel::info))
-      cudaq::info(gateToString("custom_unitary", controls, {}, targets));
+      cudaq::info(gateToString(customName.empty() ? "unknown op" : customName,
+                               controls, {}, targets) +
+                      " = {}",
+                  matrix);
     enqueueGate("custom", actual, controls, targets, {});
   }
 

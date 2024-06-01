@@ -138,16 +138,7 @@ protected:
         .Default([&]() {
           if (registeredOperations.count(gateName)) {
             auto data = registeredOperations[gateName]->unitary(parameters);
-            if (cudaq::details::should_log(cudaq::details::LogLevel::info)) {
-              std::string dataStr = "";
-              for (auto &el : data)
-                dataStr += "(" + std::to_string(el.real()) + ", " +
-                           std::to_string(el.imag()) + ") ";
-
-              cudaq::info("Found quake_ext op {} with {} elements", gateName,
-                          dataStr);
-            }
-            simulator()->applyCustomOperation(data, localC, localT);
+            simulator()->applyCustomOperation(data, localC, localT, gateName);
             return;
           }
           throw std::runtime_error("[DefaultExecutionManager] invalid gate "
