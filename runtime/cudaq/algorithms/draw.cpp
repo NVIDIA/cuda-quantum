@@ -12,7 +12,9 @@
 #include "cudaq/algorithms/draw.h"
 #include "common/FmtCore.h"
 #include <algorithm>
+#include <string>
 #include <utility>
+#include <vector>
 
 using namespace cudaq;
 
@@ -137,6 +139,10 @@ inline void merge_chars(char &c0, char c1) {
   }
   std::swap(c0, c1);
 }
+
+const std::map<std::string, std::string> latex_gates_map = {
+    {"sdg", R"(S^\dag)"}, {"tdg", R"(T^\dag)"}, {"rx", "R_x"},
+    {"ry", "R_y"},        {"rz", "R_z"},        {"r1", "R_1"}};
 
 class Diagram {
 public:
@@ -440,7 +446,7 @@ boxes_from_trace(const Trace &trace) {
   std::vector<std::unique_ptr<Diagram::Operator>> boxes;
   boxes.reserve(std::distance(trace.begin(), trace.end()));
 
-  std::size_t ref = 0;
+  // same iteration order as in layers_from_trace
   for (const auto &inst : trace) {
     std::vector<Diagram::Wire> wires = convertToIDs(inst.targets);
     std::sort(wires.begin(), wires.end());
@@ -475,7 +481,6 @@ boxes_from_trace(const Trace &trace) {
                                               inst.controls.size());
     }
     boxes.push_back(std::move(shape));
-    ref += 1;
   }
   return boxes;
 }
@@ -556,14 +561,109 @@ std::string string_diagram_from_trace(const Trace &trace,
   return str;
 }
 
+std::string get_latex_name(const cudaq::Trace::Instruction &inst) {
+  if (latex_gates_map.find(inst.name) != latex_gates_map.end()) {
+    return latex_gates_map.at(inst.name);
+  } else {
+    auto latex_gate = inst.name;
+    // default: name is upper-cased
+    std::transform(latex_gate.begin(), latex_gate.end(), latex_gate.begin(),
+                   [](unsigned char c) { return std::toupper(c); });
+    latex_gate = inst.params.empty()
+                     ? latex_gate
+                     : fmt::format("{}({:.4})", latex_gate,
+                                   fmt::join(inst.params.begin(),
+                                             inst.params.end(), ","));
+    return latex_gate;
+  }
+}
+
+std::string latex_diagram_from_trace(const Trace &trace,
+                                     const std::vector<Layer> &layers) {
+  // clang-format off
+    std::string latex_string = R"(\documentclass{minimal}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz})";
+  // clang-format on
+  const std::string sep = " & ";
+  std::vector<std::string> latex_lines(trace.getNumQudits());
+  for (std::size_t row = 0; row < trace.getNumQudits(); ++row) {
+    latex_lines[row] += fmt::format("  \\lstick{{$q_{}$}}", row) + sep;
+  }
+  for (const auto &layer : layers) {
+    // unpack this layer
+    for (const auto &ref : layer) {
+      auto instruction = trace.begin() + ref;
+      auto name = get_latex_name(*instruction);
+      // (controlled) swap
+      if (name == "SWAP") {
+        std::vector<Diagram::Wire> wires = convertToIDs(instruction->targets);
+        std::sort(wires.begin(), wires.end());
+        auto target_row0 = wires.at(0);
+        auto target_row1 = wires.at(1);
+        latex_lines[target_row0] +=
+            R"(\swap{)" + std::to_string(target_row1 - target_row0) + "}";
+        latex_lines[target_row1] += R"(\targX{})";
+        std::vector<Diagram::Wire> controls =
+            convertToIDs(instruction->controls);
+        for (int control : controls) {
+          // draw control line to the swap symbol further away
+          if (std::abs(control - target_row0) >
+              std::abs(control - target_row1)) {
+            latex_lines[control] +=
+                R"(\ctrl{)" + std::to_string(target_row0 - control) + "}";
+          } else {
+            latex_lines[control] +=
+                R"(\ctrl{)" + std::to_string(target_row1 - control) + "}";
+          }
+        }
+      } else {
+        // (controlled) box
+        std::vector<Diagram::Wire> wires = convertToIDs(instruction->targets);
+        std::sort(wires.begin(), wires.end());
+        for (auto wire : wires) {
+          latex_lines[wire] += R"(\gate{)" + name + "}";
+        }
+        std::vector<Diagram::Wire> controls =
+            convertToIDs(instruction->controls);
+        for (int control : controls) {
+          latex_lines[control] +=
+              R"(\ctrl{)" + std::to_string(wires.front() - control) + "}";
+        }
+      }
+    }
+    for (auto &latex_line : latex_lines) {
+      // if nothing happened in this layer, add \qw symbol
+      if (latex_line.ends_with(sep)) {
+        latex_line += R"(\qw)";
+      }
+      latex_line += sep;
+    }
+  }
+  for (auto &latex_line : latex_lines) {
+    latex_line += "\\qw \\\\ \n";
+    latex_string += latex_line;
+  }
+  // clang-format off
+  latex_string.append(R"(\end{quantikz}
+\end{document}
+)");
+  // clang-format on
+  return latex_string;
+}
+
 } // namespace
+
+std::string cudaq::__internal__::getLaTeXString(const Trace &trace) {
+  const auto layers = layers_from_trace(trace);
+  return latex_diagram_from_trace(trace, layers);
+}
 
 std::string cudaq::__internal__::draw(const Trace &trace) {
   if (trace.begin() == trace.end()) {
     return "<empty trace>";
   }
-
   const auto layers = layers_from_trace(trace);
-  const auto str = string_diagram_from_trace(trace, layers);
-  return str;
+  return string_diagram_from_trace(trace, layers);
 }
