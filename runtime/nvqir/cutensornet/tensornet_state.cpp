@@ -475,8 +475,9 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
       m_cutnHandle, m_quantumState, workDesc, extentsPtr.data(),
       /*strides=*/nullptr, allData.data(), 0));
 
-  if (hostWork)
+  if (hostWork) {
     free(hostWork);
+  }
   return mpsTensors;
 }
 
