@@ -321,7 +321,7 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   return std::make_tuple(rawArgs, size, returnOffset);
 }
 
-std::tuple<cudaq::ArgWrapper, std::size_t, std::int32_t>
+cudaq::KernelArgsHolder
 pyCreateNativeKernel(const std::string &name, MlirModule module,
                      cudaq::OpaqueArguments &runtimeArgs) {
   auto [jit, rawArgs, size, returnOffset] =
@@ -375,7 +375,7 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
   auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
   kernelReg();
   cudaq::ArgWrapper wrapper{unwrap(module), {}, rawArgs};
-  return std::make_tuple(wrapper, size, returnOffset);
+  return cudaq::KernelArgsHolder(wrapper, size, returnOffset);
 }
 
 void pyAltLaunchKernel(const std::string &name, MlirModule module,

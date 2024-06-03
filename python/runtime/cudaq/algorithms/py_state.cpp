@@ -5,24 +5,23 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include <pybind11/complex.h>
-#include <pybind11/stl.h>
-
+#include "py_state.h"
 #include "LinkedLibraryHolder.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Logger.h"
 #include "cudaq/algorithms/get_state.h"
-#include "py_state.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
+#include <pybind11/complex.h>
+#include <pybind11/stl.h>
 
 namespace cudaq {
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
-std::tuple<cudaq::ArgWrapper, std::size_t, std::int32_t>
-pyCreateNativeKernel(const std::string &, MlirModule, cudaq::OpaqueArguments &);
+cudaq::KernelArgsHolder pyCreateNativeKernel(const std::string &, MlirModule,
+                                             cudaq::OpaqueArguments &);
 /// @brief If we have any implicit device-to-host data transfers
 /// we will store that data here and ensure it is deleted properly.
 std::vector<std::unique_ptr<void, std::function<void(void *)>>>
