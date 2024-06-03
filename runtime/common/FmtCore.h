@@ -18,7 +18,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 namespace fmt {
-/// @brief Custom formatter for complex values.
+/// @brief Custom type for formatting complex values.
 template <typename T>
 struct formatter<std::complex<T>> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
