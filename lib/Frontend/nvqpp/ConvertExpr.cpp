@@ -1420,6 +1420,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           processedArgs.push_back(v);
         } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {
           processedArgs.push_back(load.getPtrvalue());
+        } else if (isCharspanPointerType(v.getType())) {
+          // Load the char span, which is a char*
+          auto span = builder.create<cc::LoadOp>(loc, v);
+          processedArgs.push_back(span);
         } else {
           reportClangError(x, mangler, "could not determine string argument");
         }
