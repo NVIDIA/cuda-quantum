@@ -18,8 +18,10 @@
 
 namespace cudaq {
 namespace cc {
+class CharspanType;
 class LoopOp;
 class PointerType;
+class StateType;
 class StructType;
 } // namespace cc
 
@@ -70,6 +72,9 @@ inline mlir::Type getPointerType(mlir::Type ty) {
   return mlir::LLVM::LLVMPointerType::get(ty);
 }
 
+/// Get the Quake type translation of a `cudaq::state` type.
+cc::StateType getCudaqStateType(mlir::MLIRContext *ctx);
+
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
 mlir::Type genArgumentBufferType(mlir::Type ty);
@@ -115,6 +120,12 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   return mlir::LLVM::LLVMStructType::getLiteral(ctx, eleTys);
 }
 
+inline mlir::Type stateImplType(mlir::Type eleTy) {
+  auto *ctx = eleTy.getContext();
+  auto eTy = cudaq::opt::factory::getCharType(ctx);
+  return cudaq::opt::factory::getPointerType(eTy);
+}
+
 // Host side types for std::string and std::vector
 
 cudaq::cc::StructType stlStringType(mlir::MLIRContext *ctx);
@@ -158,6 +169,12 @@ inline mlir::Value createF64Constant(mlir::Location loc,
                                      mlir::OpBuilder &builder, double value) {
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
+
+/// Return the integer value if \p v is an integer constant.
+std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
+
+/// Return the floating point value if \p v is a floating-point constant.
+std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
 
 /// Create a temporary on the stack. The temporary is created such that it is
 /// \em{not} control dependent (other than on function entry).

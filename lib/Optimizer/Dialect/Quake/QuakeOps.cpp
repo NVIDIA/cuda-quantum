@@ -171,6 +171,14 @@ LogicalResult quake::AllocaOp::verify() {
       }
     }
   }
+
+  // Check the uses. If any use is a InitializeStateOp, then it must be the only
+  // use.
+  Operation *self = getOperation();
+  if (!self->getUsers().empty() && !self->hasOneUse())
+    for (auto *op : self->getUsers())
+      if (isa<quake::InitializeStateOp>(op))
+        return emitOpError("init_state must be the only use");
   return success();
 }
 
@@ -180,6 +188,15 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   // changes the type. Uses may still expect a veq with unspecified size.
   // Folding is strictly reductive and doesn't allow the creation of ops.
   patterns.add<FuseConstantToAllocaPattern>(context);
+}
+
+quake::InitializeStateOp quake::AllocaOp::getInitializedState() {
+  auto *self = getOperation();
+  if (self->hasOneUse()) {
+    auto x = self->getUsers().begin();
+    return dyn_cast<quake::InitializeStateOp>(*x);
+  }
+  return {};
 }
 
 //===----------------------------------------------------------------------===//
@@ -464,6 +481,27 @@ LogicalResult quake::ExtractRefOp::verify() {
                            "] because >= size [" + std::to_string(veqSize) +
                            "]");
     }
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// InitializeStateOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::InitializeStateOp::verify() {
+  auto veqTy = cast<quake::VeqType>(getTargets().getType());
+  if (veqTy.hasSpecifiedSize())
+    if (!std::has_single_bit(veqTy.getSize()))
+      return emitOpError("initialize state vector must be power of 2, but is " +
+                         std::to_string(veqTy.getSize()) + " instead.");
+  auto ptrTy = cast<cudaq::cc::PointerType>(getState().getType());
+  Type ty = ptrTy.getElementType();
+  if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
+    if (!isa<FloatType, ComplexType>(arrTy.getElementType()))
+      return emitOpError("invalid data pointer type");
+  } else if (!isa<FloatType, ComplexType, cudaq::cc::StateType>(ty)) {
+    return emitOpError("invalid data pointer type");
   }
   return success();
 }
