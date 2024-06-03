@@ -562,20 +562,21 @@ std::string string_diagram_from_trace(const Trace &trace,
 }
 
 std::string get_latex_name(const cudaq::Trace::Instruction &inst) {
+  std::string latex_gate;
   if (latex_gates_map.find(inst.name) != latex_gates_map.end()) {
-    return latex_gates_map.at(inst.name);
+    latex_gate = latex_gates_map.at(inst.name);
   } else {
-    auto latex_gate = inst.name;
+    latex_gate = inst.name;
     // default: name is upper-cased
     std::transform(latex_gate.begin(), latex_gate.end(), latex_gate.begin(),
                    [](unsigned char c) { return std::toupper(c); });
-    latex_gate = inst.params.empty()
-                     ? latex_gate
-                     : fmt::format("{}({:.4})", latex_gate,
-                                   fmt::join(inst.params.begin(),
-                                             inst.params.end(), ","));
-    return latex_gate;
   }
+  latex_gate =
+      inst.params.empty()
+          ? latex_gate
+          : fmt::format("{}({:.4})", latex_gate,
+                        fmt::join(inst.params.begin(), inst.params.end(), ","));
+  return latex_gate;
 }
 
 std::string latex_diagram_from_trace(const Trace &trace,
@@ -584,7 +585,8 @@ std::string latex_diagram_from_trace(const Trace &trace,
     std::string latex_string = R"(\documentclass{minimal}
 \usepackage{quantikz}
 \begin{document}
-\begin{quantikz})";
+\begin{quantikz}
+)";
   // clang-format on
   const std::string sep = " & ";
   std::vector<std::string> latex_lines(trace.getNumQudits());
@@ -642,7 +644,7 @@ std::string latex_diagram_from_trace(const Trace &trace,
     }
   }
   for (auto &latex_line : latex_lines) {
-    latex_line += "\\qw \\\\ \n";
+    latex_line += "\\qw \\\\\n";
     latex_string += latex_line;
   }
   // clang-format off
