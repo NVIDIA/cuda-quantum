@@ -495,6 +495,14 @@ LogicalResult quake::InitializeStateOp::verify() {
     if (!std::has_single_bit(veqTy.getSize()))
       return emitOpError("initialize state vector must be power of 2, but is " +
                          std::to_string(veqTy.getSize()) + " instead.");
+  auto ptrTy = cast<cudaq::cc::PointerType>(getState().getType());
+  Type ty = ptrTy.getElementType();
+  if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
+    if (!isa<FloatType, ComplexType>(arrTy.getElementType()))
+      return emitOpError("invalid data pointer type");
+  } else if (!isa<FloatType, ComplexType, cudaq::cc::StateType>(ty)) {
+    return emitOpError("invalid data pointer type");
+  }
   return success();
 }
 

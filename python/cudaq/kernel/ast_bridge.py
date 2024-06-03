@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import ast
+import hashlib
 import graphlib
 import sys, os
 from typing import Callable
@@ -18,6 +19,9 @@ from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
+from .captured_data import CapturedDataStorage
+
+State = cudaq_runtime.State
 
 # This file implements the CUDA-Q Python AST to MLIR conversion.
 # It provides a `PyASTBridge` class that implements the `ast.NodeVisitor` type
@@ -103,7 +107,7 @@ class PyASTBridge(ast.NodeVisitor):
     and synthesize them away with an internal C++ MLIR pass. 
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, capturedDataStorage: CapturedDataStorage, **kwargs):
         """
         The constructor. Initializes the `mlir.Value` stack, the `mlir.Context`, and the 
         `mlir.Module` that we will be building upon. This class keeps track of a 
@@ -124,6 +128,20 @@ class PyASTBridge(ast.NodeVisitor):
             cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
             self.loc = Location.unknown(context=self.ctx)
             self.module = Module.create(loc=self.loc)
+
+        # Create a new captured data storage or use the existing one
+        # passed from the current kernel decorator.
+        self.capturedDataStorage = capturedDataStorage
+        if (self.capturedDataStorage == None):
+            self.capturedDataStorage = CapturedDataStorage(ctx=self.ctx,
+                                                           loc=self.loc,
+                                                           name=None,
+                                                           module=self.module)
+        else:
+            self.capturedDataStorage.setKernelContext(ctx=self.ctx,
+                                                      loc=self.loc,
+                                                      name=None,
+                                                      module=self.module)
 
         # If the driver of this AST bridge instance has indicated
         # that there is a return type from analysis on the Python AST,
@@ -455,7 +473,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def ifPointerThenLoad(self, value):
         """
-        If the given value is of pointer type, load the pointer 
+        If the given value is of pointer type, load the pointer
         and return that new value.
         """
         if cc.PointerType.isinstance(value.type):
@@ -825,6 +843,9 @@ class PyASTBridge(ast.NodeVisitor):
             createLambda = cc.CreateLambdaOp(ty)
             initRegion = createLambda.initRegion
             initBlock = Block.create_at_start(initRegion, [])
+            # TODO: process all captured variables in the main function
+            # definition first to avoid reusing code not defined in the
+            # same or parent scope of the produced MLIR.
             with InsertionPoint(initBlock):
                 [self.visit(n) for n in node.body]
                 cc.ReturnOp([])
@@ -846,6 +867,7 @@ class PyASTBridge(ast.NodeVisitor):
             argNames = [arg.arg for arg in node.args.args]
 
             self.name = node.name
+            self.capturedDataStorage.name = self.name
 
             # the full function name in MLIR is `__nvqpp__mlirgen__` + the function name
             if not self.disableNvqppPrefix:
@@ -1842,19 +1864,27 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
                 if node.func.attr == 'qvector':
-                    value = self.ifPointerThenLoad(self.popValue())
-                    if (IntegerType.isinstance(value.type)):
+                    valueOrPtr = self.popValue()
+                    initializerTy = valueOrPtr.type
+
+                    if cc.PointerType.isinstance(initializerTy):
+                        initializerTy = cc.PointerType.getElementType(
+                            initializerTy)
+
+                    if (IntegerType.isinstance(initializerTy)):
                         # handle `cudaq.qvector(n)`
+                        value = self.ifPointerThenLoad(valueOrPtr)
                         ty = self.getVeqType()
                         qubits = quake.AllocaOp(ty, size=value).result
                         self.pushValue(qubits)
                         return
-                    if cc.StdvecType.isinstance(value.type):
+                    if cc.StdvecType.isinstance(initializerTy):
                         # handle `cudaq.qvector(initState)`
 
                         # Validate the length in case of a constant initializer:
                         # `cudaq.qvector([1., 0., ...])`
                         # `cudaq.qvector(np.array([1., 0., ...]))`
+                        value = self.ifPointerThenLoad(valueOrPtr)
                         listScalar = None
                         arrNode = node.args[0]
                         if isinstance(arrNode, ast.List):
@@ -1899,14 +1929,32 @@ class PyASTBridge(ast.NodeVisitor):
                         veqTy = quake.VeqType.get(self.ctx)
 
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                        initials = cc.StdvecDataOp(ptrTy, value).result
+                        data = cc.StdvecDataOp(ptrTy, value).result
                         init = quake.InitializeStateOp(veqTy, qubits,
-                                                       initials).result
+                                                       data).result
+                        self.pushValue(init)
+                        return
+
+                    if cc.StateType.isinstance(initializerTy):
+                        # handle `cudaq.qvector(state)`
+                        statePtr = self.ifNotPointerThenStore(valueOrPtr)
+
+                        symName = '__nvqpp_cudaq_state_numberOfQubits'
+                        load_intrinsic(self.module, symName)
+                        i64Ty = self.getIntegerType()
+                        numQubits = func.CallOp([i64Ty], symName,
+                                                [statePtr]).result
+
+                        veqTy = quake.VeqType.get(self.ctx)
+                        qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                        init = quake.InitializeStateOp(veqTy, qubits,
+                                                       statePtr).result
+
                         self.pushValue(init)
                         return
 
                     self.emitFatalError(
-                        f"unsupported qvector argument type: {value.type} (unknown)",
+                        f"unsupported qvector argument type: {value.type}",
                         node)
                     return
 
@@ -3378,6 +3426,11 @@ class PyASTBridge(ast.NodeVisitor):
             # Only support a small subset of types here
             complexType = type(1j)
             value = self.capturedVars[node.id]
+
+            if isinstance(value, State):
+                self.pushValue(self.capturedDataStorage.storeCudaqState(value))
+                return
+
             if isinstance(value, (list, np.ndarray)) and isinstance(
                     value[0], (int, bool, float, np.float32, np.float64,
                                complexType, np.complex64, np.complex128)):
@@ -3445,7 +3498,7 @@ class PyASTBridge(ast.NodeVisitor):
                 errorType = f"{errorType}[{type(value[0]).__name__}]"
 
             self.emitFatalError(
-                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
+                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
                 node)
 
         # Throw an exception for the case that the name is not
@@ -3455,7 +3508,8 @@ class PyASTBridge(ast.NodeVisitor):
             node)
 
 
-def compile_to_mlir(astModule, metadata, **kwargs):
+def compile_to_mlir(astModule, metadata,
+                    capturedDataStorage: CapturedDataStorage, **kwargs):
     """
     Compile the given Python AST Module for the CUDA-Q 
     kernel FunctionDef to an MLIR `ModuleOp`. 
@@ -3476,7 +3530,8 @@ def compile_to_mlir(astModule, metadata, **kwargs):
         'parentVariables'] if 'parentVariables' in kwargs else {}
 
     # Create the AST Bridge
-    bridge = PyASTBridge(verbose=verbose,
+    bridge = PyASTBridge(capturedDataStorage,
+                         verbose=verbose,
                          knownResultType=returnType,
                          returnTypeIsFromPython=True,
                          locationOffset=lineNumberOffset,
@@ -3526,7 +3581,8 @@ def compile_to_mlir(astModule, metadata, **kwargs):
         if funcName != vis.kernelName and funcName in depKernels:
             # Build an AST Bridge and visit the dependent kernel
             # function. Provide the dependent kernel source location as well.
-            PyASTBridge(existingModule=bridge.module,
+            PyASTBridge(capturedDataStorage,
+                        existingModule=bridge.module,
                         locationOffset=depKernels[funcName][1]).visit(
                             depKernels[funcName][0])
 

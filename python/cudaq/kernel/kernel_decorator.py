@@ -16,6 +16,7 @@ from .ast_bridge import compile_to_mlir, PyASTBridge
 from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from .captured_data import CapturedDataStorage
 
 import numpy as np
 
@@ -39,6 +40,8 @@ class PyKernelDecorator(object):
 
     def __init__(self, function, verbose=False, module=None, kernelName=None):
         self.kernelFunction = function
+        self.capturedDataStorage = None
+
         self.module = None if module == None else module
         self.verbose = verbose
         self.name = kernelName if kernelName != None else self.kernelFunction.__name__
@@ -160,6 +163,7 @@ class PyKernelDecorator(object):
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
             self.metadata,
+            self.capturedDataStorage,
             verbose=self.verbose,
             returnType=self.returnType,
             location=self.location,
@@ -210,11 +214,20 @@ class PyKernelDecorator(object):
                 return [np.complex64(i) for i in list]
         return list
 
+    def createStorage(self):
+        ctx = None if self.module == None else self.module.context
+        return CapturedDataStorage(ctx=ctx,
+                                   loc=self.location,
+                                   name=self.name,
+                                   module=self.module)
+
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the 
         kernel AST to MLIR will occur here if it has not already occurred. 
         """
+        # Prepare captured state storage for the run
+        self.capturedDataStorage = self.createStorage()
 
         # Compile, no-op if the module is not None
         self.compile()
@@ -275,7 +288,8 @@ class PyKernelDecorator(object):
                 # so that it shares self.module's MLIR Context
                 symbols = SymbolTable(self.module.operation)
                 if nvqppPrefix + arg.name not in symbols:
-                    tmpBridge = PyASTBridge(existingModule=self.module,
+                    tmpBridge = PyASTBridge(self.capturedDataStorage,
+                                            existingModule=self.module,
                                             disableEntryPointTag=True)
                     tmpBridge.visit(globalAstRegistry[arg.name][0])
 
@@ -294,13 +308,19 @@ class PyKernelDecorator(object):
                                             self.module,
                                             *processedArgs,
                                             callable_names=callableNames)
+            self.capturedDataStorage.__del__()
+            self.capturedDataStorage = None
         else:
-            return cudaq_runtime.pyAltLaunchKernelR(
+            result = cudaq_runtime.pyAltLaunchKernelR(
                 self.name,
                 self.module,
                 mlirTypeFromPyType(self.returnType, self.module.context),
                 *processedArgs,
                 callable_names=callableNames)
+
+            self.capturedDataStorage.__del__()
+            self.capturedDataStorage = None
+            return result
 
 
 def kernel(function=None, **kwargs):

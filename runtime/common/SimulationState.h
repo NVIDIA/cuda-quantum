@@ -13,21 +13,20 @@
 #include <variant>
 #include <vector>
 
-namespace nvqir {
-class TensorNetState;
-}
-
 namespace cudaq {
 class SimulationState;
 
+/// @brief Encapsulates a list of tensors (data pointer and dimensions).
+// Note: tensor data is expected in column-major.
+using TensorStateData =
+    std::vector<std::pair<const void *, std::vector<std::size_t>>>;
 /// @brief state_data is a variant type
 /// encoding different forms of user state vector data
 /// we support.
-using state_data = std::variant<std::vector<std::complex<double>>,
-                                std::vector<std::complex<float>>,
-                                std::pair<std::complex<double> *, std::size_t>,
-                                std::pair<std::complex<float> *, std::size_t>,
-                                std::vector<std::complex<double> *>>;
+using state_data = std::variant<
+    std::vector<std::complex<double>>, std::vector<std::complex<float>>,
+    std::pair<std::complex<double> *, std::size_t>,
+    std::pair<std::complex<float> *, std::size_t>, TensorStateData>;
 
 /// @brief The `SimulationState` interface provides and extension point
 /// for concrete circuit simulation sub-types to describe their
@@ -115,6 +114,18 @@ public:
   /// from the user provided data set.
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromData(const state_data &data) {
+    if (std::holds_alternative<TensorStateData>(data)) {
+      if (isArrayLike())
+        throw std::runtime_error(
+            "Cannot initialize state vector/density matrix state by matrix "
+            "product state tensors. Please use tensor network simulator "
+            "backends.");
+      auto &dataCasted = std::get<TensorStateData>(data);
+      return createFromSizeAndPtr(
+          dataCasted.size(),
+          const_cast<TensorStateData::value_type *>(dataCasted.data()),
+          data.index());
+    }
     // Flat array state data
     // Check the precision first. Get the size and
     // data pointer from the input data.

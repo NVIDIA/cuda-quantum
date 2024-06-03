@@ -10,7 +10,6 @@
 
 #include "common/ExecutionContext.h"
 #include "common/KernelWrapper.h"
-
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 #include "cudaq/platform.h"
@@ -102,12 +101,14 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
 #if defined(CUDAQ_REMOTE_SIM) && !defined(CUDAQ_LIBRARY_MODE)
   return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                          std::forward<Args>(args)...));
-#elif defined(CUDAQ_REMOTE_SIM)
+#else
+#if defined(CUDAQ_REMOTE_SIM)
   // Kernel builder is MLIR-based kernel.
   if constexpr (has_name<QuantumKernel>::value) {
     return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                            std::forward<Args>(args)...));
   }
+#endif
   return details::extractState([&]() mutable {
     cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                         std::forward<Args>(args)...);
@@ -175,7 +176,6 @@ async_state_result get_state_async(QuantumKernel &&kernel, Args &&...args) {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *);
-double *__nvqpp_cudaq_state_vectorData(state *);
 }
 
 } // namespace cudaq

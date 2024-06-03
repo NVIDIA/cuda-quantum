@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -90,7 +90,7 @@ state::amplitudes(const std::vector<std::vector<int>> &basisStates) {
   return internal->getAmplitudes(basisStates);
 }
 
-state &state::operator=(state other) {
+state &state::operator=(state &&other) {
   // Copy and swap idiom
   std::swap(internal, other.internal);
   return *this;
@@ -109,13 +109,7 @@ state::~state() {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
-  throw std::runtime_error(
-      "not yet implemented: getting number of qubits from state");
-}
-
-double *__nvqpp_cudaq_state_vectorData(state *obj) {
-  throw std::runtime_error(
-      "not yet implemented: getting vector data from state");
+  return obj->get_num_qubits();
 }
 }
 

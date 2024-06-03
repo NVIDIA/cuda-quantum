@@ -15,6 +15,7 @@ import numpy as np
 from typing import Callable, List
 import ast, sys, traceback
 
+State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
 qubit = cudaq_runtime.qubit
 pauli_word = cudaq_runtime.pauli_word
@@ -65,6 +66,29 @@ def emitFatalError(msg):
     raise RuntimeError(msg)
 
 
+def emitWarning(msg):
+    """
+    Emit a warning, providing the user with source file information and
+    the offending code.
+    """
+    print(Color.BOLD, end='')
+    try:
+        # Raise the exception so we can get the
+        # stack trace to inspect
+        raise RuntimeError(msg)
+    except RuntimeError as e:
+        # Immediately grab the exception and
+        # analyze the stack trace, get the source location
+        # and construct a new error diagnostic
+        cached = sys.tracebacklimit
+        sys.tracebacklimit = None
+        offendingSrc = traceback.format_stack()
+        sys.tracebacklimit = cached
+        if len(offendingSrc):
+            msg = Color.YELLOW + "error: " + Color.END + Color.BOLD + msg + Color.END + '\n\nOffending code:\n' + offendingSrc[
+                0]
+
+
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
     Return the MLIR Type corresponding to the given kernel function argument type annotation.
@@ -87,6 +111,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         if annotation.value.id == 'cudaq':
             if annotation.attr in ['qview', 'qvector']:
                 return quake.VeqType.get(ctx)
+            if annotation.attr in ['State']:
+                return cc.PointerType.get(ctx, cc.StateType.get(ctx))
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
             if annotation.attr == 'pauli_word':
@@ -193,6 +219,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(np.float32, ctx))
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+    if argType == State:
+        return cc.PointerType.get(ctx, cc.StateType.get(ctx))
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
