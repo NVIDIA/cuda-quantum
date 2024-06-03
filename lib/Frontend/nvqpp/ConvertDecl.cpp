@@ -174,6 +174,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(quake::VeqType::getUnsized(ctx));
     if (name.equals("state"))
       return pushType(opt::factory::getCudaqStateType(ctx));
+    if (name.equals("pauli_word"))
+      return pushType(opt::factory::getCharspanType(ctx));
     auto loc = toLocation(x);
     TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }
