@@ -108,7 +108,6 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
     return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                            std::forward<Args>(args)...));
   }
-#endif
   return details::extractState([&]() mutable {
     cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                         std::forward<Args>(args)...);
