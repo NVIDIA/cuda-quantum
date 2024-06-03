@@ -10,8 +10,16 @@ import pytest
 import cudaq
 import numpy as np
 
+skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
+    reason='Could not find nvidia-fp64 in installation')
 
-def test_trotter():
+skipIfNvidiaNotInstalled = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    reason='Could not find nvidia in installation')
+
+
+def trotter():
 
     # Alternating up/down spins
     @cudaq.kernel
@@ -43,8 +51,8 @@ def test_trotter():
             tdOp = cudaq.SpinOperator(num_qubits=n_spins)
             for i in range(0, n_spins - 1):
                 tdOp += (Jx * cudaq.spin.x(i) * cudaq.spin.x(i + 1))
-                tdOp += (Jy * cudaq.spin.x(i) * cudaq.spin.y(i + 1))
-                tdOp += (Jz * cudaq.spin.x(i) * cudaq.spin.z(i + 1))
+                tdOp += (Jy * cudaq.spin.y(i) * cudaq.spin.y(i + 1))
+                tdOp += (Jz * cudaq.spin.z(i) * cudaq.spin.z(i + 1))
             for i in range(0, n_spins):
                 tdOp += (np.cos(omega * t) * cudaq.spin.x(i))
             return tdOp
@@ -61,7 +69,7 @@ def test_trotter():
             return result
 
         # Observe the average magnetization of all spins (<Z>)
-        average_magnetization = 0.0
+        average_magnetization = cudaq.SpinOperator(num_qubits=n_spins)
         for i in range(0, n_spins):
             average_magnetization += ((1.0 / n_spins) * cudaq.spin.z(i))
         average_magnetization -= 1.0
@@ -83,4 +91,14 @@ def test_trotter():
         for result in exp_results:
             assert -1.0 <= result and result < 0.
 
-    run_steps(10, 10)
+    run_steps(10, 11)
+
+
+@skipIfNvidiaFP64NotInstalled
+def test_trotter_f64():
+    trotter()
+
+
+@skipIfNvidiaNotInstalled
+def test_trotter_f32():
+    trotter()

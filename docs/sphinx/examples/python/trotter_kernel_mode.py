@@ -8,7 +8,6 @@
 
 import cudaq
 import time
-import matplotlib.pyplot as plt
 import numpy as np
 
 # Compute magnetization using Suzuki-Trotter approximation.
@@ -19,6 +18,9 @@ import numpy as np
 #
 # Hamiltonian used
 # https://en.m.wikipedia.org/wiki/Quantum_Heisenberg_model
+
+# Set the target to `nvidia` 32-bit simulator.
+cudaq.set_target('nvidia')
 
 
 # Alternating up/down spins
@@ -53,8 +55,8 @@ def run_steps(steps: int, spins: int):
         tdOp = cudaq.SpinOperator(num_qubits=n_spins)
         for i in range(0, n_spins - 1):
             tdOp += (Jx * cudaq.spin.x(i) * cudaq.spin.x(i + 1))
-            tdOp += (Jy * cudaq.spin.x(i) * cudaq.spin.y(i + 1))
-            tdOp += (Jz * cudaq.spin.x(i) * cudaq.spin.z(i + 1))
+            tdOp += (Jy * cudaq.spin.y(i) * cudaq.spin.y(i + 1))
+            tdOp += (Jz * cudaq.spin.z(i) * cudaq.spin.z(i + 1))
         for i in range(0, n_spins):
             tdOp += (np.cos(omega * t) * cudaq.spin.x(i))
         return tdOp
@@ -72,7 +74,7 @@ def run_steps(steps: int, spins: int):
         return result
 
     # Observe the average magnetization of all spins (<Z>)
-    average_magnetization = 0.0
+    average_magnetization = cudaq.SpinOperator(num_qubits=n_spins)
     for i in range(0, n_spins):
         average_magnetization += ((1.0 / n_spins) * cudaq.spin.z(i))
     average_magnetization -= 1.0
@@ -80,7 +82,7 @@ def run_steps(steps: int, spins: int):
     # Run loop
     state = cudaq.get_state(getInitState, n_spins)
 
-    exp_results = []
+    results = []
     times = []
     for i in range(0, n_steps):
         start_time = time.time()
@@ -89,18 +91,14 @@ def run_steps(steps: int, spins: int):
         words = termWords(ham)
         magnetization_exp_val = cudaq.observe(trotter, average_magnetization,
                                               state, coefficients, words, dt)
-        exp_results.append(magnetization_exp_val.expectation())
+        results.append(magnetization_exp_val.expectation())
         state = cudaq.get_state(trotter, state, coefficients, words, dt)
         times.append(time.time() - start_time)
 
-    plot = plt.plot(list(range(len(times))), times)
-    plt.xlabel("steps")
-    plt.ylabel("time")
-    plt.savefig("img.png")
-
     print(f"Step times: {times}")
+    print(f"Results: {results}")
 
 
 start_time = time.time()
-run_steps(10, 25)
+run_steps(100, 25)
 print(f"Total time: {time.time() - start_time}s")

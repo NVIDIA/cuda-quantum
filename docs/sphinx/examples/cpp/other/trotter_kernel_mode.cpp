@@ -8,7 +8,8 @@
 
 // Compile and run with:
 // ```
-// nvq++ -std=c++17 --enable-mlir -v trotter_kernel_mode.cpp -o temp && ./temp
+// nvq++ --enable-mlir -v trotter_kernel_mode.cpp --target nvidia -o trotter.x
+// && ./trotter.x
 // ```
 
 #include <complex>
@@ -96,22 +97,27 @@ int run_steps(int steps, int spins) {
   for (int i = 0; i < n_steps; ++i) {
     const auto start = std::chrono::high_resolution_clock::now();
     auto ham = heisenbergModelHam(i * dt);
-    auto data = ham.getDataRepresentation();
     auto coefficients = term_coefficients(ham);
-    auto terms = term_words(ham);
+    auto words = term_words(ham);
     auto magnetization_exp_val = cudaq::observe(
-        trotter{}, average_magnetization, &state, coefficients, terms, dt);
+        trotter{}, average_magnetization, &state, coefficients, words, dt);
     expResults.emplace_back(magnetization_exp_val.expectation());
-    state = cudaq::get_state(trotter{}, &state, coefficients, terms, dt);
+    state = cudaq::get_state(trotter{}, &state, coefficients, words, dt);
     const auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     runtimeMs.emplace_back(duration.count() / 1000.0);
   }
+
   std::cout << "Runtime [ms]: [";
   for (const auto &x : runtimeMs)
     std::cout << x << ", ";
-  std::cout << "]\n";
+  std::cout << "]\n" << std::endl;
+
+  std::cout << "Results: [";
+  for (const auto &x : expResults)
+    std::cout << x << ", ";
+  std::cout << "]\n" << std::endl;
   return 0;
 }
 
