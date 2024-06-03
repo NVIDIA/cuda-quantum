@@ -16,7 +16,6 @@
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
-
 #include <complex>
 #include <vector>
 

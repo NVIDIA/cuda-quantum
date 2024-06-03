@@ -19,7 +19,7 @@ struct ArgWrapper {
   void *rawArgs = nullptr;
 };
 
-/// Holder of wrapped kernel args.
+/// Holder of wrapped kernel `args`.
 struct KernelArgsHolder {
   cudaq::ArgWrapper argsWrapper;
   // Info about the argsWrapper's rawArgs pointer.
