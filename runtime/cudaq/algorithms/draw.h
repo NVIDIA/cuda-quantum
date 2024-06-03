@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <concepts>
+
 #include "common/ExecutionContext.h"
 #include "cudaq/platform.h"
 
@@ -24,6 +26,7 @@ std::string getLaTeXString(const Trace &trace);
 namespace details {
 
 template <typename KernelFunctor, typename... Args>
+  requires std::invocable<KernelFunctor &, Args...>
 cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   // Get the platform.
   auto &platform = cudaq::get_platform();
@@ -99,25 +102,22 @@ std::string extractTrace(KernelFunctor &&kernel) {
 /// \endcode
 ///
 // clang-format on
+
 template <typename QuantumKernel, typename... Args>
+  requires std::invocable<QuantumKernel &, Args...>
 std::string draw(QuantumKernel &&kernel, Args &&...args) {
   return __internal__::draw(
       details::traceFromKernel(kernel, std::forward<Args>(args)...));
 }
 
 template <typename QuantumKernel, typename... Args>
-std::string getLaTeXString(QuantumKernel &&kernel, Args &&...args) {
-  return __internal__::getLaTeXString(
-      details::traceFromKernel(kernel, std::forward<Args>(args)...));
-}
-
-template <typename QuantumKernel, typename... Args>
-std::string cudaq::draw(std::string format, QuantumKernel &&kernel,
-                        Args &&...args) {
+  requires std::invocable<QuantumKernel &, Args...>
+std::string draw(std::string format, QuantumKernel &&kernel, Args &&...args) {
   if (format == "ascii") {
     return draw(kernel, std::forward<Args>(args)...);
   } else if (format == "latex") {
-    return getLaTeXString(kernel, std::forward<Args>(args)...);
+    return __internal__::getLaTeXString(
+        details::traceFromKernel(kernel, std::forward<Args>(args)...));
   } else {
     throw std::runtime_error(
         "Invalid format. Supported formats are 'ascii' and 'latex'.");
