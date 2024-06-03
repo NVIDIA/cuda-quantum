@@ -168,10 +168,7 @@ public:
     }
     auto comparison = whileCond.getCondition();
     auto *bodyBlock = loopOp.getDoEntryBlock();
-    auto *condBlock =
-        loopOp.hasStep()
-            ? loopOp.getStepBlock()
-            : (loopOp.isPostConditional() ? bodyBlock : whileBlock);
+    auto *condBlock = loopOp.hasStep() ? loopOp.getStepBlock() : whileBlock;
 
     if (failed(updateBodyBranches(&loopOp.getBodyRegion(), rewriter, condBlock,
                                   endBlock)))
