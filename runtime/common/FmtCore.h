@@ -17,8 +17,10 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+namespace fmt {
+/// @brief Custom formatter for complex values.
 template <typename T>
-struct fmt::formatter<std::complex<T>> {
+struct formatter<std::complex<T>> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
   template <typename FormatContext>
   auto format(const std::complex<T> &c, FormatContext &ctx) const {
@@ -27,6 +29,7 @@ struct fmt::formatter<std::complex<T>> {
                           std::fabs(c.imag()));
   }
 };
+} // namespace fmt
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
