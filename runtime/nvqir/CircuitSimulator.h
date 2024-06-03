@@ -359,10 +359,6 @@ protected:
   /// @brief The dimension of the multi-qubit state.
   std::size_t stateDimension = 0;
 
-  /// @brief Keep track of the previous state dimension
-  /// as we grow the state.
-  std::size_t previousStateDimension = 0;
-
   /// @brief Vector containing qubit ids that are to be sampled
   std::vector<std::size_t> sampleQubits;
 
@@ -789,7 +785,6 @@ public:
 
     // Increment the number of qubits and set
     // the new state dimension
-    previousStateDimension = stateDimension;
     nQubitsAllocated++;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
@@ -827,7 +822,6 @@ public:
 
     cudaq::info("Allocating {} new qubits.", count);
 
-    previousStateDimension = stateDimension;
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
