@@ -37,12 +37,29 @@
 
 #define DEBUG_TYPE "convert-to-qir"
 
+namespace cudaq::opt {
+#define GEN_PASS_DEF_CONVERTTOQIR
+#define GEN_PASS_DEF_LOWERTOCG
+#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+} // namespace cudaq::opt
+
 using namespace mlir;
 
 namespace {
 //===----------------------------------------------------------------------===//
 // Code generation: converts the Quake IR to QIR.
 //===----------------------------------------------------------------------===//
+
+/// Greedy pass to match subgraphs in the IR and replace them with codegen
+/// ops. This step makes converting a DAG of nodes in the conversion step
+/// simpler.
+static LogicalResult fuseSubgraphPatterns(MLIRContext *ctx, ModuleOp module) {
+  RewritePatternSet patterns(ctx);
+  patterns.insert<CodeGenRAIIPattern>(ctx);
+  if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+    return failure();
+  return success();
+}
 
 namespace {
 /// Convert Quake dialect to LLVM-IR and QIR.
@@ -115,20 +132,7 @@ public:
   /// Greedy pass to match subgraphs in the IR and replace them with codegen
   /// ops. This step makes converting a DAG of nodes in the conversion step
   /// simpler.
-  void fuseSubgraphPatterns() {
-#if 0
-    auto *ctx = &getContext();
-    RewritePatternSet patterns(ctx);
-    // TODO: Patterns to be added.
-    patterns.insert<...>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(getModule(), std::move(patterns))))
-      signalPassFailure();
-#endif
-  }
-
   void runOnOperation() override final {
-    fuseSubgraphPatterns();
-
     auto *context = &getContext();
     if (failed(fuseSubgraphPatterns(context, getOperation()))) {
       signalPassFailure();
