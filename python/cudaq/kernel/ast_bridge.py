@@ -1847,21 +1847,13 @@ class PyASTBridge(ast.NodeVisitor):
                     arrayType = value.type
                     if cc.PointerType.isinstance(value.type):
                         arrayType = cc.PointerType.getElementType(value.type)
-
                     if cc.StdvecType.isinstance(arrayType):
-                        eleTy = cc.StdvecType.getElementType(arrayType)
-                        simDTy = self.simulationDType()
-                        if (simDTy != eleTy):
-                            self.emitWarning(
-                                f"Extra copy is added to convert list[{mlirTypeToPyType(eleTy)}]"
-                                f"to list[{mlirTypeToPyType(simDTy)}]. "
-                                f"Consider moving `cudaq.amplitudes` outside kernels.",
-                                node)
-
-                        # Convert the vector to the simulation data type if needed.
-                        self.pushValue(
-                            self.__copyVectorAndCastElements(value, simDTy))
+                        self.pushValue(value)
                         return
+
+                    self.emitFatalError(
+                        f"unsupported amplitudes argument type: {value.type}",
+                        node)
 
                 if node.func.attr == 'qvector':
                     valueOrPtr = self.popValue()
@@ -1915,16 +1907,6 @@ class PyASTBridge(ast.NodeVisitor):
                         # TODO: Dynamically check if number of qubits is power of 2
                         # and if the state is normalized
 
-                        simDTy = self.simulationDType()
-                        if (simDTy != eleTy):
-                            self.emitWarning(
-                                f"Extra copy is added to convert list[{mlirTypeToPyType(eleTy)}]"
-                                f"to list[{mlirTypeToPyType(simDTy)}]. "
-                                f"Consider using `cudaq.amplitudes` or `cudaq.complex` "
-                                f"in `qvector` initializers.", node)
-
-                        eleTy = simDTy
-                        value = self.__copyVectorAndCastElements(value, eleTy)
                         ptrTy = cc.PointerType.get(self.ctx, eleTy)
                         veqTy = quake.VeqType.get(self.ctx)
 
