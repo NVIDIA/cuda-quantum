@@ -16,7 +16,7 @@ import pytest
 def bar(qvec: cudaq.qview):
     rx(np.e, qvec[0])
     ry(np.pi, qvec[1])
-    cudaq.adjoint(rz, np.pi, qvec[2])
+    rz.adj(np.pi, qvec[2])
 
 
 @cudaq.kernel
