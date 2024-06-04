@@ -2,16 +2,13 @@ import cudaq
 from cudaq import spin
 import os
 
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 # We will be optimizing over a custom objective function that takes a vector
 # of parameters as input and returns either the cost as a single float,
 # or a tuple of (cost, gradient_vector) depending on the optimizer used.
 
-os.environ["NVQC_API_KEY"]="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"
-os.environ["NVQC_NCA_ID"]="mZraB3k06kOd8aPhD6MVXJwBVZ67aXDLsfmDo4MYXDs"
-
-cudaq.set_target("remote-mqpu",url="localhost:3030")
+cudaq.set_target("remote-mqpu",url="localhost:11030")
 
 # In this example, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`
 # and find the `angles` that minimize the expectation value of the system.
@@ -37,15 +34,8 @@ optimizer = cudaq.optimizers.Adam()
 # routine.
 gradient = cudaq.gradients.CentralDifference()
 
-def objective_function(parameter_vector: List[float],
-                       hamiltonian=hamiltonian,
-                       gradient_strategy=gradient,
-                       kernel=kernel) -> Tuple[float, List[float]]:
-    """
-    Note: the objective function may also take extra arguments, provided they
-    are passed into the function as default arguments in python.
-    """
-
+def objective_function(parameter_vector: List[float], hamiltonian=hamiltonian, gradient_strategy=gradient, kernel=kernel) -> Tuple[float, List[float]]:
+    print('In objective function...')
     # Call `cudaq.observe` on the spin operator and ansatz at the
     # optimizer provided parameters. This will allow us to easily
     # extract the expectation value of the entire system in the
@@ -55,15 +45,13 @@ def objective_function(parameter_vector: List[float],
     # allow it to be passed into the gradient strategy as a
     # function. If you were using a gradient-free optimizer,
     # you could purely define `cost = cudaq.observe().expectation()`.
-    get_result = lambda parameter_vector: cudaq.observe(
-        kernel, hamiltonian, parameter_vector).expectation()
+    get_result = lambda parameter_vector: cudaq.observe(kernel, hamiltonian, parameter_vector).expectation()
     # `cudaq.observe` returns a `cudaq.ObserveResult` that holds the
     # counts dictionary and the `expectation`.
     cost = get_result(parameter_vector)
     print(f"<H> = {cost}")
     # Compute the gradient vector using `cudaq.gradients.STRATEGY.compute()`.
-    gradient_vector = gradient_strategy.compute(parameter_vector, get_result,
-                                                cost)
+    gradient_vector = gradient_strategy.compute(parameter_vector, get_result, cost)
 
     # Return the (cost, gradient_vector) tuple.
     return cost, gradient_vector
