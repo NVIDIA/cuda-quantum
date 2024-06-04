@@ -25,6 +25,8 @@ std::string getLaTeXString(const Trace &trace);
 
 namespace details {
 
+/// @brief execute the kernel functor (with optional arguments) and return the
+/// trace of the execution path.
 template <typename KernelFunctor, typename... Args>
   requires std::invocable<KernelFunctor &, Args...>
 cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
@@ -39,7 +41,7 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   // path
   ExecutionContext context("tracer");
 
-  // Perform the usual pattern set the context, execute and then reset
+  // set the context, execute and then reset
   platform.set_exec_ctx(&context);
   kernel(args...);
   platform.reset_exec_ctx();
@@ -52,6 +54,13 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
 template <typename KernelFunctor>
 std::string extractTrace(KernelFunctor &&kernel) {
   return __internal__::draw(traceFromKernel(kernel));
+}
+
+/// @brief Execute the given kernel functor and extract the
+/// state representation as LaTeX.
+template <typename KernelFunctor>
+std::string extractTraceLatex(KernelFunctor &&kernel) {
+  return __internal__::getLaTeXString(traceFromKernel(kernel));
 }
 
 } // namespace details
