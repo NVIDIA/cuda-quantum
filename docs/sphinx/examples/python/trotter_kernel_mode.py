@@ -19,6 +19,7 @@ import numpy as np
 # Hamiltonian used
 # https://en.m.wikipedia.org/wiki/Quantum_Heisenberg_model
 
+
 # Alternating up/down spins
 @cudaq.kernel
 def getInitState(numSpins: int):
