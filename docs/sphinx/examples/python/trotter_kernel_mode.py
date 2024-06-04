@@ -19,9 +19,6 @@ import numpy as np
 # Hamiltonian used
 # https://en.m.wikipedia.org/wiki/Quantum_Heisenberg_model
 
-# Set the target to `nvidia` 32-bit simulator.
-cudaq.set_target('nvidia')
-
 
 # Alternating up/down spins
 @cudaq.kernel

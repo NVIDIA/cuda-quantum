@@ -8,8 +8,7 @@
 
 // Compile and run with:
 // ```
-// nvq++ --enable-mlir -v trotter_kernel_mode.cpp --target nvidia -o trotter.x
-// && ./trotter.x
+// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x && ./trotter.x
 // ```
 
 #include <complex>
