@@ -25,6 +25,27 @@
 // Hamiltonian used
 // https://en.m.wikipedia.org/wiki/Quantum_Heisenberg_model
 
+// If you have a NVIDIA GPU you can use this example to see
+// that the GPU-accelerated backends can easily handle a
+// larger number of qubits compared the CPU-only backend.
+//
+// Depending on the available memory on your GPU, you can
+// set the number of qubits to around 30 qubits, and run
+// the execution command with `-target nvidia` option.
+//
+// Note: Without setting the target to the `nvidia` backend,
+// there will be a noticeable decrease in simulation performance.
+// This is because the CPU-only backend has difficulty handling
+// 30+ qubit simulations.
+
+int STEPS = 10; // set to around 25 qubits for `nvidia` target
+int SPINS = 11; // set to around 100 for `nvidia` target
+// Compile and run with:
+// ```
+// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x -target nvidia &&
+// ./trotter.x
+// ```
+
 // Alternating up/down spins
 struct initState {
   void operator()(int num_spins) __qpu__ {
@@ -119,9 +140,6 @@ int run_steps(int steps, int spins) {
   std::cout << "]\n" << std::endl;
   return 0;
 }
-
-int STEPS = 100;
-int SPINS = 25;
 
 int main() {
   const auto start = std::chrono::high_resolution_clock::now();

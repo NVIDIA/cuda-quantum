@@ -19,6 +19,25 @@ import numpy as np
 # Hamiltonian used
 # https://en.m.wikipedia.org/wiki/Quantum_Heisenberg_model
 
+# If you have a NVIDIA GPU you can use this example to see
+# that the GPU-accelerated backends can easily handle a
+# larger number of qubits compared the CPU-only backend.
+
+# Depending on the available memory on your GPU, you can
+# set the number of qubits to around 30 qubits, and un-comment
+# the `cudaq.set_target(nvidia)` line.
+
+# Note: Without setting the target to the `nvidia` backend,
+# there will be a noticeable decrease in simulation performance.
+# This is because the CPU-only backend has difficulty handling
+# 30+ qubit simulations.
+
+spins = 5  # set to around 25 qubits for `nvidia` target
+steps = 10  # set to around 100 for `nvidia` target
+# ```
+# cudaq.set_target("nvidia")
+# ```
+
 
 # Alternating up/down spins
 @cudaq.kernel
@@ -97,5 +116,5 @@ def run_steps(steps: int, spins: int):
 
 
 start_time = time.time()
-run_steps(100, 25)
+run_steps(steps, spins)
 print(f"Total time: {time.time() - start_time}s")
