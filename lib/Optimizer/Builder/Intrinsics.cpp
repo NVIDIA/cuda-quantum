@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MD5.h"
@@ -136,6 +137,85 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     cf.cond_br %c3, ^exit(%5 : i64), ^exit(%0 : i64)
    ^exit(%rv : i64):
     return %rv : i64
+  })#"},
+
+    // __nvqpp__cudaq_em_allocate
+    {cudaq::opt::CudaqEMAllocate,
+     {},
+     "func.func private @__nvqpp__cudaq_em_allocate() -> i64"},
+    // __nvqpp__cudaq_em_allocate_veq
+    {cudaq::opt::CudaqEMAllocateVeq,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_allocate_veq(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %size : i64) {
+    %buffer = cc.compute_ptr %span[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.array<i64 x ?>>
+    %0 = arith.constant 0 : i64
+    %1 = cc.loop while ((%arg0 = %0) -> (i64)) {
+      %cond = arith.cmpi slt, %arg0, %size : i64
+      cc.condition %cond (%arg0 : i64)
+    } do {
+     ^bb0(%arg0 : i64):
+      %2 = func.call @__nvqpp__cudaq_em_allocate() : () -> i64
+      %3 = cc.compute_ptr %buffer[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+      cc.store %2, %3 : !cc.ptr<i64>
+      cc.continue %arg0 : i64
+    } step {
+     ^bb0(%arg0 : i64):
+      %4 = arith.constant 1 : i64
+      %5 = arith.addi %arg0, %4 : i64
+      cc.continue %5 : i64
+    } {invariant}
+    return
+  })#"},
+    // __nvqpp__cudaq_em_apply
+    {cudaq::opt::CudaqEMApply,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_apply(!cc.ptr<i8>, i64, !cc.ptr<!cc.array<f64 x ?>>, !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, i1)
+  )#"},
+    // __nvqpp__cudaq_em_concatSpan
+    {cudaq::opt::CudaqEMConcatSpan,
+     {cudaq::llvmMemCopyIntrinsic},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_concatSpan(%dest : !cc.ptr<i64>, %from : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %length : i64) {
+    %ptrptr = cc.compute_ptr %from[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %src = cc.load %ptrptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %eight = arith.constant 8 : i64
+    %len = arith.muli %length, %eight : i64
+    %false = arith.constant false
+    %to0 = cc.cast %dest : (!cc.ptr<i64>) -> !cc.ptr<i8>
+    %from0 = cc.cast %src : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i8>
+    call @llvm.memcpy.p0i8.p0i8.i64(%to0, %from0, %len, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    return
+  })#"},
+    // __nvqpp__cudaq_em_measure
+    {cudaq::opt::CudaqEMMeasure,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_measure(!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<i8>) -> i32
+  )#"},
+    // __nvqpp__cudaq_em_reset
+    {cudaq::opt::CudaqEMReset,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_reset(!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>)
+  )#"},
+    // __nvqpp__cudaq_em_return
+    {cudaq::opt::CudaqEMReturn,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_return(!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>)
+  )#"},
+    // __nvqpp__cudaq_em_writeToSpan
+    {cudaq::opt::CudaqEMWriteToSpan,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_writeToSpan(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %ptr : !cc.ptr<!cc.array<i64 x ?>>, %size : i64) {
+    %buffptr = cc.compute_ptr %span[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    cc.store %ptr, %buffptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %szptr = cc.compute_ptr %span[1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
+    cc.store %size, %szptr : !cc.ptr<i64>
+    return
   })#"},
 
     {"__nvqpp_createDynamicResult",

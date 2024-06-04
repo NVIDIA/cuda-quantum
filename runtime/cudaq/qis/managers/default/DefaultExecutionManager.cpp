@@ -6,22 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "llvm/ADT/StringSwitch.h"
-
 #include "common/Logger.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <complex>
-#include <cstring>
-#include <functional>
-#include <map>
-#include <queue>
-#include <sstream>
-#include <stack>
-
 #include "nvqir/CircuitSimulator.h"
+#include "llvm/ADT/StringSwitch.h"
+#include <span>
 
 namespace nvqir {
 CircuitSimulator *getCircuitSimulatorInternal();
@@ -235,3 +227,49 @@ public:
 } // namespace
 
 CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager)
+
+extern "C" {
+/// C interface to the (default) execution manager's methods.
+///
+/// This supplies an interface to allocate and deallocate qubits, reset a
+/// qubit, measure a qubit, and apply the gates defined by CUDA-Q.
+
+std::int64_t __nvqpp__cudaq_em_allocate() {
+  return cudaq::getExecutionManager()->allocateQudit();
+}
+
+void __nvqpp__cudaq_em_apply(const char *gateName, std::int64_t numParams,
+                             const double *params,
+                             const std::span<std::size_t> &ctrls,
+                             const std::span<std::size_t> &targets,
+                             bool isAdjoint) {
+  std::vector<double> pv{params, params + numParams};
+  auto fromSpan = [&](const std::span<std::size_t> &qubitSpan)
+      -> std::vector<cudaq::QuditInfo> {
+    std::vector<cudaq::QuditInfo> result;
+    for (std::size_t qb : qubitSpan)
+      result.emplace_back(2u, qb);
+    return result;
+  };
+  std::vector<cudaq::QuditInfo> cv = fromSpan(ctrls);
+  std::vector<cudaq::QuditInfo> tv = fromSpan(targets);
+  cudaq::getExecutionManager()->apply(gateName, pv, cv, tv, isAdjoint);
+}
+
+std::int32_t __nvqpp__cudaq_em_measure(const std::span<std::size_t> &targets,
+                                       const char *tagName) {
+  cudaq::QuditInfo qubit{2u, targets[0]};
+  std::string tag{tagName};
+  return cudaq::getExecutionManager()->measure(qubit, tag);
+}
+
+void __nvqpp__cudaq_em_reset(const std::span<std::size_t> &targets) {
+  cudaq::QuditInfo qubit{2u, targets[0]};
+  cudaq::getExecutionManager()->reset(qubit);
+}
+
+void __nvqpp__cudaq_em_return(const std::span<std::size_t> &targets) {
+  cudaq::QuditInfo qubit{2u, targets[0]};
+  cudaq::getExecutionManager()->returnQudit(qubit);
+}
+}

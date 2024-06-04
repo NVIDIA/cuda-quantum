@@ -399,9 +399,8 @@ public:
                                                         op, offset);
         offsetVal++;
       }
-      Value one = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 1);
       auto tuplePtrTy = cudaq::opt::factory::getPointerType(tupleTy);
-      tmp = rewriter.create<LLVM::AllocaOp>(loc, tuplePtrTy, one);
+      tmp = cudaq::opt::factory::createLLVMTemporary(loc, rewriter, tuplePtrTy);
       rewriter.create<LLVM::StoreOp>(loc, tupleVal, tmp);
     }
     Value tupleArg = rewriter.create<LLVM::UndefOp>(loc, tupleArgTy);
@@ -422,9 +421,9 @@ public:
                                                     trampoline, zeroA);
     auto castTmp =
         rewriter.create<LLVM::BitcastOp>(loc, tupleArgTy.getBody()[1], tmp);
-    auto oneA = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
-    rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(callable, tupleArgTy,
-                                                     tupleArg, castTmp, oneA);
+    rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(
+        callable, tupleArgTy, tupleArg, castTmp,
+        DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1}));
     return success();
   }
 };
