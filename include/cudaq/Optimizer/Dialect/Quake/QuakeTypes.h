@@ -22,7 +22,7 @@
 
 namespace quake {
 /// \returns true if \p `ty` is a quantum value or reference.
-inline bool isaQuantumType(mlir::Type ty) {
+inline bool isQuantumType(mlir::Type ty) {
   // NB: this intentionally excludes MeasureType.
   return mlir::isa<quake::RefType, quake::VeqType, quake::WireType,
                    quake::ControlType>(ty);
@@ -31,12 +31,20 @@ inline bool isaQuantumType(mlir::Type ty) {
 /// \returns true if \p `ty` is a Quake type.
 inline bool isQuakeType(mlir::Type ty) {
   // This should correspond to the registered types in QuakeTypes.cpp.
-  return isaQuantumType(ty) || mlir::isa<quake::MeasureType>(ty);
+  return isQuantumType(ty) || mlir::isa<quake::MeasureType>(ty);
 }
 
-/// A quake value type is a linear type.
+inline bool isQuantumReferenceType(mlir::Type ty) {
+  return mlir::isa<quake::RefType, quake::VeqType>(ty);
+}
+
+/// A quake wire type is a linear type.
 inline bool isLinearType(mlir::Type ty) {
   return mlir::isa<quake::WireType>(ty);
+}
+
+inline bool isQuantumValueType(mlir::Type ty) {
+  return isLinearType(ty) || mlir::isa<quake::ControlType>(ty);
 }
 
 } // namespace quake

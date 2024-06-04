@@ -443,9 +443,12 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
     } else
       theirRow++;
   }
-
 #ifdef CUDAQ_HAS_OPENMP
-#pragma omp parallel for shared(composition)
+  // Threshold to start OpenMP parallelization.
+  // 16 ~ 4-term * 4-term
+  constexpr std::size_t spin_op_omp_threshold = 16;
+#pragma omp parallel for shared(composition) if (nElements >                   \
+                                                     spin_op_omp_threshold)
 #endif
   for (std::size_t i = 0; i < nElements; i++) {
     auto [j, k] = indexMap[i];
