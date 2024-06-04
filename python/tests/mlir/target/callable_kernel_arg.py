@@ -9,6 +9,9 @@
 # RUN: PYTHONPATH=../../.. python3 %s 
 # RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate 
 
+# Perform a single test with --target=<target>
+# RUN: PYTHONPATH=../../.. python3 %s --target=quantinuum --emulate 
+
 import cudaq
 from typing import Callable
 
