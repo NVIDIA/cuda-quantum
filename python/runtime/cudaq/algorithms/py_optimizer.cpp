@@ -13,7 +13,6 @@
 #include "py_optimizer.h"
 
 #include "common/SerializedCodeExecutionContext.h"
-#include "common/RemoteKernelExecutor.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
@@ -27,6 +26,8 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "utils/OpaqueArguments.h"
+#include <regex>
+#include "common/RemoteKernelExecutor.h"
 
 #include <fstream>
 #include <iostream>
@@ -46,6 +47,15 @@ std::string get_base64_encoded_str(const std::string &source_code) {
   return llvm::encodeBase64(source_code);
 }
 
+std::string get_base64_encoded_str_using_pickle(const std::string &source_code) {
+  py::object pickle = py::module_::import("pickle");
+  py::object base64 = py::module_::import("base64");
+
+  py::bytes serialized_code = pickle.attr("dumps")(source_code);
+  py::object encoded_code = base64.attr("b64encode")(serialized_code);
+  return encoded_code.cast<std::string>();
+}
+
 std::string get_base64_encoded_str(const py::dict &namespace_dict) {
   py::object json = py::module_::import("json");
   
@@ -55,22 +65,43 @@ std::string get_base64_encoded_str(const py::dict &namespace_dict) {
     class CustomEncoder(json.JSONEncoder):
       def default(self, obj):
         try:
-          return super().default(obj);
+          return super().default(obj)
         except TypeError:
-          return str(obj);
+          return str(obj)
   )");
   py::object custom_encoder = py::globals()["CustomEncoder"];
   py::object json_string = json.attr("dumps")(namespace_dict, py::arg("cls")=custom_encoder);
+  std::cout << "JSON string: \n" << json_string << std::endl;
   std::string json_cpp_string = json_string.cast<std::string>();
+  std::cout << "JSON CPP string: \n" << json_string << std::endl;
   return llvm::encodeBase64(json_cpp_string);
+}
+
+std::string get_base64_encoded_str_using_pickle(const py::dict &namespace_dict) {
+  py::object pickle = py::module_::import("pickle");
+  py::object base64 = py::module_::import("base64");
+
+  py::bytes serialized_namespace = pickle.attr("dumps")(namespace_dict);
+  py::object encoded_namespace = base64.attr("b64encode")(serialized_namespace);
+  return encoded_namespace.cast<std::string>();
 }
 
 json serialize_data(std::string &source_code, py::dict &locals,
                     py::dict &globals) {
+  auto g_name = globals.attr("pop")("__name__");
+  auto g_loader = globals.attr("pop")("__loader__");
+  auto g_annotations = globals.attr("pop")("__annotations__");
+  auto g_builtins = globals.attr("pop")("__builtins__");
+  auto g_file = globals.attr("pop")("__file__");
+  // auto g_kernel = globals.attr("pop")("kernel");
+  // auto g_hamiltonian = globals.attr("pop")("hamiltonian");
+  auto g_objective_function = globals.attr("pop")("objective_function");
   std::string encoded_code_str = get_base64_encoded_str(source_code);
   std::string encoded_locals_str = get_base64_encoded_str(locals);
   std::string encoded_globals_str = get_base64_encoded_str(globals);
 
+  // globals["kernel"] = g_kernel;
+  
   json json_object;
   json_object["source_code"] = encoded_code_str;
   json_object["locals"] = encoded_locals_str;
@@ -151,13 +182,29 @@ py::object get_parent_frame_info(const py::object &inspect) {
   return stack[0];
 }
 
+py::dict get_filtered_dict(const py::dict &namespace_dict) {
+  py::dict filtered_dict;
+
+  for (auto item : namespace_dict) {
+    py::object key = item.first.cast<py::object>();
+    py::object value = item.second.cast<py::object>();
+
+    if (!value.is_none()) {
+      filtered_dict[key] = value;
+      // std::cout << "\nkey: " << key.cast<std::string>() << ", value: " << value;
+    }
+  }
+
+  return filtered_dict;
+}
+
 std::tuple<py::dict, py::dict>
 get_locals_and_globals(const py::object &parent_frame_info) {
   py::dict locals;
   py::dict globals;
   try {
-    locals = parent_frame_info.attr("frame").attr("f_locals");
-    globals = parent_frame_info.attr("frame").attr("f_globals");
+    locals = get_filtered_dict(parent_frame_info.attr("frame").attr("f_locals"));
+    globals = get_filtered_dict(parent_frame_info.attr("frame").attr("f_globals"));
   } catch (py::error_already_set &e) {
     throw std::runtime_error("Failed to get frame locals and globals: " +
                              std::string(e.what()));
@@ -180,7 +227,7 @@ py::object get_compiled_code(const std::string &combined_code,
   return compiled_code;
 }
 
-SerializedCodeExecutionContext *get_serialized_code(std::string &source_code, py::dict &locals,
+SerializedCodeExecutionContext get_serialized_code(std::string &source_code, py::dict &locals,
                          py::dict &globals) {
   // Serialize the source code, locals, and globals
   json serialized_data, empty_json;
@@ -191,9 +238,78 @@ SerializedCodeExecutionContext *get_serialized_code(std::string &source_code, py
                              std::string(e.what()));
   }
 
-  SerializedCodeExecutionContext *serializedCodeExecutionContext = new SerializedCodeExecutionContext(serialized_data["source_code"], serialized_data["locals"], serialized_data["globals"]);
+  SerializedCodeExecutionContext serializedCodeExecutionContext;
+  serializedCodeExecutionContext.source_code = serialized_data["source_code"];
+  serializedCodeExecutionContext.locals = serialized_data["locals"];
+  serializedCodeExecutionContext.globals = serialized_data["globals"];
 
   return serializedCodeExecutionContext;
+}
+
+py::object extract_function_and_call(const py::function &func) {
+    // Import necessary Python modules
+    py::module inspect = py::module::import("inspect");
+    py::module ast = py::module::import("ast");
+    py::module textwrap = py::module::import("textwrap");
+    py::module astor = py::module::import("astor");
+
+    // Get the source code of the function
+    py::object source_code_obj = inspect.attr("getsource")(func.attr("__global__"));
+    std::string source_code = source_code_obj.cast<std::string>();
+    
+    // Get the calling function's source code
+    py::object current_frame = inspect.attr("currentframe")();
+    py::list outer_frames = inspect.attr("getouterframes")(current_frame);
+    py::tuple calling_frame_info = outer_frames[0].cast<py::tuple>();
+    py::object calling_frame = calling_frame_info[0];
+    py::list calling_source_info = inspect.attr("getsourcelines")(calling_frame).cast<py::tuple>();
+    py::list calling_source_lines = calling_source_info[0].cast<py::list>();
+    
+    // Combine the source lines into a single string
+    std::string calling_source_code;
+    for (auto line : calling_source_lines) {
+      calling_source_code += line.cast<std::string>();
+    }
+
+    // Parse the calling function's source code into an AST
+    py::object parsed_ast = ast.attr("parse")(calling_source_code);
+
+    // Helper function to get the function name
+    std::string function_name = py::str(func.attr("__name__"));
+
+    py::exec(R"(
+def extract_calls(node, call_lines, function_name, calling_source_lines):
+  ast_Call = ast.Call
+  ast_Name = ast.Name
+
+  if isinstance(node, ast_Call):
+    func_node = node.func
+    if isinstance(func_node, ast_Name):
+      name = func_node.id
+      if name == function_name:
+        lineno = node.lineno
+        call_lines.append(calling_source_lines[lineno - 1])
+    )");
+
+    py::object extract_calls_py = py::globals()["extract_calls"];
+
+    // Define a visitor class in Python to traverse the AST
+    py::object NodeVisitor = ast.attr("NodeVisitor");
+
+    std::vector<std::string> call_lines;
+    
+    auto visitor = NodeVisitor();
+    visitor.attr("visit")(parsed_ast, py::make_tuple(extract_calls_py, py::cast(call_lines), py::str(func.attr("__name__")), calling_source_lines));
+    
+    // Combine the source code and the function calls into a new code string
+    std::cout << "Converting source to string" << std::endl;
+    std::string combined_code;// = py::str(source);
+    for (const std::string& line : call_lines) {
+        combined_code += "\n" + line;
+    }
+    std::cout << combined_code << std::endl;
+    
+    return py::cast(combined_code);
 }
 
 std::tuple<std::string, std::string>
@@ -221,61 +337,45 @@ extract_func_call_and_cudaq_target(const std::string &file_content,
   return std::make_tuple(func_call, cudaq_target);
 }
 
-std::string create_return_string(const std::string &func_call) {
-  auto pos = func_call.find('=');
-
-  if (pos != std::string::npos) {
-    std::string str = func_call.substr(0, pos);
-    return "return " + str.substr(0, str.find_last_not_of(" \t\n\r") + 1) + ";";
-  }
-
-  return "";
-}
-
 void call_rest_api(SerializedCodeExecutionContext *serializeCodeExecutionObject, const py::dict &locals, const py::dict &globals) {
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client 
     = cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest");
   
+  std::unordered_map<std::string, std::string> map;
+  map.emplace("url", "http://localhost:11030//");
+
+  m_client->setConfig(map);
+
   py::object kernel = locals["kernel"];
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto &platform = get_platform();
-  auto *ctx = platform.get_exec_ctx();
+  std::cout << "Platform: " << platform.is_simulator() << std::endl;
+  ExecutionContext ctx("sample", 1); // platform.get_exec_ctx();
+  // std::cout << "ctx: " << ctx << std::endl;
   using namespace mlir;
 
   ModuleOp mod = unwrap(kernelMod);
+  std::cout << "Mod: " << mod->getContext() << std::endl;
   auto *mlirContext = mod->getContext();
 
-  std::cout << "Extracting required parameters..." << std::endl;
-  std::cout << "Kernel: " << kernel << std::endl;
-
-  std::cout << "Global namespace:\n" << std::endl;
-  std::cout << py::globals() << std::endl;
   // auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
 
-  py::list attributes = kernel.attr("__dict__").attr("items")();
-  for (auto item : attributes) {
-    py::tuple item_arr = item.cast<py::tuple>();
-    auto key = item_arr[0];
-    auto value = item_arr[1];
-    std::cout << key.cast<std::string>() << ": " << py::str(value).cast<std::string>() << std::endl;
-  }
+  // py::list attributes = kernel.attr("__dict__").attr("items")();
+  // for (auto item : attributes) {
+  //   py::tuple item_arr = item.cast<py::tuple>();
+  //   auto key = item_arr[0];
+  //   auto value = item_arr[1];
+  //   std::cout << key.cast<std::string>() << ": " << py::str(value).cast<std::string>() << std::endl;
+  // }
 
   std::cout << "Making a REST request..." << std::endl;
   std::string errorMsg;
-  const bool requestOkay = m_client->sendRequest(*mlirContext, *ctx, *serializeCodeExecutionObject, "", kernelName,
+  const bool requestOkay = m_client->sendRequest(*mlirContext, ctx, *serializeCodeExecutionObject, "custatevec-fp64", kernelName,
                               nullptr, nullptr, 0, &errorMsg);
   
   if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
-}
-
-std::string trim(const std::string &str) {
-  std::stringstream ss;
-  ss << str;
-  std::string trimmed;
-  ss >> trimmed;
-  return trimmed;
 }
 
 void bindGradientStrategies(py::module &mod) {
@@ -370,39 +470,68 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
                 extract_func_call_and_cudaq_target(file_content, func);
 
             // Run this only if the cudaq target is set to nvqc
-            if (cudaq_target == "remote-mqpu") {
+            // cudaq_target == "remote-mqpu"
+            if (true) {
               // Get source code
               py::object source_code = get_source_code(inspect, func);
 
-              /*
+              
               // Combine the function source and its call
-              std::ostringstream code;
-              code << R"(
-# Define the objective function
-def objective_function(x):
-  return (x - 3) ** 2 + 4
+//               std::ostringstream code;
+//               code << R"(
+// # Define the objective function
+// def objective_function(x):
+//   return (x - 3) ** 2 + 4
 
-class Optimizer:
-  def __init__(self, func):
-    self.func = func
-  def optimize(self, initial_guess):
-    current_guess = initial_guess
-    learning_rate = 0.1
-    for _ in range(100):  # Run 100 iterations
-      gradient = 2 * (current_guess - 3)
-      current_guess -= learning_rate * gradient
-    return current_guess
+// class Optimizer:
+//   def __init__(self, func):
+//     self.func = func
+//   def optimize(self, initial_guess):
+//     current_guess = initial_guess
+//     learning_rate = 0.1
+//     for _ in range(100):  # Run 100 iterations
+//       gradient = 2 * (current_guess - 3)
+//       current_guess -= learning_rate * gradient
+//     return current_guess
 
-optimizer = Optimizer(objective_function)
+// optimizer = Optimizer(objective_function)
 
-result, parameter = optimizer.optimize(0), 1.234
-              )";
-              */
+// result, parameter = optimizer.optimize(0), 1.234
+//               )";
               
               // std::string combined_code = code.str();
-              std::string combined_code = source_code.cast<std::string>() + func_call;
 
-              std::cout << combined_code << std::endl;
+              std::ostringstream code;
+              code << R"(
+def objective_function(parameter_vector: List[float], hamiltonian=hamiltonian, gradient_strategy=gradient, kernel=kernel) -> Tuple[float, List[float]]:
+    print('In objective function...')
+    # Call `cudaq.observe` on the spin operator and ansatz at the
+    # optimizer provided parameters. This will allow us to easily
+    # extract the expectation value of the entire system in the
+    # z-basis.
+
+    # We define the call to `cudaq.observe` here as a lambda to
+    # allow it to be passed into the gradient strategy as a
+    # function. If you were using a gradient-free optimizer,
+    # you could purely define `cost = cudaq.observe().expectation()`.
+    get_result = lambda parameter_vector: cudaq.observe(kernel, hamiltonian, parameter_vector).expectation()
+    # `cudaq.observe` returns a `cudaq.ObserveResult` that holds the
+    # counts dictionary and the `expectation`.
+    cost = get_result(parameter_vector)
+    print(f"<H> = {cost}")
+    # Compute the gradient vector using `cudaq.gradients.STRATEGY.compute()`.
+    gradient_vector = gradient_strategy.compute(parameter_vector, get_result, cost)
+
+    # Return the (cost, gradient_vector) tuple.
+    return cost, gradient_vector
+
+cudaq.set_random_seed(13)  # make repeatable
+energy, parameter = optimizer.optimize(dimensions=1, function=objective_function)
+              )";
+
+              // std::string combined_code = source_code.cast<std::string>() + "\n" + func_call;
+              // py::object combined_code = extract_function_and_call(func);
+              std::string combined_code = code.str();
 
               // Get the parent frame info
               py::object parent_frame_info = get_parent_frame_info(inspect);
@@ -417,42 +546,42 @@ result, parameter = optimizer.optimize(0), 1.234
               // py::str(get_compiled_code(combined_code,
               // builtins)).cast<std::string>();
 
-              std::cout << "Executing python code" << std::endl;
+              // std::cout << "Executing python code" << std::endl;
+              std::cout << "Combined code:\n" << combined_code << std::endl;
               std::cout << "Locals:\n" << locals << std::endl;
-              std::cout << "Globals:\n" << globals << std::endl;
-              // py::module traceback = py::module::import("traceback");
-              // try {
-              //   py::exec(combined_code, globals, locals);
-              // } catch (py::error_already_set &e) {
-              //   std::cerr << "Caught an error: " << e.what() << std::endl;
-              //   if (e.trace()) {
-              //     std::cerr << "Traceback:" << std::endl;
-              //     std::cerr << e.trace() << std::endl;
-              //   }
-              //   py::list tb_list = traceback.attr("format_tb")(e.trace());
-              //   std::vector<std::string> tb_strings;
-              //   for (py::handle str : tb_list) {
-              //     tb_strings.push_back(str.cast<std::string>());
-              //   }
-              //   std::cout << "Traceback:\n" << std::endl;
-              //   for (const auto &tb_str : tb_strings) {
-              //     std::cout << tb_str;
-              //   }
-              //   e.restore();
-              //   throw;
-              //   // throw std::runtime_error("Failed to execute code: " +
-              //   //                          std::string(e.what()));
-              // }
-              // std::cout << "Finished executing python code" << std::endl;
-              // std::cout << "Locals:\n" << locals << std::endl;
               // std::cout << "Globals:\n" << globals << std::endl;
+              try {
+                py::exec(py::str(combined_code), globals);
+              } catch (py::error_already_set &e) {
+                PyObject *ptype, *pvalue, *ptraceback;
+                PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+                PyErr_NormalizeException(&ptype, &pvalue, &ptraceback);
 
+                py::object traceback = py::module_::import("traceback");
+
+                py::object format_exception = traceback.attr("format_exception");
+                py::object formatted_list = format_exception(py::reinterpret_steal<py::object>(ptype),
+                                                              py::reinterpret_steal<py::object>(pvalue),
+                                                              py::reinterpret_steal<py::object>(ptraceback));
+
+                py::object formatted = py::str("").attr("join")(formatted_list);
+
+                std::string traceback_str = formatted.cast<std::string>();
+                std::cerr << "Exception occurred: " << e.what() << std::endl;
+                std::cerr << "Traceback (most recent call back)" << traceback_str << std::endl;
+
+                PyErr_Clear();
+              }
               // Serialize the compiled code, locals, and globals
-              SerializedCodeExecutionContext *serialized_code_execution_object =
-                  get_serialized_code(combined_code, locals, globals);
+              // SerializedCodeExecutionContext serialized_code_execution_object = 
+              //               get_serialized_code(combined_code, locals, globals);
+
+              // SerializedCodeExecutionContext *serialized_code_execution_object_ptr = &serialized_code_execution_object;
 
               // Call the REST API to /job
-              call_rest_api(serialized_code_execution_object, locals, globals);
+              // call_rest_api(serialized_code_execution_object_ptr, locals, globals);
+
+              // delete(&serialized_code_execution_object);
 
               // return a empty tuple to suppress the compile error for now
               // TODO Need to return the proper value from response
