@@ -800,7 +800,8 @@ checking that the wheel tag (i.e. the file name ending of the <code class="code 
 <span id="cudaq-cpp-from-source"></span><h2>C++ Support<a class="headerlink" href="#c-support" title="Permalink to this heading">¶</a></h2>
 <p>From within the folder where you cloned the CUDA-Q repository, run the following
 command to build CUDA-Q:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_WERROR</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_ENABLE_STATIC_LINKING</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAQ_WERROR</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
 <span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
 bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v
