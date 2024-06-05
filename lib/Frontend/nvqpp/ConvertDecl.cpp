@@ -238,6 +238,12 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       TODO_x(toLocation(x), x, mangler, "std::string type");
       return false;
     }
+    if (name.equals("__wrap_iter")) {
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
+      return true;
+    }
     if (name.equals("pair")) {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       SmallVector<Type> members;
