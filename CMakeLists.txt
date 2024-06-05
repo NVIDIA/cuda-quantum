@@ -201,8 +201,8 @@ if (CUDAQ_ENABLE_STATIC_LINKING)
   # with each other. If we keep linking everything statically, we should at least set 
   # CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN to 1, 
   # to avoid some of these issues.
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-pie")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc -pie")
   SET(OPENSSL_USE_STATIC_LIBS TRUE)
   SET(ZLIB_USE_STATIC_LIBS TRUE)
   set(CURL_STATICLIB ON)

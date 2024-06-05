@@ -15,6 +15,8 @@ set(LLVM_OPTIMIZED_TABLEGEN ON CACHE BOOL "")
 set(LLVM_INSTALL_UTILS ON CACHE BOOL "")
 set(ZLIB_USE_STATIC_LIBS ON CACHE BOOL "")
 set(LLVM_ENABLE_ZSTD OFF CACHE BOOL "")
+# For reasons that aren't entirely clear to me, we need to build with assertions
+# to avoid issues with the remote rest qpu when building with gcc.
 set(LLVM_ENABLE_ASSERTIONS ON CACHE BOOL "")
 
 set(LLVM_BUILD_TESTS OFF CACHE BOOL "")

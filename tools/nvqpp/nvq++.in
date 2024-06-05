@@ -107,6 +107,12 @@ function show_help {
 -g
 	Enable debugging output.
 
+-static-libstdc++
+	Statically link the CUDA-Q C++ standard library to create a CUDA-Q binary that can be linked with another standard library.
+
+-shared
+	Create a shared library during linking.
+
 --enable-mlir
 	Enable and generate MLIR code for CUDA-Q kernels.
 
@@ -405,6 +411,12 @@ while [ $# -ne 0 ]; do
 		CUDAQ_TRANSLATE_ARGS="${CUDAQ_TRANSLATE_ARGS} --mlir-print-debuginfo"
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -g"
 		LLC_FLAGS="${LLC_FLAGS} --dwarf64"
+		;;
+	-static-libstdc++)
+		LINKER_FLAGS="${LINKER_FLAGS} -static-libstdc++"
+		;;
+	-shared)
+		LINKER_FLAGS="${LINKER_FLAGS} -shared"
 		;;
 	--enable-mlir)
 		LIBRARY_MODE=false

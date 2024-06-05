@@ -113,13 +113,17 @@ ADD "NOTICE" /cuda-quantum/NOTICE
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
 
+# Note: We statically link libc++ here to make it easy to build shared CUDA-Q libraries with nvq++
+# that can then be linked to and called from other C++ code compiled with a different toolchain
+# and linked against a different standard library.
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     ## [>CUDAQuantumCppBuild]
-    CUDAQ_WERROR=false \
+    CUDAQ_ENABLE_STATIC_LINKING=TRUE \
+    CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/build_cudaq.sh -t llvm -v
@@ -296,8 +300,11 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
 
-# Removing the CUDA compiler and libstdc++ with it
-RUN dnf remove -y \
+# Removing the CUDA compiler and libstdc++ with it,
+# and installing the CUDA runtime dependencies only.
+RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
+    source /cuda-quantum/scripts/configure_build.sh install-cudart && \
+    dnf remove -y \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) && \
     dnf clean all

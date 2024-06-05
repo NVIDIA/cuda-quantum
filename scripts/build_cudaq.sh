@@ -34,6 +34,10 @@
 # Note:
 # By default, the CUDA-Q is done with warnings-as-errors turned on.
 # You can turn this setting off by defining the environment variable CUDAQ_WERROR=OFF.
+#
+# For more information about building cross-platform CUDA libraries,
+# see https://developer.nvidia.com/blog/building-cuda-applications-cmake/
+# (specifically also CUDA_SEPARABLE_COMPILATION)
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}

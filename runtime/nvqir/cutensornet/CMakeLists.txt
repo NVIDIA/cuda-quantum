@@ -1,4 +1,5 @@
 # Find CUDA Toolkit for CUDA libs, e.g., cudart.
+enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
 
 find_library(CUTENSOR_LIB
@@ -6,8 +7,8 @@ find_library(CUTENSOR_LIB
     HINTS   
         ${CUTENSOR_ROOT}/lib64
         ${CUTENSOR_ROOT}/lib
-        ${CUTENSOR_ROOT}/lib64/${CUDA_VERSION_MAJOR}
-        ${CUTENSOR_ROOT}/lib/${CUDA_VERSION_MAJOR}
+        ${CUTENSOR_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+        ${CUTENSOR_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
 )
 
 find_library(CUTENSORNET_LIB
@@ -15,8 +16,8 @@ find_library(CUTENSORNET_LIB
     HINTS   
         ${CUTENSORNET_ROOT}/lib64
         ${CUTENSORNET_ROOT}/lib
-        ${CUTENSORNET_ROOT}/lib64/${CUDA_VERSION_MAJOR}
-        ${CUTENSORNET_ROOT}/lib/${CUDA_VERSION_MAJOR}
+        ${CUTENSORNET_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+        ${CUTENSORNET_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
 )
 
 find_file(CUTENSORNET_INC
@@ -66,8 +67,8 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
   macro (nvqir_create_cutn_plugin LIBRARY_NAME)
     # This will create a target named ${LIBRARY_NAME}
     add_library(nvqir-${LIBRARY_NAME} SHARED ${ARGN})
-    target_include_directories(nvqir-${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/common ${CMAKE_SOURCE_DIR}/runtime/nvqir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR})
-    target_link_libraries(nvqir-${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq cudaq-common ${CUTENSORNET_LIB} ${CUTENSOR_LIB} CUDA::cudart)
+    target_include_directories(nvqir-${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/common ${CMAKE_SOURCE_DIR}/runtime/nvqir ${CUDAToolkit_INCLUDE_DIRS} ${CUTENSORNET_INCLUDE_DIR})
+    target_link_libraries(nvqir-${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq cudaq-common ${CUTENSORNET_LIB} ${CUTENSOR_LIB} CUDA::cudart_static)
     install(TARGETS nvqir-${LIBRARY_NAME} DESTINATION lib)
     file (WRITE ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config "NVQIR_SIMULATION_BACKEND=${LIBRARY_NAME}\nGPU_REQUIREMENTS=\"true\"\n")
     install(FILES ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config DESTINATION targets)
@@ -76,7 +77,7 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
   nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp )
   nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp)
   add_library(tensornet-mpi-util OBJECT mpi_support.cpp)
-  target_include_directories(tensornet-mpi-util PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/runtime)
+  target_include_directories(tensornet-mpi-util PRIVATE ${CUDAToolkit_INCLUDE_DIRS} ${CUTENSORNET_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/runtime)
   target_link_libraries(tensornet-mpi-util PRIVATE cudaq-common fmt::fmt-header-only)
   # Note: only tensornet backend supports MPI at cutensornet level (distributed tensor computation)
   target_link_libraries(nvqir-tensornet PRIVATE tensornet-mpi-util)
