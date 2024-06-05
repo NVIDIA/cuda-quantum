@@ -172,7 +172,7 @@ public:
   // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
   RestRequest(ExecutionContext &context, int versionNumber)
-      : executionContext(context), version(versionNumber),
+      : executionContext(context), version(versionNumber), n_params(0),
         clientVersion(CUDA_QUANTUM_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
@@ -204,12 +204,14 @@ public:
   std::vector<uint8_t> args;
   // Version of this schema for compatibility check.
   std::size_t version;
+  // Number of parameters for VQE
+  std::size_t n_params;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
-                                 executionContext, code, args, format, seed,
-                                 passes, clientVersion);
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, n_params, entryPoint,
+                                 simulator, executionContext, code, args,
+                                 format, seed, passes, clientVersion);
 };
 
 /// NVCF function version status

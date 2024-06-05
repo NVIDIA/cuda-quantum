@@ -188,6 +188,40 @@ public:
       return llvm::encodeBase64(mlirCode);
     }
   }
+  cudaq::RestRequest constructVQEJobRequest(mlir::MLIRContext &mlirContext,
+                                            cudaq::ExecutionContext &io_context,
+                                            const std::string &backendSimName,
+                                            const std::string &kernelName,
+                                            void (*kernelFunc)(void *),
+                                            cudaq::optimizer &optimizer,
+                                            const int n_params) {
+    cudaq::RestRequest request(io_context, version());
+
+    request.n_params = n_params;
+    request.entryPoint = kernelName;
+    request.passes = serverPasses;
+    request.format = cudaq::CodeFormat::MLIR;
+    request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
+                                          /*kernelArgs=*/nullptr,
+                                          /*argsSize=*/0);
+    request.simulator = backendSimName;
+    // Remote server seed
+    // Note: unlike local executions whereby a static instance of the simulator
+    // is seeded once when `cudaq::set_random_seed` is called, thus not being
+    // re-seeded between executions. For remote executions, we use the runtime
+    // level seed value to seed a random number generator to seed the server.
+    // i.e., consecutive remote executions on the server from the same client
+    // session (where `cudaq::set_random_seed` is called), get new random seeds
+    // for each execution. The sequence is still deterministic based on the
+    // runtime-level seed value.
+    request.seed = [&]() {
+      std::uniform_int_distribution<std::size_t> seedGen(
+          std::numeric_limits<std::size_t>::min(),
+          std::numeric_limits<std::size_t>::max());
+      return seedGen(randEngine);
+    }();
+    return request;
+  }
 
   cudaq::RestRequest constructJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
@@ -246,7 +280,54 @@ public:
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg) override {
     // Todo
-    return true; // FIXME
+    printf("BMH got here\n");
+    cudaq::RestRequest request =
+        constructVQEJobRequest(mlirContext, io_context, backendSimName,
+                               kernelName, kernelFunc, optimizer, n_params);
+    if (request.code.empty()) {
+      if (optionalErrorMsg)
+        *optionalErrorMsg =
+            std::string(
+                "Failed to construct/retrieve kernel IR for kernel named ") +
+            kernelName;
+      return false;
+    }
+
+    // Don't let curl adding "Expect: 100-continue" header, which is not
+    // suitable for large requests, e.g., bitcode in the JSON request.
+    //  Ref: https://gms.tf/when-curl-sends-100-continue.html
+    std::map<std::string, std::string> headers{
+        {"Expect:", ""}, {"Content-type", "application/json"}};
+    json requestJson = request;
+    try {
+      cudaq::RestClient restClient;
+      auto resultJs =
+          restClient.post(m_url, "job", requestJson, headers, false);
+
+      if (!resultJs.contains("executionContext")) {
+        std::stringstream errorMsg;
+        if (resultJs.contains("status")) {
+          errorMsg << "Failed to execute the kernel on the remote server: "
+                   << resultJs["status"] << "\n";
+          if (resultJs.contains("errorMessage")) {
+            errorMsg << "Error message: " << resultJs["errorMessage"] << "\n";
+          }
+        } else {
+          errorMsg << "Failed to execute the kernel on the remote server.\n";
+          errorMsg << "Unexpected response from the REST server. Missing the "
+                      "required field 'executionContext'.";
+        }
+        if (optionalErrorMsg)
+          *optionalErrorMsg = errorMsg.str();
+        return false;
+      }
+      resultJs["executionContext"].get_to(io_context);
+      return true;
+    } catch (std::exception &e) {
+      if (optionalErrorMsg)
+        *optionalErrorMsg = e.what();
+      return false;
+    }
   }
 
   virtual bool sendRequest(mlir::MLIRContext &mlirContext,
