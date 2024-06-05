@@ -173,7 +173,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     if (name.equals("qvector") || name.equals("qview"))
       return pushType(quake::VeqType::getUnsized(ctx));
     if (name.equals("state"))
-       return pushType(cc::StateType::get(ctx));
+      return pushType(cc::StateType::get(ctx));
     if (name.equals("pauli_word"))
       return pushType(cc::CharspanType::get(ctx));
     auto loc = toLocation(x);
