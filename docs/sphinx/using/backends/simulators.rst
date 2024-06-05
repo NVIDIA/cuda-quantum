@@ -286,7 +286,7 @@ Specific aspects of the simulation can be configured by defining the following e
 * **`CUDAQ_MPS_MAX_BOND=X`**: The maximum number of singular values to keep (fixed extent truncation). Default: 64.
 * **`CUDAQ_MPS_ABS_CUTOFF=X`**: The cutoff for the largest singular value during truncation. Eigenvalues that are smaller will be trimmed out. Default: 1e-5.
 * **`CUDAQ_MPS_RELATIVE_CUTOFF=X`**: The cutoff for the maximal singular value relative to the largest eigenvalue. Eigenvalues that are smaller than this fraction of the largest singular value will be trimmed out. Default: 1e-5
-* **`CUDAQ_MPS_SVD_ALGO=X`**: The SVD algorithm to use. Valid values are: GESVD (QR algorithm), GESVDJ (Jacobi method), GESVDP (`polar decomposition <https://epubs.siam.org/doi/abs/10.1137/090774999>`__), GESVDR (`randomized methods <https://epubs.siam.org/doi/10.1137/090771806>`__). Default: GESVDJ.
+* **`CUDAQ_MPS_SVD_ALGO=X`**: The SVD algorithm to use. Valid values are: `GESVD` (QR algorithm), `GESVDJ` (Jacobi method), `GESVDP` (`polar decomposition <https://doi.org/10.1137/090774999>`__), `GESVDR` (`randomized methods <https://doi.org/10.1137/090771806>`__). Default: GESVDJ.
 
 .. note:: 
 
