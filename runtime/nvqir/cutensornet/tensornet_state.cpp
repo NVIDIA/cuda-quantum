@@ -321,10 +321,29 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
 
+  // Check whether we need host memory workspace
+  int64_t hostWorkspaceSize{0};
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
+      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      CUTENSORNET_MEMSPACE_HOST, CUTENSORNET_WORKSPACE_SCRATCH,
+      &hostWorkspaceSize));
+
+  void *hostWork = nullptr;
+  if (hostWorkspaceSize > 0) {
+    hostWork = malloc(hostWorkspaceSize);
+  }
+
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
+      m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_HOST,
+      CUTENSORNET_WORKSPACE_SCRATCH, hostWork, hostWorkspaceSize));
+
   // Execute MPS computation
   HANDLE_CUTN_ERROR(cutensornetStateCompute(
       m_cutnHandle, m_quantumState, workDesc, extentsPtr.data(),
       /*strides=*/nullptr, d_mpsTensors.data(), 0));
+  if (hostWork) {
+    free(hostWork);
+  }
   return d_mpsTensors;
 }
 

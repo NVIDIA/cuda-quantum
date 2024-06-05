@@ -17,6 +17,8 @@ class SimulatorMPS : public SimulatorTensorNetBase {
   double m_absCutoff = 1e-5;
   // Default relative cutoff
   double m_relCutoff = 1e-5;
+  // Default SVD algorithm (Jacobi)
+  cutensornetTensorSVDAlgo_t m_svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ;
   std::vector<void *> m_mpsTensors_d;
 
 public:
@@ -65,6 +67,29 @@ public:
       m_relCutoff = relCutoff;
       cudaq::info("Setting MPS relative cutoff to {}.", m_relCutoff);
     }
+    static const std::unordered_map<std::string, cutensornetTensorSVDAlgo_t>
+        g_stringToAlgoEnum{{"GESVD", CUTENSORNET_TENSOR_SVD_ALGO_GESVD},
+                           {"GESVDJ", CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ},
+                           {"GESVDP", CUTENSORNET_TENSOR_SVD_ALGO_GESVDP},
+                           {"GESVDR", CUTENSORNET_TENSOR_SVD_ALGO_GESVDR}};
+
+    if (auto *svdAlgoEnvVar = std::getenv("CUDAQ_MPS_SVD_ALGO")) {
+      std::string svdAlgo(svdAlgoEnvVar);
+      std::transform(svdAlgo.begin(), svdAlgo.end(), svdAlgo.begin(),
+                     ::toupper);
+      const auto iter = g_stringToAlgoEnum.find(svdAlgo);
+      if (iter == g_stringToAlgoEnum.end()) {
+        std::stringstream errorMsg;
+        errorMsg << "Unknown CUDAQ_MPS_SVD_ALGO value ('" << svdAlgoEnvVar
+                 << "').\nValid values are:\n";
+        for (const auto &[configStr, _] : g_stringToAlgoEnum)
+          errorMsg << "  - " << configStr << "\n";
+        throw std::runtime_error(errorMsg.str());
+      }
+
+      m_svdAlgo = iter->second;
+      cudaq::info("Setting MPS SVD algorithm to {}.", svdAlgo);
+    }
   }
 
   virtual void prepareQubitTensorState() override {
@@ -77,7 +102,7 @@ public:
     // Factorize the state:
     if (m_state->getNumQubits() > 1)
       m_mpsTensors_d =
-          m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+          m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff, m_svdAlgo);
   }
 
   virtual std::size_t calculateStateDim(const std::size_t numQubits) override {
