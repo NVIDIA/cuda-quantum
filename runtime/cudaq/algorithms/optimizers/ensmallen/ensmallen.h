@@ -25,7 +25,110 @@ public:
   std::optional<std::vector<double>> upper_bounds;
   std::optional<double> f_tol;
   std::optional<double> step_size;
+
+  virtual std::string serialize() const = 0;
+  static BaseEnsmallen deserialize(const std::string &serialized_data);
 };
+
+class Adam : public BaseEnsmallen {
+public:
+  Adam() = default;
+  bool requiresGradients() override { return true; }
+  optimization_result optimize(const int dim, optimizable_function &&opt_function) override;
+  std::string serialize() const override;
+};
+
+std::string Adam::serialize() const {
+  std::ostringstream oss;
+
+  if (max_eval.has_value()) {
+    oss << "max_eval:" << max_eval.value() << ";";
+  }
+
+  if (initial_parameters.has_value()) {
+    oss << "initial_parameters";
+    for (double param : initial_parameters.value()) {
+      oss << param << ",";
+    }
+    oss << ";";
+  }
+
+  if (lower_bounds.has_value()) {
+    oss << "lower_bounds";
+    for (double param : lower_bounds.value()) {
+      oss << param << ",";
+    }
+    oss << ";";
+  }
+
+  if (upper_bounds.has_value()) {
+    oss << "upper_bounds";
+    for (double param : upper_bounds.value()) {
+      oss << param << ",";
+    }
+    oss << ";";
+  }
+
+  if (f_tol.has_value()) {
+    oss << "f_tol:" << f_tol.value() << ";";
+  }
+
+  if (step_size.has_value()) {
+    oss << "step_size:" << step_size.value() << ";";
+  }
+
+  return oss.str();
+}
+
+Adam deserialize(const std::string &serialized_data) {
+  Adam obj;
+
+  std::istringstream iss(serialized_data);
+  char delimiter = ';';
+  std::string field;
+
+  while (iss >> field >> delimiter) {
+    if (field == "max_eval:") {
+      iss >> *obj.max_eval;
+    } else if (field == "initial_parameters:") {
+      std::string params_str;
+      iss >> params_str;
+      std::istringstream params_ss(params_str);
+      double param;
+      while (params_ss >> param) {
+        obj.initial_parameters->push_back(param);
+        if (params_ss.peek() == ',')
+          params_ss.ignore();
+      }
+    } else if (field == "step_size:") {
+      iss >> *obj.step_size;
+    } else if (field == "lower_bounds:") {
+      std::string params_str;
+      iss >> params_str;
+      std::istringstream params_ss(params_str);
+      double param;
+      while (params_ss >> param) {
+        obj.lower_bounds->push_back(param);
+        if (params_ss.peek() == ',')
+          params_ss.ignore();
+      }
+    } else if (field == "upper_bounds:") {
+      std::string params_str;
+      iss >> params_str;
+      std::istringstream params_ss(params_str);
+      double param;
+      while (params_ss >> param) {
+        obj.upper_bounds->push_back(param);
+        if (params_ss.peek() == ',')
+          params_ss.ignore();
+      }
+    } else if (field == "f_tol:") {
+      iss >> *obj.f_tol;
+    }
+  } 
+
+  return obj;
+}
 
 #define CUDAQ_ENSMALLEN_ALGORITHM_TYPE(NAME, NEEDS_GRADIENTS, EXTRA_PARAMS)    \
   class NAME : public BaseEnsmallen {                                          \
