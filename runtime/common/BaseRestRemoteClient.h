@@ -238,6 +238,17 @@ public:
     return request;
   }
 
+  virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
+                              cudaq::ExecutionContext &io_context,
+                              const std::string &backendSimName,
+                              const std::string &kernelName,
+                              void (*kernelFunc)(void *),
+                              cudaq::optimizer &optimizer, const int n_params,
+                              std::string *optionalErrorMsg) override {
+    // Todo
+    return true; // FIXME
+  }
+
   virtual bool sendRequest(mlir::MLIRContext &mlirContext,
                            cudaq::ExecutionContext &io_context,
                            const std::string &backendSimName,

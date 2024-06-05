@@ -11,6 +11,7 @@
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
@@ -126,6 +127,10 @@ public:
 
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
+
+  void launchVQE(const std::string kernelName, void (*kernelFunc)(void *),
+                 cudaq::spin_op H, cudaq::optimizer &optimizer,
+                 const int n_params, const std::size_t shots);
 
   // This method is the hook for the kernel rewrites to invoke
   // quantum kernels.
