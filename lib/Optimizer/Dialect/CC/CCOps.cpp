@@ -15,6 +15,7 @@
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -31,6 +32,13 @@ R getParentOfType(Operation *op) {
   return {};
 }
 
+std::optional<std::int64_t> cudaq::opt::factory::getIntIfConstant(Value value) {
+  APInt constant;
+  if (matchPattern(value, m_ConstantInt(&constant)))
+    return {constant.getSExtValue()};
+  return {};
+}
+
 //===----------------------------------------------------------------------===//
 // AddressOfOp
 //===----------------------------------------------------------------------===//
@@ -40,8 +48,7 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   Operation *op = symbolTable.lookupSymbolIn(
       getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
 
-  // TODO: add globals?
-  if (!isa_and_nonnull<func::FuncOp, GlobalOp>(op))
+  if (!isa_and_nonnull<func::FuncOp, GlobalOp, LLVM::GlobalOp>(op))
     return emitOpError("must reference a global defined by 'func.func'");
   return success();
 }
@@ -80,27 +87,38 @@ ParseResult cudaq::cc::AllocaOp::parse(OpAsmParser &parser,
   return success();
 }
 
-OpFoldResult cudaq::cc::AllocaOp::fold(FoldAdaptor adaptor) {
-  auto params = adaptor.getOperands();
-  if (params.size() == 1) {
-    // If allocating a contiguous block of elements and the size of the block is
-    // a constant, fold the size into the cc.array type and allocate a constant
-    // sized block.
-    if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[0])) {
-      auto size = intAttr.getInt();
-      if (size > 0) {
-        auto resTy = cast<cc::ArrayType>(
-            cast<cc::PointerType>(getType()).getElementType());
-        auto arrTy = cc::ArrayType::get(resTy.getContext(),
-                                        resTy.getElementType(), size);
-        getOperation()->setAttr("elementType", TypeAttr::get(arrTy));
-        getResult().setType(cc::PointerType::get(arrTy));
-        getOperation()->eraseOperand(0);
-        return getResult();
-      }
+namespace {
+struct FuseAllocLength : public OpRewritePattern<cudaq::cc::AllocaOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::AllocaOp alloca,
+                                PatternRewriter &rewriter) const override {
+    auto params = alloca.getOperands();
+    if (params.size() == 1) {
+      // If allocating a contiguous block of elements and the size of the block
+      // is a constant, fold the size into the cc.array type and allocate a
+      // constant sized block.
+      if (auto size = cudaq::opt::factory::getIntIfConstant(params[0]))
+        if (*size > 0) {
+          auto loc = alloca.getLoc();
+          auto *context = rewriter.getContext();
+          Type oldTy = alloca.getElementType();
+          auto arrTy = cudaq::cc::ArrayType::get(context, oldTy, *size);
+          Type origTy = alloca.getType();
+          auto newAlloc = rewriter.create<cudaq::cc::AllocaOp>(loc, arrTy);
+          rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(alloca, origTy,
+                                                         newAlloc);
+          return success();
+        }
     }
+    return failure();
   }
-  return nullptr;
+};
+} // namespace
+
+void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FuseAllocLength>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -179,6 +197,34 @@ LogicalResult cudaq::cc::CastOp::verify() {
     return emitOpError("invalid cast.");
   }
   return success();
+}
+
+namespace {
+// There are a number of series of casts that can be fused. For now, fuse
+// pointer cast chains.
+struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
+                                PatternRewriter &rewriter) const override {
+    if (auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>())
+      if (isa<cudaq::cc::PointerType>(castOp.getType()) &&
+          isa<cudaq::cc::PointerType>(castToCast.getType())) {
+        // %4 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<U>
+        // %5 = cc.cast %4 : (!cc.ptr<U>) -> !cc.ptr<V>
+        // ────────────────────────────────────────────
+        // %5 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<V>
+        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
+                                                       castToCast.getValue());
+      }
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                    MLIRContext *context) {
+  patterns.add<FuseCastCascade>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -322,8 +368,7 @@ namespace {
 // Address arithmetic for pointers to arrays is additive.
 struct FuseAddressArithmetic
     : public OpRewritePattern<cudaq::cc::ComputePtrOp> {
-  using Base = OpRewritePattern<cudaq::cc::ComputePtrOp>;
-  using Base::Base;
+  using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::ComputePtrOp ptrOp,
                                 PatternRewriter &rewriter) const override {
@@ -380,6 +425,23 @@ struct FuseAddressArithmetic
       rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
           ptrOp, ptrOp.getType(), origPtr.getBase(),
           ArrayRef<cudaq::cc::ComputePtrArg>{myOffset + inOffset});
+    } else if (auto castOp =
+                   ptrOp.getBase().getDefiningOp<cudaq::cc::CastOp>()) {
+      if (auto castFromPtrTy =
+              dyn_cast<cudaq::cc::PointerType>(castOp.getValue().getType()))
+        if (auto castFromArrTy =
+                dyn_cast<cudaq::cc::ArrayType>(castFromPtrTy.getElementType()))
+          if (auto castToPtrTy =
+                  dyn_cast<cudaq::cc::PointerType>(castOp.getType()))
+            if (auto castToArrTy = dyn_cast<cudaq::cc::ArrayType>(
+                    castToPtrTy.getElementType()))
+              if (!castFromArrTy.isUnknownSize() &&
+                  castToArrTy.isUnknownSize()) {
+                rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+                    ptrOp, ptrOp.getType(), castOp.getValue(),
+                    ptrOp.getDynamicIndices(), ptrOp.getRawConstantIndices());
+                return success();
+              }
     }
     return success();
   }
@@ -1386,6 +1448,25 @@ LogicalResult cudaq::cc::CallCallableOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// ConditionOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::ConditionOp::verify() {
+  Operation *self = getOperation();
+  Region *region = self->getBlock()->getParent();
+  auto parentOp = self->getParentOfType<LoopOp>();
+  assert(parentOp); // checked by tablegen constraints
+  if (&parentOp.getWhileRegion() != region)
+    return emitOpError("only valid in the while region of a loop");
+  return success();
+}
+
+MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
+    std::optional<unsigned> index) {
+  return getResultsMutable();
+}
+
+//===----------------------------------------------------------------------===//
 // ReturnOp
 //===----------------------------------------------------------------------===//
 
@@ -1442,22 +1523,37 @@ void cudaq::cc::ReturnOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// ConditionOp
+// SizeOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult cudaq::cc::ConditionOp::verify() {
-  Operation *self = getOperation();
-  Region *region = self->getBlock()->getParent();
-  auto parentOp = self->getParentOfType<LoopOp>();
-  assert(parentOp); // checked by tablegen constraints
-  if (&parentOp.getWhileRegion() != region)
-    return emitOpError("only valid in the while region of a loop");
-  return success();
-}
+namespace {
+struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
+  using Base = OpRewritePattern<cudaq::cc::SizeOfOp>;
+  using Base::Base;
 
-MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
-    std::optional<unsigned> index) {
-  return getResultsMutable();
+  LogicalResult matchAndRewrite(cudaq::cc::SizeOfOp sizeOp,
+                                PatternRewriter &rewriter) const override {
+    // TODO: Add handling of more types.
+    auto inpTy = sizeOp.getInputType();
+    std::optional<unsigned> bitsize;
+    if (isa<IntegerType, FloatType>(inpTy)) {
+      bitsize = inpTy.getIntOrFloatBitWidth();
+    } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(inpTy)) {
+      if (auto bits = strTy.getBitSize())
+        bitsize = bits;
+    }
+    if (!bitsize)
+      return failure();
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
+        sizeOp, cudaq::opt::convertBitsToBytes(*bitsize), sizeOp.getType());
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::SizeOfOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ReplaceConstantSizes>(context);
 }
 
 //===----------------------------------------------------------------------===//

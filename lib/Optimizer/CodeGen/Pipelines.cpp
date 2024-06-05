@@ -22,14 +22,15 @@ void cudaq::opt::commonPipelineConvertToQIR(
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(createQuakeAddMetadata());
   pm.addPass(createLoopNormalize());
   LoopUnrollOptions luo;
   luo.allowBreak = convertTo && convertTo->equals("qir-adaptive");
   pm.addPass(createLoopUnroll(luo));
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
