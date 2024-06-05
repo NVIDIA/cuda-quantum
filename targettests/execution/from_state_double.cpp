@@ -24,5 +24,4 @@ int main() {
 
   printf("size %zu\n", counts.size());
 
-
 }

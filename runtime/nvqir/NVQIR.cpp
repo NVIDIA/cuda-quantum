@@ -137,23 +137,33 @@ std::size_t qubitToSizeT(Qubit *q) {
 }
 
 template <typename T>
+concept FloatType = std::is_same<T, float>::value;
+
+template <typename T>
+concept DoubleType = std::is_same<T, double>::value;
+
+template <typename T>
+concept SimPrecisionType = FloatType<T> || DoubleType<T>;
+
+template <FloatType T>
 constexpr std::string_view typeName() {
-  static_assert(
-      std::is_same<T, float>::value || std::is_same<T, double>::value,
-      "unsupported type for array conversion to simulation precision");
-  return std::is_same<T, float>::value ? "float" : "double";
+  return "float";
+}
+
+template <DoubleType T>
+constexpr std::string_view typeName() {
+  return "double";
 }
 
 /// Input was complex<float>/complex<double> but we prefer
 /// complex<double>/complex<float>. Make a copy, extending or truncating the
 /// values.
-template <typename To, typename From>
+template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
                                                      std::size_t size) {
   auto stateSize = pow(2, size);
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
-
   cudaq::info("copying {} complex<{}> values to complex<{}>", stateSize,
               fromType, toType);
 
@@ -167,14 +177,13 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
 /// Input was complex<float>/complex<double> but we prefer
 /// complex<double>/complex<float>. Make a copy, extending or truncating the
 /// values.
-template <typename To, typename From>
+template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
                                                      std::size_t size) {
 
   auto stateSize = pow(2, size);
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
-
   cudaq::info("copying {} {} values to complex<{}>", stateSize, fromType,
               toType);
 
