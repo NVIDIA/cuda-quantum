@@ -54,5 +54,20 @@ public:
     }
     return dx;
   }
+
+  /// @brief Serialize function
+  std::string serialize() const {
+    std::ostringstream oss;
+    oss << step << " ";
+    return oss.str();
+  }
+
+  /// @brief Deserialize function
+  central_difference deserialize(const std::string &serialized_data) const {
+    std::istringstream iss(serialized_data);
+    double step;
+    iss >> step;
+    return central_difference(step);
+  }
 };
 } // namespace cudaq::gradients

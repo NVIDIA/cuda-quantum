@@ -221,6 +221,18 @@ class PyKernelDecorator(object):
                                    name=self.name,
                                    module=self.module)
 
+    def __reduce__(self):
+        args = []
+
+        if self.kernelFunction is not None:
+            args.append(self.kernelFunction)
+        if self.module is not None:
+            args.append(self.module)
+        if self.name is not None:
+            args.append(self.name)
+
+        return (self.__class__, tuple(args))
+
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the 
