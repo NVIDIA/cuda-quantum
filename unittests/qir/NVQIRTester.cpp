@@ -71,12 +71,10 @@ void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
 
 // Qubit array allocation / deallocation
 Array *__quantum__rt__qubit_allocate_array(uint64_t idx);
-Array *
-__quantum__rt__qubit_allocate_array_with_state_fp64(std::uint64_t size,
-                                                    std::complex<double> *data);
-Array *
-__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
-                                                    std::complex<float> *data);
+Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
+    std::uint64_t size, std::complex<double> *data);
+Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
+    uint64_t size, std::complex<float> *data);
 Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
     cudaq::SimulationState *state);
 void __quantum__rt__qubit_release_array(Array *q);
@@ -442,11 +440,11 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromStateVec) {
   std::vector<cudaq::complex> bellState{M_SQRT1_2, 0.0, 0.0, M_SQRT1_2};
   Array *qubits = [](auto &state) {
     if constexpr (std::is_same_v<cudaq::complex, std::complex<double>>)
-      return __quantum__rt__qubit_allocate_array_with_state_fp64(2,
-                                                                 state.data());
+      return __quantum__rt__qubit_allocate_array_with_state_complex64(
+          2, state.data());
     else
-      return __quantum__rt__qubit_allocate_array_with_state_fp32(2,
-                                                                 state.data());
+      return __quantum__rt__qubit_allocate_array_with_state_complex32(
+          2, state.data());
   }(bellState);
   Qubit *q1 = extract_qubit(qubits, 0);
   Qubit *q2 = extract_qubit(qubits, 1);

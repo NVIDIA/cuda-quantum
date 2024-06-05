@@ -376,6 +376,26 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
                              double relCutoff,
                              cutensornetTensorSVDAlgo_t algo) {
   LOG_API_TIME();
+  if (m_numQubits == 0)
+    return {};
+  if (m_numQubits == 1) {
+    // Single tensor
+    MPSTensor tensor;
+    tensor.extents = {2};
+    HANDLE_CUDA_ERROR(
+        cudaMalloc(&tensor.deviceData, 2 * sizeof(std::complex<double>)));
+    // Just contract all the gates to the tensor.
+    // Note: if none gates, don't call `getStateVector`, which performs a
+    // contraction (`Flop count is zero` error).
+    const std::vector<std::complex<double>> stateVec =
+        isDirty() ? getStateVector()
+                  : std::vector<std::complex<double>>{1.0, 0.0};
+    assert(stateVec.size() == 2);
+    HANDLE_CUDA_ERROR(cudaMemcpy(tensor.deviceData, stateVec.data(),
+                                 2 * sizeof(std::complex<double>),
+                                 cudaMemcpyHostToDevice));
+    return {tensor};
+  }
   std::vector<MPSTensor> mpsTensors(m_numQubits);
   std::vector<int64_t *> extentsPtr(m_numQubits);
   for (std::size_t i = 0; i < m_numQubits; ++i) {
@@ -432,6 +452,20 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
   } else {
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
+  int64_t hostWorkspaceSize;
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
+      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      CUTENSORNET_MEMSPACE_HOST, CUTENSORNET_WORKSPACE_SCRATCH,
+      &hostWorkspaceSize));
+
+  void *hostWork = nullptr;
+  if (hostWorkspaceSize > 0) {
+    hostWork = malloc(hostWorkspaceSize);
+  }
+
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
+      m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_HOST,
+      CUTENSORNET_WORKSPACE_SCRATCH, hostWork, hostWorkspaceSize));
 
   std::vector<void *> allData(m_numQubits);
   for (std::size_t i = 0; auto &tensor : mpsTensors)
@@ -440,6 +474,10 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
   HANDLE_CUTN_ERROR(cutensornetStateCompute(
       m_cutnHandle, m_quantumState, workDesc, extentsPtr.data(),
       /*strides=*/nullptr, allData.data(), 0));
+
+  if (hostWork) {
+    free(hostWork);
+  }
   return mpsTensors;
 }
 
