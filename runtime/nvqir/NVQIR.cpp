@@ -154,8 +154,8 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
 
-  cudaq::info("copying {} complex values from {} to {}", stateSize, fromType,
-              toType);
+  cudaq::info("copying {} complex<{}> values to complex<{}>", stateSize,
+              fromType, toType);
 
   auto convertData = std::make_unique<std::complex<To>[]>(stateSize);
   for (uint64_t i = 0; i < stateSize; ++i)
@@ -175,8 +175,9 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
 
-  cudaq::info("copying {} complex values from {} to {}", stateSize, fromType,
+  cudaq::info("copying {} {} values to complex<{}>", stateSize, fromType,
               toType);
+
   auto convertData = std::make_unique<std::complex<To>[]>(stateSize);
   for (uint64_t i = 0; i < stateSize; ++i)
     convertData[i] =
