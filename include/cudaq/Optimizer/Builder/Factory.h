@@ -72,9 +72,6 @@ inline mlir::Type getPointerType(mlir::Type ty) {
   return mlir::LLVM::LLVMPointerType::get(ty);
 }
 
-/// Get the Quake type translation of a `cudaq::state` type.
-cc::StateType getCudaqStateType(mlir::MLIRContext *ctx);
-
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
 mlir::Type genArgumentBufferType(mlir::Type ty);
@@ -120,10 +117,9 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   return mlir::LLVM::LLVMStructType::getLiteral(ctx, eleTys);
 }
 
+/// Used to convert `StateType*` to a pointer in LLVM-IR.
 inline mlir::Type stateImplType(mlir::Type eleTy) {
-  auto *ctx = eleTy.getContext();
-  auto eTy = cudaq::opt::factory::getCharType(ctx);
-  return cudaq::opt::factory::getPointerType(eTy);
+  return cudaq::opt::factory::getPointerType(eleTy.getContext());
 }
 
 // Host side types for std::string and std::vector
