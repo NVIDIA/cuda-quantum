@@ -10,7 +10,12 @@
 
 #include <cudaq.h>
 
-// We don't allow building vectors in kernels (yet).
+// We don't allow building vectors in kern
+
+
+
+
+els (yet).
 struct VectorVectorReturner {
   // expected-error@*{{constructor within quantum kernel is not allowed}}
   std::vector<std::vector<double>>

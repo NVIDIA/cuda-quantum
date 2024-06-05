@@ -13,7 +13,7 @@ include "mlir/IR/OpBase.td"
 
 def OperatorInterface : OpInterface<"OperatorInterface"> {
   let description = [{
-    Conceptually, a `quantum operator` is an effect that _might_ modify the
+    Conceptually, a `quantum operator` is an effect that _might_ modify the 
     state of a subset of wires.  Most often, this effect is unitary evolution
     ---in this case, we say that the operator is a unitary.
 

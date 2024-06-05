@@ -211,4 +211,4 @@ func.func @test_08() {
   quake.sink %5#1 : !quake.wire
   return
 }
-
+*/
