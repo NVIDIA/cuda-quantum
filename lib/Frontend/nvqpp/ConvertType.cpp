@@ -411,7 +411,7 @@ SmallVector<Type> QuakeBridgeVisitor::lastTypes(unsigned n) {
 
 static bool isReferenceToCudaqStateType(Type t) {
   if (auto ptrTy = dyn_cast<cc::PointerType>(t))
-    return isCudaqStateType(ptrTy.getElementType());
+    return isa<cc::StateType>(ptrTy.getElementType());
   return false;
 }
 
