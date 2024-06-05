@@ -174,9 +174,8 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
   return convertData;
 }
 
-/// Input was complex<float>/complex<double> but we prefer
-/// complex<double>/complex<float>. Make a copy, extending or truncating the
-/// values.
+/// Input was float/double but we prefer complex<float>/complex<double>.
+/// Make a copy, extending or truncating the values.
 template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
                                                      std::size_t size) {
