@@ -152,6 +152,33 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
 
 std::complex<double>
 TensorNetSimulationState::getAmplitude(const std::vector<int> &basisState) {
+  if (getNumQubits() != basisState.size())
+    throw std::runtime_error(
+        fmt::format("[tensornet-state] getAmplitude with an invalid number "
+                    "of bits in the "
+                    "basis state: expected {}, provided {}.",
+                    getNumQubits(), basisState.size()));
+  if (std::any_of(basisState.begin(), basisState.end(),
+                  [](int x) { return x != 0 && x != 1; }))
+    throw std::runtime_error(
+        "[tensornet-state] getAmplitude with an invalid basis state: only "
+        "qubit state (0 or 1) is supported.");
+
+  if (basisState.empty())
+    throw std::runtime_error("[tensornet-state] Empty basis state.");
+
+  if (m_state->getNumQubits() <= g_maxQubitsForStateContraction) {
+    // If this is the first time, cache the state.
+    if (m_contractedStateVec.empty())
+      m_contractedStateVec = m_state->getStateVector();
+    assert(m_contractedStateVec.size() == (1ULL << m_state->getNumQubits()));
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+    return m_contractedStateVec[idx];
+  }
+
   std::vector<int32_t> projectedModes(m_state->getNumQubits());
   std::iota(projectedModes.begin(), projectedModes.end(), 0);
   std::vector<int64_t> projectedModeValues;
@@ -218,9 +245,27 @@ void TensorNetSimulationState::destroyState() {
   m_state.reset();
 }
 
+void TensorNetSimulationState::toHost(std::complex<double> *clientAllocatedData,
+                                      std::size_t numElements) const {
+  auto stateVec = m_state->getStateVector();
+  if (stateVec.size() != numElements)
+    throw std::runtime_error(fmt::format(
+        "[TensorNetSimulationState] Dimension mismatch: expecting {} "
+        "elements but providing an array of size {}.",
+        stateVec.size(), numElements));
+  for (std::size_t i = 0; i < numElements; ++i)
+    clientAllocatedData[i] = stateVec[i];
+}
+
 void TensorNetSimulationState::dump(std::ostream &os) const {
-  const auto tmp = m_state->getStateVector();
-  for (auto &t : tmp)
-    os << t << "\n";
+  const auto printState = [&os](const auto &stateVec) {
+    for (auto &t : stateVec)
+      os << t << "\n";
+  };
+
+  if (!m_contractedStateVec.empty())
+    printState(m_contractedStateVec);
+  else
+    printState(m_state->getStateVector());
 }
 } // namespace nvqir

@@ -234,6 +234,22 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
     throw std::runtime_error(
         "[tensornet-state] getAmplitude with an invalid basis state: only "
         "qubit state (0 or 1) is supported.");
+
+  if (basisState.empty())
+    throw std::runtime_error("[tensornet-state] Empty basis state.");
+
+  if (m_mpsTensors.size() <= g_maxQubitsForStateContraction) {
+    // If this is the first time, cache the state.
+    if (m_contractedStateVec.empty())
+      m_contractedStateVec = state->getStateVector();
+    assert(m_contractedStateVec.size() == (1ULL << m_mpsTensors.size()));
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+    return m_contractedStateVec[idx];
+  }
+
   if (getNumQubits() > 1) {
     TensorNetState basisTensorNetState(basisState, state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
@@ -301,117 +317,15 @@ void MPSSimulationState::destroyState() {
 }
 
 void MPSSimulationState::dump(std::ostream &os) const {
-  const int32_t numTensors = m_mpsTensors.size();
-  std::vector<int32_t> numModes(numTensors);
-  std::vector<std::vector<int64_t>> tensExtents(numTensors);
-  std::vector<int64_t> outExtents(numTensors, 2);
-  std::vector<cutensornetTensorQualifiers_t> tensAttr(numTensors);
-  std::vector<int32_t> outModes(numTensors);
-  for (int i = 0; i < numTensors; ++i) {
-    numModes[i] = m_mpsTensors[i].extents.size();
-    tensExtents[i] = m_mpsTensors[i].extents;
-    tensAttr[i] = cutensornetTensorQualifiers_t{0, 0, 0};
-  }
-  std::vector<std::vector<int32_t>> tensModes(numTensors);
-  int32_t umode = 0;
-  for (int i = 0; i < numTensors; ++i) {
-    if (i == 0) {
-      if (numTensors > 1) {
-        tensModes[i] = std::initializer_list<int32_t>{umode, umode + 1};
-        outModes[i] = umode;
-        umode += 2;
-      } else {
-        tensModes[i] = std::initializer_list<int32_t>{umode};
-        outModes[i] = umode;
-        umode += 1;
-      }
-    } else if (i == (numTensors - 1)) {
-      tensModes[i] = std::initializer_list<int32_t>{umode - 1, umode};
-      outModes[i] = umode;
-      umode += 1;
-    } else {
-      tensModes[i] =
-          std::initializer_list<int32_t>{umode - 1, umode, umode + 1};
-      outModes[i] = umode;
-      umode += 2;
-    }
-  }
+  const auto printState = [&os](const auto &stateVec) {
+    for (auto &t : stateVec)
+      os << t << "\n";
+  };
 
-  cutensornetComputeType_t computeType = CUTENSORNET_COMPUTE_64F;
-  cudaDataType_t dataType = CUDA_C_64F;
-
-  std::vector<const int64_t *> extentsIn(numTensors);
-  for (int i = 0; i < numTensors; ++i) {
-    extentsIn[i] = tensExtents[i].data();
-  }
-  std::vector<const int32_t *> modesIn(numTensors);
-  for (int i = 0; i < numTensors; ++i) {
-    modesIn[i] = tensModes[i].data();
-  }
-
-  cutensornetNetworkDescriptor_t tnDescr;
-  HANDLE_CUTN_ERROR(cutensornetCreateNetworkDescriptor(
-      m_cutnHandle, numTensors, numModes.data(), extentsIn.data(), NULL,
-      modesIn.data(), tensAttr.data(), outExtents.size(), outExtents.data(),
-      NULL, outModes.data(), dataType, computeType, &tnDescr));
-
-  cutensornetContractionOptimizerConfig_t tnConfig;
-  // Determine the tensor network contraction path and create the contraction
-  // plan
-  HANDLE_CUTN_ERROR(
-      cutensornetCreateContractionOptimizerConfig(m_cutnHandle, &tnConfig));
-
-  cutensornetContractionOptimizerInfo_t tnPath;
-  HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(
-      m_cutnHandle, tnDescr, &tnPath));
-  assert(m_scratchPad.scratchSize > 0);
-  HANDLE_CUTN_ERROR(cutensornetContractionOptimize(
-      m_cutnHandle, tnDescr, tnConfig, m_scratchPad.scratchSize, tnPath));
-  cutensornetWorkspaceDescriptor_t workDesc;
-  HANDLE_CUTN_ERROR(
-      cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
-  int64_t requiredWorkspaceSize = 0;
-  HANDLE_CUTN_ERROR(cutensornetWorkspaceComputeContractionSizes(
-      m_cutnHandle, tnDescr, tnPath, workDesc));
-  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
-      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
-      CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH,
-      &requiredWorkspaceSize));
-  assert(requiredWorkspaceSize > 0);
-  assert(static_cast<std::size_t>(requiredWorkspaceSize) <=
-         m_scratchPad.scratchSize);
-  HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
-      m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
-      CUTENSORNET_WORKSPACE_SCRATCH, m_scratchPad.d_scratch,
-      requiredWorkspaceSize));
-  cutensornetContractionPlan_t tnPlan;
-  HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
-      m_cutnHandle, tnDescr, tnPath, workDesc, &tnPlan));
-
-  // Contract the MPS network
-  std::vector<const void *> rawDataIn(numTensors);
-  for (int i = 0; i < numTensors; ++i) {
-    rawDataIn[i] = m_mpsTensors[i].deviceData;
-  }
-  void *dState{nullptr};
-  const auto stateVecSize = (1ULL << numTensors) * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(cudaMalloc(&dState, stateVecSize));
-  HANDLE_CUTN_ERROR(cutensornetContractSlices(
-      m_cutnHandle, tnPlan, rawDataIn.data(), dState, 0, workDesc, NULL, 0x0));
-  std::vector<std::complex<double>> tmp(1ULL << numTensors);
-  HANDLE_CUDA_ERROR(
-      cudaMemcpy(tmp.data(), dState, stateVecSize, cudaMemcpyDeviceToHost));
-
-  // Clean up
-  HANDLE_CUDA_ERROR(cudaFree(dState));
-  HANDLE_CUTN_ERROR(cutensornetDestroyContractionPlan(tnPlan));
-  HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerInfo(tnPath));
-  HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(tnConfig));
-  HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(tnDescr));
-
-  // Print
-  for (auto &t : tmp)
-    os << t << "\n";
+  if (!m_contractedStateVec.empty())
+    printState(m_contractedStateVec);
+  else
+    printState(state->getStateVector());
 }
 
 static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {
@@ -478,15 +392,9 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
       -> std::tuple<Eigen::MatrixXcd, Eigen::VectorXd, Eigen::MatrixXcd> {
     assert(U.cols() == S.size());
     assert(V.cols() == S.size());
-    if (S.size() <= bondDim) {
-      Eigen::MatrixXcd newU(U.rows(), bondDim);
-      newU.leftCols(U.cols()) = U;
-      Eigen::MatrixXcd newV(V.rows(), bondDim);
-      newV.leftCols(V.cols()) = V;
-      Eigen::VectorXd newS(bondDim);
-      newS.head(S.size()) = S;
-      return {newU, newS, newV};
-    }
+    if (S.size() <= bondDim)
+      return {U, S, V};
+
     // Truncation
     Eigen::MatrixXcd newU(U.rows(), bondDim);
     newU = U.leftCols(bondDim);
@@ -503,7 +411,6 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
     const Eigen::MatrixXcd V_orig = svd.matrixV();
     const Eigen::VectorXd S_orig = svd.singularValues();
     const auto [U, S, V] = enforceBondDim(U_orig, S_orig, V_orig);
-    assert(S.size() == bondDim);
     numSingularValues.emplace_back(S.size());
     reshapedMat = (i != (numQubits - 2))
                       ? reshapeMatrix(S.asDiagonal() * V.adjoint())
