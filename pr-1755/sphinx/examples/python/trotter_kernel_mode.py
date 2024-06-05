@@ -33,7 +33,7 @@ from typing import List
 # This is because the CPU-only backend has difficulty handling
 # 30+ qubit simulations.
 
-spins = 11  # set to around 25 qubits for `nvidia` target
+spins = 5  # set to around 25 qubits for `nvidia` target
 steps = 10  # set to around 100 for `nvidia` target
 # ```
 # cudaq.set_target("nvidia")
