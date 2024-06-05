@@ -9,6 +9,7 @@
 import cudaq
 import time
 import numpy as np
+from typing import List
 
 # Compute magnetization using Suzuki-Trotter approximation.
 # This example demonstrates usage of quantum states in kernel mode.
@@ -50,8 +51,8 @@ def getInitState(numSpins: int):
 # This performs a single-step Trotter on top of an initial state, e.g.,
 # result state of the previous Trotter step.
 @cudaq.kernel
-def trotter(state: cudaq.State, coefficients: list[complex],
-            words: list[cudaq.pauli_word], dt: float):
+def trotter(state: cudaq.State, coefficients: List[complex],
+            words: List[cudaq.pauli_word], dt: float):
     q = cudaq.qvector(state)
     for i in range(len(coefficients)):
         exp_pauli(coefficients[i].real * dt, q, words[i])
@@ -78,13 +79,13 @@ def run_steps(steps: int, spins: int):
         return tdOp
 
     # Collect coefficients from a spin operator so we can pass them to a kernel
-    def termCoefficients(op: cudaq.SpinOperator) -> list[complex]:
+    def termCoefficients(op: cudaq.SpinOperator) -> List[complex]:
         result = []
         ham.for_each_term(lambda term: result.append(term.get_coefficient()))
         return result
 
     # Collect Pauli words from a spin operator so we can pass them to a kernel
-    def termWords(op: cudaq.SpinOperator) -> list[str]:
+    def termWords(op: cudaq.SpinOperator) -> List[str]:
         result = []
         ham.for_each_term(lambda term: result.append(term.to_string(False)))
         return result
