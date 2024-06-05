@@ -17,9 +17,13 @@
 #include "mlir/Pass/PassRegistry.h"
 
 namespace mlir {
+class LLVMTypeConverter;
 class MLIRContext;
 class Pass;
 class PassManager;
+namespace LLVM {
+class LLVMStructType;
+}
 } // namespace mlir
 
 namespace cudaq::opt {
@@ -30,6 +34,8 @@ void registerConvertToQIRPass();
 /// @param convertTo Expected to be `qir-base` or `qir-adaptive` (comes from the
 /// cudaq-translate command line `--convert-to` parameter)
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
+
+void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
 /// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions
 /// or in the provided allowed list.
@@ -49,6 +55,11 @@ void registerTargetPipelines();
 
 /// Register CodeGenDialect with the provided DialectRegistry.
 void registerCodeGenDialect(mlir::DialectRegistry &registry);
+
+mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
+
+void registerToExecutionManagerCCPipeline();
+void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 
 // declarative passes
 #define GEN_PASS_DECL

@@ -7,7 +7,7 @@ would like to contribute applications and examples that use the CUDA-Q platform,
 please follow the instructions for [installing CUDA-Q][official_install]
 instead.
 
-[official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
+[official_install]: https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html#install-cuda-q
 
 ## Quick start guide
 

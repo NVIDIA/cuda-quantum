@@ -319,7 +319,8 @@ jobs:
       - name: Sanity checks
         run: |
           docker run --rm -dit --name cuda-quantum validation:local
-          (docker exec cuda-quantum bash -l validate.sh | tee /tmp/validation.out) && passed=true || passed=false
+          (docker exec cuda-quantum bash -lc "set -o pipefail && bash validate.sh | tee /tmp/validation.out") && passed=true || passed=false
+          docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
           docker stop cuda-quantum
 
           if ! $passed; then 

@@ -107,3 +107,41 @@ assert counts.get_register_counts("__global__")["10"] == 100
 counts = cudaq.sample(kernel4, False, shots_count=100)
 counts.dump()
 assert counts.get_register_counts("__global__")["00"] == 100
+
+
+@cudaq.kernel
+def kernel5(checkVal: int):
+    # Check bool -> int conversion in == comparison.
+    data = cudaq.qvector(2)
+    aux = cudaq.qubit()
+    bit = mz(aux)
+    if bit == checkVal:
+        x(data[0])
+    mz(data)
+
+
+counts = cudaq.sample(kernel5, 0, shots_count=100)
+counts.dump()
+assert counts.get_register_counts("__global__")["10"] == 100
+counts = cudaq.sample(kernel5, 1, shots_count=100)
+counts.dump()
+assert counts.get_register_counts("__global__")["00"] == 100
+
+
+@cudaq.kernel
+def kernel6(checkVal: int):
+    # Check bool -> int conversion in != comparison.
+    data = cudaq.qvector(2)
+    aux = cudaq.qubit()
+    bit = mz(aux)
+    if bit != checkVal:
+        x(data[0])
+    mz(data)
+
+
+counts = cudaq.sample(kernel6, 1, shots_count=100)
+counts.dump()
+assert counts.get_register_counts("__global__")["10"] == 100
+counts = cudaq.sample(kernel6, 0, shots_count=100)
+counts.dump()
+assert counts.get_register_counts("__global__")["00"] == 100

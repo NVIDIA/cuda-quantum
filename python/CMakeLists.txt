@@ -84,6 +84,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    utils/LinkedLibraryHolder.cpp
    ../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
    ../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
+   ../runtime/cudaq/platform/orca/OrcaQPU.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -152,7 +153,6 @@ if(APPLE)
   set(_origin_prefix "@loader_path")
 endif()
 
-add_subdirectory(runtime/cudaq/distributed)
 add_subdirectory(runtime/cudaq/domains/plugins)
 
 if (NOT SKBUILD)
