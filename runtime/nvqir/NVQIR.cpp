@@ -168,7 +168,7 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
               fromType, toType);
 
   auto convertData = std::make_unique<std::complex<To>[]>(stateSize);
-  for (uint64_t i = 0; i < stateSize; ++i)
+  for (std::size_t_t i = 0; i < stateSize; ++i)
     convertData[i] = std::complex<To>{static_cast<To>(data[i].real()),
                                       static_cast<To>(data[i].imag())};
   return convertData;
