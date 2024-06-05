@@ -41,6 +41,15 @@ from .runtime.sample import sample
 from .runtime.observe import observe
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
+try:
+    from qutip import Qobj,Bloch
+except ImportError:
+    raise Exception("The module QuTiP is not installed. Bloch Sphere visualization will not work.")
+else:
+    #print("QuTiP found and loaded successfully.")
+    from .visualization.bloch_visualize import add_to_bloch_sphere
+    from .visualization.bloch_visualize import show_bloch_sphere as show
+
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
 
