@@ -779,7 +779,7 @@ inline bool isCharPointerType(mlir::Type t) {
   return false;
 }
 
-/// Is \p t of type `pauli_word`?
+/// Is \p t a `char` span type? The type `pauli_word` maps to a span of `char`.
 inline bool isCharspanPointerType(mlir::Type t) {
   if (auto ptrTy = dyn_cast<cc::PointerType>(t)) {
     mlir::Type eleTy = ptrTy.getElementType();
@@ -787,7 +787,5 @@ inline bool isCharspanPointerType(mlir::Type t) {
   }
   return false;
 }
-
-inline bool isCudaqStateType(mlir::Type t) { return isa<cc::StateType>(t); }
 
 } // namespace cudaq
