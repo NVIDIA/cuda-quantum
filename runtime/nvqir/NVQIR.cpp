@@ -15,6 +15,7 @@
 #include <cmath>
 #include <complex>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 /// This file implements the primary QIR quantum-classical runtime API used
@@ -135,32 +136,53 @@ std::size_t qubitToSizeT(Qubit *q) {
   return q->idx;
 }
 
-template<typename To, typename From>
-std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data, std::size_t size) {
-  // Input was complex<float>/complex<double> but we prefer complex<double>/complex<float>.
-  // Make a copy, extending the values.
+template <typename T>
+constexpr std::string_view typeName() {
+  static_assert(
+      std::is_same<T, float>::value || std::is_same<T, double>::value,
+      "unsupported type for array conversion to simulation precision");
+  return std::is_same<T, float>::value ? "float" : "double";
+}
+
+/// Input was complex<float>/complex<double> but we prefer
+/// complex<double>/complex<float>. Make a copy, extending or truncating the
+/// values.
+template <typename To, typename From>
+std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
+                                                     std::size_t size) {
   auto stateSize = pow(2, size);
-  cudaq::info("copying {} complex values from float to double.", stateSize);
+  constexpr auto toType = typeName<To>();
+  constexpr auto fromType = typeName<From>();
+
+  cudaq::info("copying {} complex values from {} to {}", stateSize, fromType,
+              toType);
+
   auto convertData = std::make_unique<std::complex<To>[]>(stateSize);
   for (uint64_t i = 0; i < stateSize; ++i)
-    convertData[i] = std::complex<To>{static_cast<To>(data[i].real()), static_cast<To>(data[i].imag())};
+    convertData[i] = std::complex<To>{static_cast<To>(data[i].real()),
+                                      static_cast<To>(data[i].imag())};
   return convertData;
 }
 
-template<typename To, typename From>
-std::unique_ptr<std::complex<To>[]> convertToComplex(From *data, std::size_t size) {
-  // Input was float/double but we prefer complex<float> or complex<double>.
-  // Make a copy, extending the values.
+/// Input was complex<float>/complex<double> but we prefer
+/// complex<double>/complex<float>. Make a copy, extending or truncating the
+/// values.
+template <typename To, typename From>
+std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
+                                                     std::size_t size) {
+
   auto stateSize = pow(2, size);
-  cudaq::info("copying {} complex values from float to double.", stateSize);
+  constexpr auto toType = typeName<To>();
+  constexpr auto fromType = typeName<From>();
+
+  cudaq::info("copying {} complex values from {} to {}", stateSize, fromType,
+              toType);
   auto convertData = std::make_unique<std::complex<To>[]>(stateSize);
   for (uint64_t i = 0; i < stateSize; ++i)
-    convertData[i] = std::complex<To>{static_cast<To>(data[i]), static_cast<To>(0.0)};
+    convertData[i] =
+        std::complex<To>{static_cast<To>(data[i]), static_cast<To>(0.0)};
   return convertData;
 }
-
-// TODO: use the functions above
-
 
 } // namespace nvqir
 
@@ -225,15 +247,6 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
         size, data, cudaq::simulation_precision::fp64);
     return vectorSizetToArray(qubitIdxs);
   }
-  // Input was complex<double> but we prefer complex<float>. Make a copy,
-  // truncating the values.
-  // auto stateSize = pow(2, size);
-  // cudaq::info("copying {} complex values from double to float.", stateSize);
-  // auto convertData = std::make_unique<std::complex<float>[]>(stateSize);
-  // for (uint64_t i = 0; i < stateSize; ++i) {
-  //   convertData[i] = std::complex<float>{static_cast<float>(data[i].real()),
-  //                                        static_cast<float>(data[i].imag())};
-  // }
   auto convertData = convertToComplex<float>(data, size);
   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
       size, convertData.get(), cudaq::simulation_precision::fp32);
@@ -243,22 +256,11 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
 Array *__quantum__rt__qubit_allocate_array_with_state_fp64(uint64_t size,
                                                            double *data) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64", size);
-  //auto stateSize = pow(2, size);
   if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
-    // cudaq::info("copying {} double values to complex<double>.", stateSize);
-    // auto convertData = std::make_unique<std::complex<double>[]>(stateSize);
-    // for (uint64_t i = 0; i < stateSize; ++i)
-    //   convertData[i] = std::complex<double>{data[i], 0.0};
     auto convertData = convertToComplex<double>(data, size);
     return __quantum__rt__qubit_allocate_array_with_state_complex64(
         size, convertData.get());
   }
-  // Input was double but we prefer complex<float>. Make a copy, truncating the
-  // values.
-  // cudaq::info("copying {} double values to complex<float>.", stateSize);
-  // auto convertData = std::make_unique<std::complex<float>[]>(stateSize);
-  // for (uint64_t i = 0; i < stateSize; ++i)
-  //   convertData[i] = std::complex<float>{static_cast<float>(data[i]), 0.0f};
   auto convertData = convertToComplex<float>(data, size);
   return __quantum__rt__qubit_allocate_array_with_state_complex32(
       size, convertData.get());
@@ -303,14 +305,6 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
         size, data, cudaq::simulation_precision::fp32);
     return vectorSizetToArray(qubitIdxs);
   }
-  // Input was complex<float> but we prefer complex<double>. Make a copy,
-  // extending the values.
-  // auto stateSize = pow(2, size);
-  // cudaq::info("copying {} complex values from float to double.", stateSize);
-  // auto convertData = std::make_unique<std::complex<double>[]>(stateSize);
-  // for (uint64_t i = 0; i < stateSize; ++i)
-  //   convertData[i] = std::complex<double>{static_cast<double>(data[i].real()),
-  //                                         static_cast<double>(data[i].imag())};
   auto convertData = convertToComplex<double>(data, size);
   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
       size, convertData.get(), cudaq::simulation_precision::fp64);
@@ -320,22 +314,11 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
 Array *__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
                                                            float *data) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp32", size);
-  //auto stateSize = pow(2, size);
   if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
-    // cudaq::info("copying {} float values to complex<float>.", stateSize);
-    // auto convertData = std::make_unique<std::complex<float>[]>(stateSize);
-    // for (uint64_t i = 0; i < stateSize; ++i)
-    //   convertData[i] = std::complex<float>{data[i], 0.0};
     auto convertData = convertToComplex<float>(data, size);
     return __quantum__rt__qubit_allocate_array_with_state_complex32(
         size, convertData.get());
   }
-  // Input was float but we prefer complex<double>. Make a copy, extending the
-  // values.
-  // cudaq::info("copying {} float values to complex<double>.", stateSize);
-  // auto convertData = std::make_unique<std::complex<double>[]>(stateSize);
-  // for (uint64_t i = 0; i < stateSize; ++i)
-  //   convertData[i] = std::complex<double>{static_cast<double>(data[i]), 0.0};
   auto convertData = convertToComplex<double>(data, size);
   return __quantum__rt__qubit_allocate_array_with_state_complex64(
       size, convertData.get());
