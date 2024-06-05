@@ -33,33 +33,28 @@ private:
   /// @brief Qudits to be sampled
   std::vector<cudaq::QuditInfo> sampleQudits;
 
+  std::size_t numQudits = 0;
+
 protected:
   /// @brief Qudit allocation method: a zeroState is first initialized, the
   /// following ones are added via kron operators
-  void allocateQudit(const cudaq::QuditInfo &q) override {
-    if (state.size() == 0) {
+  std::size_t allocateQudit(std::size_t n_levels) override {
+    std::size_t id = numQudits;
+    if (numQudits == 0) {
       // qubit will give [1,0], qutrit will give [1,0,0] and so on...
-      state = qpp::ket::Zero(q.levels);
+      state = qpp::ket::Zero(n_levels);
       state(0) = 1.0;
-      return;
+    } else {
+      qpp::ket zeroState = qpp::ket::Zero(n_levels);
+      zeroState(0) = 1.0;
+      state = qpp::kron(state, zeroState);
     }
-
-    qpp::ket zeroState = qpp::ket::Zero(q.levels);
-    zeroState(0) = 1.0;
-    state = qpp::kron(state, zeroState);
-  }
-
-  /// @brief Allocate a set of `qudits` with a single call.
-  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    for (auto &q : qudits)
-      allocateQudit(q);
+    numQudits += 1;
+    return id;
   }
 
   /// @brief Qudit deallocation method
-  void deallocateQudit(const cudaq::QuditInfo &q) override {}
-
-  /// @brief Deallocate a set of `qudits` with a single call.
-  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
+  void returnQudit(const cudaq::QuditInfo &q) override {}
 
   /// @brief Handler for when the photonics execution context changes
   void handleExecutionContextChanged() override {}
@@ -92,6 +87,7 @@ protected:
 
       executionContext->result.append(counts);
       // Reset the state and qudits
+      numQudits = 0;
       state.resize(0);
       sampleQudits.clear();
     }

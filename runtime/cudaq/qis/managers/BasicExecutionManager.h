@@ -10,12 +10,6 @@
 #include "common/Logger.h"
 #include "cudaq/qis/execution_manager.h"
 
-#include <complex>
-#include <functional>
-#include <map>
-#include <queue>
-#include <stack>
-
 namespace cudaq {
 
 /// @brief The `BasicExecutionManager` provides a common base class for
@@ -27,11 +21,6 @@ namespace cudaq {
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
-private:
-  bool isInTracerMode() {
-    return executionContext && executionContext->name == "tracer";
-  }
-
 protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
@@ -46,9 +35,6 @@ protected:
   /// @brief The current execution context, e.g. sampling or observation
   cudaq::ExecutionContext *executionContext = nullptr;
 
-  /// @brief Store qudits for delayed deletion under certain execution contexts
-  std::vector<QuditInfo> contextQuditIdsForDeletion;
-
   /// @brief The current queue of operations to execute
   InstructionQueue instructionQueue;
 
@@ -59,19 +45,6 @@ protected:
   /// @brief When we are in a control region, we need to store extra control
   /// qudit ids.
   std::vector<std::size_t> extraControlIds;
-
-  /// @brief Subtype-specific qudit allocation method
-  virtual void allocateQudit(const QuditInfo &q) = 0;
-
-  /// @brief Allocate a set of `qudits` with a single call.
-  virtual void allocateQudits(const std::vector<QuditInfo> &qudits) = 0;
-
-  /// @brief Subtype specific qudit deallocation method
-  virtual void deallocateQudit(const QuditInfo &q) = 0;
-
-  /// @brief Subtype specific qudit deallocation, deallocate
-  /// all qudits in the vector.
-  virtual void deallocateQudits(const std::vector<QuditInfo> &qudits) = 0;
 
   /// @brief Subtype-specific handler for when the execution context changes
   virtual void handleExecutionContextChanged() = 0;
@@ -111,39 +84,9 @@ public:
     if (!executionContext)
       return;
 
-    // Do any final post-processing before
-    // we deallocate the qudits
     handleExecutionContextEnded();
 
-    deallocateQudits(contextQuditIdsForDeletion);
-    for (auto &q : contextQuditIdsForDeletion)
-      returnIndex(q.id);
-
-    contextQuditIdsForDeletion.clear();
     executionContext = nullptr;
-  }
-
-  std::size_t allocateQudit(std::size_t quditLevels) override {
-    auto new_id = getNextIndex();
-    if (isInTracerMode())
-      return new_id;
-    allocateQudit({quditLevels, new_id});
-    return new_id;
-  }
-
-  void returnQudit(const QuditInfo &qid) override {
-    if (!executionContext) {
-      deallocateQudit(qid);
-      returnIndex(qid.id);
-      return;
-    }
-
-    if (isInTracerMode()) {
-      returnIndex(qid.id);
-      return;
-    }
-
-    contextQuditIdsForDeletion.push_back(qid);
   }
 
   void startAdjointRegion() override { adjointQueueStack.emplace_back(); }
@@ -236,24 +179,13 @@ public:
   }
 
   void synchronize() override {
-    for (auto &instruction : instructionQueue) {
-      if (!isInTracerMode()) {
-        executeInstruction(instruction);
-        continue;
-      }
-
-      auto &&[name, params, controls, targets, op] = instruction;
-      executionContext->kernelTrace.appendInstruction(name, params, controls,
-                                                      targets);
-    }
+    for (auto &instruction : instructionQueue)
+      executeInstruction(instruction);
     instructionQueue.clear();
   }
 
   int measure(const cudaq::QuditInfo &target,
               const std::string registerName = "") override {
-    if (isInTracerMode())
-      return 0;
-
     // We hit a measure, need to exec / clear instruction queue
     synchronize();
 
@@ -269,8 +201,6 @@ public:
   }
 
   void reset(const QuditInfo &target) override {
-    if (isInTracerMode())
-      return;
     // We hit a reset, need to exec / clear instruction queue
     synchronize();
     resetQudit(target);
