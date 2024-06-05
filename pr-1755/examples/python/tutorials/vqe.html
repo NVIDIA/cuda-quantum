@@ -33,7 +33,7 @@
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
     <link rel="next" title="CUDA-Q Backends" href="../../../using/backends/backends.html" />
-    <link rel="prev" title="Quantum Bits" href="quantum_bits.html" /> 
+    <link rel="prev" title="Quantum Fourier Transform" href="quantum_fourier_transform.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -161,6 +161,7 @@
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="multiple_qubits.html">Multiple Qubits</a><ul>
@@ -169,6 +170,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_bits.html">Quantum Bits</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit">Qubit</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
@@ -179,6 +181,7 @@
 <li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Variational Quantum Eigensolver</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
@@ -508,7 +511,7 @@
             <a href="../../../_sources/examples/python/tutorials/vqe.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="quantum_bits.html" class="btn btn-neutral float-left" title="Quantum Bits" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-left" title="Quantum Fourier Transform" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -524,12 +527,12 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># !pip install openfermionpyscf matplotlib scipy</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">openfermionpyscf</span><span class="o">==</span><span class="m">0</span>.5<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4<span class="w"> </span><span class="nv">scipy</span><span class="o">==</span><span class="m">1</span>.13.0
 </pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[64]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -548,7 +551,7 @@
 <p>The interatomic electrostatic forces due to the electrons and protons and the shielding by the neutrons creates a chemical system whose energy can be minimised to find a stable configuration.</p>
 <p>Let us first begin by defining the molecule and other metadata about the problem.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[65]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Number of hydrogen atoms.</span>
@@ -560,50 +563,51 @@
 <span class="c1"># Define a linear chain of Hydrogen atoms</span>
 <span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">bond_distance</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">hydrogen_count</span><span class="p">)]</span>
 
-<span class="n">molecule</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">chemistry</span><span class="o">.</span><span class="n">create_molecular_hamiltonian</span><span class="p">(</span>
+<span class="n">hamiltonian</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">chemistry</span><span class="o">.</span><span class="n">create_molecular_hamiltonian</span><span class="p">(</span>
     <span class="n">geometry</span><span class="p">,</span> <span class="s1">&#39;sto-3g&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-
 
 <span class="n">electron_count</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">n_electrons</span>
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">n_orbitals</span>
-<br/></pre></div>
+</pre></div>
 </div>
 </div>
 <p>We now generate a Unitary Coupled-Cluster Singles and Doubles (UCCSD) ansatz from the template provided by CUDA-Q.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[66]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
 
-    <span class="n">qubits</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_count</span><span class="p">):</span>
         <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
     <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
 
-<span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span><span class="n">qubit_count</span><span class="p">)</span>
-<br/></pre></div>
+
+<span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span>
+                                                     <span class="n">qubit_count</span><span class="p">)</span>
+</pre></div>
 </div>
 </div>
 <section id="Using-CUDA-Q-Optimizers">
 <h2>Using CUDA-Q Optimizers<a class="headerlink" href="#Using-CUDA-Q-Optimizers" title="Permalink to this heading">¶</a></h2>
 <p>We use the builtin optimizers within CUDA-Q for the minimization procedure.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[67]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">COBYLA</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">COBYLA</span><span class="p">()</span>
 
 <span class="n">energy</span><span class="p">,</span> <span class="n">parameters</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">vqe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
-                               <span class="n">molecule</span><span class="p">,</span>
+                               <span class="n">hamiltonian</span><span class="p">,</span>
                                <span class="n">optimizer</span><span class="p">,</span>
                                <span class="n">parameter_count</span><span class="o">=</span><span class="n">parameter_count</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">energy</span><span class="p">)</span>
-<br/></pre></div>
+</pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -619,13 +623,13 @@
 <h2>Integration with Third-Party Optimizers<a class="headerlink" href="#Integration-with-Third-Party-Optimizers" title="Permalink to this heading">¶</a></h2>
 <p>We can also integrate popular libraries like scipy with CUDA-Q.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[68]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a function to minimize</span>
 <span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
-    <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">molecule</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+    <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">exp_val</span>
 
@@ -639,7 +643,7 @@
 
 <span class="c1"># Initial variational parameters.</span>
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
-<span class="n">x0</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
+<span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
 
 <span class="c1"># Use the scipy optimizer to minimize the function of interest</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span>
@@ -670,7 +674,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quantum_bits.html" class="btn btn-neutral float-left" title="Quantum Bits" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-left" title="Quantum Fourier Transform" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

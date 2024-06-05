@@ -9,6 +9,7 @@
 import cudaq
 import time
 import numpy as np
+from typing import List
 
 # Compute magnetization using Suzuki-Trotter approximation.
 # This example demonstrates usage of quantum states in kernel mode.
@@ -19,8 +20,24 @@ import numpy as np
 # Hamiltonian used
 # https://en.m.wikipedia.org/wiki/Quantum_Heisenberg_model
 
-# Set the target to `nvidia` 32-bit simulator.
-cudaq.set_target('nvidia')
+# If you have a NVIDIA GPU you can use this example to see
+# that the GPU-accelerated backends can easily handle a
+# larger number of qubits compared the CPU-only backend.
+
+# Depending on the available memory on your GPU, you can
+# set the number of qubits to around 30 qubits, and un-comment
+# the `cudaq.set_target(nvidia)` line.
+
+# Note: Without setting the target to the `nvidia` backend,
+# there will be a noticeable decrease in simulation performance.
+# This is because the CPU-only backend has difficulty handling
+# 30+ qubit simulations.
+
+spins = 11  # set to around 25 qubits for `nvidia` target
+steps = 10  # set to around 100 for `nvidia` target
+# ```
+# cudaq.set_target("nvidia")
+# ```
 
 
 # Alternating up/down spins
@@ -34,8 +51,8 @@ def getInitState(numSpins: int):
 # This performs a single-step Trotter on top of an initial state, e.g.,
 # result state of the previous Trotter step.
 @cudaq.kernel
-def trotter(state: cudaq.State, coefficients: list[complex],
-            words: list[cudaq.pauli_word], dt: float):
+def trotter(state: cudaq.State, coefficients: List[complex],
+            words: List[cudaq.pauli_word], dt: float):
     q = cudaq.qvector(state)
     for i in range(len(coefficients)):
         exp_pauli(coefficients[i].real * dt, q, words[i])
@@ -62,13 +79,13 @@ def run_steps(steps: int, spins: int):
         return tdOp
 
     # Collect coefficients from a spin operator so we can pass them to a kernel
-    def termCoefficients(op: cudaq.SpinOperator) -> list[complex]:
+    def termCoefficients(op: cudaq.SpinOperator) -> List[complex]:
         result = []
         ham.for_each_term(lambda term: result.append(term.get_coefficient()))
         return result
 
     # Collect Pauli words from a spin operator so we can pass them to a kernel
-    def termWords(op: cudaq.SpinOperator) -> list[str]:
+    def termWords(op: cudaq.SpinOperator) -> List[str]:
         result = []
         ham.for_each_term(lambda term: result.append(term.to_string(False)))
         return result
@@ -100,5 +117,5 @@ def run_steps(steps: int, spins: int):
 
 
 start_time = time.time()
-run_steps(100, 25)
+run_steps(steps, spins)
 print(f"Total time: {time.time() - start_time}s")
