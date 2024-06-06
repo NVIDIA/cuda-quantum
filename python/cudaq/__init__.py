@@ -42,11 +42,12 @@ from .runtime.observe import observe
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 try:
-    from qutip import Qobj,Bloch
+    from qutip import Qobj, Bloch
 except ImportError:
-    raise Exception("The module QuTiP is not installed. Bloch Sphere visualization will not work.")
+    raise Exception(
+        "The module QuTiP was not detected. Bloch Sphere visualization will not work. Please install QuTip to use this feature. You can run \"pip install qutip\" or in a conda environment, run \"conda -c conda-forge install qutip\" to install qutip. "
+    )
 else:
-    #print("QuTiP found and loaded successfully.")
     from .visualization.bloch_visualize import add_to_bloch_sphere
     from .visualization.bloch_visualize import show_bloch_sphere as show
 
