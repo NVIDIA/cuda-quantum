@@ -58,7 +58,7 @@ public:
     }
   }
 
-  virtual bool isRemote() override { return false; }
+  // virtual bool isRemote() override { return false; }
 
   void enqueue(cudaq::QuantumTask &task) override {
     cudaq::info("BaseRemoteSimulatorQPU: Enqueue Task on QPU {}", qpu_id);
