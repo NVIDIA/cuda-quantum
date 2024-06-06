@@ -198,6 +198,9 @@ public:
     cudaq::RestRequest request(io_context, version());
 
     request.n_params = n_params;
+    request.optimizer = json{optimizer}.dump();
+    request.optimizer_type = get_optimizer_type(optimizer);
+
     request.entryPoint = kernelName;
     request.passes = serverPasses;
     request.format = cudaq::CodeFormat::MLIR;

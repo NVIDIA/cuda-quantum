@@ -11,6 +11,7 @@
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/optimizers.h"
 #include "nlohmann/json.hpp"
 /*! \file
     \brief Utility to support JSON serialization between the client and server.
@@ -135,10 +136,99 @@ inline void from_json(const json &j, ExecutionContext &context) {
 // Enum data to denote the payload format.
 enum class CodeFormat { MLIR, LLVM };
 
-NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {
-                                             {CodeFormat::MLIR, "MLIR"},
-                                             {CodeFormat::LLVM, "LLVM"},
-                                         });
+#define JSON_ENUM(enum_class, val)                                             \
+  { enum_class::val, #val }
+
+NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {JSON_ENUM(CodeFormat, MLIR),
+                                          JSON_ENUM(CodeFormat, LLVM)});
+
+// Enum data for the Optimizer. Serializer/deserializer below.
+enum class Optimizer { COBYLA, NELDERMEAD, LBFGS, SPSA, ADAM, GRAD_DESC, SGD };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    Optimizer, {JSON_ENUM(Optimizer, COBYLA), JSON_ENUM(Optimizer, NELDERMEAD),
+                JSON_ENUM(Optimizer, LBFGS), JSON_ENUM(Optimizer, SPSA),
+                JSON_ENUM(Optimizer, ADAM), JSON_ENUM(Optimizer, GRAD_DESC),
+                JSON_ENUM(Optimizer, SGD)});
+
+inline Optimizer get_optimizer_type(const cudaq::optimizer &p) {
+  if (dynamic_cast<const cudaq::optimizers::cobyla *>(&p))
+    return Optimizer::COBYLA;
+  if (dynamic_cast<const cudaq::optimizers::neldermead *>(&p))
+    return Optimizer::NELDERMEAD;
+  if (dynamic_cast<const cudaq::optimizers::lbfgs *>(&p))
+    return Optimizer::LBFGS;
+  if (dynamic_cast<const cudaq::optimizers::spsa *>(&p))
+    return Optimizer::SPSA;
+  if (dynamic_cast<const cudaq::optimizers::adam *>(&p))
+    return Optimizer::ADAM;
+  if (dynamic_cast<const cudaq::optimizers::gradient_descent *>(&p))
+    return Optimizer::GRAD_DESC;
+  if (dynamic_cast<const cudaq::optimizers::sgd *>(&p))
+    return Optimizer::SGD;
+  __builtin_unreachable();
+}
+
+inline void to_json(json &j, const cudaq::optimizers::BaseEnsmallen &p) {
+// Macro to help reduce redundant field typing
+#define TO_JSON_OPT_HELPER(field)                                              \
+  do {                                                                         \
+    if (p.field)                                                               \
+      j[#field] = *p.field;                                                    \
+  } while (0)
+  TO_JSON_OPT_HELPER(max_eval);
+  TO_JSON_OPT_HELPER(initial_parameters);
+  TO_JSON_OPT_HELPER(lower_bounds);
+  TO_JSON_OPT_HELPER(upper_bounds);
+  TO_JSON_OPT_HELPER(f_tol);
+  TO_JSON_OPT_HELPER(step_size);
+#undef TO_JSON_OPT_HELPER
+}
+
+inline void to_json(json &j, const cudaq::optimizers::base_nlopt &p) {
+// Macro to help reduce redundant field typing
+#define TO_JSON_OPT_HELPER(field)                                              \
+  do {                                                                         \
+    if (p.field)                                                               \
+      j[#field] = *p.field;                                                    \
+  } while (0)
+  TO_JSON_OPT_HELPER(max_eval);
+  TO_JSON_OPT_HELPER(initial_parameters);
+  TO_JSON_OPT_HELPER(lower_bounds);
+  TO_JSON_OPT_HELPER(upper_bounds);
+  TO_JSON_OPT_HELPER(f_tol);
+#undef TO_JSON_OPT_HELPER
+}
+
+inline void to_json(json &j, const cudaq::optimizer &p) {
+  if (auto *base_ensmallen =
+          dynamic_cast<const cudaq::optimizers::BaseEnsmallen *>(&p))
+    j = json{*base_ensmallen};
+  else if (auto *base_nlopt =
+               dynamic_cast<const cudaq::optimizers::base_nlopt *>(&p))
+    j = json{*base_nlopt};
+}
+
+inline void from_json(const nlohmann::json &j,
+                      cudaq::optimizers::BaseEnsmallen &p) {
+// Macro to help reduce redundant field typing
+#define FROM_JSON_OPT_HELPER(field)                                            \
+  do {                                                                         \
+    if (j.contains(#field))                                                    \
+      p.max_eval = j[#field];                                                  \
+  } while (0)
+  FROM_JSON_OPT_HELPER(max_eval);
+  FROM_JSON_OPT_HELPER(initial_parameters);
+  FROM_JSON_OPT_HELPER(lower_bounds);
+  FROM_JSON_OPT_HELPER(upper_bounds);
+  FROM_JSON_OPT_HELPER(f_tol);
+  FROM_JSON_OPT_HELPER(step_size);
+#undef FROM_JSON_OPT_HELPER
+}
+
+// inline void to_json(const nlohmann::json &j, cudaq::optimizers::lbfgs p) {
+//   to_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen>(p));
+// }
 
 // Payload from client to server for a kernel execution.
 class RestRequest {
@@ -198,6 +288,10 @@ public:
   CodeFormat format;
   // Simulation random seed.
   std::size_t seed;
+  // CUDA-Q optimizer enum
+  Optimizer optimizer_type;
+  // Serialized optimizer (JSON)
+  std::string optimizer;
   // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
   // Serialized kernel arguments.
@@ -211,7 +305,8 @@ public:
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, n_params, entryPoint,
                                  simulator, executionContext, code, args,
-                                 format, seed, passes, clientVersion);
+                                 format, seed, optimizer_type, optimizer,
+                                 passes, clientVersion);
 };
 
 /// NVCF function version status
