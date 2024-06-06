@@ -23,5 +23,5 @@ int main() {
   counts.dump();
 
   printf("size %zu\n", counts.size());
-
+  return !(counts.size() == 2);
 }
