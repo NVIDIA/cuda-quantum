@@ -226,6 +226,62 @@ inline void from_json(const nlohmann::json &j,
 #undef FROM_JSON_OPT_HELPER
 }
 
+inline void from_json(const nlohmann::json &j,
+                      cudaq::optimizers::base_nlopt &p) {
+// Macro to help reduce redundant field typing
+#define FROM_JSON_OPT_HELPER(field)                                            \
+  do {                                                                         \
+    if (j.contains(#field))                                                    \
+      p.max_eval = j[#field];                                                  \
+  } while (0)
+  FROM_JSON_OPT_HELPER(max_eval);
+  FROM_JSON_OPT_HELPER(initial_parameters);
+  FROM_JSON_OPT_HELPER(lower_bounds);
+  FROM_JSON_OPT_HELPER(upper_bounds);
+  FROM_JSON_OPT_HELPER(f_tol);
+#undef FROM_JSON_OPT_HELPER
+}
+
+inline std::unique_ptr<cudaq::optimizer>
+make_optimizer_from_json(const nlohmann::json &j, Optimizer optimizer_type) {
+  if (optimizer_type == Optimizer::COBYLA) {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::cobyla>();
+    from_json(j, dynamic_cast<cudaq::optimizers::base_nlopt &>(*ret_ptr));
+    return ret_ptr;
+  }
+  if (optimizer_type == Optimizer::NELDERMEAD) {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::neldermead>();
+    from_json(j, dynamic_cast<cudaq::optimizers::base_nlopt &>(*ret_ptr));
+    return ret_ptr;
+  }
+  if (optimizer_type == Optimizer::LBFGS) {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::lbfgs>();
+    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    return ret_ptr;
+  }
+  if (optimizer_type == Optimizer::SPSA) {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::spsa>();
+    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    return ret_ptr;
+  }
+  if (optimizer_type == Optimizer::ADAM) {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::adam>();
+    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    return ret_ptr;
+  }
+  if (optimizer_type == Optimizer::GRAD_DESC) {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::gradient_descent>();
+    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    return ret_ptr;
+  }
+  if (optimizer_type == Optimizer::SGD) {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::sgd>();
+    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    return ret_ptr;
+  }
+  return nullptr;
+}
+
 // inline void to_json(const nlohmann::json &j, cudaq::optimizers::lbfgs p) {
 //   to_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen>(p));
 // }
