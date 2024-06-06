@@ -10,8 +10,6 @@
 
 #include <functional>
 
-#include "cudaq/utils/cudaq_utils.h"
-
 namespace cudaq {
 
 /// Typedef modeling the result of an optimization strategy,

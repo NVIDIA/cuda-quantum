@@ -16,18 +16,17 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
-#include <unsupported/Eigen/KroneckerProduct>
-
+#include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-
 #include <map>
 #include <queue>
 #include <random>
+#include <unsupported/Eigen/KroneckerProduct>
 #include <utility>
 
 #define DEBUG_TYPE "unitary-synthesis"
@@ -67,10 +66,6 @@ public:
     phi = 0.;
     lambda = 0.;
     qubit_idx = idx;
-    // unitary << std::cos(theta / 2.), std::exp(phi * 1i) * std::sin(theta
-    // / 2.),
-    //            -std::exp(lambda * 1i) * std::sin(theta / 2.),
-    //            std::exp(1i * (phi + lambda)) * std::cos(theta / 2.);
   }
 
   std::vector<double> getParams() { return {theta, phi, lambda}; }
@@ -81,8 +76,9 @@ public:
     phi = params[1];
     lambda = params[2];
 
-    unitary << std::cos(theta / 2.), std::exp(phi * 1i) * std::sin(theta / 2.),
+    unitary << std::cos(theta / 2.),
         -std::exp(lambda * 1i) * std::sin(theta / 2.),
+        std::exp(phi * 1i) * std::sin(theta / 2.),
         std::exp(1i * (phi + lambda)) * std::cos(theta / 2.);
 
     return unitary;
@@ -211,18 +207,19 @@ class AStarSearchSynthesis {
     return successors;
   }
 
-  // Copied from "cudaq/utils/cudaq_utils.h"
-  // since getting error: cannot use ‘typeid’ with ‘-fno-rtti’
-  std::vector<double> random_vector(const double l_range, const double r_range,
-                                    const std::size_t size,
-                                    const uint32_t seed) {
-    // Generate a random initial parameter set
-    std::mt19937 mersenne_engine{seed};
-    std::uniform_real_distribution<double> dist{l_range, r_range};
-    auto gen = [&dist, &mersenne_engine]() { return dist(mersenne_engine); };
-    std::vector<double> vec(size);
-    std::generate(vec.begin(), vec.end(), gen);
-    return vec;
+  auto minimizeCost(Node &n, const std::vector<double> &params) {
+    cudaq::optimizers::cobyla optimizer;
+    optimizer.initial_parameters = params;
+    optimizer.lower_bounds = {0.0, 0.0, 0.0};
+    optimizer.upper_bounds = {2 * M_PI, 2 * M_PI, 2 * M_PI};
+    optimizer.max_eval = 100;
+    optimizer.f_tol = epsilon;
+    auto [opt_val, opt_params] =
+        optimizer.optimize(3, [&](const std::vector<double> &params) {
+          auto f = distanceMetric(n.computeMatrix(params));
+          return f;
+        });
+    return opt_params;
   }
 
   ///  optimization function p(n,Utarget), which takes a node and a unitary as
@@ -235,13 +232,10 @@ class AStarSearchSynthesis {
   ///  as an objective function, and is given to a  numerical optimizer, which
   ///  finds d = minxD(U(n,x),Utarget). The function  p(n,Utarget) returns d.
   double optimizationFunction(Node &n) {
-    std::vector<double> params =
-        random_vector(-M_PI, M_PI, n.paramCount, std::mt19937::default_seed);
-    // get the matrix representation of the Node
-    Matrix current = n.computeMatrix(params);
-    double distance = distanceMetric(current);
-    // dummy
-    return distance;
+    /// TODO: Choose initial parameters differently
+    std::vector<double> params = {M_PI, M_PI, M_PI};
+    params = minimizeCost(n, params);
+    return distanceMetric(n.computeMatrix(params));
   }
 
   /// heuristic function employed by A*
@@ -254,8 +248,8 @@ class AStarSearchSynthesis {
   /// distance function based on the Hilbert-Schmidt inner product
   /// D(U,Utarget) = 1− ⟨U, Utarget⟩HS / N = 1− Tr(U†Utarget)/N
   double distanceMetric(const Matrix &current) {
-    return 1 -
-           std::abs((targetUnitary.conjugate() * current).sum()) / qubitCount;
+    return std::abs(1 - std::abs((targetUnitary.conjugate() * current).sum()) /
+                            qubitCount);
   }
 
   /// Identity gate on each qubit
@@ -271,12 +265,12 @@ class AStarSearchSynthesis {
 
 public:
   // constructor
-  AStarSearchSynthesis(std::vector<std::complex<double>> m) {
+  AStarSearchSynthesis(std::vector<std::complex<double>> &m) {
     dimension = std::sqrt(m.size());
     qubitCount = std::log2(dimension);
     targetUnitary = Eigen::Map<Matrix>(m.data(), dimension, dimension);
-    epsilon = 1e-10;
-    delta = 512;
+    epsilon = 1e-8;
+    delta = m.size();
     cnotCounter = 0;
   }
 

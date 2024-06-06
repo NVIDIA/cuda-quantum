@@ -48,12 +48,14 @@ add_cudaq_library(OptTransforms
     OptTransformsPassIncGen
     CCDialect
     QuakeDialect
+    cudaq-nlopt
     
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
     OptimBuilder
     QuakeDialect
+    cudaq-nlopt
 )
 
 target_include_directories(OptTransforms SYSTEM
