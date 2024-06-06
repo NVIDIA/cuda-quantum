@@ -197,8 +197,8 @@ public:
                                             const int n_params) {
     cudaq::RestRequest request(io_context, version());
 
-    request.n_params = n_params;
-    request.optimizer = json{optimizer}.dump();
+    request.optimizer_n_params = n_params;
+    request.optimizer = json(optimizer).dump();
     request.optimizer_type = get_optimizer_type(optimizer);
 
     request.entryPoint = kernelName;
@@ -302,6 +302,9 @@ public:
     std::map<std::string, std::string> headers{
         {"Expect:", ""}, {"Content-type", "application/json"}};
     json requestJson = request;
+
+    cudaq::info("request is {}", requestJson.dump(/*indent=*/2));
+
     try {
       cudaq::RestClient restClient;
       auto resultJs =

@@ -318,8 +318,8 @@ public:
   // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
   RestRequest(ExecutionContext &context, int versionNumber)
-      : executionContext(context), version(versionNumber), n_params(0),
-        clientVersion(CUDA_QUANTUM_VERSION) {}
+      : executionContext(context), optimizer_n_params(0),
+        version(versionNumber), clientVersion(CUDA_QUANTUM_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
             std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
@@ -328,6 +328,12 @@ public:
     // Take the ownership of the spin_op pointer for proper cleanup.
     if (executionContext.spin.has_value() && executionContext.spin.value())
       m_deserializedSpinOp.reset(executionContext.spin.value());
+    // Customized processing for optional optimizer parameters
+    if (j.contains("optimizer_type")) {
+      j["optimizer_type"].get_to(this->optimizer_type);
+      j["optimizer_n_params"].get_to(this->optimizer_n_params);
+      j["optimizer"].get_to(this->optimizer);
+    }
   }
 
   // Underlying code (IR) payload as a Base64 string.
@@ -348,20 +354,20 @@ public:
   Optimizer optimizer_type;
   // Serialized optimizer (JSON)
   std::string optimizer;
+  // Number of parameters for VQE
+  std::size_t optimizer_n_params;
   // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
   // Serialized kernel arguments.
   std::vector<uint8_t> args;
   // Version of this schema for compatibility check.
   std::size_t version;
-  // Number of parameters for VQE
-  std::size_t n_params;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, n_params, entryPoint,
-                                 simulator, executionContext, code, args,
-                                 format, seed, optimizer_type, optimizer,
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
+                                 executionContext, code, args, format, seed,
+                                 optimizer_type, optimizer, optimizer_n_params,
                                  passes, clientVersion);
 };
 

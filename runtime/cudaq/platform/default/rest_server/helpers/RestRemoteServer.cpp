@@ -533,6 +533,13 @@ protected:
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
 
+      // Construct the optimizer here.
+      std::unique_ptr<cudaq::optimizer> optimizer;
+      if (request.optimizer.size() > 0) {
+        optimizer = cudaq::make_optimizer_from_json(requestJson["optimizer"],
+                                                    request.optimizer_type);
+      }
+
       std::ostringstream os;
       os << "[RemoteRestRuntimeServer] Incoming job request from client "
          << request.clientVersion;

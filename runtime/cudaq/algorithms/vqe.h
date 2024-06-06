@@ -85,6 +85,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
     cudaq::get_platform().launchVQE(tmp,
                                     /*kernelFunc=*/nullptr, H, optimizer,
                                     n_params, /*shots=*/0);
+    return optimization_result{};
   }
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
