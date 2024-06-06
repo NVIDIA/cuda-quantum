@@ -274,6 +274,44 @@ std::complex<double> spin_op::get_coefficient() const {
   return terms.begin()->second;
 }
 
+spin_op spin_op::deserialize(const std::vector<double> &state) {
+  auto n_terms = static_cast<int>(state.back());
+  auto nQubits = (state.size() - 1 - 2 * n_terms) / n_terms;
+  terms.clear();
+
+  for (std::size_t i = 0; i < state.size() - 1; i += nQubits + 2) {
+    std::vector<bool> tmpv(2 * nQubits);
+    for (std::size_t j = 0; j < nQubits; j++) {
+      int val = static_cast<int>(state[i + j]);
+      if (val == 1) {
+        tmpv[j] = true;
+      } else if (val == 2) {
+        tmpv[j + nQubits] = true;
+      } else if (val == 3) {
+        tmpv[j] = true;
+        tmpv[j + nQubits] = true;
+      }
+    }
+
+    auto el_real = state[i + nQubits];
+    auto el_imag = state[i + nQubits + 1];
+    terms.emplace(tmpv, std::complex<double>(el_real, el_imag));
+  }
+
+  return spin_op(terms);
+}
+
+std::vector<double> spin_op::__getstate__() const {
+  return getDataRepresentation();
+}
+
+void spin_op::__setstate__(const std::vector<double> &state) {
+  if (state.size() < 1) {
+    throw std::runtime_error("Invalid state!");
+  }
+  *this = deserialize(state);
+}
+
 void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) const {
   for (auto iter = terms.begin(), e = terms.end(); iter != e; ++iter) {
     const auto &pair = *iter;
@@ -661,7 +699,7 @@ spin_op y(const std::size_t idx) { return spin_op(pauli::Y, idx); }
 spin_op z(const std::size_t idx) { return spin_op(pauli::Z, idx); }
 } // namespace spin
 
-std::vector<double> spin_op::getDataRepresentation() {
+std::vector<double> spin_op::getDataRepresentation() const {
   std::vector<double> dataVec;
   for (auto &[term, coeff] : terms) {
     auto nq = term.size() / 2;
