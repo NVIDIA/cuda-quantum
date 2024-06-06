@@ -215,7 +215,7 @@ inline void from_json(const nlohmann::json &j,
 #define FROM_JSON_OPT_HELPER(field)                                            \
   do {                                                                         \
     if (j.contains(#field))                                                    \
-      p.max_eval = j[#field];                                                  \
+      p.field = j[#field];                                                     \
   } while (0)
   FROM_JSON_OPT_HELPER(max_eval);
   FROM_JSON_OPT_HELPER(initial_parameters);
@@ -232,7 +232,7 @@ inline void from_json(const nlohmann::json &j,
 #define FROM_JSON_OPT_HELPER(field)                                            \
   do {                                                                         \
     if (j.contains(#field))                                                    \
-      p.max_eval = j[#field];                                                  \
+      p.field = j[#field];                                                     \
   } while (0)
   FROM_JSON_OPT_HELPER(max_eval);
   FROM_JSON_OPT_HELPER(initial_parameters);

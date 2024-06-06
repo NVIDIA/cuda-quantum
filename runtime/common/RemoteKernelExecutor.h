@@ -50,6 +50,12 @@ public:
                              void *kernelArgs, std::uint64_t argsSize,
                              std::size_t seed) = 0;
 
+  // Handle incoming VQE requests
+  virtual cudaq::optimization_result
+  handleVQERequest(std::size_t reqId, cudaq::ExecutionContext &io_context,
+                   const std::string &backendSimName, std::string_view ir,
+                   cudaq::optimizer &optimizer, const int n_params,
+                   std::string_view kernelName, std::size_t seed) = 0;
   // Destructor
   virtual ~RemoteRuntimeServer() = default;
 };

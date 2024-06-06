@@ -251,6 +251,69 @@ public:
   // Stop the server.
   virtual void stop() override { m_server->stop(); }
 
+  virtual cudaq::optimization_result
+  handleVQERequest(std::size_t reqId, cudaq::ExecutionContext &io_context,
+                   const std::string &backendSimName, std::string_view ir,
+                   cudaq::optimizer &optimizer, const int n_params,
+                   std::string_view kernelName, std::size_t seed) override {
+    cudaq::optimization_result result;
+
+    if (seed != 0)
+      cudaq::set_random_seed(seed);
+    simulationStart = std::chrono::high_resolution_clock::now();
+
+    auto &platform = cudaq::get_platform();
+    auto &requestInfo = m_codeTransform[reqId];
+    if (requestInfo.format == cudaq::CodeFormat::LLVM) {
+      // Error FIXME
+      printf("GOT HERE %s:%d\n", __FILE__, __LINE__);
+      fflush(stdout);
+    } else {
+      llvm::SourceMgr sourceMgr;
+      sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(ir),
+                                   llvm::SMLoc());
+      auto module = parseSourceFile<ModuleOp>(sourceMgr, m_mlirContext.get());
+      if (!module)
+        throw std::runtime_error("Failed to parse the input MLIR code");
+      auto engine = jitMlirCode(*module, requestInfo.passes);
+      const std::string entryPointFunc =
+          std::string(cudaq::runtime::cudaqGenPrefixName) +
+          std::string(kernelName);
+      auto fnPtr =
+          getValueOrThrow(engine->lookup(entryPointFunc),
+                          "Failed to look up entry-point function symbol");
+      if (!fnPtr)
+        throw std::runtime_error("Failed to get entry function");
+
+      auto fn = reinterpret_cast<void (*)(const std::vector<double> &)>(fnPtr);
+
+      result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
+                                                std::vector<double> &grad_vec) {
+        platform.set_exec_ctx(&io_context);
+        fn(x);
+        double expectationValue = 0.0;
+        if (io_context.expectationValue.has_value()) {
+          expectationValue = io_context.expectationValue.value_or(0.0);
+        } else {
+          double sum = 0.0;
+          (*io_context.spin)->for_each_term([&](cudaq::spin_op &term) {
+            if (term.is_identity())
+              sum += term.get_coefficient().real();
+            else
+              sum += io_context.result.expectation(term.to_string(false)) *
+                     term.get_coefficient().real();
+          });
+          expectationValue = sum;
+        }
+        platform.reset_exec_ctx();
+        io_context.result.clear();
+        return expectationValue;
+      });
+    }
+    simulationEnd = std::chrono::high_resolution_clock::now();
+    return result;
+  }
+
   virtual void handleRequest(std::size_t reqId,
                              cudaq::ExecutionContext &io_context,
                              const std::string &backendSimName,
@@ -536,8 +599,10 @@ protected:
       // Construct the optimizer here.
       std::unique_ptr<cudaq::optimizer> optimizer;
       if (request.optimizer.size() > 0) {
-        optimizer = cudaq::make_optimizer_from_json(requestJson["optimizer"],
-                                                    request.optimizer_type);
+        auto optJson = json::parse(std::string(requestJson["optimizer"]));
+        optimizer =
+            cudaq::make_optimizer_from_json(optJson[0], // FIXME - why [0]?
+                                            request.optimizer_type);
       }
 
       std::ostringstream os;
@@ -581,13 +646,23 @@ protected:
         throw std::runtime_error("Failed to decode input IR");
       }
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
-      handleRequest(reqId, request.executionContext, request.simulator, codeStr,
-                    request.entryPoint, request.args.data(),
-                    request.args.size(), request.seed);
-      json resultJson;
-      resultJson["executionContext"] = request.executionContext;
-      m_codeTransform.erase(reqId);
-      return resultJson;
+
+      if (optimizer) {
+        auto opt_result =
+            handleVQERequest(reqId, request.executionContext, request.simulator,
+                             codeStr, *optimizer, request.optimizer_n_params,
+                             request.entryPoint, request.seed);
+        // TODO - convert to JSON
+        return json();
+      } else {
+        handleRequest(reqId, request.executionContext, request.simulator,
+                      codeStr, request.entryPoint, request.args.data(),
+                      request.args.size(), request.seed);
+        json resultJson;
+        resultJson["executionContext"] = request.executionContext;
+        m_codeTransform.erase(reqId);
+        return resultJson;
+      }
     } catch (std::exception &e) {
       json resultJson;
       resultJson["status"] = "Failed to process incoming request";
