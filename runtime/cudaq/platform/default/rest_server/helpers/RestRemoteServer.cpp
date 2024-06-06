@@ -601,8 +601,7 @@ protected:
       if (request.optimizer.size() > 0) {
         auto optJson = json::parse(std::string(requestJson["optimizer"]));
         optimizer =
-            cudaq::make_optimizer_from_json(optJson[0], // FIXME - why [0]?
-                                            request.optimizer_type);
+            cudaq::make_optimizer_from_json(optJson, request.optimizer_type);
       }
 
       std::ostringstream os;

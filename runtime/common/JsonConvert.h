@@ -207,10 +207,10 @@ inline void to_json(json &j, const cudaq::optimizers::base_nlopt &p) {
 inline void to_json(json &j, const cudaq::optimizer &p) {
   if (auto *base_ensmallen =
           dynamic_cast<const cudaq::optimizers::BaseEnsmallen *>(&p))
-    j = json{*base_ensmallen};
+    j = json(*base_ensmallen);
   else if (auto *base_nlopt =
                dynamic_cast<const cudaq::optimizers::base_nlopt *>(&p))
-    j = json{*base_nlopt};
+    j = json(*base_nlopt);
 }
 
 inline void from_json(const nlohmann::json &j,
