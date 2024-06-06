@@ -12,8 +12,8 @@ from math import isclose  # builtin
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from qutip import Qobj, Bloch
 
+from qutip import Qobj, Bloch
 
 def add_to_bloch_sphere(psi: cudaq_runtime.State,
                         existing_sphere=None,
