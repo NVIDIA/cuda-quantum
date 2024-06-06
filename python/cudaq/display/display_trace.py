@@ -21,10 +21,10 @@ def getSVGstring(kernel, *args):
         check_output(["latex", "cudaq-trace"], cwd=tmpdirname, stderr=STDOUT)
         check_output(["dvisvgm", "cudaq-trace"], cwd=tmpdirname, stderr=STDOUT)
         with open(tmpdirname + "/cudaq-trace.svg", "rb") as f:
-            return f.read()
+            return str(f.read(), encoding="utf-8")
 
 
 def displaySVG(kernel, *args):
     from IPython.display import SVG, display
 
-    display(SVG(getSVGstring(kernel, *args)))
+    display(SVG(data=getSVGstring(kernel, *args)))
