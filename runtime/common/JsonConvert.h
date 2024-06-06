@@ -78,9 +78,10 @@ inline void to_json(json &j, const ExecutionContext &context) {
   }
   j["result"] = results;
 
-  if (context.expectationValue.has_value()) {
+  if (context.expectationValue.has_value())
     j["expectationValue"] = context.expectationValue.value();
-  }
+  if (context.optResult.has_value())
+    j["optResult"] = context.optResult.value();
   j["simulationData"] = json();
   j["simulationData"]["dim"] = std::get<0>(context.simulationData);
   j["simulationData"]["data"] = std::get<1>(context.simulationData);
@@ -111,6 +112,9 @@ inline void from_json(const json &j, ExecutionContext &context) {
     j["expectationValue"].get_to(expectationValue);
     context.expectationValue = expectationValue;
   }
+
+  if (j.contains("optResult"))
+    context.optResult = j["optResult"];
 
   if (j.contains("spin")) {
     std::vector<double> spinData;

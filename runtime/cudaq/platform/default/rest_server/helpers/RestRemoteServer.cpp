@@ -251,7 +251,7 @@ public:
   // Stop the server.
   virtual void stop() override { m_server->stop(); }
 
-  virtual cudaq::optimization_result
+  virtual void
   handleVQERequest(std::size_t reqId, cudaq::ExecutionContext &io_context,
                    const std::string &backendSimName, std::string_view ir,
                    cudaq::optimizer &optimizer, const int n_params,
@@ -311,7 +311,7 @@ public:
       });
     }
     simulationEnd = std::chrono::high_resolution_clock::now();
-    return result;
+    io_context.optResult = result;
   }
 
   virtual void handleRequest(std::size_t reqId,
@@ -647,22 +647,18 @@ protected:
       }
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
 
-      if (optimizer) {
-        auto opt_result =
-            handleVQERequest(reqId, request.executionContext, request.simulator,
-                             codeStr, *optimizer, request.optimizer_n_params,
-                             request.entryPoint, request.seed);
-        // TODO - convert to JSON
-        return json();
-      } else {
+      if (optimizer)
+        handleVQERequest(reqId, request.executionContext, request.simulator,
+                         codeStr, *optimizer, request.optimizer_n_params,
+                         request.entryPoint, request.seed);
+      else
         handleRequest(reqId, request.executionContext, request.simulator,
                       codeStr, request.entryPoint, request.args.data(),
                       request.args.size(), request.seed);
-        json resultJson;
-        resultJson["executionContext"] = request.executionContext;
-        m_codeTransform.erase(reqId);
-        return resultJson;
-      }
+      json resultJson;
+      resultJson["executionContext"] = request.executionContext;
+      m_codeTransform.erase(reqId);
+      return resultJson;
     } catch (std::exception &e) {
       json resultJson;
       resultJson["status"] = "Failed to process incoming request";

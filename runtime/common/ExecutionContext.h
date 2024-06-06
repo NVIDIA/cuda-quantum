@@ -12,6 +12,7 @@
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
 #include "Trace.h"
+#include "cudaq/algorithms/optimizer.h"
 #include <optional>
 #include <string_view>
 
@@ -41,6 +42,9 @@ public:
 
   /// @brief A computed expectation value
   std::optional<double> expectationValue = std::nullopt;
+
+  /// @brief An optimization result
+  std::optional<cudaq::optimization_result> optResult = std::nullopt;
 
   /// @brief The kernel being executed in this context
   /// has conditional statements on measure results.

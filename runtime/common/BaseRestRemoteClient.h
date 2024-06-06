@@ -283,7 +283,6 @@ public:
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg) override {
     // Todo
-    printf("BMH got here\n");
     cudaq::RestRequest request =
         constructVQEJobRequest(mlirContext, io_context, backendSimName,
                                kernelName, kernelFunc, optimizer, n_params);
