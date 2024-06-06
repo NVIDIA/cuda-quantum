@@ -16,7 +16,7 @@
 #include "llvm/Support/ScopedPrinter.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Transforms/TopologicalSortUtils.h"
-
+#include <iostream>
 #define DEBUG_TYPE "quantum-mapper"
 
 using namespace mlir;
@@ -206,6 +206,7 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
   // qubits virtual qubit that are no adjacently placed.
   if (!virtOp.op->hasTrait<QuantumMeasure>() && deviceQubits.size() == 2 &&
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
+    std::cout<<"not adjacent"<<std::endl;
     return failure();
 
   // Rewire the operation.
@@ -225,7 +226,6 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
 
   return success();
 }
-
 LogicalResult SabreRouter::mapFrontLayer() {
   bool mappedAtLeastOne = false;
   SmallVector<VirtualOp> newFrontLayer;
