@@ -52,7 +52,6 @@ namespace cudaq {
 /// auto [val, params] = cudaq::vqe(ansatz{}, H, optimizer, 1);
 /// \endcode
 ///
-/// BMH - somewhat trivially serializable for stock optimizers
 template <typename QuantumKernel>
 optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
                         cudaq::optimizer &optimizer, const int n_params) {
@@ -130,7 +129,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 /// auto [val, params] = cudaq::vqe(/*shots*/ 100, ansatz{}, H, optimizer, 1);
 /// \endcode
 ///
-/// BMH - somewhat trivially serializable for stock optimizers
 template <typename QuantumKernel>
 optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
@@ -195,7 +193,6 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 ///     cudaq::vqe(ansatz, gradient, H, optimizer, 1);
 /// \endcode
 ///
-/// BMH - NOT trivially serializable due to gradient?
 template <typename QuantumKernel>
 optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
@@ -268,7 +265,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
 ///                      });
 /// \endcode
 ///
-/// BMH - NOT trivially serializable due to argsMapper
 template <typename QuantumKernel, typename ArgMapper>
 optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
                         cudaq::optimizer &optimizer, const int n_params,
@@ -344,7 +340,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 ///                      });
 /// \endcode
 ///
-/// BMH - NOT trivially serializable due to argsMapper
 template <typename QuantumKernel, typename ArgMapper>
 optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
@@ -402,7 +397,6 @@ struct is_tuple_like<T, std::void_t<decltype(std::tuple_size<T>::value)>>
 /// \p H. This function will use the custom ArgMapper to map input variational
 /// parameters to a tuple for use in evaluating the kernel function.
 ///
-/// BMH - NOT trivially serializable due to argsMapper and gradient
 template <typename QuantumKernel, typename ArgMapper,
           typename = typename std::enable_if<!is_tuple_like<ArgMapper>::value,
                                              ArgMapper>::type>
