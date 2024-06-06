@@ -174,6 +174,11 @@ public:
     std::vector<std::unique_ptr<spin_op>> created;
   };
 
+  spin_op deserialize(const std::vector<double> &data_rep);
+
+  std::vector<double> __getstate__() const;
+  void __setstate__(const std::vector<double> &state);
+
 private:
   /// We want these creation functions to have access to
   /// spin_op constructors that programmers don't need
@@ -336,7 +341,7 @@ public:
 
   /// @brief Return the vector<double> serialized representation of this
   /// spin_op. (see the constructor for the encoding)
-  std::vector<double> getDataRepresentation();
+  std::vector<double> getDataRepresentation() const;
 
   /// @brief Return a vector of spin_op representing a distribution of the
   /// terms in this spin_op into equally sized chunks.
