@@ -24,7 +24,9 @@ namespace {
 std::tuple<std::string, MlirModule, OpaqueArguments *>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::len(kernel.attr("arguments")) != args.size())
-    throw std::runtime_error("Invalid number of arguments passed to draw.");
+    throw std::runtime_error("Invalid number of arguments passed to draw:" +
+                             std::to_string(args.size()) + " expected " +
+                             std::to_string(py::len(kernel.attr("arguments"))));
 
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
