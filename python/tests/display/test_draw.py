@@ -79,8 +79,6 @@ q3 : ┤ h ├──────────────────────
     # fmt: on
     expected_str = expected_str[1:]
     produced_string = cudaq.draw(kernel)
-    print()
-    print(produced_string)
     assert expected_str == produced_string
 
 
