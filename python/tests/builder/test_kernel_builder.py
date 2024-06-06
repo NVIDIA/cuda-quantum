@@ -930,18 +930,23 @@ def test_from_state0():
 
     state = np.array([.70710678, 0., 0., 0.70710678])
     kernel = cudaq.make_kernel()
-    with pytest.raises(RuntimeError) as e:
-        # float data and not complex data
-        qubits = kernel.qalloc(state)
+    qubits = kernel.qalloc(state)
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
 
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
     kernel = cudaq.make_kernel()
-    with pytest.raises(RuntimeError) as e:
-        # Wrong precision for fp64 simulator
-        qubits = kernel.qalloc(state)
+    qubits = kernel.qalloc(state)
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
 
     with pytest.raises(RuntimeError) as e:
         qubits = kernel.qalloc(np.array([1., 0., 0.], dtype=complex))
+    assert 'invalid input state size for qalloc (not a power of 2)' in repr(e)
 
     cudaq.reset_target()
 
@@ -957,8 +962,11 @@ def test_from_state1():
 
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex128)
     kernel = cudaq.make_kernel()
-    with pytest.raises(RuntimeError) as e:
-        qubits = kernel.qalloc(state)
+    qubits = kernel.qalloc(state)
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
 
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
     kernel2 = cudaq.make_kernel()

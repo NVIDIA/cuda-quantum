@@ -659,55 +659,6 @@ class PyKernel(object):
             return str(cloned)
         return str(self.module)
 
-    # Create a new vector with source elements converted to the target element type if needed.
-    def __copyVectorAndCastElements(self, source, targetEleType):
-        if not cc.PointerType.isinstance(source.type):
-            if cc.StdvecType.isinstance(source.type):
-                # Exit early if no copy is needed to avoid an unneeded store.
-                sourceEleType = cc.StdvecType.getElementType(source.type)
-                if (sourceEleType == targetEleType):
-                    return source
-
-        sourcePtr = source
-        if not cc.PointerType.isinstance(sourcePtr.type):
-            sourcePtr = self.ifNotPointerThenStore(sourcePtr)
-
-        sourceType = cc.PointerType.getElementType(sourcePtr.type)
-        if not cc.StdvecType.isinstance(sourceType):
-            raise RuntimeError(
-                f"expected vector type in __copyVectorAndCastElements but received {sourceType}"
-            )
-
-        sourceEleType = cc.StdvecType.getElementType(sourceType)
-        if (sourceEleType == targetEleType):
-            return sourcePtr
-
-        sourceElePtrTy = cc.PointerType.get(self.ctx, sourceEleType)
-        sourceValue = self.ifPointerThenLoad(sourcePtr)
-        sourceDataPtr = cc.StdvecDataOp(sourceElePtrTy, sourceValue).result
-        sourceSize = cc.StdvecSizeOp(self.getIntegerType(), sourceValue).result
-
-        targetElePtrType = cc.PointerType.get(self.ctx, targetEleType)
-        targetTy = cc.ArrayType.get(self.ctx, targetEleType)
-        targetVecTy = cc.StdvecType.get(self.ctx, targetEleType)
-        targetPtr = cc.AllocaOp(cc.PointerType.get(self.ctx, targetTy),
-                                TypeAttr.get(targetEleType),
-                                seqSize=sourceSize).result
-
-        rawIndex = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
-
-        def bodyBuilder(iterVar):
-            eleAddr = cc.ComputePtrOp(sourceElePtrTy, sourceDataPtr, [iterVar],
-                                      rawIndex).result
-            loadedEle = cc.LoadOp(eleAddr).result
-            castedEle = self.promoteOperandType(targetEleType, loadedEle)
-            targetEleAddr = cc.ComputePtrOp(targetElePtrType, targetPtr,
-                                            [iterVar], rawIndex).result
-            cc.StoreOp(castedEle, targetEleAddr)
-
-        self.createInvariantForLoop(sourceSize, bodyBuilder)
-        return cc.StdvecInitOp(targetVecTy, targetPtr, sourceSize).result
-
     def qalloc(self, initializer=None):
         """
         Allocate a register of qubits of size `qubit_count` and return a 
@@ -806,23 +757,11 @@ class PyKernel(object):
                 if cc.StdvecType.isinstance(initializer.mlirValue.type):
                     size = cc.StdvecSizeOp(self.getIntegerType(),
                                            initializer.mlirValue).result
-
-                    simDTy = self.simulationDType()
-                    value = self.__copyVectorAndCastElements(
-                        initializer.mlirValue, simDTy)
-
-                    eleTy = cc.StdvecType.getElementType(
-                        initializer.mlirValue.type)
-                    if eleTy != simDTy:
-                        emitWarning(
-                            f"Extra copy is added to convert array[{mlirTypeToPyType(eleTy)}]"
-                            f"to list[{mlirTypeToPyType(simDTy)}]. "
-                            f"Consider using `cudaq.amplitudes` or `cudaq.complex` "
-                            f"in `qvector` initializers.")
-
+                    value = initializer.mlirValue
+                    eleTy = cc.StdvecType.getElementType(value.type)
                     numQubits = math.CountTrailingZerosOp(size).result
                     qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                    ptrTy = cc.PointerType.get(self.ctx, simDTy)
+                    ptrTy = cc.PointerType.get(self.ctx, eleTy)
                     data = cc.StdvecDataOp(ptrTy, value).result
                     init = quake.InitializeStateOp(veqTy, qubits, data).result
                     return self.__createQuakeValue(init)
