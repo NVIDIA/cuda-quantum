@@ -74,18 +74,13 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
   auto &platform = cudaq::get_platform();
   platform.set_exec_ctx(ctx.get());
 
-  printf("BMH is_remote %d is_simulator %d name %s\n",
-         (int)platform.is_remote(), (int)platform.is_simulator(),
-         platform.name().c_str());
   if (platform.is_remote() && platform.is_simulator()) {
     // NVQC
-    printf("BMH Calling launchVQE\n");
-    auto tmp = cudaq::getKernelName(kernel);
-    printf("kernel name is %s\n", tmp.c_str());
-    cudaq::get_platform().launchVQE(tmp,
+    cudaq::get_platform().launchVQE(cudaq::getKernelName(kernel),
                                     /*kernelFunc=*/nullptr, H, optimizer,
                                     n_params, /*shots=*/0);
-    return optimization_result{};
+    platform.reset_exec_ctx();
+    return ctx->optResult.value_or(optimization_result{});
   }
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
