@@ -101,53 +101,192 @@ public:
 
   Eigen::Matrix<std::complex<double>, 4, 4> getUnitary() { return unitary; }
 };
+
+struct Identity {
+  size_t qubit_idx;
+  Eigen::Matrix<std::complex<double>, 2, 2> unitary;
+
+  Identity(size_t q) {
+    qubit_idx = q;
+    unitary = Eigen::Matrix<double, 2, 2>::Identity();
+  }
+
+  Eigen::Matrix<std::complex<double>, 2, 2> getUnitary() { return unitary; }
+};
 } // namespace DefaultGateSet
 
 using Matrix =
     Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic>;
 
 /// One step (node) in the circuit (tree)
+/// It can have either all U3 gates (one per qubit), or a CNOT gate followed by
+/// two U3 gates Fill identity gate on unused qubit
 struct Node {
   std::vector<std::variant<DefaultGateSet::U3, DefaultGateSet::CNot>> elements;
+  size_t qubitCount;
   size_t cnotCount;
   size_t paramCount;
   Matrix matrix;
+  bool visited;
 
   bool operator<(const Node &right) const {
     return cnotCount < right.cnotCount;
   }
 
-  Node() {
+  Node(size_t q) {
+    qubitCount = q;
     cnotCount = 0;
     paramCount = 0;
+    visited = false;
   }
 
-  Matrix computeMatrix(const std::vector<double> &params) {
-    Matrix result;
+  const Matrix &getMatrix() { return matrix; }
 
+  virtual const Matrix &computeMatrix(const std::vector<double> &params) {
+    return matrix;
+  }
+};
+
+struct RootNode : public Node {
+
+  RootNode(size_t q) : Node(q) {
+    for (size_t i = 0; i < q; i++) {
+      elements.emplace_back(DefaultGateSet::U3(i));
+      paramCount += 3;
+    }
+  }
+
+  const Matrix &computeMatrix(const std::vector<double> &params) override {
     if (params.size() != paramCount) {
-      return result;
+      llvm::report_fatal_error("incorrect number of parameters.");
     }
     size_t pIdx = 0;
     for (size_t i = 0; i < elements.size(); i++) {
       Matrix unitary;
-      if (0 == elements[i].index()) {
-        auto &gate = std::get<DefaultGateSet::U3>(elements[i]);
+      auto &gate = std::get<DefaultGateSet::U3>(elements[i]);
+      auto angles =
+          std::vector<double>(params.begin() + pIdx, params.begin() + pIdx + 3);
+      unitary = gate.getUnitary(angles);
+      pIdx += 3;
+      if (0 == i) {
+        matrix = unitary;
+      } else {
+        matrix = Eigen::kroneckerProduct(matrix, unitary).eval();
+      }
+    }
+    visited = true;
+    return matrix;
+  }
+};
+
+struct CNotU3U3Node : public Node {
+
+  std::vector<std::variant<DefaultGateSet::CNot, DefaultGateSet::Identity>>
+      cNotCol;
+  std::vector<std::variant<DefaultGateSet::U3, DefaultGateSet::Identity>> u3Col;
+
+  CNotU3U3Node(size_t q, size_t c, size_t t) : Node(q) {
+    paramCount = 6;
+    cnotCount = 1;
+    bool cnotAdded = false;
+    for (size_t i = 0; i < q; i++) {
+      if ((i == c) || (i == t)) {
+        if (!cnotAdded) {
+          auto gate = DefaultGateSet::CNot(c, t);
+          cNotCol.push_back(gate);
+          cnotAdded = true;
+        }
+        auto gate = DefaultGateSet::U3(i);
+        u3Col.push_back(gate);
+      } else {
+        cNotCol.emplace_back(DefaultGateSet::Identity(i));
+        u3Col.emplace_back(DefaultGateSet::Identity(i));
+      }
+    }
+  }
+
+  const Matrix &computeMatrix(const std::vector<double> &params) override {
+
+    if (params.size() != paramCount) {
+      llvm::report_fatal_error("incorrect number of parameters.");
+    }
+
+    // Kronecker product of CNot column
+    Matrix cnotColKP;
+    for (size_t i = 0; i < cNotCol.size(); i++) {
+      Matrix unitary;
+      if (0 == cNotCol[i].index()) {
+        auto &gate = std::get<DefaultGateSet::CNot>(cNotCol[i]);
+        unitary = gate.getUnitary();
+      } else if (0 == cNotCol[i].index()) {
+        auto &gate = std::get<DefaultGateSet::Identity>(cNotCol[i]);
+        unitary = gate.getUnitary();
+      }
+      if (i == 0) {
+        cnotColKP = unitary;
+      } else {
+        cnotColKP = Eigen::kroneckerProduct(cnotColKP, unitary).eval();
+      }
+    }
+
+    // Kronecker product of U3 column
+    Matrix u3ColKP;
+    size_t pIdx = 0;
+    for (size_t i = 0; i < u3Col.size(); i++) {
+      Matrix unitary;
+      if (0 == u3Col[i].index()) {
+        auto &gate = std::get<DefaultGateSet::U3>(u3Col[i]);
         auto angles = std::vector<double>(params.begin() + pIdx,
                                           params.begin() + pIdx + 3);
         unitary = gate.getUnitary(angles);
         pIdx += 3;
-      } else if (1 == elements[i].index()) {
-        auto &gate = std::get<DefaultGateSet::CNot>(elements[i]);
+      } else if (0 == u3Col[i].index()) {
+        auto &gate = std::get<DefaultGateSet::Identity>(u3Col[i]);
         unitary = gate.getUnitary();
       }
       if (0 == i) {
-        result = unitary;
+        u3ColKP = unitary;
       } else {
-        result = Eigen::kroneckerProduct(result, unitary);
+        u3ColKP = Eigen::kroneckerProduct(u3ColKP, unitary).eval();
       }
     }
-    return result;
+
+    // Matrix multiplication of both columns
+    matrix = cnotColKP * u3ColKP;
+
+    visited = true;
+    return matrix;
+  }
+};
+
+// One path in the tree
+struct Branch {
+private:
+  std::vector<Node> nodes;
+  Matrix matrix;
+
+public:
+  // Branch(Node &n) {
+  //   nodes.emplace_back(n);
+  //   matrix = n.getMatrix(); }
+
+  void addNode(Node &n) {
+    nodes.emplace_back(n);
+    // matrix = matrix * n.getMatrix();
+  }
+
+  bool isEmpty() { return nodes.empty(); }
+
+  std::vector<Node> &getNodes() { return nodes; }
+
+  Matrix &getMatrix() { return matrix; }
+
+  Matrix &computeMatrix() {
+    matrix = nodes[0].getMatrix();
+    for (size_t i = 1; i < nodes.size(); i++) {
+      matrix = matrix * nodes[i].getMatrix();
+    }
+    return matrix;
   }
 };
 
@@ -175,6 +314,7 @@ class AStarSearchSynthesis {
     for (size_t i = 0; i < count - 1; i++) {
       for (size_t j = i + 1; j < count; j++) {
         result.emplace_back(std::make_pair(i, j));
+        result.emplace_back(std::make_pair(j, i));
       }
     }
     return result;
@@ -190,19 +330,13 @@ class AStarSearchSynthesis {
   std::vector<Node> successorFunction(Node n) {
     auto potentialCNots = computeCombinationPairs(qubitCount);
     if (potentialCNots.empty()) {
-      return {n};
+      return {};
     }
     std::vector<Node> successors;
     for (auto operands : potentialCNots) {
-      auto s = n;
       /// TODO: Confirm qubit ordering
-      s.elements.emplace_back(
-          DefaultGateSet::CNot(operands.second, operands.first));
-      s.cnotCount++;
-      s.elements.emplace_back(DefaultGateSet::U3(operands.first));
-      s.elements.emplace_back(DefaultGateSet::U3(operands.second));
-      s.paramCount += 6;
-      successors.push_back(s);
+      successors.push_back(
+          CNotU3U3Node(qubitCount, operands.second, operands.first));
     }
     return successors;
   }
@@ -210,12 +344,14 @@ class AStarSearchSynthesis {
   auto minimizeCost(Node &n, const std::vector<double> &params) {
     cudaq::optimizers::cobyla optimizer;
     optimizer.initial_parameters = params;
-    optimizer.lower_bounds = {0.0, 0.0, 0.0};
-    optimizer.upper_bounds = {2 * M_PI, 2 * M_PI, 2 * M_PI};
+    std::vector<double> lower_bounds(params.size(), 0.0);
+    optimizer.lower_bounds = lower_bounds;
+    std::vector<double> upper_bounds(params.size(), 2 * M_PI);
+    optimizer.upper_bounds = upper_bounds;
     optimizer.max_eval = 100;
     optimizer.f_tol = epsilon;
-    auto [opt_val, opt_params] =
-        optimizer.optimize(3, [&](const std::vector<double> &params) {
+    auto [opt_val, opt_params] = optimizer.optimize(
+        params.size(), [&](const std::vector<double> &params) {
           auto f = distanceMetric(n.computeMatrix(params));
           return f;
         });
@@ -233,7 +369,7 @@ class AStarSearchSynthesis {
   ///  finds d = minxD(U(n,x),Utarget). The function  p(n,Utarget) returns d.
   double optimizationFunction(Node &n) {
     /// TODO: Choose initial parameters differently
-    std::vector<double> params = {M_PI, M_PI, M_PI};
+    std::vector<double> params(n.paramCount, M_PI);
     params = minimizeCost(n, params);
     return distanceMetric(n.computeMatrix(params));
   }
@@ -252,17 +388,6 @@ class AStarSearchSynthesis {
                             qubitCount);
   }
 
-  /// Identity gate on each qubit
-  Node buildRootNode() {
-    Node root;
-    root.cnotCount = 0;
-    for (size_t q = 0; q < qubitCount; q++) {
-      root.elements.emplace_back(DefaultGateSet::U3(q));
-      root.paramCount += 3;
-    }
-    return root;
-  }
-
 public:
   // constructor
   AStarSearchSynthesis(std::vector<std::complex<double>> &m) {
@@ -275,10 +400,11 @@ public:
   }
 
   /// Synthesis algorithm
-  auto synthesize() {
+  Branch synthesize() {
+    Branch result;
     std::priority_queue<Node> pq;
     // n ← representation of U3 on each qubit
-    Node root = buildRootNode();
+    Node root = RootNode(qubitCount);
 
     // push n onto queue with priority H(dbest)+0
     pq.push(root);
@@ -288,14 +414,18 @@ public:
       // n ← pop from queue
       Node n = pq.top();
       pq.pop();
+
+      result.addNode(n);
       cnotCounter += n.cnotCount;
+
       // for all ni ∈S(n) do
       for (auto ni : successorFunction(n)) {
+        std::vector<Node> branch = {n, ni};
         // di ← P(ni, Utarget)
         auto di = optimizationFunction(ni);
         // di < ε
         if (di < epsilon) {
-          return ni;
+          return result;
         }
         // if CNOT count of ni < δ then
         if (cnotCounter < delta) {
@@ -304,8 +434,8 @@ public:
         }
       }
     }
-    Node empty;
-    return empty;
+
+    return result;
   }
 };
 
@@ -335,38 +465,34 @@ struct ReplaceUnitaryOp : public OpRewritePattern<quake::UnitaryOp> {
 
       auto result = AStarSearchSynthesis(targetUnitary).synthesize();
 
-      if (result.elements.empty()) {
+      if (result.isEmpty()) {
         op.emitOpError("failed to decompose the custom unitary");
       }
 
       /// TODO: Save across unitaries? Or can it be automatically optimized?
-      std::map<double, Value> paramValMap;
+      // std::map<double, Value> paramValMap;
 
-      for (auto op : result.elements) {
-        if (0 == op.index()) {
-          // insert U3
-          auto &gate = std::get<DefaultGateSet::U3>(op);
-          std::vector<double> inParams = gate.getParams();
-          std::array<Value, 3> outParams;
-          for (size_t i = 0; i < inParams.size(); i++) {
-            if (paramValMap.find(inParams[i]) == paramValMap.end()) {
-              Value val = rewriter.create<arith::ConstantFloatOp>(
+      for (auto nodes : result.getNodes()) {
+        for (auto op : nodes.elements) {
+          if (0 == op.index()) {
+            // insert U3
+            auto &gate = std::get<DefaultGateSet::U3>(op);
+            std::vector<double> inParams = gate.getParams();
+            std::array<Value, 3> outParams;
+            for (size_t i = 0; i < inParams.size(); i++) {
+              outParams[i] = rewriter.create<arith::ConstantFloatOp>(
                   loc, APFloat{inParams[i]}, rewriter.getF64Type());
-              paramValMap[inParams[i]] = val;
-              outParams[i] = val;
-            } else {
-              outParams[i] = paramValMap[inParams[i]];
             }
+            rewriter.create<quake::U3Op>(loc, outParams, controls,
+                                         targets[gate.qubit_idx]);
+          } else if (1 == op.index()) {
+            // insert cnot
+            auto &gate = std::get<DefaultGateSet::CNot>(op);
+            rewriter.create<quake::XOp>(loc, targets[gate.control],
+                                        targets[gate.target]);
           }
-          rewriter.create<quake::U3Op>(loc, outParams, controls,
-                                       targets[gate.qubit_idx]);
-        } else if (1 == op.index()) {
-          // insert cnot
-          auto &gate = std::get<DefaultGateSet::CNot>(op);
-          rewriter.create<quake::XOp>(loc, targets[gate.control],
-                                      targets[gate.target]);
-        }
-      }
+        } // per element
+      }   // per node
 
     } else {
       op.emitOpError(
