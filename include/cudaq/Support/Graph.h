@@ -16,7 +16,7 @@ namespace cudaq {
 /// \p graph. The return vector `vec[i]` contains the next node in path to
 /// `src`. If `vec[i] == src`, then it is either an immediate neighbor, or there
 /// is no path to get there (i.e. the graph is bipartite).
-mlir::SmallVector<GraphCSR::Node> getShortestPathsBFS(const GraphCSR &graph,
+inline mlir::SmallVector<GraphCSR::Node> getShortestPathsBFS(const GraphCSR &graph,
                                                       GraphCSR::Node src) {
   assert(src.isValid() && "Invalid source node");
   mlir::SmallVector<bool> discovered(graph.getNumNodes(), false);
