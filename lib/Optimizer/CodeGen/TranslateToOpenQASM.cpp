@@ -16,6 +16,8 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Analysis/CallGraph.h"
 
+#include <iostream>
+
 using namespace mlir;
 using namespace cudaq;
 
@@ -200,6 +202,8 @@ static inline StringRef formatFunctionName(StringRef quakeName) {
 }
 
 static LogicalResult emitOperation(Emitter &emitter, func::FuncOp op) {
+  std::cout << "*** Emitting function " << op.getName().str() << std::endl;
+
   if (op.isPrivate())
     return success();
 
@@ -218,8 +222,8 @@ static LogicalResult emitOperation(Emitter &emitter, func::FuncOp op) {
       parameters.push_back(arg);
   }
 
-  if (targets.empty())
-    return op.emitError("cannot translated classical functions");
+  //if (targets.empty())
+  //  return op.emitError("cannot translated classical functions");
 
   Emitter::Scope scope(emitter);
   emitter.os << "gate " << formatFunctionName(op.getName());
