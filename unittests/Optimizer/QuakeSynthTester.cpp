@@ -79,7 +79,7 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
+  pm.addPass(cudaq::opt::createConvertToQIR());
   return pm.run(module);
 }
 

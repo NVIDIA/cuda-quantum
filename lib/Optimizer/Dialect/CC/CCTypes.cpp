@@ -178,7 +178,7 @@ CallableType CallableType::getNoSignature(MLIRContext *ctx) {
 
 void CCDialect::registerTypes() {
   addTypes<ArrayType, CallableType, CharspanType, PointerType, StdvecType,
-           StructType>();
+           StateType, StructType>();
 }
 
 } // namespace cudaq::cc

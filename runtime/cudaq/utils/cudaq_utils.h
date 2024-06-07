@@ -14,6 +14,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <variant>
 #include <vector>
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -103,6 +104,21 @@ auto make_copyable_function(F &&f) {
 template <std::size_t Ofst, class Tuple, std::size_t... I>
 constexpr auto slice_impl(Tuple &&t, std::index_sequence<I...>) {
   return std::forward_as_tuple(std::get<I + Ofst>(std::forward<Tuple>(t))...);
+}
+
+/// @brief Return the index of a type in a variant
+template <typename VariantType, typename T, std::size_t index = 0>
+constexpr std::size_t variant_index() {
+  static_assert(std::variant_size_v<VariantType> > index,
+                "Type not found in variant");
+  if constexpr (index == std::variant_size_v<VariantType>) {
+    return index;
+  } else if constexpr (std::is_same_v<
+                           std::variant_alternative_t<index, VariantType>, T>) {
+    return index;
+  } else {
+    return variant_index<VariantType, T, index + 1>();
+  }
 }
 } // namespace detail
 

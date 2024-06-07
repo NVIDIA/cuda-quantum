@@ -71,6 +71,12 @@ void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
 
 // Qubit array allocation / deallocation
 Array *__quantum__rt__qubit_allocate_array(uint64_t idx);
+Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
+    std::uint64_t size, std::complex<double> *data);
+Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
+    uint64_t size, std::complex<float> *data);
+Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
+    cudaq::SimulationState *state);
 void __quantum__rt__qubit_release_array(Array *q);
 void __quantum__rt__qubit_release(Qubit *q);
 Qubit *__quantum__rt__qubit_allocate();
@@ -420,4 +426,158 @@ CUDAQ_TEST(NVQIRTester, checkGates) {
     EXPECT_NEAR(0.0, m.imag(), 1e-12);
     std::cout << m.real() << ", " << m.imag() << "\n";
   }
+}
+
+CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromStateVec) {
+  // Library code...
+  __quantum__rt__initialize(0, nullptr);
+
+  const int shots = 1000;
+  cudaq::ExecutionContext ctx("sample", shots);
+  __quantum__rt__setExecutionContext(&ctx);
+
+  // Quantum Kernel Code at the QIR level
+  std::vector<cudaq::complex> bellState{M_SQRT1_2, 0.0, 0.0, M_SQRT1_2};
+  Array *qubits = [](auto &state) {
+    if constexpr (std::is_same_v<cudaq::complex, std::complex<double>>)
+      return __quantum__rt__qubit_allocate_array_with_state_complex64(
+          2, state.data());
+    else
+      return __quantum__rt__qubit_allocate_array_with_state_complex32(
+          2, state.data());
+  }(bellState);
+  Qubit *q1 = extract_qubit(qubits, 0);
+  Qubit *q2 = extract_qubit(qubits, 1);
+  __quantum__qis__mz(q1);
+  __quantum__qis__mz(q2);
+  __quantum__rt__qubit_release_array(qubits);
+
+  // Back to library code
+  __quantum__rt__resetExecutionContext();
+
+  cudaq::sample_result counts = ctx.result;
+  counts.dump();
+  int counter = 0;
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "00" || bits == "11");
+    counter += count;
+  }
+
+  EXPECT_EQ(shots, counter);
+
+  __quantum__rt__finalize();
+}
+
+CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateSimple) {
+  // Library code...
+  __quantum__rt__initialize(0, nullptr);
+  cudaq::ExecutionContext ctx("extract-state");
+  {
+    __quantum__rt__setExecutionContext(&ctx);
+
+    // Quantum Kernel Code at the QIR level
+    auto qubits = __quantum__rt__qubit_allocate_array(2);
+    Qubit *q1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+    Qubit *q2 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+    __quantum__qis__h(q1);
+    __quantum__qis__cnot(q1, q2);
+    __quantum__rt__qubit_release_array(qubits);
+    // Back to library code
+    __quantum__rt__resetExecutionContext();
+  }
+  // Get the state from the context since we're about change the context.
+  // Note: this is similar to passing the ctx.simulationState to the `state`
+  // result in a `get_state`.
+  std::unique_ptr<cudaq::SimulationState> state =
+      std::move(ctx.simulationState);
+  // Let's do some sampling
+  const int shots = 1000;
+  cudaq::ExecutionContext sampleCtx("sample", shots);
+  __quantum__rt__setExecutionContext(&sampleCtx);
+  auto *qubits =
+      __quantum__rt__qubit_allocate_array_with_state_ptr(state.get());
+  Qubit *q1 = extract_qubit(qubits, 0);
+  Qubit *q2 = extract_qubit(qubits, 1);
+  __quantum__qis__mz(q1);
+  __quantum__qis__mz(q2);
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__resetExecutionContext();
+
+  cudaq::sample_result counts = sampleCtx.result;
+  counts.dump();
+  int counter = 0;
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "00" || bits == "11");
+    counter += count;
+  }
+
+  EXPECT_EQ(shots, counter);
+
+  __quantum__rt__finalize();
+}
+
+CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateExpand) {
+  // Library code...
+  __quantum__rt__initialize(0, nullptr);
+  cudaq::ExecutionContext ctx("extract-state");
+  {
+    __quantum__rt__setExecutionContext(&ctx);
+
+    // Quantum Kernel Code at the QIR level
+    auto qubits = __quantum__rt__qubit_allocate_array(2);
+    Qubit *q1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+    Qubit *q2 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+    __quantum__qis__h(q1);
+    __quantum__qis__cnot(q1, q2);
+    __quantum__rt__qubit_release_array(qubits);
+    // Back to library code
+    __quantum__rt__resetExecutionContext();
+  }
+  // Get the state from the context since we're about change the context.
+  // Note: this is similar to passing the ctx.simulationState to the `state`
+  // result in a `get_state`.
+  std::unique_ptr<cudaq::SimulationState> state =
+      std::move(ctx.simulationState);
+  // Let's do some sampling
+  const int shots = 1000;
+  cudaq::ExecutionContext sampleCtx("sample", shots);
+  __quantum__rt__setExecutionContext(&sampleCtx);
+  // Allocate some qubits in 0 state
+  auto *someQubits = __quantum__rt__qubit_allocate_array(2);
+  // Allocate some more in a specific state
+  auto *qubits =
+      __quantum__rt__qubit_allocate_array_with_state_ptr(state.get());
+  Qubit *q1 = extract_qubit(someQubits, 0);
+  Qubit *q2 = extract_qubit(someQubits, 1);
+  Qubit *q3 = extract_qubit(qubits, 0);
+  Qubit *q4 = extract_qubit(qubits, 1);
+  // Spread the entanglement...
+  __quantum__qis__cnot(q3, q1);
+  __quantum__qis__cnot(q4, q2);
+  __quantum__qis__mz(q1);
+  __quantum__qis__mz(q2);
+  __quantum__qis__mz(q3);
+  __quantum__qis__mz(q4);
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__qubit_release_array(someQubits);
+  __quantum__rt__resetExecutionContext();
+
+  cudaq::sample_result counts = sampleCtx.result;
+  counts.dump();
+  int counter = 0;
+  // We should have a bigger GHZ state: |0000> + |1111>
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "0000" || bits == "1111");
+    counter += count;
+  }
+
+  EXPECT_EQ(shots, counter);
+
+  __quantum__rt__finalize();
 }

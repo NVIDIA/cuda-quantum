@@ -9,13 +9,13 @@
 #pragma once
 
 #include "common/MeasureCounts.h"
+#include "cudaq/host_config.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
-#include "host_config.h"
 #include <cstring>
 #include <functional>
 
@@ -415,12 +415,12 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
   auto gateName = QuantumOp::name();
 
   // Map the qubits to their unique ids and pack them into a std::array
-  constexpr std::size_t nArgs = sizeof...(QubitArgs);
   std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
 
   // We just want to apply the same gate to all qubits provided
   for (auto &targetId : targets)
-    getExecutionManager()->apply(gateName, {angle}, {}, {targetId});
+    getExecutionManager()->apply(gateName, std::vector<double>{angle}, {},
+                                 {targetId});
 }
 
 template <typename QuantumOp, typename ScalarAngle, typename... QubitArgs>
@@ -691,6 +691,22 @@ void exp_pauli(double theta, QubitRange &&qubits, const char *pauliWord) {
                  [](auto &q) { return cudaq::qubitToQuditInfo(q); });
   getExecutionManager()->apply("exp_pauli", {theta}, {}, quditInfos, false,
                                spin_op::from_word(pauliWord));
+}
+
+/// @brief Apply a general Pauli rotation, takes a qubit register and the size
+/// must be equal to the Pauli word length.
+#if CUDAQ_USE_STD20
+template <typename QubitRange>
+  requires(std::ranges::range<QubitRange>)
+#else
+template <
+    typename QubitRange,
+    typename = std::enable_if_t<!std::is_same_v<
+        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
+#endif
+void exp_pauli(double theta, QubitRange &&qubits,
+               cudaq::pauli_word &pauliWord) {
+  exp_pauli(theta, qubits, pauliWord.str().c_str());
 }
 
 /// @brief Apply a general Pauli rotation, takes a variadic set of
