@@ -186,21 +186,24 @@ if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
   SET(CUDAQ_ENABLE_STATIC_LINKING $ENV{CUDAQ_ENABLE_STATIC_LINKING})
 endif()
 if (CUDAQ_ENABLE_STATIC_LINKING)
-  # Using -static-libgcc -static-libstdc++ offers more fine grained control here if needed.
+  # Using -static-libgcc -static-libstdc++ offers more fine grained control here
+  # then using -static (for exe) and -staic-pie (for linker).
   # At the time of writing, there wasn't any benefit to using those over -static.
-  # However, while this so far seems to be working reasonably well, this will
-  # unfortunately also link glibc statically, which in general is likely to cause
-  # issues sooner or later. A better option might be to include the required GNU C Library
-  # and have the nvq++ compiler dynamically pick the newer one of the included or system one.
+  # When we only link libstdc++ and libgcc statically, we still have a dependency
+  # on GLIBC on the target system, but linking it statically is likely to cause issues. 
+  # A better option might be to include the required GNU C Library and have the nvq++
+  # compiler dynamically pick the newer one of the included or system one.
   # See also these posts:
   # - https://blog.gibson.sh/2017/11/26/creating-portable-linux-binaries/
   # - https://www.jertype.com/upgrading-glibc/
   # If the final application loads multiple dynamic libraries, and two or more
   # of those dynamic libraries are linked to different versions of the same static
-  # libraries, then the different copies of those static libraries will conflict
-  # with each other. If we keep linking everything statically, we should at least set 
-  # CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN to 1, 
-  # to avoid some of these issues.
+  # libraries, then the different copies of those static libraries will conflict with
+  # each other. If we were to link everything statically, it is probably advisable to 
+  # set CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN 
+  # to 1, to avoid some of these issues.
+  # We don't set these configurations here, since the LLVM runtime libraries that we 
+  # build from source are already configured to hide symbols and include dependencies.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc -pie")
   SET(OPENSSL_USE_STATIC_LIBS TRUE)

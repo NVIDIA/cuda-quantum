@@ -113,10 +113,11 @@ if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; t
   fi
 fi
 
+llvm_build_dir="$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
+llvm_log_dir="$llvm_build_dir/logs"
 mkdir -p "$LLVM_INSTALL_PREFIX"
-mkdir -p "$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
-cd "$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
-mkdir -p logs && rm -rf logs/* 
+mkdir -p "$llvm_build_dir" && cd "$llvm_build_dir"
+mkdir -p "$llvm_log_dir" && rm -rf "$llvm_log_dir"/* 
 
 # Specify which components we need to keep the size of the LLVM build down.
 # To get a list of install targets, check the output of the following command 
@@ -234,7 +235,7 @@ if $verbose; then
   echo $cmake_args $cmake_cache | xargs cmake -G Ninja $LLVM_SOURCE/llvm
 else
   echo $cmake_args $cmake_cache | xargs cmake -G Ninja $LLVM_SOURCE/llvm \
-    2> logs/cmake_error.txt 1> logs/cmake_output.txt
+    2> "$llvm_log_dir/cmake_error.txt" 1> "$llvm_log_dir/cmake_output.txt"
 fi
 
 # Build and install the defined distribution.
@@ -243,14 +244,14 @@ if $verbose; then
   ninja $ninja_keep_going $build_concurrency $install_target
   status=$?
 else
-  echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
+  echo "The progress of the build is being logged to $llvm_log_dir/ninja_output.txt."
   ninja $ninja_keep_going $build_concurrency $install_target \
-    2> logs/ninja_error.txt 1> logs/ninja_output.txt
+    2> "$llvm_log_dir/ninja_error.txt" 1> "$llvm_log_dir/ninja_output.txt"
   status=$?
 fi
 
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-  echo "Failed to build compiler components. Please check the files in the `pwd`/logs directory."
+  echo "Failed to build compiler components. Please check the files in the $llvm_log_dir/logs directory."
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
@@ -263,18 +264,23 @@ if [ -n "$llvm_runtimes" ]; then
     ninja install-runtimes
     status=$?
   else
-    ninja install-runtimes 2>> logs/ninja_error.txt 1>> logs/ninja_output.txt
+    ninja install-runtimes 2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
     status=$?
   fi
 
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-    echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
+    echo "Failed to build runtime components. Please check the files in the $llvm_log_dir/logs directory."
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   else
     # Depending on the exact build configuration, 
     # no install step is defined for builtins when compiler-rt is built
     # as runtime rather than as project. Invoking the installation manually.
-    cmake -P runtimes/builtins-bins/cmake_install.cmake
+    if $verbose; then
+      cmake -P runtimes/builtins-bins/cmake_install.cmake
+    else
+      cmake -P runtimes/builtins-bins/cmake_install.cmake \
+        2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
+    fi
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
 
     # We can use a default config file to set specific clang configurations.
@@ -295,26 +301,44 @@ fi
 # Enabled separately from other runtimes, since we need to build the other
 # runtime libraries first before being able to build openmp.
 if [ -z "${llvm_projects##*openmp;*}" ]; then
-  cmake_args=$(echo $cmake_args | sed "s/LLVM_ENABLE_RUNTIMES='/LLVM_ENABLE_RUNTIME='openmp;/")
+  echo "Building OpenMP support..."
+
+  cmake_args=$(echo $cmake_args | sed "s/LLVM_ENABLE_PROJECTS='/LLVM_ENABLE_PROJECTS='openmp;/")
   if $verbose; then
     cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache
   else
     cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache \
-      2> logs/cmake_error.txt 1> logs/cmake_output.txt
+      2>> "$llvm_log_dir/cmake_error.txt" 1>> "$llvm_log_dir/cmake_output.txt"
   fi
 
-  echo "Building OpenMP support..."
   if $verbose; then
-    ninja install-runtimes
+    ninja $ninja_keep_going $build_concurrency omp $install_target \
+      install-omptarget-stripped install-openmp-resource-headers-stripped
     status=$?
   else
-    ninja install-runtimes 2>> logs/ninja_error.txt 1>> logs/ninja_output.txt
+    ninja $ninja_keep_going $build_concurrency omp $install_target \
+      install-omptarget-stripped install-openmp-resource-headers-stripped \
+      2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
     status=$?
   fi
 
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-    echo "Failed to build OpenMP components. Please check the files in the `pwd`/logs directory."
+    echo "Failed to build OpenMP components. Please check the files in the $llvm_log_dir/logs directory."
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+  else
+    # There aren't really any suitable distribution components for OpenMP. 
+    # Since we need to build the clang project together with OpenMP, 
+    # not defining a distribution and installing everything would add a lot.
+    # Hence, the best option seems to be to only build and install the 
+    # OpenMP specific targets above. Somehow, there doesn't seem to be a 
+    # dedicated target that installs libomp itself, so manually install it here.
+    if $verbose; then
+      cmake -P projects/openmp/runtime/src/cmake_install.cmake
+    else
+      cmake -P projects/openmp/runtime/src/cmake_install.cmake \
+        2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
+    fi
+    echo "Successfully added OpenMP components."
   fi
 fi
 
