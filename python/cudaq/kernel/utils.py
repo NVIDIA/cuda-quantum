@@ -15,6 +15,7 @@ import numpy as np
 from typing import Callable, List
 import ast, sys, traceback
 
+State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
 qubit = cudaq_runtime.qubit
 pauli_word = cudaq_runtime.pauli_word
@@ -34,6 +35,7 @@ globalAstRegistry = {}
 
 
 class Color:
+    YELLOW = '\033[93m'
     RED = '\033[91m'
     BOLD = '\033[1m'
     END = '\033[0m'
@@ -64,6 +66,29 @@ def emitFatalError(msg):
     raise RuntimeError(msg)
 
 
+def emitWarning(msg):
+    """
+    Emit a warning, providing the user with source file information and
+    the offending code.
+    """
+    print(Color.BOLD, end='')
+    try:
+        # Raise the exception so we can get the
+        # stack trace to inspect
+        raise RuntimeError(msg)
+    except RuntimeError as e:
+        # Immediately grab the exception and
+        # analyze the stack trace, get the source location
+        # and construct a new error diagnostic
+        cached = sys.tracebacklimit
+        sys.tracebacklimit = None
+        offendingSrc = traceback.format_stack()
+        sys.tracebacklimit = cached
+        if len(offendingSrc):
+            msg = Color.YELLOW + "error: " + Color.END + Color.BOLD + msg + Color.END + '\n\nOffending code:\n' + offendingSrc[
+                0]
+
+
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
     Return the MLIR Type corresponding to the given kernel function argument type annotation.
@@ -86,13 +111,15 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         if annotation.value.id == 'cudaq':
             if annotation.attr in ['qview', 'qvector']:
                 return quake.VeqType.get(ctx)
+            if annotation.attr in ['State']:
+                return cc.PointerType.get(ctx, cc.StateType.get(ctx))
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
             if annotation.attr == 'pauli_word':
                 return cc.CharspanType.get(ctx)
 
         if annotation.value.id in ['numpy', 'np']:
-            if annotation.attr == 'ndarray':
+            if annotation.attr in ['array', 'ndarray']:
                 return cc.StdvecType.get(ctx, F64Type.get())
             if annotation.attr == 'complex128':
                 return ComplexType.get(F64Type.get())
@@ -176,7 +203,6 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
-
     if argType == int:
         return IntegerType.get_signless(64, ctx)
     if argType in [float, np.float64]:
@@ -193,6 +219,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(np.float32, ctx))
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+    if argType == State:
+        return cc.PointerType.get(ctx, cc.StateType.get(ctx))
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
@@ -217,25 +245,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         if isinstance(argInstance[0], int):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
         if isinstance(argInstance[0], (float, np.float64)):
-            if argTypeToCompareTo != None:
-                # check if we are comparing to a complex...
-                eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-                if ComplexType.isinstance(eleTy):
-                    emitFatalError(
-                        "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
-                    )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
         if isinstance(argInstance[0], np.float32):
-            if argTypeToCompareTo != None:
-                # check if we are comparing to a complex...
-                eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-                if ComplexType.isinstance(eleTy):
-                    emitFatalError(
-                        "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
-                    )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.float32, ctx))
 
-        if isinstance(argInstance[0], complex):
+        if isinstance(argInstance[0], (complex, np.complex128)):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
 
         if isinstance(argInstance[0], np.complex64):
@@ -315,7 +329,7 @@ def mlirTypeToPyType(argType):
             return getListType(np.float32)
         if ComplexType.isinstance(eleTy):
             ty = complex if F64Type.isinstance(
-                ComplexType(argType).element_type) else np.complex64
+                ComplexType(eleTy).element_type) else np.complex64
             return getListType(ty)
 
     emitFatalError(

@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #include "simulator_cutensornet.h"
 #include "cudaq.h"
 #include "cutensornet.h"
@@ -130,7 +131,8 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
 
-  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
+                               {static_cast<int32_t>(qubitIdx)});
 }
 
 /// @brief Device synchronization
@@ -168,7 +170,8 @@ bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
         4 * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
-  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
+                               {static_cast<int32_t>(qubitIdx)});
   return resultBool;
 }
 
@@ -224,6 +227,7 @@ static nvqir::CutensornetExecutor *getPluginInstance() {
   cudaq::info("Successfully loaded the cutensornet plugin.");
   return fcn();
 }
+
 /// @brief Evaluate the expectation value of a given observable
 cudaq::observe_result
 SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
@@ -253,34 +257,19 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   }
 }
 
-/// @brief Return the state vector data
-cudaq::State SimulatorTensorNetBase::getStateData() {
-  LOG_API_TIME();
-  if (m_state->getNumQubits() > 64)
-    throw std::runtime_error("State vector data is too large.");
-  // Handle empty state (e.g., no qubit allocation)
-  if (!m_state)
-    return cudaq::State{{0}, {}};
-
-  const uint64_t svDim = 1ull << m_state->getNumQubits();
-  return cudaq::State{{svDim}, m_state->getStateVector()};
-}
-
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
-void SimulatorTensorNetBase::addQubitsToState(std::size_t count) {
-  LOG_API_TIME();
-  if (!m_state)
-    m_state = std::make_unique<TensorNetState>(count, m_cutnHandle);
-  else if (gateQueue.empty())
-    m_state = std::make_unique<TensorNetState>(m_state->getNumQubits() + count,
-                                               m_cutnHandle);
-  else
-    throw std::runtime_error("Expand qubit register is not supported!");
-}
+
 void SimulatorTensorNetBase::addQubitToState() { addQubitsToState(1); }
 
 /// @brief Destroy the entire qubit register
-void SimulatorTensorNetBase::deallocateStateImpl() { m_state.reset(); }
+void SimulatorTensorNetBase::deallocateStateImpl() {
+  if (m_state) {
+    m_state.reset();
+    // Reset cuTensorNet library
+    HANDLE_CUTN_ERROR(cutensornetDestroy(m_cutnHandle));
+    HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
+  }
+}
 
 /// @brief Reset all qubits to zero
 void SimulatorTensorNetBase::setToZeroState() {
