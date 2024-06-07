@@ -16,11 +16,14 @@ from multiprocessing import Process
 import cudaq
 from cudaq import spin
 
-try:
-    from utils.mock_qpu.oqc import startServer
-except:
-    print("Mock qpu not available, skipping OQC tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+# try:
+import sys
+
+sys.path.append('../')
+from utils.mock_qpu.oqc import startServer
+# except:
+#     print("Mock qpu not available, skipping OQC tests.")
+#     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
 port = 62442
@@ -106,6 +109,17 @@ def test_OQC_u3_decomposition():
     def kernel():
         qubit = cudaq.qubit()
         u3(0.0, np.pi / 2, np.pi, qubit)
+
+    result = cudaq.sample(kernel)
+
+
+def test_OQC_u3_ctrl_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        control = cudaq.qubit()
+        target = cudaq.qubit()
+        u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
 
     result = cudaq.sample(kernel)
 

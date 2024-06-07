@@ -112,9 +112,10 @@ CUDAQ_TEST(IQMTester, checkU3Lowering) {
 
   auto kernel = []() __qpu__ {
     cudaq::qubit q;
+    cudaq::qubit target;
     u3(3.14159, 1.5709, 0.78539, q);
+    u3<cudaq::ctrl>(3.14159, 1.5709, 0.78539, q, target);
   };
-
   auto counts = cudaq::sample(kernel);
   counts.dump();
   EXPECT_EQ(counts.size(), 2);

@@ -149,6 +149,17 @@ def test_IQM_u3_decomposition():
     result = cudaq.sample(kernel)
 
 
+def test_iqm_u3_ctrl_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        control = cudaq.qubit()
+        target = cudaq.qubit()
+        u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
+
+    result = cudaq.sample(kernel)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
