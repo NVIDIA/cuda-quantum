@@ -51,7 +51,7 @@ gate allows us to flip the state of the qubit:
 
     @cudaq.kernel
     def kernel():
-        # A single qubit initialised to the ground/ zero state.
+        # A single qubit initialized to the ground / zero state.
         qubit = cudaq.qubit()
     
         # Apply the pauli x gate to the qubit.
@@ -93,7 +93,7 @@ measurement, wavefunction collapse yields either a classical 0 or 1.
 
 The mathematical theory devised to explain quantum phenomena tells us
 that the probability of observing the qubit in the state
-:math:`\ket{0}`/ :math:`\ket{1}` yielding a classical 0/ 1 is
+:math:`\ket{0}` / :math:`\ket{1}` yielding a classical 0 / 1 is
 :math:`\lvert \alpha \rvert ^2` / :math:`\lvert \beta \rvert ^2`. The
 theory has been verified experimentally countless times and we shall
 verify it once more below.

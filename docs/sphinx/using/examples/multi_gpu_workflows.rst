@@ -20,19 +20,19 @@ Available Targets
 -  **qpp-cpu**: The qpp based CPU backend which is multithreaded to
    maximize the usage of available cores on your system.
 
--  **nvidia**: GPU based backend which accelerates quantum circuit
+-  **nvidia**: Single GPU based backend which accelerates quantum circuit
    simulation on NVIDIA GPUs powered by cuQuantum.
 
 -  **nvidia-mqpu**: Enables users to program workflows utilizing
-   multiple quantum processors enabled today by GPU emulation.
+   multiple quantum processors in parallel, enabled today by GPU emulation.
 
--  **nvidia-mgpu**: Allows for scaling circuit simulation beyond what is
+-  **nvidia-mgpu**: Allows for scaling circuit simulation on multiple GPUs, which is beyond what is
    feasible with any QPU today.
 
 -  **density-matrix-cpu**: Noisy simulations via density matrix
    calculations. CPU only for now with GPU support coming soon.
 
-Below we explore how to effectively utilize multi-GPU targets.
+Below we explore how to effectively utilize multiple CUDA-Q targets with the same GHZ state preparation code
 
 .. code:: python
 
@@ -73,7 +73,7 @@ QPP-based CPU Backend
 Acceleration via NVIDIA GPUs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Users will notice a **200x speedup** in executing the circuit below on
+Users will notice a speedup of up to **2500x** in executing the circuit below on
 NVIDIA GPUs vs CPUs.
 
 .. code:: python
@@ -114,7 +114,7 @@ name chosen.
 Multiple QPUs
 ~~~~~~~~~~~~~~
 
-The ``nvidia-mqpu`` backend allows for future workflows made possible
+The ``nvidia-mqpu`` backend allows for future multi-QPUs workflows made possible
 via GPU simulation today.
 
 Asynchronous data collection via batching Hamiltonian terms
