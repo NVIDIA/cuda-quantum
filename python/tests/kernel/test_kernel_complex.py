@@ -16,7 +16,9 @@ import cudaq
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
     sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
+    reason=
+    "built-in collection types such as `list` not supported or module 'ast' has no attribute 'unparse'"
+)
 
 
 def is_close(expected, actual):
@@ -34,11 +36,10 @@ def test_complex_params():
     def complex_vec_param(vec: list[complex], i: int) -> complex:
         return vec[i]
 
-    # Returning complex is not supported yet
-    # for i in range(len(c)):
-    #    is_close(c[i].real, complex_vec_param(c, i).real)
-    # for i in range(len(c)):
-    #    is_close(c[i].imag, complex_vec_param(c, i).imag)
+    for i in range(len(c)):
+        is_close(c[i].real, complex_vec_param(c, i).real)
+    for i in range(len(c)):
+        is_close(c[i].imag, complex_vec_param(c, i).imag)
 
     @cudaq.kernel
     def complex_vec_param_real(vec: list[complex], i: int) -> float:
@@ -249,11 +250,10 @@ def test_np_complex128_params():
     def complex_vec_param(vec: list[np.complex128], i: int) -> complex:
         return vec[i]
 
-    # Returning complex is not supported yet
-    # for i in range(len(c)):
-    #    is_close(c[i].real, complex_vec_param(c, i).real)
-    # for i in range(len(c)):
-    #    is_close(c[i].imag, complex_vec_param(c, i).imag)
+    for i in range(len(c)):
+        is_close(c[i].real, complex_vec_param(c, i).real)
+    for i in range(len(c)):
+        is_close(c[i].imag, complex_vec_param(c, i).imag)
 
     @cudaq.kernel
     def complex_vec_param_real(vec: list[np.complex128], i: int) -> float:
@@ -429,29 +429,26 @@ def test_np_complex64_params():
     def complex_vec_param(vec: list[np.complex64], i: int) -> np.complex64:
         return vec[i]
 
-    # Returning complex is not supported yet
-    # for i in range(len(c)):
-    #    is_close(c[i].real, complex_vec_param(c, i).real)
-    # for i in range(len(c)):
-    #    is_close(c[i].imag, complex_vec_param(c, i).imag)
+    for i in range(len(c)):
+        is_close(c[i].real, complex_vec_param(c, i).real)
+    for i in range(len(c)):
+        is_close(c[i].imag, complex_vec_param(c, i).imag)
 
     @cudaq.kernel
     def complex_vec_param_real(vec: list[np.complex64], i: int) -> np.float32:
         v = vec[i]
         return v.real
 
-    # FIXME: uncomment after merging in experimental/StateHandling
-    # for i in range(len(c)):
-    #     assert is_close(c[i].real, complex_vec_param_real(c, i))
+    for i in range(len(c)):
+        assert is_close(c[i].real, complex_vec_param_real(c, i))
 
     @cudaq.kernel
     def complex_vec_param_imag(vec: list[np.complex64], i: int) -> np.float32:
         v = vec[i]
         return v.imag
 
-    # FIXME: uncomment after merging in experimental/StateHandling
-    # for i in range(len(c)):
-    #     assert is_close(c[i].imag, complex_vec_param_imag(c, i))
+    for i in range(len(c)):
+        assert is_close(c[i].imag, complex_vec_param_imag(c, i))
 
 
 def test_np_complex64_capture():
@@ -482,6 +479,7 @@ def test_np_complex64_capture():
         assert is_close(c[i].imag, complex_vec_capture_imag(i))
 
 
+@skipIfPythonLessThan39
 def test_np_complex64_definition():
     """Test that we can define complex lists inside kernel functions."""
 
@@ -590,3 +588,90 @@ def test_np_complex64_use():
 
     t = np.exp(np.complex64((np.pi / 2. + 1) + 1j)).imag
     assert is_close(t, complex_np_use_imag())
+
+
+@skipIfPythonLessThan39
+def test_complex_list_parameter_promotion():
+
+    @cudaq.kernel
+    def kernel(c: list[complex], i: int) -> complex:
+        return c[i]
+
+    def non_kernel(c: list[complex], i: int) -> complex:
+        return c[i]
+
+    def check(c: any):
+        for i in range(len(c)):
+            is_close(kernel(c, i).real, non_kernel(c, i).real)
+        for i in range(len(c)):
+            is_close(kernel(c, i).imag, non_kernel(c, i).imag)
+
+    check([0 + 2j])
+    check([0.70710678, 0.70710678 + 2j])
+    check([0.70710678, np.complex128(0.70710678 + 2j)])
+    check([0.70710678, np.complex64(0.70710678 + 2j)])
+    check([0.70710678])
+    check([1])
+    check([0.70710678, 1 + 2j])
+    check([0, 0.70710678 + 2j])
+    check([0, 1.0])
+    check([0, 1])
+    check([0, 0.70710678 + 2j, True])
+
+
+@skipIfPythonLessThan39
+def test_complex128_list_parameter_promotion():
+
+    @cudaq.kernel
+    def kernel(c: list[np.complex128], i: int) -> np.complex128:
+        return c[i]
+
+    def non_kernel(c: list[np.complex128], i: int) -> np.complex128:
+        return c[i]
+
+    def check(c: any):
+        for i in range(len(c)):
+            is_close(kernel(c, i).real, non_kernel(c, i).real)
+        for i in range(len(c)):
+            is_close(kernel(c, i).imag, non_kernel(c, i).imag)
+
+    check([0 + 2j])
+    check([0.70710678, 0.70710678 + 2j])
+    check([0.70710678, np.complex128(0.70710678 + 2j)])
+    check([0.70710678, np.complex64(0.70710678 + 2j)])
+    check([0.70710678])
+    check([1])
+    check([0.70710678, 1 + 2j])
+    check([0, 0.70710678 + 2j])
+    check([0, 1.0])
+    check([0, 1])
+    check([0, 0.70710678 + 2j, True])
+
+
+@skipIfPythonLessThan39
+def test_complex64_list_parameter_promotion():
+
+    @cudaq.kernel
+    def kernel(c: list[np.complex64], i: int) -> np.complex64:
+        return c[i]
+
+    def non_kernel(c: list[np.complex64], i: int) -> np.complex64:
+        return c[i]
+
+    def check(c: any):
+        for i in range(len(c)):
+            is_close(kernel(c, i).real, non_kernel(c, i).real)
+        for i in range(len(c)):
+            is_close(kernel(c, i).imag, non_kernel(c, i).imag)
+
+    check([0 + 2j])
+    check([0.70710678, 0.70710678 + 2j])
+    check([0.70710678, np.complex128(0.70710678 + 2j)])
+    check([0.70710678, np.complex64(0.70710678 + 2j)])
+    check([0.70710678])
+    check([1])
+    check([0.70710678, 1 + 2j])
+    check([0, 0.70710678 + 2j])
+    check([0, 1.0])
+    check([0, 1])
+    check([0, 0.70710678 + 2j, True])

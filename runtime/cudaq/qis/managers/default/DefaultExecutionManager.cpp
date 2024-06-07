@@ -52,6 +52,51 @@ protected:
     simulator()->allocateQubits(qudits.size());
   }
 
+  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                       const void *state,
+                       cudaq::simulation_precision precision) override {
+    // Here we have qubits in requestedAllocations
+    // want to allocate and set state
+    // There could be previous 'default' allocations whereby we just cached them
+    // in requestedAllocations.
+    // These default allocations need to be dispatched separately.
+    // FIXME: this assumes no qubit reuse, aka the qubits in targets are the
+    // last ones to be allocated. This is consistent with the Kronecker product
+    // assumption in CircuitSimulator.
+    if (!requestedAllocations.empty() &&
+        targets.size() != requestedAllocations.size()) {
+      assert(targets.size() < requestedAllocations.size());
+      const auto numDefaultAllocs =
+          requestedAllocations.size() - targets.size();
+      simulator()->allocateQubits(numDefaultAllocs);
+      // The targets will be allocated in a specific state.
+      simulator()->allocateQubits(targets.size(), state, precision);
+    } else {
+      simulator()->allocateQubits(requestedAllocations.size(), state,
+                                  precision);
+    }
+    requestedAllocations.clear();
+  }
+
+  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                       const cudaq::SimulationState *state) override {
+    // Note: a void* ptr doesn't provide enough info to the simulators, hence
+    // need a dedicated code path.
+    // TODO: simplify/combine the two code paths (raw vector and state).
+    if (!requestedAllocations.empty() &&
+        targets.size() != requestedAllocations.size()) {
+      assert(targets.size() < requestedAllocations.size());
+      const auto numDefaultAllocs =
+          requestedAllocations.size() - targets.size();
+      simulator()->allocateQubits(numDefaultAllocs);
+      // The targets will be allocated in a specific state.
+      simulator()->allocateQubits(targets.size(), state);
+    } else {
+      simulator()->allocateQubits(requestedAllocations.size(), state);
+    }
+    requestedAllocations.clear();
+  }
+
   void deallocateQudit(const cudaq::QuditInfo &q) override {
 
     // Before trying to deallocate, make sure the qudit hasn't
