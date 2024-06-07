@@ -82,15 +82,13 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   const auto &controls = task.controls;
   const auto &targets = task.targets;
   // Cache name lookup key:
-  // <GateName>_<Param>
+  // <GateName>_<Param>_<Matrix>
   const std::string gateKey = task.operationName + "_" + [&]() {
     std::stringstream paramsSs;
     for (const auto &param : task.parameters) {
       paramsSs << param << "_";
     }
-    return paramsSs.str() + task.operationName == "custom"
-               ? "__" + std::to_string(vecComplexHash(task.matrix))
-               : "";
+    return paramsSs.str() + "__" + std::to_string(vecComplexHash(task.matrix));
   }();
   const auto iter = m_gateDeviceMemCache.find(gateKey);
 
