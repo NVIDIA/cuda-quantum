@@ -121,52 +121,63 @@ using Matrix =
 /// One step (node) in the circuit (tree)
 /// It can have either all U3 gates (one per qubit), or a CNOT gate followed by
 /// two U3 gates Fill identity gate on unused qubit
-struct Node {
-  std::vector<std::variant<DefaultGateSet::U3, DefaultGateSet::CNot>> elements;
+// struct Node {
+//   std::vector<std::variant<DefaultGateSet::U3, DefaultGateSet::CNot>>
+//   elements; size_t qubitCount; size_t cnotCount; size_t paramCount; Matrix
+//   matrix; bool visited;
+
+//   // bool operator<(const Node &right) const {
+//   //   return cnotCount < right.cnotCount;
+//   // }
+
+//   Node(size_t q) {
+//     qubitCount = q;
+//     cnotCount = 0;
+//     paramCount = 0;
+//     visited = false;
+//   }
+
+//   const Matrix &getMatrix() { return matrix; }
+
+//   virtual const Matrix &computeMatrix(const std::vector<double> &params) {
+//     return matrix;
+//   }
+// };
+
+struct RootNode {
+
+  std::vector<DefaultGateSet::U3 *> elements;
   size_t qubitCount;
   size_t cnotCount;
   size_t paramCount;
   Matrix matrix;
   bool visited;
 
-  bool operator<(const Node &right) const {
-    return cnotCount < right.cnotCount;
-  }
+  RootNode() {}
 
-  Node(size_t q) {
+  RootNode(size_t q) {
     qubitCount = q;
     cnotCount = 0;
     paramCount = 0;
     visited = false;
-  }
-
-  const Matrix &getMatrix() { return matrix; }
-
-  virtual const Matrix &computeMatrix(const std::vector<double> &params) {
-    return matrix;
-  }
-};
-
-struct RootNode : public Node {
-
-  RootNode(size_t q) : Node(q) {
     for (size_t i = 0; i < q; i++) {
-      elements.emplace_back(DefaultGateSet::U3(i));
+      elements.emplace_back(new DefaultGateSet::U3(i));
       paramCount += 3;
     }
   }
 
-  const Matrix &computeMatrix(const std::vector<double> &params) override {
+  const Matrix &getMatrix() { return matrix; }
+
+  const Matrix &computeMatrix(const std::vector<double> &params) {
     if (params.size() != paramCount) {
       llvm::report_fatal_error("incorrect number of parameters.");
     }
     size_t pIdx = 0;
     for (size_t i = 0; i < elements.size(); i++) {
       Matrix unitary;
-      auto &gate = std::get<DefaultGateSet::U3>(elements[i]);
       auto angles =
           std::vector<double>(params.begin() + pIdx, params.begin() + pIdx + 3);
-      unitary = gate.getUnitary(angles);
+      unitary = elements[i]->getUnitary(angles);
       pIdx += 3;
       if (0 == i) {
         matrix = unitary;
@@ -179,13 +190,23 @@ struct RootNode : public Node {
   }
 };
 
-struct CNotU3U3Node : public Node {
+struct CNotU3U3Node {
+
+  std::vector<std::variant<DefaultGateSet::U3, DefaultGateSet::CNot>> elements;
+  size_t qubitCount;
+  size_t cnotCount;
+  size_t paramCount;
+  Matrix matrix;
+  bool visited;
 
   std::vector<std::variant<DefaultGateSet::CNot, DefaultGateSet::Identity>>
       cNotCol;
   std::vector<std::variant<DefaultGateSet::U3, DefaultGateSet::Identity>> u3Col;
 
-  CNotU3U3Node(size_t q, size_t c, size_t t) : Node(q) {
+  CNotU3U3Node(size_t q, size_t c, size_t t) {
+
+    qubitCount = q;
+    visited = false;
     paramCount = 6;
     cnotCount = 1;
     bool cnotAdded = false;
@@ -205,7 +226,9 @@ struct CNotU3U3Node : public Node {
     }
   }
 
-  const Matrix &computeMatrix(const std::vector<double> &params) override {
+  const Matrix &getMatrix() { return matrix; }
+
+  const Matrix &computeMatrix(const std::vector<double> &params) {
 
     if (params.size() != paramCount) {
       llvm::report_fatal_error("incorrect number of parameters.");
@@ -261,30 +284,46 @@ struct CNotU3U3Node : public Node {
 
 // One path in the tree
 struct Branch {
-private:
-  std::vector<Node> nodes;
+  RootNode root;
+  std::vector<CNotU3U3Node> nodes;
+  size_t cnotCount;
+  size_t paramCount;
   Matrix matrix;
 
-public:
-  // Branch(Node &n) {
-  //   nodes.emplace_back(n);
-  //   matrix = n.getMatrix(); }
+  bool operator<(const Branch &right) const {
+    return cnotCount < right.cnotCount;
+  }
 
-  void addNode(Node &n) {
+  Branch(size_t q) {
+    root = RootNode(q);
+    cnotCount = 0;
+    paramCount = root.paramCount;
+  }
+
+  void addNode(CNotU3U3Node &n) {
     nodes.emplace_back(n);
     // matrix = matrix * n.getMatrix();
+    cnotCount += n.cnotCount;
+    paramCount += n.paramCount;
   }
 
   bool isEmpty() { return nodes.empty(); }
 
-  std::vector<Node> &getNodes() { return nodes; }
-
   Matrix &getMatrix() { return matrix; }
 
-  Matrix &computeMatrix() {
-    matrix = nodes[0].getMatrix();
-    for (size_t i = 1; i < nodes.size(); i++) {
-      matrix = matrix * nodes[i].getMatrix();
+  Matrix &computeMatrix(const std::vector<double> &params) {
+    size_t pIdx = 0;
+    auto pc = root.paramCount;
+    auto angles =
+        std::vector<double>(params.begin() + pIdx, params.begin() + pIdx + pc);
+    matrix = root.computeMatrix(angles);
+    pIdx += pc;
+    for (size_t i = 0; i < nodes.size(); i++) {
+      pc = nodes[i].paramCount;
+      angles = std::vector<double>(params.begin() + pIdx,
+                                   params.begin() + pIdx + pc);
+      matrix = matrix * nodes[i].computeMatrix(angles);
+      pIdx += pc;
     }
     return matrix;
   }
@@ -307,18 +346,7 @@ class AStarSearchSynthesis {
   // CNOT count limit δ
   size_t delta;
 
-  /// implement n choose c with c = 2
-  /// TODO: Compute only once
-  std::vector<std::pair<size_t, size_t>> computeCombinationPairs(size_t count) {
-    std::vector<std::pair<size_t, size_t>> result;
-    for (size_t i = 0; i < count - 1; i++) {
-      for (size_t j = i + 1; j < count; j++) {
-        result.emplace_back(std::make_pair(i, j));
-        result.emplace_back(std::make_pair(j, i));
-      }
-    }
-    return result;
-  }
+  std::vector<std::pair<size_t, size_t>> potentialCNots;
 
   ///  successor function s(n), takes a node as input and returns a list of
   ///  nodes  Given a node n as input, s(n) generates a successor by appending
@@ -327,12 +355,12 @@ class AStarSearchSynthesis {
   ///  the two-qubit gates  allowed by the given topology. The one-qubit gates
   ///  are placed immediately  after the CNOT, on the qubit lines that the CNOT
   ///  affects. A list of all  successors generated from n this way is returned.
-  std::vector<Node> successorFunction(Node n) {
-    auto potentialCNots = computeCombinationPairs(qubitCount);
+  std::vector<CNotU3U3Node> successorFunction() {
+
     if (potentialCNots.empty()) {
       return {};
     }
-    std::vector<Node> successors;
+    std::vector<CNotU3U3Node> successors;
     for (auto operands : potentialCNots) {
       /// TODO: Confirm qubit ordering
       successors.push_back(
@@ -341,7 +369,7 @@ class AStarSearchSynthesis {
     return successors;
   }
 
-  auto minimizeCost(Node &n, const std::vector<double> &params) {
+  auto minimizeCost(Branch &b, const std::vector<double> &params) {
     cudaq::optimizers::cobyla optimizer;
     optimizer.initial_parameters = params;
     std::vector<double> lower_bounds(params.size(), 0.0);
@@ -352,7 +380,7 @@ class AStarSearchSynthesis {
     optimizer.f_tol = epsilon;
     auto [opt_val, opt_params] = optimizer.optimize(
         params.size(), [&](const std::vector<double> &params) {
-          auto f = distanceMetric(n.computeMatrix(params));
+          auto f = distanceMetric(b.computeMatrix(params));
           return f;
         });
     return opt_params;
@@ -367,11 +395,11 @@ class AStarSearchSynthesis {
   ///  parameterized gates in the circuit structure.  D(U(n,x),Utarget) is used
   ///  as an objective function, and is given to a  numerical optimizer, which
   ///  finds d = minxD(U(n,x),Utarget). The function  p(n,Utarget) returns d.
-  double optimizationFunction(Node &n) {
+  double optimizationFunction(Branch b) {
     /// TODO: Choose initial parameters differently
-    std::vector<double> params(n.paramCount, M_PI);
-    params = minimizeCost(n, params);
-    return distanceMetric(n.computeMatrix(params));
+    std::vector<double> params(b.paramCount, M_PI);
+    params = minimizeCost(b, params);
+    return distanceMetric(b.computeMatrix(params));
   }
 
   /// heuristic function employed by A*
@@ -394,35 +422,47 @@ public:
     dimension = std::sqrt(m.size());
     qubitCount = std::log2(dimension);
     targetUnitary = Eigen::Map<Matrix>(m.data(), dimension, dimension);
+
     epsilon = 1e-8;
-    delta = m.size();
     cnotCounter = 0;
+
+    for (size_t i = 0; i < qubitCount - 1; i++) {
+      for (size_t j = i + 1; j < qubitCount; j++) {
+        potentialCNots.emplace_back(std::make_pair(i, j));
+        potentialCNots.emplace_back(std::make_pair(j, i));
+      }
+    }
+    delta = potentialCNots.size() / 2;
   }
 
   /// Synthesis algorithm
   Branch synthesize() {
-    Branch result;
-    std::priority_queue<Node> pq;
+
+    std::priority_queue<Branch> pq;
+
     // n ← representation of U3 on each qubit
-    Node root = RootNode(qubitCount);
+    // Node root = RootNode(qubitCount);
+    Branch result(qubitCount);
 
     // push n onto queue with priority H(dbest)+0
-    pq.push(root);
+    pq.push(result);
 
     // while queue is not empty do
     while (!pq.empty()) {
       // n ← pop from queue
-      Node n = pq.top();
+      Branch b = pq.top();
       pq.pop();
 
-      result.addNode(n);
-      cnotCounter += n.cnotCount;
+      result = b;
+      cnotCounter = b.cnotCount;
 
       // for all ni ∈S(n) do
-      for (auto ni : successorFunction(n)) {
-        std::vector<Node> branch = {n, ni};
+      for (auto ni : successorFunction()) {
+        Branch current = result;
+        current.addNode(ni);
+
         // di ← P(ni, Utarget)
-        auto di = optimizationFunction(ni);
+        auto di = optimizationFunction(current);
         // di < ε
         if (di < epsilon) {
           return result;
@@ -430,11 +470,12 @@ public:
         // if CNOT count of ni < δ then
         if (cnotCounter < delta) {
           // push ni onto queue with priority H(di)+CNOT count of ni
-          pq.push(ni);
+          pq.push(current);
         }
       }
     }
 
+    optimizationFunction(result);
     return result;
   }
 };
@@ -465,14 +506,25 @@ struct ReplaceUnitaryOp : public OpRewritePattern<quake::UnitaryOp> {
 
       auto result = AStarSearchSynthesis(targetUnitary).synthesize();
 
-      if (result.isEmpty()) {
-        op.emitOpError("failed to decompose the custom unitary");
-      }
+      // // if (result.isEmpty()) {
+      // //   op.emitOpError("failed to decompose the custom unitary");
+      // // }
 
       /// TODO: Save across unitaries? Or can it be automatically optimized?
       // std::map<double, Value> paramValMap;
 
-      for (auto nodes : result.getNodes()) {
+      for (auto &gate : result.root.elements) {
+        std::vector<double> inParams = gate->getParams();
+        std::array<Value, 3> outParams;
+        for (size_t i = 0; i < inParams.size(); i++) {
+          outParams[i] = rewriter.create<arith::ConstantFloatOp>(
+              loc, APFloat{inParams[i]}, rewriter.getF64Type());
+        }
+        rewriter.create<quake::U3Op>(loc, outParams, controls,
+                                     targets[gate->qubit_idx]);
+      }
+
+      for (auto nodes : result.nodes) {
         for (auto op : nodes.elements) {
           if (0 == op.index()) {
             // insert U3
