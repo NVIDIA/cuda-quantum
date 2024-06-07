@@ -263,7 +263,11 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
 ///                      });
 /// \endcode
 ///
-template <typename QuantumKernel, typename ArgMapper>
+template <typename QuantumKernel, typename ArgMapper, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_v<ArgMapper, std::vector<double>> ||
+              std::is_invocable_v<ArgMapper, std::vector<double> &> ||
+              std::is_invocable_v<ArgMapper, const std::vector<double> &>>>
 optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
                         cudaq::optimizer &optimizer, const int n_params,
                         ArgMapper &&argsMapper) {
@@ -338,7 +342,11 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 ///                      });
 /// \endcode
 ///
-template <typename QuantumKernel, typename ArgMapper>
+template <typename QuantumKernel, typename ArgMapper, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_v<ArgMapper, std::vector<double>> ||
+              std::is_invocable_v<ArgMapper, std::vector<double> &> ||
+              std::is_invocable_v<ArgMapper, const std::vector<double> &>>>
 optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
                         const int n_params, ArgMapper &&argsMapper) {
@@ -359,13 +367,6 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
     return energy;
   });
 }
-
-template <typename, typename = void>
-struct is_tuple_like : std::false_type {};
-
-template <typename T>
-struct is_tuple_like<T, std::void_t<decltype(std::tuple_size<T>::value)>>
-    : std::true_type {};
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel
@@ -395,9 +396,11 @@ struct is_tuple_like<T, std::void_t<decltype(std::tuple_size<T>::value)>>
 /// \p H. This function will use the custom ArgMapper to map input variational
 /// parameters to a tuple for use in evaluating the kernel function.
 ///
-template <typename QuantumKernel, typename ArgMapper,
-          typename = typename std::enable_if<!is_tuple_like<ArgMapper>::value,
-                                             ArgMapper>::type>
+template <typename QuantumKernel, typename ArgMapper, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_v<ArgMapper, std::vector<double>> ||
+              std::is_invocable_v<ArgMapper, std::vector<double> &> ||
+              std::is_invocable_v<ArgMapper, const std::vector<double> &>>>
 optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
                         const int n_params, ArgMapper &&argsMapper) {
@@ -416,6 +419,15 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
     return energy;
   });
 }
+
+// FIXME - eventually this Tuple one may go away and we may just have a variadic
+// template.
+template <typename, typename = void>
+struct is_tuple_like : std::false_type {};
+
+template <typename T>
+struct is_tuple_like<T, std::void_t<decltype(std::tuple_size<T>::value)>>
+    : std::true_type {};
 
 template <typename QuantumKernel, typename Tuple,
           typename =
@@ -439,10 +451,12 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
     ctx->kernelName = cudaq::getKernelName(kernel);
     ctx->spin = &H;
     platform.set_exec_ctx(ctx.get());
-    platform.launchVQE(
-        cudaq::getKernelName(kernel),
-        /*kernelArgs=*/(void *)&tupleArgs, H, optimizer, n_params,
-        /*shots=*/0); // FIXME - this probably doesn't work for std::vector
+    auto serializedArgsBuffer = std::apply(
+        [](const auto &...args) { return serializeArgs(args...); }, tupleArgs);
+    platform.launchVQE(cudaq::getKernelName(kernel),
+                       /*kernelArgs=*/serializedArgsBuffer.data(), H, optimizer,
+                       n_params,
+                       /*shots=*/0);
     platform.reset_exec_ctx();
     return ctx->optResult.value_or(optimization_result{});
 #endif
