@@ -188,6 +188,7 @@ class PyKernelDecorator(object):
         and the temporary directory is writable.
         If any of these assumptions fail, returns None.
         """
+        self.compile()  # compile if not yet compiled
         if self.argTypes is None or len(self.argTypes) != 0:
             return None
         from cudaq import getSVGstring
