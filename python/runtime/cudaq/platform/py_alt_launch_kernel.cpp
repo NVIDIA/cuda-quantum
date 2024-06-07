@@ -9,6 +9,7 @@
 #include "JITExecutionCache.h"
 #include "common/ArgumentWrapper.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -345,6 +346,53 @@ std::string getQIRLL(const std::string &name, MlirModule module,
     cudaq::opt::addPipelineConvertToQIR(pm);
   else
     cudaq::opt::addPipelineConvertToQIR(pm, profile);
+  DefaultTimingManager tm;
+  tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+  auto timingScope = tm.getRootScope(); // starts the timer
+  pm.enableTiming(timingScope);         // do this right before pm.run
+  if (failed(pm.run(cloned)))
+    throw std::runtime_error(
+        "cudaq::builder failed to JIT compile the Quake representation.");
+  timingScope.stop();
+  std::free(rawArgs);
+
+  llvm::LLVMContext llvmContext;
+  llvmContext.setOpaquePointers(false);
+  auto llvmModule = translateModuleToLLVMIR(cloned, llvmContext);
+  auto optPipeline = makeOptimizingTransformer(
+      /*optLevel=*/3, /*sizeLevel=*/0,
+      /*targetMachine=*/nullptr);
+  if (auto err = optPipeline(llvmModule.get()))
+    throw std::runtime_error("Failed to optimize LLVM IR ");
+
+  std::string str;
+  {
+    llvm::raw_string_ostream os(str);
+    llvmModule->print(os, nullptr);
+  }
+  return str;
+}
+
+std::string getASM(const std::string &name, MlirModule module,
+                     cudaq::OpaqueArguments &runtimeArgs,
+                     std::string &profile) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+
+  auto [jit, rawArgs, size] =
+      jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
+  auto cloned = unwrap(module).clone();
+  auto context = cloned.getContext();
+
+  PassManager pm(context);
+  //applyPassManagerCLOptions(pm);
+  cudaq::opt::addPipelineTranslateToOpenQASM(pm);
+
+  // TODO: how to call only this and return a string
+  if (failed(cudaq::translateToOpenQASM(module, output))) {
+      // TODO: throw here
+    }
+
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer

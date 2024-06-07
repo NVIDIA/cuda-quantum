@@ -9,31 +9,36 @@
 import cudaq
 import numpy as np
 
-def printing():
-    @cudaq.kernel()
-    def kernel():
-        qubits = cudaq.qvector(2)
-        x(qubits[0])
-        x(qubits[1])
-        cnot(qubits[0], qubits[1])
+@cudaq.kernel
+def bell_pair():
+      q = cudaq.qvector(2)
+      h(q[0])
+      cx(q[0], q[1])
+      mz(q)
 
-    print("*** DRAW")
-    print(cudaq.draw(kernel))
+print("*** PRINT MLIR")
+print(bell_pair)
 
-    print("*** MLIR")
-    print(kernel)
+print("*** DRAW")
+print(cudaq.draw(bell_pair))
 
-    print("*** TO_QIR")
-    print(cudaq.to_qir(kernel))
+print("*** MLIR")
+print(bell_pair)
 
-
-    print("*** TO_QIR with profile")
-    print(cudaq.to_qir(kernel, profile="qir-base"))
+print("*** TO_QIR")
+print(cudaq.to_qir(bell_pair))
 
 
-    # New - convert to qasm
-    # TODO
+print("*** TO_QIR with profile")
+print(cudaq.to_qir(bell_pair, profile="qir-base"))
 
+print("*** NEW ***")
 
+print("*** TRANSLATE to mlir")
+print(cudaq.translate(bell_pair, format="mlir"))
 
-printing()
+print("*** TRANSLATE to qir")
+print(cudaq.translate(bell_pair, format="qir"))
+
+print("*** TRANSLATE to openqasm")
+print(cudaq.translate(bell_pair, format="openqasm"))

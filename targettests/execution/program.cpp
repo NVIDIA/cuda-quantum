@@ -18,8 +18,16 @@
 #include <cudaq/algorithms/draw.h>
 #include <iostream>
 
+// @cudaq.kernel
+// def bell_pair():
+//       q = cudaq.qvector(2)
+//       h(q[0])
+//       cx(q[0], q[1])
+//       mz(q)
 
-void variable_qreg() __qpu__ {
+// print(bell_pair())
+
+void bell_pair() __qpu__ {
   cudaq::qvector q(2);
   cudaq::h(q[0]);
   cudaq::x<cudaq::ctrl>(q[0], q[1]);
