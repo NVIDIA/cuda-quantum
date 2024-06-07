@@ -38,4 +38,49 @@ inline mlir::SmallVector<GraphCSR::Node> getShortestPathsBFS(const GraphCSR &gra
   return parents;
 }
 
+
+// Function that implements Dijkstra's single source
+// shortest path algorithm for a graph
+inline mlir::SmallVector<GraphCSR::Node> dijkstra(const GraphCSR &graph,
+                                                      GraphCSR::Node src)
+{
+  mlir::SmallVector<bool> discovered(graph.getNumNodes(), false);
+  mlir::SmallVector<GraphCSR::Node> parents(graph.getNumNodes(), src);
+  mlir::SmallVector<int> distance(graph.getNumNodes(), INT_MAX);
+  mlir::SmallVector<GraphCSR::Node> queue;
+  queue.reserve(graph.getNumNodes());
+  queue.push_back(src);
+  distance[src.index]=0;
+  //std::size_t begin = 0;
+  for (std::size_t i=0; i<graph.getNumNodes();i++){
+    int min=INT_MAX,min_index;
+    for (std::size_t v=0;v<graph.getNumNodes();v++){
+      if (discovered[v]){
+        continue;
+      }
+      if (distance[v]<min){
+        min=distance[v],min_index=v;
+      }
+    }
+    discovered[min_index]=true;
+    auto node=graph.retrieveNode(min_index);
+    int count=0;
+    mlir::ArrayRef<int> neighweights=graph.getNeighboursWeights(node);
+    for (auto neighbour : graph.getNeighbours(node)){
+      int new_dist= min+neighweights[count];
+      if (discovered[neighbour.index]){
+        continue;
+      }
+      if (new_dist< distance[neighbour.index]){
+        distance[neighbour.index]=new_dist;
+        parents[neighbour.index]=node;
+      }
+    }
+
+  }
+
+  return parents;
+}
+
+
 } // namespace cudaq

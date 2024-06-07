@@ -57,7 +57,7 @@ struct VirtualOp {
   SmallVector<Placement::VirtualQ, 2> qubits;
 
   VirtualOp(mlir::Operation *op, ArrayRef<Placement::VirtualQ> qubits)
-      : op(op), qubits(qubits) {}
+      : op(op), qubits(qubits) {} // Ranjani: array of virtual qubits?
 };
 
 /// The `SabreRouter` class is modified implementation of the following paper:
@@ -226,6 +226,7 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
 
   return success();
 }
+
 LogicalResult SabreRouter::mapFrontLayer() {
   bool mappedAtLeastOne = false;
   SmallVector<VirtualOp> newFrontLayer;
@@ -562,9 +563,11 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
     SmallVector<std::size_t> userQubitsMeasured;
     DenseMap<std::size_t, Value> finalQubitWire;
+    int i=0;
     for (Operation &op : block.getOperations()) {
       if (auto qop = dyn_cast<quake::NullWireOp>(op)) {
         // Assign a new virtual qubit to the resulting wire.
+        i++;
         wireToVirtualQ[qop.getResult()] = Placement::VirtualQ(sources.size());
         finalQubitWire[sources.size()] = qop.getResult();
         sources.push_back(qop);

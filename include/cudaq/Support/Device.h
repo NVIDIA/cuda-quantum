@@ -65,8 +65,9 @@ public:
                   break;
                 }
               }
+          
               if (!edgeAlreadyExists)
-                device.topology.addEdge(Qubit(v1), Qubit(v2));
+                device.topology.addWeightedEdge(Qubit(v1), Qubit(v2));
               // Prepare for next iteration (removing comma)
               line = line.ltrim(" \t\n\v\f\r,");
             }
@@ -172,7 +173,7 @@ public:
   /// Returns the distance between two qubits.
   unsigned getDistance(Qubit src, Qubit dst) const {
     unsigned pairID = getPairID(src.index, dst.index);
-    return src == dst ? 0 : shortestPaths[pairID].size() - 1;
+    return src == dst ? 0 : shortestPathsWeights[pairID];
   }
 
   mlir::ArrayRef<Qubit> getNeighbours(Qubit src) const {
@@ -198,7 +199,7 @@ public:
     for (unsigned src = 0; src < getNumQubits(); ++src)
       for (unsigned dst = 0; dst < getNumQubits(); ++dst) {
         auto path = getShortestPath(Qubit(src), Qubit(dst));
-        os << '(' << src << ", " << dst << ") : {";
+        os << '(' << src << ", " << dst <<", "<<getDistance(Qubit(src),Qubit(dst))<< ") : {";
         llvm::interleaveComma(path, os);
         os << "}\n";
       }
@@ -218,7 +219,7 @@ private:
   /// Compute the shortest path between every qubit. This assumes that there
   /// exists at least one path between every source and destination pair. I.e.
   /// the graph cannot be bipartite.
-  void computeAllPairShortestPaths() {
+ /* void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
     mlir::SmallVector<Qubit> path(numNodes);
@@ -239,6 +240,45 @@ private:
             PathRef(pathsData.end() - path.size(), pathsData.end());
       }
     }
+  }*/
+  void computeAllPairShortestPaths() {
+    std::size_t numNodes = topology.getNumNodes();
+    shortestPaths.resize(numNodes * (numNodes + 1) / 2);
+    mlir::SmallVector<Qubit> path(numNodes);
+    int weights=0;
+    for (unsigned n = 0; n < numNodes; ++n) {
+      auto parents = dijkstra(topology, Qubit(n));
+      // Reconstruct the paths
+      for (auto m = n + 1; m < numNodes; ++m) {
+        weights=0;
+        path.clear();
+        path.push_back(Qubit(m));
+        auto p = parents[m];
+        if (p==Qubit(n)){
+          int check =0;
+          for (auto neighbour : topology.getNeighbours(Qubit(n))){
+            if (neighbour==p){
+              check=1;
+            }
+          }
+          if (check==0){
+            topology.addWeightedEdge(Qubit(m),Qubit(n),INT_MAX);
+            weights+=INT_MAX;
+          }
+          
+        }
+        while (p != Qubit(n)) {
+          path.push_back(p);
+          weights+=1;
+          p = parents[p.index];
+        }
+        path.push_back(Qubit(n));
+        pathsData.append(path.rbegin(), path.rend());
+        shortestPathsWeights[getPairID(n, m)] = weights;
+        shortestPaths[getPairID(n, m)] =
+            PathRef(pathsData.end() - path.size(), pathsData.end());
+      }
+    }
   }
 
   /// Device nodes (qubits) and edges (connections)
@@ -246,6 +286,7 @@ private:
 
   /// List of shortest path from/to every source/destination
   mlir::SmallVector<PathRef> shortestPaths;
+  mlir::SmallVector<int> shortestPathsWeights;
 
   /// Storage for `PathRef`'s in `shortestPaths`
   mlir::SmallVector<Qubit> pathsData;

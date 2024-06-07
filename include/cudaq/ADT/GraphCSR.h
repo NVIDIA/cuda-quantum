@@ -44,15 +44,27 @@ public:
   Node createNode() {
     Node node(getNumNodes());
     nodeOffsets.push_back(edges.size());
+    vertices.push_back(node);
     return node;
   }
 
+  Node retrieveNode(int index) const{
+    return vertices[index];
+  }
   void addEdge(Node src, Node dst, bool undirected = true) {
     assert(src.isValid() && "Invalid source node");
     assert(dst.isValid() && "Invalid destination node");
     addEdgeImpl(src, dst);
     if (undirected)
       addEdgeImpl(dst, src);
+  }
+
+  void addWeightedEdge(Node src, Node dst, int weight=1, bool undirected = true) {
+    assert(src.isValid() && "Invalid source node");
+    assert(dst.isValid() && "Invalid destination node");
+    addEdgeImplWeighted(src, dst, weight);
+    if (undirected)
+      addEdgeImplWeighted(dst, src, weight);
   }
 
   std::size_t getNumNodes() const { return nodeOffsets.size(); }
@@ -66,6 +78,16 @@ public:
                    ? edges.end()
                    : edges.begin() + nodeOffsets[node.index + 1];
     return mlir::ArrayRef<Node>(begin, end);
+  }
+
+  mlir::ArrayRef<int> getNeighboursWeights(Node node) const {
+    assert(node.isValid() && "Invalid node");
+    auto begin = weights.begin() + nodeOffsets[node.index];
+    auto end = node == Node(getNumNodes() - 1)
+                   ? weights.end()
+                   : weights.begin() + nodeOffsets[node.index + 1];
+    
+    return mlir::ArrayRef<int>(begin, end);
   }
 
   LLVM_DUMP_METHOD void dump(llvm::raw_ostream &os = llvm::errs()) const {
@@ -125,12 +147,32 @@ private:
                    [](Offset offset) { return offset + 1; });
   }
 
+  void addEdgeImplWeighted(Node src, Node dst, int weight) {
+    // If the source node is the last node, we just need push-back edges.
+    if (src == Node(getNumNodes() - 1)) {
+      edges.push_back(dst);
+      weights.push_back(weight);
+      return;
+    }
+
+    // Insert the destination node in the offset.
+    edges.insert(edges.begin() + nodeOffsets[src.index], dst);
+    weights.insert(weights.begin() + nodeOffsets[src.index], weight);
+    // Update the offsets of all nodes that have an ID greater than `src`.
+    src.index += 1;
+    std::transform(nodeOffsets.begin() + src.index, nodeOffsets.end(),
+                   nodeOffsets.begin() + src.index,
+                   [](Offset offset) { return offset + 1; });
+  }
+
   /// Each entry in this vector contains the starting index in the edge array
   /// where the edges from that node are stored.
   mlir::SmallVector<Offset> nodeOffsets;
 
   // Stores the destination vertices of each edge.
   mlir::SmallVector<Node> edges;
+  mlir::SmallVector<Node> vertices;
+  mlir::SmallVector<int> weights;
 };
 
 } // namespace cudaq
