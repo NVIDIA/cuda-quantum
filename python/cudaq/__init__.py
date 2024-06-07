@@ -104,6 +104,9 @@ ComplexMatrix = cudaq_runtime.ComplexMatrix
 to_qir = cudaq_runtime.get_qir
 testing = cudaq_runtime.testing
 
+# target-specific
+orca = cudaq_runtime.orca
+
 
 def synthesize(kernel, *args):
     # Compile if necessary, no-op if already compiled
@@ -126,6 +129,14 @@ from .dbg import ast
 
 initKwargs = {}
 
+# Look for --target=<target> options
+for p in sys.argv:
+    split_params = p.split('=')
+    if len(split_params) == 2:
+        if split_params[0] in ['-target', '--target']:
+            initKwargs['target'] = split_params[1]
+
+# Look for --target <target> (with a space)
 if '-target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
 if '--target' in sys.argv:
