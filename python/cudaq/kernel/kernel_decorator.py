@@ -184,7 +184,7 @@ class PyKernelDecorator(object):
         """
         Return the SVG representation of `self` (:class:`PyKernelDecorator`).
         This assumes no arguments are required to execute the kernel,
-        and latex (with quantikz package) and dvisvgm are installed,
+        and `latex` (with `quantikz` package) and `dvisvgm` are installed,
         and the temporary directory is writable.
         If any of these assumptions fail, returns None.
         """
