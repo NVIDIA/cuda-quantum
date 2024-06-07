@@ -17,7 +17,7 @@ def getSVGstring(kernel, *args):
     with TemporaryDirectory() as tmpdirname:
         with open(tmpdirname + "/cudaq-trace.tex", "w") as f:
             f.write(latex_string)
-        # this needs latex and quantikz to be installed, e.g. apt's texlive-latex-extra
+        # this needs `latex` and `quantikz` to be installed, e.g. through `apt install texlive-latex-extra`
         check_output(["latex", "cudaq-trace"], cwd=tmpdirname, stderr=STDOUT)
         check_output(["dvisvgm", "cudaq-trace"], cwd=tmpdirname, stderr=STDOUT)
         with open(tmpdirname + "/cudaq-trace.svg", "rb") as f:
