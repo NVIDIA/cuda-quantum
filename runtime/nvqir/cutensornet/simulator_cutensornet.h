@@ -46,6 +46,8 @@ public:
   /// @brief Perform a measurement on a given qubit
   virtual bool measureQubit(const std::size_t qubitIdx) override;
 
+  QubitOrdering getQubitOrdering() const override { return QubitOrdering::msb; }
+
   /// @brief Sample a subset of qubits
   virtual cudaq::ExecutionResult
   sample(const std::vector<std::size_t> &measuredBits,
