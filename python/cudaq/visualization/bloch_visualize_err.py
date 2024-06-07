@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+
 def install_qutip_request():
     print(
         "The module QuTiP was not detected. Bloch Sphere visualization will not work.\nPlease install QuTip to use this feature. You can run \"pip install qutip\" or in a conda environment, run \"conda -c conda-forge install qutip\" to install qutip. "

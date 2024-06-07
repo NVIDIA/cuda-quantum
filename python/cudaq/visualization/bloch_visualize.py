@@ -12,8 +12,8 @@ from math import isclose  # builtin
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-
 from qutip import Qobj, Bloch
+
 
 def add_to_bloch_sphere(psi: cudaq_runtime.State,
                         existing_sphere=None,
@@ -35,7 +35,7 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
             existing_sphere [Optional]: 
                 A qutip.Bloch object. If a valid qutip.Bloch sphere object is not supplied, then creates a new sphere with the vector representing the supplied state.
             kwargs [Optional]:
-                Optional kwargs to be passed to QuTiP during Bloch sphere initialization. 
+                Optional keyword arguments  to be passed to QuTiP during Bloch sphere initialization. 
         Returns:
         --------
             Bloch sphere object. In case existing_sphere is supplied, returns a Bloch sphere with a copy of its existing data, with added data of psi.  
@@ -72,7 +72,7 @@ def show_bloch_sphere(sphere_data=None, ncols=2, nrows=1) -> None:
         Arguments:
         ----------
             sphere_data: 
-                A Bloch object or list of Bloch objects. This is fully interoperable with qutip.Bloch objects from QuTiP.
+                An existing qutip.Bloch object or list of qutip.Bloch objects. This is fully interoperational with qutip. Bloch-sphere objects from QuTiP.
             ncols [Optional]:
                 Number of columns in the figure, defaults to 2. In case sphere_data contains a list of Bloch spheres, this argument attempts to fit a maximum of ncols columns in the figure.
             nrows [Optional]:
