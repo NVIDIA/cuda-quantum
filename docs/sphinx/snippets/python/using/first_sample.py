@@ -20,6 +20,7 @@ def kernel(qubit_count: int):
 
 #[Begin Sample1]
 qubit_count = 2
+print(cudaq.draw(kernel, qubit_count))
 results = cudaq.sample(kernel, qubit_count)
 # Should see a roughly 50/50 distribution between the |00> and
 # |11> states. Example: {00: 505  11: 495}
