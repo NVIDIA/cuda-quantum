@@ -11,8 +11,8 @@ involving multiple architectures working in tandem.
     
     targets = cudaq.get_targets()
     
-    # for target in targets:
-    #     print(target)
+    for target in targets:
+        print(target)
 
 Available Targets
 ~~~~~~~~~~~~~~~~~
@@ -117,7 +117,7 @@ Multiple QPUs
 The ``nvidia-mqpu`` backend allows for future multi-QPUs workflows made possible
 via GPU simulation today.
 
-Asynchronous data collection via batching Hamiltonian terms
+Asynchronous Data Collection via Batching Hamiltonian Terms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Expectation value computations of multi-term hamiltonians can be
@@ -181,7 +181,8 @@ specifying the number of GPUs you have access to.
     rank 0 num_ranks 1
 
 
-Asynchronous data collection via circuit batching
+Asynchronous Data Collection via Circuit Batching
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Execution of parameterized circuits with different parameters can be
 executed asynchronously via the ``mqpu`` platform.

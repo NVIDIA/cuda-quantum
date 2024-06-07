@@ -2,6 +2,9 @@ Running your first CUDA-Q Program
 ----------------------------------------
 
 Now that you have defined your first quantum kernel, let's look at different options for how to execute it.
+In CUDA-Q, quantum circuits are stored as quantum kernels. For estimating the probability distribution of 
+a measured quantum state in a circuit, we use the ``sample`` function call, and for computing the
+expectation value of a quantum state with a given observable, we use the ``observe`` function call.
 
 Sample
 ++++++++

@@ -1,4 +1,4 @@
-Quantum Bits
+Quantum Operations
 ============
 
 Qubit
@@ -37,7 +37,7 @@ to scale logarithmically. Similarly we define a qubit to have the states
 
 .. math:: \ket{1} = \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix}
 
-Pauli X gate
+Pauli X Gate
 ------------
 
 We can manipulate the state of the qubit via quantum gates. The pauli X
@@ -143,7 +143,7 @@ For completeness:
 
 .. math::  H \ket{1} =  \tfrac{1}{\sqrt{2}} \ket{0} - \tfrac{1}{\sqrt{2}} \ket{1}  \equiv \ket{-}
 
-Qubit visualizations
+Qubit Visualizations
 --------------------
 
 What are the possible states our qubit can be in and how can we build up
@@ -163,9 +163,9 @@ with :math:`\ket{+i}` and :math:`\ket{-i}`, this calls for a 3-D
 extension.
 
 It turns out that a sphere is able to depict all the possible states of
-a single qubit as shown in figure below:
+a single qubit. This is called a Bloch sphere and as shown in figure below:
 
-Gate linearity
+Gate Linearity
 --------------
 
 Lets manipulate a single qubit:
@@ -189,7 +189,7 @@ superposition state. Although we have two kets, they both represent a
 superposition state of one qubit. We shall explore multiple qubits and
 their notation in the next chapter.
 
-Gate unitarity
+Gate Unitarity
 --------------
 
 As we evolve quantum states via quantum gates, the normalization
@@ -205,7 +205,7 @@ For a general quantum state :math:`\ket{\psi}`, upholding the
 normalisation condition requires quantum gates to be unitary, that is
 :math:`U^{\dagger}U = U^{*^{T}}U = \mathbb{I}`.
 
-Single qubit gates
+Single Qubit Gates
 ------------------
 
 Below we summarise a few single qubit gates and their effects on quantum
@@ -251,7 +251,7 @@ qubits to do so. The art of quantum computation is thus to build quantum
 systems that we can manipulate with fine precision such that evolving a
 large statevector can be offloaded onto a quantum computer.
 
-Some notation conventions
+Some Notation Conventions
 -------------------------
 
 Qubit counting starts from 0 and the 0th qubit is represented on the
@@ -280,9 +280,7 @@ shown. Below we see how this is done in CUDA-Q.
         mz(qvector[0])
         mz(qvector[1])
     
-    
     print(cudaq.draw(kernel))
-    
     result = cudaq.sample(kernel)
     print(result)
 
@@ -297,7 +295,7 @@ shown. Below we see how this is done in CUDA-Q.
     
 
 
-Controlled-NOT gate
+Controlled-NOT Gate
 -------------------
 
 Analogous to classical computing, we now introduce multi-qubit gates to
