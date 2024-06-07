@@ -89,7 +89,8 @@ mlir::Type genArgumentBufferType(mlir::Type ty);
 /// ```
 /// where the values of the vector argument are pass-by-value and appended to
 /// the end of the struct as a sequence of \i n double values.
-cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy);
+cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy,
+                                            std::size_t startingArgIdx = 0);
 
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {

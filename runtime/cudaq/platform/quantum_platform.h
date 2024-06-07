@@ -131,7 +131,7 @@ public:
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
-  void launchVQE(const std::string kernelName, void (*kernelFunc)(void *),
+  void launchVQE(const std::string kernelName, void *kernelArgs,
                  cudaq::spin_op H, cudaq::optimizer &optimizer,
                  const int n_params, const std::size_t shots);
 

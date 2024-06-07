@@ -100,7 +100,8 @@ public:
   std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
                                      const std::string &name,
                                      void (*kernelFunc)(void *), void *args,
-                                     std::uint64_t voidStarSize) {
+                                     std::uint64_t voidStarSize,
+                                     std::size_t startingArgIdx) {
     if (cudaq::__internal__::isLibraryMode(name)) {
       // Library mode: retrieve the embedded bitcode in the executable.
       const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
@@ -153,7 +154,8 @@ public:
       if (args) {
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
+        pm.addPass(
+            cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx));
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
@@ -188,13 +190,10 @@ public:
       return llvm::encodeBase64(mlirCode);
     }
   }
-  cudaq::RestRequest constructVQEJobRequest(mlir::MLIRContext &mlirContext,
-                                            cudaq::ExecutionContext &io_context,
-                                            const std::string &backendSimName,
-                                            const std::string &kernelName,
-                                            void (*kernelFunc)(void *),
-                                            cudaq::optimizer &optimizer,
-                                            const int n_params) {
+  cudaq::RestRequest constructVQEJobRequest(
+      mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+      const std::string &backendSimName, const std::string &kernelName,
+      void *kernelArgs, cudaq::optimizer &optimizer, const int n_params) {
     cudaq::RestRequest request(io_context, version());
 
     request.optimizer_n_params = n_params;
@@ -204,9 +203,10 @@ public:
     request.entryPoint = kernelName;
     request.passes = serverPasses;
     request.format = cudaq::CodeFormat::MLIR;
-    request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                          /*kernelArgs=*/nullptr,
-                                          /*argsSize=*/0);
+    request.code =
+        constructKernelPayload(mlirContext, kernelName, /*kernelFunc=*/nullptr,
+                               /*kernelArgs=*/kernelArgs,
+                               /*argsSize=*/0, /*startingArgIdx=*/1);
     request.simulator = backendSimName;
     // Remote server seed
     // Note: unlike local executions whereby a static instance of the simulator
@@ -254,8 +254,9 @@ public:
       request.format = cudaq::CodeFormat::MLIR;
     }
 
-    request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                          kernelArgs, argsSize);
+    request.code =
+        constructKernelPayload(mlirContext, kernelName, kernelFunc, kernelArgs,
+                               argsSize, /*startingArgIdx=*/0);
     request.simulator = backendSimName;
     // Remote server seed
     // Note: unlike local executions whereby a static instance of the simulator
@@ -278,14 +279,13 @@ public:
   virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
                               cudaq::ExecutionContext &io_context,
                               const std::string &backendSimName,
-                              const std::string &kernelName,
-                              void (*kernelFunc)(void *),
+                              const std::string &kernelName, void *kernelArgs,
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg) override {
     // Todo
     cudaq::RestRequest request =
         constructVQEJobRequest(mlirContext, io_context, backendSimName,
-                               kernelName, kernelFunc, optimizer, n_params);
+                               kernelName, kernelArgs, optimizer, n_params);
     if (request.code.empty()) {
       if (optionalErrorMsg)
         *optionalErrorMsg =

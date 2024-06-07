@@ -294,16 +294,24 @@ protected:
   // The raw pointer to the runtime arguments.
   void *args;
 
+  // The starting argument index to synthesize. Typically 0 but may be >0 for
+  // partial synthesis. If >0, it is assumed that the first argument(s) are NOT
+  // in `args`.
+  std::size_t startingArgIdx = 0;
+
 public:
   QuakeSynthesizer() = default;
   QuakeSynthesizer(std::string_view kernel, void *a)
       : kernelName(kernel), args(a) {}
+  QuakeSynthesizer(std::string_view kernel, void *a, std::size_t s)
+      : kernelName(kernel), args(a), startingArgIdx(s) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
   std::pair<std::size_t, std::vector<std::size_t>>
   getTargetLayout(FunctionType funcTy) {
-    auto bufferTy = cudaq::opt::factory::buildInvokeStructType(funcTy);
+    auto bufferTy =
+        cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
     StringRef dataLayoutSpec = "";
     if (auto attr =
             getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
@@ -353,9 +361,11 @@ public:
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
 
     for (auto iter : llvm::enumerate(arguments)) {
+      if (iter.index() < startingArgIdx)
+        continue;
       auto argNum = iter.index();
       auto argument = iter.value();
-      std::size_t offset = structLayout.second[argNum];
+      std::size_t offset = structLayout.second[argNum - startingArgIdx];
 
       // Get the argument type
       auto type = argument.getType();
@@ -539,7 +549,8 @@ public:
     // Remove the old arguments.
     auto numArgs = funcOp.getNumArguments();
     BitVector argsToErase(numArgs);
-    for (std::size_t argIndex = 0; argIndex < numArgs; ++argIndex) {
+    for (std::size_t argIndex = startingArgIdx; argIndex < numArgs;
+         ++argIndex) {
       argsToErase.set(argIndex);
       if (!funcOp.getBody().front().getArgument(argIndex).getUses().empty()) {
         funcOp.emitError("argument(s) still in use after synthesis.");
@@ -560,4 +571,10 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 std::unique_ptr<mlir::Pass>
 cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, void *a) {
   return std::make_unique<QuakeSynthesizer>(kernelName, a);
+}
+
+std::unique_ptr<mlir::Pass>
+cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, void *a,
+                                   std::size_t startingArgIdx) {
+  return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx);
 }

@@ -67,9 +67,9 @@ public:
     execution_queue->enqueue(task);
   }
 
-  void launchVQE(const std::string &name, void (*kernelFunc)(void *),
-                 cudaq::spin_op H, cudaq::optimizer &optimizer,
-                 const int n_params, const std::size_t shots) override {
+  void launchVQE(const std::string &name, void *kernelArgs, cudaq::spin_op H,
+                 cudaq::optimizer &optimizer, const int n_params,
+                 const std::size_t shots) override {
     cudaq::ExecutionContext *executionContextPtr =
         [&]() -> cudaq::ExecutionContext * {
       std::scoped_lock<std::mutex> lock(m_contextMutex);
@@ -90,7 +90,7 @@ public:
 
     std::string errorMsg;
     const bool requestOkay = m_client->sendVQERequest(
-        *m_mlirContext, *executionContextPtr, m_simName, name, kernelFunc,
+        *m_mlirContext, *executionContextPtr, m_simName, name, kernelArgs,
         optimizer, n_params, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);

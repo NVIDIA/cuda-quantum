@@ -74,7 +74,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
     ctx->spin = &H;
     platform.set_exec_ctx(ctx.get());
     platform.launchVQE(cudaq::getKernelName(kernel),
-                       /*kernelFunc=*/nullptr, H, optimizer, n_params,
+                       /*kernelArgs=*/nullptr, H, optimizer, n_params,
                        /*shots=*/0);
     platform.reset_exec_ctx();
     return ctx->optResult.value_or(optimization_result{});
@@ -423,9 +423,29 @@ template <typename QuantumKernel, typename Tuple,
 optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
                         const int n_params, Tuple tupleArgs) {
-  if (cudaq::get_platform().is_remote(
-          cudaq::get_platform().get_current_qpu())) {
-    // Do one thing for remote
+  auto &platform = cudaq::get_platform();
+  if (platform.supports_remote_vqe()) {
+    // NVQC - need to make a wrapped kernel?
+#ifdef CUDAQ_LIBRARY_MODE
+    return optimization_result{}; // FIXME, throw error
+#else
+    // Synthesize all args except the first, which should the the
+    // std::vector<double> optimization parameters.
+    // constexpr auto argBufferSize = sizeof(tupleArgs);
+    // std::string newName = synthesizeAllButFirst(cudaq::getKernelName(kernel),
+    // tupleArgs.FIXME);
+
+    auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
+    ctx->kernelName = cudaq::getKernelName(kernel);
+    ctx->spin = &H;
+    platform.set_exec_ctx(ctx.get());
+    platform.launchVQE(
+        cudaq::getKernelName(kernel),
+        /*kernelArgs=*/(void *)&tupleArgs, H, optimizer, n_params,
+        /*shots=*/0); // FIXME - this probably doesn't work for std::vector
+    platform.reset_exec_ctx();
+    return ctx->optResult.value_or(optimization_result{});
+#endif
   }
   bool requiresGrad = optimizer.requiresGradients();
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
