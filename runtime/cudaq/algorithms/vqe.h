@@ -52,11 +52,14 @@ namespace cudaq {
 /// auto [val, params] = cudaq::vqe(ansatz{}, H, optimizer, 1);
 /// \endcode
 ///
-template <typename QuantumKernel>
+template <typename QuantumKernel, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>>>
 optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
-                        cudaq::optimizer &optimizer, const int n_params) {
+                        cudaq::optimizer &optimizer, const int n_params,
+                        Args &&...args) {
   static_assert(
-      std::is_invocable_v<QuantumKernel, std::vector<double>>,
+      std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>,
       "Invalid parameterized quantum kernel expression. Must have "
       "void(std::vector<double>) signature, or provide "
       "std::tuple<Args...>(std::vector<double>) ArgMapper function object.");
@@ -73,6 +76,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
     ctx->kernelName = cudaq::getKernelName(kernel);
     ctx->spin = &H;
     platform.set_exec_ctx(ctx.get());
+    auto serializedArgsBuffer = serializeArgs(args...);
     platform.launchVQE(cudaq::getKernelName(kernel),
                        /*kernelArgs=*/nullptr, H, optimizer, n_params,
                        /*shots=*/0);
@@ -82,7 +86,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
-    double e = cudaq::observe(kernel, H, x);
+    double e = cudaq::observe(kernel, H, x, args...);
     return e;
   });
 }
@@ -127,12 +131,14 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 /// auto [val, params] = cudaq::vqe(/*shots*/ 100, ansatz{}, H, optimizer, 1);
 /// \endcode
 ///
-template <typename QuantumKernel>
+template <typename QuantumKernel, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>>>
 optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
-                        const int n_params) {
+                        const int n_params, Args &&...args) {
   static_assert(
-      std::is_invocable_v<QuantumKernel, std::vector<double>>,
+      std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>,
       "Invalid parameterized quantum kernel expression. Must have "
       "void(std::vector<double>) signature, or provide "
       "std::tuple<Args...>(std::vector<double>) ArgMapper function object.");
@@ -141,9 +147,24 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
                                 "Please provide a cudaq::gradient instance.");
   }
 
+  auto &platform = cudaq::get_platform();
+  if (platform.supports_remote_vqe()) {
+    // NVQC
+    // Create the execution context.
+    auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/shots);
+    ctx->kernelName = cudaq::getKernelName(kernel);
+    ctx->spin = &H;
+    platform.set_exec_ctx(ctx.get());
+    platform.launchVQE(cudaq::getKernelName(kernel),
+                       /*kernelArgs=*/nullptr, H, optimizer, n_params,
+                       /*shots=*/shots);
+    platform.reset_exec_ctx();
+    return ctx->optResult.value_or(optimization_result{});
+  }
+
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
-    double e = cudaq::observe(shots, kernel, H, x);
+    double e = cudaq::observe(shots, kernel, H, x, args...);
     return e;
   });
 }
@@ -191,10 +212,12 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 ///     cudaq::vqe(ansatz, gradient, H, optimizer, 1);
 /// \endcode
 ///
-template <typename QuantumKernel>
+template <typename QuantumKernel, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>>>
 optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
-                        const int n_params) {
+                        const int n_params, Args &&...args) {
   static_assert(
       std::is_invocable_v<QuantumKernel, std::vector<double>>,
       "Invalid parameterized quantum kernel expression. Must have "
@@ -203,7 +226,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
   auto requires_grad = optimizer.requiresGradients();
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
-    double e = cudaq::observe(kernel, H, x);
+    double e = cudaq::observe(kernel, H, x, args...);
     if (requires_grad) {
       gradient.compute(x, grad_vec, H, e);
     }
