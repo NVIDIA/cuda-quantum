@@ -114,6 +114,9 @@ public:
   /// @brief Return true if QPU is locally emulating a remote QPU
   bool is_emulated(const std::size_t qpuId = 0) const;
 
+  /// @brief Return whether the QPU has support for fully remote VQE execution
+  bool supports_remote_vqe(const std::size_t qpuId = 0) const;
+
   /// @brief Set the noise model for future invocations of
   /// quantum kernels.
   void set_noise(const noise_model *model);

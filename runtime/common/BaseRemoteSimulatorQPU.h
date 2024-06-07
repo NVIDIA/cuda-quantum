@@ -45,6 +45,10 @@ public:
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
 
+  // VQE is executed fully on the server without the need to go back and forth
+  // in between observe calls
+  virtual bool supportsRemoteVQE() override { return true; }
+
   virtual void setTargetBackend(const std::string &backend) override {
     auto parts = cudaq::split(backend, ';');
     if (parts.size() % 2 != 0)
@@ -57,8 +61,6 @@ public:
         m_simName = parts[i + 1];
     }
   }
-
-  // virtual bool isRemote() override { return false; }
 
   void enqueue(cudaq::QuantumTask &task) override {
     cudaq::info("BaseRemoteSimulatorQPU: Enqueue Task on QPU {}", qpu_id);

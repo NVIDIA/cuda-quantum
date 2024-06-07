@@ -136,6 +136,9 @@ public:
   /// @brief Return whether this QPU has conditional feedback support
   virtual bool supportsConditionalFeedback() { return false; }
 
+  /// @brief Return whether this QPU has remote VQE execution support
+  virtual bool supportsRemoteVQE() { return false; }
+
   /// Base class handling of shots is do-nothing,
   /// subclasses can handle as they wish
   virtual void setShots(int _nShots) {}

@@ -126,6 +126,10 @@ bool quantum_platform::supports_conditional_feedback(
   return platformQPUs[qpu_id]->supportsConditionalFeedback();
 }
 
+bool quantum_platform::supports_remote_vqe(const std::size_t qpu_id) const {
+  return platformQPUs[qpu_id]->supportsRemoteVQE();
+}
+
 void quantum_platform::launchVQE(const std::string kernelName,
                                  void (*kernelFunc)(void *), cudaq::spin_op H,
                                  cudaq::optimizer &optimizer,

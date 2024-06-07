@@ -65,19 +65,17 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
                                 "Please provide a cudaq::gradient instance.");
   }
 
-  // Set the platform and the qpu id.
-  // Create the execution context.
-  auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
-  ctx->kernelName = cudaq::getKernelName(kernel);
-  ctx->spin = &H;
   auto &platform = cudaq::get_platform();
-  platform.set_exec_ctx(ctx.get());
-
-  if (platform.is_remote() && platform.is_simulator()) {
+  if (platform.supports_remote_vqe()) {
     // NVQC
-    cudaq::get_platform().launchVQE(cudaq::getKernelName(kernel),
-                                    /*kernelFunc=*/nullptr, H, optimizer,
-                                    n_params, /*shots=*/0);
+    // Create the execution context.
+    auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
+    ctx->kernelName = cudaq::getKernelName(kernel);
+    ctx->spin = &H;
+    platform.set_exec_ctx(ctx.get());
+    platform.launchVQE(cudaq::getKernelName(kernel),
+                       /*kernelFunc=*/nullptr, H, optimizer, n_params,
+                       /*shots=*/0);
     platform.reset_exec_ctx();
     return ctx->optResult.value_or(optimization_result{});
   }
