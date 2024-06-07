@@ -63,16 +63,17 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
 
 def show_bloch_sphere(sphere_data=None, ncols=2, nrows=1) -> None:
     """
-        Render the Bloch sphere(s) into a figure. In case a list of 
+        Render the Bloch sphere(s) into a figure. In case a list of Bloch spheres is provided, then render all (or some)
+        of the Bloch spheres into a figure defined by a grid of `nrows` rows and `ncols` columns.
 
         Signature:
         ----------
-            show(sphere_data: Bloch object or list thereof , ncols [Optional] = 2)
+            show(sphere_data: Bloch object or list thereof , ncols [Optional] = 2, nrows [Optional] = 1)
 
         Arguments:
         ----------
             sphere_data: 
-                An existing qutip.Bloch object or list of qutip.Bloch objects. This is fully interoperational with qutip. Bloch-sphere objects from QuTiP.
+                An existing qutip.Bloch object or list of qutip.Bloch objects. This is fully interoperational with Bloch sphere objects from QuTiP.
             ncols [Optional]:
                 Number of columns in the figure, defaults to 2. In case sphere_data contains a list of Bloch spheres, this argument attempts to fit a maximum of ncols columns in the figure.
             nrows [Optional]:
