@@ -508,7 +508,7 @@ LogicalResult quake::InitializeStateOp::verify() {
 
 namespace {
 // %22 = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<?>
-// ───────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────
 // %22' = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<k>
 // %22 = quake.relax_size %22' : (!quake.veq<k>) -> !quake.veq<?>
 struct ForwardAllocaTypePattern
