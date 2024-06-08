@@ -143,8 +143,17 @@ inline void from_json(const json &j, ExecutionContext &context) {
 
     // Create the simulation specific SimulationState
     auto *simulator = cudaq::get_simulator();
-    context.simulationState = simulator->createStateFromData(
-        std::make_pair(stateData.data(), stateDim[0]));
+    if (simulator->isSinglePrecision()) {
+      // If the host (local) simulator is single-precision, convert the type
+      // before loading the state vector.
+      std::vector<std::complex<float>> converted(stateData.begin(),
+                                                 stateData.end());
+      context.simulationState = simulator->createStateFromData(
+          std::make_pair(converted.data(), stateDim[0]));
+    } else {
+      context.simulationState = simulator->createStateFromData(
+          std::make_pair(stateData.data(), stateDim[0]));
+    }
   }
 
   if (j.contains("registerNames"))
