@@ -11,6 +11,7 @@
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/gradients.h"
 #include "cudaq/optimizers.h"
 #include "nlohmann/json.hpp"
 /*! \file
@@ -286,9 +287,25 @@ make_optimizer_from_json(const nlohmann::json &j, Optimizer optimizer_type) {
   return nullptr;
 }
 
-// inline void to_json(const nlohmann::json &j, cudaq::optimizers::lbfgs p) {
-//   to_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen>(p));
-// }
+enum class Gradient { CENTRAL_DIFF, FORWARD_DIFF, PARAMETER_SHIFT };
+NLOHMANN_JSON_SERIALIZE_ENUM(Gradient, {JSON_ENUM(Gradient, CENTRAL_DIFF),
+                                        JSON_ENUM(Gradient, FORWARD_DIFF),
+                                        JSON_ENUM(Gradient, PARAMETER_SHIFT)});
+
+inline Gradient get_gradient_type(const cudaq::gradient &p) {
+  if (dynamic_cast<const cudaq::gradients::central_difference *>(&p))
+    return Gradient::CENTRAL_DIFF;
+  if (dynamic_cast<const cudaq::gradients::forward_difference *>(&p))
+    return Gradient::FORWARD_DIFF;
+  if (dynamic_cast<const cudaq::gradients::parameter_shift *>(&p))
+    return Gradient::PARAMETER_SHIFT;
+  __builtin_unreachable();
+}
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::central_difference, step);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::forward_difference, step);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::parameter_shift, shiftScalar);
+
 
 // Payload from client to server for a kernel execution.
 class RestRequest {
