@@ -181,6 +181,12 @@ protected:
                 simulator()->applyExpPauli(parameters[0], localC, localT, op);
               })
         .Default([&]() {
+          if (auto iter = registeredOperations.find(gateName);
+              iter != registeredOperations.end()) {
+            auto data = iter->second->unitary(parameters);
+            simulator()->applyCustomOperation(data, localC, localT, gateName);
+            return;
+          }
           throw std::runtime_error("[DefaultExecutionManager] invalid gate "
                                    "application requested " +
                                    gateName + ".");
