@@ -66,6 +66,22 @@ public:
     };
   }
 
+  template <typename QuantumKernel, typename... Args,
+            typename = std::enable_if_t<std::is_invocable_v<
+                QuantumKernel, std::vector<double>, Args...>>>
+  gradient(QuantumKernel &kernel, Args &&...args) {
+    // Serialize all the parameters except for the first std::vector<double>
+    // parameter. The serialized ones will be saved and used later during each
+    // ansatz_functor invocation.
+    serializedArgs = serializeArgs(std::forward<Args>(args)...);
+    ansatz_functor = [&](std::vector<double> x) {
+      cudaq::invokeCallableWithSerializedArgs<QuantumKernel,
+                                              std::decay_t<Args>...>(
+          x, serializedArgs.data(), serializedArgs.size(),
+          std::forward<QuantumKernel>(kernel));
+    };
+  }
+
   /// Constructor, takes a callable that must have the
   /// prescribed call signature (void(std::vector<double>))
   template <typename KernelT>
@@ -94,6 +110,10 @@ public:
           as_args);
     };
   }
+
+  // As an alternative to an ArgsMapper, we can have serialized arguments
+  // (excluding the initial std::vector<double> variational parameters).
+  std::vector<char> serializedArgs;
 
   /// Compute the current iterations gradient vector and update the
   /// provided vector<double reference (\p dx).

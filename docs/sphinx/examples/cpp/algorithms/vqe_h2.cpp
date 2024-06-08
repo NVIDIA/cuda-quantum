@@ -113,7 +113,12 @@ int main() {
   optimizer.initial_parameters = init_params;
   optimizer.max_eval = 20;
   optimizer.max_line_search_trials = 10;
-  cudaq::gradients::central_difference gradient(ansatz, argMapper);
+
+  // Both of these options produce the same answers right now.
+  // (at least locally). FIXME - add test, cleanup later.
+  // cudaq::gradients::central_difference gradient(ansatz, argMapper);
+  cudaq::gradients::central_difference gradient(ansatz, n_qubits, n_layers);
+
   auto [opt_val, opt_params] =
       cudaq::vqe(ansatz, gradient, H, optimizer, n_params, argMapper);
 

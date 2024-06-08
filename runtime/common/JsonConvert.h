@@ -304,8 +304,8 @@ inline Gradient get_gradient_type(const cudaq::gradient &p) {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::central_difference, step);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::forward_difference, step);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::parameter_shift, shiftScalar);
-
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::parameter_shift,
+                                   shiftScalar);
 
 // Payload from client to server for a kernel execution.
 class RestRequest {
