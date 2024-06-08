@@ -547,6 +547,7 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 // SubVeqOp
 //===----------------------------------------------------------------------===//
 
+namespace {
 struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -589,6 +590,7 @@ struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
     return failure();
   }
 };
+} // namespace
 
 Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
@@ -615,9 +617,35 @@ void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 // VeqSizeOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+struct FoldInitStateSizePattern : public OpRewritePattern<quake::VeqSizeOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  // %11 = quake.init_state %_, %_ : (!quake.veq<2>, T1) -> !quake.veq<?>
+  // %12 = quake.veq_size %11 : (!quake.veq<?>) -> i64
+  // ────────────────────────────────────────────────────────────────────
+  // %11 = quake.init_state %_, %_ : (!quake.veq<2>, T1) -> !quake.veq<?>
+  // %12 = constant 2 : i64
+  LogicalResult matchAndRewrite(quake::VeqSizeOp veqSize,
+                                PatternRewriter &rewriter) const override {
+    Value veq = veqSize.getVeq();
+    if (auto initState = veq.getDefiningOp<quake::InitializeStateOp>())
+      if (auto veqTy =
+              dyn_cast<quake::VeqType>(initState.getTargets().getType())) {
+        std::size_t numQubits = veqTy.getSize();
+        rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, numQubits,
+                                                          veqSize.getType());
+        return success();
+      }
+    return failure();
+  }
+};
+} // namespace
+
 void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                    MLIRContext *context) {
-  patterns.add<ForwardConstantVeqSizePattern>(context);
+  patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
