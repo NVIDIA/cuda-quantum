@@ -8,8 +8,11 @@
 
 import cudaq
 import numpy as np
+import os
 
-cudaq.set_target("orca", url="http://localhost:8080/sample")
+orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost:8080/sample")
+
+cudaq.set_target("orca", url=orca_url)
 
 # [Documentation TODO]: Explanation of the following terms and APIs
 
