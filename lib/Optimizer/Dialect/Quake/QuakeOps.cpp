@@ -518,19 +518,17 @@ struct ForwardAllocaTypePattern
   LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
                                 PatternRewriter &rewriter) const override {
     if (auto isTy = dyn_cast<quake::VeqType>(initState.getType()))
-      if (!isTy.hasSpecifiedSize())
-        if (auto targTy =
-                dyn_cast<quake::VeqType>(initState.getTargets().getType()))
+      if (!isTy.hasSpecifiedSize()) {
+        auto targ = initState.getTargets();
+        if (auto targTy = dyn_cast<quake::VeqType>(targ.getType()))
           if (targTy.hasSpecifiedSize()) {
             auto newInit = rewriter.create<quake::InitializeStateOp>(
-                initState.getLoc(), targTy, initState.getTargets(),
-                initState.getState());
-            auto unsizedVeqTy =
-                quake::VeqType::getUnsized(rewriter.getContext());
-            rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(
-                initState, unsizedVeqTy, newInit);
+                initState.getLoc(), targTy, targ, initState.getState());
+            rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(initState, isTy,
+                                                            newInit);
             return success();
           }
+      }
     return failure();
   }
 };
