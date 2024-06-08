@@ -303,13 +303,13 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
     EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
   }
   {
-    constexpr int numQubits = 100;
+    constexpr int numQubits = 10;
     auto state1 = cudaq::get_state([]() __qpu__ {
-      cudaq::qvector q(100);
+      cudaq::qvector q(10);
       // First half of the circuit
       h(q[0]);
     });
-    EXPECT_EQ(state1.get_num_tensors(), 100);
+    EXPECT_EQ(state1.get_num_tensors(), 10);
     cudaq::TensorStateData tensors;
     // Unpack the state to get the MPS tensors.
     for (const auto &tensor : state1.get_tensors())

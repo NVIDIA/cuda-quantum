@@ -48,8 +48,31 @@ public:
                                                      m_cutnHandle);
     } else {
       // Expand an existing state: Append MPS tensors
-      throw std::runtime_error(
-          "[SimulatorMPS simulator] Expanding state is not supported");
+      // Factor the existing state
+      auto tensors = m_state->factorizeMPS(
+          m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+      // The right most MPS tensor needs to have one more extra leg (no longer
+      // the boundary tensor).
+      tensors.back().extents.emplace_back(1);
+      auto mpsTensors = casted->getMpsTensors();
+      for (std::size_t i = 0; i < mpsTensors.size(); ++i) {
+        auto &tensor = mpsTensors[i];
+        std::vector<int64_t> extents = tensor.extents;
+        if (i == 0) {
+          // First tensor: add a bond (dim 1 since no entanglement) to the
+          // existing state
+          extents.insert(extents.begin(), 1);
+        }
+        const auto numElements =
+            std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
+        const auto tensorSizeBytes = sizeof(std::complex<double>) * numElements;
+        void *mpsTensor{nullptr};
+        HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensor, tensorSizeBytes));
+        HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensor, tensor.deviceData,
+                                     tensorSizeBytes, cudaMemcpyDefault));
+        tensors.emplace_back(MPSTensor(mpsTensor, extents));
+      }
+      m_state = TensorNetState::createFromMpsTensors(tensors, m_cutnHandle);
     }
   }
 
