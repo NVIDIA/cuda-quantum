@@ -506,6 +506,41 @@ LogicalResult quake::InitializeStateOp::verify() {
   return success();
 }
 
+namespace {
+// %22 = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<?>
+// ───────────────────────────────────────────
+// %22' = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<k>
+// %22 = quake.relax_size %22' : (!quake.veq<k>) -> !quake.veq<?>
+struct ForwardAllocaTypePattern
+    : public OpRewritePattern<quake::InitializeStateOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
+                                PatternRewriter &rewriter) const override {
+    if (auto isTy = dyn_cast<quake::VeqType>(initState.getType()))
+      if (!isTy.hasSpecifiedSize())
+        if (auto targTy =
+                dyn_cast<quake::VeqType>(initState.getTargets().getType()))
+          if (targTy.hasSpecifiedSize()) {
+            auto newInit = rewriter.create<quake::InitializeStateOp>(
+                initState.getLoc(), targTy, initState.getTargets(),
+                initState.getState());
+            auto unsizedVeqTy =
+                quake::VeqType::getUnsized(rewriter.getContext());
+            rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(
+                initState, unsizedVeqTy, newInit);
+            return success();
+          }
+    return failure();
+  }
+};
+} // namespace
+
+void quake::InitializeStateOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardAllocaTypePattern>(context);
+}
+
 //===----------------------------------------------------------------------===//
 // RelaxSizeOp
 //===----------------------------------------------------------------------===//
@@ -516,6 +551,7 @@ LogicalResult quake::RelaxSizeOp::verify() {
   return success();
 }
 
+namespace {
 // Forward the argument to a relax_size to the users for all users that are
 // quake operations. All quake ops that take a sized veq argument are
 // polymorphic on all veq types. If the op is not a quake op, then maintain
@@ -537,6 +573,7 @@ struct ForwardRelaxedSizePattern : public RewritePattern {
     return success();
   };
 };
+} // namespace
 
 void quake::RelaxSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
@@ -631,12 +668,13 @@ struct FoldInitStateSizePattern : public OpRewritePattern<quake::VeqSizeOp> {
     Value veq = veqSize.getVeq();
     if (auto initState = veq.getDefiningOp<quake::InitializeStateOp>())
       if (auto veqTy =
-              dyn_cast<quake::VeqType>(initState.getTargets().getType())) {
-        std::size_t numQubits = veqTy.getSize();
-        rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, numQubits,
-                                                          veqSize.getType());
-        return success();
-      }
+              dyn_cast<quake::VeqType>(initState.getTargets().getType()))
+        if (veqTy.hasSpecifiedSize()) {
+          std::size_t numQubits = veqTy.getSize();
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, numQubits,
+                                                            veqSize.getType());
+          return success();
+        }
     return failure();
   }
 };

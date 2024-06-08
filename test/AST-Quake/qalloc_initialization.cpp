@@ -28,7 +28,7 @@ struct Vanilla {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
 // clang-format on
 
 struct Cherry {
@@ -60,7 +60,7 @@ struct Cherry {
 // CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_10]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_13]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_16]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_16]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<2>
 // clang-format on
 
 struct MooseTracks {
@@ -93,7 +93,7 @@ struct MooseTracks {
 // CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_10]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_13]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_16]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_16]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<2>
 // clang-format on
 
 struct RockyRoad {
@@ -137,7 +137,7 @@ struct RockyRoad {
 // CHECK:           %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_18]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_17]], %[[VAL_21]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_22:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_24]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_24]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<2>
 // clang-format on
 
 std::vector<double> getTwoTimesRank();

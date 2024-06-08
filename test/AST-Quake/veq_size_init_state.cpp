@@ -37,11 +37,11 @@ struct kernel {
 // CHECK:           cc.store %[[VAL_5]], %[[VAL_10]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_12:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_13:.*]] = quake.init_state %[[VAL_12]], %[[VAL_11]] : (!quake.veq<2>, !cc.ptr<complex<f64>>) -> !quake.veq<?>
-// CHECK:           %[[VAL_14:.*]] = quake.extract_ref %[[VAL_13]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           %[[VAL_13:.*]] = quake.init_state %[[VAL_12]], %[[VAL_11]] : (!quake.veq<2>, !cc.ptr<complex<f64>>) -> !quake.veq<2>
+// CHECK:           %[[VAL_14:.*]] = quake.extract_ref %[[VAL_13]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.h %[[VAL_14]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_13]][1] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_13]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.h %[[VAL_15]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_13]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_13]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
