@@ -307,6 +307,45 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::forward_difference, step);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::parameter_shift,
                                    shiftScalar);
 
+inline void to_json(json &j, const cudaq::gradient &p) {
+  if (auto *central_difference =
+          dynamic_cast<const cudaq::gradients::central_difference *>(&p))
+    j = json(*central_difference);
+  else if (auto *forward_difference =
+               dynamic_cast<const cudaq::gradients::forward_difference *>(&p))
+    j = json(*forward_difference);
+  else if (auto *parameter_shift =
+               dynamic_cast<const cudaq::gradients::parameter_shift *>(&p))
+    j = json(*parameter_shift);
+}
+
+inline std::unique_ptr<cudaq::gradient>
+make_gradient_from_json(std::function<void(const std::vector<double> &)> &&fn,
+                        const nlohmann::json &j, Gradient gradient_type) {
+  using KernelT = std::function<void(const std::vector<double> &)> &&;
+  if (gradient_type == Gradient::CENTRAL_DIFF) {
+    auto ret_ptr = std::make_unique<cudaq::gradients::central_difference>(
+        std::forward<KernelT>(fn));
+    from_json(j,
+              dynamic_cast<cudaq::gradients::central_difference &>(*ret_ptr));
+    return ret_ptr;
+  }
+  if (gradient_type == Gradient::FORWARD_DIFF) {
+    auto ret_ptr = std::make_unique<cudaq::gradients::forward_difference>(
+        std::forward<KernelT>(fn));
+    from_json(j,
+              dynamic_cast<cudaq::gradients::forward_difference &>(*ret_ptr));
+    return ret_ptr;
+  }
+  if (gradient_type == Gradient::PARAMETER_SHIFT) {
+    auto ret_ptr = std::make_unique<cudaq::gradients::parameter_shift>(
+        std::forward<KernelT>(fn));
+    from_json(j, dynamic_cast<cudaq::gradients::parameter_shift &>(*ret_ptr));
+    return ret_ptr;
+  }
+  return nullptr;
+}
+
 // Payload from client to server for a kernel execution.
 class RestRequest {
 private:
@@ -377,6 +416,10 @@ public:
   std::string optimizer;
   // Number of parameters for VQE
   std::size_t optimizer_n_params;
+  // CUDA-Q gradient_type
+  Gradient gradient_type;
+  // Gradient object (JSON)
+  std::string gradient;
   // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
   // Serialized kernel arguments.
@@ -389,7 +432,8 @@ public:
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
                                  executionContext, code, args, format, seed,
                                  optimizer_type, optimizer, optimizer_n_params,
-                                 passes, clientVersion);
+                                 gradient_type, gradient, passes,
+                                 clientVersion);
 };
 
 /// NVCF function version status

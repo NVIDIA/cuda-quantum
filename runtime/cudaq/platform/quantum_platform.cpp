@@ -131,7 +131,8 @@ bool quantum_platform::supports_remote_vqe(const std::size_t qpu_id) const {
 }
 
 void quantum_platform::launchVQE(const std::string kernelName, void *kernelArgs,
-                                 cudaq::spin_op H, cudaq::optimizer &optimizer,
+                                 cudaq::gradient &gradient, cudaq::spin_op H,
+                                 cudaq::optimizer &optimizer,
                                  const int n_params, const std::size_t shots) {
   std::size_t qpu_id = 0;
 
@@ -141,7 +142,8 @@ void quantum_platform::launchVQE(const std::string kernelName, void *kernelArgs,
     qpu_id = iter->second;
 
   auto &qpu = platformQPUs[qpu_id];
-  qpu->launchVQE(kernelName, kernelArgs, H, optimizer, n_params, shots);
+  qpu->launchVQE(kernelName, kernelArgs, gradient, H, optimizer, n_params,
+                 shots);
 }
 
 void quantum_platform::launchKernel(std::string kernelName,

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+#include "cudaq/gradients.h"
 #include "gradient.h"
 #include "observe.h"
 #include "optimizer.h"
@@ -77,8 +78,10 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
     ctx->spin = &H;
     platform.set_exec_ctx(ctx.get());
     auto serializedArgsBuffer = serializeArgs(args...);
+    cudaq::gradients::central_difference dummy_gradient;
     platform.launchVQE(cudaq::getKernelName(kernel),
-                       /*kernelArgs=*/nullptr, H, optimizer, n_params,
+                       /*kernelArgs=*/nullptr, dummy_gradient, H, optimizer,
+                       n_params,
                        /*shots=*/0);
     platform.reset_exec_ctx();
     return ctx->optResult.value_or(optimization_result{});
@@ -155,8 +158,10 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
     ctx->kernelName = cudaq::getKernelName(kernel);
     ctx->spin = &H;
     platform.set_exec_ctx(ctx.get());
+    cudaq::gradients::central_difference dummy_gradient;
     platform.launchVQE(cudaq::getKernelName(kernel),
-                       /*kernelArgs=*/nullptr, H, optimizer, n_params,
+                       /*kernelArgs=*/nullptr, dummy_gradient, H, optimizer,
+                       n_params,
                        /*shots=*/shots);
     platform.reset_exec_ctx();
     return ctx->optResult.value_or(optimization_result{});
@@ -219,7 +224,8 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
                         const int n_params, Args &&...args) {
   static_assert(
-      std::is_invocable_v<QuantumKernel, std::vector<double>>,
+      std::is_invocable_v<QuantumKernel, std::vector<double>> ||
+          std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>,
       "Invalid parameterized quantum kernel expression. Must have "
       "void(std::vector<double>) signature, or provide "
       "std::tuple<Args...>(std::vector<double>) ArgMapper function object.");
@@ -233,6 +239,49 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
     return e;
   });
 }
+
+template <typename QuantumKernel, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>>>
+optimization_result vqe(QuantumKernel &&kernel,
+                        cudaq::gradients::central_difference &gradient,
+                        cudaq::spin_op H, cudaq::optimizer &optimizer,
+                        const int n_params, Args &&...args) {
+
+  // Make a copy of the input gradient and construct a new one using the
+  // concrete args.
+  auto new_gradient =
+      std::make_unique<cudaq::gradients::central_difference>(kernel, args...);
+  new_gradient->step = gradient.step;
+
+  auto &platform = cudaq::get_platform();
+  if (platform.supports_remote_vqe()) {
+    auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
+    ctx->kernelName = cudaq::getKernelName(kernel);
+    ctx->spin = &H;
+    platform.set_exec_ctx(ctx.get());
+    auto serializedArgsBuffer = serializeArgs(args...);
+    platform.launchVQE(cudaq::getKernelName(kernel),
+                       /*kernelArgs=*/serializedArgsBuffer.data(), gradient, H,
+                       optimizer, n_params,
+                       /*shots=*/0);
+    platform.reset_exec_ctx();
+    return ctx->optResult.value_or(optimization_result{});
+  }
+
+  auto requires_grad = optimizer.requiresGradients();
+  return optimizer.optimize(n_params, [&](const std::vector<double> &x,
+                                          std::vector<double> &grad_vec) {
+    double e = cudaq::observe(kernel, H, x, args...);
+    if (requires_grad) {
+      new_gradient->compute(x, grad_vec, H, e);
+    }
+    return e;
+  });
+}
+
+// FIXME - copy/paste the above for forward_difference and parameter_shift once
+// done
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel
@@ -477,8 +526,8 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
     auto serializedArgsBuffer = std::apply(
         [](const auto &...args) { return serializeArgs(args...); }, tupleArgs);
     platform.launchVQE(cudaq::getKernelName(kernel),
-                       /*kernelArgs=*/serializedArgsBuffer.data(), H, optimizer,
-                       n_params,
+                       /*kernelArgs=*/serializedArgsBuffer.data(), gradient, H,
+                       optimizer, n_params,
                        /*shots=*/0);
     platform.reset_exec_ctx();
     return ctx->optResult.value_or(optimization_result{});

@@ -19,6 +19,8 @@ public:
   using gradient::gradient;
   double step = 1e-4;
 
+  forward_difference(double s = 1e-4) : gradient(), step(s) {}
+
   /// @brief Compute the `forward_difference` gradient
   void compute(const std::vector<double> &x, std::vector<double> &dx,
                const spin_op &h, double funcAtX) override {

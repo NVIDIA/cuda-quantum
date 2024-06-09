@@ -254,6 +254,7 @@ public:
   virtual void
   handleVQERequest(std::size_t reqId, cudaq::ExecutionContext &io_context,
                    const std::string &backendSimName, std::string_view ir,
+                   const std::string &gradType, const std::string &gradientJson,
                    cudaq::optimizer &optimizer, const int n_params,
                    std::string_view kernelName, std::size_t seed) override {
     cudaq::optimization_result result;
@@ -271,7 +272,6 @@ public:
       cudaq::set_random_seed(seed);
     simulationStart = std::chrono::high_resolution_clock::now();
 
-    auto &platform = cudaq::get_platform();
     auto &requestInfo = m_codeTransform[reqId];
     if (requestInfo.format == cudaq::CodeFormat::LLVM) {
       // Error FIXME
@@ -294,29 +294,37 @@ public:
       if (!fnPtr)
         throw std::runtime_error("Failed to get entry function");
 
-      auto fn = reinterpret_cast<void (*)(const std::vector<double> &)>(fnPtr);
+      // quake-to-qir translates cc.stdvec<f64> to !llvm.struct<(ptr<f64>,
+      // i64)>, so we need to provide the inputs in this format. Make a lambda
+      // to convert between the two formats.
+      struct stdvec_struct {
+        const double *ptr;
+        std::size_t size;
+      };
+      auto fn = reinterpret_cast<void (*)(stdvec_struct)>(fnPtr);
+      auto fnWrapper = [fn](const std::vector<double> &x) {
+        fn({x.data(), x.size()});
+      };
+
+      // Construct the gradient object.
+      std::unique_ptr<cudaq::gradient> gradient;
+      if (gradientJson.size() > 0) {
+        auto gradJson = json::parse(gradientJson);
+        cudaq::Gradient gradientEnum;
+        json::parse(gradType).get_to(gradientEnum);
+        gradient =
+            cudaq::make_gradient_from_json(fnWrapper, gradJson, gradientEnum);
+      }
+
+      bool requiresGrad = optimizer.requiresGradients();
+      auto theSpin = **io_context.spin;
 
       result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                                 std::vector<double> &grad_vec) {
-        platform.set_exec_ctx(&io_context);
-        fn(x);
-        double expectationValue = 0.0;
-        if (io_context.expectationValue.has_value()) {
-          expectationValue = io_context.expectationValue.value_or(0.0);
-        } else {
-          double sum = 0.0;
-          (*io_context.spin)->for_each_term([&](cudaq::spin_op &term) {
-            if (term.is_identity())
-              sum += term.get_coefficient().real();
-            else
-              sum += io_context.result.expectation(term.to_string(false)) *
-                     term.get_coefficient().real();
-          });
-          expectationValue = sum;
-        }
-        platform.reset_exec_ctx();
-        io_context.result.clear();
-        return expectationValue;
+        double e = cudaq::observe(fnWrapper, theSpin, x);
+        if (requiresGrad)
+          gradient->compute(x, grad_vec, theSpin, e);
+        return e;
       });
     }
     simulationEnd = std::chrono::high_resolution_clock::now();
@@ -656,9 +664,10 @@ protected:
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
 
       if (optimizer)
-        handleVQERequest(reqId, request.executionContext, request.simulator,
-                         codeStr, *optimizer, request.optimizer_n_params,
-                         request.entryPoint, request.seed);
+        handleVQERequest(
+            reqId, request.executionContext, request.simulator, codeStr,
+            requestJson["gradient_type"].dump(), request.gradient, *optimizer,
+            request.optimizer_n_params, request.entryPoint, request.seed);
       else
         handleRequest(reqId, request.executionContext, request.simulator,
                       codeStr, request.entryPoint, request.args.data(),

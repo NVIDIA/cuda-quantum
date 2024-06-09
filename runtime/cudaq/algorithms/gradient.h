@@ -86,10 +86,12 @@ public:
   /// prescribed call signature (void(std::vector<double>))
   template <typename KernelT>
   gradient(KernelT &kernel) {
-    if (kernel.getNumParams() != 1)
-      throw std::invalid_argument(
-          "Callable kernel from cudaq::make_kernel must "
-          "have 1 std::vector<double> argument. Provide an ArgMapper if not.");
+    if constexpr (has_name<KernelT>::value)
+      if (kernel.getNumParams() != 1)
+        throw std::invalid_argument(
+            "Callable kernel from cudaq::make_kernel must "
+            "have 1 std::vector<double> argument. Provide an ArgMapper if "
+            "not.");
     ansatz_functor = [&](std::vector<double> x) {
       return cudaq::invokeKernel(std::forward<KernelT>(kernel), x);
     };

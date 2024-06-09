@@ -16,6 +16,8 @@ public:
   using gradient::gradient;
   double shiftScalar = 0.5;
 
+  parameter_shift(double s = 0.5) : gradient(), shiftScalar(s) {}
+
   void compute(const std::vector<double> &x, std::vector<double> &dx,
                const spin_op &h, double exp_h) override {
     auto tmpX = x;

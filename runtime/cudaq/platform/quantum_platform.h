@@ -25,6 +25,7 @@
 namespace cudaq {
 
 class QPU;
+class gradient;
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -132,8 +133,9 @@ public:
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
   void launchVQE(const std::string kernelName, void *kernelArgs,
-                 cudaq::spin_op H, cudaq::optimizer &optimizer,
-                 const int n_params, const std::size_t shots);
+                 cudaq::gradient &gradient, cudaq::spin_op H,
+                 cudaq::optimizer &optimizer, const int n_params,
+                 const std::size_t shots);
 
   // This method is the hook for the kernel rewrites to invoke
   // quantum kernels.

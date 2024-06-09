@@ -13,6 +13,7 @@
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
+#include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
@@ -67,7 +68,8 @@ public:
     execution_queue->enqueue(task);
   }
 
-  void launchVQE(const std::string &name, void *kernelArgs, cudaq::spin_op H,
+  void launchVQE(const std::string &name, void *kernelArgs,
+                 cudaq::gradient &gradient, cudaq::spin_op H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
     cudaq::ExecutionContext *executionContextPtr =
@@ -91,7 +93,7 @@ public:
     std::string errorMsg;
     const bool requestOkay = m_client->sendVQERequest(
         *m_mlirContext, *executionContextPtr, m_simName, name, kernelArgs,
-        optimizer, n_params, &errorMsg);
+        gradient, optimizer, n_params, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }

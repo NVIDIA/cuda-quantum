@@ -193,12 +193,15 @@ public:
   cudaq::RestRequest constructVQEJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,
-      void *kernelArgs, cudaq::optimizer &optimizer, const int n_params) {
+      void *kernelArgs, cudaq::gradient &gradient, cudaq::optimizer &optimizer,
+      const int n_params) {
     cudaq::RestRequest request(io_context, version());
 
     request.optimizer_n_params = n_params;
     request.optimizer = json(optimizer).dump();
     request.optimizer_type = get_optimizer_type(optimizer);
+    request.gradient = json(gradient).dump();
+    request.gradient_type = get_gradient_type(gradient);
 
     request.entryPoint = kernelName;
     request.passes = serverPasses;
@@ -280,12 +283,13 @@ public:
                               cudaq::ExecutionContext &io_context,
                               const std::string &backendSimName,
                               const std::string &kernelName, void *kernelArgs,
+                              cudaq::gradient &gradient,
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg) override {
     // Todo
-    cudaq::RestRequest request =
-        constructVQEJobRequest(mlirContext, io_context, backendSimName,
-                               kernelName, kernelArgs, optimizer, n_params);
+    cudaq::RestRequest request = constructVQEJobRequest(
+        mlirContext, io_context, backendSimName, kernelName, kernelArgs,
+        gradient, optimizer, n_params);
     if (request.code.empty()) {
       if (optionalErrorMsg)
         *optionalErrorMsg =

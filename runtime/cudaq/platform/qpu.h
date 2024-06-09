@@ -12,6 +12,7 @@
 #include "common/Logger.h"
 #include "common/Registry.h"
 #include "common/Timing.h"
+#include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -160,8 +161,9 @@ public:
   virtual void setTargetBackend(const std::string &backend) {}
 
   virtual void launchVQE(const std::string &name, void *kernelArgs,
-                         cudaq::spin_op H, cudaq::optimizer &optimizer,
-                         const int n_params, const std::size_t shots) {}
+                         cudaq::gradient &gradient, cudaq::spin_op H,
+                         cudaq::optimizer &optimizer, const int n_params,
+                         const std::size_t shots) {}
 
   /// Launch the kernel with given name (to extract its Quake representation).
   /// The raw function pointer is also provided, as are the runtime arguments,
