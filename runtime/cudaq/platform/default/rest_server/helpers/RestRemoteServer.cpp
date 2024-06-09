@@ -258,6 +258,15 @@ public:
                    std::string_view kernelName, std::size_t seed) override {
     cudaq::optimization_result result;
 
+    // If we're changing the backend, load the new simulator library from file.
+    if (m_simHandle.name != backendSimName) {
+      if (m_simHandle.libHandle)
+        dlclose(m_simHandle.libHandle);
+
+      m_simHandle =
+          SimulatorHandle(backendSimName, loadNvqirSimLib(backendSimName));
+    }
+
     if (seed != 0)
       cudaq::set_random_seed(seed);
     simulationStart = std::chrono::high_resolution_clock::now();
