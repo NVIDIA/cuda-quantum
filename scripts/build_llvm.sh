@@ -149,6 +149,14 @@ if [ -z "${llvm_projects##*flang;*}" ]; then
   llvm_components+="flang-new;"
   projects=("${projects[@]/flang}")
 fi
+if [ -z "${llvm_projects##*openmp;*}" ]; then
+  echo "- including OpenMP components"
+  # There are no suitable distribution components for libomp. 
+  # We instead manually build suitable targets.
+  install_targets+=" omp"
+  llvm_components+="omptarget;openmp-resource-headers;"
+  projects=("${projects[@]/openmp}")
+fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
   llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
@@ -169,12 +177,12 @@ llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="llvm-config;llc;llvm-ar;llvm-as;llvm-nm;llvm-symbolizer;llvm-profdata;llvm-cov;"
 llvm_components+="FileCheck;count;not;"
 
-if [ "$(echo ${projects[@]/openmp} | xargs)" != "" ]; then
+if [ "$(echo ${projects[@]} | xargs)" != "" ]; then
   echo "- including additional project(s) "$(echo "${projects[*]}" | xargs | tr ' ' ',')
   unset llvm_components
-  install_target=install
+  install_targets="install $install_targets"
 else 
-  install_target=install-distribution-stripped
+  install_targets="install-distribution-stripped $install_targets"
   if [ -n "$mlir_python_bindings" ]; then
     # Cherry-pick the necessary commit to have a distribution target
     # for the mlir-python-sources; to be removed after we update to LLVM 17.
@@ -241,11 +249,11 @@ fi
 # Build and install the defined distribution.
 echo "Building LLVM with configuration $build_configuration..."
 if $verbose; then
-  ninja $ninja_keep_going $build_concurrency $install_target
+  ninja $ninja_keep_going $build_concurrency $install_targets
   status=$?
 else
   echo "The progress of the build is being logged to $llvm_log_dir/ninja_output.txt."
-  ninja $ninja_keep_going $build_concurrency $install_target \
+  ninja $ninja_keep_going $build_concurrency $install_targets \
     2> "$llvm_log_dir/ninja_error.txt" 1> "$llvm_log_dir/ninja_output.txt"
   status=$?
 fi
@@ -274,12 +282,21 @@ if [ -n "$llvm_runtimes" ]; then
   else
     # Depending on the exact build configuration, 
     # no install step is defined for builtins when compiler-rt is built
-    # as runtime rather than as project. Invoking the installation manually.
+    # as runtime rather than as project. Similarly, no install step is 
+    # defined for libomp if we install a distribution.
+    # Invoking the installation manually for these.
     if $verbose; then
       cmake -P runtimes/builtins-bins/cmake_install.cmake
+      if [ -n "$(echo $install_targets | grep omp)" ]; then
+        cmake -P projects/openmp/runtime/src/cmake_install.cmake
+      fi
     else
       cmake -P runtimes/builtins-bins/cmake_install.cmake \
         2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
+      if [ -n "$(echo $install_targets | grep omp)" ]; then
+        cmake -P projects/openmp/runtime/src/cmake_install.cmake \
+          2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
+      fi
     fi
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
 
@@ -294,51 +311,6 @@ if [ -n "$llvm_runtimes" ]; then
       echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
     done
     echo "Added default configuration $clang_config_file."
-  fi
-fi
-
-# Build OpenMP support.
-# Enabled separately from other runtimes, since we need to build the other
-# runtime libraries first before being able to build openmp.
-if [ -z "${llvm_projects##*openmp;*}" ]; then
-  echo "Building OpenMP support..."
-
-  cmake_args=$(echo $cmake_args | sed "s/LLVM_ENABLE_PROJECTS='/LLVM_ENABLE_PROJECTS='openmp;/")
-  if $verbose; then
-    cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache
-  else
-    cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache \
-      2>> "$llvm_log_dir/cmake_error.txt" 1>> "$llvm_log_dir/cmake_output.txt"
-  fi
-
-  if $verbose; then
-    ninja $ninja_keep_going $build_concurrency omp $install_target \
-      install-omptarget-stripped install-openmp-resource-headers-stripped
-    status=$?
-  else
-    ninja $ninja_keep_going $build_concurrency omp $install_target \
-      install-omptarget-stripped install-openmp-resource-headers-stripped \
-      2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
-    status=$?
-  fi
-
-  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-    echo "Failed to build OpenMP components. Please check the files in the $llvm_log_dir/logs directory."
-    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
-  else
-    # There aren't really any suitable distribution components for OpenMP. 
-    # Since we need to build the clang project together with OpenMP, 
-    # not defining a distribution and installing everything would add a lot.
-    # Hence, the best option seems to be to only build and install the 
-    # OpenMP specific targets above. Somehow, there doesn't seem to be a 
-    # dedicated target that installs libomp itself, so manually install it here.
-    if $verbose; then
-      cmake -P projects/openmp/runtime/src/cmake_install.cmake
-    else
-      cmake -P projects/openmp/runtime/src/cmake_install.cmake \
-        2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
-    fi
-    echo "Successfully added OpenMP components."
   fi
 fi
 
