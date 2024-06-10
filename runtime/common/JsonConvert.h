@@ -11,6 +11,7 @@
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/simulators.h"
 #include "nlohmann/json.hpp"
 /*! \file
     \brief Utility to support JSON serialization between the client and server.
@@ -33,6 +34,7 @@ void from_json(const json &j, std::complex<T> &p) {
 } // namespace std
 
 namespace cudaq {
+
 // `ExecutionResult` serialization.
 // Here, we capture full data (not just bit string statistics) since the remote
 // platform can populate simulator-only data, such as `expectationValue`.
@@ -80,9 +82,33 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.expectationValue.has_value()) {
     j["expectationValue"] = context.expectationValue.value();
   }
-  j["simulationData"] = json();
-  j["simulationData"]["dim"] = std::get<0>(context.simulationData);
-  j["simulationData"]["data"] = std::get<1>(context.simulationData);
+
+  if (context.simulationState) {
+    j["simulationData"] = json();
+    j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
+    if (context.simulationState->isDeviceData()) {
+      if (context.simulationState->getPrecision() ==
+          cudaq::SimulationState::precision::fp32) {
+        std::vector<std::complex<float>> hostData(
+            context.simulationState->getNumElements());
+        context.simulationState->toHost(hostData.data(), hostData.size());
+        std::vector<std::complex<double>> converted(hostData.begin(),
+                                                    hostData.end());
+        j["simulationData"]["data"] = converted;
+      } else {
+        std::vector<std::complex<double>> hostData(
+            context.simulationState->getNumElements());
+        context.simulationState->toHost(hostData.data(), hostData.size());
+        j["simulationData"]["data"] = hostData;
+      }
+    } else {
+      auto *ptr = reinterpret_cast<std::complex<double> *>(
+          context.simulationState->getTensor().data);
+      j["simulationData"]["data"] = std::vector<std::complex<double>>(
+          ptr, ptr + context.simulationState->getNumElements());
+    }
+  }
+
   if (context.spin.has_value() && context.spin.value() != nullptr) {
     const std::vector<double> spinOpRepr =
         context.spin.value()->getDataRepresentation();
@@ -124,8 +150,20 @@ inline void from_json(const json &j, ExecutionContext &context) {
     std::vector<std::complex<double>> stateData;
     j["simulationData"]["dim"].get_to(stateDim);
     j["simulationData"]["data"].get_to(stateData);
-    context.simulationData =
-        std::make_tuple(std::move(stateDim), std::move(stateData));
+
+    // Create the simulation specific SimulationState
+    auto *simulator = cudaq::get_simulator();
+    if (simulator->isSinglePrecision()) {
+      // If the host (local) simulator is single-precision, convert the type
+      // before loading the state vector.
+      std::vector<std::complex<float>> converted(stateData.begin(),
+                                                 stateData.end());
+      context.simulationState = simulator->createStateFromData(
+          std::make_pair(converted.data(), stateDim[0]));
+    } else {
+      context.simulationState = simulator->createStateFromData(
+          std::make_pair(stateData.data(), stateDim[0]));
+    }
   }
 
   if (j.contains("registerNames"))
