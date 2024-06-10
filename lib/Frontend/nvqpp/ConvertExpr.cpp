@@ -174,8 +174,10 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       };
       cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
     } else {
-      auto [targets, ctrls] =
-          maybeUnpackOperands(builder, loc, operands, isControl, targetCount);
+      // if we are here, the built-in parameterized operations have been handled
+      size_t numParams = isCustom ? paramCount : 0;
+      auto [targets, ctrls] = maybeUnpackOperands(
+          builder, loc, operands.drop_front(numParams), isControl, targetCount);
       for (auto v : targets)
         if (std::find(negations.begin(), negations.end(), v) != negations.end())
           reportNegateError();
@@ -1613,9 +1615,12 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     std::string maybeUnitaryGenerator = funcName.str() + "_generator_";
     // Extract number of targets
     size_t targetCount = 0;
+    std::string opName;
     for (auto name : customOperationNames) {
+      opName = name.str();
       if (name.consume_front(maybeUnitaryGenerator)) {
         targetCount = std::stoi(name.str());
+        break;
       }
     }
     if (targetCount > 0) {
@@ -1637,33 +1642,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           builder, loc, args, negations, reportNegateError, isAdjoint,
           isControl, paramCount, targetCount, true);
       auto &customUnitary = builder.getBlock()->back();
-      auto srefAttr = SymbolRefAttr::get(
-          StringAttr::get(builder.getContext(), maybeUnitaryGenerator));
-      customUnitary.setAttr("generator", srefAttr);
-      return true;
-    }
-
-    if (std::find(customOperationNames.begin(), customOperationNames.end(),
-                  maybeUnitaryGenerator) != customOperationNames.end()) {
-      std::size_t paramCount = [&]() {
-        std::size_t count = 0;
-        for (auto arg : args) {
-          auto argTy = arg.getType();
-          if (isa<FloatType>(argTy))
-            count++;
-          else if (auto ptrTy = dyn_cast<cc::PointerType>(argTy)) {
-            if (isa<FloatType>(ptrTy.getElementType()))
-              count++;
-          }
-        }
-        return count;
-      }();
-      buildOp<quake::CustomUnitarySymbolOp>(builder, loc, args, negations,
-                                            reportNegateError, isAdjoint,
-                                            isControl, paramCount, true);
-      auto &customUnitary = builder.getBlock()->back();
-      auto srefAttr = SymbolRefAttr::get(
-          StringAttr::get(builder.getContext(), maybeUnitaryGenerator));
+      auto srefAttr =
+          SymbolRefAttr::get(StringAttr::get(builder.getContext(), opName));
       customUnitary.setAttr("generator", srefAttr);
       return true;
     }
