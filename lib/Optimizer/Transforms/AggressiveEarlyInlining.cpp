@@ -57,14 +57,17 @@ public:
 
   LogicalResult matchAndRewrite(func::CallOp op,
                                 PatternRewriter &rewriter) const override {
-    if (!isIndirectFunc(op.getCallee(), indirectMap))
+    if (!isIndirectFunc(op.getCallee(), indirectMap)) {
+      llvm::dbgs() << "not indirect call: " << op.getCallee() << '\n';
       return failure();
+    }
 
     rewriter.startRootUpdate(op);
     auto callee = op.getCallee();
     llvm::StringRef directName = indirectMap[callee];
     op.setCalleeAttr(SymbolRefAttr::get(op.getContext(), directName));
     LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
+    llvm::dbgs() << "Rewriting " << directName << '\n';
     rewriter.finalizeRootUpdate(op);
     return success();
   }

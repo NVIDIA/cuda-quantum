@@ -24,7 +24,11 @@ std::string getQIRLL(const std::string &name, MlirModule module,
                      cudaq::OpaqueArguments &runtimeArgs,
                      std::string &profile);
 
-/// @brief Run `cudaq::draw` on the provided kernel.
+std::string getASM(const std::string &name, MlirModule module,
+                     cudaq::OpaqueArguments &runtimeArgs,
+                     std::string &profile);
+
+/// @brief Run `cudaq::translate` on the provided kernel.
 std::string pyTranslate(py::object &kernel, py::str format, py::args args) {
 
   auto formatString = py::cast<std::string>(format);
@@ -48,6 +52,23 @@ std::string pyTranslate(py::object &kernel, py::str format, py::args args) {
     return result;
   }
 
+  if (formatString == "openqasm") {
+    if (py::len(kernel.attr("arguments")) != args.size())
+      throw std::runtime_error("Invalid number of arguments passed to translate.");
+
+    if (py::hasattr(kernel, "compile"))
+      kernel.attr("compile")();
+
+    auto name = kernel.attr("name").cast<std::string>();
+    auto module = kernel.attr("module").cast<MlirModule>();
+    args = simplifiedValidateInputArguments(args);
+    auto *argData = toOpaqueArgs(args, module, name);
+
+    auto result = getASM(name, module, *argData, formatString);
+    delete argData;
+    return result;
+  }
+
   if (formatString == "ascii") {
     // draw
     if (py::len(kernel.attr("arguments")) != args.size())
@@ -67,26 +88,7 @@ std::string pyTranslate(py::object &kernel, py::str format, py::args args) {
     });
   }
 
-  if (formatString == "openqasm") {
-    if (py::len(kernel.attr("arguments")) != args.size())
-      throw std::runtime_error("Invalid number of arguments passed to translate.");
-
-    if (py::hasattr(kernel, "compile"))
-      kernel.attr("compile")();
-      // TODO: call getASM instead
-
-    auto kernelName = kernel.attr("name").cast<std::string>();
-    auto kernelMod = kernel.attr("module").cast<MlirModule>();
-    args = simplifiedValidateInputArguments(args);
-    auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
-
-    cudaq::opt::addPipelineTranslateToOpenQASM(pm);
-
-    // return details::extractTrace([&]() mutable {
-    //   pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
-    //   delete argData;
-    // });
-  }
+  throw std::runtime_error("Invalid format to translate to: " + formatString);
 }
 
 /// @brief Bind the draw cudaq function
@@ -98,7 +100,8 @@ void bindPyTranslate(py::module &mod) {
 path, i.e., the trace, of the provided `kernel`.
       
 Args:
-  format (str): format to translate to (`mlir`, `qir`, `openqasm`)
+  format (str): format to translate to. Available formats: `mlir`, `qir`,
+    `qir-base`, `qir-adaptive`, `openqasm`, `ascii`.
   kernel (:class:`Kernel`): The :class:`Kernel` to translate.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel 
     function at. Leave empty if the kernel doesn't accept any arguments.
@@ -116,7 +119,7 @@ Returns:
       h(q[0])
       cx(q[0], q[1])
       mz(q)
-  print(cudaq.draw(bell_pair))
+  print(cudaq.translate(bell_pair, format:"qir"))
 
   # Output
   ; ModuleID = 'LLVMDialectModule'

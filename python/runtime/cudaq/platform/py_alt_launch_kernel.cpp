@@ -449,6 +449,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
   auto context = cloned.getContext();
 
   PassManager pm(context);
+  pm.addPass(cudaq::opt::createLambdaLiftingPass());
   if (profile.empty())
     cudaq::opt::addPipelineConvertToQIR(pm);
   else
@@ -459,7 +460,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
   pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
+        "getQIRLL failed to JIT compile the Quake representation.");
   timingScope.stop();
   std::free(rawArgs);
 
@@ -470,7 +471,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
       /*optLevel=*/3, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(llvmModule.get()))
-    throw std::runtime_error("Failed to optimize LLVM IR ");
+    throw std::runtime_error("getQIRLL Failed to optimize LLVM IR ");
 
   std::string str;
   {
@@ -486,43 +487,28 @@ std::string getASM(const std::string &name, MlirModule module,
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
 
   PassManager pm(context);
-  //applyPassManagerCLOptions(pm);
+  pm.addPass(cudaq::opt::createLambdaLiftingPass());
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
 
-  // TODO: how to call only this and return a string
-  if (failed(cudaq::translateToOpenQASM(module, output))) {
-      // TODO: throw here
-    }
-
-  DefaultTimingManager tm;
+  mlir::DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
-    throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
+    throw std::runtime_error("getASM: code generation failed.");
   timingScope.stop();
   std::free(rawArgs);
 
-  llvm::LLVMContext llvmContext;
-  llvmContext.setOpaquePointers(false);
-  auto llvmModule = translateModuleToLLVMIR(cloned, llvmContext);
-  auto optPipeline = makeOptimizingTransformer(
-      /*optLevel=*/3, /*sizeLevel=*/0,
-      /*targetMachine=*/nullptr);
-  if (auto err = optPipeline(llvmModule.get()))
-    throw std::runtime_error("Failed to optimize LLVM IR ");
-
   std::string str;
-  {
-    llvm::raw_string_ostream os(str);
-    llvmModule->print(os, nullptr);
+  llvm::raw_string_ostream os(str);
+  if (failed(cudaq::translateToOpenQASM(cloned, os))) {
+    throw std::runtime_error("getASM: failed to translate to OpenQasm.");
   }
   return str;
 }

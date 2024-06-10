@@ -11,26 +11,38 @@ import numpy as np
 
 @cudaq.kernel
 def bell_pair():
-      q = cudaq.qvector(2)
-      h(q[0])
-      cx(q[0], q[1])
-      mz(q)
+    # def k():
+    #     q0 = cudaq.qvector(2)
+    #     h(q0[0])
+    #     cx(q0[0], q0[1])
+    #     mz(q0)
+    
+    #k()
+    q = cudaq.qvector(2)
+    h(q[0])
+    cx(q[0], q[1])
+    mz(q)
 
-print("*** PRINT MLIR")
-print(bell_pair)
+counts = cudaq.sample(bell_pair)
+print(counts)
 
-print("*** DRAW")
-print(cudaq.draw(bell_pair))
+# print("*** EXISTING ***")
 
-print("*** MLIR")
-print(bell_pair)
+# print("*** DRAW")
+# print(cudaq.draw(bell_pair))
+
+# print("*** MLIR")
+# print(bell_pair)
 
 print("*** TO_QIR")
 print(cudaq.to_qir(bell_pair))
 
-
-print("*** TO_QIR with profile")
+print("*** TO_QIR with profile=qir-base")
 print(cudaq.to_qir(bell_pair, profile="qir-base"))
+
+print("*** TO_QIR with profile=qir-adaptive")
+print(cudaq.to_qir(bell_pair, profile="qir-adaptive"))
+
 
 print("*** NEW ***")
 
