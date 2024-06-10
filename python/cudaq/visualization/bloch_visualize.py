@@ -25,16 +25,16 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
 
         Signature:
         ----------
-            add_to_bloch_sphere( psi: cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State, existing_sphere [Optional]: None or qutip.Bloch ,**kwargs) -> qutip.Bloch. 
+            `add_to_bloch_sphere( psi: cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State, existing_sphere [Optional]: None or qutip.Bloch ,**kwargs) -> qutip.Bloch.`
         
         Arguments:
         ----------
-            psi:    
+            `psi`:    
                 A valid single-qubit state, either initialized using the cudaq primitives, or via get_state(kernel). 
                 A single qubit density matrix is also acceptable.
-            existing_sphere [Optional]: 
-                A qutip.Bloch object. If a valid qutip.Bloch sphere object is not supplied, then creates a new sphere with the vector representing the supplied state.
-            kwargs [Optional]:
+            `existing_sphere` [Optional]: 
+                A `qutip.Bloch` object. If a valid `qutip.Bloch` sphere object is not supplied, then creates a new sphere with the vector representing the supplied state.
+            `kwargs` [Optional]:
                 Optional keyword arguments  to be passed to QuTiP during Bloch sphere initialization. 
         Returns:
         --------
@@ -68,15 +68,15 @@ def show_bloch_sphere(sphere_data=None, ncols=2, nrows=1) -> None:
 
         Signature:
         ----------
-            show(sphere_data: Bloch object or list thereof , ncols [Optional] = 2, nrows [Optional] = 1)
+            `show(sphere_data: Bloch object or list thereof , ncols [Optional] = 2, nrows [Optional] = 1)`
 
         Arguments:
         ----------
-            sphere_data: 
+            `sphere_data`: 
                 An existing qutip.Bloch object or list of qutip.Bloch objects. This is fully interoperational with Bloch sphere objects from QuTiP.
-            ncols [Optional]:
-                Number of columns in the figure, defaults to 2. In case sphere_data contains a list of Bloch spheres, this argument attempts to fit a maximum of ncols columns in the figure.
-            nrows [Optional]:
+            `ncols` [Optional]:
+                Number of columns in the figure, defaults to 2. In case sphere_data contains a list of Bloch spheres, this argument attempts to fit a maximum of `ncols` columns in the figure.
+            `nrows` [Optional]:
                 Number of rows in the figure, defaults to 1. 
         Returns:
         --------

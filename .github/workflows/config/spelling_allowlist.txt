@@ -108,7 +108,7 @@ arity
 auxillary
 backend
 backends
-bloch
+Bloch
 bitcode
 bitstring
 bitstrings
@@ -192,8 +192,7 @@ interoperational
 intrinsics
 iterable
 iteratively
-kwargs
-libs
+Libraries
 linker
 linkers
 lookup
@@ -202,13 +201,10 @@ lossy
 lvalue
 makefiles
 merchantability
-mlir
 mutex
 namespace
 namespaces
 natively
-ncols
-nrows
 nullary
 optimizer
 optimizers
