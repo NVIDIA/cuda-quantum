@@ -125,10 +125,11 @@ endif()
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
 option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
-option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
+option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA-Q runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
-option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
-option(CUDAQ_ENABLE_CC "Enable CUDA Quantum code coverage generation." OFF)
+option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Frontend." OFF)
+option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
+option(CUDAQ_DISABLE_OPENMP "Disable the use of OpenMP within CUDA-Q." OFF)
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -401,7 +402,10 @@ configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
 
 # Check optional dependencies
 # ==============================================================================
-find_package(OpenMP)
+if (NOT CUDAQ_DISABLE_OPENMP)
+  find_package(OpenMP REQUIRED)
+endif()
+
 find_package(OpenSSL)
 
 if (NOT CUDAQ_SKIP_MPI)
