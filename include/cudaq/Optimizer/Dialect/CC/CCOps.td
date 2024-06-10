@@ -798,7 +798,7 @@ def cc_AllocaOp : CCOp<"alloca", [
   );
   let results = (outs cc_PointerType:$address);
 
-  let hasFolder = 1;
+  let hasCanonicalizer = 1;
   let hasCustomAssemblyFormat = 1;
   let builders = [
     OpBuilder<(ins "mlir::Type":$elementType, "mlir::Value":$seqSize), [{
@@ -905,7 +905,8 @@ def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
     TypeAttr:$global_type,
     StrAttr:$sym_name,
     OptionalAttr<AnyAttr>:$value,
-    UnitAttr:$constant
+    UnitAttr:$constant,
+    UnitAttr:$external
   );
 
   let hasCustomAssemblyFormat = 1;
@@ -1148,7 +1149,9 @@ def cc_CastOp : CCOp<"cast", [Pure]> {
     OptionalAttr<UnitAttr>:$zint
   );
   let results = (outs AnyType:$result);
+
   let hasFolder = 1;
+  let hasCanonicalizer = 1;
   let hasVerifier = 1;
   
   let assemblyFormat = [{

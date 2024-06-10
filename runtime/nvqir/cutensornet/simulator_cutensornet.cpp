@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #include "simulator_cutensornet.h"
 #include "cudaq.h"
 #include "cutensornet.h"
@@ -67,17 +68,27 @@ generateFullGateTensor(std::size_t num_control_qubits,
   return gate_tensor;
 }
 
+/// @brief Provide a unique hash code for the input vector of complex values.
+std::size_t vecComplexHash(const std::vector<std::complex<double>> &vec) {
+  std::size_t seed = vec.size();
+  for (auto &i : vec) {
+    seed ^= std::hash<double>{}(i.real()) + std::hash<double>{}(i.imag()) +
+            0x9e3779b9 + (seed << 6) + (seed >> 2);
+  }
+  return seed;
+}
+
 void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   const auto &controls = task.controls;
   const auto &targets = task.targets;
   // Cache name lookup key:
-  // <GateName>_<Param>
+  // <GateName>_<Param>_<Matrix>
   const std::string gateKey = task.operationName + "_" + [&]() {
     std::stringstream paramsSs;
     for (const auto &param : task.parameters) {
       paramsSs << param << "_";
     }
-    return paramsSs.str();
+    return paramsSs.str() + "__" + std::to_string(vecComplexHash(task.matrix));
   }();
   const auto iter = m_gateDeviceMemCache.find(gateKey);
 
@@ -130,7 +141,8 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
 
-  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
+                               {static_cast<int32_t>(qubitIdx)});
 }
 
 /// @brief Device synchronization
@@ -168,7 +180,8 @@ bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
         4 * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
-  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
+                               {static_cast<int32_t>(qubitIdx)});
   return resultBool;
 }
 
@@ -224,6 +237,7 @@ static nvqir::CutensornetExecutor *getPluginInstance() {
   cudaq::info("Successfully loaded the cutensornet plugin.");
   return fcn();
 }
+
 /// @brief Evaluate the expectation value of a given observable
 cudaq::observe_result
 SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
@@ -253,34 +267,19 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   }
 }
 
-/// @brief Return the state vector data
-cudaq::State SimulatorTensorNetBase::getStateData() {
-  LOG_API_TIME();
-  if (m_state->getNumQubits() > 64)
-    throw std::runtime_error("State vector data is too large.");
-  // Handle empty state (e.g., no qubit allocation)
-  if (!m_state)
-    return cudaq::State{{0}, {}};
-
-  const uint64_t svDim = 1ull << m_state->getNumQubits();
-  return cudaq::State{{svDim}, m_state->getStateVector()};
-}
-
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
-void SimulatorTensorNetBase::addQubitsToState(std::size_t count) {
-  LOG_API_TIME();
-  if (!m_state)
-    m_state = std::make_unique<TensorNetState>(count, m_cutnHandle);
-  else if (gateQueue.empty())
-    m_state = std::make_unique<TensorNetState>(m_state->getNumQubits() + count,
-                                               m_cutnHandle);
-  else
-    throw std::runtime_error("Expand qubit register is not supported!");
-}
+
 void SimulatorTensorNetBase::addQubitToState() { addQubitsToState(1); }
 
 /// @brief Destroy the entire qubit register
-void SimulatorTensorNetBase::deallocateStateImpl() { m_state.reset(); }
+void SimulatorTensorNetBase::deallocateStateImpl() {
+  if (m_state) {
+    m_state.reset();
+    // Reset cuTensorNet library
+    HANDLE_CUTN_ERROR(cutensornetDestroy(m_cutnHandle));
+    HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
+  }
+}
 
 /// @brief Reset all qubits to zero
 void SimulatorTensorNetBase::setToZeroState() {
