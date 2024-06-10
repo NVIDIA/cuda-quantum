@@ -438,6 +438,8 @@ CUDAQ_REGISTER_OPERATION(
      std::exp(i *parameters[1]) * std::sin(parameters[0] / 2.),
      std::exp(i *(parameters[2] + parameters[1])) *
          std::cos(parameters[0] / 2.)})
+CUDAQ_REGISTER_OPERATION(CustomSwap, 2, 0,
+                         {1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1})
 
 CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
   {
@@ -489,7 +491,6 @@ CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
     }
     EXPECT_EQ(counter, 1000);
   }
-
   {
     // parameterized op, custom u3
     auto check_x = []() {
@@ -545,6 +546,92 @@ CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
       EXPECT_TRUE(bits == "0");
     }
   }
-}
+  {
+    // Test swap operation
+    auto kernel = []() {
+      cudaq::qubit q, r;
+      x(q);             // q -> 1, r -> 0
+      CustomSwap(q, r); // q -> 0 , r -> 1
+    };
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    int counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "01");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+// NOTE: 'cutensornetStateApplyControlledTensorOperator' can only handle single
+// target, hence, multi-qubit controlled custom operations not supported on
+// tensornet backends
+#ifndef CUDAQ_BACKEND_TENSORNET
+  {
+    // Multi-qubit can be controlled, with one-control
+    auto kernel = []() {
+      cudaq::qvector q(3);
+      x(q[0]);
+      x(q[1]);
+      CustomCNOT<cudaq::ctrl>(q[0], q[1], q[2]);
+    };
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    int counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+  {
+    // Multi-qubit can be controlled, with multi-qubit control
+    auto kernel = []() {
+      cudaq::qvector q(4);
+      x(q.front(3));
+      CustomCNOT<cudaq::ctrl>(q[0], q[1], q[2], q[3]);
+    };
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    int counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "1111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
 
+  {
+    // Test controlled swap operation
+    auto kernel = []() {
+      cudaq::qubit q, r, c;
+      x(q);
+      CustomSwap<cudaq::ctrl>(c, q, r); // no swap
+    };
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    int counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "100");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+  {
+    // Test multi-controlled swap operation
+    auto kernel = []() {
+      cudaq::qvector q(4);
+      x(q.front(3));
+      CustomSwap<cudaq::ctrl>(q[0], q[1], q[2], q[3]); // swap q[3] and q[2]
+    };
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    int counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "1101");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+#endif
+}
 #endif

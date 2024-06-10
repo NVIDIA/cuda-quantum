@@ -1207,7 +1207,7 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
                                                 std::forward<Args>(args)...);  \
   }                                                                            \
   }                                                                            \
-  extern "C" __qop__ void CONCAT(NAME, _generator)(                            \
+  extern "C" __qop__ void CONCAT(NAME, CONCAT(_generator_, NUMT))(             \
       const double *params, std::size_t numParams,                             \
       std::complex<double> *output) {                                          \
     std::vector<double> input(params, params + numParams);                     \

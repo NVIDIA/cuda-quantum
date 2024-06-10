@@ -52,36 +52,44 @@ static clang::NamedDecl *getNamedDecl(clang::Expr *expr) {
 
 static std::pair<SmallVector<Value>, SmallVector<Value>>
 maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
-                    bool isControl = false) {
+                    bool isControl = false, size_t targetCount = 1) {
   // If this is not a controlled op, then we just keep all operands as targets.
   if (!isControl)
     return std::make_pair(operands, SmallVector<Value>{});
 
   if (operands.size() > 1)
-    return std::make_pair(SmallVector<Value>{operands.take_back()},
-                          SmallVector<Value>{operands.drop_back(1)});
-  Value target = operands.back();
-  if (target.getType().isa<quake::VeqType>()) {
-    // Split the vector. Last one is target, front N-1 are controls.
+    return std::make_pair(SmallVector<Value>{operands.take_back(targetCount)},
+                          SmallVector<Value>{operands.drop_back(targetCount)});
+
+  SmallVector<Value> targets = operands.take_back(targetCount);
+  Value last_target = operands.back();
+
+  if (last_target.getType().isa<quake::VeqType>()) {
+    // Split the vector. Last `targetCount` are targets, front `N-targetCount`
+    // are controls.
     auto vecSize = builder.create<quake::VeqSizeOp>(
-        loc, builder.getIntegerType(64), target);
+        loc, builder.getIntegerType(64), targets);
     auto size = builder.create<cudaq::cc::CastOp>(
         loc, builder.getI64Type(), vecSize, cudaq::cc::CastOpMode::Unsigned);
-    auto one = builder.create<arith::ConstantIntOp>(loc, 1, 64);
-    auto offset = builder.create<arith::SubIOp>(loc, size, one);
-    // Get the last qubit in the veq: the target.
-    Value qTarg = builder.create<quake::ExtractRefOp>(loc, target, offset);
+
+    auto numTargets =
+        builder.create<arith::ConstantIntOp>(loc, targetCount, 64);
+    auto offset = builder.create<arith::SubIOp>(loc, size, numTargets);
     auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto last = builder.create<arith::SubIOp>(loc, offset, one);
+    auto last = builder.create<arith::SubIOp>(loc, offset, numTargets);
     // The canonicalizer will compute a constant size, if possible.
     auto unsizedVeqTy = quake::VeqType::getUnsized(builder.getContext());
+
+    // Get the subvector of all targets
+    Value targetSubveq = builder.create<quake::SubVeqOp>(
+        loc, unsizedVeqTy, last_target, zero, offset);
     // Get the subvector of all qubits excluding the last one: controls.
-    Value ctrlSubveq =
-        builder.create<quake::SubVeqOp>(loc, unsizedVeqTy, target, zero, last);
-    return std::make_pair(SmallVector<Value>{qTarg},
+    Value ctrlSubveq = builder.create<quake::SubVeqOp>(loc, unsizedVeqTy,
+                                                       last_target, zero, last);
+    return std::make_pair(SmallVector<Value>{targetSubveq},
                           SmallVector<Value>{ctrlSubveq});
   }
-  return std::make_pair(SmallVector<Value>{target}, SmallVector<Value>{});
+  return std::make_pair(targets, SmallVector<Value>{});
 }
 
 namespace {
@@ -127,7 +135,8 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
              SmallVector<Value> &negations,
              llvm::function_ref<void()> reportNegateError,
              bool isAdjoint = false, bool isControl = false,
-             size_t paramCount = 1, bool isCustom = false) {
+             size_t paramCount = 1, size_t targetCount = 1,
+             bool isCustom = false) {
   if constexpr (std::is_same_v<P, Param>) {
     assert(operands.size() >= 2 && "must be at least 2 operands");
     auto params = operands.take_front(paramCount);
@@ -165,28 +174,27 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       };
       cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
     } else {
-      auto [target, ctrls] =
-          maybeUnpackOperands(builder, loc, operands, isControl);
-      for (auto v : target)
+      auto [targets, ctrls] =
+          maybeUnpackOperands(builder, loc, operands, isControl, targetCount);
+      for (auto v : targets)
         if (std::find(negations.begin(), negations.end(), v) != negations.end())
           reportNegateError();
       auto negs =
           negatedControlsAttribute(builder.getContext(), ctrls, negations);
-      // FIXME we'll need to know how many targets this
-      // custom operation is on
       if (isCustom) {
-        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, target, negs);
+        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, targets, negs);
         return true;
       }
       if (ctrls.empty())
         // May have multiple targets, but no controls, op(q, r, s, ...)
-        for (auto t : target)
+        for (auto t : targets)
           builder.create<A>(loc, isAdjoint, ValueRange(), ValueRange(), t,
                             negs);
       else {
-        assert(target.size() == 1 &&
-               "can only have a single target with control qubits.");
-        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, target, negs);
+        assert(targets.size() == 1 &&
+               "can only have a single target with control qubits on "
+               "non-custom operations.");
+        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, targets, negs);
       }
     }
   }
@@ -1612,7 +1620,39 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                          isControl, /*paramCount=*/3);
 
     // See if this is a custom unitary.
-    std::string maybeUnitaryGenerator = funcName.str() + "_generator";
+    std::string maybeUnitaryGenerator = funcName.str() + "_generator_";
+    // Extract number of targets
+    size_t targetCount = 0;
+    for (auto name : customOperationNames) {
+      if (name.consume_front(maybeUnitaryGenerator)) {
+        targetCount = std::stoi(name.str());
+      }
+    }
+    if (targetCount > 0) {
+      // Extract number of parameters
+      std::size_t paramCount = [&]() {
+        std::size_t count = 0;
+        for (auto arg : args) {
+          auto argTy = arg.getType();
+          if (isa<FloatType>(argTy))
+            count++;
+          else if (auto ptrTy = dyn_cast<cc::PointerType>(argTy)) {
+            if (isa<FloatType>(ptrTy.getElementType()))
+              count++;
+          }
+        }
+        return count;
+      }();
+      buildOp<quake::CustomUnitarySymbolOp>(
+          builder, loc, args, negations, reportNegateError, isAdjoint,
+          isControl, paramCount, targetCount, true);
+      auto &customUnitary = builder.getBlock()->back();
+      auto srefAttr = SymbolRefAttr::get(
+          StringAttr::get(builder.getContext(), maybeUnitaryGenerator));
+      customUnitary.setAttr("generator", srefAttr);
+      return true;
+    }
+
     if (std::find(customOperationNames.begin(), customOperationNames.end(),
                   maybeUnitaryGenerator) != customOperationNames.end()) {
       std::size_t paramCount = [&]() {

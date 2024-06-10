@@ -1154,11 +1154,10 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
-def CustomUnitarySymbolOp
-    : QuakeOperator<"unitary"> {
+def CustomUnitarySymbolOp : QuakeOperator<"unitary"> {
   let summary = "Custom unitary operation.";
   let description = [{
-    Custom unitary operation leveraging a SymbolRefAttr describing the unitary 
+    Custom unitary operation leveraging a `SymbolRefAttr` describing the unitary 
     data generator function. 
   }]; 
 }
