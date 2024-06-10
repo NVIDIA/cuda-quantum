@@ -15,6 +15,7 @@ add_cudaq_library(OptTransforms
   AggressiveEarlyInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
+  AssignIDs.cpp
   BasisConversion.cpp
   CombineQuantumAlloc.cpp
   Decomposition.cpp
