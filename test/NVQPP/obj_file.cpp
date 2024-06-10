@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std -c %s -o %t.my_o && [ -e %t.my_o ]
+// RUN: nvq++ %cpp_std -c %s -o %t && [ -e %t ]
 
 #include <cudaq.h>
 
