@@ -6,17 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#pragma GCC diagnostic ignored "-Wrestrict"
-#endif
-#include "PassDetails.h"
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-
 #include "CodeGenOps.h"
+#include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -46,28 +37,64 @@
 
 #define DEBUG_TYPE "convert-to-qir"
 
+namespace cudaq::opt {
+#define GEN_PASS_DEF_CONVERTTOQIR
+#define GEN_PASS_DEF_LOWERTOCG
+#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+} // namespace cudaq::opt
+
 using namespace mlir;
 
 namespace {
 //===----------------------------------------------------------------------===//
-// Code generation: converts the Quake IR to QIR.
+// Code generation: converts the Quake IR to Codegen IR.
 //===----------------------------------------------------------------------===//
 
-/// Convert Quake dialect to LLVM-IR and QIR.
-class QuakeToQIRRewrite : public cudaq::opt::QuakeToQIRBase<QuakeToQIRRewrite> {
+class CodeGenRAIIPattern : public OpRewritePattern<quake::InitializeStateOp> {
 public:
-  QuakeToQIRRewrite() = default;
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::InitializeStateOp init,
+                                PatternRewriter &rewriter) const override {
+    Value mem = init.getTargets();
+    auto alloc = mem.getDefiningOp<quake::AllocaOp>();
+    if (!alloc)
+      return init.emitOpError("init_state must have alloca as input");
+    rewriter.replaceOpWithNewOp<cudaq::codegen::RAIIOp>(
+        init, init.getType(), init.getState(),
+        cast<cudaq::cc::PointerType>(init.getState().getType())
+            .getElementType(),
+        alloc.getType(), alloc.getSize());
+    rewriter.eraseOp(alloc);
+    return success();
+  }
+};
+} // namespace
+
+/// Greedy pass to match subgraphs in the IR and replace them with codegen ops.
+/// This step makes converting a DAG of nodes in the conversion step simpler.
+static LogicalResult fuseSubgraphPatterns(MLIRContext *ctx, ModuleOp module) {
+  RewritePatternSet patterns(ctx);
+  patterns.insert<CodeGenRAIIPattern>(ctx);
+  if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+    return failure();
+  return success();
+}
+
+namespace {
+/// Convert Quake dialect to LLVM-IR and QIR.
+class ConvertToQIR : public cudaq::opt::impl::ConvertToQIRBase<ConvertToQIR> {
+public:
+  using ConvertToQIRBase::ConvertToQIRBase;
 
   /// Measurement counter for unnamed measurements. Resets every module.
   unsigned measureCounter = 0;
-
-  ModuleOp getModule() { return getOperation(); }
 
   // This is an ad hox transformation to convert constant array values into a
   // buffer of constants.
   LogicalResult eraseConstantArrayOps() {
     bool ok = true;
-    getModule().walk([&](cudaq::cc::ConstantArrayOp carr) {
+    getOperation().walk([&](cudaq::cc::ConstantArrayOp carr) {
       // If there is a constant array, then we expect that it is involved in
       // a stdvec initializer expression. So look for the pattern and expand
       // the store into a series of scalar stores.
@@ -125,26 +152,16 @@ public:
   /// Greedy pass to match subgraphs in the IR and replace them with codegen
   /// ops. This step makes converting a DAG of nodes in the conversion step
   /// simpler.
-  void fuseSubgraphPatterns() {
-#if 0
-    auto *ctx = &getContext();
-    RewritePatternSet patterns(ctx);
-    // TODO: Patterns to be added.
-    patterns.insert<...>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(getModule(), std::move(patterns))))
-      signalPassFailure();
-#endif
-  }
-
   void runOnOperation() override final {
-    fuseSubgraphPatterns();
-
     auto *context = &getContext();
-
+    if (failed(fuseSubgraphPatterns(context, getOperation()))) {
+      signalPassFailure();
+      return;
+    }
     // Ad hoc deal with ConstantArrayOp transformation.
     // TODO: Merge this into the codegen dialect once that gets to main.
     if (failed(eraseConstantArrayOps())) {
-      getModule().emitOpError("unexpected constant arrays");
+      getOperation().emitOpError("unexpected constant arrays");
       signalPassFailure();
       return;
     }
@@ -171,8 +188,9 @@ public:
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
 
-    if (failed(applyFullConversion(getModule(), target, std::move(patterns)))) {
-      LLVM_DEBUG(getModule().dump());
+    if (failed(
+            applyFullConversion(getOperation(), target, std::move(patterns)))) {
+      LLVM_DEBUG(getOperation().dump());
       signalPassFailure();
     }
   }
@@ -191,6 +209,14 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
   cudaq::opt::populateCCTypeConversions(&typeConverter);
 }
 
-std::unique_ptr<Pass> cudaq::opt::createConvertToQIRPass() {
-  return std::make_unique<QuakeToQIRRewrite>();
-}
+namespace {
+class LowerToCG : public cudaq::opt::impl::LowerToCGBase<LowerToCG> {
+public:
+  using LowerToCGBase::LowerToCGBase;
+
+  void runOnOperation() override {
+    if (failed(fuseSubgraphPatterns(&getContext(), getOperation())))
+      signalPassFailure();
+  }
+};
+} // namespace
