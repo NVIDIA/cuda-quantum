@@ -1213,6 +1213,113 @@ public:
     return success();
   }
 };
+
+class CustomUnitaryOpRewrite
+    : public ConvertOpToLLVMPattern<quake::CustomUnitarySymbolOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::CustomUnitarySymbolOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto parentModule = op->getParentOfType<ModuleOp>();
+    auto context = op->getContext();
+    auto typeConverter = this->getTypeConverter();
+
+    auto sref = op->getAttrOfType<SymbolRefAttr>("generator");
+    StringRef generateFuncName = sref.getRootReference();
+    auto numParameters = op.getParameters().size();
+    auto numTargets = op.getTargets().size();
+
+    Value numParametersVal =
+        rewriter.create<arith::ConstantIntOp>(loc, numParameters, 64);
+    auto paramsPtr = rewriter.create<LLVM::AllocaOp>(
+        loc, LLVM::LLVMPointerType::get(rewriter.getF64Type()),
+        numParametersVal);
+    auto f64PtrTy = LLVM::LLVMPointerType::get(rewriter.getF64Type());
+    for (std::size_t i = 0; i < numParameters; i++) {
+      auto ptr = rewriter.create<LLVM::GEPOp>(
+          loc, f64PtrTy, paramsPtr,
+          SmallVector<LLVM::GEPArg>{static_cast<int32_t>(i)});
+      rewriter.create<LLVM::StoreOp>(loc, op->getOperand(i), ptr);
+    }
+
+    // Create output pointer
+    auto complexTy =
+        typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
+    auto complexPtrTy = LLVM::LLVMPointerType::get(complexTy);
+    auto powTwo = (1UL << numTargets);
+    Value numElementsVal =
+        rewriter.create<arith::ConstantIntOp>(loc, powTwo * powTwo, 64);
+    auto unitaryData =
+        rewriter.create<LLVM::AllocaOp>(loc, complexPtrTy, numElementsVal);
+
+    if (!parentModule.lookupSymbol(generateFuncName)) {
+      auto ip = rewriter.saveInsertionPoint();
+      rewriter.setInsertionPointToStart(parentModule.getBody());
+      auto ftype = FunctionType::get(
+          context, {f64PtrTy, rewriter.getI64Type(), complexPtrTy}, {});
+      auto func = rewriter.create<func::FuncOp>(loc, generateFuncName, ftype);
+      rewriter.restoreInsertionPoint(ip);
+      rewriter.create<func::CallOp>(
+          loc, func, ValueRange{paramsPtr, numParametersVal, unitaryData});
+    } else {
+      rewriter.create<func::CallOp>(
+          loc, generateFuncName, TypeRange{},
+          ValueRange{paramsPtr, numParametersVal, unitaryData});
+    }
+
+    auto targets = op.getTargets();
+    Value concatTargets = rewriter.create<quake::ConcatOp>(
+        loc, quake::VeqType::getUnsized(context), targets);
+
+    // concatenate controls
+    auto controls = op.getControls();
+    Value concatControls;
+    if (controls.empty()) {
+      // make an empty array
+      Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+      Value zero32 = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
+
+      FlatSymbolRefAttr symbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              cudaq::opt::QIRArrayCreateArray,
+              cudaq::opt::getArrayType(context),
+              {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
+      concatControls =
+          rewriter
+              .create<LLVM::CallOp>(
+                  loc, TypeRange{cudaq::opt::getArrayType(context)}, symbolRef,
+                  ValueRange{zero32, zero})
+              .getResult();
+    } else
+      concatControls = rewriter.create<quake::ConcatOp>(
+          loc, quake::VeqType::getUnsized(context), controls);
+
+    if (!parentModule.lookupSymbol("__quantum__qis__custom_unitary")) {
+      auto ip = rewriter.saveInsertionPoint();
+      rewriter.setInsertionPointToStart(parentModule.getBody());
+      auto ftype =
+          FunctionType::get(context,
+                            {complexPtrTy, cudaq::opt::getArrayType(context),
+                             cudaq::opt::getArrayType(context)},
+                            {});
+      auto func = rewriter.create<func::FuncOp>(
+          loc, "__quantum__qis__custom_unitary", ftype);
+      rewriter.restoreInsertionPoint(ip);
+
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          op, func, ValueRange{unitaryData, concatControls, concatTargets});
+    } else {
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          op, "__quantum__qis__custom_unitary", TypeRange{},
+          ValueRange{unitaryData, concatControls, concatTargets});
+    }
+
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
@@ -1222,8 +1329,9 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
   patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, MxToMz, MyToMz,
                   ReturnBitRewrite>(context);
   patterns.insert<
-      AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite, DiscriminateOpPattern,
-      ExtractQubitOpRewrite, ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
+      AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
+      DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
+      ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
       OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
       OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
       OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,

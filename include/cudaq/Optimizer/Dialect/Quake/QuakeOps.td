@@ -1154,4 +1154,13 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
+def CustomUnitarySymbolOp
+    : QuakeOperator<"unitary"> {
+  let summary = "Custom unitary operation.";
+  let description = [{
+    Custom unitary operation leveraging a SymbolRefAttr describing the unitary 
+    data generator function. 
+  }]; 
+}
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS
