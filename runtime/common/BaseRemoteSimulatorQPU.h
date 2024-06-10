@@ -69,7 +69,7 @@ public:
   }
 
   void launchVQE(const std::string &name, void *kernelArgs,
-                 cudaq::gradient &gradient, cudaq::spin_op H,
+                 cudaq::gradient *gradient, cudaq::spin_op H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
     cudaq::ExecutionContext *executionContextPtr =

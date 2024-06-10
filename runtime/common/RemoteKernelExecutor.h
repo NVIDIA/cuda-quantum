@@ -83,7 +83,7 @@ public:
                               ExecutionContext &io_context,
                               const std::string &backendSimName,
                               const std::string &kernelName, void *kernelArgs,
-                              cudaq::gradient &gradient,
+                              cudaq::gradient *gradient,
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg = nullptr) = 0;
 
