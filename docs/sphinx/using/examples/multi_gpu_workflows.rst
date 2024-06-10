@@ -17,19 +17,19 @@ involving multiple architectures working in tandem.
 Available Targets
 ~~~~~~~~~~~~~~~~~
 
--  **qpp-cpu**: The qpp based CPU backend which is multithreaded to
+-  **`qpp-cpu`**: The QPP based CPU backend which is multithreaded to
    maximize the usage of available cores on your system.
 
--  **nvidia**: Single GPU based backend which accelerates quantum circuit
+-  **`nvidia`**: Single GPU based backend which accelerates quantum circuit
    simulation on NVIDIA GPUs powered by cuQuantum.
 
--  **nvidia-mqpu**: Enables users to program workflows utilizing
+-  **`nvidia-mqpu`**: Enables users to program workflows utilizing
    multiple quantum processors in parallel, enabled today by GPU emulation.
 
--  **nvidia-mgpu**: Allows for scaling circuit simulation on multiple GPUs, which is beyond what is
+-  **`nvidia-mgpu`**: Allows for scaling circuit simulation on multiple GPUs, which is beyond what is
    feasible with any QPU today.
 
--  **density-matrix-cpu**: Noisy simulations via density matrix
+-  **`density-matrix-cpu`**: Noisy simulations via density matrix
    calculations. CPU only for now with GPU support coming soon.
 
 Below we explore how to effectively utilize multiple CUDA-Q targets with the same GHZ state preparation code

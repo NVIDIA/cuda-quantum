@@ -1,5 +1,5 @@
 Quantum Operations
-============
+==================
 
 Qubit
 -----
@@ -20,8 +20,8 @@ a quantum bit or simply the qubit. Below we define a qubit in CUDA-Q.
         # Allocate a single qubit to the kernel.
         qubit = cudaq.qubit()
 
-Classcial bits are transistor elements whose states can be altered to
-perform computations. Similarly qubits too have physical relizations
+Classical bits are transistor elements whose states can be altered to
+perform computations. Similarly qubits too have physical realizations
 within superconducting materials, ion-traps and photonic systems. We
 shall not concern ourselves with specific qubit architectures but rather
 think of them as systems which obey the laws of quantum mechanics and
@@ -40,7 +40,7 @@ to scale logarithmically. Similarly we define a qubit to have the states
 Pauli X Gate
 ------------
 
-We can manipulate the state of the qubit via quantum gates. The pauli X
+We can manipulate the state of the qubit via quantum gates. The Pauli X
 gate allows us to flip the state of the qubit:
 
 .. math::  X \ket{0} = \ket{1} 
@@ -54,7 +54,7 @@ gate allows us to flip the state of the qubit:
         # A single qubit initialized to the ground / zero state.
         qubit = cudaq.qubit()
     
-        # Apply the pauli x gate to the qubit.
+        # Apply the Pauli x gate to the qubit.
         x(qubit)
     
         # Measurement operator.
@@ -98,7 +98,7 @@ that the probability of observing the qubit in the state
 theory has been verified experimentally countless times and we shall
 verify it once more below.
 
-The hadamard gate allows us to put the qubit in an equal superposition
+The Hadamard gate allows us to put the qubit in an equal superposition
 state:
 
 .. math::  H \ket{0} =  \tfrac{1}{\sqrt{2}} \ket{0} + \tfrac{1}{\sqrt{2}} \ket{1}  \equiv \ket{+}
@@ -156,7 +156,7 @@ represent each of the aforementioned states.
 
 We also know that qubits can be in an equal superposition states:
 :math:`\ket{+}` and :math:`\ket{-}`. This now forces us to extend our
-1-D line to a 2-D cartesian coordinate system.
+1-D line to a 2-D Cartesian coordinate system.
 
 Later, we will learn the existence of states that can be represented
 with :math:`\ket{+i}` and :math:`\ket{-i}`, this calls for a 3-D
@@ -202,13 +202,13 @@ This is to adhere to the conservation of probabilities which translates
 to a constraint on types of quantum gates we can define.
 
 For a general quantum state :math:`\ket{\psi}`, upholding the
-normalisation condition requires quantum gates to be unitary, that is
+normalization condition requires quantum gates to be unitary, that is
 :math:`U^{\dagger}U = U^{*^{T}}U = \mathbb{I}`.
 
 Single Qubit Gates
 ------------------
 
-Below we summarise a few single qubit gates and their effects on quantum
+Below we summarize a few single qubit gates and their effects on quantum
 states:
 
 .. math::  X \equiv \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}, \hspace{1cm} X(\alpha\ket{0} + \beta\ket{1}) = \alpha\ket{1} + \beta\ket{0} \hspace{1cm}  
@@ -339,7 +339,7 @@ In summary, the CNOT gate in matrix notation is represented as:
 
 .. math::  CNOT \equiv \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix} 
 
-To conserve probabilites and preserve the normalization condition,
+To conserve probability and preserve the normalization condition,
 quantum gates must obey unitarity and one can check that
 :math:`CNOT^\dagger CNOT = \mathbb{I}`
 

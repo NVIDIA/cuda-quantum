@@ -85,8 +85,8 @@ Sample
 
   See the :doc:`API specification <../../../api/languages/cpp_api>` for further information.
 
-Sample Async
-~~~~~~~~~~~~
+Sample Asynchronous
+~~~~~~~~~~~~~~~~~~~
 
 Asynchronous programming is a technique that enables your program to
 start a potentially long-running task and still be able to be responsive
@@ -249,8 +249,8 @@ Observe
         :start-after: [Begin Observe3]
         :end-before: [End Observe3]
 
-Observe Async
-~~~~~~~~~~~~~
+Observe Asynchronous
+~~~~~~~~~~~~~~~~~~~~
 
 Similar to ``sample_async`` above, ``observe`` also supports
 asynchronous execution for the `arguments it
