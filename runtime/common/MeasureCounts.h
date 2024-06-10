@@ -288,14 +288,14 @@ public:
 };
 
 /// The 'SerializedCodeExecutionResult' models the result of an execution
-/// of source code (objective function and its call). It will contain the 
+/// of source code (objective function and its call). It will contain the
 /// optimal cost (energy of the given hamiltonian) and the optimal parameters
 /// (the optimal gradient vector)
 struct SerializedCodeExecutionResult {
   /// @brief The expectation value of the Hamiltonian for the given parameters
   float energy;
 
-  /// @brief The optimal value of the parameter(s) that minimizes the 
+  /// @brief The optimal value of the parameter(s) that minimizes the
   /// expectation value
   std::vector<float> parameters;
 

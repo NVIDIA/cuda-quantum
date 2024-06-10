@@ -9,10 +9,10 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/SerializedCodeExecutionContext.h"
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
+#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
@@ -96,9 +96,9 @@ public:
 
     cudaq::SerializedCodeExecutionContext serializedCodeContext;
     std::string errorMsg;
-    const bool requestOkay =
-        m_client->sendRequest(*m_mlirContext, executionContext, serializedCodeContext, m_simName, name,
-                              kernelFunc, args, voidStarSize, &errorMsg);
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, executionContext, serializedCodeContext, m_simName,
+        name, kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }

@@ -52,8 +52,8 @@ public:
     cudaq::SerializedCodeExecutionContext serializedCodeContext;
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *mlirContext, executionContext, serializedCodeContext, m_simName, name, kernelFunc,
-        wrapper->rawArgs, voidStarSize, &errorMsg);
+        *mlirContext, executionContext, serializedCodeContext, m_simName, name,
+        kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
@@ -103,8 +103,8 @@ public:
     cudaq::SerializedCodeExecutionContext serializedCodeContext;
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *mlirContext, executionContext, serializedCodeContext, m_simName, name, kernelFunc,
-        wrapper->rawArgs, voidStarSize, &errorMsg);
+        *mlirContext, executionContext, serializedCodeContext, m_simName, name,
+        kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
