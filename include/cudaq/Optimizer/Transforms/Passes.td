@@ -164,6 +164,14 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   ];
 }
 
+def EraseNopCalls : Pass<"erase-nop-calls", "mlir::func::FuncOp"> {
+  let summary = "Erase calls to any builtin intrinsics that are NOPs.";
+  let description = [{
+    The code may contain marker function calls that do not generate any actual
+    code. These calls are NOPs that will be erased by this pass.
+  }];
+}
+
 def ExpandMeasurements : Pass<"expand-measurements"> {
   let summary = "Expand multi-ref measurements to series on single refs.";
   let description = [{
