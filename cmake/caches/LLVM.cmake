@@ -60,8 +60,6 @@ if(DEFINED LLVM_ENABLE_RUNTIMES AND LLVM_ENABLE_RUNTIMES MATCHES "libcxx")
     set(LIBCXX_HAS_GCC_S_LIB OFF CACHE BOOL "")
     set(COMPILER_RT_HAS_GCC_LIB OFF CACHE BOOL "")
     set(COMPILER_RT_HAS_GCC_S_LIB OFF CACHE BOOL "")
-    set(COMPILER_RT_BUILD_CRT ON CACHE BOOL "")
-    set(COMPILER_RT_BUILD_ORC ON CACHE BOOL "")
     set(COMPILER_RT_BUILD_BUILTINS ON CACHE BOOL "")
     set(COMPILER_RT_BUILD_LIBFUZZER OFF CACHE BOOL "")
     set(COMPILER_RT_BUILD_SANITIZERS OFF CACHE BOOL "")
@@ -70,6 +68,20 @@ if(DEFINED LLVM_ENABLE_RUNTIMES AND LLVM_ENABLE_RUNTIMES MATCHES "libcxx")
     set(COMPILER_RT_BUILD_MEMPROF OFF CACHE BOOL "")
     set(COMPILER_RT_BUILD_XRAY OFF CACHE BOOL "")
     set(COMPILER_RT_USE_BUILTINS_LIBRARY ON CACHE BOOL "")
+    # This looks like a configuration that was originally used and
+    # probably automatically set to the correct value by the larger
+    # LLVM build infrastructure. However, at the time of writing, 
+    # this setting was only ever used in one place in the LLVM
+    # codebase and never set. Specifically, it is used to determine 
+    # whether to initialize the variables that capture what 
+    # architectures compiler-rt can target.
+    # If this is not set, the check is not performed before 
+    # COMPILER_RT_HAS_CRT is set and the dependent option 
+    # COMPILER_RT_BUILD_CRT has no effect, causing the build to 
+    # not create clang_rt.crtbegin.o and clang_rt.crtend.o.
+    set(COMPILER_RT_CRT_STANDALONE_BUILD ON CACHE BOOL "")
+    set(COMPILER_RT_BUILD_CRT ON CACHE BOOL "")
+    set(COMPILER_RT_BUILD_ORC ON CACHE BOOL "")
 
     # Build a static libc++ without any dependencies;
     # see also https://libcxx.llvm.org/BuildingLibcxx.html
