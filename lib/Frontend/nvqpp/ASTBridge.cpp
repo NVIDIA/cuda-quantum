@@ -153,8 +153,10 @@ public:
   using Base = clang::RecursiveASTVisitor<QPUCodeFinder>;
   explicit QPUCodeFinder(cudaq::EmittedFunctionsCollection &funcsToEmit,
                          clang::CallGraph &cgb,
-                         clang::ItaniumMangleContext *mangler)
-      : functionsToEmit(funcsToEmit), callGraphBuilder(cgb), mangler(mangler) {}
+                         clang::ItaniumMangleContext *mangler,
+                         SmallVector<StringRef> &customOperations)
+      : functionsToEmit(funcsToEmit), callGraphBuilder(cgb), mangler(mangler),
+        customOperationNames(customOperations) {}
 
   /// Add a kernel to the list of kernels to process.
   void processQpu(std::string &&kernelName, const clang::FunctionDecl *f) {
@@ -223,6 +225,11 @@ public:
       return true;
     func = func->getDefinition();
     if (func) {
+      if (auto attr = func->getAttr<clang::AnnotateAttr>())
+        if (attr->getAnnotation().str() == "user_custom_quantum_operation") {
+          customOperationNames.push_back(func->getName());
+          return true;
+        }
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func)) {
         quantumTypesNotAllowed = false;
         // Run semantics checks on the kernel class.
@@ -311,6 +318,7 @@ private:
   cudaq::EmittedFunctionsCollection &functionsToEmit;
   clang::CallGraph &callGraphBuilder;
   clang::ItaniumMangleContext *mangler;
+  SmallVector<StringRef> &customOperationNames;
   // A class that is being visited. Need to run semantics checks on it if and
   // only if it has a quantum kernel.
   const clang::CXXRecordDecl *checkedClass = nullptr;
@@ -516,9 +524,10 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
   llvm::SmallVector<clang::Decl *> reachableFuncs =
       listReachableFunctions(callGraphBuilder.getRoot());
   auto *ctx = module->getContext();
-  details::QuakeBridgeVisitor visitor(
-      &astContext, ctx, builder, module.get(), symbol_table, functionsToEmit,
-      reachableFuncs, cxx_mangled_kernel_names, ci, mangler);
+  details::QuakeBridgeVisitor visitor(&astContext, ctx, builder, module.get(),
+                                      symbol_table, functionsToEmit,
+                                      reachableFuncs, cxx_mangled_kernel_names,
+                                      ci, mangler, customOperationNames);
 
   // First generate declarations for all kernels.
   bool ok = true;
@@ -587,7 +596,8 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
 
 bool ASTBridgeAction::ASTBridgeConsumer::HandleTopLevelDecl(
     clang::DeclGroupRef dg) {
-  QPUCodeFinder finder(functionsToEmit, callGraphBuilder, mangler);
+  QPUCodeFinder finder(functionsToEmit, callGraphBuilder, mangler,
+                       customOperationNames);
   // Loop over all decls, saving the function decls that are quantum kernels.
   for (const auto *decl : dg)
     finder.TraverseDecl(const_cast<clang::Decl *>(decl));

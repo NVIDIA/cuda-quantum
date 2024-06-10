@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -1005,6 +1006,8 @@ void quake::ZOp::getOperatorMatrix(Matrix &matrix) {
   matrix.assign({1, 0, 0, -1});
 }
 
+void quake::CustomUnitarySymbolOp::getOperatorMatrix(Matrix &matrix) {}
+
 //===----------------------------------------------------------------------===//
 
 /// Never inline a `quake.apply` of a variant form of a kernel. The apply
@@ -1088,7 +1091,7 @@ void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
 // but not having a way to define them in the ODS.
 // clang-format off
 #define GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp) MACRO(SOp) \
-  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op)                             \
+  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(CustomUnitarySymbolOp) \
   MACRO(R1Op) MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
 #define QUANTUM_OPS(MACRO) MACRO(ResetOp) GATE_OPS(MACRO) MEASURE_OPS(MACRO)
