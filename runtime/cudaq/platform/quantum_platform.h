@@ -11,7 +11,6 @@
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
-#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
@@ -26,6 +25,7 @@ namespace cudaq {
 
 class QPU;
 class gradient;
+class optimizer;
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -132,6 +132,7 @@ public:
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
+  /// @brief Launch a VQE operation on the platform.
   void launchVQE(const std::string kernelName, void *kernelArgs,
                  cudaq::gradient &gradient, cudaq::spin_op H,
                  cudaq::optimizer &optimizer, const int n_params,

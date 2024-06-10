@@ -14,9 +14,10 @@ namespace cudaq::gradients {
 class parameter_shift : public gradient {
 public:
   using gradient::gradient;
-  double shiftScalar = 0.5;
+  static constexpr double default_shiftScalar = 0.5;
+  double shiftScalar = default_shiftScalar;
 
-  parameter_shift(double s = 0.5) : gradient(), shiftScalar(s) {}
+  parameter_shift(double s = default_shiftScalar) : gradient(), shiftScalar(s) {}
 
   void compute(const std::vector<double> &x, std::vector<double> &dx,
                const spin_op &h, double exp_h) override {

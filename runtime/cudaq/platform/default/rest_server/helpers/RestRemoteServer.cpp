@@ -274,9 +274,8 @@ public:
 
     auto &requestInfo = m_codeTransform[reqId];
     if (requestInfo.format == cudaq::CodeFormat::LLVM) {
-      // Error FIXME
-      printf("GOT HERE %s:%d\n", __FILE__, __LINE__);
-      fflush(stdout);
+      throw std::runtime_error("CodeFormat::LLVM is not supported with VQE. "
+                               "Use CodeFormat::MLIR instead.");
     } else {
       llvm::SourceMgr sourceMgr;
       sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(ir),

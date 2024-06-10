@@ -569,11 +569,6 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 }
 
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, void *a) {
-  return std::make_unique<QuakeSynthesizer>(kernelName, a);
-}
-
-std::unique_ptr<mlir::Pass>
 cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, void *a,
                                    std::size_t startingArgIdx) {
   return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx);

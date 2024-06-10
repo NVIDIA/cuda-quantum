@@ -15,9 +15,10 @@ namespace cudaq::gradients {
 class central_difference : public gradient {
 public:
   using gradient::gradient;
-  double step = 1e-4;
+  static constexpr double default_step = 1e-4;
+  double step = default_step;
 
-  central_difference(double s = 1e-4) : gradient(), step(s) {}
+  central_difference(double s = default_step) : gradient(), step(s) {}
 
   void compute(const std::vector<double> &x, std::vector<double> &dx,
                const spin_op &h, double exp_h) override {

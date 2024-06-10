@@ -66,6 +66,9 @@ public:
     };
   }
 
+  /// Constructor takes the quantum kernel and concrete arguments for all
+  /// arguments except the first std::vector<double> argument, which is used for
+  /// the variational parameters for the gradient.
   template <typename QuantumKernel, typename... Args,
             typename = std::enable_if_t<std::is_invocable_v<
                 QuantumKernel, std::vector<double>, Args...>>>

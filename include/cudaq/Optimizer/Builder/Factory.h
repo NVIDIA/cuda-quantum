@@ -89,6 +89,8 @@ mlir::Type genArgumentBufferType(mlir::Type ty);
 /// ```
 /// where the values of the vector argument are pass-by-value and appended to
 /// the end of the struct as a sequence of \i n double values.
+///
+/// The leading `startingArgIdx + 1` parameters are omitted from the struct.
 cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy,
                                             std::size_t startingArgIdx = 0);
 

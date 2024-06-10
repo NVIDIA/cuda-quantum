@@ -12,8 +12,6 @@
 #include "common/Logger.h"
 #include "common/Registry.h"
 #include "common/Timing.h"
-#include "cudaq/algorithms/gradient.h"
-#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -21,6 +19,8 @@
 #include <optional>
 
 namespace cudaq {
+class gradient;
+class optimizer;
 
 /// Expose the function that will return the current ExecutionManager
 ExecutionManager *getExecutionManager();
