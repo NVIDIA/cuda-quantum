@@ -45,12 +45,12 @@ public:
   // It's defined by the Json payload version that it can handle.
   virtual int version() const = 0;
   // Handle incoming kernel execution requests.
-  virtual void handleRequest(std::size_t reqId, ExecutionContext &io_context,
-                             SerializedCodeExecutionContext &serializedCodeContext,
-                             const std::string &backendSimName,
-                             std::string_view ir, std::string_view kernelName,
-                             void *kernelArgs, std::uint64_t argsSize,
-                             std::size_t seed) = 0;
+  virtual void
+  handleRequest(std::size_t reqId, ExecutionContext &io_context,
+                SerializedCodeExecutionContext &serializedCodeContext,
+                const std::string &backendSimName, std::string_view ir,
+                std::string_view kernelName, void *kernelArgs,
+                std::uint64_t argsSize, std::size_t seed) = 0;
 
   // Destructor
   virtual ~RemoteRuntimeServer() = default;

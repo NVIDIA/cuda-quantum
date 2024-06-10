@@ -39,10 +39,12 @@ public:
 
   SerializedCodeExecutionContext() = default;
   SerializedCodeExecutionContext(std::string c, std::string l, std::string g)
-      : source_code(std::move(c)), locals(std::move(l)), globals(std::move(g)) {}
+      : source_code(std::move(c)), locals(std::move(l)), globals(std::move(g)) {
+  }
   ~SerializedCodeExecutionContext() = default;
 
   // Serialization
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext, code, locals, globals);
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext, source_code,
+                                 locals, globals);
 };
 } // namespace cudaq
