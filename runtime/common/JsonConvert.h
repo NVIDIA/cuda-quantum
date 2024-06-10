@@ -463,7 +463,7 @@ public:
   // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
   RestRequest(ExecutionContext &context, int versionNumber,
-              SerializedCodeExecutionContext &serializedCodeContext)
+              const SerializedCodeExecutionContext &serializedCodeContext)
       : executionContext(context), version(versionNumber),
         clientVersion(CUDA_QUANTUM_VERSION),
         serializedCodeExecutionContext(serializedCodeContext) {}
