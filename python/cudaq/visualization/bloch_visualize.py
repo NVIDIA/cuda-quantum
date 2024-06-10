@@ -20,8 +20,8 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
                         **kwargs) -> Bloch:
     """ 
         Creates a Bloch sphere representation of the given single-qubit state. If an (optional) existing Bloch sphere object is supplied, 
-        then adds the state to the existing Bloch sphere and returns it. The Bloch sphere is created with qutip, and any other keyword arguments 
-        provided are passed directly to the qutip.Bloch() function.  
+        then adds the state to the existing Bloch sphere and returns it. The Bloch sphere is created with QuTiP, and any other keyword arguments 
+        provided are passed directly to the `qutip.Bloch()` function.  
 
         Signature:
         ----------
@@ -35,7 +35,7 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
             `existing_sphere` [Optional]: 
                 A `qutip.Bloch` object. If a valid `qutip.Bloch` sphere object is not supplied, then creates a new sphere with the vector representing the supplied state.
             `kwargs` [Optional]:
-                Optional keyword arguments  to be passed to QuTiP during Bloch sphere initialization. 
+                Optional keyword arguments to be passed to QuTiP during Bloch sphere initialization. 
         Returns:
         --------
             Bloch sphere object. In case existing_sphere is supplied, returns a Bloch sphere with a copy of its existing data, with added data of psi.  
@@ -73,7 +73,7 @@ def show_bloch_sphere(sphere_data=None, ncols=2, nrows=1) -> None:
         Arguments:
         ----------
             `sphere_data`: 
-                An existing qutip.Bloch object or list of qutip.Bloch objects. This is fully interoperational with Bloch sphere objects from QuTiP.
+                An existing `qutip.Bloch` object or list of `qutip.Bloch` objects. This is fully interoperational with Bloch sphere objects from QuTiP.
             `ncols` [Optional]:
                 Number of columns in the figure, defaults to 2. In case sphere_data contains a list of Bloch spheres, this argument attempts to fit a maximum of `ncols` columns in the figure.
             `nrows` [Optional]:

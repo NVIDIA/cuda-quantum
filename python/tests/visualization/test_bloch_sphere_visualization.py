@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 
 import cudaq
-import qutip
+qutip = pytest.importorskip("qutip")
 
 import io
 from contextlib import redirect_stdout
@@ -95,6 +95,9 @@ def test_visualization_single_qubit_shere_dm():
     
     b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel),existing_sphere=sph)
     assert isinstance(b, qutip.Bloch)
+
+# reset target to prevent interference with further tests
+cudaq.reset_target()
 
 
 def test_show_bloch_no_data():

@@ -217,14 +217,13 @@ prepend
 preprocessor
 programmatically
 pybind
-quakeDialects
 quantize
 quantized
 qubit
 qubits
 qudit
 qudits
-qutip
+QuTiP
 reStructuredText
 runtime
 runtimes

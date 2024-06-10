@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 
-def install_qutip_request():
+def install_qutip_request(*args,**kwargs):
     print(
         "The module QuTiP was not detected. Bloch Sphere visualization will not work.\nPlease install QuTip to use this feature. You can run \"pip install qutip\" or in a conda environment, run \"conda -c conda-forge install qutip\" to install qutip. "
     )
