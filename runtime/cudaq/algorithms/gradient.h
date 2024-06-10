@@ -78,8 +78,9 @@ public:
   /// object. (Useful for NVQC.)
   template <typename QuantumKernel, typename... Args>
   void setArgs(QuantumKernel &kernel, Args &&...args) {
-    static_assert(std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>,
-                      "Kernel must be invocable with std::vector<double> and Args...");
+    static_assert(
+        std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>,
+        "Kernel must be invocable with std::vector<double> and Args...");
     // Serialize all the parameters except for the first std::vector<double>
     // parameter. The serialized ones will be saved and used later during each
     // ansatz_functor invocation.
@@ -90,6 +91,13 @@ public:
           x, serializedArgs.data(), serializedArgs.size(),
           std::forward<QuantumKernel>(kernel));
     };
+  }
+
+  template <typename QuantumKernel>
+  void setKernel(QuantumKernel &kernel) {
+    static_assert(std::is_invocable_v<QuantumKernel, std::vector<double>>,
+                  "Kernel must be invocable with std::vector<double>");
+    ansatz_functor = kernel;
   }
 
   /// Constructor, takes a callable that must have the

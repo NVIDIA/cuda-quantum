@@ -174,35 +174,40 @@ inline Optimizer get_optimizer_type(const cudaq::optimizer &p) {
   __builtin_unreachable();
 }
 
-inline void to_json(json &j, const cudaq::optimizers::BaseEnsmallen &p) {
+// cudaq::optimizer is an abstract base class, so this must be constructed
+// manually in the RestRequest constructor. This function is simply here to
+// allow other JSON macros to function.
+inline void from_json(const json &j, cudaq::optimizer &p) {}
+
 // Macro to help reduce redundant field typing
 #define TO_JSON_OPT_HELPER(field)                                              \
   do {                                                                         \
     if (p.field)                                                               \
       j[#field] = *p.field;                                                    \
   } while (0)
+
+// Macro to help reduce redundant field typing
+#define FROM_JSON_OPT_HELPER(field)                                            \
+  do {                                                                         \
+    if (j.contains(#field))                                                    \
+      p.field = j[#field];                                                     \
+  } while (0)
+
+inline void to_json(json &j, const cudaq::optimizers::BaseEnsmallen &p) {
   TO_JSON_OPT_HELPER(max_eval);
   TO_JSON_OPT_HELPER(initial_parameters);
   TO_JSON_OPT_HELPER(lower_bounds);
   TO_JSON_OPT_HELPER(upper_bounds);
   TO_JSON_OPT_HELPER(f_tol);
   TO_JSON_OPT_HELPER(step_size);
-#undef TO_JSON_OPT_HELPER
 }
 
 inline void to_json(json &j, const cudaq::optimizers::base_nlopt &p) {
-// Macro to help reduce redundant field typing
-#define TO_JSON_OPT_HELPER(field)                                              \
-  do {                                                                         \
-    if (p.field)                                                               \
-      j[#field] = *p.field;                                                    \
-  } while (0)
   TO_JSON_OPT_HELPER(max_eval);
   TO_JSON_OPT_HELPER(initial_parameters);
   TO_JSON_OPT_HELPER(lower_bounds);
   TO_JSON_OPT_HELPER(upper_bounds);
   TO_JSON_OPT_HELPER(f_tol);
-#undef TO_JSON_OPT_HELPER
 }
 
 inline void to_json(json &j, const cudaq::optimizer &p) {
@@ -216,39 +221,26 @@ inline void to_json(json &j, const cudaq::optimizer &p) {
 
 inline void from_json(const nlohmann::json &j,
                       cudaq::optimizers::BaseEnsmallen &p) {
-// Macro to help reduce redundant field typing
-#define FROM_JSON_OPT_HELPER(field)                                            \
-  do {                                                                         \
-    if (j.contains(#field))                                                    \
-      p.field = j[#field];                                                     \
-  } while (0)
   FROM_JSON_OPT_HELPER(max_eval);
   FROM_JSON_OPT_HELPER(initial_parameters);
   FROM_JSON_OPT_HELPER(lower_bounds);
   FROM_JSON_OPT_HELPER(upper_bounds);
   FROM_JSON_OPT_HELPER(f_tol);
   FROM_JSON_OPT_HELPER(step_size);
-#undef FROM_JSON_OPT_HELPER
 }
 
 inline void from_json(const nlohmann::json &j,
                       cudaq::optimizers::base_nlopt &p) {
-// Macro to help reduce redundant field typing
-#define FROM_JSON_OPT_HELPER(field)                                            \
-  do {                                                                         \
-    if (j.contains(#field))                                                    \
-      p.field = j[#field];                                                     \
-  } while (0)
   FROM_JSON_OPT_HELPER(max_eval);
   FROM_JSON_OPT_HELPER(initial_parameters);
   FROM_JSON_OPT_HELPER(lower_bounds);
   FROM_JSON_OPT_HELPER(upper_bounds);
   FROM_JSON_OPT_HELPER(f_tol);
-#undef FROM_JSON_OPT_HELPER
 }
 
 inline std::unique_ptr<cudaq::optimizer>
-make_optimizer_from_json(const nlohmann::json &j, Optimizer optimizer_type) {
+make_optimizer_from_json(const nlohmann::json &j,
+                         const Optimizer optimizer_type) {
   if (optimizer_type == Optimizer::COBYLA) {
     auto ret_ptr = std::make_unique<cudaq::optimizers::cobyla>();
     from_json(j, dynamic_cast<cudaq::optimizers::base_nlopt &>(*ret_ptr));
@@ -284,7 +276,8 @@ make_optimizer_from_json(const nlohmann::json &j, Optimizer optimizer_type) {
     from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
     return ret_ptr;
   }
-  return nullptr;
+  // This shouldn't happen, but gracefully handle it if it does.
+  return std::make_unique<cudaq::optimizers::cobyla>();
 }
 
 enum class Gradient { CENTRAL_DIFF, FORWARD_DIFF, PARAMETER_SHIFT };
@@ -320,30 +313,60 @@ inline void to_json(json &j, const cudaq::gradient &p) {
 }
 
 inline std::unique_ptr<cudaq::gradient>
-make_gradient_from_json(std::function<void(const std::vector<double> &)> &&fn,
-                        const nlohmann::json &j, Gradient gradient_type) {
-  using KernelT = std::function<void(const std::vector<double> &)> &&;
+make_gradient_from_json(const nlohmann::json &j, const Gradient gradient_type) {
   if (gradient_type == Gradient::CENTRAL_DIFF) {
-    auto ret_ptr = std::make_unique<cudaq::gradients::central_difference>(
-        std::forward<KernelT>(fn));
+    auto ret_ptr = std::make_unique<cudaq::gradients::central_difference>();
     from_json(j,
               dynamic_cast<cudaq::gradients::central_difference &>(*ret_ptr));
     return ret_ptr;
   }
   if (gradient_type == Gradient::FORWARD_DIFF) {
-    auto ret_ptr = std::make_unique<cudaq::gradients::forward_difference>(
-        std::forward<KernelT>(fn));
+    auto ret_ptr = std::make_unique<cudaq::gradients::forward_difference>();
     from_json(j,
               dynamic_cast<cudaq::gradients::forward_difference &>(*ret_ptr));
     return ret_ptr;
   }
   if (gradient_type == Gradient::PARAMETER_SHIFT) {
-    auto ret_ptr = std::make_unique<cudaq::gradients::parameter_shift>(
-        std::forward<KernelT>(fn));
+    auto ret_ptr = std::make_unique<cudaq::gradients::parameter_shift>();
     from_json(j, dynamic_cast<cudaq::gradients::parameter_shift &>(*ret_ptr));
     return ret_ptr;
   }
-  return nullptr;
+  // This shouldn't happen, but handle it gracefully if it does.
+  return std::make_unique<cudaq::gradients::central_difference>();
+}
+
+struct RestRequestOptFields {
+  std::optional<std::size_t> optimizer_n_params;
+  std::optional<Optimizer> optimizer_type;
+  std::optional<Gradient> gradient_type;
+
+  // Used on the server
+  std::unique_ptr<cudaq::optimizer> optimizer;
+  std::unique_ptr<cudaq::gradient> gradient;
+
+  // Used on the client
+  cudaq::optimizer *optimizer_ptr = nullptr;
+  cudaq::gradient *gradient_ptr = nullptr;
+};
+
+void to_json(json &j, const RestRequestOptFields &p) {
+  if (p.optimizer_ptr)
+    j["optimizer"] = *p.optimizer_ptr;
+  if (p.gradient_ptr)
+    j["gradient"] = *p.gradient_ptr;
+  TO_JSON_OPT_HELPER(optimizer_n_params);
+  TO_JSON_OPT_HELPER(optimizer_type);
+  TO_JSON_OPT_HELPER(gradient_type);
+}
+
+void from_json(const json &j, RestRequestOptFields &p) {
+  FROM_JSON_OPT_HELPER(optimizer_n_params);
+  FROM_JSON_OPT_HELPER(optimizer_type);
+  if (p.optimizer_type)
+    p.optimizer = make_optimizer_from_json(j["optimizer"], *p.optimizer_type);
+  FROM_JSON_OPT_HELPER(gradient_type);
+  if (p.gradient_type)
+    p.gradient = make_gradient_from_json(j["gradient"], *p.gradient_type);
 }
 
 // Payload from client to server for a kernel execution.
@@ -378,8 +401,8 @@ public:
   // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
   RestRequest(ExecutionContext &context, int versionNumber)
-      : executionContext(context), optimizer_n_params(0),
-        version(versionNumber), clientVersion(CUDA_QUANTUM_VERSION) {}
+      : executionContext(context), version(versionNumber),
+        clientVersion(CUDA_QUANTUM_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
             std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
@@ -388,12 +411,6 @@ public:
     // Take the ownership of the spin_op pointer for proper cleanup.
     if (executionContext.spin.has_value() && executionContext.spin.value())
       m_deserializedSpinOp.reset(executionContext.spin.value());
-    // Customized processing for optional optimizer parameters
-    if (j.contains("optimizer_type")) {
-      j["optimizer_type"].get_to(this->optimizer_type);
-      j["optimizer_n_params"].get_to(this->optimizer_n_params);
-      j["optimizer"].get_to(this->optimizer);
-    }
   }
 
   // Underlying code (IR) payload as a Base64 string.
@@ -410,16 +427,8 @@ public:
   CodeFormat format;
   // Simulation random seed.
   std::size_t seed;
-  // CUDA-Q optimizer enum
-  Optimizer optimizer_type;
-  // Serialized optimizer (JSON)
-  std::string optimizer;
-  // Number of parameters for VQE
-  std::size_t optimizer_n_params;
-  // CUDA-Q gradient_type
-  Gradient gradient_type;
-  // Gradient object (JSON)
-  std::string gradient;
+  // Optional optimizer fields
+  RestRequestOptFields opt;
   // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
   // Serialized kernel arguments.
@@ -431,9 +440,7 @@ public:
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
                                  executionContext, code, args, format, seed,
-                                 optimizer_type, optimizer, optimizer_n_params,
-                                 gradient_type, gradient, passes,
-                                 clientVersion);
+                                 opt, passes, clientVersion);
 };
 
 /// NVCF function version status

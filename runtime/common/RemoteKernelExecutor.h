@@ -51,12 +51,13 @@ public:
                              void *kernelArgs, std::uint64_t argsSize,
                              std::size_t seed) = 0;
   // Handle incoming VQE requests
-  virtual void
-  handleVQERequest(std::size_t reqId, cudaq::ExecutionContext &io_context,
-                   const std::string &backendSimName, std::string_view ir,
-                   const std::string &gradType, const std::string &gradientJson,
-                   cudaq::optimizer &optimizer, const int n_params,
-                   std::string_view kernelName, std::size_t seed) = 0;
+  virtual void handleVQERequest(std::size_t reqId,
+                                cudaq::ExecutionContext &io_context,
+                                const std::string &backendSimName,
+                                std::string_view ir, cudaq::gradient *gradient,
+                                cudaq::optimizer &optimizer, const int n_params,
+                                std::string_view kernelName,
+                                std::size_t seed) = 0;
   // Destructor
   virtual ~RemoteRuntimeServer() = default;
 };
@@ -82,8 +83,8 @@ public:
   virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
                               ExecutionContext &io_context,
                               const std::string &backendSimName,
-                              const std::string &kernelName, const void *kernelArgs,
-                              cudaq::gradient *gradient,
+                              const std::string &kernelName,
+                              const void *kernelArgs, cudaq::gradient *gradient,
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg = nullptr) = 0;
 

@@ -251,12 +251,13 @@ public:
   // Stop the server.
   virtual void stop() override { m_server->stop(); }
 
-  virtual void
-  handleVQERequest(std::size_t reqId, cudaq::ExecutionContext &io_context,
-                   const std::string &backendSimName, std::string_view ir,
-                   const std::string &gradType, const std::string &gradientJson,
-                   cudaq::optimizer &optimizer, const int n_params,
-                   std::string_view kernelName, std::size_t seed) override {
+  virtual void handleVQERequest(std::size_t reqId,
+                                cudaq::ExecutionContext &io_context,
+                                const std::string &backendSimName,
+                                std::string_view ir, cudaq::gradient *gradient,
+                                cudaq::optimizer &optimizer, const int n_params,
+                                std::string_view kernelName,
+                                std::size_t seed) override {
     cudaq::optimization_result result;
 
     // If we're changing the backend, load the new simulator library from file.
@@ -306,14 +307,8 @@ public:
       };
 
       // Construct the gradient object.
-      std::unique_ptr<cudaq::gradient> gradient;
-      if (gradientJson.size() > 0) {
-        auto gradJson = json::parse(gradientJson);
-        cudaq::Gradient gradientEnum;
-        json::parse(gradType).get_to(gradientEnum);
-        gradient =
-            cudaq::make_gradient_from_json(fnWrapper, gradJson, gradientEnum);
-      }
+      if (gradient)
+        gradient->setKernel(fnWrapper);
 
       bool requiresGrad = optimizer.requiresGradients();
       auto theSpin = **io_context.spin;
@@ -612,14 +607,6 @@ protected:
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
 
-      // Construct the optimizer here.
-      std::unique_ptr<cudaq::optimizer> optimizer;
-      if (request.optimizer.size() > 0) {
-        auto optJson = json::parse(std::string(requestJson["optimizer"]));
-        optimizer =
-            cudaq::make_optimizer_from_json(optJson, request.optimizer_type);
-      }
-
       std::ostringstream os;
       os << "[RemoteRestRuntimeServer] Incoming job request from client "
          << request.clientVersion;
@@ -662,12 +649,16 @@ protected:
       }
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
 
-      if (optimizer)
+      if (request.opt.optimizer) {
+        if (!request.opt.optimizer_n_params.has_value())
+          throw std::runtime_error(
+              "Cannot run optimizer without providing optimizer_n_params");
+
         handleVQERequest(
             reqId, request.executionContext, request.simulator, codeStr,
-            requestJson["gradient_type"].dump(), request.gradient, *optimizer,
-            request.optimizer_n_params, request.entryPoint, request.seed);
-      else
+            request.opt.gradient.get(), *request.opt.optimizer,
+            *request.opt.optimizer_n_params, request.entryPoint, request.seed);
+      } else
         handleRequest(reqId, request.executionContext, request.simulator,
                       codeStr, request.entryPoint, request.args.data(),
                       request.args.size(), request.seed);

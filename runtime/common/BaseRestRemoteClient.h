@@ -99,7 +99,8 @@ public:
 
   std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
                                      const std::string &name,
-                                     void (*kernelFunc)(void *), const void *args,
+                                     void (*kernelFunc)(void *),
+                                     const void *args,
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx) {
     if (cudaq::__internal__::isLibraryMode(name)) {
@@ -193,17 +194,16 @@ public:
   cudaq::RestRequest constructVQEJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,
-      const void *kernelArgs, cudaq::gradient *gradient, cudaq::optimizer &optimizer,
-      const int n_params) {
+      const void *kernelArgs, cudaq::gradient *gradient,
+      cudaq::optimizer &optimizer, const int n_params) {
     cudaq::RestRequest request(io_context, version());
 
-    request.optimizer_n_params = n_params;
-    request.optimizer = json(optimizer).dump();
-    request.optimizer_type = get_optimizer_type(optimizer);
-    if (gradient) {
-      request.gradient = json(*gradient).dump();
-      request.gradient_type = get_gradient_type(*gradient);
-    }
+    request.opt.optimizer_n_params = n_params;
+    request.opt.optimizer_type = get_optimizer_type(optimizer);
+    request.opt.optimizer_ptr = &optimizer;
+    request.opt.gradient_ptr = gradient;
+    if (gradient)
+      request.opt.gradient_type = get_gradient_type(*gradient);
 
     request.entryPoint = kernelName;
     request.passes = serverPasses;
@@ -284,8 +284,8 @@ public:
   virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
                               cudaq::ExecutionContext &io_context,
                               const std::string &backendSimName,
-                              const std::string &kernelName, const void *kernelArgs,
-                              cudaq::gradient *gradient,
+                              const std::string &kernelName,
+                              const void *kernelArgs, cudaq::gradient *gradient,
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg) override {
     // Todo
