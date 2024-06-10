@@ -1145,8 +1145,6 @@ struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
 
   LogicalResult matchAndRewrite(quake::U3Op op,
                                 PatternRewriter &rewriter) const override {
-    if (!op.getControls().empty())
-      return failure();
     if (!quake::isAllReferences(op))
       return failure();
 
