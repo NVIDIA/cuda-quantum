@@ -133,7 +133,7 @@ public:
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
   /// @brief Launch a VQE operation on the platform.
-  void launchVQE(const std::string kernelName, void *kernelArgs,
+  void launchVQE(const std::string kernelName, const void *kernelArgs,
                  cudaq::gradient *gradient, cudaq::spin_op H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots);

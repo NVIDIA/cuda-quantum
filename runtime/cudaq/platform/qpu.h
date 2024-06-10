@@ -160,7 +160,7 @@ public:
   virtual void resetExecutionContext() = 0;
   virtual void setTargetBackend(const std::string &backend) {}
 
-  virtual void launchVQE(const std::string &name, void *kernelArgs,
+  virtual void launchVQE(const std::string &name, const void *kernelArgs,
                          cudaq::gradient *gradient, cudaq::spin_op H,
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}

@@ -82,7 +82,7 @@ public:
   virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
                               ExecutionContext &io_context,
                               const std::string &backendSimName,
-                              const std::string &kernelName, void *kernelArgs,
+                              const std::string &kernelName, const void *kernelArgs,
                               cudaq::gradient *gradient,
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg = nullptr) = 0;

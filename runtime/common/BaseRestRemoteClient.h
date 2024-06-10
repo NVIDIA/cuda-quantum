@@ -99,7 +99,7 @@ public:
 
   std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
                                      const std::string &name,
-                                     void (*kernelFunc)(void *), void *args,
+                                     void (*kernelFunc)(void *), const void *args,
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx) {
     if (cudaq::__internal__::isLibraryMode(name)) {
@@ -193,7 +193,7 @@ public:
   cudaq::RestRequest constructVQEJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,
-      void *kernelArgs, cudaq::gradient *gradient, cudaq::optimizer &optimizer,
+      const void *kernelArgs, cudaq::gradient *gradient, cudaq::optimizer &optimizer,
       const int n_params) {
     cudaq::RestRequest request(io_context, version());
 
@@ -284,7 +284,7 @@ public:
   virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
                               cudaq::ExecutionContext &io_context,
                               const std::string &backendSimName,
-                              const std::string &kernelName, void *kernelArgs,
+                              const std::string &kernelName, const void *kernelArgs,
                               cudaq::gradient *gradient,
                               cudaq::optimizer &optimizer, const int n_params,
                               std::string *optionalErrorMsg) override {

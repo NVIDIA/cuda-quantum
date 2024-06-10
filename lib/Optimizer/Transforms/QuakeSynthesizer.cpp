@@ -42,14 +42,14 @@ using namespace mlir;
 /// BlockArgument with it.
 template <typename ConcreteType>
 void synthesizeRuntimeArgument(
-    OpBuilder &builder, BlockArgument argument, void *args, std::size_t offset,
+    OpBuilder &builder, BlockArgument argument, const void *args, std::size_t offset,
     std::size_t typeSize,
     std::function<Value(OpBuilder &, ConcreteType *)> &&opGenerator) {
 
   // Create an instance of the concrete type
   ConcreteType concrete;
   // Copy the void* struct member into that concrete instance
-  std::memcpy(&concrete, ((char *)args) + offset, typeSize);
+  std::memcpy(&concrete, ((const char *)args) + offset, typeSize);
 
   // Generate the MLIR Value (arith constant for example)
   auto runtimeArg = opGenerator(builder, &concrete);
@@ -292,7 +292,7 @@ protected:
   std::string kernelName;
 
   // The raw pointer to the runtime arguments.
-  void *args;
+  const void *args;
 
   // The starting argument index to synthesize. Typically 0 but may be >0 for
   // partial synthesis. If >0, it is assumed that the first argument(s) are NOT
@@ -301,9 +301,9 @@ protected:
 
 public:
   QuakeSynthesizer() = default;
-  QuakeSynthesizer(std::string_view kernel, void *a)
+  QuakeSynthesizer(std::string_view kernel, const void *a)
       : kernelName(kernel), args(a) {}
-  QuakeSynthesizer(std::string_view kernel, void *a, std::size_t s)
+  QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s)
       : kernelName(kernel), args(a), startingArgIdx(s) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
@@ -451,9 +451,9 @@ public:
           signalPassFailure();
           return;
         }
-        char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
+        const char *ptrToSizeInBuffer = static_cast<const char *>(args) + offset;
         auto sizeFromBuffer =
-            *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
+            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         auto bytesInType =
             cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
         assert(bytesInType > 0 && "element must have a size");
@@ -474,8 +474,8 @@ public:
           // TODO: for now we can ignore empty struct types.
           continue;
         }
-        char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
-        auto rawSize = *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
+        const char *ptrToSizeInBuffer = static_cast<const char *>(args) + offset;
+        auto rawSize = *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
         continue;
       }
@@ -488,7 +488,7 @@ public:
     // the block arg with the actual vector element data. First get the pointer
     // to the start of the buffer's appendix.
     auto structSize = structLayout.first;
-    char *bufferAppendix = static_cast<char *>(args) + structSize;
+    const char *bufferAppendix = static_cast<const char *>(args) + structSize;
     for (auto [idx, eleTy, vecLength] : stdVecInfo) {
       if (!eleTy) {
         // FIXME: Skip struct values.
@@ -498,7 +498,7 @@ public:
         continue;
       }
       auto doVector = [&]<typename T>(T) {
-        auto *ptr = reinterpret_cast<T *>(bufferAppendix);
+        auto *ptr = reinterpret_cast<const T *>(bufferAppendix);
         std::vector<T> v(ptr, ptr + vecLength);
         if (failed(synthesizeVectorArgument(builder, arguments[idx], v)))
           funcOp.emitOpError("synthesis failed for vector<T>");
@@ -569,7 +569,7 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 }
 
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, void *a,
+cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, const void *a,
                                    std::size_t startingArgIdx) {
   return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx);
 }

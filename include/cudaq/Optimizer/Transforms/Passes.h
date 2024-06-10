@@ -42,7 +42,7 @@ std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
 std::unique_ptr<mlir::Pass>
-createQuakeSynthesizer(std::string_view, void *,
+createQuakeSynthesizer(std::string_view, const void *,
                        std::size_t startingArgIdx = 0);
 std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();

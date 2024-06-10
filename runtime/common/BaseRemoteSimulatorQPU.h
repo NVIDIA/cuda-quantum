@@ -68,7 +68,7 @@ public:
     execution_queue->enqueue(task);
   }
 
-  void launchVQE(const std::string &name, void *kernelArgs,
+  void launchVQE(const std::string &name, const void *kernelArgs,
                  cudaq::gradient *gradient, cudaq::spin_op H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
