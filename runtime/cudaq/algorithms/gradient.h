@@ -43,6 +43,12 @@ protected:
     return cudaq::observe(ansatz_functor, h, x);
   }
 
+  /// Copy constructor. Derived classes should implement the clone() method.
+  gradient(const gradient &o) {
+    ansatz_functor = o.ansatz_functor;
+    serializedArgs = o.serializedArgs;
+  }
+
 public:
   /// Constructor, takes the quantum kernel with prescribed signature
   gradient(std::function<void(std::vector<double>)> &&kernel)
@@ -66,13 +72,14 @@ public:
     };
   }
 
-  /// Constructor takes the quantum kernel and concrete arguments for all
-  /// arguments except the first std::vector<double> argument, which is used for
-  /// the variational parameters for the gradient.
-  template <typename QuantumKernel, typename... Args,
-            typename = std::enable_if_t<std::is_invocable_v<
-                QuantumKernel, std::vector<double>, Args...>>>
-  gradient(QuantumKernel &kernel, Args &&...args) {
+  /// Take the quantum kernel and concrete arguments for all arguments except
+  /// the first std::vector<double> argument, which is used for the variational
+  /// parameters for the gradient. Serialize and save those arguments into this
+  /// object. (Useful for NVQC.)
+  template <typename QuantumKernel, typename... Args>
+  void setArgs(QuantumKernel &kernel, Args &&...args) {
+    static_assert(std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>,
+                      "Kernel must be invocable with std::vector<double> and Args...");
     // Serialize all the parameters except for the first std::vector<double>
     // parameter. The serialized ones will be saved and used later during each
     // ansatz_functor invocation.
@@ -131,6 +138,9 @@ public:
   compute(const std::vector<double> &x,
           const std::function<double(std::vector<double>)> &func,
           double funcAtX) = 0;
+  
+  /// Clone the object. Must be implemented by derived classes.
+  virtual std::unique_ptr<cudaq::gradient> clone() = 0;
 
   virtual ~gradient() = default;
 };

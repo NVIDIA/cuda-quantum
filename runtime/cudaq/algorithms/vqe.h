@@ -224,30 +224,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
       "Invalid parameterized quantum kernel expression. Must have "
       "void(std::vector<double>, <Args...>) signature, or provide "
       "std::tuple<Args...>(std::vector<double>) ArgMapper function object.");
-  auto requires_grad = optimizer.requiresGradients();
-  return optimizer.optimize(n_params, [&](const std::vector<double> &x,
-                                          std::vector<double> &grad_vec) {
-    double e = cudaq::observe(kernel, H, x, args...);
-    if (requires_grad) {
-      gradient.compute(x, grad_vec, H, e);
-    }
-    return e;
-  });
-}
-
-template <typename QuantumKernel, typename... Args,
-          typename = std::enable_if_t<
-              std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>>>
-optimization_result vqe(QuantumKernel &&kernel,
-                        cudaq::gradients::central_difference &gradient,
-                        cudaq::spin_op H, cudaq::optimizer &optimizer,
-                        const int n_params, Args &&...args) {
-
-  // Make a copy of the input gradient and construct a new one using the
-  // concrete args.
-  auto new_gradient =
-      std::make_unique<cudaq::gradients::central_difference>(kernel, args...);
-  new_gradient->step = gradient.step;
 
   auto &platform = cudaq::get_platform();
   if (platform.supports_remote_vqe()) {
@@ -265,18 +241,21 @@ optimization_result vqe(QuantumKernel &&kernel,
   }
 
   auto requires_grad = optimizer.requiresGradients();
+  std::unique_ptr<cudaq::gradient> newGrad;
+  if (requires_grad) {
+    newGrad = gradient.clone();
+    if constexpr (sizeof...(args) > 0)
+      newGrad->setArgs(kernel, args...);
+  }
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     double e = cudaq::observe(kernel, H, x, args...);
     if (requires_grad) {
-      new_gradient->compute(x, grad_vec, H, e);
+      newGrad->compute(x, grad_vec, H, e);
     }
     return e;
   });
 }
-
-// FIXME - copy/paste the above for forward_difference and parameter_shift once
-// done
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel

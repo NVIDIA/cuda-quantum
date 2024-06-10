@@ -19,6 +19,12 @@ public:
 
   parameter_shift(double s = default_shiftScalar) : gradient(), shiftScalar(s) {}
 
+  virtual std::unique_ptr<cudaq::gradient> clone() override {
+    auto newGrad = std::make_unique<parameter_shift>(*this);
+    newGrad->shiftScalar = this->shiftScalar;
+    return newGrad;
+  }
+
   void compute(const std::vector<double> &x, std::vector<double> &dx,
                const spin_op &h, double exp_h) override {
     auto tmpX = x;
