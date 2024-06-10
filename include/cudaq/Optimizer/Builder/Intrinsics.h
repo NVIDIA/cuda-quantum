@@ -12,6 +12,10 @@
 
 namespace cudaq {
 
+/// This is the name of a dummy builtin to identify a std::move() call. These
+/// calls will be erased before code gen.
+static constexpr const char stdMoveBuiltin[] = ".std::move";
+
 static constexpr const char llvmMemCopyIntrinsic[] =
     "llvm.memcpy.p0i8.p0i8.i64";
 
@@ -34,11 +38,16 @@ static constexpr const char stdvecBoolCtorFromInitList[] =
 static constexpr const char stdvecBoolUnpackToInitList[] =
     "__nvqpp_vector_bool_to_initializer_list";
 
-/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering
-/// includes the transformation of both quantum and classical computation.
-/// Different features of the CUDA-Q programming model are lowered into
-/// different dialects of MLIR. This builder makes heavy use of the Quake
-/// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
+// The internal data of the cudaq::state object must be `2**n` in length. This
+// function returns the value `n`.
+static constexpr const char getNumQubitsFromCudaqState[] =
+    "__nvqpp_cudaq_state_numberOfQubits";
+
+/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
+/// the transformation of both quantum and classical computation. Different
+/// features of the CUDA-Q programming model are lowered into different dialects
+/// of MLIR. This builder makes heavy use of the Quake (QUAntum Kernel
+/// Execution) and CC (Classical Computation) dialects.
 ///
 /// This builder also allows for the inclusion of predefined intrinsics into
 /// the `ModuleOp` on demand. Intrinsics exist in a map accessed by a symbol

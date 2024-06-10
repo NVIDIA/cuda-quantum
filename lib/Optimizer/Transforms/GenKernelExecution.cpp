@@ -434,8 +434,11 @@ public:
         hasTrailingData = true;
         continue;
       }
-      if (isa<cudaq::cc::PointerType>(currEleTy))
+      if (isa<cudaq::cc::PointerType>(currEleTy) &&
+          !isStatePointerType(currEleTy)) {
         continue;
+      }
+
       // cast to the struct element type, void* -> TYPE *
       argPtr = builder.create<cudaq::cc::CastOp>(
           loc, cudaq::cc::PointerType::get(currEleTy), argPtr);
@@ -923,6 +926,13 @@ public:
     builder.create<cudaq::cc::StoreOp>(loc, endPtr, sret2);
   }
 
+  static bool isStatePointerType(mlir::Type ty) {
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty)) {
+      return isa<cudaq::cc::StateType>(ptrTy.getElementType());
+    }
+    return false;
+  }
+
   static MutableArrayRef<BlockArgument>
   dropAnyHiddenArguments(MutableArrayRef<BlockArgument> args,
                          FunctionType funcTy, bool hasThisPointer) {
@@ -931,7 +941,8 @@ public:
         cudaq::cc::numberOfHiddenArgs(hasThisPointer, hiddenSRet);
     if (count > 0 && args.size() >= count &&
         std::all_of(args.begin(), args.begin() + count, [](auto i) {
-          return isa<cudaq::cc::PointerType>(i.getType());
+          return isa<cudaq::cc::PointerType>(i.getType()) &&
+                 !isStatePointerType(i.getType());
         }))
       return args.drop_front(count);
     return args;
@@ -1197,8 +1208,9 @@ public:
         hasTrailingData = true;
         continue;
       }
-      if (isa<cudaq::cc::PointerType>(inTy))
+      if (isa<cudaq::cc::PointerType>(inTy) && !isStatePointerType(inTy))
         continue;
+
       stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
                                                        stVal, arg, idx);
     }
