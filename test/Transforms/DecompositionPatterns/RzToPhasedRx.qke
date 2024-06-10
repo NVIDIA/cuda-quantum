@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --decomposition=enable-patterns=U3ToRotations %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=RzToPhasedRx})' %s | FileCheck %s
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=RzToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
 
 
