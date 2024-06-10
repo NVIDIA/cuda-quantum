@@ -117,10 +117,16 @@ int main() {
   // Both of these options produce the same answers right now.
   // (at least locally). FIXME - add test, cleanup later.
   // cudaq::gradients::central_difference gradient(ansatz, argMapper);
-  cudaq::gradients::central_difference gradient(ansatz, n_qubits, n_layers);
+  // cudaq::gradients::central_difference gradient(ansatz, n_qubits, n_layers);
 
-  auto [opt_val, opt_params] =
-      cudaq::vqe(ansatz, gradient, H, optimizer, n_params, argMapper);
+  // auto [opt_val, opt_params] =
+  //     cudaq::vqe(ansatz, gradient, H, optimizer, n_params, argMapper);
+  // auto [opt_val, opt_params] =
+  //     cudaq::vqe(ansatz, gradient, H, optimizer, n_params, n_qubits,
+  //     n_layers);
+  cudaq::gradients::central_difference cd_gradient;
+  auto [opt_val, opt_params] = cudaq::vqe(ansatz, cd_gradient, H, optimizer,
+                                          n_params, n_qubits, n_layers);
 
   printf("Optimal value = %.16lf\n", opt_val);
 }
