@@ -86,11 +86,21 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.simulationState) {
     j["simulationData"] = json();
     j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
-    std::vector<std::complex<double>> hostData(
-        context.simulationState->getNumElements());
     if (context.simulationState->isDeviceData()) {
-      context.simulationState->toHost(hostData.data(), hostData.size());
-      j["simulationData"]["data"] = hostData;
+      if (context.simulationState->getPrecision() ==
+          cudaq::SimulationState::precision::fp32) {
+        std::vector<std::complex<float>> hostData(
+            context.simulationState->getNumElements());
+        context.simulationState->toHost(hostData.data(), hostData.size());
+        std::vector<std::complex<double>> converted(hostData.begin(),
+                                                    hostData.end());
+        j["simulationData"]["data"] = converted;
+      } else {
+        std::vector<std::complex<double>> hostData(
+            context.simulationState->getNumElements());
+        context.simulationState->toHost(hostData.data(), hostData.size());
+        j["simulationData"]["data"] = hostData;
+      }
     } else {
       auto *ptr = reinterpret_cast<std::complex<double> *>(
           context.simulationState->getTensor().data);
