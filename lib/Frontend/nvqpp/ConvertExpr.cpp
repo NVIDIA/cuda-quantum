@@ -127,7 +127,7 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
              SmallVector<Value> &negations,
              llvm::function_ref<void()> reportNegateError,
              bool isAdjoint = false, bool isControl = false,
-             size_t paramCount = 1) {
+             size_t paramCount = 1, bool isCustom = false) {
   if constexpr (std::is_same_v<P, Param>) {
     assert(operands.size() >= 2 && "must be at least 2 operands");
     auto params = operands.take_front(paramCount);
@@ -172,6 +172,12 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
           reportNegateError();
       auto negs =
           negatedControlsAttribute(builder.getContext(), ctrls, negations);
+      // FIXME we'll need to know how many targets this
+      // custom operation is on
+      if (isCustom) {
+        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, target, negs);
+        return true;
+      }
       if (ctrls.empty())
         // May have multiple targets, but no controls, op(q, r, s, ...)
         for (auto t : target)
@@ -1604,6 +1610,33 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::U3Op, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl, /*paramCount=*/3);
+
+    // See if this is a custom unitary.
+    std::string maybeUnitaryGenerator = funcName.str() + "_generator";
+    if (std::find(customOperationNames.begin(), customOperationNames.end(),
+                  maybeUnitaryGenerator) != customOperationNames.end()) {
+      std::size_t paramCount = [&]() {
+        std::size_t count = 0;
+        for (auto arg : args) {
+          auto argTy = arg.getType();
+          if (isa<FloatType>(argTy))
+            count++;
+          else if (auto ptrTy = dyn_cast<cc::PointerType>(argTy)) {
+            if (isa<FloatType>(ptrTy.getElementType()))
+              count++;
+          }
+        }
+        return count;
+      }();
+      buildOp<quake::CustomUnitarySymbolOp>(builder, loc, args, negations,
+                                            reportNegateError, isAdjoint,
+                                            isControl, paramCount, true);
+      auto &customUnitary = builder.getBlock()->back();
+      auto srefAttr = SymbolRefAttr::get(
+          StringAttr::get(builder.getContext(), maybeUnitaryGenerator));
+      customUnitary.setAttr("generator", srefAttr);
+      return true;
+    }
 
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to

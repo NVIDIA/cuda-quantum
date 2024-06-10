@@ -569,6 +569,19 @@ void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
 
 void __quantum__rt__result_record_output(Result *, int8_t *) {}
 
+void __quantum__qis__custom_unitary(std::complex<double> *unitary,
+                                    Array *controls, Array *targets) {
+  auto ctrlsVec = arrayToVectorSizeT(controls);
+  auto tgtsVec = arrayToVectorSizeT(targets);
+  auto numQubits = tgtsVec.size();
+  auto nToPowTwo = (1ULL << numQubits);
+  auto numElements = nToPowTwo * nToPowTwo;
+  std::vector<std::complex<double>> unitaryMatrix(unitary,
+                                                  unitary + numElements);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(unitaryMatrix,
+                                                             ctrlsVec, tgtsVec);
+}
+
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.
 /// @param paulis
 /// @return
