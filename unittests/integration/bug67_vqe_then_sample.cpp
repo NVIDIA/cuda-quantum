@@ -17,8 +17,9 @@
 CUDAQ_TEST(VqeThenSample, checkBug67) {
 
   struct ansatz {
-    void operator()(std::vector<double> theta, const int n_qubits,
-                    const int n_layers) __qpu__ {
+    const int n_qubits;
+    const int n_layers;
+    void operator()(std::vector<double> theta) __qpu__ {
       using namespace cudaq::spin;
       cudaq::qvector q(n_qubits);
 
@@ -56,15 +57,15 @@ CUDAQ_TEST(VqeThenSample, checkBug67) {
   optimizer.initial_parameters = std::vector<double>{-.75, 1.15, -1.15, -.75};
   optimizer.max_line_search_trials = 10;
   optimizer.max_eval = 10;
-  cudaq::gradients::central_difference gradient;
+  cudaq::gradients::central_difference gradient(ansatz{n_qubits, n_layers});
 
-  auto [opt_val, opt_params] = cudaq::vqe(ansatz{}, gradient, Hp, optimizer,
-                                          n_params, n_qubits, n_layers);
+  auto [opt_val, opt_params] =
+      cudaq::vqe(ansatz{n_qubits, n_layers}, gradient, Hp, optimizer, n_params);
   printf("theta = (%lf, %lf, %lf, %lf) \n", opt_params[0], opt_params[1],
          opt_params[2], opt_params[3]);
 
   // Print out the final measurement after optimization
-  auto counts = cudaq::sample(ansatz{}, opt_params, n_qubits, n_layers);
+  auto counts = cudaq::sample(ansatz{n_qubits, n_layers}, opt_params);
   counts.dump();
   EXPECT_EQ(counts.size(), 2);
   for (auto &[k, v] : counts) {

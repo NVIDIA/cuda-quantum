@@ -15,7 +15,6 @@
 #pragma once
 
 #include "common/Registry.h"
-#include "cudaq/algorithms/optimizer.h"
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -26,6 +25,7 @@ class MLIRContext;
 namespace cudaq {
 class ExecutionContext;
 class gradient;
+class optimizer;
 
 /// Base interface encapsulating a CUDA-Q runtime server capable of
 /// running kernel IR code.

@@ -37,6 +37,10 @@ protected:
   /// The parameterized ansatz, a quantum kernel expression
   std::function<void(std::vector<double>)> ansatz_functor;
 
+  // As an alternative to an ArgsMapper, we can have serialized arguments
+  // (excluding the initial std::vector<double> variational parameters).
+  std::vector<char> serializedArgs;
+
   // Given the parameters x and the spin_op h, compute the
   // expected value with respect to the ansatz.
   double getExpectedValue(std::vector<double> &x, spin_op h) {
@@ -130,10 +134,6 @@ public:
           as_args);
     };
   }
-
-  // As an alternative to an ArgsMapper, we can have serialized arguments
-  // (excluding the initial std::vector<double> variational parameters).
-  std::vector<char> serializedArgs;
 
   /// Compute the current iterations gradient vector and update the
   /// provided vector<double reference (\p dx).
