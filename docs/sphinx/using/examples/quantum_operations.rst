@@ -8,17 +8,8 @@ The fundamental unit of classical information storage, processing and
 transmission is the bit. Analogously, we define its quantum counterpart,
 a quantum bit or simply the qubit. Below we define a qubit in CUDA-Q.
 
-.. code:: python
-
-    import cudaq
-    
-    # Build a cudaq kernel.
-    
-    
-    @cudaq.kernel
-    def kernel():
-        # Allocate a single qubit to the kernel.
-        qubit = cudaq.qubit()
+.. literalinclude:: ../../snippets/python/using/examples/build_kernel.py
+    :language: python
 
 Classical bits are transistor elements whose states can be altered to
 perform computations. Similarly qubits too have physical realizations
@@ -47,25 +38,8 @@ gate allows us to flip the state of the qubit:
 
 .. math::  \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix} 
 
-.. code:: python
-
-    @cudaq.kernel
-    def kernel():
-        # A single qubit initialized to the ground / zero state.
-        qubit = cudaq.qubit()
-    
-        # Apply the Pauli x gate to the qubit.
-        x(qubit)
-    
-        # Measurement operator.
-        mz(qubit)
-    
-    
-    # Sample the qubit for 1000 shots to gather statsitics.
-    result = cudaq.sample(kernel, shots_count=1000)
-    
-    print(result)
-
+.. literalinclude:: ../../snippets/python/using/examples/pauli_x_gate.py
+    :language: python
 
 .. parsed-literal::
 
@@ -109,24 +83,8 @@ The probability of finding the qubit in the 0 / 1 state is hence
 :math:`\lvert \tfrac{1}{\sqrt{2}} \rvert ^2 = \tfrac{1}{2}`. Lets verify
 this with some code:
 
-.. code:: python
-
-    @cudaq.kernel
-    def kernel():
-        # A single qubit initialised to the ground/ zero state.
-        qubit = cudaq.qubit()
-    
-        # Apply hadamard gate to single qubit to put it in equal superposition.
-        h(qubit)
-    
-        # Measurement operator.
-        mz(qubit)
-    
-    
-    result = cudaq.sample(kernel, shots_count=1000)
-    
-    print(result)
-
+.. literalinclude:: ../../snippets/python/using/examples/hadamard_gate.py
+    :language: python
 
 .. parsed-literal::
 
@@ -264,26 +222,8 @@ qubit it acts on. For e.g. :math:`X_{0}\ket{00} = \ket{10}` refers to
 :math:`X_{0}` acting on the 0th qubit flipping it to the state 1 as
 shown. Below we see how this is done in CUDA-Q.
 
-.. code:: python
-
-    import cudaq
-    
-    
-    @cudaq.kernel
-    def kernel():
-        # 2 qubits both initialised to the ground/ zero state.
-        qvector = cudaq.qvector(2)
-    
-        # Application of a flip gate to see ordering notation.
-        x(qvector[0])
-    
-        mz(qvector[0])
-        mz(qvector[1])
-    
-    print(cudaq.draw(kernel))
-    result = cudaq.sample(kernel)
-    print(result)
-
+.. literalinclude:: ../../examples/python/notation.py
+    :language: python
 
 .. parsed-literal::
 
@@ -309,25 +249,8 @@ We use the notation CNOT01\ :math:`\ket{10} = \ket{11}` to describe its
 effects. The subscripts denote that the 0th qubit is the control qubit
 and the 1st qubit is the target qubit.
 
-.. code:: python
-
-    @cudaq.kernel
-    def kernel():
-        # 2 qubits both initialised to the ground/ zero state.
-        qvector = cudaq.qvector(2)
-    
-        x(qvector[0])
-    
-        # Controlled-not gate operation.
-        x.ctrl(qvector[0], qvector[1])
-    
-        mz(qvector[0])
-        mz(qvector[1])
-    
-    
-    result = cudaq.sample(kernel)
-    print(result)
-
+.. literalinclude:: ../../examples/python/cnot.py
+    :language: python
 
 .. parsed-literal::
 

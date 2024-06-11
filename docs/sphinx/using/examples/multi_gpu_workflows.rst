@@ -5,14 +5,8 @@ There are many backends available with CUDA-Q which enable seamless
 switching between GPUs, QPUs and CPUs and also allow for workflows
 involving multiple architectures working in tandem.
 
-.. code:: python
-
-    import cudaq
-    
-    targets = cudaq.get_targets()
-    
-    for target in targets:
-        print(target)
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/get_targets.py
+    :language: python
 
 Available Targets
 ~~~~~~~~~~~~~~~~~
@@ -34,36 +28,14 @@ Available Targets
 
 Below we explore how to effectively utilize multiple CUDA-Q targets with the same GHZ state preparation code
 
-.. code:: python
-
-    def ghz_state(qubit_count, target):
-        """A function that will generate a variable sized GHZ state (`qubit_count`)."""
-        cudaq.set_target(target)
-    
-        kernel = cudaq.make_kernel()
-    
-        qubits = kernel.qalloc(qubit_count)
-    
-        kernel.h(qubits[0])
-    
-        for i in range(1, qubit_count):
-            kernel.cx(qubits[0], qubits[i])
-    
-        kernel.mz(qubits)
-    
-        result = cudaq.sample(kernel, shots_count=1000)
-    
-        return result
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
+    :language: python
 
 QPP-based CPU Backend
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
-
-    cpu_result = ghz_state(qubit_count=2, target="qpp-cpu")
-    
-    cpu_result.dump()
-
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/qpu_cpu_backend.py
+    :language: python
 
 .. parsed-literal::
 
@@ -76,11 +48,8 @@ Acceleration via NVIDIA GPUs
 Users will notice a speedup of up to **2500x** in executing the circuit below on
 NVIDIA GPUs vs CPUs.
 
-.. code:: python
-
-    gpu_result = ghz_state(qubit_count=25, target="nvidia")
-    
-    gpu_result.dump()
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/qpu_gpu_backend.py
+    :language: python
 
 
 .. parsed-literal::
@@ -130,50 +99,8 @@ For workflows involving multiple GPUs, save the code below in a
 ``mpirun -np n python3 filename.py`` where ``n`` is an integer
 specifying the number of GPUs you have access to.
 
-.. code:: python
-
-    import cudaq
-    from cudaq import spin
-    
-    cudaq.set_target("nvidia-mqpu")
-    
-    cudaq.mpi.initialize()
-    num_ranks = cudaq.mpi.num_ranks()
-    rank = cudaq.mpi.rank()
-    
-    print('mpi is initialized? ', cudaq.mpi.is_initialized())
-    print('rank', rank, 'num_ranks', num_ranks)
-    
-    qubit_count = 15
-    term_count = 100000
-    
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(qubit_count)
-    kernel.h(qubits[0])
-    for i in range(1, qubit_count):
-        kernel.cx(qubits[0], qubits[i])
-    
-    # We create a random hamiltonian
-    hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count)
-    
-    # The observe calls allows us to calculate the expectation value of the Hamiltonian with respect to a specified kernel.
-    
-    # Single node, single GPU.
-    result = cudaq.observe(kernel, hamiltonian)
-    result.expectation()
-    
-    # If we have multiple GPUs/ QPUs available, we can parallelize the workflow with the addition of an argument in the observe call.
-    
-    # Single node, multi-GPU.
-    result = cudaq.observe(kernel, hamiltonian, execution=cudaq.parallel.thread)
-    result.expectation()
-    
-    # Multi-node, multi-GPU.
-    result = cudaq.observe(kernel, hamiltonian, execution=cudaq.parallel.mpi)
-    result.expectation()
-    
-    cudaq.mpi.finalize()
-
+.. literalinclude:: ../../examples/python/multi_gpu_workflows/multi_gpu_run.py
+    :language: python
 
 .. parsed-literal::
 
@@ -187,57 +114,22 @@ Asynchronous Data Collection via Circuit Batching
 Execution of parameterized circuits with different parameters can be
 executed asynchronously via the ``mqpu`` platform.
 
-.. code:: python
+.. literalinclude:: ../../examples/python/multi_gpu_workflows/async_circuit_batching.py
+    :language: python
 
-    import cudaq
-    from cudaq import spin
-    import numpy as np
-    
-    np.random.seed(1)
-    
-    cudaq.set_target("nvidia-mqpu")
-    
-    qubit_count = 5
-    sample_count = 10000
-    h = spin.z(0)
-    parameter_count = qubit_count
-    
-    # Below we run a circuit for 10000 different input parameters.
-    parameters = np.random.default_rng(13).uniform(low=0,
-                                                   high=1,
-                                                   size=(sample_count,
-                                                         parameter_count))
-    
-    kernel, params = cudaq.make_kernel(list)
-    
-    qubits = kernel.qalloc(qubit_count)
-    qubits_list = list(range(qubit_count))
-    
-    for i in range(qubit_count):
-        kernel.rx(params[i], qubits[i])
+Let's time the execution on single GPU.
 
-.. code:: python
-
-    %timeit result = cudaq.observe(kernel, h, parameters)   # Single GPU result.
-
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/time_single_gpu.py
+    :language: python
 
 .. parsed-literal::
 
     31.7 s ± 990 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
+Now let's try to time multi GPU run.
 
-.. code:: python
-
-    print('We have', parameters.shape[0],
-          'parameters which we would like to execute')
-    
-    xi = np.split(
-        parameters,
-        4)  # We split our parameters into 4 arrays since we have 4 GPUs available.
-    
-    print('We split this into', len(xi), 'batches of', xi[0].shape[0], ',',
-          xi[1].shape[0], ',', xi[2].shape[0], ',', xi[3].shape[0])
-
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multi_gpu_prepare.py
+    :language: python
 
 .. parsed-literal::
 
@@ -245,24 +137,8 @@ executed asynchronously via the ``mqpu`` platform.
     We split this into 4 batches of 2500 , 2500 , 2500 , 2500
 
 
-.. code:: python
-
-    %%timeit
-    
-    # Timing the execution on a single GPU vs 4 GPUs,
-    # one will see a 4x performance improvement if 4 GPUs are available.
-    
-    asyncresults = []
-    num_gpus = cudaq.num_available_gpus()
-    
-    for i in range(len(xi)):
-        for j in range(xi[i].shape[0]):
-            qpu_id = i * num_gpus // len(xi)
-            asyncresults.append(
-                cudaq.observe_async(kernel, h, xi[i][j, :], qpu_id=qpu_id))
-    
-    result = [res.get() for res in asyncresults]
-
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/time_multi_gpu.py
+    :language: python
 
 .. parsed-literal::
 
