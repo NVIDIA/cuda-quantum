@@ -349,7 +349,7 @@ std::string get_required_raw_source_code(const std::string &file_content,
   std::string imports = get_imports(file_content);
 
   // Get kernels
-  std::string kernels = get_kernels(file_content);
+  // std::string kernels = get_kernels(file_content);
 
   // Get objective_function call
   std::string function_call = get_objective_function_call(file_content);
@@ -358,7 +358,8 @@ std::string get_required_raw_source_code(const std::string &file_content,
   std::string source_code = get_source_code(inspect, func);
 
   // Return the combined code
-  return imports + "\n" + kernels + source_code + "\n" + function_call;
+  // return imports + "\n" + kernels + source_code + "\n" + function_call;
+  return imports + "\n" + source_code + "\n" + function_call;
 }
 
 std::tuple<std::string, std::string>
@@ -530,17 +531,13 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
             // write a function to detect if cudaq.set_target has been used and
             // fetch its value
 
-            py::object inspect = py::module::import("inspect");
+            if (cudaq::get_platform().supports_remote_vqe()) {
 
-            // Get source file content
-            std::string file_content = get_file_content(inspect, func);
+              py::object inspect = py::module::import("inspect");
 
-            // Get the cudaq target
-            std::string cudaq_target = get_cudaq_target(file_content);
+              // Get source file content
+              std::string file_content = get_file_content(inspect, func);
 
-            // Run this only if the cudaq target is set to nvqc
-            // cudaq_target == "remote-mqpu"
-            if (cudaq_target == "remote-mqpu") {
               std::string combined_code =
                   get_required_raw_source_code(file_content, inspect, func);
 

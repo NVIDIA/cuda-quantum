@@ -46,6 +46,10 @@ public:
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
 
+  // VQE is executed fully on the server without the need to go back and forth
+  // in between observe calls
+  virtual bool supportsRemoteVQE() override { return true; }
+
   virtual void setTargetBackend(const std::string &backend) override {
     std::cout << "Backend: " << backend << std::endl;
     auto parts = cudaq::split(backend, ';');
