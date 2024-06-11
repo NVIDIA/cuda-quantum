@@ -23,7 +23,6 @@ struct Eins {
 // CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_0]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
-// CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 
 struct Zwei {
   std::vector<bool> operator()(const cudaq::state *state) __qpu__ {
@@ -38,7 +37,6 @@ struct Zwei {
 // CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_0]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
-// CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 
 struct Drei {
   std::vector<bool> operator()(cudaq::state &state) __qpu__ {
@@ -53,7 +51,6 @@ struct Drei {
 // CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_0]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
-// CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 
 struct Vier {
   std::vector<bool> operator()(const cudaq::state &state) __qpu__ {
@@ -68,6 +65,5 @@ struct Vier {
 // CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_0]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
-// CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 
 // CHECK: func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.ptr<!cc.state>) -> i64
