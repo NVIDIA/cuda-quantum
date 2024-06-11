@@ -4,6 +4,7 @@ AST
 Aer
 AlmaLinux
 BFGS
+Bloch
 CLA
 CLI
 CMake
@@ -43,6 +44,7 @@ Kagome
 Kraus
 LLVM
 LSB
+Libraries
 MCA
 MLIR
 MPI
@@ -76,6 +78,7 @@ QPU
 QPUs
 QTX
 Qiskit
+QuTiP
 Quake
 Quantinuum
 RHEL
@@ -108,7 +111,6 @@ arity
 auxillary
 backend
 backends
-Bloch
 bitcode
 bitstring
 bitstrings
@@ -192,7 +194,6 @@ interoperational
 intrinsics
 iterable
 iteratively
-Libraries
 linker
 linkers
 lookup
@@ -223,7 +224,6 @@ qubit
 qubits
 qudit
 qudits
-QuTiP
 reStructuredText
 runtime
 runtimes
