@@ -6,11 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os 
+import os
 import pytest
 import numpy as np
 
 import cudaq
+
 qutip = pytest.importorskip("qutip")
 
 import io
@@ -22,7 +23,9 @@ def do_something():
     yield
     cudaq.__clearKernelRegistries()
 
+
 # write sample kernels
+
 
 @cudaq.kernel
 def single_qubit_kernel():
@@ -37,36 +40,42 @@ def single_qubit_kernel():
 
     mz(qubit)
 
+
 @cudaq.kernel
-def two_qubit_kernel(): 
+def two_qubit_kernel():
     # Run any random two-qubit code. Currently using the code from examples/python/expectation_values.py
     qvector = cudaq.qvector(2)
     x(qvector[0])
-    ry(np.random.default_rng().random*2*np.pi, qvector[1]) # random rotation angle between 0 and 2Pi
+    ry(np.random.default_rng().random * 2 * np.pi,
+       qvector[1])  # random rotation angle between 0 and 2Pi
     mz(qvector)
 
 
 # basic tests
 
+
 def test_visualization_bad_state():
     with pytest.raises(Exception) as err:
-        cudaq.add_to_bloch_sphere(np.array([1,0]))
+        cudaq.add_to_bloch_sphere(np.array([1, 0]))
+
 
 def test_visualization_invalid_state():
     with pytest.raises(Exception) as err:
-        cudaq.add_to_bloch_sphere(cudaq.get_state(two_qubit_kernel) )
-        
+        cudaq.add_to_bloch_sphere(cudaq.get_state(two_qubit_kernel))
+
 
 def test_visualization_single_qubit_no_sphere():
     b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel))
     assert isinstance(b, qutip.Bloch)
 
+
 def test_visualization_single_qubit_shere():
     sph = qutip.Bloch()
     # generate a random density matrix with qutip and add to sphere
-    sph.add_states( qutip.rand_dm(2) )
-    
-    b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel),existing_sphere=sph)
+    sph.add_states(qutip.rand_dm(2))
+
+    b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel),
+                                  existing_sphere=sph)
     assert isinstance(b, qutip.Bloch)
 
 
@@ -77,24 +86,28 @@ cudaq.set_target("density-matrix-cpu")
 
 def test_visualization_bad_state_dm():
     with pytest.raises(Exception) as err:
-        cudaq.add_to_bloch_sphere(np.array([1,0]))
+        cudaq.add_to_bloch_sphere(np.array([1, 0]))
+
 
 def test_visualization_invalid_state_dm():
     with pytest.raises(Exception) as err:
-        cudaq.add_to_bloch_sphere(cudaq.get_state(two_qubit_kernel) )
-        
+        cudaq.add_to_bloch_sphere(cudaq.get_state(two_qubit_kernel))
+
 
 def test_visualization_single_qubit_no_sphere_dm():
     b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel))
     assert isinstance(b, qutip.Bloch)
 
+
 def test_visualization_single_qubit_shere_dm():
     sph = qutip.Bloch()
     # generate a random density matrix with qutip and add to sphere
-    sph.add_states( qutip.rand_dm(2) )
-    
-    b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel),existing_sphere=sph)
+    sph.add_states(qutip.rand_dm(2))
+
+    b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel),
+                                  existing_sphere=sph)
     assert isinstance(b, qutip.Bloch)
+
 
 # reset target to prevent interference with further tests
 cudaq.reset_target()
@@ -109,23 +122,23 @@ def test_show_bloch_no_data():
 
     assert "Nothing to display." in op
 
+
 def test_show_bloch_bad_sphere():
     with pytest.raises(TypeError) as err:
-        cudaq.show(np.array([0,1]))
+        cudaq.show(np.array([0, 1]))
+
 
 def test_show_bloch_bad_rows():
     # make a few dummy spheres
     sphList = []
     for _ in range(6):
         sph = qutip.Bloch()
-        sph.add_states( qutip.rand_dm(2) )
+        sph.add_states(qutip.rand_dm(2))
         sphList.append(sph)
 
     # insufficient space to show all spheres
     with pytest.raises(Exception) as err:
-        cudaq.show(sphList,ncols=2,nrows=2)
-
-
+        cudaq.show(sphList, ncols=2, nrows=2)
 
 
 # leave for gdb debugging

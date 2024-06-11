@@ -33,7 +33,7 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
                 A valid single-qubit state, either initialized using the cudaq primitives, or via get_state(kernel). 
                 A single qubit density matrix is also acceptable.
             `existing_sphere` [Optional]: 
-                A `qutip.Bloch` object. If a valid `qutip.Bloch` sphere object is not supplied, then creates a new sphere with the vector representing the supplied state.
+                A `qutip.Bloch` object. If a valid `qutip.Bloch` object is not supplied, then creates a new sphere with the vector representing the supplied state.
             `kwargs` [Optional]:
                 Optional keyword arguments to be passed to QuTiP during Bloch sphere initialization. 
         Returns:
