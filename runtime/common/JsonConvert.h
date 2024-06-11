@@ -147,8 +147,6 @@ inline void to_json(json &j, const ExecutionContext &context) {
   j["registerNames"] = context.registerNames;
   if (context.overlapResult.has_value())
     j["overlapResult"] = context.overlapResult.value();
-  if (!context.amplitudeMaps.empty())
-    j["amplitudeMaps"] = context.amplitudeMaps;
 }
 
 inline void from_json(const json &j, ExecutionContext &context) {
@@ -204,6 +202,12 @@ inline void from_json(const json &j, ExecutionContext &context) {
 
   if (j.contains("registerNames"))
     j["registerNames"].get_to(context.registerNames);
+
+  if (j.contains("overlapResult")) {
+    std::complex<double> overlapResult{0.0};
+    j["overlapResult"].get_to(overlapResult);
+    context.overlapResult = overlapResult;
+  }
 }
 
 // Enum data to denote the payload format.
