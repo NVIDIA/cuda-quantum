@@ -569,14 +569,13 @@ protected:
           CodeTransformInfo(request.format, request.passes);
       json resultJson;
       if (request.executionContext.name == "state-overlap") {
-        if (request.code.size() != 2)
-          throw std::runtime_error(
-              "Only single overlap is currently supported.");
+        if (!request.overlapKernel.has_value())
+          throw std::runtime_error("Missing overlap kernel data.");
         std::vector<char> decodedCodeIr1, decodedCodeIr2;
         auto errorCode1 =
-            llvm::decodeBase64(request.code[0].ir, decodedCodeIr1);
+            llvm::decodeBase64(request.code, decodedCodeIr1);
         auto errorCode2 =
-            llvm::decodeBase64(request.code[1].ir, decodedCodeIr2);
+            llvm::decodeBase64(request.overlapKernel->ir, decodedCodeIr2);
         if (errorCode1) {
           LLVMConsumeError(llvm::wrap(std::move(errorCode1)));
           throw std::runtime_error("Failed to decode input IR");
@@ -588,32 +587,33 @@ protected:
         std::string_view codeStr1(decodedCodeIr1.data(), decodedCodeIr1.size());
         cudaq::ExecutionContext stateContext1("extract-state");
         handleRequest(reqId, stateContext1, request.simulator, codeStr1,
-                      request.code[0].entryPoint, request.code[0].args.data(),
-                      request.code[0].args.size(), request.seed);
+                      request.entryPoint, request.args.data(),
+                      request.args.size(), request.seed);
         std::string_view codeStr2(decodedCodeIr2.data(), decodedCodeIr2.size());
         cudaq::ExecutionContext stateContext2("extract-state");
         handleRequest(reqId, stateContext2, request.simulator, codeStr2,
-                      request.code[1].entryPoint, request.code[1].args.data(),
-                      request.code[1].args.size(), request.seed);
+                      request.overlapKernel->entryPoint,
+                      request.overlapKernel->args.data(),
+                      request.overlapKernel->args.size(), request.seed);
         request.executionContext.overlapResult =
             stateContext1.simulationState->overlap(
                 *stateContext2.simulationState);
         resultJson["executionContext"] = request.executionContext;
       } else {
-        if (request.code.size() != 1)
-          throw std::runtime_error("Only single kernel code is expected.");
+        if (request.overlapKernel.has_value())
+          throw std::runtime_error("Unexpected data: overlap kernel is "
+                                   "provided in non-overlap compute mode.");
         std::vector<char> decodedCodeIr;
         auto errorCode =
-            llvm::decodeBase64(request.code.front().ir, decodedCodeIr);
+            llvm::decodeBase64(request.code, decodedCodeIr);
         if (errorCode) {
           LLVMConsumeError(llvm::wrap(std::move(errorCode)));
           throw std::runtime_error("Failed to decode input IR");
         }
         std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
         handleRequest(reqId, request.executionContext, request.simulator,
-                      codeStr, request.code.front().entryPoint,
-                      request.code.front().args.data(),
-                      request.code.front().args.size(), request.seed);
+                      codeStr, request.entryPoint, request.args.data(),
+                      request.args.size(), request.seed);
 
         // If specific amplitudes are requested.
         // Note: this could be the case whereby the state vector is too large

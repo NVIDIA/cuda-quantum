@@ -85,19 +85,27 @@ inline void to_json(json &j, const ExecutionContext &context) {
 
   if (context.simulationState) {
     j["simulationData"] = json();
-    j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
+    if (context.simulationState->isArrayLike()) {
+      j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
+    } else {
+      // Tensor-network like states: we serialize the flattened state vector.
+      j["simulationData"]["dim"] = std::vector<std::size_t>{
+          1ULL << context.simulationState->getNumQubits()};
+    }
+    const auto hostDataSize =
+        context.simulationState->isArrayLike()
+            ? context.simulationState->getNumElements()
+            : 1ULL << context.simulationState->getNumQubits();
     if (context.simulationState->isDeviceData()) {
       if (context.simulationState->getPrecision() ==
           cudaq::SimulationState::precision::fp32) {
-        std::vector<std::complex<float>> hostData(
-            context.simulationState->getNumElements());
+        std::vector<std::complex<float>> hostData(hostDataSize);
         context.simulationState->toHost(hostData.data(), hostData.size());
         std::vector<std::complex<double>> converted(hostData.begin(),
                                                     hostData.end());
         j["simulationData"]["data"] = converted;
       } else {
-        std::vector<std::complex<double>> hostData(
-            context.simulationState->getNumElements());
+        std::vector<std::complex<double>> hostData(hostDataSize);
         context.simulationState->toHost(hostData.data(), hostData.size());
         j["simulationData"]["data"] = hostData;
       }
@@ -229,12 +237,7 @@ public:
   //     QIR functions, etc.
   // IMPORTANT: When a new version is defined, a new NVQC deployment will be
   // needed.
-  // Version history:
-  // 1. First NVQC release (CUDA-Q v0.7)
-  // 2. CUDA-Q v0.8
-  //   - Support CUDA-Q state handling: overlap and amplitude data; multiple
-  //   kernel IR payloads.
-  static constexpr std::size_t REST_PAYLOAD_VERSION = 2;
+  static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
   RestRequest(ExecutionContext &context, int versionNumber)
       : executionContext(context), version(versionNumber),
         clientVersion(CUDA_QUANTUM_VERSION) {}
@@ -248,7 +251,10 @@ public:
       m_deserializedSpinOp.reset(executionContext.spin.value());
   }
 
-  std::vector<IRPayLoad> code;
+  // Underlying code (IR) payload as a Base64 string.
+  std::string code;
+  // Name of the entry-point kernel.
+  std::string entryPoint;
   // Name of the NVQIR simulator to use.
   std::string simulator;
   // The ExecutionContext to run the simulation.
@@ -261,15 +267,19 @@ public:
   std::size_t seed;
   // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
+  // Serialized kernel arguments.
+  std::vector<uint8_t> args;
 
   // Version of this schema for compatibility check.
   std::size_t version;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
-
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, simulator,
-                                 executionContext, code, format, seed, passes,
-                                 clientVersion);
+  // === v2 ===
+  // Optional kernel to compute the overlap with
+  std::optional<IRPayLoad> overlapKernel;
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
+                                 executionContext, code, args, format, seed,
+                                 passes, clientVersion);
 };
 
 /// NVCF function version status

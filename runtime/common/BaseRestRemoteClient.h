@@ -239,11 +239,20 @@ public:
       stateIrPayload2.ir = constructKernelPayload(mlirContext, kernelName2,
                                                   nullptr, args2, argsSize2);
 
-      request.code = {stateIrPayload1, stateIrPayload2};
+      {
+        // First kernel of the overlap calculation
+        request.code = stateIrPayload1.ir;
+        request.entryPoint = stateIrPayload1.entryPoint;
+      }
+      {
+        // Second kernel of the overlap calculation
+        request.overlapKernel = stateIrPayload2;
+      }
     } else {
       irPayload.ir = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                             kernelArgs, argsSize);
-      request.code = {irPayload};
+      request.code = irPayload.ir;
+      request.entryPoint = irPayload.entryPoint;
     }
     request.simulator = backendSimName;
     // Remote server seed
