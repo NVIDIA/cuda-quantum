@@ -6,6 +6,5 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-
 gpu_result = ghz_state(qubit_count=25, target="nvidia")
 gpu_result.dump()

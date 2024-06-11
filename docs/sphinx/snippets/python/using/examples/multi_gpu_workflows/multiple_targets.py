@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import cudaq
+
 def ghz_state(qubit_count, target):
         """A function that will generate a variable sized GHZ state (`qubit_count`)."""
         cudaq.set_target(target)
