@@ -92,7 +92,7 @@ Asynchronous Data Collection via Batching Hamiltonian Terms
 Expectation value computations of multi-term hamiltonians can be
 asynchronously processed via the ``mqpu`` platform.
 
-
+.. image:: ../../examples/python/tutorials/images/hsplit.png
 
 For workflows involving multiple GPUs, save the code below in a
 ``filename.py`` file and execute via:
@@ -113,6 +113,8 @@ Asynchronous Data Collection via Circuit Batching
 
 Execution of parameterized circuits with different parameters can be
 executed asynchronously via the ``mqpu`` platform.
+
+.. image:: ../../examples/python/tutorials/images/circsplit.png
 
 .. literalinclude:: ../../examples/python/multi_gpu_workflows/async_circuit_batching.py
     :language: python
