@@ -11,6 +11,8 @@
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/gradients.h"
+#include "cudaq/optimizers.h"
 #include "cudaq/simulators.h"
 #include "nlohmann/json.hpp"
 /*! \file
@@ -32,6 +34,23 @@ void from_json(const json &j, std::complex<T> &p) {
   p.imag(j.at(1));
 }
 } // namespace std
+
+// Macros to help reduce redundant field typing for optional fields
+#define TO_JSON_OPT_HELPER(field)                                              \
+  do {                                                                         \
+    if (p.field)                                                               \
+      j[#field] = *p.field;                                                    \
+  } while (0)
+
+#define FROM_JSON_OPT_HELPER(field)                                            \
+  do {                                                                         \
+    if (j.contains(#field))                                                    \
+      p.field = j[#field];                                                     \
+  } while (0)
+
+// Macros to help reduce redundant field typing for non-optional fields
+#define TO_JSON_HELPER(field) j[#field] = p.field
+#define FROM_JSON_HELPER(field) j[#field].get_to(p.field)
 
 namespace cudaq {
 
@@ -190,10 +209,239 @@ inline void from_json(const json &j, ExecutionContext &context) {
 // Enum data to denote the payload format.
 enum class CodeFormat { MLIR, LLVM };
 
-NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {
-                                             {CodeFormat::MLIR, "MLIR"},
-                                             {CodeFormat::LLVM, "LLVM"},
-                                         });
+#define JSON_ENUM(enum_class, val)                                             \
+  { enum_class::val, #val }
+
+NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {JSON_ENUM(CodeFormat, MLIR),
+                                          JSON_ENUM(CodeFormat, LLVM)});
+
+// ----- cudaq::optimizer serialization/deserialization support below
+
+// Enum data for the OptimizerEnum.
+enum class OptimizerEnum {
+  COBYLA,
+  NELDERMEAD,
+  LBFGS,
+  SPSA,
+  ADAM,
+  GRAD_DESC,
+  SGD
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    OptimizerEnum,
+    {JSON_ENUM(OptimizerEnum, COBYLA), JSON_ENUM(OptimizerEnum, NELDERMEAD),
+     JSON_ENUM(OptimizerEnum, LBFGS), JSON_ENUM(OptimizerEnum, SPSA),
+     JSON_ENUM(OptimizerEnum, ADAM), JSON_ENUM(OptimizerEnum, GRAD_DESC),
+     JSON_ENUM(OptimizerEnum, SGD)});
+
+inline OptimizerEnum get_optimizer_type(const cudaq::optimizer &p) {
+  if (dynamic_cast<const cudaq::optimizers::cobyla *>(&p))
+    return OptimizerEnum::COBYLA;
+  if (dynamic_cast<const cudaq::optimizers::neldermead *>(&p))
+    return OptimizerEnum::NELDERMEAD;
+  if (dynamic_cast<const cudaq::optimizers::lbfgs *>(&p))
+    return OptimizerEnum::LBFGS;
+  if (dynamic_cast<const cudaq::optimizers::spsa *>(&p))
+    return OptimizerEnum::SPSA;
+  if (dynamic_cast<const cudaq::optimizers::adam *>(&p))
+    return OptimizerEnum::ADAM;
+  if (dynamic_cast<const cudaq::optimizers::gradient_descent *>(&p))
+    return OptimizerEnum::GRAD_DESC;
+  if (dynamic_cast<const cudaq::optimizers::sgd *>(&p))
+    return OptimizerEnum::SGD;
+  // This shouldn't happen, but gracefully handle it if it does.
+  return OptimizerEnum::COBYLA;
+}
+
+inline void to_json(json &j, const cudaq::optimizers::BaseEnsmallen &p) {
+  TO_JSON_OPT_HELPER(max_eval);
+  TO_JSON_OPT_HELPER(initial_parameters);
+  TO_JSON_OPT_HELPER(lower_bounds);
+  TO_JSON_OPT_HELPER(upper_bounds);
+  TO_JSON_OPT_HELPER(f_tol);
+  TO_JSON_OPT_HELPER(step_size);
+}
+
+inline void to_json(json &j, const cudaq::optimizers::base_nlopt &p) {
+  TO_JSON_OPT_HELPER(max_eval);
+  TO_JSON_OPT_HELPER(initial_parameters);
+  TO_JSON_OPT_HELPER(lower_bounds);
+  TO_JSON_OPT_HELPER(upper_bounds);
+  TO_JSON_OPT_HELPER(f_tol);
+}
+
+inline void to_json(json &j, const cudaq::optimizer &p) {
+  if (auto *base_ensmallen =
+          dynamic_cast<const cudaq::optimizers::BaseEnsmallen *>(&p))
+    j = json(*base_ensmallen);
+  else if (auto *base_nlopt =
+               dynamic_cast<const cudaq::optimizers::base_nlopt *>(&p))
+    j = json(*base_nlopt);
+}
+
+inline void from_json(const nlohmann::json &j,
+                      cudaq::optimizers::BaseEnsmallen &p) {
+  FROM_JSON_OPT_HELPER(max_eval);
+  FROM_JSON_OPT_HELPER(initial_parameters);
+  FROM_JSON_OPT_HELPER(lower_bounds);
+  FROM_JSON_OPT_HELPER(upper_bounds);
+  FROM_JSON_OPT_HELPER(f_tol);
+  FROM_JSON_OPT_HELPER(step_size);
+}
+
+inline void from_json(const nlohmann::json &j,
+                      cudaq::optimizers::base_nlopt &p) {
+  FROM_JSON_OPT_HELPER(max_eval);
+  FROM_JSON_OPT_HELPER(initial_parameters);
+  FROM_JSON_OPT_HELPER(lower_bounds);
+  FROM_JSON_OPT_HELPER(upper_bounds);
+  FROM_JSON_OPT_HELPER(f_tol);
+}
+
+inline std::unique_ptr<cudaq::optimizer>
+make_optimizer_from_json(const nlohmann::json &j,
+                         const OptimizerEnum optimizer_type) {
+  switch (optimizer_type) {
+  case OptimizerEnum::COBYLA: {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::cobyla>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  case OptimizerEnum::NELDERMEAD: {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::neldermead>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  case OptimizerEnum::LBFGS: {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::lbfgs>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  case OptimizerEnum::SPSA: {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::spsa>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  case OptimizerEnum::ADAM: {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::adam>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  case OptimizerEnum::GRAD_DESC: {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::gradient_descent>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  case OptimizerEnum::SGD: {
+    auto ret_ptr = std::make_unique<cudaq::optimizers::sgd>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  }
+  // This shouldn't happen, but gracefully handle it if it does.
+  return std::make_unique<cudaq::optimizers::cobyla>();
+}
+
+// ----- cudaq::gradient serialization/deserialization support below
+
+enum class GradientEnum { CENTRAL_DIFF, FORWARD_DIFF, PARAMETER_SHIFT };
+NLOHMANN_JSON_SERIALIZE_ENUM(GradientEnum,
+                             {JSON_ENUM(GradientEnum, CENTRAL_DIFF),
+                              JSON_ENUM(GradientEnum, FORWARD_DIFF),
+                              JSON_ENUM(GradientEnum, PARAMETER_SHIFT)});
+
+inline GradientEnum get_gradient_type(const cudaq::gradient &p) {
+  if (dynamic_cast<const cudaq::gradients::central_difference *>(&p))
+    return GradientEnum::CENTRAL_DIFF;
+  if (dynamic_cast<const cudaq::gradients::forward_difference *>(&p))
+    return GradientEnum::FORWARD_DIFF;
+  if (dynamic_cast<const cudaq::gradients::parameter_shift *>(&p))
+    return GradientEnum::PARAMETER_SHIFT;
+  // This shouldn't happen, but handle it gracefully if it does.
+  return GradientEnum::CENTRAL_DIFF;
+}
+
+// These do not attempt to serialize or deserialize the quantum kernel
+// (ansatz_functor). That is intentional because those will be handled via the
+// RestRequest.code.
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::central_difference, step);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::forward_difference, step);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(cudaq::gradients::parameter_shift,
+                                   shiftScalar);
+
+inline void to_json(json &j, const cudaq::gradient &p) {
+  if (auto *central_difference =
+          dynamic_cast<const cudaq::gradients::central_difference *>(&p))
+    j = json(*central_difference);
+  else if (auto *forward_difference =
+               dynamic_cast<const cudaq::gradients::forward_difference *>(&p))
+    j = json(*forward_difference);
+  else if (auto *parameter_shift =
+               dynamic_cast<const cudaq::gradients::parameter_shift *>(&p))
+    j = json(*parameter_shift);
+}
+
+inline std::unique_ptr<cudaq::gradient>
+make_gradient_from_json(const nlohmann::json &j,
+                        const GradientEnum gradient_type) {
+  switch (gradient_type) {
+  case GradientEnum::CENTRAL_DIFF: {
+    auto ret_ptr = std::make_unique<cudaq::gradients::central_difference>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  case GradientEnum::FORWARD_DIFF: {
+    auto ret_ptr = std::make_unique<cudaq::gradients::forward_difference>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  case GradientEnum::PARAMETER_SHIFT: {
+    auto ret_ptr = std::make_unique<cudaq::gradients::parameter_shift>();
+    from_json(j, *ret_ptr);
+    return ret_ptr;
+  }
+  }
+  // This shouldn't happen, but handle it gracefully if it does.
+  return std::make_unique<cudaq::gradients::central_difference>();
+}
+
+// ----- Optional optimizer serialization/deserialization support below
+
+struct RestRequestOptFields {
+  std::optional<std::size_t> optimizer_n_params;
+  std::optional<OptimizerEnum> optimizer_type;
+  std::optional<GradientEnum> gradient_type;
+
+  // Used on the server
+  std::unique_ptr<cudaq::optimizer> optimizer;
+  std::unique_ptr<cudaq::gradient> gradient;
+
+  // Used on the client
+  cudaq::optimizer *optimizer_ptr = nullptr;
+  cudaq::gradient *gradient_ptr = nullptr;
+};
+
+void to_json(json &j, const RestRequestOptFields &p) {
+  if (p.optimizer_ptr)
+    j["optimizer"] = *p.optimizer_ptr;
+  if (p.gradient_ptr)
+    j["gradient"] = *p.gradient_ptr;
+  TO_JSON_OPT_HELPER(optimizer_n_params);
+  TO_JSON_OPT_HELPER(optimizer_type);
+  TO_JSON_OPT_HELPER(gradient_type);
+}
+
+void from_json(const json &j, RestRequestOptFields &p) {
+  FROM_JSON_OPT_HELPER(optimizer_n_params);
+  FROM_JSON_OPT_HELPER(optimizer_type);
+  if (p.optimizer_type)
+    p.optimizer = make_optimizer_from_json(j["optimizer"], *p.optimizer_type);
+  FROM_JSON_OPT_HELPER(gradient_type);
+  if (p.gradient_type)
+    p.gradient = make_gradient_from_json(j["gradient"], *p.gradient_type);
+}
+
 // Encapsulate the IR payload
 struct IRPayLoad {
   // Underlying code (IR) payload as a Base64 string.
@@ -265,6 +513,10 @@ public:
   CodeFormat format;
   // Simulation random seed.
   std::size_t seed;
+  // Optional optimizer fields
+  std::optional<RestRequestOptFields> opt;
+  // Optional kernel to compute the overlap with
+  std::optional<IRPayLoad> overlapKernel;
   // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
   // Serialized kernel arguments.
@@ -274,12 +526,36 @@ public:
   std::size_t version;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
-  // === v2 ===
-  // Optional kernel to compute the overlap with
-  std::optional<IRPayLoad> overlapKernel;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
-                                 executionContext, code, args, format, seed,
-                                 passes, clientVersion);
+
+  friend void to_json(json &j, const RestRequest &p) {
+    TO_JSON_HELPER(version);
+    TO_JSON_HELPER(entryPoint);
+    TO_JSON_HELPER(simulator);
+    TO_JSON_HELPER(executionContext);
+    TO_JSON_HELPER(code);
+    TO_JSON_HELPER(args);
+    TO_JSON_HELPER(format);
+    TO_JSON_OPT_HELPER(opt);
+    TO_JSON_OPT_HELPER(overlapKernel);
+    TO_JSON_HELPER(seed);
+    TO_JSON_HELPER(passes);
+    TO_JSON_HELPER(clientVersion);
+  }
+
+  friend void from_json(const json &j, RestRequest &p) {
+    FROM_JSON_HELPER(version);
+    FROM_JSON_HELPER(entryPoint);
+    FROM_JSON_HELPER(simulator);
+    FROM_JSON_HELPER(executionContext);
+    FROM_JSON_HELPER(code);
+    FROM_JSON_HELPER(args);
+    FROM_JSON_HELPER(format);
+    FROM_JSON_OPT_HELPER(opt);
+    FROM_JSON_OPT_HELPER(overlapKernel);
+    FROM_JSON_HELPER(seed);
+    FROM_JSON_HELPER(passes);
+    FROM_JSON_HELPER(clientVersion);
+  }
 };
 
 /// NVCF function version status

@@ -2397,6 +2397,24 @@ bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
   return result;
 }
 
+static bool isAllocatorQualType(const clang::QualType &ty) {
+  if (auto recordType = dyn_cast<clang::RecordType>(ty.getTypePtr()))
+    return recordType->getDecl()->getName().equals("allocator");
+  return false;
+}
+
+static bool isInitializerListQualType(const clang::QualType &ty) {
+  if (auto recordType = dyn_cast<clang::RecordType>(ty.getTypePtr()))
+    return recordType->getDecl()->getName().equals("initializer_list");
+  return false;
+}
+
+static Type getEleTyFromVectorCtor(Type ctorTy) {
+  if (auto stdvecTy = dyn_cast<cc::StdvecType>(ctorTy))
+    return stdvecTy.getElementType();
+  return ctorTy;
+}
+
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   auto loc = toLocation(x);
   auto *ctor = x->getConstructor();
@@ -2616,27 +2634,23 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       return true;
     }
 
-    // We check for vector constructors with 2 args, the first could be an
-    // initializer_list or an integer, while the second is the allocator
     if (ctorName == "vector") {
-      if (x->getNumArgs() == 2) {
-        // This is a std::vector constructor, first we'll check if it is
-        // constructed from a constant initializer list, in that case we'll have
-        // a AllocaOp at the top of the stack that allocates a ptr<array<TxC>>,
-        // where C is constant / known
+      LLVM_DEBUG(llvm::dbgs() << "processing std::vector ctor\n");
+      auto processVectorCtor = [&]() -> bool {
+        // This is a std::vector constructor. Check if it is constructed from a
+        // constant initializer list. In that case, we'll have a AllocaOp at the
+        // top of the stack that allocates a ptr<array<T x C>>, where C is
+        // constant / known.
         auto desugared = x->getArg(0)->getType().getCanonicalType();
-        if (auto recordType =
-                dyn_cast<clang::RecordType>(desugared.getTypePtr()))
-          if (recordType->getDecl()->getName().equals("initializer_list")) {
-            auto allocation = popValue();
-            if (auto ptrTy = dyn_cast<cc::PointerType>(allocation.getType()))
-              if (auto arrayTy =
-                      dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
-                if (auto definingOp = allocation.getDefiningOp<cc::AllocaOp>())
-                  return pushValue(builder.create<cc::StdvecInitOp>(
-                      loc, cc::StdvecType::get(arrayTy.getElementType()),
-                      allocation, definingOp.getSeqSize()));
-          }
+        if (isInitializerListQualType(desugared)) {
+          auto allocation = popValue();
+          if (auto ptrTy = dyn_cast<cc::PointerType>(allocation.getType()))
+            if (auto arrayTy = dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
+              if (auto definingOp = allocation.getDefiningOp<cc::AllocaOp>())
+                return pushValue(builder.create<cc::StdvecInitOp>(
+                    loc, cc::StdvecType::get(arrayTy.getElementType()),
+                    allocation, definingOp.getSeqSize()));
+        }
 
         // Next check if its created from a size integer. Let's do a check on
         // the first argument, make sure that when we peel off all the typedefs
@@ -2645,26 +2659,41 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
                 dyn_cast<clang::BuiltinType>(desugared.getTypePtr()))
           if (builtInType->isInteger() &&
               isa<IntegerType>(peekValue().getType())) {
-            // This is an integer argument, and the value on the stack
-            // is an integer, so let's connect them up
+            // This is an integer argument, and the value on the stack is an
+            // integer, so let's connect them up
             auto arrSize = popValue();
-            auto eleTy = [&]() {
-              if (auto stdvecTy = dyn_cast<cc::StdvecType>(ctorTy))
-                return stdvecTy.getElementType();
-              return ctorTy;
-            }();
+            auto eleTy = getEleTyFromVectorCtor(ctorTy);
 
             // Create stdvec init op without a buffer. Allocate the required
-            // memory chunk
+            // memory chunk.
             Value alloca = builder.create<cc::AllocaOp>(loc, eleTy, arrSize);
 
             // Create the stdvec_init op
             return pushValue(builder.create<cc::StdvecInitOp>(
                 loc, cc::StdvecType::get(eleTy), alloca, arrSize));
           }
+        return false;
+      };
+
+      // Check for vector constructors with 2 args. The first could be an
+      // initializer_list or an integer, while the second should be an
+      // allocator. This is the libstdc++ implementation. First, verify that the
+      // second argument is the expected allocator before continuing.
+      if (x->getNumArgs() == 2 &&
+          isAllocatorQualType(x->getArg(1)->getType().getCanonicalType())) {
+        if (processVectorCtor())
+          return true;
       }
-      // Disallow any default vector construction bc we don't want any
-      // .push_back
+
+      // Check for vector constructors with 1 args. The argument could be an
+      // initializer_list or an integer. This case happens when using libc++.
+      if (x->getNumArgs() == 1) {
+        if (processVectorCtor())
+          return true;
+      }
+
+      // Disallow any default vector construction bc we don't want any calls
+      // to the push_back member function, etc.
       if (ctor->isDefaultConstructor())
         reportClangError(ctor, mangler,
                          "Default std::vector<T> constructor within quantum "
