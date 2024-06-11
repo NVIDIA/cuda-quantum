@@ -45,13 +45,11 @@ void bindOptimizationResult(py::module &mod) {
 
 std::string get_base64_encoded_str(const std::string &source_code) {
   // Encode the serialized data to Base64
-  std::cout << "In get_base64_encoded_str..." << std::endl;
   return llvm::encodeBase64(source_code);
 }
 
 std::string
 get_base64_encoded_str_using_pickle(const std::string &source_code) {
-  std::cout << "In get_base64_encoded_str_using_pickle for source_code..." << std::endl;
   py::object pickle = py::module_::import("pickle");
   py::object base64 = py::module_::import("base64");
 
@@ -71,65 +69,45 @@ std::string get_base64_encoded_str(const py::dict &namespace_dict) {
         try:
           return super().default(obj)
         except TypeError:
+          print('Received an error when encoding the following object...')
+          print(obj)
           return str(obj)
   )");
   py::object custom_encoder = py::globals()["CustomEncoder"];
   py::object json_string =
       json.attr("dumps")(namespace_dict, py::arg("cls") = custom_encoder);
-  std::cout << "JSON string: \n" << json_string << std::endl;
   std::string json_cpp_string = json_string.cast<std::string>();
-  std::cout << "JSON CPP string: \n" << json_string << std::endl;
   return llvm::encodeBase64(json_cpp_string);
 }
 
-std::string
-get_base64_encoded_str_using_pickle(const py::dict &namespace_dict) {
-  std::cout << "In get_base64_encoded_str_using_pickle for namespace_dict..." << std::endl;
+std::string get_base64_encoded_str_using_pickle() {
   py::object pickle = py::module_::import("pickle");
   py::object base64 = py::module_::import("base64");
 
-  std::cout << "Printing namespace_dict..." << std::endl;
-  for (auto item : namespace_dict) {
-    std::cout << item.first << " : " << item.second << std::endl;
+  std::cout << "Serializing the dictionary" << std::endl;
+  py::dict serialized_dict;
+  for (const auto item : py::globals()) {
+    try {
+      auto key = item.first;
+      auto value = item.second;
+      std::cout << key << ":" << value << std::endl;
+
+      py::bytes serialized_value = pickle.attr("dumps")(value);
+      serialized_dict[key] = serialized_value;
+    } catch (const py::error_already_set &e) {
+      std::cout << "Failed to pickle key: " + std::string(e.what())
+                << std::endl;
+    }
   }
 
-  std::cout << "Serializing namespace_dict..." << std::endl;
-  py::dict globals = namespace_dict;
-
-  if (globals.contains("__builtins__")) {
-    globals.attr("pop")("__builtins__");
-  }
-
-  py::bytes serialized_code = pickle.attr("dumps")(namespace_dict);
-  py::object encoded_code = base64.attr("b64encode")(serialized_code);
-  std::cout << "Encoded string: " << encoded_code.cast<std::string>()
-            << std::endl;
-  // std::cout << "LLVM Encoded string: " <<
-  // llvm::encodeBase64(serialized_code);
-
-  py::bytes decoded_code = base64.attr("b64decode")(encoded_code);
-  std::cout << "Decoded string: " << decoded_code.cast<std::string>()
-            << std::endl;
-  py::dict deserialized_dict = pickle.attr("loads")(decoded_code);
-
-  for (auto item : deserialized_dict) {
-    std::cout << item.first << " : " << item.second;
-  }
-
-  std::cout << "Done!" << std::endl;
-  return encoded_code.cast<std::string>();
+  py::bytes serialized_code = pickle.attr("dumps")(serialized_dict);
+  py::object encoded_dict = base64.attr("b64encode")(serialized_code);
+  return encoded_dict.cast<std::string>();
 }
 
 json serialize_data(std::string &source_code) {
   std::string encoded_code_str = get_base64_encoded_str_using_pickle(source_code);
-  py::dict globals = py::globals();
-
-  // if (globals.contains("__builtins__")) {
-  //   globals.attr("pop")("__builtins__");
-  // }
-
-  std::string encoded_globals_str =
-      get_base64_encoded_str_using_pickle(globals);
+  std::string encoded_globals_str = get_base64_encoded_str_using_pickle();
 
   json json_object;
   json_object["source_code"] = encoded_code_str;
@@ -186,8 +164,8 @@ std::string get_file_content(const py::object &inspect,
   return file_content;
 }
 
-py::object get_source_code(const py::object &inspect,
-                           const py::function &func) {
+std::string get_source_code(const py::object &inspect,
+                            const py::function &func) {
   // Get the source code
   py::object source_code;
   try {
@@ -197,7 +175,7 @@ py::object get_source_code(const py::object &inspect,
                              std::string(e.what()));
   }
 
-  return source_code;
+  return source_code.cast<std::string>();
 }
 
 py::object get_parent_frame_info(const py::object &inspect) {
@@ -226,12 +204,15 @@ void get_filtered_dict() {
     std::string key_type = py::repr(py::type::of(it->first));
     std::string value = py::str(it->second);
 
-    // std::cout << "Key: " << key << ", Type: " << key_type << ", Value: " << value << std::endl;
+    // std::cout << "Key: " << key << ", Type: " << key_type << ", Value: " <<
+    // value << std::endl;
 
-    if ((key.find("__") != std::string::npos && key != "__builtins__") || it->second.is_none() || 
-        (value.find("<module") != std::string::npos && key != "__builtins__") || value.find("typing") != std::string::npos) {
-    // if (key.find("__") != std::string::npos || it->second.is_none() || 
-    //     value.find("<module") != std::string::npos) {
+    if ((key.find("__") != std::string::npos && key != "__builtins__") ||
+        it->second.is_none() ||
+        (value.find("<module") != std::string::npos && key != "__builtins__") ||
+        value.find("typing") != std::string::npos) {
+      // if (key.find("__") != std::string::npos || it->second.is_none() ||
+      //     value.find("<module") != std::string::npos) {
       keys_to_remove.push_back(it->first);
     }
   }
@@ -258,17 +239,15 @@ py::object get_compiled_code(const std::string &combined_code,
 SerializedCodeExecutionContext get_serialized_code(std::string &source_code) {
   // Serialize the source code, locals, and globals
   json serialized_data;
+  SerializedCodeExecutionContext serializedCodeExecutionContext;
   try {
     serialized_data = serialize_data(source_code);
+    serializedCodeExecutionContext.source_code = serialized_data["source_code"];
+    serializedCodeExecutionContext.globals = serialized_data["globals"];
   } catch (py::error_already_set &e) {
     throw std::runtime_error("Failed to serialized data: " +
                              std::string(e.what()));
   }
-
-  SerializedCodeExecutionContext serializedCodeExecutionContext;
-  serializedCodeExecutionContext.source_code = serialized_data["source_code"];
-  serializedCodeExecutionContext.locals = serialized_data["locals"];
-  serializedCodeExecutionContext.globals = serialized_data["globals"];
 
   return serializedCodeExecutionContext;
 }
@@ -283,20 +262,75 @@ py::object extract_function(const py::function &func) {
   return source_code_obj;
 }
 
-std::tuple<std::string, std::string, std::string>
-extract_func_call_imports_cudaq_target_using_regex(const std::string &file_content,
-                                   const py::object &func) {
+std::vector<std::string> get_kernel_functions(const std::string &code) {
+  std::regex kernel_regex(
+      R"(@cudaq\.kernel\s+def\s+\w+\([^)]*\):\s*(?:[^#\n]*\n)*?(?:\n\s*\n|$))");
   std::smatch match;
-  std::regex target_regex(R"(cudaq\.set_target\(\"([^"]+)\".*)");
-  std::regex objective_function_call_regex(R"(.*=\s*optimizer\.optimize\s*\([^)]*function\s*=\s*objective_function\s*\))");
-  std::regex import_regex(R"((import\s+[^\n]+|from\s+[^\n]+\s+import\s+[^\n]+))");
+  std::string code_copy = code;
+  std::vector<std::string> functions;
 
-  std::string target;
-  if (std::regex_search(file_content, match, target_regex) && match.size() > 1) {
-    target = match.str(1);
+  while (std::regex_search(code_copy, match, kernel_regex)) {
+    functions.push_back(match.str(0));
+    code_copy = match.suffix().str();
+  }
+
+  return functions;
+}
+
+std::string get_cudaq_target(const std::string &file_content) {
+  std::regex cudaq_target_regex(R"(cudaq\.set_target\(\"([^"]+)\".*)");
+  std::smatch match;
+  std::string cudaq_target;
+
+  if (std::regex_search(file_content, match, cudaq_target_regex) &&
+      match.size() > 1) {
+    cudaq_target = match.str(1);
   } else {
     throw std::runtime_error("Target not found");
   }
+
+  return cudaq_target;
+}
+
+std::string get_imports(const std::string &file_content) {
+  std::regex import_regex(
+      R"((import\s+[^\n]+|from\s+[^\n]+\s+import\s+[^\n]+))");
+  std::smatch match;
+  std::string concatenated_imports;
+
+  std::vector<std::string> imports;
+  auto import_begin = std::sregex_iterator(file_content.begin(),
+                                           file_content.end(), import_regex);
+  auto import_end = std::sregex_iterator();
+
+  for (std::sregex_iterator i = import_begin; i != import_end; ++i) {
+    std::smatch match = *i;
+    imports.push_back(match.str());
+  }
+
+  for (const auto &imp : imports) {
+    concatenated_imports += imp + "\n";
+  }
+
+  return concatenated_imports;
+}
+
+std::string get_kernels(const std::string &file_content) {
+  std::string kernels;
+
+  std::vector<std::string> kernel_functions =
+      get_kernel_functions(file_content);
+  for (const auto &kernel : kernel_functions) {
+    kernels += kernel + "\n";
+  }
+
+  return kernels;
+}
+
+std::string get_objective_function_call(const std::string &file_content) {
+  std::smatch match;
+  std::regex objective_function_call_regex(
+      R"(.*=\s*optimizer\.optimize\s*\([^)]*function\s*=\s*objective_function\s*\))");
 
   std::string objective_function_call;
   if (std::regex_search(file_content, match, objective_function_call_regex)) {
@@ -305,33 +339,36 @@ extract_func_call_imports_cudaq_target_using_regex(const std::string &file_conte
     throw std::runtime_error("Objective function call not found");
   }
 
-  std::vector<std::string> imports;
-  auto import_begin = std::sregex_iterator(file_content.begin(), file_content.end(), import_regex);
-  auto import_end = std::sregex_iterator();
+  return objective_function_call;
+}
 
-  for (std::sregex_iterator i = import_begin; i!= import_end; ++i) {
-    std::smatch match = *i;
-    imports.push_back(match.str());
-  }
+std::string get_required_raw_source_code(const std::string &file_content,
+                                         const py::object &inspect,
+                                         const py::function &func) {
+  // Get imports
+  std::string imports = get_imports(file_content);
 
-  std::string concatenated_imports;
-  for (const auto &imp : imports) {
-    concatenated_imports += imp + "\n";
-  }
+  // Get kernels
+  std::string kernels = get_kernels(file_content);
 
-  return std::make_tuple(concatenated_imports, objective_function_call, target);
+  // Get objective_function call
+  std::string function_call = get_objective_function_call(file_content);
+
+  // Get source code
+  std::string source_code = get_source_code(inspect, func);
+
+  // Return the combined code
+  return imports + "\n" + kernels + source_code + "\n" + function_call;
 }
 
 std::tuple<std::string, std::string>
 extract_func_call_and_cudaq_target(const std::string &file_content,
                                    const py::object &func) {
   // Split the file content into lines and process each line
-  std::cout << "In extract_func_call_and_cudaq_target() ..." << std::endl;
   std::istringstream file_stream(file_content);
   std::string line;
   std::string func_call;
   std::string cudaq_target;
-  std::cout << "Getting function call and the target...";
   while (std::getline(file_stream, line)) {
     if (line.find(func.attr("__name__").cast<std::string>()) !=
         std::string::npos) {
@@ -349,17 +386,18 @@ extract_func_call_and_cudaq_target(const std::string &file_content,
   return std::make_tuple(func_call, cudaq_target);
 }
 
-void call_rest_api(SerializedCodeExecutionContext *serializeCodeExecutionObject,
-                   const py::dict &locals, const py::dict &globals) {
+void call_rest_api(
+    SerializedCodeExecutionContext *serializeCodeExecutionObject) {
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client =
       cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest");
 
+  std::cout << "In call_rest_api" << std::endl;
   std::unordered_map<std::string, std::string> map;
-  map.emplace("url", "http://localhost:11030//");
+  map.emplace("url", "http://localhost:15030//");
 
   m_client->setConfig(map);
 
-  py::object kernel = locals["kernel"];
+  py::object kernel = py::globals()["kernel"];
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto &platform = get_platform();
@@ -497,32 +535,26 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
             // Get source file content
             std::string file_content = get_file_content(inspect, func);
 
-            // Extract function call and cudaq target from the file content
-            auto [imports, func_call, cudaq_target] =
-                extract_func_call_imports_cudaq_target_using_regex(file_content, func);
+            // Get the cudaq target
+            std::string cudaq_target = get_cudaq_target(file_content);
 
             // Run this only if the cudaq target is set to nvqc
             // cudaq_target == "remote-mqpu"
             if (cudaq_target == "remote-mqpu") {
-              // Get source code
-              py::object source_code = get_source_code(inspect, func);
+              std::string combined_code =
+                  get_required_raw_source_code(file_content, inspect, func);
 
-              std::string combined_code = imports + "\n" + source_code.cast<std::string>() +
-              "\n" + func_call;
+              std::cout << "Combined code\n" << combined_code << std::endl;
+              // get_filtered_dict();
+              SerializedCodeExecutionContext serialized_code_execution_object =
+                  get_serialized_code(combined_code);
 
-              get_filtered_dict();
-              // std::cout << combined_code << std::endl;
-              // std::cout << "Globals:\n" << globals << std::endl;
-              // SerializedCodeExecutionContext serialized_code_execution_object =
-              get_serialized_code(combined_code);
-
-              // SerializedCodeExecutionContext
-              // *serialized_code_execution_object_ptr =
-              // &serialized_code_execution_object;
+              SerializedCodeExecutionContext
+                  *serialized_code_execution_object_ptr =
+                      &serialized_code_execution_object;
 
               // Call the REST API to /job
-              // call_rest_api(serialized_code_execution_object_ptr, locals,
-              // globals);
+              call_rest_api(serialized_code_execution_object_ptr);
 
               // delete(&serialized_code_execution_object);
 

@@ -250,14 +250,14 @@ public:
     cudaq::RestRequest request = constructJobRequest(
         mlirContext, io_context, serializedCodeContext, backendSimName,
         kernelName, kernelFunc, kernelArgs, argsSize);
-    if (request.code.empty()) {
-      if (optionalErrorMsg)
-        *optionalErrorMsg =
-            std::string(
-                "Failed to construct/retrieve kernel IR for kernel named ") +
-            kernelName;
-      return false;
-    }
+    // if (request.code.empty()) {
+    //   if (optionalErrorMsg)
+    //     *optionalErrorMsg =
+    //         std::string(
+    //             "Failed to construct/retrieve kernel IR for kernel named ") +
+    //         kernelName;
+    //   return false;
+    // }
 
     // Don't let curl adding "Expect: 100-continue" header, which is not
     // suitable for large requests, e.g., bitcode in the JSON request.
@@ -267,6 +267,7 @@ public:
     json requestJson = request;
     try {
       cudaq::RestClient restClient;
+      std::cout << "Posting it to the server ..." << std::endl;
       auto resultJs =
           restClient.post(m_url, "job", requestJson, headers, false);
 

@@ -7,6 +7,8 @@
 # ============================================================================ #
 
 from http import HTTPStatus
+from concurrent.futures import ProcessPoolExecutor
+from cudaq import spin
 import http.server
 import json
 import requests
@@ -16,15 +18,24 @@ import time
 import base64
 import py
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
+import json
+import debugpy
+import ast
+import subprocess
+import pickle
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
 # allows the NVCF port (3030) to remain up while allowing the main `cudaq-qpud`
 # application to restart if necessary.
-PROXY_PORT = 3030
-QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
+PROXY_PORT = 15030
+QPUD_PORT = 15031  # see `docker/build/cudaq.nvqc.Dockerfile`
 
+debugpy.listen(("0.0.0.0", 5678))
+
+print("Waiting for debugger to attach...")
+debugpy.wait_for_client()
+print("Debugger attached.")
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     """Handle requests in a separate thread."""
@@ -67,32 +78,85 @@ class Server(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
 
+    def get_deserialized_dict(self, globals):
+        deserialized_dict = {}
+
+        for key, serialized_bytes in globals.items():
+            try:
+                deserialized_value = pickle.loads(serialized_bytes)
+                deserialized_dict[key] = deserialized_value
+            except (pickle.UnpicklingError, TypeError, Exception) as e:
+                print(f"Error deserializing key '{key}': {e}")
+                # deserialized_dict[key] = serialized_bytes
+
+        return deserialized_dict
+
     async def handle_job_request(self, request_json):
         serialized_ctx = request_json['serializedCodeExecutionContext']
-        print(serialized_ctx)
-        source_code = base64.b64decode(serialized_ctx['source_code']).decode('utf-8')
-        locals_dict = eval(base64.b64decode(serialized_ctx['locals']).decode('utf-8'))
-        globals_dict = eval(base64.b64decode(serialized_ctx['globals']).decode('utf-8'))
-
+        # print(serialized_ctx)
+        source_code = pickle.loads(base64.b64decode(serialized_ctx['source_code']))
+        print(source_code)
+        serialized_dict = pickle.loads(base64.b64decode(serialized_ctx['globals']))
+        print(serialized_dict)
+        deserialized_globals_dict = self.get_deserialized_dict(serialized_dict)
+        print(deserialized_globals_dict)
+        print('Fetching the loop...')
         loop = asyncio.get_running_loop()
         with ProcessPoolExecutor() as pool:
-            result = await loop.run_in_executor(pool, self.execute_code_in_subprocess, source_code, locals_dict, globals_dict)
+            result = await loop.run_in_executor(pool, self.execute_code_in_subprocess, source_code, deserialized_globals_dict)
 
         return result
+
+    # def handle_job_request(self, request_json):
+    #     serialized_ctx = request_json['serializedCodeExecutionContext']
+    #     print(serialized_ctx)
+    #     source_code = base64.b64decode(serialized_ctx['source_code']).decode('utf-8')
+    #     locals_dict = json.loads(base64.b64decode(serialized_ctx['locals']).decode('utf-8'))
+    #     globals_dict = json.loads(base64.b64decode(serialized_ctx['globals']).decode('utf-8'))
+    #     print('Fetching the loop...')
+    #     result = self.execute_code_in_subprocess(source_code, locals_dict, globals_dict)
+
+    #     return result
     
     @staticmethod
-    def execute_code_in_subprocess(source_code, locals_dict, globals_dict):
+    def execute_code_in_subprocess(source_code, globals_dict):
         try:
             # subprocess
-            # Execute the code
-            exec(source_code, globals_dict, locals_dict)
+            print(globals_dict)
+            print(source_code)
+            print('Executing the code...')
+            debugpy.breakpoint()
+
+            exec(source_code, globals_dict)
+            # try :
+            #     result_of_subprocess = subprocess.run(
+            #         ['python3', '-c', code],
+            #         env=namespace_dict,
+            #         capture_output=True,
+            #         text=True,
+            #         check=True
+            #     )
+
+            #     print("Subprocess output: ", result_of_subprocess.stdout)
+            #     print("Subprocess return code: ", result_of_subprocess.returncode)
+            #     print("Subprocess errors: ", result_of_subprocess.stderr)
+            # except subprocess.CalledProcessError as e:
+            #     print("Subprocess failed")
+            #     print(f"Returned code: {e.returncode}")
+            #     print(f"Command: {e.cmd}")
+            #     print(f"Output: {e.output}")
+            #     print(f"Error: {e.stderr}")
 
             result = {
                 "status": "success",
-                "locals": locals_dict,
                 "globals": globals_dict
             }
+            print(result)
         except Exception as e:
+            import traceback
+            print("An error occured:")
+            traceback.print_exc()
+            print(traceback.format_exc())
             return {
                 "status": "error",
                 "error": str(e)
@@ -129,6 +193,8 @@ class Server(http.server.SimpleHTTPRequestHandler):
                     asyncio.set_event_loop(loop)
                     result = loop.run_until_complete(self.handle_job_request(request_json))
                     loop.close()
+
+                    # result = self.handle_job_request(request_json)
 
                     self.send_response(HTTPStatus.OK)
                     self.send_header('Content-Type', 'application/json')
