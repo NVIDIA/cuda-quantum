@@ -23,6 +23,7 @@ import debugpy
 import ast
 import subprocess
 import pickle
+import multiprocessing
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
@@ -223,8 +224,18 @@ class Server(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
 
 
-Handler = Server
-with ThreadedHTTPServer(("", PROXY_PORT), Handler) as httpd:
-    print("Serving at port", PROXY_PORT)
-    print("Forward to port", QPUD_PORT)
-    httpd.serve_forever()
+if __name__ == "__main__":
+    # By default, Linux uses the "fork" method where the child process inherits
+    # a copy of the parent's memory space, including any condition variables and
+    # locks that might be in use. If the parent process was holding a lock or
+    # waiting on a condition variable at the time of the fork, this can lead to
+    # deadlocks or other synchronization problems in the child process. Instead,
+    # use the "spawn" method instead, where a fresh Python interpreter is
+    # started for each new process.
+    multiprocessing.set_start_method('spawn')
+
+    Handler = Server
+    with ThreadedHTTPServer(("", PROXY_PORT), Handler) as httpd:
+        print("Serving at port", PROXY_PORT)
+        print("Forward to port", QPUD_PORT)
+        httpd.serve_forever()
