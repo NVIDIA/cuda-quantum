@@ -290,40 +290,42 @@ inline void from_json(const nlohmann::json &j,
 inline std::unique_ptr<cudaq::optimizer>
 make_optimizer_from_json(const nlohmann::json &j,
                          const OptimizerEnum optimizer_type) {
-  if (optimizer_type == OptimizerEnum::COBYLA) {
+  switch (optimizer_type) {
+  case OptimizerEnum::COBYLA: {
     auto ret_ptr = std::make_unique<cudaq::optimizers::cobyla>();
-    from_json(j, dynamic_cast<cudaq::optimizers::base_nlopt &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
   }
-  if (optimizer_type == OptimizerEnum::NELDERMEAD) {
+  case OptimizerEnum::NELDERMEAD: {
     auto ret_ptr = std::make_unique<cudaq::optimizers::neldermead>();
-    from_json(j, dynamic_cast<cudaq::optimizers::base_nlopt &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
   }
-  if (optimizer_type == OptimizerEnum::LBFGS) {
+  case OptimizerEnum::LBFGS: {
     auto ret_ptr = std::make_unique<cudaq::optimizers::lbfgs>();
-    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
   }
-  if (optimizer_type == OptimizerEnum::SPSA) {
+  case OptimizerEnum::SPSA: {
     auto ret_ptr = std::make_unique<cudaq::optimizers::spsa>();
-    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
   }
-  if (optimizer_type == OptimizerEnum::ADAM) {
+  case OptimizerEnum::ADAM: {
     auto ret_ptr = std::make_unique<cudaq::optimizers::adam>();
-    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
   }
-  if (optimizer_type == OptimizerEnum::GRAD_DESC) {
+  case OptimizerEnum::GRAD_DESC: {
     auto ret_ptr = std::make_unique<cudaq::optimizers::gradient_descent>();
-    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
   }
-  if (optimizer_type == OptimizerEnum::SGD) {
+  case OptimizerEnum::SGD: {
     auto ret_ptr = std::make_unique<cudaq::optimizers::sgd>();
-    from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
+  }
   }
   // This shouldn't happen, but gracefully handle it if it does.
   return std::make_unique<cudaq::optimizers::cobyla>();
@@ -371,22 +373,22 @@ inline void to_json(json &j, const cudaq::gradient &p) {
 inline std::unique_ptr<cudaq::gradient>
 make_gradient_from_json(const nlohmann::json &j,
                         const GradientEnum gradient_type) {
-  if (gradient_type == GradientEnum::CENTRAL_DIFF) {
+  switch (gradient_type) {
+  case GradientEnum::CENTRAL_DIFF: {
     auto ret_ptr = std::make_unique<cudaq::gradients::central_difference>();
-    from_json(j,
-              dynamic_cast<cudaq::gradients::central_difference &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
   }
-  if (gradient_type == GradientEnum::FORWARD_DIFF) {
+  case GradientEnum::FORWARD_DIFF: {
     auto ret_ptr = std::make_unique<cudaq::gradients::forward_difference>();
-    from_json(j,
-              dynamic_cast<cudaq::gradients::forward_difference &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
   }
-  if (gradient_type == GradientEnum::PARAMETER_SHIFT) {
+  case GradientEnum::PARAMETER_SHIFT: {
     auto ret_ptr = std::make_unique<cudaq::gradients::parameter_shift>();
-    from_json(j, dynamic_cast<cudaq::gradients::parameter_shift &>(*ret_ptr));
+    from_json(j, *ret_ptr);
     return ret_ptr;
+  }
   }
   // This shouldn't happen, but handle it gracefully if it does.
   return std::make_unique<cudaq::gradients::central_difference>();
