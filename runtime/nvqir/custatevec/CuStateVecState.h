@@ -345,8 +345,8 @@ public:
               std::size_t numElements) const override {
     // Must have the correct precision
     if constexpr (std::is_same_v<ScalarType, float>)
-      throw std::runtime_error("simulation precision is FP32 but overlap "
-                               "requested with FP64 state data.");
+      throw std::runtime_error("simulation precision is FP32 but toHost "
+                               "requested with FP64 host buffer.");
 
     // Must have the correct number of elements.
     if (numElements != size)
@@ -363,8 +363,8 @@ public:
               std::size_t numElements) const override {
     // Must have the correct precision
     if constexpr (std::is_same_v<ScalarType, double>)
-      throw std::runtime_error("simulation precision is FP32 but overlap "
-                               "requested with FP64 state data.");
+      throw std::runtime_error("simulation precision is FP64 but toHost "
+                               "requested with FP32 host buffer.");
 
     // Must have the correct number of elements.
     if (numElements != size)
