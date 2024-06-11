@@ -421,8 +421,10 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -1079,6 +1081,33 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <section id="data-types">
 <h2>Data Types<a class="headerlink" href="#data-types" title="Permalink to this heading">¶</a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="cudaq.SimulationPrecision">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">SimulationPrecision</span></span><a class="headerlink" href="#cudaq.SimulationPrecision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enumeration describing the precision of the underyling simulation.</p>
+<p>Members:</p>
+<blockquote>
+<div><p>fp32</p>
+<p>fp64</p>
+</div></blockquote>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.SimulationPrecision.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#cudaq.SimulationPrecision.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>object) -&gt; str
+:noindex:</p>
+<dl class="field-list">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">name(self</span></span></dt>
+<dd></dd></dl>
+
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="cudaq.Target">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">Target</span></span><a class="headerlink" href="#cudaq.Target" title="Permalink to this definition">¶</a></dt>
 <dd><p>The <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> represents the underlying infrastructure that CUDA-Q kernels will execute on. Instances of <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> describe what simulator they may leverage, the quantum_platform required for execution, and a description for the target.</p>
@@ -1086,6 +1115,17 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <dt class="sig sig-object py" id="cudaq.Target.description">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#cudaq.Target.description" title="Permalink to this definition">¶</a></dt>
 <dd><p>A string describing the features for this <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Target.get_precision">
+<span class="sig-name descname"><span class="pre">get_precision</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Target.get_precision" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_precision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Target" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SimulationPrecision" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SimulationPrecision"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SimulationPrecision</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the simulation precision for the current target.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1144,7 +1184,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.State">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">State</span></span><a class="headerlink" href="#cudaq.State" title="Permalink to this definition">¶</a></dt>
-<dd><p>A data-type representing the quantum state of the internal simulator. Returns a state vector by default. If the target is set to <code class="code docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code>, a density matrix will be returned.</p>
+<dd><p>A data-type representing the quantum state of the internal simulator. This type is not user-constructible and instances can only be retrieved via the <code class="code docutils literal notranslate"><span class="pre">cudaq.get_state(...)</span></code> function or the static cudaq.State.from_data() method.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.State.dump">
 <span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.State.dump" title="Permalink to this definition">¶</a></dt>
@@ -1157,13 +1197,97 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="cudaq.State.from_data">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return a state from data.</p>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return a state from matrix product state tensor data.</p>
+<ol class="arabic" start="3">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.Tensor" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Tensor"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Tensor</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return a state from matrix product state tensor data.</p>
+<ol class="arabic" start="4">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><span class="pre">object</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return a state from matrix product state tensor data (as CuPy ndarray).</p>
+<ol class="arabic" start="5">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return a state from CuPy device array.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.State.getTensor">
+<span class="sig-name descname"><span class="pre">getTensor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.State.getTensor" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">getTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.Tensor" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Tensor"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Tensor</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the <code class="code docutils literal notranslate"><span class="pre">idx</span></code> tensor making up this state representation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.State.getTensors">
+<span class="sig-name descname"><span class="pre">getTensors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.State.getTensors" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">getTensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.Tensor" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Tensor"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd></dd></dl>
+
+<p>Return all the tensors that comprise this state representation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.State.is_on_gpu">
+<span class="sig-name descname"><span class="pre">is_on_gpu</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.State.is_on_gpu" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">is_on_gpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return True if this state is on the GPU.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.State.overlap">
 <span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.State.overlap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overloaded function.</p>
 <ol class="arabic">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.12)"><span class="pre">complex</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
@@ -1172,14 +1296,29 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <ol class="arabic" start="2">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.26)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.12)"><span class="pre">complex</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
 </ol>
 <p>Compute the overlap between the provided <a class="reference internal" href="#cudaq.State" title="cudaq.State"><code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code></a>’s.</p>
+<ol class="arabic" start="3">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.12)"><span class="pre">complex</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Compute overlap with general CuPy device array.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.Tensor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">Tensor</span></span><a class="headerlink" href="#cudaq.Tensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <code class="code docutils literal notranslate"><span class="pre">Tensor</span></code> describes a pointer to simulation data as well as the rank and extents for that tensorial data it represents.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -1700,7 +1839,7 @@ from the <code class="code docutils literal notranslate"><span class="pre">start
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2250519721</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1686308959</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
