@@ -302,8 +302,9 @@ COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
 # Removing the CUDA compiler and libstdc++ with it,
 # and installing the CUDA runtime dependencies only.
 RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
-    source /cuda-quantum/scripts/configure_build.sh install-cudart && \
-    dnf remove -y \
-        cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
-        cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) && \
-    dnf clean all
+        source /cuda-quantum/scripts/configure_build.sh install-cudart && \
+        dnf remove -y \
+            cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
+            cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) && \
+        dnf clean all; \
+    fi
