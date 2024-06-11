@@ -235,7 +235,10 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   auto [width, alignInBytes] = [&]() -> std::pair<std::uint64_t, unsigned> {
     auto *defn = x->getDefinition();
     assert(defn && "struct must be defined here");
-    auto ti = getContext()->getTypeInfo(defn->getTypeForDecl());
+    auto *ty = defn->getTypeForDecl();
+    if (ty->isDependentType())
+      return {0, 0};
+    auto ti = getContext()->getTypeInfo(ty);
     return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
   }();
   if (name.empty())
