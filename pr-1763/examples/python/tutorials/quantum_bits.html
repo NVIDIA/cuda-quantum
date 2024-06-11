@@ -645,14 +645,18 @@
 <p>Later, we will learn the existence of states that can be represented with <span class="math notranslate nohighlight">\(\ket{+i}\)</span> and <span class="math notranslate nohighlight">\(\ket{-i}\)</span>, this calls for a 3-D extension.</p>
 <p>It turns out that a sphere is able to depict all the possible states of a single qubit as shown in figure below:</p>
 <p><img alt="Bloch Sphere" class="no-scaled-link" src="../../../_images/Bloch_sphere.png" style="width: 300px; height: 300px;" /></p>
-<p>Let us try to showcase the functionality to render such a 3D representation with Cuda-Q.</p>
+<p>Let us try to showcase the functionality to render such a 3D representation with CUDA-Q.</p>
 <p>First, let us define a single-qubit kernel that returns a different state each time. This kernel uses random rotations, so make sure that we have set the target to a density matrix, otherwise results will be invalid.</p>
-<p>Note: Cuda-Q uses the <a class="reference external" href="https://qutip.org">QuTiP</a> library to render Bloch spheres. The following code will throw an error if QuTiP is not installed.</p>
+<p>Note: CUDA-Q uses the <a class="reference external" href="https://qutip.org">QuTiP</a> library to render Bloch spheres. The following code will throw an error if QuTiP is not installed.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># install qutip in the current Python kernel. Skip this if qutip is already installed.</span>
+<span class="c1"># Make sure to restart your kernel if you execute this!</span>
+<span class="c1"># In a Jupyter notebook, go to the menu bar &gt; Kernel &gt; Restart Kernel.</span>
+<span class="c1"># In VSCode, click on the Restart button in the Jupyter toolbar.</span>
+
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="o">!{</span>sys.executable<span class="o">}</span><span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>qutip&gt;<span class="o">=</span><span class="m">5</span>
 </pre></div>
@@ -753,7 +757,7 @@
 <img alt="../../../_images/examples_python_tutorials_quantum_bits_21_0.png" src="../../../_images/examples_python_tutorials_quantum_bits_21_0.png" />
 </div>
 </div>
-<p>What if we had to add multiple vectors to a single Bloch sphere? Cuda-Q uses the <a class="reference external" href="https://www.qutip.org">QuTiP</a> toolbox to construct Bloch spheres. We can then add multiple states to the same Bloch sphere by passing the sphere object as an argument to <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code>.</p>
+<p>What if we had to add multiple vectors to a single Bloch sphere? CUDA-Q uses the <a class="reference external" href="https://www.qutip.org">QuTiP</a> toolbox to construct Bloch spheres. We can then add multiple states to the same Bloch sphere by passing the sphere object as an argument to <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
