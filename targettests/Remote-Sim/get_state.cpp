@@ -9,7 +9,7 @@
 // REQUIRES: remote-sim
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t 
+// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
@@ -27,6 +27,7 @@ int main() {
     assert(std::abs(state[2].real()) < 1e-3);
     assert(std::abs(M_SQRT1_2 - state[3].real()) < 1e-3);
   }
+
 // Skipped test due to a stability issue. See:
 // https://github.com/NVIDIA/cuda-quantum/issues/1087
 #if 0

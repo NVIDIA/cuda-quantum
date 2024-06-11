@@ -195,13 +195,14 @@ public:
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
     cudaq::RestRequest request(io_context, version());
-    request.entryPoint = kernelName;
+    cudaq::IRPayLoad irPayload;
+    irPayload.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;
       if (kernelArgs && argsSize > 0) {
         cudaq::info("Serialize {} bytes of args.", argsSize);
-        request.args.resize(argsSize);
-        std::memcpy(request.args.data(), kernelArgs, argsSize);
+        irPayload.args.resize(argsSize);
+        std::memcpy(irPayload.args.data(), kernelArgs, argsSize);
       }
 
       if (kernelFunc) {
@@ -210,15 +211,40 @@ public:
         const auto funcName = cudaq::quantum_platform::demangle(info.dli_sname);
         cudaq::info("RemoteSimulatorQPU: retrieve name '{}' for kernel {}",
                     funcName, kernelName);
-        request.entryPoint = funcName;
+        irPayload.entryPoint = funcName;
       }
     } else {
       request.passes = serverPasses;
       request.format = cudaq::CodeFormat::MLIR;
     }
 
-    request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                          kernelArgs, argsSize);
+    if (io_context.name == "state-overlap") {
+      if (!io_context.overlapComputeStates.has_value())
+        throw std::runtime_error("Invalid execution context: no input states");
+      const auto *castedState1 = dynamic_cast<const RemoteSimulationState *>(
+          io_context.overlapComputeStates->first);
+      const auto *castedState2 = dynamic_cast<const RemoteSimulationState *>(
+          io_context.overlapComputeStates->second);
+      if (!castedState1 || !castedState2)
+        throw std::runtime_error(
+            "Invalid execution context: input states are not compatible");
+      auto [kernelName1, args1, argsSize1] = castedState1->getKernelInfo();
+      auto [kernelName2, args2, argsSize2] = castedState2->getKernelInfo();
+      cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
+
+      stateIrPayload1.entryPoint = kernelName1;
+      stateIrPayload1.ir = constructKernelPayload(mlirContext, kernelName1,
+                                                  nullptr, args1, argsSize1);
+      stateIrPayload2.entryPoint = kernelName2;
+      stateIrPayload2.ir = constructKernelPayload(mlirContext, kernelName2,
+                                                  nullptr, args2, argsSize2);
+
+      request.code = {stateIrPayload1, stateIrPayload2};
+    } else {
+      irPayload.ir = constructKernelPayload(mlirContext, kernelName, kernelFunc,
+                                            kernelArgs, argsSize);
+      request.code = {irPayload};
+    }
     request.simulator = backendSimName;
     // Remote server seed
     // Note: unlike local executions whereby a static instance of the simulator
