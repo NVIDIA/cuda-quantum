@@ -38,13 +38,16 @@ class PyKernelDecorator(object):
     MLIR `ExecutionEngine` for the MLIR mode. 
     """
 
-    def __init__(self, function, verbose=False, module=None, kernelName=None):
+    def __init__(self, function, verbose=False, module=None, kernelName=None, funcSrc=None):
+        if isinstance(function, str):
+            function = globals().get(function)
+
         self.kernelFunction = function
         self.capturedDataStorage = None
 
-        self.module = None if module == None else module
+        self.module = None if module is None else module
         self.verbose = verbose
-        self.name = kernelName if kernelName != None else self.kernelFunction.__name__
+        self.name = kernelName if kernelName is not None else (self.kernelFunction.__name__ if self.kernelFunction else None)
         self.argTypes = None
         self.location = (inspect.getfile(self.kernelFunction),
                          inspect.getsourcelines(self.kernelFunction)[1]
@@ -87,13 +90,19 @@ class PyKernelDecorator(object):
                     "Invalid kernel decorator. Module and function are both None."
                 )
 
-        # Get the function source
-        src = inspect.getsource(self.kernelFunction)
+        if funcSrc:
+            self.funcSrc = funcSrc
+        else:
+            try:
+                # Get the function source
+                src = inspect.getsource(self.kernelFunction)
 
-        # Strip off the extra tabs
-        leadingSpaces = len(src) - len(src.lstrip())
-        self.funcSrc = '\n'.join(
-            [line[leadingSpaces:] for line in src.split('\n')])
+                # Strip off the extra tabs
+                leadingSpaces = len(src) - len(src.lstrip())
+                self.funcSrc = '\n'.join(
+                    [line[leadingSpaces:] for line in src.split('\n')])
+            except OSError:
+                self.funcSrc = None
 
         # Create the AST
         self.astModule = ast.parse(self.funcSrc)
@@ -222,16 +231,8 @@ class PyKernelDecorator(object):
                                    module=self.module)
 
     def __reduce__(self):
-        args = []
-
-        if self.kernelFunction is not None:
-            args.append(self.kernelFunction)
-        if self.module is not None:
-            args.append(self.module)
-        if self.name is not None:
-            args.append(self.name)
-
-        return (self.__class__, tuple(args))
+        args = (self.kernelFunction.__name__ if self.kernelFunction else None, self.verbose, None, self.name, self.funcSrc)
+        return (self.__class__, args)
 
     def __call__(self, *args):
         """
