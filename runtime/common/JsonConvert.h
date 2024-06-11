@@ -86,11 +86,21 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.simulationState) {
     j["simulationData"] = json();
     j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
-    std::vector<std::complex<double>> hostData(
-        context.simulationState->getNumElements());
     if (context.simulationState->isDeviceData()) {
-      context.simulationState->toHost(hostData.data(), hostData.size());
-      j["simulationData"]["data"] = hostData;
+      if (context.simulationState->getPrecision() ==
+          cudaq::SimulationState::precision::fp32) {
+        std::vector<std::complex<float>> hostData(
+            context.simulationState->getNumElements());
+        context.simulationState->toHost(hostData.data(), hostData.size());
+        std::vector<std::complex<double>> converted(hostData.begin(),
+                                                    hostData.end());
+        j["simulationData"]["data"] = converted;
+      } else {
+        std::vector<std::complex<double>> hostData(
+            context.simulationState->getNumElements());
+        context.simulationState->toHost(hostData.data(), hostData.size());
+        j["simulationData"]["data"] = hostData;
+      }
     } else {
       auto *ptr = reinterpret_cast<std::complex<double> *>(
           context.simulationState->getTensor().data);
@@ -141,18 +151,23 @@ inline void from_json(const json &j, ExecutionContext &context) {
     j["simulationData"]["dim"].get_to(stateDim);
     j["simulationData"]["data"].get_to(stateData);
 
-    // Create the simulation specific SimulationState
-    auto *simulator = cudaq::get_simulator();
-    if (simulator->isSinglePrecision()) {
-      // If the host (local) simulator is single-precision, convert the type
-      // before loading the state vector.
-      std::vector<std::complex<float>> converted(stateData.begin(),
-                                                 stateData.end());
-      context.simulationState = simulator->createStateFromData(
-          std::make_pair(converted.data(), stateDim[0]));
-    } else {
-      context.simulationState = simulator->createStateFromData(
-          std::make_pair(stateData.data(), stateDim[0]));
+    // Note: before `SimulationState` was added, `simulationData` contains a
+    // flat pair of dimensions and data, whereby an empty dimension array
+    // represents no state data in the context.
+    if (!stateDim.empty()) {
+      // Create the simulation specific SimulationState
+      auto *simulator = cudaq::get_simulator();
+      if (simulator->isSinglePrecision()) {
+        // If the host (local) simulator is single-precision, convert the type
+        // before loading the state vector.
+        std::vector<std::complex<float>> converted(stateData.begin(),
+                                                   stateData.end());
+        context.simulationState = simulator->createStateFromData(
+            std::make_pair(converted.data(), stateDim[0]));
+      } else {
+        context.simulationState = simulator->createStateFromData(
+            std::make_pair(stateData.data(), stateDim[0]));
+      }
     }
   }
 
