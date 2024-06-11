@@ -265,9 +265,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
         # Removing gcc packages remove the CUDA toolkit since it depends on them
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
-    # FIXME: Disabled nlopt doesn't seem to work properly
-    # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1103
-    excludes+=" --exclude-regex NloptTester|ctest-nvqpp|ctest-targettests" && \
+    excludes+=" --exclude-regex ctest-nvqpp|ctest-targettests" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 

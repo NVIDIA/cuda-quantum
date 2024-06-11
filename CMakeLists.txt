@@ -206,7 +206,7 @@ if (CUDAQ_ENABLE_STATIC_LINKING)
   # We don't set these configurations here, since the LLVM runtime libraries that we 
   # build from source are already configured to hide symbols and include dependencies.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc -pie")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   SET(OPENSSL_USE_STATIC_LIBS TRUE)
   SET(ZLIB_USE_STATIC_LIBS TRUE)
   set(CURL_STATICLIB ON)

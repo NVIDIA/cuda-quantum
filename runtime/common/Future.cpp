@@ -102,7 +102,7 @@ std::istream &operator>>(std::istream &is, future &f) {
   nlohmann::json j;
   try {
     is >> j;
-  } catch (std::exception &ex) {
+  } catch (...) {
     throw std::runtime_error(
         "Formatting error; could not parse input as json.");
   }

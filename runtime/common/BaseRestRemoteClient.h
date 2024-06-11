@@ -41,6 +41,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
+#include <cxxabi.h>
 #include <dlfcn.h>
 #include <fstream>
 #include <iostream>
@@ -290,6 +291,17 @@ public:
     } catch (std::exception &e) {
       if (optionalErrorMsg)
         *optionalErrorMsg = e.what();
+      return false;
+    } catch (...) {
+      std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
+      auto demangledPtr = __cxxabiv1::__cxa_demangle(exType.c_str(),
+                                                    nullptr, nullptr, nullptr);
+      if (demangledPtr && optionalErrorMsg) {
+        std::string demangledName(demangledPtr);
+        *optionalErrorMsg = "Unhandled exception of type " + demangledName;
+      } else if (optionalErrorMsg) {
+        *optionalErrorMsg = "Unhandled exception of unknown type";
+      }
       return false;
     }
   }
@@ -955,6 +967,17 @@ public:
     } catch (std::exception &e) {
       if (optionalErrorMsg)
         *optionalErrorMsg = e.what();
+      return false;
+    } catch (...) {
+      std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
+      auto demangledPtr = __cxxabiv1::__cxa_demangle(exType.c_str(),
+                                                     nullptr, nullptr, nullptr);
+      if (demangledPtr && optionalErrorMsg) {
+        std::string demangledName(demangledPtr);
+        *optionalErrorMsg = "Unhandled exception of type " + demangledName;
+      } else if (optionalErrorMsg) {
+        *optionalErrorMsg = "Unhandled exception of unknown type";
+      }
       return false;
     }
   }

@@ -12,8 +12,7 @@ find_package(CUDAToolkit REQUIRED)
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 message (STATUS "CUSTATEVEC_ROOT and CUDA_FOUND - building custatevec NVQIR backend.")
 
-add_library(nvqir-custatevec-kernels SHARED CuStateVecCircuitSimulator.cu)
-install(TARGETS nvqir-custatevec-kernels DESTINATION lib)
+add_library(nvqir-custatevec-kernels OBJECT CuStateVecCircuitSimulator.cu)
 
 find_library(CUSTATEVEC_LIB
     NAMES custatevec
@@ -40,7 +39,7 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
                         PRIVATE
                           fmt::fmt-header-only
                           cudaq-common
-                          nvqir-custatevec-kernels
+                          PRIVATE $<TARGET_OBJECTS:nvqir-custatevec-kernels>
                           ${CUSTATEVEC_LIB}
                           CUDA::cudart_static
                           CUDA::cublas)
