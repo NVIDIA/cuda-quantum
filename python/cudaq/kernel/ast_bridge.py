@@ -20,6 +20,7 @@ from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
 from .captured_data import CapturedDataStorage
+from ..runtime.register_op import globalRegisteredOperations, UnitaryOperation
 
 State = cudaq_runtime.State
 
@@ -1212,6 +1213,8 @@ class PyASTBridge(ast.NodeVisitor):
             ry(np.pi, qubits)
         ```
         """
+        global globalRegisteredOperations
+
         if self.verbose:
             print("[Visit Call] {}".format(
                 ast.unparse(node) if hasattr(ast, 'unparse') else node))
@@ -1725,6 +1728,19 @@ class PyASTBridge(ast.NodeVisitor):
 
             elif node.func.id in ['print_i64', 'print_f64']:
                 self.__insertDbgStmt(self.popValue(), node.func.id)
+                return
+
+            elif node.func.id in globalRegisteredOperations:
+                customOp = globalRegisteredOperations[node.func.id]
+                numParams = customOp.num_targets
+                all_args = [self.popValue() for _ in range(len(self.valueStack))]
+                targets = all_args[:-numParams]
+                targets.reverse()
+                params = all_args[-numParams:]
+                params.reverse()
+                unitary = customOp.getUnitary(params)
+                quake.CustomUnitarySymbolOp(StringAttr.get(node.func.id),
+                                controls=[], targets=targets, is_adj=False)
                 return
 
             else:

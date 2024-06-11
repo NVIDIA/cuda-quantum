@@ -275,6 +275,21 @@ def test_math_exp():
     count = cudaq.sample(exp_kernel)
 
 
+def test_arbitrary_unitary_synthesis():
+    custom_h = cudaq.register_operation(1. / np.sqrt(2.) *
+                                        np.array([[1, 1], [1, -1]]))
+    custom_x = cudaq.register_operation(np.array([[0, 1], [1, 0]]))
+
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        custom_h(qubits[0])
+        custom_x.ctrl(qubits[0], qubits[1])
+
+    check_sample(bell)
+    print(bell)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
