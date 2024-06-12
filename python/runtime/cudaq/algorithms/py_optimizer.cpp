@@ -360,27 +360,25 @@ std::string get_cudaq_target(const std::string &file_content) {
   return cudaq_target;
 }
 
-std::string get_imports(const std::string &file_content) {
-  std::regex import_regex(
-      R"((import\s+[^\n]+|from\s+[^\n]+\s+import\s+[^\n]+))");
-  std::smatch match;
-  std::string concatenated_imports;
+std::string get_imports() {
+  py::module sys = py::module::import("sys");
+  py::dict sys_modules = sys.attr("modules");
+  py::dict globals = py::globals();
+  std::string imports_str;
 
-  std::vector<std::string> imports;
-  auto import_begin = std::sregex_iterator(file_content.begin(),
-                                           file_content.end(), import_regex);
-  auto import_end = std::sregex_iterator();
-
-  for (std::sregex_iterator i = import_begin; i != import_end; ++i) {
-    std::smatch match = *i;
-    imports.push_back(match.str());
+  for (auto item : globals) {
+    if (py::isinstance<py::module>(item.second)) {
+      py::module mod = item.second.cast<py::module>();
+      std::string alias = py::str(item.first);
+      std::string name = py::str(mod.attr("__name__"));
+      std::cout << "Alias: " << alias << " -> Module: " << name << std::endl;
+      if (alias == name)
+        imports_str += "import " + name + "\n";
+      else
+        imports_str += "import " + name + " as " + alias + "\n";
+    }
   }
-
-  for (const auto &imp : imports) {
-    concatenated_imports += imp + "\n";
-  }
-
-  return concatenated_imports;
+  return imports_str;
 }
 
 std::string get_kernels(const std::string &file_content) {
@@ -412,10 +410,10 @@ std::string get_objective_function_call(const std::string &file_content) {
 
 std::string get_required_raw_source_code(const int dim, const py::function &func) {
   // Get file content
-  std::string file_content = get_file_content();
+  // std::string file_content = get_file_content();
 
   // Get imports
-  std::string imports = get_imports(file_content);
+  std::string imports = get_imports();
 
   // Get kernels
   // std::string kernels = get_kernels(file_content);
