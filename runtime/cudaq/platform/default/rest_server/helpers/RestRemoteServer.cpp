@@ -606,7 +606,7 @@ protected:
         auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
         if (errorCode) {
           LLVMConsumeError(llvm::wrap(std::move(errorCode)));
-          throw std::runtime_error("Failed to decode input IR");
+          throw std::runtime_error("Failed to decode input IR (request.code)");
         }
         std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
         handleRequest(reqId, request.executionContext, request.simulator,
