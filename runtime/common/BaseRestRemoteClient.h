@@ -237,16 +237,11 @@ public:
       stateIrPayload2.entryPoint = kernelName2;
       stateIrPayload2.ir = constructKernelPayload(mlirContext, kernelName2,
                                                   nullptr, args2, argsSize2);
-
-      {
-        // First kernel of the overlap calculation
-        request.code = stateIrPayload1.ir;
-        request.entryPoint = stateIrPayload1.entryPoint;
-      }
-      {
-        // Second kernel of the overlap calculation
-        request.overlapKernel = stateIrPayload2;
-      }
+      // First kernel of the overlap calculation
+      request.code = stateIrPayload1.ir;
+      request.entryPoint = stateIrPayload1.entryPoint;
+      // Second kernel of the overlap calculation
+      request.overlapKernel = stateIrPayload2;
     } else {
       request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                             kernelArgs, argsSize);
