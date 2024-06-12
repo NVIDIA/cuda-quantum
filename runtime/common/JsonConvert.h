@@ -525,7 +525,6 @@ public:
   std::vector<std::string> passes;
   // Serialized kernel arguments.
   std::vector<uint8_t> args;
-
   // Version of this schema for compatibility check.
   std::size_t version;
   // Version of the runtime client submitting the request.
