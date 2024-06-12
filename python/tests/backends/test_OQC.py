@@ -100,6 +100,27 @@ def test_OQC_sample():
     assert ('11' in counts)
 
 
+def test_OQC_u3_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        qubit = cudaq.qubit()
+        u3(0.0, np.pi / 2, np.pi, qubit)
+
+    result = cudaq.sample(kernel)
+
+
+def test_OQC_u3_ctrl_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        control = cudaq.qubit()
+        target = cudaq.qubit()
+        u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
+
+    result = cudaq.sample(kernel)
+
+
 def test_OQC_observe():
     # Create the parameterized ansatz
     kernel, theta = cudaq.make_kernel(float)
