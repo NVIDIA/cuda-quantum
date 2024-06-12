@@ -135,8 +135,7 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
              SmallVector<Value> &negations,
              llvm::function_ref<void()> reportNegateError,
              bool isAdjoint = false, bool isControl = false,
-             size_t paramCount = 1, size_t targetCount = 1,
-             bool isCustom = false) {
+             size_t paramCount = 1) {
   if constexpr (std::is_same_v<P, Param>) {
     assert(operands.size() >= 2 && "must be at least 2 operands");
     auto params = operands.take_front(paramCount);
@@ -174,35 +173,22 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       };
       cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
     } else {
-      // if we are here, the built-in parameterized operations have been handled
-      size_t numParams = isCustom ? paramCount : 0;
-      auto [targets, ctrls] = maybeUnpackOperands(
-          builder, loc, operands.drop_front(numParams), isControl, targetCount);
-      for (auto v : targets)
+      auto [target, ctrls] =
+          maybeUnpackOperands(builder, loc, operands, isControl);
+      for (auto v : target)
         if (std::find(negations.begin(), negations.end(), v) != negations.end())
           reportNegateError();
       auto negs =
           negatedControlsAttribute(builder.getContext(), ctrls, negations);
-      if (isCustom) {
-        SmallVector<Value> params;
-        for (auto p : operands.take_front(paramCount)) {
-          if (p.getType().isa<cudaq::cc::PointerType>()) {
-            params.push_back(builder.create<cudaq::cc::LoadOp>(loc, p));
-          }
-        }
-        builder.create<A>(loc, isAdjoint, params, ctrls, targets, negs);
-        return true;
-      }
       if (ctrls.empty())
         // May have multiple targets, but no controls, op(q, r, s, ...)
-        for (auto t : targets)
+        for (auto t : target)
           builder.create<A>(loc, isAdjoint, ValueRange(), ValueRange(), t,
                             negs);
       else {
-        assert(targets.size() == 1 &&
-               "can only have a single target with control qubits on "
-               "non-custom operations.");
-        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, targets, negs);
+        assert(target.size() == 1 &&
+               "can only have a single target with control qubits.");
+        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, target, negs);
       }
     }
   }
@@ -1654,14 +1640,48 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         }
         return count;
       }();
-      buildOp<quake::CustomUnitarySymbolOp>(
-          builder, loc, args, negations, reportNegateError, isAdjoint,
-          isControl, paramCount, targetCount, true);
-      auto &customUnitary = builder.getBlock()->back();
       auto srefAttr = SymbolRefAttr::get(
           StringAttr::get(builder.getContext(), genFuncName));
-      customUnitary.setAttr("generator", srefAttr);
-
+      ValueRange operands(args);
+      assert(operands.size() >= 1 && "must be at least 1 operand");
+      if ((operands.size() == 1) &&
+          operands[0].getType().isa<quake::VeqType>()) {
+        auto target = operands[0];
+        if (!negations.empty())
+          reportNegateError();
+        Type i64Ty = builder.getI64Type();
+        auto size = builder.create<quake::VeqSizeOp>(
+            loc, builder.getIntegerType(64), target);
+        Value rank = builder.create<cudaq::cc::CastOp>(
+            loc, i64Ty, size, cudaq::cc::CastOpMode::Unsigned);
+        auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
+                               Block &block) {
+          Value ref = builder.create<quake::ExtractRefOp>(loc, target,
+                                                          block.getArgument(0));
+          builder.create<quake::CustomUnitarySymbolOp>(loc, srefAttr,
+                                                       ValueRange(), ref);
+        };
+        cudaq::opt::factory::createInvariantLoop(builder, loc, rank,
+                                                 bodyBuilder);
+      } else {
+        auto [targets, ctrls] =
+            maybeUnpackOperands(builder, loc, operands.drop_front(paramCount),
+                                isControl, targetCount);
+        for (auto v : targets)
+          if (std::find(negations.begin(), negations.end(), v) !=
+              negations.end())
+            reportNegateError();
+        auto negs =
+            negatedControlsAttribute(builder.getContext(), ctrls, negations);
+        SmallVector<Value> params;
+        for (auto p : operands.take_front(paramCount)) {
+          if (p.getType().isa<cudaq::cc::PointerType>()) {
+            params.push_back(builder.create<cudaq::cc::LoadOp>(loc, p));
+          }
+        }
+        builder.create<quake::CustomUnitarySymbolOp>(
+            loc, srefAttr, isAdjoint, params, ctrls, targets, negs);
+      }
       return true;
     }
 
