@@ -13,24 +13,31 @@ from typing import List, Callable
 # Keep a global registry of all registered custom operations.
 globalRegisteredOperations = {}
 
+
 class UnitaryOperation:
 
-    def __init__(self, name, num_params, matrix):
+    def __init__(self, name, matrix):
         self.name = name
-        # self.num_targets = num_targets
-        self.num_params = num_params
         self.matrix = matrix
 
-    def getUnitary(self, params : List[float] = None):
-        assert (self.num_params == len(params))
+        self.num_targets = None
+        self.num_params = 0
+
+        if isinstance(matrix, Callable):
+            self.num_params = len(inspect.getfullargspec(matrix).args)
+        else:
+            self.num_targets = int(np.log2(np.sqrt(matrix.size)))
+        # TODO: Handle parameterized unitary
+
+    def getUnitary(self, params: List[float] = None):
         if params and isinstance(self.matrix, Callable):
+            assert (self.num_params == len(params))
             return self.matrix(params)
         return self.matrix
 
 
 def register_operation(unitary, operation_name=None):
     global globalRegisteredOperations
-    
     """
     Register a new quantum operation at runtime. Users must 
     provide the unitary matrix as a 2D NumPy array. The operation 
@@ -54,11 +61,7 @@ def register_operation(unitary, operation_name=None):
             )
         operation_name = codeContext.split('=')[0].strip()
 
-    numParameters = 0
-    if isinstance(unitary, Callable):
-        numParameters = len(inspect.getfullargspec(unitary).args)
-
-    registeredOp = UnitaryOperation(operation_name, numParameters, unitary)
+    registeredOp = UnitaryOperation(operation_name, unitary)
 
     # Register the operation name so JIT AST can get it.
     globalRegisteredOperations[operation_name] = registeredOp
@@ -66,5 +69,5 @@ def register_operation(unitary, operation_name=None):
     # # Make available to kernel builder object
     # setattr(PyKernel, operation_name,
     #         partialmethod(__generalCustomOperation, operation_name))
-    
+
     return registeredOp

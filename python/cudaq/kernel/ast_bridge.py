@@ -20,7 +20,7 @@ from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
 from .captured_data import CapturedDataStorage
-from ..runtime.register_op import globalRegisteredOperations, UnitaryOperation
+from .register_op import globalRegisteredOperations, UnitaryOperation
 
 State = cudaq_runtime.State
 
@@ -1645,6 +1645,25 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__applyQuantumOperation(node.func.id, params, qubitTargets)
                 return
 
+            if node.func.id in globalRegisteredOperations:
+                customOp = globalRegisteredOperations[node.func.id]
+                numParams = customOp.num_params
+                numTargets = customOp.num_targets
+                all_args = [
+                    self.popValue() for _ in range(len(self.valueStack))
+                ]
+                all_args.reverse()
+                targets = all_args[-numTargets:]
+                params = all_args[:numParams]
+                unitary = customOp.getUnitary(params)
+                self.checkControlAndTargetTypes([], targets)
+                quake.CustomUnitarySymbolOp([],
+                                            parameters=params,
+                                            controls=[],
+                                            targets=targets,
+                                            is_adj=False)
+                return
+
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
@@ -1728,19 +1747,6 @@ class PyASTBridge(ast.NodeVisitor):
 
             elif node.func.id in ['print_i64', 'print_f64']:
                 self.__insertDbgStmt(self.popValue(), node.func.id)
-                return
-
-            elif node.func.id in globalRegisteredOperations:
-                customOp = globalRegisteredOperations[node.func.id]
-                numParams = customOp.num_targets
-                all_args = [self.popValue() for _ in range(len(self.valueStack))]
-                targets = all_args[:-numParams]
-                targets.reverse()
-                params = all_args[-numParams:]
-                params.reverse()
-                unitary = customOp.getUnitary(params)
-                quake.CustomUnitarySymbolOp(StringAttr.get(node.func.id),
-                                controls=[], targets=targets, is_adj=False)
                 return
 
             else:
@@ -2337,6 +2343,49 @@ class PyASTBridge(ast.NodeVisitor):
                         self.emitFatalError(
                             'adj quantum operation on incorrect type {}.'.
                             format(target.type), node)
+
+            # custom `ctrl` and `adj`
+            if node.func.value.id in globalRegisteredOperations:
+                customOp = globalRegisteredOperations[node.func.value.id]
+                numParams = customOp.num_params
+                numTargets = customOp.num_targets
+                all_args = [
+                    self.popValue() for _ in range(len(self.valueStack))
+                ]
+                all_args.reverse()
+                targets = all_args[-numTargets:]
+                params = all_args[:numParams]
+                unitary = customOp.getUnitary(params)
+
+                if node.func.attr == 'ctrl':
+                    numControls = len(all_args) - numParams - numTargets
+                    controls = all_args[numParams:numParams + numControls]
+
+                    negatedControlQubits = None
+                    if len(self.controlNegations):
+                        negCtrlBools = [None] * len(controls)
+                        for i, c in enumerate(controls):
+                            negCtrlBools[i] = c in self.controlNegations
+                        negatedControlQubits = DenseBoolArrayAttr.get(
+                            negCtrlBools)
+                        self.controlNegations.clear()
+
+                    self.checkControlAndTargetTypes(controls, targets)
+                    quake.CustomUnitarySymbolOp(
+                        [],
+                        params,
+                        controls,
+                        targets,
+                        negated_qubit_controls=negatedControlQubits)
+
+                if node.func.attr == 'adj':
+                    self.checkControlAndTargetTypes([], targets)
+                    quake.CustomUnitarySymbolOp([],
+                                                parameters=params,
+                                                controls=[],
+                                                targets=targets,
+                                                is_adj=True)
+                return
 
             self.emitFatalError(
                 f"Invalid function call - '{node.func.value.id}' is unknown.")

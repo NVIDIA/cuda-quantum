@@ -42,7 +42,7 @@ from .runtime.observe import observe
 from .runtime.state import to_cupy
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
-from .runtime.register_op import globalRegisteredOperations, register_operation
+from .kernel.register_op import globalRegisteredOperations, register_operation
 
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
