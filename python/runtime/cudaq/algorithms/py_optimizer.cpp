@@ -136,7 +136,19 @@ std::string extract_cudaq_target_parameter(const std::string &line) {
   return target_param;
 }
 
-std::string read_file(const std::string &file_path) {
+std::string read_notebook_file(const std::string &file_path) {
+  py::dict notebook_content;
+
+  py::object open = py::module_::import("builtins").attr("open");
+  py::object json = py::module_::import("json");
+
+  py::object file = open(file_path, "r");
+  notebook_content = json.attr("load")(file);
+
+  return py::str(notebook_content);
+}
+
+std::string read_python_file(const std::string &file_path) {
   std::ifstream file(file_path);
   if (!file.is_open()) {
     throw std::runtime_error("Failed to open file: " + file_path);
@@ -147,14 +159,42 @@ std::string read_file(const std::string &file_path) {
   return buffer.str();
 }
 
-std::string get_file_content(const py::object &inspect) {
+std::string read_file(const std::string &file_path, const bool &is_python_notebook) {
+  if (is_python_notebook) {
+    return read_notebook_file(file_path);
+  } else {
+    return read_python_file(file_path);
+  }
+}
+
+std::tuple<std::string, bool> is_python_notebook(const std::string &substring_to_check) {
+  py::dict globals = py::globals();
+
+  for (auto item : py::globals()) {
+    std::string key = py::str(item.first);
+    if (key.find(substring_to_check) != std::string::npos) {
+      return std::make_tuple(key, true);
+    }
+  }
+
+  return std::make_tuple("", false);
+}
+
+std::string get_file_content() {
   // Get the source file of the function
   std::string source_file_path;
   std::string file_content;
   try {
-    source_file_path = py::globals()["__file__"].cast<std::string>();
-    // Read the entire source file
-    file_content = read_file(source_file_path);
+    auto [key, is_notebook] = is_python_notebook("_ipynb_file__");
+    if (is_notebook) {
+      // TODO Need to pass the key to py::globals()
+      source_file_path = py::globals()["__vsc_ipynb_file__"].cast<std::string>();
+      file_content = read_file(source_file_path, true);
+    } else {
+      source_file_path = py::globals()["__file__"].cast<std::string>();
+      // Read the entire source file
+      file_content = read_file(source_file_path, false);
+    }
   } catch (py::error_already_set &e) {
     throw std::runtime_error("Failed to get source file: " +
                              std::string(e.what()));
@@ -534,8 +574,10 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
 
               py::object inspect = py::module::import("inspect");
 
+              print_globals_dict();
+
               // Get source file content
-              std::string file_content = get_file_content(inspect);
+              std::string file_content = get_file_content();
 
               std::string combined_code =
                   get_required_raw_source_code(file_content, inspect, func);
