@@ -38,7 +38,7 @@ CUDAQ_REGISTER_OPERATION(toffoli, 3, 0,
                          {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
                           0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
                           0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
-                          0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0})                         
+                          0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0})
 
 __qpu__ void kernel_1() {
   cudaq::qubit q, r;
@@ -146,7 +146,10 @@ __qpu__ void kernel_6() {
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_4]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_5:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:           quake.unitary %[[VAL_2]] : (!quake.ref) -> () {generator = @my_u3_generator_0_generator_1}
+// CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_4]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
+// CHECK:           quake.unitary (%[[VAL_6]], %[[VAL_7]], %[[VAL_8]]) %[[VAL_2]] : (f64, f64, f64, !quake.ref) -> () {generator = @my_u3_generator_0_generator_1}
 // CHECK:           return
 // CHECK:         }
 

@@ -10,16 +10,18 @@
 
 #include <cudaq.h>
 
-CUDAQ_REGISTER_OPERATION(custom_h, 1, 0,
-                         {M_SQRT1_2, M_SQRT1_2, M_SQRT1_2, -M_SQRT1_2})
-
-CUDAQ_REGISTER_OPERATION(custom_cnot, 2, 0,
-                         {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0})
+CUDAQ_REGISTER_OPERATION(
+    my_u3, 1, 3,
+    {std::cos(parameters[0] / 2.),
+     -std::exp(i *parameters[2]) * std::sin(parameters[0] / 2.),
+     std::exp(i *parameters[1]) * std::sin(parameters[0] / 2.),
+     std::exp(i *(parameters[2] + parameters[1])) *
+         std::cos(parameters[0] / 2.)})
 
 __qpu__ void bell_pair() {
-  cudaq::qubit q, r;
-  custom_h(q);
-  custom_cnot(q, r);
+  cudaq::qvector qubits(2);
+  my_u3(M_PI_2, 0., M_PI, qubits[0]);
+  my_u3<cudaq::ctrl>(M_PI, M_PI, M_PI_2, qubits[0], qubits[1]);
 }
 
 int main() {
@@ -29,5 +31,5 @@ int main() {
   }
 }
 
-// CHECK : 11
-// CHECK : 00
+// CHECK: 11
+// CHECK: 00
