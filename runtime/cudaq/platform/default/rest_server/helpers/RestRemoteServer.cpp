@@ -577,7 +577,7 @@ protected:
             llvm::decodeBase64(request.overlapKernel->ir, decodedCodeIr2);
         if (errorCode1) {
           LLVMConsumeError(llvm::wrap(std::move(errorCode1)));
-          throw std::runtime_error("Failed to decode input IR");
+          throw std::runtime_error("Failed to decode input IR (request.code)");
         }
         if (errorCode2) {
           LLVMConsumeError(llvm::wrap(std::move(errorCode2)));
