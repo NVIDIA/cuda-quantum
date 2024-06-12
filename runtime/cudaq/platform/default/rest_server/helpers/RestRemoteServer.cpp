@@ -572,8 +572,7 @@ protected:
         if (!request.overlapKernel.has_value())
           throw std::runtime_error("Missing overlap kernel data.");
         std::vector<char> decodedCodeIr1, decodedCodeIr2;
-        auto errorCode1 =
-            llvm::decodeBase64(request.code, decodedCodeIr1);
+        auto errorCode1 = llvm::decodeBase64(request.code, decodedCodeIr1);
         auto errorCode2 =
             llvm::decodeBase64(request.overlapKernel->ir, decodedCodeIr2);
         if (errorCode1) {
@@ -604,8 +603,7 @@ protected:
           throw std::runtime_error("Unexpected data: overlap kernel is "
                                    "provided in non-overlap compute mode.");
         std::vector<char> decodedCodeIr;
-        auto errorCode =
-            llvm::decodeBase64(request.code, decodedCodeIr);
+        auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
         if (errorCode) {
           LLVMConsumeError(llvm::wrap(std::move(errorCode)));
           throw std::runtime_error("Failed to decode input IR");
