@@ -1657,7 +1657,10 @@ class PyASTBridge(ast.NodeVisitor):
                 params = all_args[:numParams]
                 unitary = customOp.getUnitary(params)
                 self.checkControlAndTargetTypes([], targets)
+                srefAttr = FlatSymbolRefAttr.get(customOp.gen_func_name)
+                self.visit_FunctionDef(customOp.getGeneratorFunc())
                 quake.CustomUnitarySymbolOp([],
+                                            srefAttr,
                                             parameters=params,
                                             controls=[],
                                             targets=targets,
@@ -2356,7 +2359,8 @@ class PyASTBridge(ast.NodeVisitor):
                 targets = all_args[-numTargets:]
                 params = all_args[:numParams]
                 unitary = customOp.getUnitary(params)
-
+                srefAttr = FlatSymbolRefAttr.get(customOp.gen_func_name)
+                self.visit_FunctionDef(customOp.getGeneratorFunc())
                 if node.func.attr == 'ctrl':
                     numControls = len(all_args) - numParams - numTargets
                     controls = all_args[numParams:numParams + numControls]
@@ -2371,8 +2375,10 @@ class PyASTBridge(ast.NodeVisitor):
                         self.controlNegations.clear()
 
                     self.checkControlAndTargetTypes(controls, targets)
+
                     quake.CustomUnitarySymbolOp(
                         [],
+                        srefAttr,
                         params,
                         controls,
                         targets,
@@ -2381,6 +2387,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if node.func.attr == 'adj':
                     self.checkControlAndTargetTypes([], targets)
                     quake.CustomUnitarySymbolOp([],
+                                                srefAttr,
                                                 parameters=params,
                                                 controls=[],
                                                 targets=targets,

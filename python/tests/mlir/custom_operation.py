@@ -15,9 +15,11 @@ import cudaq
 
 def test_bell_pair():
 
-    custom_h = cudaq.register_operation(1. / np.sqrt(2.) *
+    custom_h = cudaq.register_operation(1, 0, 
+                                        1. / np.sqrt(2.) *
                                         np.array([[1, 1], [1, -1]]))
-    custom_x = cudaq.register_operation(np.array([[0, 1], [1, 0]]))
+    custom_x = cudaq.register_operation(1, 0, 
+                                        np.array([[0, 1], [1, 0]]))
 
     @cudaq.kernel
     def bell():

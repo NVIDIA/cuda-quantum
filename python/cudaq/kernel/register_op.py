@@ -16,18 +16,20 @@ globalRegisteredOperations = {}
 
 class UnitaryOperation:
 
-    def __init__(self, name, matrix):
+    def __init__(self, name, num_targets, num_params, matrix):
         self.name = name
+        self.num_targets = num_targets
+        self.num_params = num_params
         self.matrix = matrix
 
-        self.num_targets = None
-        self.num_params = 0
-
         if isinstance(matrix, Callable):
-            self.num_params = len(inspect.getfullargspec(matrix).args)
+            dummy_params = [0.0] * self.num_params
+            expected_targets = int(np.log2(np.sqrt(matrix(dummy_params).size)))
         else:
-            self.num_targets = int(np.log2(np.sqrt(matrix.size)))
-        # TODO: Handle parameterized unitary
+            expected_targets = int(np.log2(np.sqrt(matrix.size)))
+        assert (self.num_targets == expected_targets)
+
+        self.gen_func_name = self.name + "_generator_" + str(self.num_targets)
 
     def getUnitary(self, params: List[float] = None):
         if params and isinstance(self.matrix, Callable):
@@ -35,15 +37,25 @@ class UnitaryOperation:
             return self.matrix(params)
         return self.matrix
 
+    def getGeneratorFunc(self):
+        # outputArr = np.array()
+        def generator(outputArr, inputParams):
+            outputArr = self.getUnitary(inputParams)
+            return
 
-def register_operation(unitary, operation_name=None):
+        generator.__name__ = self.gen_func_name
+        generator.__qualname__ = self.gen_func_name
+        return generator
+
+
+def register_operation(num_targets, num_params, unitary, operation_name=None):
     global globalRegisteredOperations
     """
     Register a new quantum operation at runtime. Users must 
     provide the unitary matrix as a 2D NumPy array. The operation 
     name is inferred from the name of the assigned variable. 
     ```python
-        myOp = cudaq.register_operation(unitary)
+        myOp = cudaq.register_operation(num_targets, num_params, unitary)
         @cudaq.kernel
         def kernel():
             ...
@@ -61,7 +73,8 @@ def register_operation(unitary, operation_name=None):
             )
         operation_name = codeContext.split('=')[0].strip()
 
-    registeredOp = UnitaryOperation(operation_name, unitary)
+    registeredOp = UnitaryOperation(operation_name, num_targets, num_params,
+                                    unitary)
 
     # Register the operation name so JIT AST can get it.
     globalRegisteredOperations[operation_name] = registeredOp
