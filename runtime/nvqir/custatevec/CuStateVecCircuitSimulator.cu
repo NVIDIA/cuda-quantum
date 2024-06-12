@@ -14,23 +14,101 @@
 #include "CuStateVecCircuitSimulator.h"
 
 namespace nvqir {
-/// @brief Initialize the device state vector to the |0...0> state
-template <typename CudaDataType>
-__global__ void cudaInitializeDeviceStateVector(CudaDataType *sv, int64_t dim) {
-  int64_t i = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
-  if (i == 0) {
-    sv[i].x = 1.0;
-    sv[i].y = 0.0;
-  } else if (i < dim) {
-    sv[i].x = 0.0;
-    sv[i].y = 0.0;
-  }
+
+// kronprod functions adapted from
+// https://github.com/DmitryLyakh/TAL_SH/blob/3cefc2133a68b67c515f4b68a0ed9e3c66e4b4b2/tensor_algebra_gpu_nvidia.cu#L745
+
+#define THRDS_ARRAY_PRODUCT 256
+
+#pragma push
+#pragma nv_diag_suppress 177
+__device__ __host__ cuDoubleComplex operator*(cuDoubleComplex a,
+                                              cuDoubleComplex b) {
+  return cuCmul(a, b);
+}
+__device__ __host__ cuDoubleComplex operator+(cuDoubleComplex a,
+                                              cuDoubleComplex b) {
+  return cuCadd(a, b);
+}
+__device__ __host__ cuFloatComplex operator*(cuFloatComplex a,
+                                             cuFloatComplex b) {
+  return cuCmulf(a, b);
+}
+__device__ __host__ cuFloatComplex operator+(cuFloatComplex a,
+                                             cuFloatComplex b) {
+  return cuCaddf(a, b);
 }
 
+template <typename CudaDataType>
+__global__ void cudaKronprod(size_t tsize1, const CudaDataType *arr1, 
+                             size_t tsize2, const CudaDataType *arr2, 
+                             CudaDataType *arr0) {
+  __shared__ CudaDataType lbuf[THRDS_ARRAY_PRODUCT + 1], rbuf[THRDS_ARRAY_PRODUCT];
+  size_t _ib, _in, _jb, _jn, _tx, _jc, _ja;
+
+  _tx = (size_t)threadIdx.x;
+  for (_jb = blockIdx.y * THRDS_ARRAY_PRODUCT; _jb < tsize2;
+       _jb += gridDim.y * THRDS_ARRAY_PRODUCT) {
+    if (_jb + THRDS_ARRAY_PRODUCT > tsize2) {
+      _jn = tsize2 - _jb;
+    } else {
+      _jn = THRDS_ARRAY_PRODUCT;
+    }
+
+    if (_tx < _jn)
+      rbuf[_tx] = arr2[_jb + _tx];
+
+    for (_ib = blockIdx.x * THRDS_ARRAY_PRODUCT; _ib < tsize1;
+         _ib += gridDim.x * THRDS_ARRAY_PRODUCT) {
+      if (_ib + THRDS_ARRAY_PRODUCT > tsize1) {
+        _in = tsize1 - _ib;
+      } else {
+        _in = THRDS_ARRAY_PRODUCT;
+      }
+
+      if (_tx < _in)
+        lbuf[_tx] = arr1[_ib + _tx];
+
+      __syncthreads();
+      for (_jc = 0; _jc < _jn; _jc++) {
+        if (_tx < _in) {
+          _ja = (_jb + _jc) * tsize1 + (_ib + _tx);
+          arr0[_ja] = arr0[_ja] + lbuf[_tx] * rbuf[_jc];
+        }
+      }
+      __syncthreads();
+    }
+  }
+  return;
+}
+#pragma pop
+
+template <typename CudaDataType>
+void kronprod(uint32_t n_blocks, int32_t threads_per_block,
+              size_t tsize1, const void *arr1,
+              size_t tsize2, const void *arr2, 
+              void *arr0) {
+  cudaKronprod<<<n_blocks, threads_per_block>>>(
+    tsize1, reinterpret_cast<const CudaDataType *>(arr1), 
+    (1UL << tsize2), reinterpret_cast<const CudaDataType *>(arr2),
+    reinterpret_cast<CudaDataType *>(arr0));
+}
+
+template void
+kronprod<cuFloatComplex>(uint32_t n_blocks, int32_t threads_per_block,
+                         size_t tsize1, const void *arr1, 
+                         size_t tsize2, const void *arr2, 
+                         void *arr0);
+
+template void
+kronprod<cuDoubleComplex>(uint32_t n_blocks, int32_t threads_per_block,
+                          size_t tsize1, const void *arr1, 
+                          size_t tsize2, const void *arr2, 
+                          void *arr0);
+
 /// @brief Kernel to set the first N elements of the state vector sv equal to
-/// the
-// elements provided by the vector sv2. N is the number of elements to set.
-// Size of sv must be greater than size of sv2.
+/// the elements provided by the vector sv2. N is the number of elements to set.
+/// Size of sv must be greater than size of sv2.
 template <typename CudaDataType>
 __global__ void cudaSetFirstNElements(CudaDataType *sv, const CudaDataType *__restrict__ sv2, int64_t N) {
   int64_t i = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -68,6 +146,19 @@ setFirstNElements<cuDoubleComplex>(uint32_t n_blocks,
                        void *newDeviceStateVector, 
                        void *deviceStateVector,
                        std::size_t previousStateDimension);
+
+/// @brief Initialize the device state vector to the |0...0> state
+template <typename CudaDataType>
+__global__ void cudaInitializeDeviceStateVector(CudaDataType *sv, int64_t dim) {
+  int64_t i = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+  if (i == 0) {
+    sv[i].x = 1.0;
+    sv[i].y = 0.0;
+  } else if (i < dim) {
+    sv[i].x = 0.0;
+    sv[i].y = 0.0;
+  }
+}
 
 template <typename CudaDataType>
 void initializeDeviceStateVector(uint32_t n_blocks, 

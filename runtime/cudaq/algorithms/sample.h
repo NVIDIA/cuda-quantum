@@ -13,7 +13,7 @@
 #include "common/MeasureCounts.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
-#include "host_config.h"
+#include "cudaq/host_config.h"
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -217,15 +217,6 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto shots = platform.get_shots().value_or(1000);
   auto kernelName = cudaq::getKernelName(kernel);
-#if CUDAQ_USE_STD20
-  return details::runSampling(
-             [&kernel, ... args = std::forward<Args>(args)]() mutable {
-               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                   std::forward<Args>(args)...);
-             },
-             platform, kernelName, shots)
-      .value();
-#else
   return details::runSampling(
              [&]() mutable {
                cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
@@ -233,7 +224,6 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
              },
              platform, kernelName, shots)
       .value();
-#endif
 }
 
 /// @brief Sample the given quantum kernel expression and return the
@@ -267,15 +257,6 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
-#if CUDAQ_USE_STD20
-  return details::runSampling(
-             [&kernel, ... args = std::forward<Args>(args)]() mutable {
-               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                   std::forward<Args>(args)...);
-             },
-             platform, kernelName, shots)
-      .value();
-#else
   return details::runSampling(
              [&]() mutable {
                cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
@@ -283,7 +264,6 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
              },
              platform, kernelName, shots)
       .value();
-#endif
 }
 
 /// @brief Sample the given quantum kernel expression and return the
@@ -320,15 +300,6 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   auto shots = options.shots;
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
-#if CUDAQ_USE_STD20
-  auto ret = details::runSampling(
-                 [&kernel, ... args = std::forward<Args>(args)]() mutable {
-                   cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                       std::forward<Args>(args)...);
-                 },
-                 platform, kernelName, shots)
-                 .value();
-#else
   auto ret = details::runSampling(
                  [&]() mutable {
                    cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
@@ -336,7 +307,6 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
                  },
                  platform, kernelName, shots)
                  .value();
-#endif
   platform.reset_noise();
   return ret;
 }

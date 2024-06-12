@@ -6,8 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CuStateVecCircuitSimulator.h"
 #include "CircuitSimulator.h"
+#include "CuStateVecCircuitSimulator.h"
+#include "CuStateVecState.h"
 #include "Gates.h"
 #include "Timing.h"
 #include "cuComplex.h"
@@ -21,25 +22,6 @@
 
 namespace {
 
-#define HANDLE_ERROR(x)                                                        \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != CUSTATEVEC_STATUS_SUCCESS) {                                    \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           custatevecGetErrorString(err),      \
-                                           __FUNCTION__, __LINE__));           \
-    }                                                                          \
-  };
-
-#define HANDLE_CUDA_ERROR(x)                                                   \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != cudaSuccess) {                                                  \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           cudaGetErrorString(err),            \
-                                           __FUNCTION__, __LINE__));           \
-    }                                                                          \
-  };
 
 /// @brief The CuStateVecCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator that delegates to the NVIDIA CuStateVec
@@ -82,6 +64,7 @@ protected:
   cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
   std::random_device randomDevice;
   std::mt19937 randomEngine;
+  bool ownsDeviceVector = true;
 
   /// @brief Generate a vector of random values
   std::vector<double> randomValues(uint64_t num_samples, double max_value) {
@@ -159,40 +142,153 @@ protected:
         controls32.size()));
   }
 
+  /// @brief Nice utility function to have to print the state vector contents on
+  /// GPU.
+  void printStateFromGPU(const std::string &name, void *ptr, std::size_t size) {
+    std::vector<std::complex<ScalarType>> tmp(size);
+    cudaMemcpy(tmp.data(), ptr, size * sizeof(std::complex<ScalarType>),
+               cudaMemcpyDeviceToHost);
+    for (auto &r : tmp)
+      printf("%s: (%.12lf, %.12lf)\n", name.c_str(), r.real(), r.imag());
+    printf("\n");
+  }
+
   /// @brief Increase the state size by the given number of qubits.
-  void addQubitsToState(std::size_t count) override {
+  void addQubitsToState(std::size_t count, const void *stateIn) override {
     ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitsToState",
                            count);
     if (count == 0)
       return;
 
+    // Cast the state, at this point an error would
+    // have been thrown if it is not of the right floating point type
+    std::complex<ScalarType> *state =
+        reinterpret_cast<std::complex<ScalarType> *>(
+            const_cast<void *>(stateIn));
+
     int dev;
     HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
     cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
 
+    constexpr int32_t threads_per_block = 256;
+    uint32_t n_blocks =
+        (stateDimension + threads_per_block - 1) / threads_per_block;
+
+    // Check if this is the first time to allocate, if so
+    // the allocation is much easier
     if (!deviceStateVector) {
+      // Create the memory and the handle
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
                                    stateDimension * sizeof(CudaDataType)));
-      constexpr int32_t threads_per_block = 256;
-      uint32_t n_blocks =
-          (stateDimension + threads_per_block - 1) / threads_per_block;
-      nvqir::initializeDeviceStateVector<CudaDataType>(
-          n_blocks, threads_per_block, deviceStateVector, stateDimension);
       HANDLE_ERROR(custatevecCreate(&handle));
-    } else {
-      // Allocate new state..
-      void *newDeviceStateVector;
-      HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
-                                   stateDimension * sizeof(CudaDataType)));
-      constexpr int32_t threads_per_block = 256;
-      uint32_t n_blocks =
-          (stateDimension + threads_per_block - 1) / threads_per_block;
-      nvqir::setFirstNElements<CudaDataType>(
-          n_blocks, threads_per_block, newDeviceStateVector, deviceStateVector,
-          previousStateDimension);
-      HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
-      deviceStateVector = newDeviceStateVector;
+      ownsDeviceVector = true;
+      // If no state provided, initialize to the zero state
+      if (state == nullptr) {
+        nvqir::initializeDeviceStateVector<CudaDataType>(
+            n_blocks, threads_per_block, deviceStateVector, stateDimension);
+        return;
+      }
+
+      // User state provided...
+
+      // FIXME handle case where pointer is a device pointer
+
+      // First allocation, so just set the user provided data here
+      ScopedTraceWithContext(
+          "CuStateVecCircuitSimulator::addQubitsToState cudaMemcpy",
+          stateDimension * sizeof(CudaDataType));
+      HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
+                                   stateDimension * sizeof(CudaDataType),
+                                   cudaMemcpyHostToDevice));
+      return;
     }
+
+    // State already exists, need to allocate new state and compute
+    // kronecker product with existing state
+
+    // Allocate new vector to place the kron prod result
+    void *newDeviceStateVector;
+    HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                 stateDimension * sizeof(CudaDataType)));
+
+    // Place the state data on device. Could be that
+    // we just need the zero state, or the user could have provided one
+    void *otherState;
+    HANDLE_CUDA_ERROR(cudaMalloc((void **)&otherState,
+                                 (1UL << count) * sizeof(CudaDataType)));
+    if (state == nullptr) {
+      nvqir::initializeDeviceStateVector<CudaDataType>(
+          n_blocks, threads_per_block, otherState, (1UL << count));
+    } else {
+
+      // FIXME Handle case where data is already on GPU
+      HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
+                                   (1UL << count) * sizeof(CudaDataType),
+                                   cudaMemcpyHostToDevice));
+    }
+
+    {
+      ScopedTraceWithContext(
+          "CuStateVecCircuitSimulator::addQubitsToState kronprod");
+      // Compute the kronecker product
+      nvqir::kronprod<CudaDataType>(
+        n_blocks, threads_per_block,
+        previousStateDimension, deviceStateVector, 
+        (1UL << count), otherState, 
+        newDeviceStateVector);
+      HANDLE_CUDA_ERROR(cudaGetLastError());
+    }
+    // Free the old vectors we don't need anymore.
+    HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
+    HANDLE_CUDA_ERROR(cudaFree(otherState));
+    deviceStateVector = newDeviceStateVector;
+  }
+
+  void addQubitsToState(const cudaq::SimulationState &in_state) override {
+    const cudaq::CusvState<ScalarType> *const casted =
+        dynamic_cast<const cudaq::CusvState<ScalarType> *>(&in_state);
+    if (!casted)
+      throw std::invalid_argument(
+          "[CuStateVecCircuitSimulator] Incompatible state input");
+
+    if (!deviceStateVector) {
+      // Create the memory and the handle
+      HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
+                                   stateDimension * sizeof(CudaDataType)));
+      ownsDeviceVector = true;
+      HANDLE_ERROR(custatevecCreate(&handle));
+      ScopedTraceWithContext(
+          "CuStateVecCircuitSimulator::addQubitsToState cudaMemcpy");
+      // First allocation, so just copy the user provided data (device mem) here
+      HANDLE_CUDA_ERROR(cudaMemcpy(
+          deviceStateVector, casted->getDevicePointer(),
+          stateDimension * sizeof(CudaDataType), cudaMemcpyDeviceToDevice));
+      return;
+    }
+
+    // Expanding the state
+    // Allocate new vector to place the kron prod result
+    void *newDeviceStateVector;
+    HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                 stateDimension * sizeof(CudaDataType)));
+    constexpr int32_t threads_per_block = 256;
+    uint32_t n_blocks =
+        (stateDimension + threads_per_block - 1) / threads_per_block;
+    {
+      ScopedTraceWithContext(
+          "CuStateVecCircuitSimulator::addQubitsToState kronprod");
+      // Compute the kronecker product
+      nvqir::kronprod<CudaDataType>(
+        n_blocks, threads_per_block,
+        previousStateDimension, deviceStateVector, 
+        (1UL << in_state.getNumQubits()), casted->getDevicePointer(), 
+        newDeviceStateVector);
+      HANDLE_CUDA_ERROR(cudaGetLastError());
+    }
+    // Free the old state we don't need anymore.
+    // Note: the devicePtr of the input state is owned by the caller.
+    HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
+    deviceStateVector = newDeviceStateVector;
   }
 
   /// @brief Increase the state size by one qubit.
@@ -226,8 +322,9 @@ protected:
 
   /// @brief Reset the qubit state.
   void deallocateStateImpl() override {
-    if (deviceStateVector) {
+    if (deviceStateVector)
       HANDLE_ERROR(custatevecDestroy(handle));
+    if (deviceStateVector && ownsDeviceVector) {
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     }
     if (extraWorkspace) {
@@ -598,28 +695,11 @@ public:
     return counts;
   }
 
-  cudaq::State getStateData() override {
-    // Handle empty state (e.g., no qubit allocation)
-    if (stateDimension == 0)
-      return cudaq::State{{stateDimension}, {}};
-
-    std::vector<std::complex<ScalarType>> tmp(stateDimension);
-    HANDLE_CUDA_ERROR(
-        cudaMemcpy(tmp.data(), deviceStateVector,
-                   stateDimension * sizeof(std::complex<ScalarType>),
-                   cudaMemcpyDeviceToHost));
-
-    if constexpr (std::is_same_v<ScalarType, float>) {
-      std::vector<std::complex<double>> data;
-      std::transform(tmp.begin(), tmp.end(), std::back_inserter(data),
-                     [](std::complex<float> &el) -> std::complex<double> {
-                       return {static_cast<double>(el.real()),
-                               static_cast<double>(el.imag())};
-                     });
-      return cudaq::State{{stateDimension}, data};
-    } else {
-      return cudaq::State{{stateDimension}, tmp};
-    }
+  std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
+    flushGateQueue();
+    ownsDeviceVector = false;
+    return std::make_unique<cudaq::CusvState<ScalarType>>(stateDimension,
+                                                          deviceStateVector);
   }
 
   bool isStateVectorSimulator() const override { return true; }

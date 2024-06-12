@@ -172,8 +172,8 @@ TEST(SpinOpTester, checkGetMatrix) {
   {
     EXPECT_NEAR(groundEnergy.real(), -1.74, 1e-2);
 
-    std::vector<double> expected{.00029,  0, 0, 0,       0,       12.2503,
-                                 -4.2866, 0, 0, -4.2866, -.43619, 0,
+    std::vector<double> expected{.00029,  0, 0, 0,       0,       -.43619,
+                                 -4.2866, 0, 0, -4.2866, 12.2503, 0,
                                  0,       0, 0, 11.8137};
     for (std::size_t i = 0; i < 16; ++i)
       EXPECT_NEAR(matrix.data()[i].real(), expected[i], 1e-3);
@@ -182,8 +182,8 @@ TEST(SpinOpTester, checkGetMatrix) {
     // Create the G=ground state for the above hamiltonian
     cudaq::complex_matrix vec(4, 1);
     vec.set_zero();
-    vec(1, 0) = .292786;
-    vec(2, 0) = .956178;
+    vec(2, 0) = .292786;
+    vec(1, 0) = .956178;
 
     // Compute H |psi_g>
     auto tmp = matrix * vec;
@@ -195,7 +195,7 @@ TEST(SpinOpTester, checkGetMatrix) {
   }
   {
     // do the same thing, but use std vector instead
-    std::vector<std::complex<double>> vec{0.0, .292786, .956178, 0.0};
+    std::vector<std::complex<double>> vec{0.0, .956178, .292786, 0.0};
 
     // Compute H |psi_g>
     auto tmp = matrix * vec;
@@ -209,8 +209,8 @@ TEST(SpinOpTester, checkGetMatrix) {
     // test <psi_g | H | psi_g>
     cudaq::complex_matrix psig(4, 1);
     psig.set_zero();
-    psig(1, 0) = .292786;
-    psig(2, 0) = .956178;
+    psig(2, 0) = .292786;
+    psig(1, 0) = .956178;
     auto prod = matrix * psig;
     double sum = 0.0;
     for (std::size_t i = 0; i < 4; i++) {

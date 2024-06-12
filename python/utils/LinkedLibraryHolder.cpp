@@ -11,6 +11,7 @@
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/platform.h"
+#include "cudaq/target_control.h"
 #include "nvqir/CircuitSimulator.h"
 #include <fstream>
 #include <regex>
@@ -30,9 +31,11 @@ static constexpr const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
 static constexpr const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
 static constexpr const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
+static constexpr const char IS_FP64_SIMULATION[] =
+    "CUDAQ_SIMULATION_SCALAR_FP64";
 
 /// @brief A utility function to check availability of Nvidia GPUs and return
-/// their count
+/// their count.
 int countGPUs() {
   int retCode = std::system("nvidia-smi >/dev/null 2>&1");
   if (0 != retCode) {
@@ -76,6 +79,8 @@ bool RuntimeTarget::is_emulated() {
   return platform.is_emulated();
 }
 
+simulation_precision RuntimeTarget::get_precision() { return precision; }
+
 /// @brief Search the targets folder in the install for available targets.
 void findAvailableTargets(
     const std::filesystem::path &targetPath,
@@ -90,6 +95,7 @@ void findAvailableTargets(
     if (path.extension().string() == ".config") {
       bool isSimulationTarget = false;
       // Extract the target name from the file name
+      simulation_precision precision = simulation_precision::fp32;
       auto fileName = path.filename().string();
       auto targetName = std::regex_replace(fileName, std::regex(".config"), "");
       std::string platformName = "default", simulatorName = "qpp",
@@ -125,6 +131,8 @@ void findAvailableTargets(
             description.erase(
                 std::remove(description.begin(), description.end(), '\"'),
                 description.end());
+          } else if (line.find(IS_FP64_SIMULATION) != std::string::npos) {
+            precision = simulation_precision::fp64;
           }
         }
       }
@@ -132,14 +140,15 @@ void findAvailableTargets(
       cudaq::info("Found Target: {} -> (sim={}, platform={})", targetName,
                   simulatorName, platformName);
       // Add the target.
-      targets.emplace(targetName, RuntimeTarget{targetName, simulatorName,
-                                                platformName, description});
+      targets.emplace(targetName,
+                      RuntimeTarget{targetName, simulatorName, platformName,
+                                    description, precision});
       if (isSimulationTarget) {
         cudaq::info("Found Simulation target: {} -> (sim={}, platform={})",
                     targetName, simulatorName, platformName);
-        simulationTargets.emplace(targetName,
-                                  RuntimeTarget{targetName, simulatorName,
-                                                platformName, description});
+        simulationTargets.emplace(
+            targetName, RuntimeTarget{targetName, simulatorName, platformName,
+                                      description, precision});
         isSimulationTarget = false;
       }
     }
@@ -148,6 +157,9 @@ void findAvailableTargets(
 
 LinkedLibraryHolder::LinkedLibraryHolder() {
   cudaq::info("Init infrastructure for pythonic builder.");
+
+  if (!cudaq::__internal__::canModifyTarget())
+    return;
 
   cudaq::__internal__::CUDAQLibraryData data;
 #if defined(__APPLE__) && defined(__MACH__)
@@ -293,9 +305,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   // argument or set_target() API
   currentTarget = defaultTarget;
 
-  if (disallowTargetModification)
-    return;
-
   // We'll always start off with the default target
   resetTarget();
 }
@@ -360,7 +369,7 @@ void LinkedLibraryHolder::setTarget(
     std::map<std::string, std::string> extraConfig) {
   // Do not set the default target if the disallow
   // flag has been set.
-  if (disallowTargetModification)
+  if (!cudaq::__internal__::canModifyTarget())
     return;
 
   auto iter = targets.find(targetName);

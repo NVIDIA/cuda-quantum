@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/QuakeToLLVM.h"
+#include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
@@ -78,6 +78,87 @@ public:
     // Replace the AllocaOp with the QIR call.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(alloca, array_qbit_type,
                                               symbolRef, sizeOperand);
+    return success();
+  }
+};
+
+// Lower quake.init_state to a QIR function to allocate the
+// qubits with the provided state vector.
+class QmemRAIIOpRewrite
+    : public ConvertOpToLLVMPattern<cudaq::codegen::RAIIOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::codegen::RAIIOp raii, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = raii->getLoc();
+    auto parentModule = raii->getParentOfType<ModuleOp>();
+    auto array_qbit_type = cudaq::opt::getArrayType(rewriter.getContext());
+
+    // Get the CC Pointer for the state
+    auto ccState = adaptor.getInitState();
+
+    // Inspect the element type of the complex data, need to
+    // know if its f32 or f64
+    StringRef functionName;
+    Type eleTy = raii.getInitElementType();
+    if (auto elePtrTy = dyn_cast<cudaq::cc::PointerType>(eleTy))
+      eleTy = elePtrTy.getElementType();
+    if (auto arrayTy = dyn_cast<cudaq::cc::ArrayType>(eleTy))
+      eleTy = arrayTy.getElementType();
+    bool fromComplex = false;
+    if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+      fromComplex = true;
+      eleTy = complexTy.getElementType();
+    }
+    if (isa<cudaq::cc::StateType>(eleTy))
+      functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
+    if (eleTy == rewriter.getF64Type())
+      functionName =
+          fromComplex ? cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64
+                      : cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64;
+    if (eleTy == rewriter.getF32Type())
+      functionName =
+          fromComplex ? cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32
+                      : cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32;
+    if (functionName.empty())
+      return raii.emitOpError("invalid type on initialize state operation, "
+                              "must be complex floating point.");
+
+    // Get the size of the qubit register
+    Type allocTy = adaptor.getAllocType();
+    auto allocSize = adaptor.getAllocSize();
+    Value sizeOperand;
+    auto i64Ty = rewriter.getI64Type();
+    if (allocSize) {
+      sizeOperand = allocSize;
+      auto sizeTy = cast<IntegerType>(sizeOperand.getType());
+      if (sizeTy.getWidth() < 64)
+        sizeOperand = rewriter.create<LLVM::ZExtOp>(loc, i64Ty, sizeOperand);
+      else if (sizeTy.getWidth() > 64)
+        sizeOperand = rewriter.create<LLVM::TruncOp>(loc, i64Ty, sizeOperand);
+    } else {
+      auto type = cast<quake::VeqType>(allocTy);
+      auto constantSize = type.getSize();
+      sizeOperand =
+          rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
+    }
+
+    // Create QIR allocation with initializer function.
+    auto *ctx = rewriter.getContext();
+    auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
+
+    FlatSymbolRefAttr raiiSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            functionName, array_qbit_type, {i64Ty, ptrTy}, parentModule);
+
+    // Call the allocation function
+    Value castedInitState =
+        rewriter.create<LLVM::BitcastOp>(loc, ptrTy, ccState);
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        raii, array_qbit_type, raiiSymbolRef,
+        ArrayRef<Value>{sizeOperand, castedInitState});
     return success();
   }
 };
@@ -304,7 +385,7 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto parentModule = instOp->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
-    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     std::string instName = instOp->getName().stripDialect().str();
 
     // Get the reset QIR function name
@@ -336,7 +417,7 @@ public:
     auto loc = instOp->getLoc();
     auto parentModule = instOp->getParentOfType<ModuleOp>();
     auto *context = rewriter.getContext();
-    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     auto qirFunctionName = qirQisPrefix + "exp_pauli";
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
@@ -432,7 +513,7 @@ public:
     auto loc = instOp->getLoc();
     auto parentModule = instOp->template getParentOfType<ModuleOp>();
     auto *context = parentModule->getContext();
-    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     std::string instName = instOp->getName().stripDialect().str();
 
     // Handle the case where we have and S or T gate,
@@ -556,7 +637,7 @@ public:
     auto numControls = instOp.getControls().size();
     auto parentModule = instOp->template getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
-    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     std::string instName = instOp->getName().stripDialect().str();
 
     if (numControls != 0) {
@@ -1140,19 +1221,18 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
   auto *context = patterns.getContext();
   patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, MxToMz, MyToMz,
                   ReturnBitRewrite>(context);
-  patterns.insert<AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite,
-                  DiscriminateOpPattern, ExtractQubitOpRewrite, ExpPauliRewrite,
-                  OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
-                  OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
-                  OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
-                  OneTargetOneParamRewrite<quake::R1Op>,
-                  OneTargetTwoParamRewrite<quake::PhasedRxOp>,
-                  OneTargetOneParamRewrite<quake::RxOp>,
-                  OneTargetOneParamRewrite<quake::RyOp>,
-                  OneTargetOneParamRewrite<quake::RzOp>,
-                  OneTargetTwoParamRewrite<quake::U2Op>,
-                  OneTargetThreeParamRewrite<quake::U3Op>, ResetRewrite,
-                  SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>>(
-      typeConverter);
+  patterns.insert<
+      AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite, DiscriminateOpPattern,
+      ExtractQubitOpRewrite, ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
+      OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
+      OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
+      OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
+      OneTargetTwoParamRewrite<quake::PhasedRxOp>,
+      OneTargetOneParamRewrite<quake::RxOp>,
+      OneTargetOneParamRewrite<quake::RyOp>,
+      OneTargetOneParamRewrite<quake::RzOp>,
+      OneTargetTwoParamRewrite<quake::U2Op>,
+      OneTargetThreeParamRewrite<quake::U3Op>, QmemRAIIOpRewrite, ResetRewrite,
+      SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>>(typeConverter);
   patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
 }

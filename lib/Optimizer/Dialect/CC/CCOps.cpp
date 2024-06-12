@@ -15,6 +15,7 @@
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -31,6 +32,13 @@ R getParentOfType(Operation *op) {
   return {};
 }
 
+std::optional<std::int64_t> cudaq::opt::factory::getIntIfConstant(Value value) {
+  APInt constant;
+  if (matchPattern(value, m_ConstantInt(&constant)))
+    return {constant.getSExtValue()};
+  return {};
+}
+
 //===----------------------------------------------------------------------===//
 // AddressOfOp
 //===----------------------------------------------------------------------===//
@@ -40,7 +48,7 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   Operation *op = symbolTable.lookupSymbolIn(
       getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
 
-  if (!isa_and_nonnull<func::FuncOp, GlobalOp>(op))
+  if (!isa_and_nonnull<func::FuncOp, GlobalOp, LLVM::GlobalOp>(op))
     return emitOpError("must reference a global defined by 'func.func'");
   return success();
 }
@@ -79,27 +87,38 @@ ParseResult cudaq::cc::AllocaOp::parse(OpAsmParser &parser,
   return success();
 }
 
-OpFoldResult cudaq::cc::AllocaOp::fold(FoldAdaptor adaptor) {
-  auto params = adaptor.getOperands();
-  if (params.size() == 1) {
-    // If allocating a contiguous block of elements and the size of the block is
-    // a constant, fold the size into the cc.array type and allocate a constant
-    // sized block.
-    if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[0])) {
-      auto size = intAttr.getInt();
-      if (size > 0) {
-        auto resTy = cast<cc::ArrayType>(
-            cast<cc::PointerType>(getType()).getElementType());
-        auto arrTy = cc::ArrayType::get(resTy.getContext(),
-                                        resTy.getElementType(), size);
-        getOperation()->setAttr("elementType", TypeAttr::get(arrTy));
-        getResult().setType(cc::PointerType::get(arrTy));
-        getOperation()->eraseOperand(0);
-        return getResult();
-      }
+namespace {
+struct FuseAllocLength : public OpRewritePattern<cudaq::cc::AllocaOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::AllocaOp alloca,
+                                PatternRewriter &rewriter) const override {
+    auto params = alloca.getOperands();
+    if (params.size() == 1) {
+      // If allocating a contiguous block of elements and the size of the block
+      // is a constant, fold the size into the cc.array type and allocate a
+      // constant sized block.
+      if (auto size = cudaq::opt::factory::getIntIfConstant(params[0]))
+        if (*size > 0) {
+          auto loc = alloca.getLoc();
+          auto *context = rewriter.getContext();
+          Type oldTy = alloca.getElementType();
+          auto arrTy = cudaq::cc::ArrayType::get(context, oldTy, *size);
+          Type origTy = alloca.getType();
+          auto newAlloc = rewriter.create<cudaq::cc::AllocaOp>(loc, arrTy);
+          rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(alloca, origTy,
+                                                         newAlloc);
+          return success();
+        }
     }
+    return failure();
   }
-  return nullptr;
+};
+} // namespace
+
+void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FuseAllocLength>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -178,6 +197,34 @@ LogicalResult cudaq::cc::CastOp::verify() {
     return emitOpError("invalid cast.");
   }
   return success();
+}
+
+namespace {
+// There are a number of series of casts that can be fused. For now, fuse
+// pointer cast chains.
+struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
+                                PatternRewriter &rewriter) const override {
+    if (auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>())
+      if (isa<cudaq::cc::PointerType>(castOp.getType()) &&
+          isa<cudaq::cc::PointerType>(castToCast.getType())) {
+        // %4 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<U>
+        // %5 = cc.cast %4 : (!cc.ptr<U>) -> !cc.ptr<V>
+        // ────────────────────────────────────────────
+        // %5 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<V>
+        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
+                                                       castToCast.getValue());
+      }
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                    MLIRContext *context) {
+  patterns.add<FuseCastCascade>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -321,8 +368,7 @@ namespace {
 // Address arithmetic for pointers to arrays is additive.
 struct FuseAddressArithmetic
     : public OpRewritePattern<cudaq::cc::ComputePtrOp> {
-  using Base = OpRewritePattern<cudaq::cc::ComputePtrOp>;
-  using Base::Base;
+  using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::ComputePtrOp ptrOp,
                                 PatternRewriter &rewriter) const override {
@@ -379,6 +425,23 @@ struct FuseAddressArithmetic
       rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
           ptrOp, ptrOp.getType(), origPtr.getBase(),
           ArrayRef<cudaq::cc::ComputePtrArg>{myOffset + inOffset});
+    } else if (auto castOp =
+                   ptrOp.getBase().getDefiningOp<cudaq::cc::CastOp>()) {
+      if (auto castFromPtrTy =
+              dyn_cast<cudaq::cc::PointerType>(castOp.getValue().getType()))
+        if (auto castFromArrTy =
+                dyn_cast<cudaq::cc::ArrayType>(castFromPtrTy.getElementType()))
+          if (auto castToPtrTy =
+                  dyn_cast<cudaq::cc::PointerType>(castOp.getType()))
+            if (auto castToArrTy = dyn_cast<cudaq::cc::ArrayType>(
+                    castToPtrTy.getElementType()))
+              if (!castFromArrTy.isUnknownSize() &&
+                  castToArrTy.isUnknownSize()) {
+                rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+                    ptrOp, ptrOp.getType(), castOp.getValue(),
+                    ptrOp.getDynamicIndices(), ptrOp.getRawConstantIndices());
+                return success();
+              }
     }
     return success();
   }
@@ -407,7 +470,7 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
   auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
   if (!conArr)
     return nullptr;
-  cudaq::cc::ArrayType arrTy = conArr.getType();
+  cc::ArrayType arrTy = conArr.getType();
   if (arrTy.isUnknownSize())
     return nullptr;
   auto eleTy = arrTy.getElementType();
@@ -419,18 +482,16 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
     if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
       auto floatConstVal =
           cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
-      Value val =
-          builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy);
-      return val;
+      return builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy)
+          .getResult();
     }
     auto intConstVal =
         cast<IntegerAttr>(conArr.getConstantValues()[offset]).getInt();
     auto intTy = cast<IntegerType>(eleTy);
-    Value val = builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy);
-    return val;
+    return builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy)
+        .getResult();
   }
-  Value val = builder.create<cc::PoisonOp>(loc, eleTy);
-  return val;
+  return builder.create<cc::PoisonOp>(loc, eleTy).getResult();
 }
 
 //===----------------------------------------------------------------------===//
@@ -439,7 +500,12 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
 
 ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
                                        OperationState &result) {
-  // Check for the `constant` optional keyword first.
+  // Check for the `extern` optional keyword first.
+  if (succeeded(parser.parseOptionalKeyword("extern")))
+    result.addAttribute(getExternalAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Check for the `constant` optional keyword second.
   if (succeeded(parser.parseOptionalKeyword("constant")))
     result.addAttribute(getConstantAttrName(result.name),
                         parser.getBuilder().getUnitAttr());
@@ -470,6 +536,8 @@ ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
 
 void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
   p << ' ';
+  if (getExternal())
+    p << "extern ";
   if (getConstant())
     p << "constant ";
   p.printSymbolName(getSymName());
@@ -480,8 +548,9 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
   }
   p << " : " << getGlobalType();
   p.printOptionalAttrDictWithKeyword(
-      (*this)->getAttrs(), {getSymNameAttrName(), getValueAttrName(),
-                            getGlobalTypeAttrName(), getConstantAttrName()});
+      (*this)->getAttrs(),
+      {getSymNameAttrName(), getValueAttrName(), getGlobalTypeAttrName(),
+       getConstantAttrName(), getExternalAttrName()});
 }
 
 //===----------------------------------------------------------------------===//
@@ -637,8 +706,7 @@ LogicalResult cudaq::cc::LoopOp::verify() {
     return emitOpError("size of init args and outputs must be equal");
   if (getWhileArguments().size() != initArgsSize)
     return emitOpError("size of init args and while region args must be equal");
-  if (auto condOp =
-          dyn_cast<cudaq::cc::ConditionOp>(getWhileBlock()->getTerminator())) {
+  if (auto condOp = dyn_cast<ConditionOp>(getWhileBlock()->getTerminator())) {
     if (condOp.getResults().size() != initArgsSize)
       return emitOpError("size of init args and condition op must be equal");
   } else {
@@ -652,8 +720,7 @@ LogicalResult cudaq::cc::LoopOp::verify() {
     if (getStepArguments().size() != initArgsSize)
       return emitOpError(
           "size of init args and step region args must be equal");
-    if (auto contOp =
-            dyn_cast<cudaq::cc::ContinueOp>(getStepBlock()->getTerminator())) {
+    if (auto contOp = dyn_cast<ContinueOp>(getStepBlock()->getTerminator())) {
       if (contOp.getOperands().size() != initArgsSize)
         return emitOpError("size of init args and continue op must be equal");
     } else {
@@ -1355,7 +1422,7 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
 LogicalResult cudaq::cc::CallCallableOp::verify() {
   FunctionType funcTy;
   auto ty = getCallee().getType();
-  if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(ty))
+  if (auto lambdaTy = dyn_cast<CallableType>(ty))
     funcTy = lambdaTy.getSignature();
   else if (auto fTy = dyn_cast<FunctionType>(ty))
     funcTy = fTy;
@@ -1452,7 +1519,7 @@ struct ReplaceInFunc : public OpRewritePattern<FROM> {
 
 void cudaq::cc::ReturnOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ReplaceInFunc<cudaq::cc::ReturnOp, func::ReturnOp>>(context);
+  patterns.add<ReplaceInFunc<ReturnOp, func::ReturnOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1537,8 +1604,7 @@ struct ReplaceInLoop : public OpRewritePattern<FROM> {
 
 void cudaq::cc::UnwindBreakOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ReplaceInLoop<cudaq::cc::UnwindBreakOp, cudaq::cc::BreakOp>>(
-      context);
+  patterns.add<ReplaceInLoop<UnwindBreakOp, BreakOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1567,9 +1633,7 @@ LogicalResult cudaq::cc::UnwindContinueOp::verify() {
 
 void cudaq::cc::UnwindContinueOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns
-      .add<ReplaceInLoop<cudaq::cc::UnwindContinueOp, cudaq::cc::ContinueOp>>(
-          context);
+  patterns.add<ReplaceInLoop<UnwindContinueOp, ContinueOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
