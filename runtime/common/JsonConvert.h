@@ -254,6 +254,35 @@ inline void to_json(json &j, const cudaq::optimizers::BaseEnsmallen &p) {
   TO_JSON_OPT_HELPER(step_size);
 }
 
+inline void to_json(json &j, const cudaq::optimizers::lbfgs &p) {
+  TO_JSON_OPT_HELPER(max_line_search_trials);
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void to_json(json &j, const cudaq::optimizers::spsa &p) {
+  TO_JSON_OPT_HELPER(alpha);
+  TO_JSON_OPT_HELPER(gamma);
+  TO_JSON_OPT_HELPER(eval_step_size);
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void to_json(json &j, const cudaq::optimizers::adam &p) {
+  TO_JSON_OPT_HELPER(batch_size);
+  TO_JSON_OPT_HELPER(beta1);
+  TO_JSON_OPT_HELPER(beta2);
+  TO_JSON_OPT_HELPER(eps);
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void to_json(json &j, const cudaq::optimizers::gradient_descent &p) {
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void to_json(json &j, const cudaq::optimizers::sgd &p) {
+  TO_JSON_OPT_HELPER(batch_size);
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
 inline void to_json(json &j, const cudaq::optimizers::base_nlopt &p) {
   TO_JSON_OPT_HELPER(max_eval);
   TO_JSON_OPT_HELPER(initial_parameters);
@@ -263,9 +292,17 @@ inline void to_json(json &j, const cudaq::optimizers::base_nlopt &p) {
 }
 
 inline void to_json(json &j, const cudaq::optimizer &p) {
-  if (auto *base_ensmallen =
-          dynamic_cast<const cudaq::optimizers::BaseEnsmallen *>(&p))
-    j = json(*base_ensmallen);
+  if (auto *p2 = dynamic_cast<const cudaq::optimizers::lbfgs *>(&p))
+    j = json(*p2);
+  else if (auto *p2 = dynamic_cast<const cudaq::optimizers::spsa *>(&p))
+    j = json(*p2);
+  else if (auto *p2 = dynamic_cast<const cudaq::optimizers::adam *>(&p))
+    j = json(*p2);
+  else if (auto *p2 =
+               dynamic_cast<const cudaq::optimizers::gradient_descent *>(&p))
+    j = json(*p2);
+  else if (auto *p2 = dynamic_cast<const cudaq::optimizers::sgd *>(&p))
+    j = json(*p2);
   else if (auto *base_nlopt =
                dynamic_cast<const cudaq::optimizers::base_nlopt *>(&p))
     j = json(*base_nlopt);
@@ -279,6 +316,36 @@ inline void from_json(const nlohmann::json &j,
   FROM_JSON_OPT_HELPER(upper_bounds);
   FROM_JSON_OPT_HELPER(f_tol);
   FROM_JSON_OPT_HELPER(step_size);
+}
+
+inline void from_json(const nlohmann::json &j, cudaq::optimizers::lbfgs &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+  FROM_JSON_OPT_HELPER(max_line_search_trials);
+}
+
+inline void from_json(const nlohmann::json &j, cudaq::optimizers::spsa &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+  FROM_JSON_OPT_HELPER(alpha);
+  FROM_JSON_OPT_HELPER(gamma);
+  FROM_JSON_OPT_HELPER(eval_step_size);
+}
+
+inline void from_json(const nlohmann::json &j, cudaq::optimizers::adam &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+  FROM_JSON_OPT_HELPER(batch_size);
+  FROM_JSON_OPT_HELPER(beta1);
+  FROM_JSON_OPT_HELPER(beta2);
+  FROM_JSON_OPT_HELPER(eps);
+}
+
+inline void from_json(const nlohmann::json &j,
+                      cudaq::optimizers::gradient_descent &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void from_json(const nlohmann::json &j, cudaq::optimizers::sgd &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+  FROM_JSON_OPT_HELPER(batch_size);
 }
 
 inline void from_json(const nlohmann::json &j,
