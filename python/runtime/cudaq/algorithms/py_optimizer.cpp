@@ -383,6 +383,7 @@ std::string get_objective_function_call(const std::string &file_content) {
 
 std::string get_required_raw_source_code(const std::string &file_content,
                                          const py::object &inspect,
+                                         const int dim,
                                          const py::function &func) {
   // Get imports
   std::string imports = get_imports(file_content);
@@ -391,13 +392,18 @@ std::string get_required_raw_source_code(const std::string &file_content,
   // std::string kernels = get_kernels(file_content);
 
   // Get objective_function call
-  std::string function_call = get_objective_function_call(file_content);
+  // std::string function_call = get_objective_function_call(file_content);
 
   // Get source code
   std::string source_code = get_source_code(inspect, func);
 
+  // Form the Python call to optimizer.optimize
+  std::ostringstream os;
+  auto obj_func_name = func.attr("__name__").cast<std::string>();
+  os << "energy, parms_at_energy = optimizer.optimize(" << dim << ", " << obj_func_name << ")\n";
+  auto function_call = os.str();
+
   // Return the combined code
-  // return imports + "\n" + kernels + source_code + "\n" + function_call;
   return imports + "\n" + source_code + "\n" + function_call;
 }
 
@@ -426,7 +432,7 @@ extract_func_call_and_cudaq_target(const std::string &file_content,
   return std::make_tuple(func_call, cudaq_target);
 }
 
-void call_rest_api(
+cudaq::optimization_result call_rest_api(
     SerializedCodeExecutionContext *serializeCodeExecutionObject) {
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client =
       cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest");
@@ -469,6 +475,8 @@ void call_rest_api(
 
   if (!requestOkay)
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+  
+  return ctx.optResult.value_or(cudaq::optimization_result{});
 }
 
 void bindGradientStrategies(py::module &mod) {
@@ -579,8 +587,8 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               // Get source file content
               std::string file_content = get_file_content();
 
-              std::string combined_code =
-                  get_required_raw_source_code(file_content, inspect, func);
+              std::string combined_code = get_required_raw_source_code(
+                  file_content, inspect, dim, func);
 
               std::cout << "Combined code\n" << combined_code << std::endl;
               // get_filtered_dict();
@@ -592,14 +600,9 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
                       &serialized_code_execution_object;
 
               // Call the REST API to /job
-              call_rest_api(serialized_code_execution_object_ptr);
+              return call_rest_api(serialized_code_execution_object_ptr);
 
               // delete(&serialized_code_execution_object);
-
-              // return a empty tuple to suppress the compile error for now
-              // TODO Need to return the proper value from response
-              return std::make_tuple<double, std::vector<double>>(
-                  0.0, std::vector<double>());
             }
 
             return opt.optimize(dim, [&](std::vector<double> x,
