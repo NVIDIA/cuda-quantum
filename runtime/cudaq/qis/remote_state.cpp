@@ -92,8 +92,10 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
   // Create an execution context, indicate this is for
   // extracting the state representation
   ExecutionContext context("extract-state");
+  std::map<std::vector<int>, std::complex<double>> amplitudeMaps;
   for (const auto &basisState : basisStates)
-    context.amplitudeMaps[basisState] = {};
+    amplitudeMaps[basisState] = {};
+  context.amplitudeMaps = std::move(amplitudeMaps);
   // Perform the usual pattern set the context,
   // execute and then reset
   platform.set_exec_ctx(&context);
@@ -104,7 +106,7 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
   std::vector<std::complex<double>> amplitudes;
   amplitudes.reserve(basisStates.size());
   for (const auto &basisState : basisStates)
-    amplitudes.emplace_back(context.amplitudeMaps[basisState]);
+    amplitudes.emplace_back(context.amplitudeMaps.value()[basisState]);
   return amplitudes;
 }
 

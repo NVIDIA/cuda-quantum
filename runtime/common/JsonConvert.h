@@ -147,6 +147,9 @@ inline void to_json(json &j, const ExecutionContext &context) {
   j["registerNames"] = context.registerNames;
   if (context.overlapResult.has_value())
     j["overlapResult"] = context.overlapResult.value();
+
+  if (context.amplitudeMaps.has_value())
+    j["amplitudeMaps"] = context.amplitudeMaps.value();
 }
 
 inline void from_json(const json &j, ExecutionContext &context) {
@@ -205,6 +208,9 @@ inline void from_json(const json &j, ExecutionContext &context) {
 
   if (j.contains("overlapResult"))
     context.overlapResult = j["overlapResult"];
+
+  if (j.contains("amplitudeMaps"))
+    context.amplitudeMaps = j["amplitudeMaps"];
 }
 
 // Enum data to denote the payload format.

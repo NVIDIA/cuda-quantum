@@ -617,11 +617,12 @@ protected:
         // Note: this could be the case whereby the state vector is too large
         // for full retrieval.
         if (request.executionContext.name == "extract-state" &&
-            !request.executionContext.amplitudeMaps.empty()) {
+            request.executionContext.amplitudeMaps.has_value()) {
           // Acquire the state, no need to send the full state back
           auto serverState =
               std::move(request.executionContext.simulationState);
-          for (auto &[key, val] : request.executionContext.amplitudeMaps) {
+          for (auto &[key, val] :
+               request.executionContext.amplitudeMaps.value()) {
             val = serverState->getAmplitude(key);
           }
         }
