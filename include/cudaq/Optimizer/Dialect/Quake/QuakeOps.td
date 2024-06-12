@@ -1159,12 +1159,74 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
-def CustomUnitarySymbolOp : QuakeOperator<"unitary"> {
+def CustomUnitarySymbolOp : QuakeOperator<"unitary", [], (ins SymbolRefAttr:$generator)> {
   let summary = "Custom unitary operation.";
   let description = [{
     Custom unitary operation leveraging a `SymbolRefAttr` describing the unitary 
     data generator function. 
-  }]; 
+  }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator, 
+                   "mlir::UnitAttr":$is_adj,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::DenseBoolArrayAttr":$negates), [{
+      return build($_builder, $_state, mlir::TypeRange{}, generator, is_adj,
+                   parameters, controls, targets, negates);
+    }]>,
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::DenseBoolArrayAttr":$negates), [{
+      return build($_builder, $_state, mlir::TypeRange{}, generator, is_adj, 
+                   parameters, controls, targets, negates);
+    }]>,
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, generator, is_adj, parameters, 
+                   controls, targets, {});
+    }]>,
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, generator,  /*is_adj=*/false, 
+                   parameters, controls, targets);
+    }]>,
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, generator,  is_adj, 
+                   mlir::ValueRange{}, controls, targets);
+    }]>,
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, generator,  /*is_adj=*/false, controls, targets);
+    }]>,
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator, "bool":$is_adj,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, generator, is_adj, mlir::ValueRange{}, targets);
+    }]>,
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator, "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, generator, /*is_adj=*/false, targets);
+    }]>
+  ];
+
+  let assemblyFormat = [{
+    ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
+    (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
+    $targets `:` functional-type(operands, results)   
+    `(` `generator` $generator `)` attr-dict
+  }];
 }
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS
