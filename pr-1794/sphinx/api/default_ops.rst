@@ -351,10 +351,6 @@ This operation applies the universal three-parameters operator to target qubit. 
         //             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
         u3(M_PI, M_PI, M_PI_2, q);
 
-.. note:: 
-
-  The `u3` operation is currently supported in simulation only.
-
 
 Adjoint and Controlled Operations
 ==================================
