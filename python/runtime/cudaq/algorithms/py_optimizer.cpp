@@ -459,52 +459,52 @@ extract_func_call_and_cudaq_target(const std::string &file_content,
   return std::make_tuple(func_call, cudaq_target);
 }
 
-cudaq::optimization_result call_rest_api(
-    SerializedCodeExecutionContext *serializeCodeExecutionObject) {
-  std::unique_ptr<cudaq::RemoteRuntimeClient> m_client =
-      cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest");
+// cudaq::optimization_result call_rest_api(
+//     SerializedCodeExecutionContext *serializeCodeExecutionObject) {
+//   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client =
+//       cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest");
 
-  std::cout << "In call_rest_api" << std::endl;
-  std::unordered_map<std::string, std::string> map;
-  map.emplace("url", "http://localhost:19030//");
+//   std::cout << "In call_rest_api" << std::endl;
+//   std::unordered_map<std::string, std::string> map;
+//   map.emplace("url", "http://localhost:19030//");
 
-  m_client->setConfig(map);
+//   m_client->setConfig(map);
 
-  py::object kernel = py::globals()["kernel"];
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  auto kernelMod = kernel.attr("module").cast<MlirModule>();
-  auto &platform = get_platform();
-  std::cout << "Platform: " << platform.is_simulator() << std::endl;
-  ExecutionContext ctx("sample", 1); // platform.get_exec_ctx();
-  // std::cout << "ctx: " << ctx << std::endl;
-  using namespace mlir;
+//   py::object kernel = py::globals()["kernel"];
+//   auto kernelName = kernel.attr("name").cast<std::string>();
+//   auto kernelMod = kernel.attr("module").cast<MlirModule>();
+//   auto &platform = get_platform();
+//   std::cout << "Platform: " << platform.is_simulator() << std::endl;
+//   ExecutionContext ctx("sample", 1); // platform.get_exec_ctx();
+//   // std::cout << "ctx: " << ctx << std::endl;
+//   using namespace mlir;
 
-  ModuleOp mod = unwrap(kernelMod);
-  std::cout << "Mod: " << mod->getContext() << std::endl;
-  auto *mlirContext = mod->getContext();
+//   ModuleOp mod = unwrap(kernelMod);
+//   std::cout << "Mod: " << mod->getContext() << std::endl;
+//   auto *mlirContext = mod->getContext();
 
-  // auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
+//   // auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
 
-  // py::list attributes = kernel.attr("__dict__").attr("items")();
-  // for (auto item : attributes) {
-  //   py::tuple item_arr = item.cast<py::tuple>();
-  //   auto key = item_arr[0];
-  //   auto value = item_arr[1];
-  //   std::cout << key.cast<std::string>() << ": " <<
-  //   py::str(value).cast<std::string>() << std::endl;
-  // }
+//   // py::list attributes = kernel.attr("__dict__").attr("items")();
+//   // for (auto item : attributes) {
+//   //   py::tuple item_arr = item.cast<py::tuple>();
+//   //   auto key = item_arr[0];
+//   //   auto value = item_arr[1];
+//   //   std::cout << key.cast<std::string>() << ": " <<
+//   //   py::str(value).cast<std::string>() << std::endl;
+//   // }
 
-  std::cout << "Making a REST request..." << std::endl;
-  std::string errorMsg;
-  const bool requestOkay = m_client->sendRequest(
-      *mlirContext, ctx, *serializeCodeExecutionObject, "custatevec-fp64",
-      kernelName, nullptr, nullptr, 0, &errorMsg);
+//   std::cout << "Making a REST request..." << std::endl;
+//   std::string errorMsg;
+//   const bool requestOkay = m_client->sendRequest(
+//       *mlirContext, ctx, *serializeCodeExecutionObject, "custatevec-fp64",
+//       kernelName, nullptr, nullptr, 0, &errorMsg);
 
-  if (!requestOkay)
-    throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+//   if (!requestOkay)
+//     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   
-  return ctx.optResult.value_or(cudaq::optimization_result{});
-}
+//   return ctx.optResult.value_or(cudaq::optimization_result{});
+// }
 
 void bindGradientStrategies(py::module &mod) {
   // Binding under the `cudaq.gradients` namespace in python.
@@ -605,7 +605,10 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
             // write a function to detect if cudaq.set_target has been used and
             // fetch its value
 
-            if (cudaq::get_platform().supports_remote_vqe()) {
+            auto &platform = cudaq::get_platform();
+            if (platform.supports_remote_serialized_code()) {
+              auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
+              platform.set_exec_ctx(ctx.get());
 
               print_globals_dict();
 
@@ -613,18 +616,17 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
                   get_required_raw_source_code(dim, func);
 
               std::cout << "Combined code\n" << combined_code << std::endl;
-              // get_filtered_dict();
               SerializedCodeExecutionContext serialized_code_execution_object =
                   get_serialized_code(combined_code);
 
-              SerializedCodeExecutionContext
-                  *serialized_code_execution_object_ptr =
-                      &serialized_code_execution_object;
+              platform.launchSerializedCodeExecution(
+                  func.attr("__name__").cast<std::string>(),
+                  serialized_code_execution_object);
 
-              // Call the REST API to /job
-              return call_rest_api(serialized_code_execution_object_ptr);
-
-              // delete(&serialized_code_execution_object);
+              platform.reset_exec_ctx();
+              auto result = std::move(
+                  ctx->optResult.value_or(cudaq::optimization_result{}));
+              return result;
             }
 
             return opt.optimize(dim, [&](std::vector<double> x,

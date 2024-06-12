@@ -24,6 +24,7 @@
 namespace cudaq {
 
 class QPU;
+class SerializedCodeExecutionContext;
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -117,8 +118,8 @@ public:
   /// quantum kernels.
   void set_noise(const noise_model *model);
 
-  /// @brief Return whether the QPU has support for fully remote VQE execution
-  bool supports_remote_vqe(const std::size_t qpuId = 0) const;
+  /// @brief Return whether the QPU has support for remote serialized code execution
+  bool supports_remote_serialized_code(const std::size_t qpuId = 0) const;
 
   /// @brief Turn off any noise models.
   void reset_noise();
@@ -135,6 +136,12 @@ public:
   void launchKernel(std::string kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset);
+
+  // This method is the hook for executing SerializedCodeExecutionContext
+  // objects.
+  void launchSerializedCodeExecution(
+      const std::string &name,
+      SerializedCodeExecutionContext &serializeCodeExecutionObject);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

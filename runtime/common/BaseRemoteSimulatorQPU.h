@@ -46,9 +46,10 @@ public:
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
 
-  // VQE is executed fully on the server without the need to go back and forth
-  // in between observe calls
-  virtual bool supportsRemoteVQE() override { return true; }
+  // Remote serializable code is executed fully on the server without the need
+  // to go back and forth in between observe calls (see
+  // launchSerializedCodeExecution).
+  virtual bool supportsRemoteSerializedCode() override { return true; }
 
   virtual void setTargetBackend(const std::string &backend) override {
     std::cout << "Backend: " << backend << std::endl;
@@ -103,6 +104,44 @@ public:
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, serializedCodeContext, m_simName,
         name, kernelFunc, args, voidStarSize, &errorMsg);
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+  }
+
+  void launchSerializedCodeExecution(const std::string &name,
+                        cudaq::SerializedCodeExecutionContext
+                            &serializeCodeExecutionObject) override {
+    cudaq::info(
+        "BaseRemoteSimulatorQPU: Launch remote code named '{}' remote QPU {} "
+        "(simulator = {})",
+        name, qpu_id, m_simName);
+
+    cudaq::ExecutionContext *executionContextPtr =
+        [&]() -> cudaq::ExecutionContext * {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      const auto iter = m_contexts.find(std::this_thread::get_id());
+      if (iter == m_contexts.end())
+        return nullptr;
+      return iter->second;
+    }();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer") {
+      return;
+    }
+
+    // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
+    // was set before launching the kernel. Use a static variable per thread to
+    // set up a single-shot execution context for this case.
+    static thread_local cudaq::ExecutionContext defaultContext("sample",
+                                                               /*shots=*/1);
+    cudaq::ExecutionContext &executionContext =
+        executionContextPtr ? *executionContextPtr : defaultContext;
+
+    std::string errorMsg;
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, executionContext, serializeCodeExecutionObject,
+        m_simName, name, /*kernelFunc=*/nullptr, /*args=*/nullptr,
+        /*voidStarSize=*/0, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
