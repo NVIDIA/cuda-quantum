@@ -523,6 +523,7 @@ public:
     TO_JSON_HELPER(seed);
     TO_JSON_HELPER(passes);
     TO_JSON_HELPER(clientVersion);
+    TO_JSON_HELPER(serializedCodeExecutionContext);
   }
 
   friend void from_json(const json &j, RestRequest &p) {
@@ -537,11 +538,8 @@ public:
     FROM_JSON_HELPER(seed);
     FROM_JSON_HELPER(passes);
     FROM_JSON_HELPER(clientVersion);
+    FROM_JSON_HELPER(serializedCodeExecutionContext);
   }
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
-                                 executionContext, code, args, format, seed,
-                                 passes, clientVersion,
-                                 serializedCodeExecutionContext);
 };
 
 /// NVCF function version status

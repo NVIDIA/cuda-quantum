@@ -145,6 +145,31 @@ std::string read_notebook_file(const std::string &file_path) {
   py::object file = open(file_path, "r");
   notebook_content = json.attr("load")(file);
 
+  py::list cells = notebook_content["cells"].cast<py::list>();
+  py::list new_cells;
+
+  for (auto &cell : cells) {
+    py::dict cell_dict = cell.cast<py::dict>();
+    if(cell_dict["cell_type"].cast<std::string>() == "code") {
+      py::list source = cell_dict["source"].cast<py::list>();
+      py::list new_source;
+      for (auto &line : source) {
+        std::string line_str = line.cast<std::string>();
+        std::size_t comment_pos = line_str.find('#');
+        if (comment_pos != std::string::npos) {
+          line_str = line_str.substr(0, comment_pos);
+        }
+        if (!line_str.empty()) {
+          new_source.append(line_str + "\n");
+        }
+      }
+      cell_dict["source"] = new_source;
+      new_cells.append(cell_dict);
+    }
+  }
+
+  notebook_content["cells"] = new_cells;
+
   return py::str(notebook_content);
 }
 
@@ -155,7 +180,16 @@ std::string read_python_file(const std::string &file_path) {
   }
 
   std::stringstream buffer;
-  buffer << file.rdbuf();
+  std::string line;
+
+  while (std::getline(file, line)) {
+    std::size_t comment_pos = line.find('#');
+    if (comment_pos != std::string::npos) {
+      line = line.substr(0, comment_pos);
+    }
+    buffer << line << '\n';
+  }
+
   return buffer.str();
 }
 
@@ -203,9 +237,9 @@ std::string get_file_content() {
   return file_content;
 }
 
-std::string get_source_code(const py::object &inspect,
-                            const py::function &func) {
+std::string get_source_code(const py::function &func) {
   // Get the source code
+  py::object inspect = py::module::import("inspect");
   py::object source_code;
   try {
     source_code = inspect.attr("getsource")(func);
@@ -243,15 +277,10 @@ void get_filtered_dict() {
     std::string key_type = py::repr(py::type::of(it->first));
     std::string value = py::str(it->second);
 
-    // std::cout << "Key: " << key << ", Type: " << key_type << ", Value: " <<
-    // value << std::endl;
-
     if ((key.find("__") != std::string::npos && key != "__builtins__") ||
         it->second.is_none() ||
         (value.find("<module") != std::string::npos && key != "__builtins__") ||
         value.find("typing") != std::string::npos) {
-      // if (key.find("__") != std::string::npos || it->second.is_none() ||
-      //     value.find("<module") != std::string::npos) {
       keys_to_remove.push_back(it->first);
     }
   }
@@ -381,10 +410,10 @@ std::string get_objective_function_call(const std::string &file_content) {
   return objective_function_call;
 }
 
-std::string get_required_raw_source_code(const std::string &file_content,
-                                         const py::object &inspect,
-                                         const int dim,
-                                         const py::function &func) {
+std::string get_required_raw_source_code(const int dim, const py::function &func) {
+  // Get file content
+  std::string file_content = get_file_content();
+
   // Get imports
   std::string imports = get_imports(file_content);
 
@@ -395,12 +424,12 @@ std::string get_required_raw_source_code(const std::string &file_content,
   // std::string function_call = get_objective_function_call(file_content);
 
   // Get source code
-  std::string source_code = get_source_code(inspect, func);
+  std::string source_code = get_source_code(func);
 
   // Form the Python call to optimizer.optimize
   std::ostringstream os;
   auto obj_func_name = func.attr("__name__").cast<std::string>();
-  os << "energy, parms_at_energy = optimizer.optimize(" << dim << ", " << obj_func_name << ")\n";
+  os << "energy, params_at_energy = optimizer.optimize(" << dim << ", " << obj_func_name << ")\n";
   auto function_call = os.str();
 
   // Return the combined code
@@ -439,7 +468,7 @@ cudaq::optimization_result call_rest_api(
 
   std::cout << "In call_rest_api" << std::endl;
   std::unordered_map<std::string, std::string> map;
-  map.emplace("url", "http://localhost:18030//");
+  map.emplace("url", "http://localhost:19030//");
 
   m_client->setConfig(map);
 
@@ -580,15 +609,10 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
 
             if (cudaq::get_platform().supports_remote_vqe()) {
 
-              py::object inspect = py::module::import("inspect");
-
               print_globals_dict();
 
-              // Get source file content
-              std::string file_content = get_file_content();
-
-              std::string combined_code = get_required_raw_source_code(
-                  file_content, inspect, dim, func);
+              std::string combined_code =
+                  get_required_raw_source_code(dim, func);
 
               std::cout << "Combined code\n" << combined_code << std::endl;
               // get_filtered_dict();

@@ -28,8 +28,8 @@ import multiprocessing
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
 # allows the NVCF port (3030) to remain up while allowing the main `cudaq-qpud`
 # application to restart if necessary.
-PROXY_PORT = 18030
-QPUD_PORT = 18031  # see `docker/build/cudaq.nvqc.Dockerfile`
+PROXY_PORT = 19030
+QPUD_PORT = 19031  # see `docker/build/cudaq.nvqc.Dockerfile`
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
@@ -113,7 +113,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
                     "hasConditionalsOnMeasureResults": False,
                     "optResult": [
                         globals_dict['energy'],
-                        globals_dict['parms_at_energy']
+                        globals_dict['params_at_energy']
                     ]
                 }
             }
@@ -134,24 +134,24 @@ class Server(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == '/job':
-            # qpud_up = False
-            # retries = 0
+            qpud_up = False
+            retries = 0
             qpud_url = 'http://localhost:' + str(QPUD_PORT)
-            # while (not qpud_up):
-            #     try:
-            #         ping_response = requests.get(qpud_url)
-            #         qpud_up = (ping_response.status_code == HTTPStatus.OK)
-            #     except:
-            #         qpud_up = False
-            #     if not qpud_up:
-            #         retries += 1
-            #         if retries > 100:
-            #             print("PROXY EXIT: TOO MANY RETRIES!")
-            #             sys.exit()
-            #         print(
-            #             "Main application is down, retrying (retry_count = {})..."
-            #             .format(retries))
-            #         time.sleep(0.1)
+            while (not qpud_up):
+                try:
+                    ping_response = requests.get(qpud_url)
+                    qpud_up = (ping_response.status_code == HTTPStatus.OK)
+                except:
+                    qpud_up = False
+                if not qpud_up:
+                    retries += 1
+                    if retries > 100:
+                        print("PROXY EXIT: TOO MANY RETRIES!")
+                        sys.exit()
+                    print(
+                        "Main application is down, retrying (retry_count = {})..."
+                        .format(retries))
+                    time.sleep(0.1)
 
             content_length = int(self.headers['Content-Length'])
             if content_length:
