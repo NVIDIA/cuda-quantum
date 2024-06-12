@@ -17,10 +17,10 @@ constexpr const char fullRepositoryVersion[] =
 } // namespace internal
 
 /// Get the CUDA-Q version.
-const char *getVersion() { return internal::version; }
+inline const char *getVersion() { return internal::version; }
 
 /// Get the CUDA-Q full repository revision info.
-const char *getFullRepositoryVersion() {
+inline const char *getFullRepositoryVersion() {
   return internal::fullRepositoryVersion;
 }
 

@@ -54,26 +54,5 @@ public:
     }
     return dx;
   }
-
-  /// @brief Serialize function
-  std::string serialize() const {
-    std::ostringstream oss;
-    oss << step;
-    return oss.str();
-  }
-
-  /// @brief Deserialize function
-  central_difference deserialize(const std::string &serialized_data) {
-    std::istringstream iss(serialized_data);
-    double step_value;
-    iss >> step_value;
-    central_difference cd;
-    cd.step = step_value;
-    return cd;
-  }
-
-  std::string __getstate__() const { return serialize(); }
-
-  void __setstate__(const std::string &data) { deserialize(data); }
 };
 } // namespace cudaq::gradients

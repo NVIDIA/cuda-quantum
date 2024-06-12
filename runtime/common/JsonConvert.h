@@ -25,12 +25,12 @@ using json = nlohmann::json;
 namespace std {
 // Complex data serialization.
 template <class T>
-void to_json(json &j, const std::complex<T> &p) {
+inline void to_json(json &j, const std::complex<T> &p) {
   j = json{p.real(), p.imag()};
 }
 
 template <class T>
-void from_json(const json &j, std::complex<T> &p) {
+inline void from_json(const json &j, std::complex<T> &p) {
   p.real(j.at(0));
   p.imag(j.at(1));
 }
@@ -480,7 +480,7 @@ struct RestRequestOptFields {
   cudaq::gradient *gradient_ptr = nullptr;
 };
 
-void to_json(json &j, const RestRequestOptFields &p) {
+inline void to_json(json &j, const RestRequestOptFields &p) {
   if (p.optimizer_ptr)
     j["optimizer"] = *p.optimizer_ptr;
   if (p.gradient_ptr)
@@ -490,7 +490,7 @@ void to_json(json &j, const RestRequestOptFields &p) {
   TO_JSON_OPT_HELPER(gradient_type);
 }
 
-void from_json(const json &j, RestRequestOptFields &p) {
+inline void from_json(const json &j, RestRequestOptFields &p) {
   FROM_JSON_OPT_HELPER(optimizer_n_params);
   FROM_JSON_OPT_HELPER(optimizer_type);
   if (p.optimizer_type)

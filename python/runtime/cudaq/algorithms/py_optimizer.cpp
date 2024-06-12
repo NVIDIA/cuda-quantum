@@ -5,13 +5,13 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "nlohmann/json.hpp"
 #include <pybind11/embed.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
 #include "py_optimizer.h"
 
+#include "common/JsonConvert.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
@@ -519,12 +519,10 @@ void bindGradientStrategies(py::module &mod) {
                                                       "CentralDifference")
       .def(py::init<>())
       .def(py::pickle(
-          [](const gradients::central_difference &p) {
-            return p.__getstate__();
-          },
+          [](const gradients::central_difference &p) { return json(p).dump(); },
           [](const std::string &data) {
             gradients::central_difference p;
-            p.__setstate__(data);
+            from_json(json::parse(data), p);
             return p;
           }))
       .def(
@@ -542,6 +540,13 @@ void bindGradientStrategies(py::module &mod) {
   py::class_<gradients::forward_difference, gradient>(gradients_submodule,
                                                       "ForwardDifference")
       .def(py::init<>())
+      .def(py::pickle(
+          [](const gradients::forward_difference &p) { return json(p).dump(); },
+          [](const std::string &data) {
+            gradients::forward_difference p;
+            from_json(json::parse(data), p);
+            return p;
+          }))
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -557,6 +562,13 @@ void bindGradientStrategies(py::module &mod) {
   py::class_<gradients::parameter_shift, gradient>(gradients_submodule,
                                                    "ParameterShift")
       .def(py::init<>())
+      .def(py::pickle(
+          [](const gradients::parameter_shift &p) { return json(p).dump(); },
+          [](const std::string &data) {
+            gradients::parameter_shift p;
+            from_json(json::parse(data), p);
+            return p;
+          }))
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -579,10 +591,10 @@ template <typename OptimizerT>
 py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
   return py::class_<OptimizerT, optimizer>(mod, name.c_str())
       .def(py::init<>())
-      .def(py::pickle([](const OptimizerT &p) { return p.__getstate__(); },
+      .def(py::pickle([](const OptimizerT &p) { return json(p).dump(); },
                       [](const std::string &data) {
                         OptimizerT p;
-                        p.__setstate__(data);
+                        from_json(json::parse(data), p);
                         return p;
                       }))
       .def_readwrite("max_iterations", &OptimizerT::max_eval,

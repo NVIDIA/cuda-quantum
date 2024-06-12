@@ -18,7 +18,7 @@ extern CircuitSimulator *getCircuitSimulatorInternal();
 namespace cudaq {
 
 /// @brief Return the quantum circuit simulator for qubits.
-nvqir::CircuitSimulator *get_simulator() {
+inline nvqir::CircuitSimulator *get_simulator() {
   return nvqir::getCircuitSimulatorInternal();
 }
 
