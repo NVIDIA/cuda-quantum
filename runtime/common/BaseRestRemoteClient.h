@@ -195,14 +195,13 @@ public:
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
     cudaq::RestRequest request(io_context, version());
-    cudaq::IRPayLoad irPayload;
-    irPayload.entryPoint = kernelName;
+    request.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;
       if (kernelArgs && argsSize > 0) {
         cudaq::info("Serialize {} bytes of args.", argsSize);
-        irPayload.args.resize(argsSize);
-        std::memcpy(irPayload.args.data(), kernelArgs, argsSize);
+        request.args.resize(argsSize);
+        std::memcpy(request.args.data(), kernelArgs, argsSize);
       }
 
       if (kernelFunc) {
@@ -211,7 +210,7 @@ public:
         const auto funcName = cudaq::quantum_platform::demangle(info.dli_sname);
         cudaq::info("RemoteSimulatorQPU: retrieve name '{}' for kernel {}",
                     funcName, kernelName);
-        irPayload.entryPoint = funcName;
+        request.entryPoint = funcName;
       }
     } else {
       request.passes = serverPasses;
@@ -249,10 +248,8 @@ public:
         request.overlapKernel = stateIrPayload2;
       }
     } else {
-      irPayload.ir = constructKernelPayload(mlirContext, kernelName, kernelFunc,
+      request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                             kernelArgs, argsSize);
-      request.code = irPayload.ir;
-      request.entryPoint = irPayload.entryPoint;
     }
     request.simulator = backendSimName;
     // Remote server seed
