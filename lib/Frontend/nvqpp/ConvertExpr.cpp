@@ -184,7 +184,13 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       auto negs =
           negatedControlsAttribute(builder.getContext(), ctrls, negations);
       if (isCustom) {
-        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, targets, negs);
+        SmallVector<Value> params;
+        for (auto p : operands.take_front(paramCount)) {
+          if (p.getType().isa<cudaq::cc::PointerType>()) {
+            params.push_back(builder.create<cudaq::cc::LoadOp>(loc, p));
+          }
+        }
+        builder.create<A>(loc, isAdjoint, params, ctrls, targets, negs);
         return true;
       }
       if (ctrls.empty())
@@ -1615,9 +1621,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     std::string maybeUnitaryGenerator = funcName.str() + "_generator_";
     // Extract number of targets
     size_t targetCount = 0;
-    std::string opName;
+    std::string genFuncName;
     for (auto name : customOperationNames) {
-      opName = name.str();
+      genFuncName = name.str();
       if (name.consume_front(maybeUnitaryGenerator)) {
         targetCount = std::stoi(name.str());
         break;
@@ -1642,9 +1648,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           builder, loc, args, negations, reportNegateError, isAdjoint,
           isControl, paramCount, targetCount, true);
       auto &customUnitary = builder.getBlock()->back();
-      auto srefAttr =
-          SymbolRefAttr::get(StringAttr::get(builder.getContext(), opName));
+      auto srefAttr = SymbolRefAttr::get(
+          StringAttr::get(builder.getContext(), genFuncName));
       customUnitary.setAttr("generator", srefAttr);
+
       return true;
     }
 

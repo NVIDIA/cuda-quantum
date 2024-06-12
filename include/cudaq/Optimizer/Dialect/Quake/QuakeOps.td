@@ -738,18 +738,19 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
 // Quantum gates
 //===----------------------------------------------------------------------===//
 
-class QuakeOperator<string mnemonic, list<Trait> traits = []>
+class QuakeOperator<string mnemonic, list<Trait> traits = [],
+                    dag extraArgs = (ins)>
     : QuakeOp<mnemonic,
         !listconcat([QuantumGate, AttrSizedOperandSegments, OperatorInterface,
           DeclareOpInterfaceMethods<MemoryEffectsOpInterface>], traits)> {
 
-  let arguments = (ins
+  let arguments = !con(extraArgs, (ins
     UnitAttr:$is_adj,
     Variadic<AnyFloat>:$parameters,
     Variadic<AnyQType>:$controls,
     Variadic<AnyQTargetType>:$targets,
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
-  );
+  ));
   let results = (outs
     Variadic<WireType>:$wires
   );
