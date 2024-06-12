@@ -38,9 +38,11 @@ class PyKernelDecorator(object):
     MLIR `ExecutionEngine` for the MLIR mode. 
     """
 
-    def __init__(self, function, verbose=False, module=None, kernelName=None, funcSrc=None):
+    def __init__(self, function, verbose=False, module=None, kernelName=None, funcSrc=None, signature=None, arguments=None, returnType=None, location=None):
         if isinstance(function, str):
-            function = globals().get(function)
+            # This is N/A, just set to some valid function to not throw errors
+            # in downstream code. TODO - cleanup
+            function = kernel
 
         self.kernelFunction = function
         self.capturedDataStorage = None
@@ -49,9 +51,12 @@ class PyKernelDecorator(object):
         self.verbose = verbose
         self.name = kernelName if kernelName is not None else (self.kernelFunction.__name__ if self.kernelFunction else None)
         self.argTypes = None
-        self.location = (inspect.getfile(self.kernelFunction),
-                         inspect.getsourcelines(self.kernelFunction)[1]
-                        ) if self.kernelFunction is not None else ('', 0)
+        if location is None:
+            self.location = (inspect.getfile(self.kernelFunction),
+                            inspect.getsourcelines(self.kernelFunction)[1]
+                            ) if self.kernelFunction is not None else ('', 0)
+        else:
+            self.location = location
 
         # Get any global variables from parent scope.
         # We filter only types we accept: integers and floats.
@@ -92,6 +97,9 @@ class PyKernelDecorator(object):
 
         if funcSrc:
             self.funcSrc = funcSrc
+            self.signature = signature
+            self.arguments = arguments
+            self.returnType = returnType
         else:
             try:
                 # Get the function source
@@ -112,12 +120,14 @@ class PyKernelDecorator(object):
 
         # Assign the signature for use later and
         # keep a list of arguments (used for validation in the runtime)
-        self.signature = inspect.getfullargspec(self.kernelFunction).annotations
-        self.arguments = [
-            (k, v) for k, v in self.signature.items() if k != 'return'
-        ]
-        self.returnType = self.signature[
-            'return'] if 'return' in self.signature else None
+        # Bypass if deserializing because they are directly provided.
+        if funcSrc is None:
+            self.signature = inspect.getfullargspec(self.kernelFunction).annotations
+            self.arguments = [
+                (k, v) for k, v in self.signature.items() if k != 'return'
+            ]
+            self.returnType = self.signature[
+                'return'] if 'return' in self.signature else None
 
         # Validate that we have a return type annotation if necessary
         hasRetNodeVis = HasReturnNodeVisitor()
@@ -231,7 +241,7 @@ class PyKernelDecorator(object):
                                    module=self.module)
 
     def __reduce__(self):
-        args = (self.kernelFunction.__name__ if self.kernelFunction else None, self.verbose, None, self.name, self.funcSrc)
+        args = (self.kernelFunction.__name__ if self.kernelFunction else None, self.verbose, None, self.name, self.funcSrc, self.signature, self.arguments, self.returnType, self.location)
         return (self.__class__, args)
 
     def __call__(self, *args):
