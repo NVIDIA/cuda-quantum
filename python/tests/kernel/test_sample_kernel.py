@@ -147,6 +147,7 @@ def test_broadcast():
         print(runtimeAngles[i, :], c)
         assert len(c) == 2
 
+
 @skipIfPythonLessThan39
 def test_broadcastPy39Plus():
 
