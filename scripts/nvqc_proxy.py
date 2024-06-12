@@ -122,6 +122,9 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 "error": str(e)
             }
 
+    def is_serialized_code_execution_request(self, request_json):
+        return 'serializedCodeExecutionContext' in request_json and 'source_code' in request_json['serializedCodeExecutionContext'] and request_json['serializedCodeExecutionContext']['source_code'] != ''
+
     def do_POST(self):
         if self.path == '/job':
             # qpud_up = False
@@ -147,9 +150,8 @@ class Server(http.server.SimpleHTTPRequestHandler):
             if content_length:
                 request_data = self.rfile.read(content_length)
                 request_json = json.loads(request_data)
-                print(request_json)
-
-                if 'serializedCodeExecutionContext' in request_json:
+                
+                if self.is_serialized_code_execution_request(request_json):
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     result = loop.run_until_complete(self.handle_job_request(request_json))

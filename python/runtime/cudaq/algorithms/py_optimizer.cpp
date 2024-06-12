@@ -147,8 +147,7 @@ std::string read_file(const std::string &file_path) {
   return buffer.str();
 }
 
-std::string get_file_content(const py::object &inspect,
-                             const py::function &func) {
+std::string get_file_content(const py::object &inspect) {
   // Get the source file of the function
   std::string source_file_path;
   std::string file_content;
@@ -394,7 +393,7 @@ void call_rest_api(
 
   std::cout << "In call_rest_api" << std::endl;
   std::unordered_map<std::string, std::string> map;
-  map.emplace("url", "http://localhost:15030//");
+  map.emplace("url", "http://localhost:18030//");
 
   m_client->setConfig(map);
 
@@ -536,7 +535,7 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               py::object inspect = py::module::import("inspect");
 
               // Get source file content
-              std::string file_content = get_file_content(inspect, func);
+              std::string file_content = get_file_content(inspect);
 
               std::string combined_code =
                   get_required_raw_source_code(file_content, inspect, func);
