@@ -69,8 +69,7 @@ void invokeWrappedKernel(std::string_view irString,
       if (func.hasInternalLinkage()) {
         LLVM_DEBUG(llvm::dbgs()
                    << "Change linkage type for symbol " << func.getName()
-                   << " internal to "
-                      "external linkage.");
+                   << " internal to external linkage.");
         func.setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
       }
     };
