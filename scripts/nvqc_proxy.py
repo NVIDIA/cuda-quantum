@@ -108,10 +108,17 @@ class Server(http.server.SimpleHTTPRequestHandler):
             exec(source_code, globals_dict)
             result = {
                 "status": "success",
-                "globals": globals_dict,
-                "executionContext": None
+                "executionContext" : {
+                    "shots": 0,
+                    "hasConditionalsOnMeasureResults": False,
+                    "optResult": [
+                        globals_dict['energy'],
+                        globals_dict['parms_at_energy']
+                    ]
+                }
             }
             print(result)
+            return result
         except Exception as e:
             import traceback
             print("An error occured:")
