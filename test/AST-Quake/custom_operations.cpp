@@ -49,8 +49,8 @@ __qpu__ void kernel_1() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.unitary %[[VAL_0]] : (!quake.ref) -> () {generator = @custom_h_generator_1}
-// CHECK:           quake.unitary %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> () {generator = @custom_cnot_generator_2}
+// CHECK:           quake.custom_op @custom_h_generator_1 %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.custom_op @custom_cnot_generator_2 %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -63,8 +63,8 @@ __qpu__ void kernel_2() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_2._Z8kernel_2v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.unitary %[[VAL_0]] : (!quake.ref) -> () {generator = @custom_h_generator_1}
-// CHECK:           quake.unitary {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> () {generator = @custom_x_generator_1}
+// CHECK:           quake.custom_op @custom_h_generator_1 %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.custom_op @custom_x_generator_1 {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -78,7 +78,7 @@ __qpu__ void kernel_3() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           quake.unitary %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> () {generator = @custom_swap_generator_2}
+// CHECK:           quake.custom_op @custom_swap_generator_2 %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -112,7 +112,7 @@ __qpu__ void kernel_4() {
 // CHECK:           %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_4]][2] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_4]][3] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           quake.unitary {{\[}}%[[VAL_13]], %[[VAL_14]]] %[[VAL_15]], %[[VAL_16]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> () {generator = @custom_swap_generator_2}
+// CHECK:           quake.custom_op @custom_swap_generator_2 {{\[}}%[[VAL_13]], %[[VAL_14]]] %[[VAL_15]], %[[VAL_16]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -126,8 +126,8 @@ __qpu__ void kernel_5() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_5._Z8kernel_5v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           quake.unitary %[[VAL_0]] : (!quake.ref) -> () {generator = @custom_s_generator_1}
-// CHECK:           quake.unitary<adj> %[[VAL_0]] : (!quake.ref) -> () {generator = @custom_s_generator_1}
+// CHECK:           quake.custom_op @custom_s_generator_1 %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.custom_op @custom_s_generator_1<adj> %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -149,7 +149,7 @@ __qpu__ void kernel_6() {
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_4]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:           quake.unitary (%[[VAL_6]], %[[VAL_7]], %[[VAL_8]]) %[[VAL_2]] : (f64, f64, f64, !quake.ref) -> () {generator = @my_u3_generator_0_generator_1}
+// CHECK:           quake.custom_op @my_u3_generator_0_generator_1 (%[[VAL_6]], %[[VAL_7]], %[[VAL_8]]) %[[VAL_2]] : (f64, f64, f64, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -180,6 +180,6 @@ __qpu__ void kernel_7() {
 // CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_3]][2] : (!quake.veq<3>) -> !quake.ref
-// CHECK:           quake.unitary %[[VAL_11]], %[[VAL_12]], %[[VAL_13]] : (!quake.ref, !quake.ref, !quake.ref) -> () {generator = @toffoli_generator_3}
+// CHECK:           quake.custom_op @toffoli_generator_3 %[[VAL_11]], %[[VAL_12]], %[[VAL_13]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
