@@ -738,18 +738,19 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
 // Quantum gates
 //===----------------------------------------------------------------------===//
 
-class QuakeOperator<string mnemonic, list<Trait> traits = []>
+class QuakeOperator<string mnemonic, list<Trait> traits = [],
+                    dag extraArgs = (ins)>
     : QuakeOp<mnemonic,
         !listconcat([QuantumGate, AttrSizedOperandSegments, OperatorInterface,
           DeclareOpInterfaceMethods<MemoryEffectsOpInterface>], traits)> {
 
-  let arguments = (ins
+  let arguments = !con(extraArgs, (ins
     UnitAttr:$is_adj,
     Variadic<AnyFloat>:$parameters,
     Variadic<AnyQType>:$controls,
     Variadic<AnyQTargetType>:$targets,
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
-  );
+  ));
   let results = (outs
     Variadic<WireType>:$wires
   );
@@ -1158,12 +1159,18 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
-def CustomUnitarySymbolOp : QuakeOperator<"unitary"> {
+def CustomUnitarySymbolOp : QuakeOperator<"unitary", [], (ins SymbolRefAttr:$generator)> {
   let summary = "Custom unitary operation.";
   let description = [{
     Custom unitary operation leveraging a `SymbolRefAttr` describing the unitary 
     data generator function. 
-  }]; 
+  }];
+
+  let assemblyFormat = [{  $generator
+    ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
+    (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
+    $targets `:` functional-type(operands, results) attr-dict
+  }];
 }
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS
