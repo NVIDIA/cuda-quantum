@@ -62,26 +62,15 @@ module attributes {
 // CHECK:         store double 1.000000e+00, double* %[[VAL_3]], align 8
 // CHECK:         %[[VAL_5:.*]] = bitcast [4 x double]* %[[VAL_0]] to i8*
 // CHECK:         %[[VAL_6:.*]] = call %[[VAL_7:.*]]* @__quantum__rt__qubit_allocate_array_with_state_fp64(i64 2, i8* nonnull %[[VAL_5]])
-// CHECK:         %[[VAL_8:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_7]]* %[[VAL_6]])
-// CHECK:         %[[VAL_9:.*]] = icmp sgt i64 %[[VAL_8]], 0
-// CHECK:         br i1 %[[VAL_9]], label %[[VAL_10:.*]], label %[[VAL_11:.*]]
-// CHECK:       .lr.ph:                                           ; preds = %[[VAL_12:.*]], %[[VAL_10]]
-// CHECK:         %[[VAL_13:.*]] = phi i64 [ %[[VAL_14:.*]], %[[VAL_10]] ], [ 0, %[[VAL_12]] ]
-// CHECK:         %[[VAL_15:.*]] = call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]]* %[[VAL_6]], i64 %[[VAL_13]])
-// CHECK:         %[[VAL_16:.*]] = bitcast i8* %[[VAL_15]] to %[[VAL_17:.*]]**
-// CHECK:         %[[VAL_18:.*]] = load %[[VAL_17]]*, %[[VAL_17]]** %[[VAL_16]], align 8
-// CHECK:         call void @__quantum__qis__h(%[[VAL_17]]* %[[VAL_18]])
-// CHECK:         %[[VAL_14]] = add nuw nsw i64 %[[VAL_13]], 1
-// CHECK:         %[[VAL_19:.*]] = icmp eq i64 %[[VAL_14]], %[[VAL_8]]
-// CHECK:         br i1 %[[VAL_19]], label %[[VAL_11]], label %[[VAL_10]]
-// CHECK:       ._crit_edge:                                      ; preds = %[[VAL_10]], %[[VAL_12]]
-// CHECK:         %[[VAL_20:.*]] = call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]]* %[[VAL_6]], i64 1)
-// CHECK:         %[[VAL_21:.*]] = bitcast i8* %[[VAL_20]] to %[[VAL_17]]**
-// CHECK:         %[[VAL_22:.*]] = load %[[VAL_17]]*, %[[VAL_17]]** %[[VAL_21]], align 8
-// CHECK:         %[[VAL_23:.*]] = call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]]* %[[VAL_6]], i64 0)
-// CHECK:         %[[VAL_24:.*]] = bitcast i8* %[[VAL_23]] to %[[VAL_17]]**
-// CHECK:         %[[VAL_25:.*]] = load %[[VAL_17]]*, %[[VAL_17]]** %[[VAL_24]], align 8
-// CHECK:         call void (i64, void (%[[VAL_7]]*, %[[VAL_17]]*)*, ...) @invokeWithControlQubits(i64 1, void (%[[VAL_7]]*, %[[VAL_17]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_17]]* %[[VAL_22]], %[[VAL_17]]* %[[VAL_25]])
+// CHECK:         %[[VAL_8:.*]] = call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]]* %[[VAL_6]], i64 0)
+// CHECK:         %[[VAL_9:.*]] = bitcast i8* %[[VAL_8]] to %[[VAL_10:.*]]**
+// CHECK:         %[[VAL_11:.*]] = load %[[VAL_10]]*, %[[VAL_10]]** %[[VAL_9]], align 8
+// CHECK:         call void @__quantum__qis__h(%[[VAL_10]]* %[[VAL_11]])
+// CHECK:         %[[VAL_12:.*]] = call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]]* %[[VAL_6]], i64 1)
+// CHECK:         %[[VAL_13:.*]] = bitcast i8* %[[VAL_12]] to %[[VAL_10]]**
+// CHECK:         %[[VAL_14:.*]] = load %[[VAL_10]]*, %[[VAL_10]]** %[[VAL_13]], align 8
+// CHECK:         call void @__quantum__qis__h(%[[VAL_10]]* %[[VAL_14]])
+// CHECK:         call void (i64, void (%[[VAL_7]]*, %[[VAL_10]]*)*, ...) @invokeWithControlQubits(i64 1, void (%[[VAL_7]]*, %[[VAL_10]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_10]]* %[[VAL_14]], %[[VAL_10]]* %[[VAL_11]])
 // CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_7]]* %[[VAL_6]])
 // CHECK:         ret void
 // CHECK:       }
