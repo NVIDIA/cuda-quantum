@@ -203,11 +203,8 @@ inline void from_json(const json &j, ExecutionContext &context) {
   if (j.contains("registerNames"))
     j["registerNames"].get_to(context.registerNames);
 
-  if (j.contains("overlapResult")) {
-    std::complex<double> overlapResult{0.0};
-    j["overlapResult"].get_to(overlapResult);
-    context.overlapResult = overlapResult;
-  }
+  if (j.contains("overlapResult"))
+    context.overlapResult = j["overlapResult"];
 }
 
 // Enum data to denote the payload format.
