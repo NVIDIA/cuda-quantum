@@ -17,7 +17,6 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <fstream>
-#include <iostream>
 
 namespace cudaq {
 
@@ -97,12 +96,11 @@ public:
                                                                /*shots=*/1);
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
-
-    cudaq::SerializedCodeExecutionContext serializedCodeContext;
     std::string errorMsg;
-    const bool requestOkay = m_client->sendRequest(
-        *m_mlirContext, executionContext, serializedCodeContext, m_simName,
-        name, kernelFunc, args, voidStarSize, &errorMsg);
+    const bool requestOkay =
+        m_client->sendRequest(*m_mlirContext, executionContext,
+                              /*serializedCodeContext=*/nullptr, m_simName,
+                              name, kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
@@ -138,7 +136,7 @@ public:
 
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *m_mlirContext, executionContext, serializeCodeExecutionObject,
+        *m_mlirContext, executionContext, &serializeCodeExecutionObject,
         m_simName, name, /*kernelFunc=*/nullptr, /*args=*/nullptr,
         /*voidStarSize=*/0, &errorMsg);
     if (!requestOkay)

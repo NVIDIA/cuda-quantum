@@ -191,11 +191,13 @@ public:
 
   cudaq::RestRequest constructJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
-      cudaq::SerializedCodeExecutionContext &serializedCodeContext,
+      cudaq::SerializedCodeExecutionContext *serializedCodeContext,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
-    cudaq::RestRequest request(io_context, version(), serializedCodeContext);
+    cudaq::RestRequest request(io_context, version());
+    if (serializedCodeContext)
+      request.serializedCodeExecutionContext = *serializedCodeContext;
     request.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;
@@ -242,21 +244,22 @@ public:
   virtual bool
   sendRequest(mlir::MLIRContext &mlirContext,
               cudaq::ExecutionContext &io_context,
-              cudaq::SerializedCodeExecutionContext &serializedCodeContext,
+              cudaq::SerializedCodeExecutionContext *serializedCodeContext,
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
     cudaq::RestRequest request = constructJobRequest(
         mlirContext, io_context, serializedCodeContext, backendSimName,
         kernelName, kernelFunc, kernelArgs, argsSize);
-    // if (request.code.empty()) {
-    //   if (optionalErrorMsg)
-    //     *optionalErrorMsg =
-    //         std::string(
-    //             "Failed to construct/retrieve kernel IR for kernel named ") +
-    //         kernelName;
-    //   return false;
-    // }
+    if (request.code.empty() && (serializedCodeContext == nullptr ||
+                                 serializedCodeContext->source_code.empty())) {
+      if (optionalErrorMsg)
+        *optionalErrorMsg =
+            std::string(
+                "Failed to construct/retrieve kernel IR for kernel named ") +
+            kernelName;
+      return false;
+    }
 
     // Don't let curl adding "Expect: 100-continue" header, which is not
     // suitable for large requests, e.g., bitcode in the JSON request.
@@ -646,7 +649,7 @@ public:
   virtual bool
   sendRequest(mlir::MLIRContext &mlirContext,
               cudaq::ExecutionContext &io_context,
-              cudaq::SerializedCodeExecutionContext &serializedCodeContext,
+              cudaq::SerializedCodeExecutionContext *serializedCodeContext,
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
@@ -676,7 +679,8 @@ public:
         mlirContext, io_context, serializedCodeContext, backendSimName,
         kernelName, kernelFunc, kernelArgs, argsSize);
 
-    if (request.code.empty()) {
+    if (request.code.empty() && (serializedCodeContext == nullptr ||
+                                 serializedCodeContext->source_code.empty())) {
       if (optionalErrorMsg)
         *optionalErrorMsg =
             std::string(

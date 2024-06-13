@@ -76,13 +76,12 @@ public:
   // Subclass will implement necessary transport-layer serialization and
   // communication protocols. The `ExecutionContext` will be updated in-place as
   // if this was a local execution.
-  virtual bool
-  sendRequest(mlir::MLIRContext &mlirContext, ExecutionContext &io_context,
-              SerializedCodeExecutionContext &serializedCodeContext,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize,
-              std::string *optionalErrorMsg = nullptr) = 0;
+  virtual bool sendRequest(
+      mlir::MLIRContext &mlirContext, ExecutionContext &io_context,
+      SerializedCodeExecutionContext *serializedCodeContext,
+      const std::string &backendSimName, const std::string &kernelName,
+      void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize,
+      std::string *optionalErrorMsg = nullptr) = 0;
   // Destructor
   virtual ~RemoteRuntimeClient() = default;
 };

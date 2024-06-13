@@ -49,11 +49,10 @@ public:
                                                                /*shots=*/1);
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
-    cudaq::SerializedCodeExecutionContext serializedCodeContext;
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *mlirContext, executionContext, serializedCodeContext, m_simName, name,
-        kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
+        *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        m_simName, name, kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
@@ -100,11 +99,10 @@ public:
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
 
-    cudaq::SerializedCodeExecutionContext serializedCodeContext;
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *mlirContext, executionContext, serializedCodeContext, m_simName, name,
-        kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
+        *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        m_simName, name, kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }

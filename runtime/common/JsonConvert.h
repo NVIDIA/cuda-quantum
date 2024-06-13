@@ -531,18 +531,13 @@ public:
   // IMPORTANT: When a new version is defined, a new NVQC deployment will be
   // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
-  RestRequest(ExecutionContext &context, int versionNumber,
-              const SerializedCodeExecutionContext &serializedCodeContext)
+  RestRequest(ExecutionContext &context, int versionNumber)
       : executionContext(context), version(versionNumber),
-        clientVersion(CUDA_QUANTUM_VERSION),
-        serializedCodeExecutionContext(serializedCodeContext) {}
+        clientVersion(CUDA_QUANTUM_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
             std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
-        executionContext(*m_deserializedContext),
-        serializedCodeExecutionContext(
-            j.at("serializedCodeExecutionContext")
-                .get<SerializedCodeExecutionContext>()) {
+        executionContext(*m_deserializedContext) {
     from_json(j, *this);
     // Take the ownership of the spin_op pointer for proper cleanup.
     if (executionContext.spin.has_value() && executionContext.spin.value())
@@ -576,7 +571,7 @@ public:
   // The SerializedCodeExecutionContext to compile and to execute
   // the source code of the objective function.
   // The server will execute serialized code in this context
-  SerializedCodeExecutionContext serializedCodeExecutionContext;
+  std::optional<SerializedCodeExecutionContext> serializedCodeExecutionContext;
 
   friend void to_json(json &j, const RestRequest &p) {
     TO_JSON_HELPER(version);
@@ -590,7 +585,7 @@ public:
     TO_JSON_HELPER(seed);
     TO_JSON_HELPER(passes);
     TO_JSON_HELPER(clientVersion);
-    TO_JSON_HELPER(serializedCodeExecutionContext);
+    TO_JSON_OPT_HELPER(serializedCodeExecutionContext);
   }
 
   friend void from_json(const json &j, RestRequest &p) {
@@ -605,7 +600,7 @@ public:
     FROM_JSON_HELPER(seed);
     FROM_JSON_HELPER(passes);
     FROM_JSON_HELPER(clientVersion);
-    FROM_JSON_HELPER(serializedCodeExecutionContext);
+    FROM_JSON_OPT_HELPER(serializedCodeExecutionContext);
   }
 };
 
