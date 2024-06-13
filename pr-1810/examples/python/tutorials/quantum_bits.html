@@ -525,13 +525,12 @@
 <h2>Qubit<a class="headerlink" href="#Qubit" title="Permalink to this heading">¶</a></h2>
 <p>The fundamental unit of classical information storage, processing and transmission is the bit. Analogously, we define its quantum counterpart, a quantum bit or simply the qubit. Below we define a qubit in CUDA-Q.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[104]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the relevant packages for Bloch sphere visualization</span>
-
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span>qutip&gt;<span class="o">=</span><span class="m">5</span>
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span>matplotlib&gt;<span class="o">=</span><span class="m">3</span>.5
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="o">!{</span>sys.executable<span class="o">}</span><span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">qutip</span><span class="o">==</span><span class="m">5</span>.0.2<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.9.0
 
 <span class="kn">import</span> <span class="nn">cudaq</span>
 
@@ -559,12 +558,12 @@
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{bmatrix} 0 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix}\end{split}\]</div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[105]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
-    <span class="c1"># A single qubit initialised to the ground/ zero state.</span>
+    <span class="c1"># A single qubit initialized to the ground/ zero state.</span>
     <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 
     <span class="c1"># Apply the pauli x gate to the qubit.</span>
@@ -574,7 +573,7 @@
     <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 
-<span class="c1"># Sample the qubit for 1000 shots to gather statsitics.</span>
+<span class="c1"># Sample the qubit for 1000 shots to gather statistics.</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
@@ -597,12 +596,12 @@
 \[\begin{split}\tfrac{1}{\sqrt{2}}\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; -1 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \tfrac{1}{\sqrt{2}} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} + \tfrac{1}{\sqrt{2}} \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix}.\end{split}\]</div>
 <p>The probability of finding the qubit in the 0 / 1 state is hence <span class="math notranslate nohighlight">\(\lvert \tfrac{1}{\sqrt{2}} \rvert ^2 = \tfrac{1}{2}\)</span>. Lets verify this with some code:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[106]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
-    <span class="c1"># A single qubit initialised to the ground/ zero state.</span>
+    <span class="c1"># A single qubit initialized to the ground/ zero state.</span>
     <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 
     <span class="c1"># Apply hadamard gate to single qubit to put it in equal superposition.</span>
@@ -632,43 +631,40 @@
 <p>It turns out that a sphere is able to depict all the possible states of a single qubit as shown in figure below:</p>
 <p><img alt="Bloch Sphere" class="no-scaled-link" src="../../../_images/Bloch_sphere.png" style="width: 300px; height: 300px;" /></p>
 <p>Let us try to showcase the functionality to render such a 3D representation with CUDA-Q.</p>
-<p>First, let us define a single-qubit kernel that returns a different state each time. This kernel uses random rotations, so make sure that we have set the target to a density matrix, otherwise results will be invalid.</p>
 <p>Note: CUDA-Q uses the <a class="reference external" href="https://qutip.org">QuTiP</a> library to render Bloch spheres. The following code will throw an error if QuTiP is not installed.</p>
+<p>First, let us define a single-qubit kernel that returns a different state each time by varying rotation parameter.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[107]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">qutip</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">qutip</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">angles</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
     <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
-    <span class="n">rz</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">qubit</span><span class="p">)</span>
-    <span class="n">rx</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">qubit</span><span class="p">)</span>
-    <span class="n">rz</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="n">ry</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="n">qubit</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Next, we instantiate a random number generator, so we can get random outputs. We then create 4 random single-qubit states by using <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code> on the output state obtained from the random kernel.</p>
+<p>We create 4 single-qubit states by using <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code> on the output state obtained from the kernel above.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[108]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">()</span>
-<span class="n">blochSphereList</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">blochSphereList</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="n">angle</span> <span class="o">=</span> <span class="mf">0.0</span>
 <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
-    <span class="n">angleList</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
-    <span class="n">sph</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">add_to_bloch_sphere</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="n">angleList</span><span class="p">))</span>
-    <span class="n">blochSphereList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sph</span><span class="p">)</span>
+    <span class="n">sphere</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">add_to_bloch_sphere</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">angle</span><span class="p">))</span>
+    <span class="n">blochSphereList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sphere</span><span class="p">)</span>
+    <span class="n">angle</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">4.0</span>
 </pre></div>
 </div>
 </div>
 <p>We can display the spheres with <code class="docutils literal notranslate"><span class="pre">cudaq.show()</span></code>. Show the first sphere:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[109]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -684,10 +680,10 @@
 </div>
 <p>We can also show multiple Bloch spheres side by side - simply set the <code class="docutils literal notranslate"><span class="pre">nrows</span></code> and <code class="docutils literal notranslate"><span class="pre">ncols</span></code> in the call to <code class="docutils literal notranslate"><span class="pre">cudaq.show()</span></code> accordingly. Make sure to have more spaces than spheres in your list, else it will throw an error! Let us show two spheres in a row:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[110]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span><span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -700,10 +696,10 @@
 </div>
 <p>We can show them in a column too, if we want! Simply set the <code class="docutils literal notranslate"><span class="pre">nrows</span> <span class="pre">=</span> <span class="pre">2</span></code> and <code class="docutils literal notranslate"><span class="pre">ncols</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[111]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -716,10 +712,10 @@
 </div>
 <p>Can we show the entire list of 4 Bloch spheres we created? Absolutely!</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[112]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:],</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -732,20 +728,20 @@
 </div>
 <p>What if we had to add multiple vectors to a single Bloch sphere? CUDA-Q uses the <a class="reference external" href="https://www.qutip.org">QuTiP</a> toolbox to construct Bloch spheres. We can then add multiple states to the same Bloch sphere by passing the sphere object as an argument to <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[113]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">()</span>
 <span class="n">blochSphere</span> <span class="o">=</span> <span class="n">qutip</span><span class="o">.</span><span class="n">Bloch</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-    <span class="n">angleList</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
-    <span class="n">sph</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">add_to_bloch_sphere</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="n">angleList</span><span class="p">),</span> <span class="n">blochSphere</span><span class="p">)</span>
+    <span class="n">angle</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">add_to_bloch_sphere</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">angle</span><span class="p">),</span> <span class="n">blochSphere</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <p>This created a single Bloch sphere with 10 random vectors. Let us see how it looks.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[114]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">blochSphere</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
