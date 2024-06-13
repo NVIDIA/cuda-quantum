@@ -36,7 +36,7 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 # https://github.com/h5py/h5py/issues/2408
 [project.optional-dependencies]
 chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
-visualization = [ "qutip>=5" ]
+visualization = [ "qutip>=5" , "matplotlib>=3.5" ]
 
 [build-system]
 requires = ["scikit-build-core", "cmake>=3.26,<3.29"]
