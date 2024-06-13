@@ -615,7 +615,8 @@ protected:
 
         // If specific amplitudes are requested.
         // Note: this could be the case whereby the state vector is too large
-        // for full retrieval.
+        // for full retrieval (determined by
+        // `RemoteSimulationState::maxQubitCountForFullStateTransfer`).
         if (request.executionContext.name == "extract-state" &&
             request.executionContext.amplitudeMaps.has_value()) {
           // Acquire the state, no need to send the full state back
