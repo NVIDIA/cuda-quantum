@@ -29,7 +29,6 @@ def do_something():
 
 @cudaq.kernel
 def single_qubit_kernel():
-    # Run any random single qubit code. Currently using the code from examples/python/intro.py
     qubit = cudaq.qubit()
     h(qubit)
     x(qubit)
@@ -38,7 +37,6 @@ def single_qubit_kernel():
 
 @cudaq.kernel
 def two_qubit_kernel():
-    # Run any random two-qubit code. Currently using the code from examples/python/expectation_values.py
     qvector = cudaq.qvector(2)
     x(qvector[0])
     ry(np.pi / 2., qvector[1])
