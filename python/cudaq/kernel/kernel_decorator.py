@@ -38,25 +38,34 @@ class PyKernelDecorator(object):
     MLIR `ExecutionEngine` for the MLIR mode. 
     """
 
-    def __init__(self, function, verbose=False, module=None, kernelName=None, funcSrc=None, signature=None, arguments=None, returnType=None, location=None):
-        if isinstance(function, str):
-            # This is N/A, just set to some valid function to not throw errors
-            # in downstream code. TODO - cleanup
-            function = kernel
+    def __init__(self,
+                 function,
+                 verbose=False,
+                 module=None,
+                 kernelName=None,
+                 funcSrc=None,
+                 signature=None,
+                 arguments=None,
+                 returnType=None,
+                 location=None):
+        restoring_from_pickle = isinstance(function, str)
 
-        self.kernelFunction = function
+        if restoring_from_pickle:
+            self.kernelFunction = None
+            self.name = kernelName
+            self.location = location
+        else:
+            self.kernelFunction = function
+            self.name = kernelName if kernelName != None else self.kernelFunction.__name__
+            self.location = (inspect.getfile(self.kernelFunction),
+                             inspect.getsourcelines(self.kernelFunction)[1]
+                            ) if self.kernelFunction is not None else ('', 0)
+
         self.capturedDataStorage = None
 
         self.module = None if module is None else module
         self.verbose = verbose
-        self.name = kernelName if kernelName is not None else (self.kernelFunction.__name__ if self.kernelFunction else None)
         self.argTypes = None
-        if location is None:
-            self.location = (inspect.getfile(self.kernelFunction),
-                            inspect.getsourcelines(self.kernelFunction)[1]
-                            ) if self.kernelFunction is not None else ('', 0)
-        else:
-            self.location = location
 
         # Get any global variables from parent scope.
         # We filter only types we accept: integers and floats.
@@ -72,7 +81,7 @@ class PyKernelDecorator(object):
         # used in the kernel. We need to track these.
         self.dependentCaptures = None
 
-        if self.kernelFunction is None:
+        if self.kernelFunction is None and not restoring_from_pickle:
             if self.module is not None:
                 # Could be that we don't have a function
                 # but someone has provided an external Module.
@@ -95,7 +104,7 @@ class PyKernelDecorator(object):
                     "Invalid kernel decorator. Module and function are both None."
                 )
 
-        if funcSrc:
+        if restoring_from_pickle:
             self.funcSrc = funcSrc
             self.signature = signature
             self.arguments = arguments
@@ -121,8 +130,9 @@ class PyKernelDecorator(object):
         # Assign the signature for use later and
         # keep a list of arguments (used for validation in the runtime)
         # Bypass if deserializing because they are directly provided.
-        if funcSrc is None:
-            self.signature = inspect.getfullargspec(self.kernelFunction).annotations
+        if not restoring_from_pickle:
+            self.signature = inspect.getfullargspec(
+                self.kernelFunction).annotations
             self.arguments = [
                 (k, v) for k, v in self.signature.items() if k != 'return'
             ]
@@ -241,7 +251,9 @@ class PyKernelDecorator(object):
                                    module=self.module)
 
     def __reduce__(self):
-        args = (self.kernelFunction.__name__ if self.kernelFunction else None, self.verbose, None, self.name, self.funcSrc, self.signature, self.arguments, self.returnType, self.location)
+        args = (self.kernelFunction.__name__ if self.kernelFunction else '',
+                self.verbose, None, self.name, self.funcSrc, self.signature,
+                self.arguments, self.returnType, self.location)
         return (self.__class__, args)
 
     def __call__(self, *args):
