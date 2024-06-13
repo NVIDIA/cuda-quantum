@@ -581,7 +581,8 @@ protected:
         }
         if (errorCode2) {
           LLVMConsumeError(llvm::wrap(std::move(errorCode2)));
-          throw std::runtime_error("Failed to decode input IR (request.overlapKernel->ir)");
+          throw std::runtime_error(
+              "Failed to decode input IR (request.overlapKernel->ir)");
         }
         std::string_view codeStr1(decodedCodeIr1.data(), decodedCodeIr1.size());
         cudaq::ExecutionContext stateContext1("extract-state");
