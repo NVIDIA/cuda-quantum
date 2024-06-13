@@ -193,24 +193,35 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 1,
    "metadata": {
     "scrolled": true
    },
    "outputs": [],
    "source": [
-    "# install qutip in the current Python kernel. Skip this if qutip is already installed.\n",
+    "# install qutip in the current Python kernel. Skip this if qutip is already installed. \n",
+    "# Matplotlib is required for all visualization tasks.\n",
     "# Make sure to restart your kernel if you execute this! \n",
     "# In a Jupyter notebook, go to the menu bar > Kernel > Restart Kernel.\n",
     "# In VSCode, click on the Restart button in the Jupyter toolbar.\n",
     "\n",
+    "# The '\\' before the '>' operator is so that the shell does not misunderstand\n",
+    "# the '>' qualifier for the bash pipe operation.\n",
+    "\n",
     "import sys\n",
-    "!{sys.executable} -m pip install qutip>=5"
+    "\n",
+    "try:\n",
+    "    import matplotlib.pyplot as plt\n",
+    "    import qutip\n",
+    "except ImportError:\n",
+    "    print(\"Tools not found, installing. Please restart your kernel after this is done.\")\n",
+    "    !{sys.executable} -m pip install qutip\\>=5 matplotlib\\>=3.5\n",
+    "    print(\"\\nNew libraries have been installed. Please restart your kernel!\")"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 1,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
