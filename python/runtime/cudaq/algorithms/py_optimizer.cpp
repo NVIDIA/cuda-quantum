@@ -140,10 +140,7 @@ std::string remove_comments(const std::string& source) {
 
     while (std::regex_search(searchStart, source.cend(), match, comment_regex)) {
         result += match.prefix().str();
-        if (!match[1].matched) {
-            // It is a comment, skip it
-        } else {
-            // It is a string literal
+        if (match[1].matched) {
             result += match.str();
         }
         searchStart = match.suffix().first;
