@@ -17,8 +17,6 @@ class RequestValidator:
     def validate_string(self, source_code: str):
         match = re.search(self.validation_checks, source_code)
         if match:
-            print(source_code)
-            print(match.group())
             return False, match.group()
         return True, None
     

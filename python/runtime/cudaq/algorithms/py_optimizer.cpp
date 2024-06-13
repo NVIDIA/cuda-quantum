@@ -372,7 +372,6 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               std::string combined_code =
                   get_required_raw_source_code(dim, func, optimizer_var_name);
 
-              std::cout << combined_code << std::endl;
               SerializedCodeExecutionContext serialized_code_execution_object =
                   get_serialized_code(combined_code);
 

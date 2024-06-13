@@ -110,7 +110,6 @@ class Server(http.server.SimpleHTTPRequestHandler):
         deserialized_globals_dict = self.get_deserialized_dict(serialized_dict)
 
         is_valid, validation_response = self.validate_execution_context(source_code, deserialized_globals_dict)
-        print(is_valid, validation_response)
         if not is_valid:
             return validation_response
 
