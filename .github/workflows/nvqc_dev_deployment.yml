@@ -1,0 +1,147 @@
+name: Deploy NVQC Dev Function
+
+
+# Manually trigger only workflow
+on:
+  workflow_dispatch:
+    inputs:
+      cudaq_nvqc_deploy_image:
+        type: string
+        required: false
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' 
+        description: 'CUDA Quantum image to use for NVQC deployment to NVCF. Default to the latest CUDA Quantum nightly image'
+      cudaq_nvqc_deploy_image_tag:
+        type: string
+        required: false
+        default: 'dev-latest'
+        description: 'The image tag for the deployment image.'
+      deployment_spec:
+        type: string
+        required: false
+        default: GFN:L40:gl40_1.br20_2xlarge:1:1
+        description: 'NVQC Deployment Spec'
+      num_gpus:
+        type: integer
+        required: false
+        default: 1
+        description: 'The value to set NUM_GPUS deployment environment variable'
+      rest_payload_version:
+        type: integer
+        required: false
+        default: 1
+        description: 'The value to set NVQC_REST_PAYLOAD_VERSION deployment environment variable'
+      function_name:
+        type: string
+        required: false
+        description: 'NVQC Dev function name. Create a default function name if blank'
+
+
+env:
+  # NGC nv-quantum organization: pnyjrcojiblh
+  NGC_QUANTUM_ORG: pnyjrcojiblh
+  NGC_QUANTUM_TEAM: cuda-quantum
+
+jobs:
+  build_nvqc_image:
+    name: Build NVQC deployment image
+    runs-on: ubuntu-latest
+    environment: ghcr-deployment
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: builder_context
+
+      - name: Login to NGC container registry
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      # Log in to GHCR (in case the base image is a local one)
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build NVQC image
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/release/cudaq.nvqc.Dockerfile
+          build-args: |
+            base_image=${{ inputs.cudaq_nvqc_deploy_image }}
+          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:${{ inputs.cudaq_nvqc_deploy_image_tag }}
+          platforms: linux/amd64
+          provenance: false
+          push: true
+
+  deploy_nvqc_test_function:
+    name: Deploy NVQC function
+    runs-on: ubuntu-latest
+    needs: [build_nvqc_image]
+    environment: ghcr-deployment
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install NGC CLI
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.38.0
+          checksum: 427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388
+
+      - name: Function name
+        id: function_name
+        run: |
+          if [ -n "${{ inputs.function_name }}" ]; then
+            echo "function_name=cuda_quantum_v${{ inputs.rest_payload_version }}_t3600_${{ inputs.num_gpus }}x" >> $GITHUB_OUTPUT
+          else
+            echo "function_name=${{ inputs.function_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy NVQC Function
+        id: deploy
+        env:
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
+          NGC_CLI_TEAM: cuda-quantum
+        run: |
+          create_function_result=$(ngc-cli/ngc cloud-function function create \
+            --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:${{ inputs.cudaq_nvqc_deploy_image_tag }} \
+            --container-environment-variable NUM_GPUS:${{ inputs.num_gpus }} \
+            --container-environment-variable NVQC_REST_PAYLOAD_VERSION:${{ inputs.rest_payload_version }} \
+            --container-environment-variable WATCHDOG_TIMEOUT_SEC:3600 \
+            --api-body-format CUSTOM \
+            --inference-port 3030 \
+            --health-uri / \
+            --inference-url /job \
+            --name ${{ steps.function_name.outputs.function_name }}
+          function_id=$(echo "$create_function_result" | grep 'ID: \S*' | head -1 | cut -d ':' -f 2 | tr -d ' ')
+          version_id=$(echo "$create_function_result" | grep 'Version: \S*' | head -1 | cut -d ':' -f 2 | tr -d ' ')
+          echo "Create function:version Id: $function_id:$version_id"
+          # Deploy it
+          ngc-cli/ngc cloud-function function deploy create --deployment-specification ${{ inputs.deployment_spec }} $function_id:$version_id
+          function_status=DEPLOYING
+          while [ "$function_status" = "DEPLOYING" ]; do
+            echo "Waiting for deploying NVQC function version $function_id:$version_id ..."
+            sleep 120
+            function_info=$(ngc-cli/ngc cloud-function function info $function_id:$version_id)
+            function_status=$(echo "$function_info" | grep 'Status: \S*' | head -1 | cut -d ':' -f 2 | tr -d ' ')
+          done
+          if [ "$function_status" != "ACTIVE" ]; then
+            echo "::error:: Failed to deploy NVQC Test Function"
+            exit 1
+          fi
