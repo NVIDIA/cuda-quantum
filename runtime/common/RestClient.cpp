@@ -10,7 +10,6 @@
 #include "Logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cpr/cpr.h>
-#include <iostream>
 #include <zlib.h>
 
 namespace cudaq {
@@ -87,7 +86,6 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
                                 nlohmann::json &post,
                                 std::map<std::string, std::string> &headers,
                                 bool enableLogging, bool enableSsl) {
-  cudaq::info("RemoteUrl: {}, path: {}", remoteUrl, path);
   if (headers.empty())
     headers.insert(std::make_pair("Content-type", "application/json"));
 
@@ -101,7 +99,6 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
                 post.dump());
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
-  cudaq::info("Actual path: {}", actualPath);
   auto r = cpr::Post(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
                      cpr::VerifySsl(enableSsl), *sslOptions);
 

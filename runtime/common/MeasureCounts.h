@@ -287,33 +287,4 @@ public:
   static bool has_even_parity(std::string_view bitString);
 };
 
-/// The 'SerializedCodeExecutionResult' models the result of an execution
-/// of source code (objective function and its call). It will contain the
-/// optimal cost (energy of the given hamiltonian) and the optimal parameters
-/// (the optimal gradient vector)
-struct SerializedCodeExecutionResult {
-  /// @brief The expectation value of the Hamiltonian for the given parameters
-  float energy;
-
-  /// @brief The optimal value of the parameter(s) that minimizes the
-  /// expectation value
-  std::vector<float> parameters;
-
-  /// @brief Serialize this sample result to a vector of integers.
-  /// Encoding: 1st element is size of the register name N, then next N
-  /// represent register name, next is the number of bitstrings M,
-  /// then for each bit string a triple {string mapped to long, bit string
-  /// length, count}
-  /// @return
-  std::vector<std::size_t> serialize() const;
-
-  /// @brief Deserialize a vector of integers to a `ExecutionResult`
-  /// @param data The data with encoding discussed in the brief for
-  /// `serialize`.
-  void deserialize(std::vector<std::size_t> &data);
-
-  /// @brief Constructor
-  SerializedCodeExecutionResult() = default;
-};
-
 } // namespace cudaq

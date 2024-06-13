@@ -11,7 +11,6 @@
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "common/RemoteKernelExecutor.h"
-#include "common/RequestValidator.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -252,12 +251,12 @@ public:
   // Stop the server.
   virtual void stop() override { m_server->stop(); }
 
-  virtual void handleRequest(
-      std::size_t reqId, cudaq::ExecutionContext &io_context,
-      cudaq::SerializedCodeExecutionContext &serializedCodeExecutionContext,
-      const std::string &backendSimName, std::string_view ir,
-      std::string_view kernelName, void *kernelArgs, std::uint64_t argsSize,
-      std::size_t seed) override {
+  virtual void handleRequest(std::size_t reqId,
+                             cudaq::ExecutionContext &io_context,
+                             const std::string &backendSimName,
+                             std::string_view ir, std::string_view kernelName,
+                             void *kernelArgs, std::uint64_t argsSize,
+                             std::size_t seed) override {
 
     // If we're changing the backend, load the new simulator library from file.
     if (m_simHandle.name != backendSimName) {
@@ -575,9 +574,8 @@ protected:
         throw std::runtime_error("Failed to decode input IR");
       }
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
-      handleRequest(reqId, request.executionContext,
-                    request.serializedCodeExecutionContext, request.simulator,
-                    codeStr, request.entryPoint, request.args.data(),
+      handleRequest(reqId, request.executionContext, request.simulator, codeStr,
+                    request.entryPoint, request.args.data(),
                     request.args.size(), request.seed);
       json resultJson;
       resultJson["executionContext"] = request.executionContext;
@@ -606,14 +604,6 @@ protected:
           "Unsupported input format: only CUDA-Q MLIR data is allowed.";
       return false;
     }
-
-    // cudaq::RequestValidator validator;
-
-    // if (in_request.serializedCodeExecutionContext.code != NULL) {
-    //   return
-    //   validator.validateRequest(in_request.serializedCodeExecutionContext,
-    //   outValidationMessage);
-    // }
 
     return true;
   }
