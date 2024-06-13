@@ -22,7 +22,6 @@
 
 namespace {
 
-
 /// @brief The CuStateVecCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator that delegates to the NVIDIA CuStateVec
 /// GPU-accelerated library.

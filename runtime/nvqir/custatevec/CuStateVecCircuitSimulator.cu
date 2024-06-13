@@ -12,6 +12,11 @@
 #include "cuComplex.h"
 #include "device_launch_parameters.h"
 #include "CuStateVecCircuitSimulator.h"
+#include <thrust/complex.h>
+#include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <thrust/inner_product.h>
 
 namespace nvqir {
 
@@ -181,3 +186,56 @@ initializeDeviceStateVector<cuDoubleComplex>(uint32_t n_blocks,
                                  void *deviceStateVector,
                                  std::size_t stateDimension);
 }
+
+/// @brief Custom functor for the thrust inner product.
+template <typename ScalarType>
+struct AdotConjB
+    : public thrust::binary_function<thrust::complex<ScalarType>, 
+                                     thrust::complex<ScalarType>,
+                                     thrust::complex<ScalarType>> {
+  __host__ __device__ thrust::complex<ScalarType> operator()(
+      thrust::complex<ScalarType> a,
+      thrust::complex<ScalarType> b) {
+    return thrust::abs(a * thrust::conj(b));
+  };
+};
+
+template <typename ScalarType>
+thrust::complex<ScalarType> innerProduct(
+  void *devicePtr, void *otherPtr, std::size_t size, bool createDeviceAlloc) {
+
+  auto *castedDevicePtr =
+      reinterpret_cast<thrust::complex<ScalarType> *>(devicePtr);
+  thrust::device_ptr<thrust::complex<ScalarType>> thrustDevPtrABegin(
+      castedDevicePtr);
+  thrust::device_ptr<thrust::complex<ScalarType>> thrustDevPtrAEnd(
+      castedDevicePtr + size);
+
+  thrust::device_ptr<thrust::complex<ScalarType>> thrustDevPtrBBegin;
+  if (createDeviceAlloc) {
+    // otherPtr is not a device pointer...
+    // FIXME: WE NEED TO PROPERLY CONVERT HERE - 
+    // PASS A BUFFER RATHER THAN REINTERPRETE_CAST AND HOPE FOR THE BEST...
+    auto *castedOtherPtr = reinterpret_cast<std::complex<ScalarType> *>(otherPtr);
+    std::vector<std::complex<ScalarType>> dataAsVec(castedOtherPtr,
+                                                    castedOtherPtr + size);
+    thrust::device_vector<thrust::complex<ScalarType>> otherDevPtr(dataAsVec);
+    thrustDevPtrBBegin = otherDevPtr.data();
+  } else {
+    // other is a device pointer
+    auto *castedOtherPtr = reinterpret_cast<thrust::complex<ScalarType> *>(otherPtr);
+    thrustDevPtrBBegin = thrust::device_ptr<thrust::complex<ScalarType>>(castedOtherPtr);
+  }
+
+  return thrust::inner_product(
+    thrustDevPtrABegin, thrustDevPtrAEnd, thrustDevPtrBBegin,
+    thrust::complex<ScalarType>(0.0),
+    thrust::plus<thrust::complex<ScalarType>>(),
+    AdotConjB<ScalarType>());
+}
+
+template thrust::complex<double> 
+innerProduct(void *devicePtr, void *otherPtr, std::size_t size, bool createDeviceAlloc);
+
+template thrust::complex<float> 
+innerProduct(void *devicePtr, void *otherPtr, std::size_t size, bool createDeviceAlloc);

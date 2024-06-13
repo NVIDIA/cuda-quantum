@@ -9,6 +9,8 @@
 #pragma once
 #include <cstddef>
 #include <stdint.h>
+#include <thrust/complex.h>
+#include <thrust/device_ptr.h>
 
 namespace nvqir {
 
@@ -27,5 +29,9 @@ void kronprod(uint32_t n_blocks, int32_t threads_per_block,
               size_t tsize1, const void *arr1, 
               size_t tsize2, const void *arr2, 
               void *arr0);
+
+template <typename ScalarType>
+thrust::complex<ScalarType> innerProduct(
+    void *devicePtr, void *otherPtr, std::size_t size, bool createDeviceAlloc);
 
 } // namespace nvqir
