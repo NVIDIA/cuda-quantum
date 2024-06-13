@@ -27,6 +27,9 @@
 
 using namespace mlir;
 
+// cudaq::state is defined in the runtime. The compiler will never need to know
+// about its implementation and there should not be a circular build/library
+// dependence because of it. Simply forward declare it, as it is notional.
 namespace cudaq {
 class state;
 }
