@@ -106,7 +106,7 @@ jobs:
       - name: Function name
         id: function_name
         run: |
-          if [ -n "${{ inputs.function_name }}" ]; then
+          if [ -z "${{ inputs.function_name }}" ]; then
             echo "function_name=cuda_quantum_v${{ inputs.rest_payload_version }}_t3600_${{ inputs.num_gpus }}x" >> $GITHUB_OUTPUT
           else
             echo "function_name=${{ inputs.function_name }}" >> $GITHUB_OUTPUT
