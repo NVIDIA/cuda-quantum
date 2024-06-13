@@ -138,7 +138,7 @@ fi
 if [ -n "$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so')" ]; then
   OMP_LIBRARY=${OMP_LIBRARY:-libomp}
   OpenMP_libomp_LIBRARY=${OMP_LIBRARY#lib}
-  OpenMP_FLAGS="-fopenmp"
+  OpenMP_FLAGS="${OpenMP_FLAGS:-'-fopenmp'}"
 fi
 
 # Generate CMake files 
@@ -151,9 +151,9 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
   -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
-  -DOpenMP_C_LIB_NAMES=${OpenMP_libomp_LIBRARY:+lib$OpenMP_libomp_LIBRARY} \
-  -DOpenMP_CXX_LIB_NAMES=${OpenMP_libomp_LIBRARY:+lib$OpenMP_libomp_LIBRARY} \
-  -DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY \
+  ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
+  ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
+  ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
   -DOpenMP_C_FLAGS='"$OpenMP_FLAGS"' \
   -DOpenMP_CXX_FLAGS='"$OpenMP_FLAGS"' \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
