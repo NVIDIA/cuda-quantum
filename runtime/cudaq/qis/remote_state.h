@@ -22,6 +22,10 @@ namespace cudaq {
 class RemoteSimulationState : public cudaq::SimulationState {
 protected:
   std::string kernelName;
+  // Lazily-evaluated state data (just keeping the kernel name and arguments).
+  // e.g., to be evaluated at amplitude accessor APIs (const APIs, hence needs
+  // to be mutable) or overlap calculation with another remote state (combining
+  // the IR of both states for remote evaluation)
   mutable std::unique_ptr<cudaq::SimulationState> state;
   mutable std::vector<char> argsBuffer;
 
