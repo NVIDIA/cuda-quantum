@@ -93,7 +93,6 @@ jobs:
     name: Retrieve commit info
     runs-on: ubuntu-latest
     needs: setup
-    environment: backend-validation
     container:
       image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
@@ -137,6 +136,14 @@ jobs:
           registry: nvcr.io
           username: '$oauthtoken'
           password: ${{ secrets.NGC_CREDENTIALS }}
+
+      # Log in to GHCR (in case the base image is a local one)
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Build NVQC image
         id: docker_build
