@@ -341,9 +341,9 @@ func.func @tocc.test() {
 
 // CHECK-LABEL:   func.func private @__nvqpp__cudaq_em_writeToSpan(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_1:.*]]: !cc.ptr<!cc.array<i64 x ?>>, %[[VAL_2:.*]]: i64) {
-// CHECK:           %[[VAL_3:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_3:.*]] = cc.compute_ptr %[[VAL_0]][0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
+// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][0, 1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_4]] : !cc.ptr<i64>
 // CHECK:           return
 // CHECK:         }
@@ -635,9 +635,9 @@ func.func @tocc.test() {
 // LLVM-SAME:      %[[VAL_0:.*]]: !llvm.ptr<struct<(ptr<i64>, i64)>>,
 // LLVM-SAME:      %[[VAL_1:.*]]: !llvm.ptr<i64>,
 // LLVM-SAME:      %[[VAL_2:.*]]: i64) attributes {sym_visibility = "private"} {
-// LLVM:           %[[VAL_3:.*]] = llvm.getelementptr %[[VAL_0]][0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
+// LLVM:           %[[VAL_3:.*]] = llvm.getelementptr %[[VAL_0]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
 // LLVM:           llvm.store %[[VAL_1]], %[[VAL_3]] : !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_4:.*]] = llvm.getelementptr %[[VAL_0]][1] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<i64>
+// LLVM:           %[[VAL_4:.*]] = llvm.getelementptr %[[VAL_0]][0, 1] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<i64>
 // LLVM:           llvm.store %[[VAL_2]], %[[VAL_4]] : !llvm.ptr<i64>
 // LLVM:           llvm.return
 // LLVM:         }
