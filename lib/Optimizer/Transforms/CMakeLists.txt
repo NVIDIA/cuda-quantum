@@ -20,6 +20,7 @@ add_cudaq_library(OptTransforms
   Decomposition.cpp
   DecompositionPatterns.cpp
   DelayMeasurements.cpp
+  EraseNopCalls.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp
   GenKernelExecution.cpp

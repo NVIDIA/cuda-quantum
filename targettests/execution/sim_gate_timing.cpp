@@ -43,7 +43,11 @@ std::vector<std::string> g_tagName{"h", "rx", "cnot"}; // for debug prints
 std::vector<double> g_hVec;
 std::vector<double> g_rxVec;
 std::vector<std::vector<double>> g_cnotMatrix;
+#ifdef _LIBCPP_VERSION
+std::chrono::high_resolution_clock::time_point g_time;
+#else
 std::chrono::system_clock::time_point g_time;
+#endif
 
 // We use constants to store data in the above global data structures.
 #define KERNEL_H 0

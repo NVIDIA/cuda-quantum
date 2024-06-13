@@ -1298,6 +1298,51 @@ def test_bad_return_value_with_stdvec_arg():
         assert test_param(i, l) == i
 
 
+def test_bad_return_int_bool_param():
+
+    @cudaq.kernel
+    def kernel(c: int, b: bool) -> int:
+        return c
+
+    assert kernel(1, False) == 1
+
+
+def test_return_bool_bool_param():
+
+    @cudaq.kernel
+    def kernel(b: bool, b2: bool) -> bool:
+        return b
+
+    assert kernel(True, False) == True
+
+
+def test_return_int_int_param():
+
+    @cudaq.kernel
+    def kernel(b: int, b2: int) -> int:
+        return b
+
+    assert kernel(42, 53) == 42
+
+
+def test_return_no_param():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        return 42
+
+    assert kernel() == 42
+
+
+def test_no_param_no_return():
+
+    @cudaq.kernel
+    def kernel():
+        return
+
+    kernel()
+
+
 def test_measure_variadic_qubits():
 
     @cudaq.kernel

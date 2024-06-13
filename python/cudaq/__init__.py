@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os, platform
+import sys, os, numpy, platform
 from ._packages import *
 
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
@@ -39,6 +39,7 @@ from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
 from .runtime.sample import sample
 from .runtime.observe import observe
+from .runtime.state import to_cupy
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # Add the parallel runtime types
@@ -55,6 +56,8 @@ Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
+Tensor = cudaq_runtime.Tensor
+SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
@@ -114,6 +117,26 @@ def synthesize(kernel, *args):
     return PyKernelDecorator(None,
                              module=cudaq_runtime.synthesize(kernel, *args),
                              kernelName=kernel.name)
+
+
+def complex():
+    """
+    Return the data type for the current simulation backend, 
+    either `numpy.complex128` or `numpy.complex64`.
+    """
+    target = get_target()
+    precision = target.get_precision()
+    if precision == cudaq_runtime.SimulationPrecision.fp64:
+        return numpy.complex128
+    return numpy.complex64
+
+
+def amplitudes(array_data):
+    """
+    Create a state array with the appropriate data type for the 
+    current simulation backend target. 
+    """
+    return numpy.array(array_data, dtype=complex())
 
 
 def __clearKernelRegistries():

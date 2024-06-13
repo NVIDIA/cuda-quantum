@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "LinkedLibraryHolder.h"
 #include "cudaq/domains/chemistry/MoleculePackageDriver.h"
+#include "cudaq/target_control.h"
 #include <pybind11/embed.h>
 
 namespace py = pybind11;
@@ -76,13 +76,13 @@ public:
     }
 
     // We don't want to modify the platform, indicate so
-    cudaq::LinkedLibraryHolder::disallowTargetModification = true;
+    cudaq::__internal__::disableTargetModification();
 
     // Import the cudaq python chemistry module
     auto cudaqModule = py::module_::import(ChemistryModuleName);
 
     // Reset it
-    cudaq::LinkedLibraryHolder::disallowTargetModification = false;
+    cudaq::__internal__::enableTargetModification();
 
     // Setup the active space if requested.
     py::object nElectrons = py::none();
