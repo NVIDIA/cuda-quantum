@@ -16,6 +16,21 @@
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
+namespace {
+std::vector<int> bitStringToIntVec(const std::string &bitString) {
+  // Check that this is a valid bit string.
+  const bool isValidBitString =
+      std::all_of(bitString.begin(), bitString.end(),
+                  [](char c) { return c == '0' || c == '1'; });
+  if (!isValidBitString)
+    throw std::invalid_argument("Invalid bitstring: " + bitString);
+  std::vector<int> result;
+  result.reserve(bitString.size());
+  for (const auto c : bitString)
+    result.emplace_back(c == '0' ? 0 : 1);
+  return result;
+}
+} // namespace
 namespace cudaq {
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
@@ -385,8 +400,6 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
 .. code-block:: python
 
   # Example:
-  import numpy as np
-
   # Create a simple state vector.
   # Requires state-vector simulator
   state = cudaq.get_state(kernel)
@@ -411,8 +424,6 @@ index pair.
 .. code-block:: python
 
   # Example:
-  import numpy as np
-
   # Create a simple density matrix.
   cudaq.set_target('density-matrix-cpu')
   densityMatrix = cudaq.get_state(kernel)
@@ -428,12 +439,56 @@ index pair.
 .. code-block:: python
 
   # Example:
-  import numpy as np
-
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitude of |0101>, assuming this is a 4-qubit state.
   amplitude = state.amplitude([0,1,0,1])#")
+      .def(
+          "amplitude",
+          [](state &s, const std::string &bitString) {
+            return s.amplitude(bitStringToIntVec(bitString));
+          },
+          R"#(Return the amplitude of a state in computational basis.
+          
+.. code-block:: python
+
+  # Example:
+  # Create a simulation state.
+  state = cudaq.get_state(kernel)
+  # Return the amplitude of |0101>, assuming this is a 4-qubit state.
+  amplitude = state.amplitude('0101')#")
+      .def(
+          "amplitudes",
+          [](state &s, const std::vector<std::vector<int>> &basisStates) {
+            return s.amplitudes(basisStates);
+          },
+          R"#(Return the amplitude of a list of states in computational basis.
+          
+.. code-block:: python
+
+  # Example:
+  # Create a simulation state.
+  state = cudaq.get_state(kernel)
+  # Return the amplitude of |0101> and |1010>, assuming this is a 4-qubit state.
+  amplitudes = state.amplitudes([[0,1,0,1], [1,0,1,0])#")
+      .def(
+          "amplitudes",
+          [](state &s, const std::vector<std::string> &bitStrings) {
+            std::vector<std::vector<int>> basisStates;
+            basisStates.reserve(bitStrings.size());
+            for (const auto &bitString : bitStrings)
+              basisStates.emplace_back(bitStringToIntVec(bitString));
+            return s.amplitudes(basisStates);
+          },
+          R"#(Return the amplitudes of a list of states in computational basis.
+          
+.. code-block:: python
+
+  # Example:
+  # Create a simulation state.
+  state = cudaq.get_state(kernel)
+  # Return the amplitudes of |0101> and |1010>, assuming this is a 4-qubit state.
+  amplitudes = state.amplitudes(['0101', '1010'])#")
       .def(
           "dump",
           [](state &self) {

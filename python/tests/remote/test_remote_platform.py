@@ -255,7 +255,20 @@ def check_state(entity):
                         1.0 / np.sqrt(2))
     assert assert_close(state.amplitude([1] * state.num_qubits()),
                         1.0 / np.sqrt(2))
-
+    # Access amplitudes by bit strings
+    assert assert_close(state.amplitude('0' * state.num_qubits()),
+                        1.0 / np.sqrt(2))
+    assert assert_close(state.amplitude('1' * state.num_qubits()),
+                        1.0 / np.sqrt(2))
+    # Amplitude batch access
+    basisStates = [[0] * state.num_qubits(), [1] * state.num_qubits()]
+    amplitudes = state.amplitudes(basisStates)
+    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
+    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
+    bitStrings = ['0' * state.num_qubits(), '0' * state.num_qubits()]
+    amplitudes = state.amplitudes(bitStrings)
+    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
+    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
 
 def test_state():
     kernel = cudaq.make_kernel()
