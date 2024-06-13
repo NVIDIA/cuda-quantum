@@ -82,7 +82,6 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 deserialized_dict[key] = deserialized_value
             except (pickle.UnpicklingError, TypeError, Exception) as e:
                 print(f"Error deserializing key '{key}': {e}")
-                # deserialized_dict[key] = serialized_bytes
 
         return deserialized_dict
 
@@ -100,11 +99,6 @@ class Server(http.server.SimpleHTTPRequestHandler):
     @staticmethod
     def execute_code_in_subprocess(source_code, globals_dict):
         try:
-            # subprocess
-            print(globals_dict)
-            print(source_code)
-            print('Executing the code...')
-
             exec(source_code, globals_dict)
             result = {
                 "status": "success",
@@ -117,13 +111,11 @@ class Server(http.server.SimpleHTTPRequestHandler):
                     ]
                 }
             }
-            print(result)
             return result
         except Exception as e:
             import traceback
             print("An error occured:")
             traceback.print_exc()
-            print(traceback.format_exc())
             return {
                 "status": "error",
                 "error": str(e)
