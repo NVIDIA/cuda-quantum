@@ -119,8 +119,9 @@ std::string get_imports() {
   return imports_str;
 }
 
-std::string get_required_raw_source_code(const int dim,
-                                         const py::function &func) {
+std::string
+get_required_raw_source_code(const int dim, const py::function &func,
+                             const std::string &optimizer_var_name) {
   // Get imports
   std::string imports = get_imports();
 
@@ -130,8 +131,8 @@ std::string get_required_raw_source_code(const int dim,
   // Form the Python call to optimizer.optimize
   std::ostringstream os;
   auto obj_func_name = func.attr("__name__").cast<std::string>();
-  os << "energy, params_at_energy = optimizer.optimize(" << dim << ", "
-     << obj_func_name << ")\n";
+  os << "energy, params_at_energy = " << optimizer_var_name << ".optimize("
+     << dim << ", " << obj_func_name << ")\n";
   auto function_call = os.str();
 
   // Return the combined code
@@ -251,11 +252,23 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
           [](OptimizerT &opt, const int dim, py::function &func) {
             auto &platform = cudaq::get_platform();
             if (platform.supports_remote_serialized_code()) {
+              std::string optimizer_var_name = [&]() -> std::string {
+                py::object inspect = py::module::import("inspect");
+                py::object currentframe = inspect.attr("currentframe");
+                py::object frame = currentframe();
+                py::dict f_globals = frame.attr("f_globals");
+                for (auto item : f_globals)
+                  if (item.second.is(py::cast(&opt)))
+                    return py::str(item.first);
+                throw std::runtime_error("Unable to find desired optimize in "
+                                         "global namespace. Aborting.");
+              }();
+
               auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
               platform.set_exec_ctx(ctx.get());
 
               std::string combined_code =
-                  get_required_raw_source_code(dim, func);
+                  get_required_raw_source_code(dim, func, optimizer_var_name);
 
               SerializedCodeExecutionContext serialized_code_execution_object =
                   get_serialized_code(combined_code);
