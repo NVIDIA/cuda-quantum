@@ -27,6 +27,10 @@
 
 using namespace mlir;
 
+namespace cudaq {
+class state;
+}
+
 /// Replace a BlockArgument of a specific type with a concrete instantiation of
 /// that type, and add the generation of that constant as an MLIR Op to the
 /// beginning of the function. For example
@@ -472,6 +476,27 @@ public:
         continue;
       }
 
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
+        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+          // Special case of a `cudaq::state*` which must be in the same address
+          // space. This references a container to a set of simulation
+          // amplitudes.
+          synthesizeRuntimeArgument<cudaq::state *>(
+              builder, argument, args, offset, sizeof(void *),
+              [=](OpBuilder &builder, cudaq::state **concrete) {
+                Value rawPtr = builder.create<arith::ConstantIntOp>(
+                    loc, reinterpret_cast<std::intptr_t>(*concrete),
+                    sizeof(void *) * 8);
+                auto stateTy = cudaq::cc::StateType::get(builder.getContext());
+                return builder.create<cudaq::cc::CastOp>(
+                    loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
+              });
+          continue;
+        }
+        // N.B. Other pointers will not be materialized and may be in a
+        // different address space.
+      }
+
       // If std::vector<arithmetic> type, add it to the list of vector info.
       // These will be processed when we reach the buffer's appendix.
       if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
@@ -514,6 +539,7 @@ public:
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
         continue;
       }
+
       funcOp.emitOpError("We cannot synthesize argument(s) of this type.");
       signalPassFailure();
       return;
