@@ -13,13 +13,17 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
+
+#define DEBUG_TYPE "quake-synthesizer"
 
 using namespace mlir;
 
@@ -79,6 +83,16 @@ Value makeFloatElement(OpBuilder &builder, Location argLoc, T val,
                        FloatType eleTy) {
   return builder.create<arith::ConstantFloatOp>(argLoc, llvm::APFloat{val},
                                                 eleTy);
+}
+
+template <typename T>
+Value makeComplexElement(OpBuilder &builder, Location argLoc,
+                         std::complex<T> val, ComplexType complexTy) {
+  auto eleTy = complexTy.getElementType();
+  auto realPart = builder.getFloatAttr(eleTy, llvm::APFloat{val.real()});
+  auto imagPart = builder.getFloatAttr(eleTy, llvm::APFloat{val.imag()});
+  auto complexVal = builder.getArrayAttr({realPart, imagPart});
+  return builder.create<complex::ConstantOp>(argLoc, eleTy, complexVal);
 }
 
 template <typename ELETY, typename T, typename ATTR, typename MAKER>
@@ -284,6 +298,32 @@ static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
                                              makeFloatElement<double>);
 }
 
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, BlockArgument argument,
+                         std::vector<std::complex<float>> &vec) {
+  std::vector<float> vec2;
+  for (auto c : vec) {
+    vec2.push_back(c.real());
+    vec2.push_back(c.imag());
+  }
+  auto arrayAttr = builder.getF32ArrayAttr(vec2);
+  return synthesizeVectorArgument<ComplexType>(
+      builder, argument, vec, arrayAttr, makeComplexElement<float>);
+}
+
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, BlockArgument argument,
+                         std::vector<std::complex<double>> &vec) {
+  std::vector<double> vec2;
+  for (auto c : vec) {
+    vec2.push_back(c.real());
+    vec2.push_back(c.imag());
+  }
+  auto arrayAttr = builder.getF64ArrayAttr(vec2);
+  return synthesizeVectorArgument<ComplexType>(
+      builder, argument, vec, arrayAttr, makeComplexElement<double>);
+}
+
 namespace {
 class QuakeSynthesizer
     : public cudaq::opt::QuakeSynthesizeBase<QuakeSynthesizer> {
@@ -436,7 +476,7 @@ public:
       // These will be processed when we reach the buffer's appendix.
       if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
         auto eleTy = vecTy.getElementType();
-        if (!isa<IntegerType, FloatType>(eleTy)) {
+        if (!isa<IntegerType, FloatType, ComplexType>(eleTy)) {
           funcOp.emitOpError("synthesis: unsupported argument type");
           signalPassFailure();
           return;
@@ -444,8 +484,13 @@ public:
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto sizeFromBuffer =
             *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        auto bytesInType =
-            cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+        unsigned bytesInType;
+        if (auto complexTy = dyn_cast<ComplexType>(eleTy))
+          bytesInType = cudaq::opt::convertBitsToBytes(
+              complexTy.getElementType().getIntOrFloatBitWidth() * 2);
+        else
+          bytesInType =
+              cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
         assert(bytesInType > 0 && "element must have a size");
         auto vectorSize = sizeFromBuffer / bytesInType;
         stdVecInfo.emplace_back(argNum, eleTy, vectorSize);
@@ -525,6 +570,14 @@ public:
       }
       if (eleTy == builder.getF64Type()) {
         doVector(double{});
+        continue;
+      }
+      if (eleTy == ComplexType::get(builder.getF32Type())) {
+        doVector(std::complex<float>{});
+        continue;
+      }
+      if (eleTy == ComplexType::get(builder.getF64Type())) {
+        doVector(std::complex<double>{});
         continue;
       }
     }

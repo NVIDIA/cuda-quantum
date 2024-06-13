@@ -494,7 +494,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
 
     auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
     Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
-    builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
     return QuakeValue(builder, qubits);
   }
 
