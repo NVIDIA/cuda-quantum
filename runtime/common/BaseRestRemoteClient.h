@@ -689,7 +689,8 @@ public:
       return false;
     }
 
-    if (request.format != cudaq::CodeFormat::MLIR) {
+    if (request.format != cudaq::CodeFormat::MLIR &&
+        serializedCodeContext == nullptr) {
       // The `.config` file may have been tampered with.
       std::cerr << "Internal error: unsupported kernel IR detected.\nThis may "
                    "indicate a corrupted CUDA-Q installation.";
