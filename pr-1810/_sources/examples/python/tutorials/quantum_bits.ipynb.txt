@@ -357,7 +357,6 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "import qutip \n",
     "rng = np.random.default_rng()\n",
     "blochSphere = qutip.Bloch() \n",
     "for _ in range(10):\n",
