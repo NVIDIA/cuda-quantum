@@ -86,7 +86,6 @@ public:
     const auto urlIter = configs.find("url");
     if (urlIter != configs.end())
       m_url = urlIter->second;
-    std::cout << "URL: " << m_url << std::endl;
   }
 
   virtual int version() const override {
@@ -267,7 +266,6 @@ public:
     json requestJson = request;
     try {
       cudaq::RestClient restClient;
-      std::cout << "Posting it to the server ..." << std::endl;
       auto resultJs =
           restClient.post(m_url, "job", requestJson, headers, false);
 

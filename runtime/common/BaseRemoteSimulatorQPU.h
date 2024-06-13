@@ -52,7 +52,6 @@ public:
   virtual bool supportsRemoteSerializedCode() override { return true; }
 
   virtual void setTargetBackend(const std::string &backend) override {
-    std::cout << "Backend: " << backend << std::endl;
     auto parts = cudaq::split(backend, ';');
     if (parts.size() % 2 != 0)
       throw std::invalid_argument("Unexpected backend configuration string. "
