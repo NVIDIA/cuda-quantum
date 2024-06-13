@@ -33,11 +33,6 @@ def single_qubit_kernel():
     qubit = cudaq.qubit()
     h(qubit)
     x(qubit)
-    y(qubit)
-    z(qubit)
-    t(qubit)
-    s(qubit)
-
     mz(qubit)
 
 
@@ -46,8 +41,7 @@ def two_qubit_kernel():
     # Run any random two-qubit code. Currently using the code from examples/python/expectation_values.py
     qvector = cudaq.qvector(2)
     x(qvector[0])
-    ry(np.random.default_rng().random * 2 * np.pi,
-       qvector[1])  # random rotation angle between 0 and 2Pi
+    ry(np.pi / 2., qvector[1])
     mz(qvector)
 
 
@@ -56,16 +50,19 @@ def two_qubit_kernel():
 
 def test_visualization_bad_state():
     with pytest.raises(Exception) as err:
-        cudaq.add_to_bloch_sphere(np.array([1, 0]))
+        invalid_state = np.array([1, 0])
+        cudaq.add_to_bloch_sphere(invalid_state)
 
 
 def test_visualization_invalid_state():
     with pytest.raises(Exception) as err:
-        cudaq.add_to_bloch_sphere(cudaq.get_state(two_qubit_kernel))
+        two_qubit_state = cudaq.get_state(two_qubit_kernel)
+        cudaq.add_to_bloch_sphere(two_qubit_state)
 
 
 def test_visualization_single_qubit_no_sphere():
-    b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel))
+    single_qubit_state = cudaq.get_state(single_qubit_kernel)
+    b = cudaq.add_to_bloch_sphere(single_qubit_state)
     assert isinstance(b, qutip.Bloch)
 
 
@@ -86,16 +83,20 @@ cudaq.set_target("density-matrix-cpu")
 
 def test_visualization_bad_state_dm():
     with pytest.raises(Exception) as err:
-        cudaq.add_to_bloch_sphere(np.array([1, 0]))
+        # valid density matrix, but it is not a cudaq.State type.
+        invalid_state = np.array([[0.5, 0], [0, 0.5]])
+        cudaq.add_to_bloch_sphere(invalid_state)
 
 
 def test_visualization_invalid_state_dm():
     with pytest.raises(Exception) as err:
-        cudaq.add_to_bloch_sphere(cudaq.get_state(two_qubit_kernel))
+        two_qubit_state = cudaq.get_state(two_qubit_kernel)
+        cudaq.add_to_bloch_sphere(two_qubit_state)
 
 
 def test_visualization_single_qubit_no_sphere_dm():
-    b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel))
+    single_qubit_state = cudaq.get_state(single_qubit_kernel)
+    b = cudaq.add_to_bloch_sphere(single_qubit_state)
     assert isinstance(b, qutip.Bloch)
 
 
