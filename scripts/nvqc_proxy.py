@@ -29,8 +29,8 @@ from request_validator import RequestValidator
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
 # allows the NVCF port (3030) to remain up while allowing the main `cudaq-qpud`
 # application to restart if necessary.
-PROXY_PORT = 3030
-QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
+PROXY_PORT = 22030
+QPUD_PORT = 22031  # see `docker/build/cudaq.nvqc.Dockerfile`
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
@@ -110,6 +110,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
         deserialized_globals_dict = self.get_deserialized_dict(serialized_dict)
 
         is_valid, validation_response = self.validate_execution_context(source_code, deserialized_globals_dict)
+        print(is_valid, validation_response)
         if not is_valid:
             return validation_response
 
