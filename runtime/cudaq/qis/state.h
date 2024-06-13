@@ -90,7 +90,10 @@ public:
 
   /// @brief Return the amplitude of the given computational basis state
   std::complex<double> amplitude(const std::vector<int> &basisState);
-
+  /// @brief Return the amplitudes of the given list of computational basis
+  /// states
+  std::vector<std::complex<double>>
+  amplitudes(const std::vector<std::vector<int>> &basisStates);
   /// @brief Create a new state from user-provided data.
   /// The data can be host or device data.
   static state from_data(const state_data &data);

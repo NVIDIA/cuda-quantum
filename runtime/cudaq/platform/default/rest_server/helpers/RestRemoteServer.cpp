@@ -567,18 +567,70 @@ protected:
       const auto reqId = g_requestCounter++;
       m_codeTransform[reqId] =
           CodeTransformInfo(request.format, request.passes);
-      std::vector<char> decodedCodeIr;
-      auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
-      if (errorCode) {
-        LLVMConsumeError(llvm::wrap(std::move(errorCode)));
-        throw std::runtime_error("Failed to decode input IR");
-      }
-      std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
-      handleRequest(reqId, request.executionContext, request.simulator, codeStr,
-                    request.entryPoint, request.args.data(),
-                    request.args.size(), request.seed);
       json resultJson;
-      resultJson["executionContext"] = request.executionContext;
+      if (request.executionContext.name == "state-overlap") {
+        if (!request.overlapKernel.has_value())
+          throw std::runtime_error("Missing overlap kernel data.");
+        std::vector<char> decodedCodeIr1, decodedCodeIr2;
+        auto errorCode1 = llvm::decodeBase64(request.code, decodedCodeIr1);
+        auto errorCode2 =
+            llvm::decodeBase64(request.overlapKernel->ir, decodedCodeIr2);
+        if (errorCode1) {
+          LLVMConsumeError(llvm::wrap(std::move(errorCode1)));
+          throw std::runtime_error("Failed to decode input IR (request.code)");
+        }
+        if (errorCode2) {
+          LLVMConsumeError(llvm::wrap(std::move(errorCode2)));
+          throw std::runtime_error(
+              "Failed to decode input IR (request.overlapKernel->ir)");
+        }
+        std::string_view codeStr1(decodedCodeIr1.data(), decodedCodeIr1.size());
+        cudaq::ExecutionContext stateContext1("extract-state");
+        handleRequest(reqId, stateContext1, request.simulator, codeStr1,
+                      request.entryPoint, request.args.data(),
+                      request.args.size(), request.seed);
+        std::string_view codeStr2(decodedCodeIr2.data(), decodedCodeIr2.size());
+        cudaq::ExecutionContext stateContext2("extract-state");
+        handleRequest(reqId, stateContext2, request.simulator, codeStr2,
+                      request.overlapKernel->entryPoint,
+                      request.overlapKernel->args.data(),
+                      request.overlapKernel->args.size(), request.seed);
+        request.executionContext.overlapResult =
+            stateContext1.simulationState->overlap(
+                *stateContext2.simulationState);
+        resultJson["executionContext"] = request.executionContext;
+      } else {
+        if (request.overlapKernel.has_value())
+          throw std::runtime_error("Unexpected data: overlap kernel is "
+                                   "provided in non-overlap compute mode.");
+        std::vector<char> decodedCodeIr;
+        auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
+        if (errorCode) {
+          LLVMConsumeError(llvm::wrap(std::move(errorCode)));
+          throw std::runtime_error("Failed to decode input IR (request.code)");
+        }
+        std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
+        handleRequest(reqId, request.executionContext, request.simulator,
+                      codeStr, request.entryPoint, request.args.data(),
+                      request.args.size(), request.seed);
+
+        // If specific amplitudes are requested.
+        // Note: this could be the case whereby the state vector is too large
+        // for full retrieval (determined by
+        // `RemoteSimulationState::maxQubitCountForFullStateTransfer`).
+        if (request.executionContext.name == "extract-state" &&
+            request.executionContext.amplitudeMaps.has_value()) {
+          // Acquire the state, no need to send the full state back
+          auto serverState =
+              std::move(request.executionContext.simulationState);
+          for (auto &[key, val] :
+               request.executionContext.amplitudeMaps.value()) {
+            val = serverState->getAmplitude(key);
+          }
+        }
+
+        resultJson["executionContext"] = request.executionContext;
+      }
       m_codeTransform.erase(reqId);
       return resultJson;
     } catch (std::exception &e) {
