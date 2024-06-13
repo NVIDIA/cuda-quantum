@@ -23,6 +23,7 @@ import ast
 import subprocess
 import pickle
 import multiprocessing
+from request_validator import RequestValidator
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
@@ -39,6 +40,10 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 class Server(http.server.SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
+
+    def __init__(self, *args, **kwargs):
+        self.validator = RequestValidator()
+        super().__init__(*args, **kwargs)
 
     # Override this function because we seem to be getting a lot of
     # ConnectionResetError exceptions in the health monitoring endpoint,
@@ -85,11 +90,29 @@ class Server(http.server.SimpleHTTPRequestHandler):
 
         return deserialized_dict
 
+    def validate_execution_context(self, source_code, deserialized_globals_dict):
+        validation_context = {
+            'source_code': source_code,
+            'globals': deserialized_globals_dict
+        }
+        is_valid, validation_message = self.validator.validate_request(validation_context)
+        if not is_valid:
+            return False, {
+                "status": "error",
+                "error": validation_message
+            }
+        return True, None
+
     async def handle_job_request(self, request_json):
         serialized_ctx = request_json['serializedCodeExecutionContext']
         source_code = pickle.loads(base64.b64decode(serialized_ctx['source_code']))
         serialized_dict = pickle.loads(base64.b64decode(serialized_ctx['globals']))
         deserialized_globals_dict = self.get_deserialized_dict(serialized_dict)
+
+        is_valid, validation_response = self.validate_execution_context(source_code, deserialized_globals_dict)
+        if not is_valid:
+            return validation_response
+
         loop = asyncio.get_running_loop()
         with ProcessPoolExecutor() as pool:
             result = await loop.run_in_executor(pool, self.execute_code_in_subprocess, source_code, deserialized_globals_dict)
