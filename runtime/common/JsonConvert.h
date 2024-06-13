@@ -104,19 +104,27 @@ inline void to_json(json &j, const ExecutionContext &context) {
 
   if (context.simulationState) {
     j["simulationData"] = json();
-    j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
+    if (context.simulationState->isArrayLike()) {
+      j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
+    } else {
+      // Tensor-network like states: we serialize the flattened state vector.
+      j["simulationData"]["dim"] = std::vector<std::size_t>{
+          1ULL << context.simulationState->getNumQubits()};
+    }
+    const auto hostDataSize =
+        context.simulationState->isArrayLike()
+            ? context.simulationState->getNumElements()
+            : 1ULL << context.simulationState->getNumQubits();
     if (context.simulationState->isDeviceData()) {
       if (context.simulationState->getPrecision() ==
           cudaq::SimulationState::precision::fp32) {
-        std::vector<std::complex<float>> hostData(
-            context.simulationState->getNumElements());
+        std::vector<std::complex<float>> hostData(hostDataSize);
         context.simulationState->toHost(hostData.data(), hostData.size());
         std::vector<std::complex<double>> converted(hostData.begin(),
                                                     hostData.end());
         j["simulationData"]["data"] = converted;
       } else {
-        std::vector<std::complex<double>> hostData(
-            context.simulationState->getNumElements());
+        std::vector<std::complex<double>> hostData(hostDataSize);
         context.simulationState->toHost(hostData.data(), hostData.size());
         j["simulationData"]["data"] = hostData;
       }
@@ -137,6 +145,11 @@ inline void to_json(json &j, const ExecutionContext &context) {
     j["spin"]["data"] = spinOpRepr;
   }
   j["registerNames"] = context.registerNames;
+  if (context.overlapResult.has_value())
+    j["overlapResult"] = context.overlapResult.value();
+
+  if (context.amplitudeMaps.has_value())
+    j["amplitudeMaps"] = context.amplitudeMaps.value();
 }
 
 inline void from_json(const json &j, ExecutionContext &context) {
@@ -192,6 +205,12 @@ inline void from_json(const json &j, ExecutionContext &context) {
 
   if (j.contains("registerNames"))
     j["registerNames"].get_to(context.registerNames);
+
+  if (j.contains("overlapResult"))
+    context.overlapResult = j["overlapResult"];
+
+  if (j.contains("amplitudeMaps"))
+    context.amplitudeMaps = j["amplitudeMaps"];
 }
 
 // Enum data to denote the payload format.
@@ -430,6 +449,19 @@ void from_json(const json &j, RestRequestOptFields &p) {
     p.gradient = make_gradient_from_json(j["gradient"], *p.gradient_type);
 }
 
+// Encapsulate the IR payload
+struct IRPayLoad {
+  // Underlying code (IR) payload as a Base64 string.
+  std::string ir;
+
+  // Name of the entry-point kernel.
+  std::string entryPoint;
+
+  // Serialized kernel arguments.
+  std::vector<uint8_t> args;
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(IRPayLoad, ir, entryPoint, args);
+};
+
 // Payload from client to server for a kernel execution.
 class RestRequest {
 private:
@@ -490,6 +522,8 @@ public:
   std::size_t seed;
   // Optional optimizer fields
   std::optional<RestRequestOptFields> opt;
+  // Optional kernel to compute the overlap with
+  std::optional<IRPayLoad> overlapKernel;
   // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
   // Serialized kernel arguments.
@@ -508,6 +542,7 @@ public:
     TO_JSON_HELPER(args);
     TO_JSON_HELPER(format);
     TO_JSON_OPT_HELPER(opt);
+    TO_JSON_OPT_HELPER(overlapKernel);
     TO_JSON_HELPER(seed);
     TO_JSON_HELPER(passes);
     TO_JSON_HELPER(clientVersion);
@@ -522,6 +557,7 @@ public:
     FROM_JSON_HELPER(args);
     FROM_JSON_HELPER(format);
     FROM_JSON_OPT_HELPER(opt);
+    FROM_JSON_OPT_HELPER(overlapKernel);
     FROM_JSON_HELPER(seed);
     FROM_JSON_HELPER(passes);
     FROM_JSON_HELPER(clientVersion);
