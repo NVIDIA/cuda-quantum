@@ -16,11 +16,13 @@ import numpy as np
 
 import cudaq
 
+
 @cudaq.kernel
-def bar(qubits:cudaq.qview):
+def bar(qubits: cudaq.qview):
     controls = qubits.front(qubits.size() - 1)
     target = qubits.back()
     x.ctrl(controls, target)
+
 
 @cudaq.kernel
 def foo():
@@ -28,6 +30,7 @@ def foo():
     x(q)
     bar(q)
     result = mz(q)
+
 
 result = cudaq.sample(foo)
 print(result.most_probable())

@@ -11,7 +11,7 @@
 // REQUIRES: remote-sim
 
 // clang-format off
-// RUN: nvq++ %cpp_std --enable-mlir --no-aggressive-early-inline --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
+// RUN: nvq++ %cpp_std --enable-mlir -fno-aggressive-early-inline --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
 #include <cudaq.h>
