@@ -5,7 +5,6 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include <pybind11/embed.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
@@ -19,22 +18,6 @@
 #include "cudaq/algorithms/gradients/parameter_shift.h"
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
-#include "cudaq/optimizers.h"
-#include "cudaq/spin_op.h"
-#include "utils/LinkedLibraryHolder.h"
-#include "utils/OpaqueArguments.h"
-#include "llvm/Support/Base64.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-#include "mlir/CAPI/IR.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
-#include <regex>
-
-#include <fstream>
-#include <iostream>
-
-using json = nlohmann::json;
-using namespace mlir;
 
 namespace cudaq {
 
@@ -57,12 +40,15 @@ std::string get_base64_encoded_str_using_pickle() {
     try {
       auto key = item.first;
       auto value = item.second;
-      
+
       py::bytes serialized_value = pickle.attr("dumps")(value);
       serialized_dict[key] = serialized_value;
     } catch (const py::error_already_set &e) {
-      std::cout << "Failed to pickle key: " + std::string(e.what())
-                << std::endl;
+      // Uncomment the following lines for debug, but all this really means is
+      // that we won't send this to the remote server.
+
+      // std::cout << "Failed to pickle key: " + std::string(e.what())
+      //           << std::endl;
     }
   }
 
@@ -262,12 +248,7 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
            "Returns whether the optimizer requires gradient.")
       .def(
           "optimize",
-          // objective_function
-          // use C++ function
           [](OptimizerT &opt, const int dim, py::function &func) {
-            // write a function to detect if cudaq.set_target has been used and
-            // fetch its value
-
             auto &platform = cudaq::get_platform();
             if (platform.supports_remote_serialized_code()) {
               auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
