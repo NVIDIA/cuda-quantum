@@ -31,7 +31,7 @@ get_base64_encoded_str_using_pickle(const std::string &source_code) {
   return encoded_code.cast<std::string>();
 }
 
-std::string get_base64_encoded_str_using_pickle() {
+std::string get_base64_encoded_globals() {
   py::object pickle = py::module_::import("pickle");
   py::object base64 = py::module_::import("base64");
 
@@ -52,6 +52,36 @@ std::string get_base64_encoded_str_using_pickle() {
     }
   }
 
+  py::object inspect = py::module::import("inspect");
+  std::vector<py::object> frame_vec;
+  auto current_frame = inspect.attr("currentframe")();
+  while (current_frame && !current_frame.is_none()) {
+    frame_vec.push_back(current_frame);
+    current_frame = current_frame.attr("f_back");
+  }
+
+  // Walk backwards through the callstack, which means we are going from globals
+  // first to locals last. This ensures that the overwrites give precedence to
+  // closest-to-locals.
+  for (auto it = frame_vec.rbegin(); it != frame_vec.rend(); ++it) {
+    py::dict f_locals = it->attr("f_locals");
+    for (const auto item : f_locals) {
+      try {
+        auto key = item.first;
+        auto value = item.second;
+
+        py::bytes serialized_value = pickle.attr("dumps")(value);
+        serialized_dict[key] = serialized_value;
+      } catch (const py::error_already_set &e) {
+        // Uncomment the following lines for debug, but all this really means is
+        // that we won't send this to the remote server.
+
+        // std::cout << "Failed to pickle key: " + std::string(e.what())
+        //           << std::endl;
+      }
+    }
+  }
+
   py::bytes serialized_code = pickle.attr("dumps")(serialized_dict);
   py::object encoded_dict = base64.attr("b64encode")(serialized_code);
   return encoded_dict.cast<std::string>();
@@ -60,7 +90,7 @@ std::string get_base64_encoded_str_using_pickle() {
 json serialize_data(std::string &source_code) {
   std::string encoded_code_str =
       get_base64_encoded_str_using_pickle(source_code);
-  std::string encoded_globals_str = get_base64_encoded_str_using_pickle();
+  std::string encoded_globals_str = get_base64_encoded_globals();
 
   json json_object;
   json_object["source_code"] = encoded_code_str;
@@ -68,6 +98,38 @@ json serialize_data(std::string &source_code) {
 
   return json_object;
 }
+
+// Find the minimum indent level for a set of lines in string and remove them
+// from every line in the string.
+std::size_t strip_leading_whitespace(std::string &source_code) {
+  std::size_t min_indent = std::numeric_limits<std::size_t>::max();
+
+  auto lines = cudaq::split(source_code, '\n');
+  for (auto &line : lines) {
+    std::size_t num_leading_whitespace = 0;
+    bool non_space_found = false;
+    for (auto c : line) {
+      if (c == ' ' || c == '\t') {
+        num_leading_whitespace++;
+      } else {
+        non_space_found = true;
+        break;
+      }
+    }
+    if (non_space_found)
+      min_indent = std::min(min_indent, num_leading_whitespace);
+    if (min_indent == 0)
+      break;
+  }
+
+  // Now strip the leading indentation off the lines
+  source_code.clear();
+  for (auto &line : lines)
+    source_code += line.substr(std::min(line.size(), min_indent)) + '\n';
+
+  return min_indent;
+}
+
 
 std::string get_source_code(const py::function &func) {
   // Get the source code
@@ -125,8 +187,9 @@ get_required_raw_source_code(const int dim, const py::function &func,
   // Get imports
   std::string imports = get_imports();
 
-  // Get source code
+  // Get source code and remove the leading whitespace
   std::string source_code = get_source_code(func);
+  strip_leading_whitespace(source_code);
 
   // Form the Python call to optimizer.optimize
   std::ostringstream os;
@@ -254,14 +317,24 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
             if (platform.supports_remote_serialized_code()) {
               std::string optimizer_var_name = [&]() -> std::string {
                 py::object inspect = py::module::import("inspect");
-                py::object currentframe = inspect.attr("currentframe");
-                py::object frame = currentframe();
-                py::dict f_globals = frame.attr("f_globals");
+                // Search locals first, walking up the call stack
+                auto current_frame = inspect.attr("currentframe")();
+                while (current_frame && !current_frame.is_none()) {
+                  py::dict f_locals = current_frame.attr("f_locals");
+                  for (auto item : f_locals)
+                    if (item.second.is(py::cast(&opt)))
+                      return py::str(item.first);
+                  current_frame = current_frame.attr("f_back");
+                }
+                // Search globals now
+                current_frame = inspect.attr("currentframe")();
+                py::dict f_globals = current_frame.attr("f_globals");
                 for (auto item : f_globals)
                   if (item.second.is(py::cast(&opt)))
                     return py::str(item.first);
-                throw std::runtime_error("Unable to find desired optimize in "
-                                         "global namespace. Aborting.");
+                throw std::runtime_error(
+                    "Unable to find desired optimizer object in "
+                    "global namespace. Aborting.");
               }();
 
               auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
