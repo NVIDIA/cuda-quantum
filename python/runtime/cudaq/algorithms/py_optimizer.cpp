@@ -7,6 +7,8 @@
  ******************************************************************************/
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include <regex>
+#include <iostream>
 
 #include "py_optimizer.h"
 
@@ -130,6 +132,30 @@ std::size_t strip_leading_whitespace(std::string &source_code) {
   return min_indent;
 }
 
+std::string remove_comments(const std::string& source) {
+    std::regex comment_regex(R"((\"[^\"]*\"|\'[^\']*\')|#.*)");
+    std::string result;
+    std::smatch match;
+    std::string::const_iterator searchStart(source.cbegin());
+
+    while (std::regex_search(searchStart, source.cend(), match, comment_regex)) {
+        result += match.prefix().str();
+        if (!match[1].matched) {
+            // It is a comment, skip it
+        } else {
+            // It is a string literal
+            result += match.str();
+        }
+        searchStart = match.suffix().first;
+    }
+    result += std::string(searchStart, source.cend());
+    return result;
+}
+
+std::string remove_print_statements(const std::string& source) {
+    std::regex print_regex(R"((^\s*print\(.*\)\s*$))", std::regex_constants::multiline);
+    return std::regex_replace(source, print_regex, "");
+}
 
 std::string get_source_code(const py::function &func) {
   // Get the source code
@@ -142,7 +168,11 @@ std::string get_source_code(const py::function &func) {
                              std::string(e.what()));
   }
 
-  return source_code.cast<std::string>();
+  std::string source = source_code.cast<std::string>();
+  strip_leading_whitespace(source);
+  source = remove_comments(source);
+  source = remove_print_statements(source);
+  return remove_comments(source);
 }
 
 SerializedCodeExecutionContext get_serialized_code(std::string &source_code) {
@@ -189,7 +219,6 @@ get_required_raw_source_code(const int dim, const py::function &func,
 
   // Get source code and remove the leading whitespace
   std::string source_code = get_source_code(func);
-  strip_leading_whitespace(source_code);
 
   // Form the Python call to optimizer.optimize
   std::ostringstream os;
@@ -343,6 +372,7 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               std::string combined_code =
                   get_required_raw_source_code(dim, func, optimizer_var_name);
 
+              std::cout << combined_code << std::endl;
               SerializedCodeExecutionContext serialized_code_execution_object =
                   get_serialized_code(combined_code);
 
