@@ -401,6 +401,64 @@ You can then execute a kernel against the platform using the OQC Lucy device
     str(cudaq.sample(kernel=kernel, shots_count=1000))
 
 
+ORCA
+==================================
+
+.. _orca-backend:
+
+The ORCA's PT-Series implements the boson sampling model of quantum computation, in which multiple single photons are interfered with each other within a network of beam splitters, and photon detectors measure where the photons leave this network. 
+
+Programmers of CUDA-Q may access the ORCA API from either
+C++ or Python. There is an environment variable ``ORCA_ACCESS_URL`` that can be set so that the ORCA target can look for it during configuration.
 
 
+Submission from C++
+`````````````````````````
 
+To execute a time bin interferometer experiment on the ORCA platform, provide the flag ``--target orca`` to the ``nvq++`` compiler. You should then pass the ``--orca-url`` flag set with the previously set environment variable ``$ORCA_ACCESS_URL`` or an :code:`url`.
+
+.. code:: bash
+
+    nvq++ --target orca --orca-url $ORCA_ACCESS_URL src.cpp -o executable
+
+or
+
+.. code:: bash
+
+    nvq++ --target orca --orca-url <url> src.cpp -o executable
+
+To run the output, invoke the executable
+
+.. code:: bash
+
+   ./executable
+
+
+To see a complete example for using ORCA server backends, take a look at our :doc:`C++ examples <../examples/hardware_providers>`.
+
+Submission from Python
+`````````````````````````
+
+To set which ORCA URL to be used, set the :code:`url` parameter.
+
+.. code:: python
+
+    import os
+    import cudaq
+    # ...
+    orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost:8080/sample")
+
+    cudaq.set_target("orca", url=orca_url)
+
+
+You can then execute a time-bin boson sampling experiment against the platform using an ORCA device.
+
+.. code:: python
+
+    bs_angles = [np.pi / 3, np.pi / 6]
+    ps_angles = [np.pi / 4, np.pi / 5]
+    input_state = [1, 1, 1]
+    loop_lengths = [1]
+    counts = cudaq.orca.sample(bs_angles, ps_angles, input_state, loop_lengths)
+
+To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../examples/hardware_providers>`.
