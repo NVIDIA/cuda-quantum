@@ -512,13 +512,12 @@ public:
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto sizeFromBuffer =
             *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        unsigned bytesInType;
-        if (auto complexTy = dyn_cast<ComplexType>(eleTy))
-          bytesInType = cudaq::opt::convertBitsToBytes(
-              complexTy.getElementType().getIntOrFloatBitWidth() * 2);
-        else
-          bytesInType =
-              cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+        unsigned bytesInType = [&eleTy]() {
+          if (auto complexTy = dyn_cast<ComplexType>(eleTy))
+            return 2 * cudaq::opt::convertBitsToBytes(
+                           complexTy.getElementType().getIntOrFloatBitWidth());
+          return cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+        }();
         assert(bytesInType > 0 && "element must have a size");
         auto vectorSize = sizeFromBuffer / bytesInType;
         stdVecInfo.emplace_back(argNum, eleTy, vectorSize);
