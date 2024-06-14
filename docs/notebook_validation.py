@@ -31,9 +31,6 @@ def validate(notebook_filename, available_backends):
         match = re.search('set_target[\\\s\(]+"(.+)\\\\"[)]', notebook_content)
         if match and (match.group(1) not in available_backends):
             return False
-        pip_install = re.search('!pip install', notebook_content)
-        if pip_install:
-            return False
     return True
 
 

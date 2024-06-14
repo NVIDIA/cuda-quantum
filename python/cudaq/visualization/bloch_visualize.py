@@ -7,10 +7,11 @@
 # ============================================================================ #
 
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime  # exposes state class
-
 import numpy as np
+from math import isclose  # builtin
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+
 from qutip import Qobj, Bloch
 
 
@@ -29,7 +30,7 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
         Arguments:
         ----------
             `psi`:    
-                A valid single-qubit state, either initialized using the CUDA-Q primitives, or via get_state(kernel). 
+                A valid single-qubit state, either initialized using the cudaq primitives, or via get_state(kernel). 
                 A single qubit density matrix is also acceptable.
             `existing_sphere` [Optional]: 
                 A `qutip.Bloch` object. If a valid `qutip.Bloch` object is not supplied, then creates a new sphere with the vector representing the supplied state.
@@ -50,7 +51,8 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
 
     b = Bloch(**kwargs) if existing_sphere == None else existing_sphere
     st_rep = np.array(psi)
-    if st_rep.shape == (2,) or st_rep.shape == (2, 2):
+    if (st_rep.shape == (2,) and isclose(abs(st_rep.dot(st_rep))**2, 1.0)) or (
+            st_rep.shape == (2, 2) and isclose(st_rep.trace().real, 1.0)):
         b.add_states(Qobj(st_rep))
     else:
         raise Exception(
