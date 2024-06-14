@@ -21,30 +21,20 @@ namespace cudaq {
 /// how a serialized code should be executed.
 class SerializedCodeExecutionContext {
 public:
-  /// @brief The source code of the objective function and its call as a Base64
-  /// string.
+  /// @brief Necessary Python imports required to execute \p source_code.
+  std::string imports;
+
+  /// @brief All variables visible to the objective function as a Base64 string.
+  std::string scoped_var_dict;
+
+  /// @brief The source code of the objective function and its call as a string.
   std::string source_code;
 
-  /// @brief The local namespace of the objective function as a Base64 string.
-  std::string locals;
-
-  /// @brief The global namespace of the objective function as a Base64 string.
-  std::string globals;
-
-  // /// @brief A computed optimal value
-  // std::optional<double> optimalValue = std::nullopt;
-
-  // /// @brief The optimal parameters returned on execution.
-  // std::vector<double> optimalParameters;
-
   SerializedCodeExecutionContext() = default;
-  SerializedCodeExecutionContext(std::string c, std::string l, std::string g)
-      : source_code(std::move(c)), locals(std::move(l)), globals(std::move(g)) {
-  }
   ~SerializedCodeExecutionContext() = default;
 
   // Serialization
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext, source_code,
-                                 locals, globals);
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext, imports,
+                                 scoped_var_dict, source_code);
 };
 } // namespace cudaq

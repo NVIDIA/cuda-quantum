@@ -45,7 +45,7 @@ class RequestValidator:
     def validate_request(self, serialized_code_execution_context: dict) -> tuple[bool, str]:
         try:
             source_code = serialized_code_execution_context['source_code']
-            globals_namespace = serialized_code_execution_context['globals']
+            globals_namespace = serialized_code_execution_context['scoped_var_dict']
 
             is_valid, match = self.validate_string(source_code)
             if not is_valid:

@@ -23,17 +23,7 @@
 
 namespace cudaq {
 
-std::string
-get_base64_encoded_str_using_pickle(const std::string &source_code) {
-  py::object pickle = py::module_::import("pickle");
-  py::object base64 = py::module_::import("base64");
-
-  py::bytes serialized_code = pickle.attr("dumps")(source_code);
-  py::object encoded_code = base64.attr("b64encode")(serialized_code);
-  return encoded_code.cast<std::string>();
-}
-
-std::string get_base64_encoded_globals() {
+static std::string get_base64_encoded_var_dict() {
   py::object pickle = py::module_::import("pickle");
   py::object base64 = py::module_::import("base64");
 
@@ -62,9 +52,9 @@ std::string get_base64_encoded_globals() {
     current_frame = current_frame.attr("f_back");
   }
 
-  // Walk backwards through the callstack, which means we are going from globals
-  // first to locals last. This ensures that the overwrites give precedence to
-  // closest-to-locals.
+  // Walk backwards through the call stack, which means we are going from
+  // globals first to locals last. This ensures that the overwrites give
+  // precedence to closest-to-locals.
   for (auto it = frame_vec.rbegin(); it != frame_vec.rend(); ++it) {
     py::dict f_locals = it->attr("f_locals");
     for (const auto item : f_locals) {
@@ -89,23 +79,12 @@ std::string get_base64_encoded_globals() {
   return encoded_dict.cast<std::string>();
 }
 
-json serialize_data(std::string &source_code) {
-  std::string encoded_code_str =
-      get_base64_encoded_str_using_pickle(source_code);
-  std::string encoded_globals_str = get_base64_encoded_globals();
-
-  json json_object;
-  json_object["source_code"] = encoded_code_str;
-  json_object["globals"] = encoded_globals_str;
-
-  return json_object;
-}
-
 // Find the minimum indent level for a set of lines in string and remove them
 // from every line in the string.
-std::size_t strip_leading_whitespace(std::string &source_code) {
+static std::size_t strip_leading_whitespace(std::string &source_code) {
   std::size_t min_indent = std::numeric_limits<std::size_t>::max();
 
+  // Traverse the lines to calculate min_indent.
   auto lines = cudaq::split(source_code, '\n');
   for (auto &line : lines) {
     std::size_t num_leading_whitespace = 0;
@@ -124,7 +103,7 @@ std::size_t strip_leading_whitespace(std::string &source_code) {
       break;
   }
 
-  // Now strip the leading indentation off the lines
+  // Now strip the leading indentation off the lines.
   source_code.clear();
   for (auto &line : lines)
     source_code += line.substr(std::min(line.size(), min_indent)) + '\n';
@@ -132,21 +111,21 @@ std::size_t strip_leading_whitespace(std::string &source_code) {
   return min_indent;
 }
 
-std::string remove_comments(const std::string& source) {
-    std::regex comment_regex(R"((\"[^\"]*\"|\'[^\']*\')|#.*)");
-    std::string result;
-    std::smatch match;
-    std::string::const_iterator searchStart(source.cbegin());
+static std::string remove_comments(const std::string &source) {
+  std::regex comment_regex(R"((\"[^\"]*\"|\'[^\']*\')|#.*)");
+  std::string result;
+  std::smatch match;
+  std::string::const_iterator searchStart(source.cbegin());
 
-    while (std::regex_search(searchStart, source.cend(), match, comment_regex)) {
-        result += match.prefix().str();
-        if (match[1].matched) {
-            result += match.str();
-        }
-        searchStart = match.suffix().first;
+  while (std::regex_search(searchStart, source.cend(), match, comment_regex)) {
+    result += match.prefix().str();
+    if (match[1].matched) {
+      result += match.str();
     }
-    result += std::string(searchStart, source.cend());
-    return result;
+    searchStart = match.suffix().first;
+  }
+  result += std::string(searchStart, source.cend());
+  return result;
 }
 
 std::string remove_print_statements(const std::string& source) {
@@ -154,7 +133,7 @@ std::string remove_print_statements(const std::string& source) {
     return std::regex_replace(source, print_regex, "");
 }
 
-std::string get_source_code(const py::function &func) {
+static std::string get_source_code(const py::function &func) {
   // Get the source code
   py::object inspect = py::module::import("inspect");
   py::object source_code;
@@ -172,23 +151,7 @@ std::string get_source_code(const py::function &func) {
   return remove_comments(source);
 }
 
-SerializedCodeExecutionContext get_serialized_code(std::string &source_code) {
-  // Serialize the source code, locals, and globals
-  json serialized_data;
-  SerializedCodeExecutionContext serializedCodeExecutionContext;
-  try {
-    serialized_data = serialize_data(source_code);
-    serializedCodeExecutionContext.source_code = serialized_data["source_code"];
-    serializedCodeExecutionContext.globals = serialized_data["globals"];
-  } catch (py::error_already_set &e) {
-    throw std::runtime_error("Failed to serialized data: " +
-                             std::string(e.what()));
-  }
-
-  return serializedCodeExecutionContext;
-}
-
-std::string get_imports() {
+static std::string get_imports() {
   py::module sys = py::module::import("sys");
   py::dict sys_modules = sys.attr("modules");
   py::dict globals = py::globals();
@@ -208,12 +171,24 @@ std::string get_imports() {
   return imports_str;
 }
 
-std::string
+/// Form the SerializedCodeExecutionContext
+static SerializedCodeExecutionContext
+get_serialized_code(std::string &source_code) {
+  SerializedCodeExecutionContext ctx;
+  try {
+    ctx.imports = get_imports();
+    ctx.scoped_var_dict = get_base64_encoded_var_dict();
+    ctx.source_code = source_code;
+  } catch (py::error_already_set &e) {
+    throw std::runtime_error("Failed to serialized data: " +
+                             std::string(e.what()));
+  }
+  return ctx;
+}
+
+static std::string
 get_required_raw_source_code(const int dim, const py::function &func,
                              const std::string &optimizer_var_name) {
-  // Get imports
-  std::string imports = get_imports();
-
   // Get source code and remove the leading whitespace
   std::string source_code = get_source_code(func);
 
@@ -225,7 +200,7 @@ get_required_raw_source_code(const int dim, const py::function &func,
   auto function_call = os.str();
 
   // Return the combined code
-  return imports + "\n" + source_code + "\n" + function_call;
+  return source_code + "\n" + function_call;
 }
 
 /// @brief Bind the `cudaq::optimization_result` typedef.

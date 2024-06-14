@@ -92,7 +92,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
     def validate_execution_context(self, source_code, deserialized_globals_dict):
         validation_context = {
             'source_code': source_code,
-            'globals': deserialized_globals_dict
+            'scoped_var_dict': deserialized_globals_dict
         }
         is_valid, validation_message = self.validator.validate_request(validation_context)
         if not is_valid:
@@ -103,18 +103,43 @@ class Server(http.server.SimpleHTTPRequestHandler):
         return True, None
 
     async def handle_job_request(self, request_json):
-        serialized_ctx = request_json['serializedCodeExecutionContext']
-        source_code = pickle.loads(base64.b64decode(serialized_ctx['source_code']))
-        serialized_dict = pickle.loads(base64.b64decode(serialized_ctx['globals']))
-        deserialized_globals_dict = self.get_deserialized_dict(serialized_dict)
+        sim2target = {'qpp': 'qpp-cpu',
+                      'custatevec_fp32': 'nvidia',
+                      'custatevec_fp64': 'nvidia-fp64',
+                      'tensornet': 'tensornet',
+                      'tensornet_mps': 'tensornet_mps',
+                      'dm': 'density-matrix-cpu',
+                      'nvidia_mgpu': 'nvidia-mgpu'}
 
-        is_valid, validation_response = self.validate_execution_context(source_code, deserialized_globals_dict)
+        print('Handling request from:', request_json['clientVersion'])
+
+        serialized_ctx = request_json['serializedCodeExecutionContext']
+        imports_code = serialized_ctx['imports']
+        source_code = serialized_ctx['source_code']
+        serialized_dict = pickle.loads(base64.b64decode(serialized_ctx['scoped_var_dict']))
+        deserialized_globals_dict = self.get_deserialized_dict(serialized_dict)
+        
+        # Inject the desired simulator and seed into the formulated Python code
+        simulator_name = request_json['simulator']
+        if simulator_name in sim2target:
+            target_name = sim2target[simulator_name]
+        else:
+            return {{'error': f'Cannot map simulator name to target: {simulator_name}'}}
+        seed_str = ''
+        seed_num = request_json['seed']
+        if request_json['seed'] > 0:
+            seed_str = f'cudaq.set_random_seed({seed_num})\n'
+
+        full_source_code = imports_code + f'\ncudaq.set_target("{target_name}")\n{seed_str}' + source_code
+
+        # Validate the source code
+        is_valid, validation_response = self.validate_execution_context(full_source_code, deserialized_globals_dict)
         if not is_valid:
             return validation_response
 
         loop = asyncio.get_running_loop()
         with ProcessPoolExecutor() as pool:
-            result = await loop.run_in_executor(pool, self.execute_code_in_subprocess, source_code, deserialized_globals_dict)
+            result = await loop.run_in_executor(pool, self.execute_code_in_subprocess, full_source_code, deserialized_globals_dict)
 
         return result
 
@@ -136,7 +161,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
             return result
         except Exception as e:
             import traceback
-            print("An error occured:")
+            print("An error occurred:")
             traceback.print_exc()
             return {
                 "status": "error",
