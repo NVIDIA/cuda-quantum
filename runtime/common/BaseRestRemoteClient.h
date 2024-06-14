@@ -718,11 +718,8 @@ public:
     // if it exceed the size limit. Otherwise, if the code is small, make sure
     // that the total payload doesn't exceed that limit as well by constructing
     // a temporary JSON object of the full payload.
-    std::size_t max_size_bytes = MAX_SIZE_BYTES;
-    if (char *ch = getenv("BMH_MAX_BYTES"))
-      max_size_bytes = static_cast<std::size_t>(atoi(ch));
-    if (request.code.size() > max_size_bytes ||
-        json(request).dump().size() > max_size_bytes) {
+    if (request.code.size() > MAX_SIZE_BYTES ||
+        json(request).dump().size() > MAX_SIZE_BYTES) {
       assetId = uploadRequest(request);
       if (!assetId.has_value()) {
         if (optionalErrorMsg)
