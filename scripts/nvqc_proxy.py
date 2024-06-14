@@ -89,59 +89,85 @@ class Server(http.server.SimpleHTTPRequestHandler):
 
         return deserialized_dict
 
-    def validate_execution_context(self, source_code, deserialized_globals_dict):
+    def validate_execution_context(self, source_code,
+                                   deserialized_globals_dict):
         validation_context = {
             'source_code': source_code,
             'scoped_var_dict': deserialized_globals_dict
         }
-        is_valid, validation_message = self.validator.validate_request(validation_context)
+        is_valid, validation_message = self.validator.validate_request(
+            validation_context)
         if not is_valid:
             return False, {
-                "status": "error",
-                "error": validation_message
+                "status": "Failed to process incoming request",
+                "errorMessage": validation_message
             }
         return True, None
 
     async def handle_job_request(self, request_json):
-        sim2target = {'qpp': 'qpp-cpu',
-                      'custatevec_fp32': 'nvidia',
-                      'custatevec_fp64': 'nvidia-fp64',
-                      'tensornet': 'tensornet',
-                      'tensornet_mps': 'tensornet_mps',
-                      'dm': 'density-matrix-cpu',
-                      'nvidia_mgpu': 'nvidia-mgpu'}
+        sim2target = {
+            'qpp': 'qpp-cpu',
+            'custatevec_fp32': 'nvidia',
+            'custatevec_fp64': 'nvidia-fp64',
+            'tensornet': 'tensornet',
+            'tensornet_mps': 'tensornet-mps',
+            'dm': 'density-matrix-cpu',
+            'nvidia_mgpu': 'nvidia-mgpu'
+        }
 
-        print('Handling request from:', request_json['clientVersion'])
+        try:
+            print('Handling request from:', request_json['clientVersion'])
 
-        serialized_ctx = request_json['serializedCodeExecutionContext']
-        imports_code = serialized_ctx['imports']
-        source_code = serialized_ctx['source_code']
-        serialized_dict = pickle.loads(base64.b64decode(serialized_ctx['scoped_var_dict']))
-        deserialized_globals_dict = self.get_deserialized_dict(serialized_dict)
-        
-        # Inject the desired simulator and seed into the formulated Python code
-        simulator_name = request_json['simulator']
-        if simulator_name in sim2target:
-            target_name = sim2target[simulator_name]
-        else:
-            return {{'error': f'Cannot map simulator name to target: {simulator_name}'}}
-        seed_str = ''
-        seed_num = request_json['seed']
-        if request_json['seed'] > 0:
-            seed_str = f'cudaq.set_random_seed({seed_num})\n'
+            serialized_ctx = request_json['serializedCodeExecutionContext']
+            imports_code = serialized_ctx['imports']
+            source_code = serialized_ctx['source_code']
+            serialized_dict = pickle.loads(
+                base64.b64decode(serialized_ctx['scoped_var_dict']))
+            deserialized_globals_dict = self.get_deserialized_dict(
+                serialized_dict)
 
-        full_source_code = imports_code + f'\ncudaq.set_target("{target_name}")\n{seed_str}' + source_code
+            # Inject the desired simulator and seed into the formulated Python code
+            simulator_name = request_json['simulator']
 
-        # Validate the source code
-        is_valid, validation_response = self.validate_execution_context(full_source_code, deserialized_globals_dict)
-        if not is_valid:
-            return validation_response
+            # C++ and Python are often inconsistent in there simulator names.
+            # The `sim2target` dict is expecting all underscores for the
+            # simulator name lookups
+            simulator_name = simulator_name.replace('-', '_')
+            if simulator_name in sim2target:
+                target_name = sim2target[simulator_name]
+            else:
+                return {
+                    'status':
+                        'Failed to process incoming request',
+                    'errorMessage':
+                        f'Cannot map simulator name to target: {simulator_name}'
+                }
 
-        loop = asyncio.get_running_loop()
-        with ProcessPoolExecutor() as pool:
-            result = await loop.run_in_executor(pool, self.execute_code_in_subprocess, full_source_code, deserialized_globals_dict)
+            seed_str = ''
+            seed_num = request_json['seed']
+            if request_json['seed'] > 0:
+                seed_str = f'cudaq.set_random_seed({seed_num})\n'
 
-        return result
+            full_source_code = imports_code + f'\ncudaq.set_target("{target_name}")\n{seed_str}' + source_code
+
+            # Validate the source code
+            is_valid, validation_response = self.validate_execution_context(
+                full_source_code, deserialized_globals_dict)
+            if not is_valid:
+                return validation_response
+
+            loop = asyncio.get_running_loop()
+            with ProcessPoolExecutor() as pool:
+                result = await loop.run_in_executor(
+                    pool, self.execute_code_in_subprocess, full_source_code,
+                    deserialized_globals_dict)
+
+            return result
+        except Exception as e:
+            return {
+                'status': 'Exception during processing',
+                'errorMessage': str(e)
+            }
 
     @staticmethod
     def execute_code_in_subprocess(source_code, globals_dict):
@@ -149,12 +175,13 @@ class Server(http.server.SimpleHTTPRequestHandler):
             exec(source_code, globals_dict)
             result = {
                 "status": "success",
-                "executionContext" : {
-                    "shots": 0,
-                    "hasConditionalsOnMeasureResults": False,
+                "executionContext": {
+                    "shots":
+                        0,
+                    "hasConditionalsOnMeasureResults":
+                        False,
                     "optResult": [
-                        globals_dict['energy'],
-                        globals_dict['params_at_energy']
+                        globals_dict['energy'], globals_dict['params_at_energy']
                     ]
                 }
             }
@@ -163,13 +190,12 @@ class Server(http.server.SimpleHTTPRequestHandler):
             import traceback
             print("An error occurred:")
             traceback.print_exc()
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "errorMessage": str(e)}
 
     def is_serialized_code_execution_request(self, request_json):
-        return 'serializedCodeExecutionContext' in request_json and 'source_code' in request_json['serializedCodeExecutionContext'] and request_json['serializedCodeExecutionContext']['source_code'] != ''
+        return 'serializedCodeExecutionContext' in request_json and 'source_code' in request_json[
+            'serializedCodeExecutionContext'] and request_json[
+                'serializedCodeExecutionContext']['source_code'] != ''
 
     def do_POST(self):
         if self.path == '/job':
@@ -203,16 +229,16 @@ class Server(http.server.SimpleHTTPRequestHandler):
                     request_data = ''
                     with open(filename, 'r') as f:
                         request_data = f.read()
-                    # del(self.headers['NVCF-FUNCTION-ASSET-IDS'])
                 else:
                     request_data = self.rfile.read(content_length)
 
                 request_json = json.loads(request_data)
-                
+
                 if self.is_serialized_code_execution_request(request_json):
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
-                    result = loop.run_until_complete(self.handle_job_request(request_json))
+                    result = loop.run_until_complete(
+                        self.handle_job_request(request_json))
                     loop.close()
 
                     self.send_response(HTTPStatus.OK)
@@ -223,9 +249,9 @@ class Server(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(message)
                 else:
                     res = requests.request(method=self.command,
-                                        url=qpud_url + self.path,
-                                        headers=self.headers,
-                                        data=request_data)
+                                           url=qpud_url + self.path,
+                                           headers=self.headers,
+                                           data=request_data)
                     self.send_response(HTTPStatus.OK)
                     self.send_header('Content-Type', 'application/json')
                     message = json.dumps(res.json()).encode('utf-8')
