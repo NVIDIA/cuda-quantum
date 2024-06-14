@@ -96,7 +96,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindNoise(cudaqRuntime);
   cudaq::bindExecutionContext(cudaqRuntime);
   cudaq::bindExecutionManager(cudaqRuntime);
-  cudaq::bindPyState(cudaqRuntime);
+  cudaq::bindPyState(cudaqRuntime, *holder.get());
   cudaq::bindPyDraw(cudaqRuntime);
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);
