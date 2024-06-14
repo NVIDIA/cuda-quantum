@@ -185,7 +185,6 @@ initializeDeviceStateVector<cuDoubleComplex>(uint32_t n_blocks,
                                  int32_t threads_per_block, 
                                  void *deviceStateVector,
                                  std::size_t stateDimension);
-}
 
 /// @brief Custom functor for the thrust inner product.
 template <typename ScalarType>
@@ -239,3 +238,5 @@ innerProduct(void *devicePtr, void *otherPtr, std::size_t size, bool createDevic
 
 template thrust::complex<float> 
 innerProduct(void *devicePtr, void *otherPtr, std::size_t size, bool createDeviceAlloc);
+
+}
