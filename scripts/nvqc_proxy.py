@@ -194,7 +194,19 @@ class Server(http.server.SimpleHTTPRequestHandler):
 
             content_length = int(self.headers['Content-Length'])
             if content_length:
-                request_data = self.rfile.read(content_length)
+                # Look for any asset references in the job request. If one
+                # exists, then that means the request is actually in a file.
+                asset_id = self.headers.get('NVCF-FUNCTION-ASSET-IDS', '')
+                if len(asset_id) > 0:
+                    asset_dir = self.headers.get('NVCF-ASSET-DIR','')
+                    filename = f'{asset_dir}/{asset_id}'
+                    request_data = ''
+                    with open(filename, 'r') as f:
+                        request_data = f.read()
+                    # del(self.headers['NVCF-FUNCTION-ASSET-IDS'])
+                else:
+                    request_data = self.rfile.read(content_length)
+
                 request_json = json.loads(request_data)
                 
                 if self.is_serialized_code_execution_request(request_json):
