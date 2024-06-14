@@ -30,6 +30,11 @@ struct QppDmState : public cudaq::SimulationState {
     state = Eigen::Map<qpp::ket>(
         const_cast<std::complex<double> *>(data.data()), shape[0], shape[1]);
   }
+  ~QppDmState() override {
+    qpp::cmat k;
+    state = k;
+  }
+
   std::size_t getNumQubits() const override { return std::log2(state.rows()); }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override {
@@ -119,11 +124,6 @@ struct QppDmState : public cudaq::SimulationState {
 
   precision getPrecision() const override {
     return cudaq::SimulationState::precision::fp64;
-  }
-
-  void destroyState() override {
-    qpp::cmat k;
-    state = k;
   }
 };
 

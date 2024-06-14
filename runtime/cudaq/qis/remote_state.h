@@ -45,6 +45,9 @@ public:
   }
   RemoteSimulationState() = default;
 
+  /// @brief Destroy the state representation, frees all associated memory.
+  ~RemoteSimulationState() override;
+
   /// @brief Triggers remote execution to resolve the state data.
   virtual void execute() const;
 
@@ -95,9 +98,6 @@ public:
 
   /// @brief Return the floating point precision used by the simulation state.
   precision getPrecision() const override;
-
-  /// @brief Destroy the state representation, frees all associated memory.
-  void destroyState() override;
 
 private:
   /// @brief Return the qubit count threshold where the full remote state should

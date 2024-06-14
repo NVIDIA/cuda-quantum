@@ -103,8 +103,8 @@ state::~state() {
   // Current use count is 1, so the
   // shared_ptr is about to go out of scope,
   // there are no users. Delete the state data.
-  if (internal.use_count() == 1)
-    internal->destroyState();
+
+  // Just let the shared_ptr perform the deallocation.
 }
 
 extern "C" {
