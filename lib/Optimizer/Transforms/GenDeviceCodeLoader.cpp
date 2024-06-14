@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
@@ -91,6 +92,7 @@ public:
     // Collect all function declarations to forward as part of each Module.
     // These are thrown in so the Module's CallOps are complete. Unused
     // declarations are just thrown away when the code is JIT compiled.
+    // Globals are treated the same way.
     SmallVector<Operation *> declarations;
     for (auto &op : *module.getBody()) {
       if (auto funcOp = dyn_cast<func::FuncOp>(op)) {
@@ -100,6 +102,11 @@ public:
         }
       } else if (auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op)) {
         if (funcOp.empty()) {
+          LLVM_DEBUG(llvm::dbgs() << "adding declaration: " << op);
+          declarations.push_back(&op);
+        }
+      } else if (auto global = dyn_cast<cudaq::cc::GlobalOp>(op)) {
+        if (global) {
           LLVM_DEBUG(llvm::dbgs() << "adding declaration: " << op);
           declarations.push_back(&op);
         }
