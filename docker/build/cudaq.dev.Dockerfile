@@ -52,6 +52,9 @@ RUN if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
+        if [ -z "$($CC --version | grep gcc)" ]; then \
+            export CUDAQ_DISABLE_OPENMP=${CUDAQ_DISABLE_OPENMP:-TRUE}; \
+        fi && \
         bash scripts/build_cudaq.sh -v; \
         if [ ! "$?" -eq "0" ]; then \
             exit 1; \

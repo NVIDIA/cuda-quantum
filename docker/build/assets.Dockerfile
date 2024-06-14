@@ -266,6 +266,11 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
     excludes+=" --exclude-regex ctest-nvqpp|ctest-targettests" && \
+    # FIXME: To support custom unitary operations, we need to properly convert 
+    # the unitary when passing it directly to an external library (the simulator)
+    # that is compiled with a different compiler/C++ standard libary. 
+    # Tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
+    excludes+="|tensornet_CustomUnitaryTester.checkSimple|tensornet_mps_CustomUnitaryTester.checkSimple" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
@@ -292,7 +297,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
-    filtered=" --filter-out execution/mapping_test-1|execution/qir_cond_for_loop-3|execution/sim_gate_timing" && \
+    filtered=" --filter-out execution/mapping_test-1|execution/qir_cond_for_loop-3|execution/sim_gate_timing|Kernel/inline-qpu-func" && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
