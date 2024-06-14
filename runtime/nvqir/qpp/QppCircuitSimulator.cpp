@@ -35,10 +35,6 @@ struct QppState : public cudaq::SimulationState {
     state = Eigen::Map<qpp::ket>(
         const_cast<std::complex<double> *>(data.data()), shape[0]);
   }
-  ~QppState() override {
-    qpp::ket k;
-    state = k;
-  }
 
   std::size_t getNumQubits() const override { return std::log2(state.size()); }
 
@@ -116,6 +112,11 @@ struct QppState : public cudaq::SimulationState {
 
   precision getPrecision() const override {
     return cudaq::SimulationState::precision::fp64;
+  }
+
+  void destroyState() override {
+    qpp::ket k;
+    state = k;
   }
 };
 

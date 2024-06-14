@@ -15,6 +15,7 @@
 #include <vector>
 
 namespace cudaq {
+class SimulationState;
 
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).
 // Note: tensor data is expected in column-major.
@@ -178,6 +179,9 @@ public:
 
   // @brief Return the floating point precision used by the simulation state.
   virtual precision getPrecision() const = 0;
+
+  /// @brief Destroy the state representation, frees all associated memory.
+  virtual void destroyState() = 0;
 
   /// @brief Return the element from the tensor at the
   /// given tensor index and at the given indices.

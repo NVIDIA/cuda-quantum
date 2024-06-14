@@ -24,6 +24,8 @@ TensorNetSimulationState::TensorNetSimulationState(
     std::unique_ptr<TensorNetState> inState, cutensornetHandle_t cutnHandle)
     : m_state(std::move(inState)), m_cutnHandle(cutnHandle) {}
 
+TensorNetSimulationState::~TensorNetSimulationState() {}
+
 std::complex<double>
 TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   const cudaq::SimulationState *const otherStatePtr = &other;
@@ -238,7 +240,7 @@ TensorNetSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
                                                     m_cutnHandle);
 }
 
-TensorNetSimulationState::~TensorNetSimulationState() {
+void TensorNetSimulationState::destroyState() {
   cudaq::info("mps-state destroying state vector handle.");
   m_state.reset();
 }

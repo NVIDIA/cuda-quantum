@@ -31,7 +31,7 @@ public:
   TensorNetSimulationState &
   operator=(TensorNetSimulationState &&) noexcept = default;
 
-  ~TensorNetSimulationState() override;
+  virtual ~TensorNetSimulationState();
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override;
 
@@ -59,6 +59,7 @@ public:
 
   std::size_t getNumTensors() const override;
 
+  void destroyState() override;
   void toHost(std::complex<double> *clientAllocatedData,
               std::size_t numElements) const override;
   /// @brief Return a reference to all the tensors that have been applied to the

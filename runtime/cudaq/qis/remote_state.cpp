@@ -71,7 +71,7 @@ cudaq::SimulationState::precision RemoteSimulationState::getPrecision() const {
   return state->getPrecision();
 }
 
-RemoteSimulationState::~RemoteSimulationState() { state.reset(); }
+void RemoteSimulationState::destroyState() { state.reset(); }
 
 std::tuple<std::string, void *, std::size_t>
 RemoteSimulationState::getKernelInfo() const {
