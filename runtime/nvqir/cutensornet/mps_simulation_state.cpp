@@ -491,8 +491,8 @@ MPSSettings::MPSSettings() {
 
     if (nptr == endptr || errno != 0 || maxBond < 1)
       throw std::runtime_error("Invalid CUDAQ_MPS_MAX_BOND setting. Expected "
-                                "a positive number. Got: " +
-                                maxBondStr);
+                               "a positive number. Got: " +
+                               maxBondStr);
 
     cudaq::info("Setting MPS max bond dimension to {}.", maxBond);
   }
@@ -505,10 +505,9 @@ MPSSettings::MPSSettings() {
     absCutoff = strtod(nptr, &endptr);
 
     if (nptr == endptr || errno != 0 || absCutoff <= 0.0 || absCutoff >= 1.0)
-      throw std::runtime_error(
-          "Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
-          "a number in range (0.0, 1.0). Got: " +
-          absCutoffStr);
+      throw std::runtime_error("Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
+                               "a number in range (0.0, 1.0). Got: " +
+                               absCutoffStr);
 
     cudaq::info("Setting MPS absolute cutoff to {}.", absCutoff);
   }

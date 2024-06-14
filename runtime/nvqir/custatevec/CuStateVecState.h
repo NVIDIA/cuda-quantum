@@ -141,15 +141,17 @@ public:
         throw std::runtime_error(
             "overlap requested for device pointers on separate GPU devices.");
 
-      auto thrustCmplx = nvqir::innerProduct<ScalarType>(devicePtr, other.getTensor().data, size, false);
+      auto thrustCmplx = nvqir::innerProduct<ScalarType>(
+          devicePtr, other.getTensor().data, size, false);
       return {thrustCmplx.real(), thrustCmplx.imag()};
     } else {
       // If we reach here, then we have to copy the data from host.
-      cudaq::info(
-          "[custatevec-state] overlap computation requested with a state that is "
-          "in host memory. Host data will be copied to GPU.");
+      cudaq::info("[custatevec-state] overlap computation requested with a "
+                  "state that is "
+                  "in host memory. Host data will be copied to GPU.");
 
-      auto thrustCmplx = nvqir::innerProduct<ScalarType>(devicePtr, other.getTensor().data, size, true);
+      auto thrustCmplx = nvqir::innerProduct<ScalarType>(
+          devicePtr, other.getTensor().data, size, true);
       return {thrustCmplx.real(), thrustCmplx.imag()};
     }
   }

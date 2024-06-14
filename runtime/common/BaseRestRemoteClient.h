@@ -321,8 +321,8 @@ public:
       return false;
     } catch (...) {
       std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
-      auto demangledPtr = __cxxabiv1::__cxa_demangle(exType.c_str(),
-                                                    nullptr, nullptr, nullptr);
+      auto demangledPtr =
+          __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
       if (demangledPtr && optionalErrorMsg) {
         std::string demangledName(demangledPtr);
         *optionalErrorMsg = "Unhandled exception of type " + demangledName;
@@ -997,8 +997,8 @@ public:
       return false;
     } catch (...) {
       std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
-      auto demangledPtr = __cxxabiv1::__cxa_demangle(exType.c_str(),
-                                                     nullptr, nullptr, nullptr);
+      auto demangledPtr =
+          __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
       if (demangledPtr && optionalErrorMsg) {
         std::string demangledName(demangledPtr);
         *optionalErrorMsg = "Unhandled exception of type " + demangledName;

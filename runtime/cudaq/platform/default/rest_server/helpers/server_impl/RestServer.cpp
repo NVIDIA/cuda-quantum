@@ -69,8 +69,8 @@ invokeRouteHandler(const cudaq::RestServer::RouteHandler &handler,
     return crow::response(500, errorMsg);
   } catch (...) {
     std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
-    auto demangledPtr = __cxxabiv1::__cxa_demangle(exType.c_str(),
-                                                   nullptr, nullptr, nullptr);
+    auto demangledPtr =
+        __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
     if (demangledPtr) {
       std::string demangledName(demangledPtr);
       const std::string errorMsg =

@@ -643,8 +643,8 @@ protected:
       json resultJson;
       resultJson["status"] = "Failed to process incoming request";
       std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
-      auto demangledPtr = __cxxabiv1::__cxa_demangle(exType.c_str(),
-                                                     nullptr, nullptr, nullptr);
+      auto demangledPtr =
+          __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
       if (demangledPtr) {
         std::string demangledName(demangledPtr);
         resultJson["errorMessage"] = "Unknown error of type " + demangledName;

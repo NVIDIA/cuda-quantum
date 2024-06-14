@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CircuitSimulator.h"
 #include "CuStateVecCircuitSimulator.h"
+#include "CircuitSimulator.h"
 #include "CuStateVecState.h"
 #include "Gates.h"
 #include "Timing.h"
@@ -231,10 +231,8 @@ protected:
           "CuStateVecCircuitSimulator::addQubitsToState kronprod");
       // Compute the kronecker product
       nvqir::kronprod<CudaDataType>(
-        n_blocks, threads_per_block,
-        previousStateDimension, deviceStateVector, 
-        (1UL << count), otherState, 
-        newDeviceStateVector);
+          n_blocks, threads_per_block, previousStateDimension,
+          deviceStateVector, (1UL << count), otherState, newDeviceStateVector);
       HANDLE_CUDA_ERROR(cudaGetLastError());
     }
     // Free the old vectors we don't need anymore.
@@ -278,10 +276,9 @@ protected:
           "CuStateVecCircuitSimulator::addQubitsToState kronprod");
       // Compute the kronecker product
       nvqir::kronprod<CudaDataType>(
-        n_blocks, threads_per_block,
-        previousStateDimension, deviceStateVector, 
-        (1UL << in_state.getNumQubits()), casted->getDevicePointer(), 
-        newDeviceStateVector);
+          n_blocks, threads_per_block, previousStateDimension,
+          deviceStateVector, (1UL << in_state.getNumQubits()),
+          casted->getDevicePointer(), newDeviceStateVector);
       HANDLE_CUDA_ERROR(cudaGetLastError());
     }
     // Free the old state we don't need anymore.

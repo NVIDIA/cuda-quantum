@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <optional>
 #include <cxxabi.h>
+#include <optional>
 
-#include "nlopt.hpp"
 #include "nlopt.h"
+#include "nlopt.hpp"
 
 namespace cudaq::optimizers {
 

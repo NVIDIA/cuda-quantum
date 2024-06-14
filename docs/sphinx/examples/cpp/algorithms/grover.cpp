@@ -3,9 +3,9 @@
 // nvq++ grover.cpp -o grover.x && ./grover.x
 // ```
 
+#include <cmath>
 #include <cudaq.h>
 #include <numbers>
-#include <cmath>
 
 __qpu__ void reflect_about_uniform(cudaq::qvector<> &qs) {
   auto ctrlQubits = qs.front(qs.size() - 1);
@@ -13,13 +13,12 @@ __qpu__ void reflect_about_uniform(cudaq::qvector<> &qs) {
 
   // Compute (U) Action (V) produces
   // U V U::Adjoint
-  cudaq::compute_action([&]() {
-      h(qs);
-      x(qs);
-    }, [&]() { 
-      z<cudaq::ctrl>(ctrlQubits, lastQubit); 
-    }
-  );
+  cudaq::compute_action(
+      [&]() {
+        h(qs);
+        x(qs);
+      },
+      [&]() { z<cudaq::ctrl>(ctrlQubits, lastQubit); });
 }
 
 struct run_grover {
@@ -41,23 +40,24 @@ struct oracle {
   const long target_state;
 
   void operator()(cudaq::qvector<> &qs) __qpu__ {
-    cudaq::compute_action([&]() {
-        for (int i = 1; i <= qs.size(); ++i) {
-          auto target_bit_set = (1 << (qs.size() - i)) & target_state;
-          if (!target_bit_set)
-            x(qs[i - 1]);
-        }
-      }, [&]() { 
-        auto ctrlQubits = qs.front(qs.size() - 1);
-        z<cudaq::ctrl>(ctrlQubits, qs.back());
-      }
-    );
+    cudaq::compute_action(
+        [&]() {
+          for (int i = 1; i <= qs.size(); ++i) {
+            auto target_bit_set = (1 << (qs.size() - i)) & target_state;
+            if (!target_bit_set)
+              x(qs[i - 1]);
+          }
+        },
+        [&]() {
+          auto ctrlQubits = qs.front(qs.size() - 1);
+          z<cudaq::ctrl>(ctrlQubits, qs.back());
+        });
   }
 };
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   auto secret = 1 < argc ? strtol(argv[1], NULL, 2) : 0b1011;
-  oracle compute_oracle { .target_state = secret };
+  oracle compute_oracle{.target_state = secret};
   auto counts = cudaq::sample(run_grover{}, 4, compute_oracle);
   printf("Found string %s\n", counts.most_probable().c_str());
 }
