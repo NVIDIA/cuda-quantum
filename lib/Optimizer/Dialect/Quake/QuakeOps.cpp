@@ -506,6 +506,39 @@ LogicalResult quake::InitializeStateOp::verify() {
   return success();
 }
 
+namespace {
+// %22 = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<?>
+// ────────────────────────────────────────────────────────────────────
+// %22' = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<k>
+// %22 = quake.relax_size %22' : (!quake.veq<k>) -> !quake.veq<?>
+struct ForwardAllocaTypePattern
+    : public OpRewritePattern<quake::InitializeStateOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
+                                PatternRewriter &rewriter) const override {
+    if (auto isTy = dyn_cast<quake::VeqType>(initState.getType()))
+      if (!isTy.hasSpecifiedSize()) {
+        auto targ = initState.getTargets();
+        if (auto targTy = dyn_cast<quake::VeqType>(targ.getType()))
+          if (targTy.hasSpecifiedSize()) {
+            auto newInit = rewriter.create<quake::InitializeStateOp>(
+                initState.getLoc(), targTy, targ, initState.getState());
+            rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(initState, isTy,
+                                                            newInit);
+            return success();
+          }
+      }
+    return failure();
+  }
+};
+} // namespace
+
+void quake::InitializeStateOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardAllocaTypePattern>(context);
+}
+
 //===----------------------------------------------------------------------===//
 // RelaxSizeOp
 //===----------------------------------------------------------------------===//
@@ -516,6 +549,7 @@ LogicalResult quake::RelaxSizeOp::verify() {
   return success();
 }
 
+namespace {
 // Forward the argument to a relax_size to the users for all users that are
 // quake operations. All quake ops that take a sized veq argument are
 // polymorphic on all veq types. If the op is not a quake op, then maintain
@@ -537,6 +571,7 @@ struct ForwardRelaxedSizePattern : public RewritePattern {
     return success();
   };
 };
+} // namespace
 
 void quake::RelaxSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
@@ -547,6 +582,7 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 // SubVeqOp
 //===----------------------------------------------------------------------===//
 
+namespace {
 struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -589,6 +625,7 @@ struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
     return failure();
   }
 };
+} // namespace
 
 Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
@@ -615,9 +652,36 @@ void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 // VeqSizeOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+struct FoldInitStateSizePattern : public OpRewritePattern<quake::VeqSizeOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  // %11 = quake.init_state %_, %_ : (!quake.veq<2>, T1) -> !quake.veq<?>
+  // %12 = quake.veq_size %11 : (!quake.veq<?>) -> i64
+  // ────────────────────────────────────────────────────────────────────
+  // %11 = quake.init_state %_, %_ : (!quake.veq<2>, T1) -> !quake.veq<?>
+  // %12 = constant 2 : i64
+  LogicalResult matchAndRewrite(quake::VeqSizeOp veqSize,
+                                PatternRewriter &rewriter) const override {
+    Value veq = veqSize.getVeq();
+    if (auto initState = veq.getDefiningOp<quake::InitializeStateOp>())
+      if (auto veqTy =
+              dyn_cast<quake::VeqType>(initState.getTargets().getType()))
+        if (veqTy.hasSpecifiedSize()) {
+          std::size_t numQubits = veqTy.getSize();
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, numQubits,
+                                                            veqSize.getType());
+          return success();
+        }
+    return failure();
+  }
+};
+} // namespace
+
 void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                    MLIRContext *context) {
-  patterns.add<ForwardConstantVeqSizePattern>(context);
+  patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
