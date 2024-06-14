@@ -51,8 +51,10 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
 
     b = Bloch(**kwargs) if existing_sphere == None else existing_sphere
     st_rep = np.array(psi)
-    if (st_rep.shape == (2,) and isclose(abs(st_rep.dot(st_rep))**2, 1.0)) or (
-            st_rep.shape == (2, 2) and isclose(st_rep.trace().real, 1.0)):
+    if (st_rep.shape == (2,) and isclose(
+            np.sqrt(abs(st_rep.dot(st_rep.conjugate()))), 1.0,
+            abs_tol=1e-6)) or (st_rep.shape == (2, 2) and
+                               isclose(st_rep.trace().real, 1.0)):
         b.add_states(Qobj(st_rep))
     else:
         raise Exception(
