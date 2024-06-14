@@ -421,8 +421,10 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -784,7 +786,8 @@ python3<span class="w"> </span>-m<span class="w"> </span>auditwheel<span class="
 <span class="w">    </span>--exclude<span class="w"> </span>libcutensor.so.2<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcutensornet.so.2<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcustatevec.so.1<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--exclude<span class="w"> </span>libcudart.so.11.0<span class="w"> </span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcudart.so.11.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libnvToolsExt.so.1
 </pre></div>
 </div>
 <p>The command above will create a new wheel in the <code class="code docutils literal notranslate"><span class="pre">wheelhouse</span></code> folder. This wheel can be
