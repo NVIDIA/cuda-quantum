@@ -39,7 +39,7 @@ public:
   MPSSimulationState(MPSSimulationState &&) noexcept = default;
   MPSSimulationState &operator=(MPSSimulationState &&) noexcept = default;
 
-  virtual ~MPSSimulationState();
+  ~MPSSimulationState() override;
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override;
 
@@ -56,8 +56,6 @@ public:
   std::vector<Tensor> getTensors() const override;
 
   std::size_t getNumTensors() const override;
-
-  void destroyState() override;
 
   bool isDeviceData() const override { return true; }
 

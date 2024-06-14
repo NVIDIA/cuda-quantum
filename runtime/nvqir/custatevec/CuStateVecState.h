@@ -377,7 +377,7 @@ public:
   }
 
   /// @brief Free the device data.
-  void destroyState() override {
+  ~CusvState() override {
     if (!ownsDevicePtr)
       return;
 

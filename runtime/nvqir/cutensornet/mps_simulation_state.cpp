@@ -29,8 +29,6 @@ MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
       m_mpsTensors(mpsTensors) {}
 
-MPSSimulationState::~MPSSimulationState() { deallocate(); }
-
 std::complex<double> MPSSimulationState::computeOverlap(
     const std::vector<MPSTensor> &m_mpsTensors,
     const std::vector<MPSTensor> &mpsOtherTensors) {
@@ -311,7 +309,7 @@ void MPSSimulationState::deallocate() {
   state.reset();
 }
 
-void MPSSimulationState::destroyState() {
+MPSSimulationState::~MPSSimulationState() {
   cudaq::info("mps-state destroying state vector handle.");
   deallocate();
 }
