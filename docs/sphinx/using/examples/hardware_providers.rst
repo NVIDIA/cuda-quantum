@@ -48,7 +48,7 @@ The following code illustrates how to run kernels on Quantinuum's backends.
    .. literalinclude:: ../../examples/cpp/providers/quantinuum.cpp
       :language: cpp
 
-The following code illustrates how to run kernels on ORCA's backends.
+The following code illustrates how to run Time Bin Interferometer boson sampling experiments on ORCA's backends.
 
 .. tab:: Python
 
