@@ -23,6 +23,8 @@ import ast
 import subprocess
 import pickle
 import multiprocessing
+import os
+import threading
 from request_validator import RequestValidator
 
 # This reverse proxy application is needed to span the small gaps when
@@ -172,6 +174,13 @@ class Server(http.server.SimpleHTTPRequestHandler):
 
     @staticmethod
     def execute_code_in_subprocess(source_code, globals_dict):
+        # Watchdog timeout
+        watchdog_timeout = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
+        if watchdog_timeout > 0:
+            # This raises a BrokenProcessPool exception to run_in_executor()
+            timer = threading.Timer(watchdog_timeout, lambda: os._exit(1))
+            timer.start()
+
         try:
             simulationStart = int(datetime.now().timestamp() * 1000)
             exec(source_code, globals_dict)
@@ -204,11 +213,12 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 'deviceProps': deviceProps
             }
             result['executionInfo'] = executionInfo
+            if watchdog_timeout > 0:
+                timer.cancel()  # Must do this before exiting to avoid stall
             return result
         except Exception as e:
-            import traceback
-            print("An error occurred:")
-            traceback.print_exc()
+            if watchdog_timeout > 0:
+                timer.cancel()  # Must do this before exiting to avoid stall
             return {"status": "error", "errorMessage": str(e)}
 
     def is_serialized_code_execution_request(self, request_json):
