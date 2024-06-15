@@ -197,6 +197,49 @@ class Server(http.server.SimpleHTTPRequestHandler):
             'serializedCodeExecutionContext'] and request_json[
                 'serializedCodeExecutionContext']['source_code'] != ''
 
+    def write_asset_if_necessary(self, message):
+        """
+        If the output message is too large, and if the proxy is servicing NVCF
+        requests, then write the original message to a file and modify the
+        outgoing message to reference that new file.
+        """
+        if 'NVCF-MAX-RESPONSE-SIZE-BYTES' in self.headers:
+            max_response_len = int(self.headers['NVCF-MAX-RESPONSE-SIZE-BYTES'])
+            if len(message) > max_response_len:
+                try:
+                    outputDir = self.headers['NVCF-LARGE-OUTPUT-DIR']
+                    reqId = self.headers['NVCF-REQID']
+                    resultFile = f'{outputDir}/{reqId}_result.json'
+                    with open(resultFile, 'wb') as fp:
+                        fp.write(message)
+                        fp.flush()
+                    result = {'resultFile': resultFile}
+                    message = json.dumps(result).encode('utf-8')
+                except Exception as e:
+                    result = {
+                        'status': 'Exception during output processing',
+                        'errorMessage': str(e)
+                    }
+                    message = json.dumps(result).encode('utf-8')
+        return message
+
+    def read_asset_if_necessary(self, request_data):
+        """
+        If there is an asset ID in the headers, replace the incoming message
+        with the contents of a file read from disk.
+        """
+        asset_id = self.headers.get('NVCF-FUNCTION-ASSET-IDS', '')
+        if len(asset_id) > 0:
+            try:
+                asset_dir = self.headers['NVCF-ASSET-DIR']
+                filename = f'{asset_dir}/{asset_id}'
+                with open(filename, 'rb') as f:
+                    request_data = f.read()
+            except Exception as e:
+                # If something failed, simply forward the original message
+                pass
+        return request_data
+
     def do_POST(self):
         if self.path == '/job':
             qpud_up = False
@@ -222,16 +265,8 @@ class Server(http.server.SimpleHTTPRequestHandler):
             if content_length:
                 # Look for any asset references in the job request. If one
                 # exists, then that means the request is actually in a file.
-                asset_id = self.headers.get('NVCF-FUNCTION-ASSET-IDS', '')
-                if len(asset_id) > 0:
-                    asset_dir = self.headers.get('NVCF-ASSET-DIR', '')
-                    filename = f'{asset_dir}/{asset_id}'
-                    request_data = ''
-                    with open(filename, 'r') as f:
-                        request_data = f.read()
-                else:
-                    request_data = self.rfile.read(content_length)
-
+                request_data = self.rfile.read(content_length)
+                request_data = self.read_asset_if_necessary(request_data)
                 request_json = json.loads(request_data)
 
                 if self.is_serialized_code_execution_request(request_json):
@@ -244,6 +279,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
                     self.send_response(HTTPStatus.OK)
                     self.send_header('Content-Type', 'application/json')
                     message = json.dumps(result).encode('utf-8')
+                    message = self.write_asset_if_necessary(message)
                     self.send_header('Content-Length', str(len(message)))
                     self.end_headers()
                     self.wfile.write(message)
