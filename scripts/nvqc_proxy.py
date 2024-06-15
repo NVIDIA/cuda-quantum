@@ -9,6 +9,7 @@
 from http import HTTPStatus
 from concurrent.futures import ProcessPoolExecutor
 from cudaq import spin
+from datetime import datetime
 import http.server
 import json
 import requests
@@ -172,7 +173,9 @@ class Server(http.server.SimpleHTTPRequestHandler):
     @staticmethod
     def execute_code_in_subprocess(source_code, globals_dict):
         try:
+            simulationStart = int(datetime.now().timestamp() * 1000)
             exec(source_code, globals_dict)
+            simulationEnd = int(datetime.now().timestamp() * 1000)
             result = {
                 "status": "success",
                 "executionContext": {
@@ -185,6 +188,22 @@ class Server(http.server.SimpleHTTPRequestHandler):
                     ]
                 }
             }
+            try:
+                cmd_result = subprocess.run(['cudaq-qpud', '--cuda-properties'],
+                                            capture_output=True,
+                                            text=True)
+                deviceProps = json.loads(cmd_result.stdout)
+            except:
+                deviceProps = dict()
+            # We don't have visibility into the difference between requestStart
+            # and simulationStart, so simply use simulationStart for both
+            executionInfo = {
+                'requestStart': simulationStart,
+                'simulationStart': simulationStart,
+                'simulationEnd': simulationEnd,
+                'deviceProps': deviceProps
+            }
+            result['executionInfo'] = executionInfo
             return result
         except Exception as e:
             import traceback

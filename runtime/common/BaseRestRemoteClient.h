@@ -271,6 +271,7 @@ public:
       cudaq::RestClient restClient;
       auto resultJs =
           restClient.post(m_url, "job", requestJson, headers, false);
+      cudaq::debug("Response: {}", resultJs.dump(/*indent=*/2));
 
       if (!resultJs.contains("executionContext")) {
         std::stringstream errorMsg;
