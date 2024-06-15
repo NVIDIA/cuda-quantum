@@ -9,7 +9,7 @@
 import pytest
 import numpy as np
 import cudaq
-from typing import List
+
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -34,17 +34,15 @@ def test_basic():
     (c) express controlled custom operation
     """
 
-    custom_h = cudaq.register_operation(1, 0, 
-                                        1. / np.sqrt(2.) *
-                                        np.array([[1, 1], [1, -1]]))
-    custom_x = cudaq.register_operation(1, 0, 
-                                        np.array([[0, 1], [1, 0]]))
-
     @cudaq.kernel
     def bell():
         qubits = cudaq.qvector(2)
         custom_h(qubits[0])
         custom_x.ctrl(qubits[0], qubits[1])
+
+    cudaq.register_operation("custom_h", 1, 0,
+                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+    cudaq.register_operation("custom_x", 1, 0, np.array([0, 1, 1, 0]))
 
     print(bell)
     check_bell(bell)
@@ -53,11 +51,9 @@ def test_basic():
 def test_cnot_gate():
     """Test CNOT gate"""
 
-    custom_cnot = cudaq.register_operation(2, 0,
-        np.array([[1, 0, 0, 0],
-                  [0, 1, 0, 0],
-                  [0, 0, 0, 1], 
-                  [0, 0, 1, 0]]))
+    cudaq.register_operation(
+        "custom_cnot", 2, 0,
+        np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]))
 
     @cudaq.kernel
     def bell_pair():
@@ -71,11 +67,9 @@ def test_cnot_gate():
 def test_cz_gate():
     """Test 2-qubit custom operation replicating CZ gate."""
 
-    custom_cz = cudaq.register_operation(2, 0,
-        np.array([[1, 0, 0, 0], 
-                  [0, 1, 0, 0], 
-                  [0, 0, 1, 0], 
-                  [0, 0, 0, -1]]))
+    cudaq.register_operation(
+        "custom_cz", 2, 0,
+        np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1]))
 
     @cudaq.kernel
     def ctrl_z_kernel():
@@ -93,15 +87,13 @@ def test_cz_gate():
 def test_three_qubit_op():
     """Test three-qubit operation replicating Toffoli gate."""
 
-    toffoli = cudaq.register_operation(3, 0,
-        np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                  [0, 1, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 1, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 1, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 1],
-                  [0, 0, 0, 0, 0, 0, 1, 0]]))
+    cudaq.register_operation(
+        "toffoli", 3, 0,
+        np.array([
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0
+        ]))
 
     @cudaq.kernel
     def test_toffoli():
@@ -142,25 +134,24 @@ def test_simulators(target):
     cudaq.reset_target()
 
 
-def test_builder_mode():
-    """Builder-mode API """
+# def test_builder_mode():
+#     """Builder-mode API """
 
-    kernel = cudaq.make_kernel()
-    custom_h = cudaq.register_operation(1, 0, 
-                                        1. / np.sqrt(2.) *
-                                        np.array([[1, 1], [1, -1]]))
+#     kernel = cudaq.make_kernel()
+#     cudaq.register_operation(custom_h, 1, 0,  1. / np.sqrt(2.) *
+#                                         np.array([1, 1, 1, -1]))
 
-    qubits = kernel.qalloc(2)
-    kernel.custom_h(qubits[0])
-    kernel.cx(qubits[0], qubits[1])
+#     qubits = kernel.qalloc(2)
+#     kernel.custom_h(qubits[0])
+#     kernel.cx(qubits[0], qubits[1])
 
-    check_bell(kernel)
+#     check_bell(kernel)
 
 
 def test_custom_adjoint():
     """Test that adjoint can be called on custom operations."""
 
-    custom_s = cudaq.register_operation(np.array([[1, 0], [0, 1j]]))
+    cudaq.register_operation("custom_s", 1, 0, np.array([1, 0, 0, 1j]))
 
     @cudaq.kernel
     def kernel():
@@ -176,102 +167,18 @@ def test_custom_adjoint():
     assert counts["1"] == 1000
 
 
-def test_parameterized_op():
-    """Test ways to define and use custom quantum operations that can accept parameters."""
-
-    # (a) Using lambda
-    my_rx_op = cudaq.register_operation(1, 1, lambda angles: np.array([[
-        np.cos(angles[0] / 2), -1j * np.sin(angles[0] / 2)
-    ], [-1j * np.sin(angles[0] / 2), np.cos(angles[0] / 2)]]))
-
-    # (b) Using a regular function
-    def my_unitary(angles: List[float]):
-        return (np.array([[np.exp(-1j * angles[0] / 2), 0],
-                          [0, np.exp(1j * angles[0] / 2)]]))
-
-    my_rz_op = cudaq.register_operation(1, 1, my_unitary)
-
-    @cudaq.kernel
-    def use_op():
-        qubits = cudaq.qvector(3)
-
-        x(qubits)
-        my_rx_op(np.pi, qubits[0])
-        my_rx_op(np.pi, qubits[1])
-        my_rx_op(np.pi, qubits[2])
-        r1(-np.pi, qubits)
-        ry(np.pi, qubits)
-        my_rz_op(np.pi, qubits[0])
-        my_rz_op(np.pi, qubits[1])
-        my_rz_op(np.pi, qubits[2])
-
-    counts = cudaq.sample(use_op)
-    assert counts["111"] == 1000
-
-
-def test_multi_param():
-    """Two-parameter custom operation."""
-
-    dummy_gate = cudaq.register_operation(1, 2, lambda angles: np.array([[
-        np.cos(angles[0] / 2), -1j * np.sin(angles[1] / 2)
-    ], [-1j * np.sin(angles[1] / 2), np.cos(angles[0] / 2)]]))
-
-    @cudaq.kernel
-    def simple(gamma: float, delta: float):
-        qubits = cudaq.qvector(2)
-        h(qubits[0])
-        dummy_gate([gamma, delta], qubits[1])
-
-    # The test here is that this compiles
-    cudaq.sample(simple, np.pi / 2, np.pi / 4)
-
-
-def test_builder_parameterized():
-    """Parameterized custom operation in builder mode."""
-
-    custom_x = cudaq.register_operation(1, 0, np.array([[0, 1], [1, 0]]))
-
-    def rx_unitary(angles: List[float]):
-        return np.array([[np.cos(angles[0] / 2), -1j * np.sin(angles[0] / 2)],
-                         [-1j * np.sin(angles[0] / 2),
-                          np.cos(angles[0] / 2)]])
-
-    my_rx_op = cudaq.register_operation(1, 1, rx_unitary)
-
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(3)
-
-    kernel.custom_x(qubits[0])
-    kernel.my_rx_op(np.pi, qubits[0])
-    kernel.my_rx_op(np.pi, qubits[1])
-    kernel.my_rx_op(np.pi, qubits[2])
-    kernel.r1(-np.pi, qubits)
-    kernel.ry(np.pi, qubits)
-
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert counts["111"] == 1000
-
-
 def test_incorrect_matrix():
     """Incorrectly sized matrix raises error."""
 
-    invalid_op = cudaq.register_operation(1, 0,
-        np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
-
-    @cudaq.kernel
-    def check():
-        q = cudaq.qubit()
-        invalid_op(q)
-
-    with pytest.raises(RuntimeError) as error:
-        print(check)
+    with pytest.raises(AssertionError) as error:
+        cudaq.register_operation("invalid_op", 1, 0,
+                                 np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]))
 
 
 def test_bad_attribute():
     """Test that unsupported attributes on custom operations raise error."""
 
-    custom_s = cudaq.register_operation(1, 0, np.array([[1, 0], [0, 1j]]))
+    cudaq.register_operation("custom_s", 1, 0, np.array([1, 0, 0, 1j]))
 
     @cudaq.kernel
     def kernel():

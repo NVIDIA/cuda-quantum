@@ -276,10 +276,10 @@ def test_math_exp():
 
 
 def test_arbitrary_unitary_synthesis():
-    custom_h = cudaq.register_operation(1, 0,
+    cudaq.register_operation("custom_h", 1, 0,
                                         1. / np.sqrt(2.) *
                                         np.array([[1, 1], [1, -1]]))
-    custom_x = cudaq.register_operation(1, 0,
+    cudaq.register_operation("custom_x", 1, 0,
                                         np.array([[0, 1], [1, 0]]))
 
     @cudaq.kernel

@@ -1010,6 +1010,55 @@ void quake::CustomUnitarySymbolOp::getOperatorMatrix(Matrix &matrix) {}
 
 //===----------------------------------------------------------------------===//
 
+//===----------------------------------------------------------------------===//
+// ConstantUnitaryOp
+//===----------------------------------------------------------------------===//
+
+/// @brief Verify we have correct Attribute structure for unitary matrix
+/// elements.
+LogicalResult quake::ConstantUnitaryOp::verify() {
+
+  auto op = getOperation();
+  auto targets = getTargets();
+  auto unitary = getConstantUnitary();
+
+  for (auto element : unitary) {
+    auto arrAttr = dyn_cast<DenseF32ArrayAttr>(element);
+    if (!arrAttr)
+      return op->emitOpError(
+          "quake.const_unitary must be an `ArrayAttr` containing "
+          "`DenseF32ArrayAttr` elements, where each element is the real "
+          "and imaginary part of the matrix element.");
+    if (arrAttr.size() != 2)
+      return op->emitOpError("unitary elements must be of size 2, the real "
+                             "and imaginary parts.");
+  }
+
+  // verify correct number of unitary elements
+  std::size_t numQubits = 0;
+  for (auto target : targets)
+    if (auto veqTy = dyn_cast<quake::VeqType>(target.getType())) {
+      if (!veqTy.hasSpecifiedSize())
+        return op->emitOpError(
+            "quake.unitary cannot have runtime-known veq<?> types for "
+            "constant-sized matrix data.");
+      numQubits += veqTy.getSize();
+    } else {
+      // otherwise, must be a quake.ref
+      numQubits++;
+    }
+  // Should have 2**NumQ x 2**NumQ
+  std::size_t expectedNumElements = (1UL << numQubits) * (1UL << numQubits);
+  if (expectedNumElements != unitary.size())
+    return op->emitOpError(
+        "invalid number of unitary matrix elements. For " +
+        std::to_string(numQubits) + " qubits, there should be " +
+        std::to_string(expectedNumElements) + " elements. (" +
+        std::to_string(unitary.size()) + " provided)");
+
+  return success();
+}
+
 /// Never inline a `quake.apply` of a variant form of a kernel. The apply
 /// operation must be rewritten to a call before it is inlined when the apply
 /// is a variant form.

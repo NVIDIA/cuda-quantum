@@ -75,6 +75,9 @@ static constexpr const char QIRArrayCreateArray[] =
 static constexpr const char QIRRecordOutput[] =
     "__quantum__rt__result_record_output";
 
+static constexpr const char QIRConstantUnitary[] =
+    "__quantum__qis__constant_unitary";
+
 inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
                                        mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMStructType::getOpaque(type, context);

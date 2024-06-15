@@ -1229,4 +1229,31 @@ def CustomUnitarySymbolOp : QuakeOperator<"unitary", [], (ins SymbolRefAttr:$gen
   }];
 }
 
+
+def ConstantUnitaryOp : QuakeOp<"const_unitary", [AttrSizedOperandSegments]> {
+  let summary = "General unitary operation specified by constant unitary matrix";
+  let description = [{
+    This operation affects a general user-specified unitary operation, where 
+    the unitary can be specified via its matrix representation.
+
+    The matrix data must be provided as a row-major 1D array in MSB format.
+  }];
+
+  let arguments = (ins StrAttr:$opName,              
+                       Variadic<AnyQType>:$controls,
+                       Variadic<AnyQTargetType>:$targets,
+                       ArrayAttr:$constantUnitary,
+                       OptionalAttr<UnitAttr>:$is_adj,
+                       OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
+                       );
+  let results = (outs);
+
+  let assemblyFormat = [{
+    ( `<` `adj` $is_adj^ `>` )? (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
+      $targets `:` functional-type(operands, results) `(` $constantUnitary `)` attr-dict
+  }];
+
+  let hasVerifier = 1;
+}
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS

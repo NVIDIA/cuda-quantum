@@ -1320,14 +1320,154 @@ public:
     return success();
   }
 };
+
+/// Convert quake.const_unitary to a call to
+/// __quantum__qis__constant_unitary(real, imag, controls, targets)
+class ConstantUnitaryOpRewrite
+    : public OpConversionPattern<quake::ConstantUnitaryOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  Value mapUnitaryDataToLLVMPointer(Location &loc,
+                                    ConversionPatternRewriter &rewriter,
+                                    ModuleOp parentModule,
+                                    std::int64_t numUnitaryElements,
+                                    StringRef operationName,
+                                    ArrayRef<double> data) const {
+    auto f64Ty = rewriter.getF64Type();
+    SmallVector<std::int64_t> shape{numUnitaryElements};
+    auto vectorTy = VectorType::get(shape, f64Ty);
+    auto insertPoint = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+
+    /// TODO: Move this global such that its global symbol name can be
+    /// associated with the matrix rather than a copy of the flattened matrix
+    LLVM::GlobalOp realGlobalOp;
+    if (auto existingArr =
+            parentModule.lookupSymbol<LLVM::GlobalOp>(operationName))
+      realGlobalOp = existingArr;
+    else
+      realGlobalOp = rewriter.create<LLVM::GlobalOp>(
+          loc, vectorTy, /*isConstant=*/true, LLVM::Linkage::Internal,
+          operationName, DenseFPElementsAttr::get(vectorTy, data),
+          /*alignment=*/0);
+
+    rewriter.restoreInsertionPoint(insertPoint);
+
+    Value realPartAddr = rewriter.create<LLVM::AddressOfOp>(
+        loc, cudaq::opt::factory::getPointerType(realGlobalOp.getType()),
+        realGlobalOp.getSymName());
+    Value zero =
+        rewriter.create<LLVM::ConstantOp>(loc, rewriter.getIntegerType(64), 0);
+    return rewriter.create<LLVM::GEPOp>(loc, LLVM::LLVMPointerType::get(f64Ty),
+                                        realPartAddr, ValueRange{zero, zero});
+  }
+
+  Value getQubitArray(Location loc, ConversionPatternRewriter &rewriter,
+                      ValueRange qubits, FlatSymbolRefAttr symbolRef,
+                      FlatSymbolRefAttr getSymbolRef) const {
+
+    // Create (qubit...) -> Array* control array
+    auto ctx = rewriter.getContext();
+    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
+    auto qirArrayTy = cudaq::opt::getArrayType(ctx);
+    auto iPtrTy = cudaq::opt::factory::getPointerType(ctx);
+    Value numQubits =
+        rewriter.create<arith::ConstantIntOp>(loc, qubits.size(), 64);
+
+    auto createQubitsCall = rewriter.create<LLVM::CallOp>(
+        loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, numQubits});
+    auto controlsArr = createQubitsCall.getResult();
+    for (auto iter : llvm::enumerate(qubits)) {
+      auto i = iter.index();
+      auto control = iter.value();
+      auto idx =
+          rewriter.create<LLVM::ConstantOp>(loc, rewriter.getI64Type(), i);
+      auto call = rewriter.create<LLVM::CallOp>(
+          loc, iPtrTy, getSymbolRef, ArrayRef<Value>{controlsArr, idx});
+      Value pointer = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(iPtrTy), call.getResult());
+      auto cast = rewriter.create<LLVM::BitcastOp>(loc, iPtrTy, control);
+      rewriter.create<LLVM::StoreOp>(loc, cast, pointer);
+    }
+
+    return createQubitsCall.getResult();
+  }
+
+  LogicalResult
+  matchAndRewrite(quake::ConstantUnitaryOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto ctx = op.getContext();
+    auto parentModule = op->getParentOfType<ModuleOp>();
+    auto constantUnitary = op.getConstantUnitary();
+    auto opName = op.getOpName();
+
+    auto qirArrayTy = cudaq::opt::getArrayType(ctx);
+    auto i8PtrTy = cudaq::opt::factory::getPointerType(ctx);
+    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::opt::QIRArrayCreateArray, qirArrayTy,
+        {rewriter.getIntegerType(32), rewriter.getIntegerType(64)},
+        parentModule);
+    FlatSymbolRefAttr getSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            cudaq::opt::QIRArrayGetElementPtr1d, i8PtrTy,
+            {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
+
+    auto unitary = constantUnitary;
+    // Create the global array of data
+    // Fill the arrays with the unitary data
+    SmallVector<double> realPart(unitary.size()), imagPart(unitary.size());
+    for (std::size_t i = 0; auto &element : unitary) {
+      auto values = dyn_cast<DenseF32ArrayAttr>(element).asArrayRef();
+      realPart[i] = values[0];
+      imagPart[i] = values[1];
+      i++;
+    }
+
+    std::string opNameReal = opName.str() + "_real";
+    std::string opNameImag = opName.str() + "_imag";
+
+    Value realPartVal = mapUnitaryDataToLLVMPointer(
+        loc, rewriter, parentModule, unitary.size(), opNameReal, realPart);
+    if (!realPartVal)
+      return op->emitOpError("could not translate unitary data to llvm.");
+
+    Value imaginaryPartVal = mapUnitaryDataToLLVMPointer(
+        loc, rewriter, parentModule, unitary.size(), opNameImag, imagPart);
+    if (!imaginaryPartVal)
+      return op->emitOpError("could not translate unitary data to llvm.");
+
+    // Create (qubit...) -> Array* target array
+    auto targetsArr = getQubitArray(loc, rewriter, adaptor.getTargets(),
+                                    symbolRef, getSymbolRef);
+    auto controlsArr = getQubitArray(loc, rewriter, adaptor.getControls(),
+                                     symbolRef, getSymbolRef);
+
+    auto unitarySymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::opt::QIRConstantUnitary, LLVM::LLVMVoidType::get(ctx),
+        {realPartVal.getType(), imaginaryPartVal.getType(), qirArrayTy,
+         qirArrayTy},
+        parentModule);
+
+    SmallVector<Value> funcArgs{realPartVal, imaginaryPartVal, controlsArr,
+                                targetsArr};
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(op, TypeRange{}, unitarySymbolRef,
+                                              funcArgs);
+    // FIXME need to release the arrays
+    return success();
+  }
+};
+
 } // namespace
 
 void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                              RewritePatternSet &patterns,
                                              unsigned &measureCounter) {
   auto *context = patterns.getContext();
-  patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, MxToMz, MyToMz,
-                  ReturnBitRewrite>(context);
+  patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite,
+                  ConstantUnitaryOpRewrite, MxToMz, MyToMz, ReturnBitRewrite>(
+      context);
   patterns.insert<
       AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
       DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,

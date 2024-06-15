@@ -20,7 +20,7 @@ from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
 from .captured_data import CapturedDataStorage
-from .register_op import globalRegisteredOperations, UnitaryOperation
+from .register_op import globalRegisteredOperations
 
 State = cudaq_runtime.State
 
@@ -1646,25 +1646,25 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id in globalRegisteredOperations:
-                customOp = globalRegisteredOperations[node.func.id]
-                numParams = customOp.num_params
-                numTargets = customOp.num_targets
-                all_args = [
-                    self.popValue() for _ in range(len(self.valueStack))
-                ]
-                all_args.reverse()
-                targets = all_args[-numTargets:]
-                params = all_args[:numParams]
-                unitary = customOp.getUnitary(params)
+                unitary = globalRegisteredOperations[node.func.id]
+                numTargets = int(np.log2(np.sqrt(unitary.size)))
+                targets = [self.popValue() for _ in range(numTargets)]
+                targets.reverse()
                 self.checkControlAndTargetTypes([], targets)
-                srefAttr = FlatSymbolRefAttr.get(customOp.gen_func_name)
-                self.visit_FunctionDef(customOp.getGeneratorFunc())
-                quake.CustomUnitarySymbolOp([],
-                                            srefAttr,
-                                            parameters=params,
-                                            controls=[],
-                                            targets=targets,
-                                            is_adj=False)
+
+                # Need to map to an `ArrayAttr<ArrayAttr>` where each element
+                # is a pair (represented as an array) -> (real, imaginary)
+                arrayAttrList = []
+                for el in unitary:
+                    arrayAttrList.append(
+                        DenseF32ArrayAttr.get([np.real(el),
+                                               np.imag(el)]))
+                unitary = ArrayAttr.get(arrayAttrList)
+                quake.ConstantUnitaryOp(StringAttr.get(node.func.id),
+                                        controls=[],
+                                        targets=targets,
+                                        constantUnitary=unitary,
+                                        is_adj=False)
                 return
 
             if node.func.id in globalKernelRegistry:
@@ -2349,22 +2349,25 @@ class PyASTBridge(ast.NodeVisitor):
 
             # custom `ctrl` and `adj`
             if node.func.value.id in globalRegisteredOperations:
-                customOp = globalRegisteredOperations[node.func.value.id]
-                numParams = customOp.num_params
-                numTargets = customOp.num_targets
-                all_args = [
-                    self.popValue() for _ in range(len(self.valueStack))
-                ]
-                all_args.reverse()
-                targets = all_args[-numTargets:]
-                params = all_args[:numParams]
-                unitary = customOp.getUnitary(params)
-                srefAttr = FlatSymbolRefAttr.get(customOp.gen_func_name)
-                self.visit_FunctionDef(customOp.getGeneratorFunc())
-                if node.func.attr == 'ctrl':
-                    numControls = len(all_args) - numParams - numTargets
-                    controls = all_args[numParams:numParams + numControls]
+                unitary = globalRegisteredOperations[node.func.value.id]
+                numTargets = int(np.log2(np.sqrt(unitary.size)))
+                numValues = len(self.valueStack)
+                targets = [self.popValue() for _ in range(numTargets)]
+                targets.reverse()
 
+                # Need to map to an `ArrayAttr<ArrayAttr>` where each element
+                # is a pair (represented as an array) -> (real, imaginary)
+                arrayAttrList = []
+                for el in unitary:
+                    arrayAttrList.append(
+                        DenseF32ArrayAttr.get([np.real(el),
+                                               np.imag(el)]))
+                unitary = ArrayAttr.get(arrayAttrList)
+
+                if node.func.attr == 'ctrl':
+                    controls = [
+                        self.popValue() for _ in range(numValues - numTargets)
+                    ]
                     negatedControlQubits = None
                     if len(self.controlNegations):
                         negCtrlBools = [None] * len(controls)
@@ -2376,23 +2379,27 @@ class PyASTBridge(ast.NodeVisitor):
 
                     self.checkControlAndTargetTypes(controls, targets)
 
-                    quake.CustomUnitarySymbolOp(
-                        [],
-                        srefAttr,
-                        params,
-                        controls,
-                        targets,
+                    quake.ConstantUnitaryOp(
+                        StringAttr.get(node.func.value.id),
+                        controls=controls,
+                        targets=targets,
+                        constantUnitary=unitary,
+                        is_adj=False,
                         negated_qubit_controls=negatedControlQubits)
+                    return
 
                 if node.func.attr == 'adj':
                     self.checkControlAndTargetTypes([], targets)
-                    quake.CustomUnitarySymbolOp([],
-                                                srefAttr,
-                                                parameters=params,
-                                                controls=[],
-                                                targets=targets,
-                                                is_adj=True)
-                return
+                    quake.ConstantUnitaryOp(StringAttr.get(node.func.value.id),
+                                            controls=[],
+                                            targets=targets,
+                                            constantUnitary=unitary,
+                                            is_adj=True)
+                    return
+
+                self.emitFatalError(
+                    f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
+                )
 
             self.emitFatalError(
                 f"Invalid function call - '{node.func.value.id}' is unknown.")
