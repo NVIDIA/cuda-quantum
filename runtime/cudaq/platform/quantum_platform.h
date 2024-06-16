@@ -118,7 +118,8 @@ public:
   /// quantum kernels.
   void set_noise(const noise_model *model);
 
-  /// @brief Return whether the QPU has support for remote serialized code execution
+  /// @brief Return whether the QPU has support for remote serialized code
+  /// execution
   bool supports_remote_serialized_code(const std::size_t qpuId = 0) const;
 
   /// @brief Turn off any noise models.

@@ -5,10 +5,10 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include <iostream>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include <regex>
-#include <iostream>
 
 #include "py_optimizer.h"
 
@@ -128,9 +128,10 @@ static std::string remove_comments(const std::string &source) {
   return result;
 }
 
-std::string remove_print_statements(const std::string& source) {
-    std::regex print_regex(R"((^\s*print\(.*\)\s*$))", std::regex_constants::multiline);
-    return std::regex_replace(source, print_regex, "");
+std::string remove_print_statements(const std::string &source) {
+  std::regex print_regex(R"((^\s*print\(.*\)\s*$))",
+                         std::regex_constants::multiline);
+  return std::regex_replace(source, print_regex, "");
 }
 
 static std::string get_source_code(const py::function &func) {

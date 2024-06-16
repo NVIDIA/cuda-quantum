@@ -105,9 +105,10 @@ public:
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
 
-  void launchSerializedCodeExecution(const std::string &name,
-                        cudaq::SerializedCodeExecutionContext
-                            &serializeCodeExecutionObject) override {
+  void
+  launchSerializedCodeExecution(const std::string &name,
+                                cudaq::SerializedCodeExecutionContext
+                                    &serializeCodeExecutionObject) override {
     cudaq::info(
         "BaseRemoteSimulatorQPU: Launch remote code named '{}' remote QPU {} "
         "(simulator = {})",

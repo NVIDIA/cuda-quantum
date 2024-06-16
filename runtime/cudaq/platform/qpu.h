@@ -169,7 +169,8 @@ public:
   /// Launch serialized code for remote execution. Subtypes that support this
   /// should override this function and the supportsRemoteSerializedCode()
   /// function.
-  virtual void launchSerializedCodeExecution(const std::string &name,
+  virtual void launchSerializedCodeExecution(
+      const std::string &name,
       cudaq::SerializedCodeExecutionContext &serializeCodeExecutionObject) {}
 
   /// @brief Notify the QPU that a new random seed value is set.

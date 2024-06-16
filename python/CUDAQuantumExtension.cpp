@@ -8,8 +8,8 @@
 
 #include "common/Logger.h"
 #include "cudaq.h"
-#include "cudaq/platform/orca/orca_qpu.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/platform/orca/orca_qpu.h"
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"

@@ -39,7 +39,7 @@ public:
   /// @brief A computed expectation value
   std::optional<double> expectationValue = std::nullopt;
 
-    /// @brief An optimization result
+  /// @brief An optimization result
   std::optional<cudaq::optimization_result> optResult = std::nullopt;
 
   /// @brief The kernel being executed in this context
