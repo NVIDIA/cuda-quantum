@@ -205,8 +205,8 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 deviceProps = json.loads(cmd_result.stdout)
             except:
                 deviceProps = dict()
-            # We don't have visibility into the difference between requestStart
-            # and simulationStart, so simply use simulationStart for both
+            # We don't have visibility into the difference between `requestStart`
+            # and `simulationStart`, so simply use `simulationStart` for both
             executionInfo = {
                 'requestStart': simulationStart,
                 'simulationStart': simulationStart,
@@ -313,12 +313,6 @@ class Server(http.server.SimpleHTTPRequestHandler):
                                                     text=True)
                         last_line = cmd_result.stdout.strip().split('\n')[-1]
                         result = json.loads(last_line)
-
-                    # loop = asyncio.new_event_loop()
-                    # asyncio.set_event_loop(loop)
-                    # result = loop.run_until_complete(
-                    #     self.handle_job_request(request_json))
-                    # loop.close()
 
                     self.send_response(HTTPStatus.OK)
                     self.send_header('Content-Type', 'application/json')

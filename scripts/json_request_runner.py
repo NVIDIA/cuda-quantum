@@ -104,8 +104,8 @@ if __name__ == "__main__":
         except:
             deviceProps = dict()
 
-        # We don't have visibility into the difference between requestStart
-        # and simulationStart, so simply use simulationStart for both
+        # We don't have visibility into the difference between `requestStart`
+        # and `simulationStart`, so simply use `simulationStart` for both
         executionInfo = {
             'requestStart': simulationStart,
             'simulationStart': simulationStart,
