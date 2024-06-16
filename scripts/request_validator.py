@@ -56,10 +56,14 @@ class RequestValidator:
             is_valid, errors = self.validate_ast(source_code)
             if not is_valid:
                 return False, f"Invalid source code: '{errors}'"
-            is_valid, match = self.validate_namespace(globals_namespace)
-            if not is_valid:
-                return False, f"Invalid namespace: '{match}'"
+            # Commenting out as I don't have a much solid use case to validate namespace
+            # as we are already validating the source code
+            # is_valid, match = self.validate_namespace(globals_namespace)
+            # if not is_valid:
+            #     return False, f"Invalid namespace: '{match}'"
+        except KeyError as e:
+            return False, f"Missing key in request: {str(e)}"
         except Exception as e:
-            return False, "Invalid request field format."
+            return False, str(e)
         
         return True, ""
