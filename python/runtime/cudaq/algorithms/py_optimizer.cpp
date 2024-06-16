@@ -5,10 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include <iostream>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
-#include <regex>
 
 #include "py_optimizer.h"
 
@@ -111,29 +109,6 @@ static std::size_t strip_leading_whitespace(std::string &source_code) {
   return min_indent;
 }
 
-static std::string remove_comments(const std::string &source) {
-  std::regex comment_regex(R"((\"[^\"]*\"|\'[^\']*\')|#.*)");
-  std::string result;
-  std::smatch match;
-  std::string::const_iterator searchStart(source.cbegin());
-
-  while (std::regex_search(searchStart, source.cend(), match, comment_regex)) {
-    result += match.prefix().str();
-    if (match[1].matched) {
-      result += match.str();
-    }
-    searchStart = match.suffix().first;
-  }
-  result += std::string(searchStart, source.cend());
-  return result;
-}
-
-std::string remove_print_statements(const std::string &source) {
-  std::regex print_regex(R"((^\s*print\(.*\)\s*$))",
-                         std::regex_constants::multiline);
-  return std::regex_replace(source, print_regex, "");
-}
-
 static std::string get_source_code(const py::function &func) {
   // Get the source code
   py::object inspect = py::module::import("inspect");
@@ -147,9 +122,7 @@ static std::string get_source_code(const py::function &func) {
 
   std::string source = source_code.cast<std::string>();
   strip_leading_whitespace(source);
-  source = remove_comments(source);
-  source = remove_print_statements(source);
-  return remove_comments(source);
+  return source;
 }
 
 static std::string get_imports() {
