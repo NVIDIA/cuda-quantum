@@ -353,8 +353,9 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
                   serialized_code_execution_object);
 
               platform.reset_exec_ctx();
-              auto result = std::move(
-                  ctx->optResult.value_or(cudaq::optimization_result{}));
+              auto result = cudaq::optimization_result{};
+              if (ctx->optResult)
+                result = std::move(*ctx->optResult);
               return result;
             }
 
