@@ -44,6 +44,3 @@
 [submodule "tpls/Crow"]
 	path = tpls/Crow
 	url = https://github.com/CrowCpp/Crow.git
-[submodule "benchmark"]
-	path = benchmark
-	url = https://gitlab-master.nvidia.com/mfarag/benchmark.git
