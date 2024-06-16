@@ -171,6 +171,10 @@ get_required_raw_source_code(const int dim, const py::function &func,
   auto obj_func_name = func.attr("__name__").cast<std::string>();
   os << "energy, params_at_energy = " << optimizer_var_name << ".optimize("
      << dim << ", " << obj_func_name << ")\n";
+  // The _json_request_result dictionary is a special dictionary where outputs
+  // are saved. Must be serializable to JSON using the JSON structures.
+  os << "_json_request_result['executionContext']['optResult'] = [energy, "
+        "params_at_energy]\n";
   auto function_call = os.str();
 
   // Return the combined code

@@ -18,6 +18,7 @@ FROM $base_image as nvcf_image
 
 ADD scripts/nvqc_proxy.py /
 ADD scripts/request_validator.py /
+ADD scripts/json_request_runner.py /
 
 # Launch script: launch cudaq-qpud (nvcf mode) with MPI ranks == Number of NVIDIA GPUs
 # IMPORTANT: 

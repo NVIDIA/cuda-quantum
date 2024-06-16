@@ -25,6 +25,7 @@ import pickle
 import multiprocessing
 import os
 import threading
+import tempfile
 from request_validator import RequestValidator
 
 # This reverse proxy application is needed to span the small gaps when
@@ -299,11 +300,25 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 request_json = json.loads(request_data)
 
                 if self.is_serialized_code_execution_request(request_json):
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    result = loop.run_until_complete(
-                        self.handle_job_request(request_json))
-                    loop.close()
+                    with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+                        temp_file.write(request_data)
+                        temp_file.flush()
+                        current_script_path = os.path.abspath(__file__)
+                        json_req_path = os.path.join(
+                            os.path.dirname(current_script_path),
+                            'json_request_runner.py')
+                        cmd_list = ['python3', json_req_path, temp_file.name]
+                        cmd_result = subprocess.run(cmd_list,
+                                                    capture_output=True,
+                                                    text=True)
+                        last_line = cmd_result.stdout.strip().split('\n')[-1]
+                        result = json.loads(last_line)
+
+                    # loop = asyncio.new_event_loop()
+                    # asyncio.set_event_loop(loop)
+                    # result = loop.run_until_complete(
+                    #     self.handle_job_request(request_json))
+                    # loop.close()
 
                     self.send_response(HTTPStatus.OK)
                     self.send_header('Content-Type', 'application/json')
