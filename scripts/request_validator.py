@@ -10,7 +10,9 @@ from utils.ast_validator import ASTValidator
 import ast
 import re
 
+
 class RequestValidator:
+
     def __init__(self) -> None:
         self.ast_validator = ASTValidator()
 
@@ -25,7 +27,7 @@ class RequestValidator:
             return False, [f"Syntax error in code: {e.msg}"]
         except Exception as e:
             return False, [str(e)]
-    
+
     def validate_json_value(self, value):
         if isinstance(value, str):
             return self.validate_ast(value)
@@ -37,7 +39,7 @@ class RequestValidator:
                 if not is_valid:
                     return False, match
         return True, None
-    
+
     def validate_namespace(self, namespace_dict: dict):
         for key, value in namespace_dict.items():
             is_valid, match = self.validate_json_value(key)
@@ -48,10 +50,12 @@ class RequestValidator:
                 return False, match
         return True, None
 
-    def validate_request(self, serialized_code_execution_context: dict) -> tuple[bool, str]:
+    def validate_request(
+            self, serialized_code_execution_context: dict) -> tuple[bool, str]:
         try:
             source_code = serialized_code_execution_context['source_code']
-            global_namespace = serialized_code_execution_context['scoped_var_dict']
+            global_namespace = serialized_code_execution_context[
+                'scoped_var_dict']
 
             is_valid, errors = self.validate_ast(source_code)
             if not is_valid:
@@ -65,5 +69,5 @@ class RequestValidator:
             return False, f"Missing key in request: {str(e)}"
         except Exception as e:
             return False, str(e)
-        
+
         return True, ""

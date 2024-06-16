@@ -224,7 +224,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 # exists, then that means the request is actually in a file.
                 asset_id = self.headers.get('NVCF-FUNCTION-ASSET-IDS', '')
                 if len(asset_id) > 0:
-                    asset_dir = self.headers.get('NVCF-ASSET-DIR','')
+                    asset_dir = self.headers.get('NVCF-ASSET-DIR', '')
                     filename = f'{asset_dir}/{asset_id}'
                     request_data = ''
                     with open(filename, 'r') as f:

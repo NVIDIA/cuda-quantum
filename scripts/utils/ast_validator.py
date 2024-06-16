@@ -8,13 +8,17 @@
 
 import ast
 
+
 class ASTValidator(ast.NodeVisitor):
+
     def __init__(self) -> None:
         super().__init__()
         self.user_defined_functions = set()
         self.user_defined_variables = set()
         # List of allowed modules for function calls
-        self.allowed_modules = {'cudaq', 'numpy', 'optimizer', 'gradient_strategy', 'List', 'Tuple'}
+        self.allowed_modules = {
+            'cudaq', 'numpy', 'optimizer', 'gradient_strategy', 'List', 'Tuple'
+        }
         self.errors = []
 
     def visit_FunctionDef(self, node):
@@ -45,7 +49,9 @@ class ASTValidator(ast.NodeVisitor):
                     self.user_defined_functions.add(target.id)
         if isinstance(node.value, ast.Call):
             func_name = self.get_full_name(node.value.func)
-            if any(func_name.startswith(f"{module}.") for module in self.allowed_modules):
+            if any(
+                    func_name.startswith(f"{module}.")
+                    for module in self.allowed_modules):
                 for target in node.targets:
                     if isinstance(target, ast.Name):
                         self.user_defined_variables.add(target.id)
@@ -104,7 +110,9 @@ class ASTValidator(ast.NodeVisitor):
             return True
         if func_name.split('.')[0] in self.user_defined_variables:
             return True
-        return any(func_name.startswith(f"{module}.") for module in self.allowed_modules)
+        return any(
+            func_name.startswith(f"{module}.")
+            for module in self.allowed_modules)
 
     def validate(self, node):
         # Validate AST node
