@@ -51,14 +51,14 @@ class RequestValidator:
     def validate_request(self, serialized_code_execution_context: dict) -> tuple[bool, str]:
         try:
             source_code = serialized_code_execution_context['source_code']
-            globals_namespace = serialized_code_execution_context['scoped_var_dict']
+            global_namespace = serialized_code_execution_context['scoped_var_dict']
 
             is_valid, errors = self.validate_ast(source_code)
             if not is_valid:
                 return False, f"Invalid source code: '{errors}'"
             # Commenting out as I don't have a much solid use case to validate namespace
             # as we are already validating the source code
-            # is_valid, match = self.validate_namespace(globals_namespace)
+            # is_valid, match = self.validate_namespace(global_namespace)
             # if not is_valid:
             #     return False, f"Invalid namespace: '{match}'"
         except KeyError as e:

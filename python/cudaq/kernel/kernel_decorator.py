@@ -129,7 +129,7 @@ class PyKernelDecorator(object):
 
         # Assign the signature for use later and
         # keep a list of arguments (used for validation in the runtime)
-        # Bypass if deserializing because they are directly provided.
+        # Bypass if restoring from pickle because they are directly provided.
         if not restoring_from_pickle:
             self.signature = inspect.getfullargspec(
                 self.kernelFunction).annotations
