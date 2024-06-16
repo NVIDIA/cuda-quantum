@@ -316,7 +316,8 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
           "optimize",
           [](OptimizerT &opt, const int dim, py::function &func) {
             auto &platform = cudaq::get_platform();
-            if (platform.supports_remote_serialized_code()) {
+            if (platform.supports_remote_serialized_code() &&
+                platform.num_qpus() == 1) {
               std::string optimizer_var_name = [&]() -> std::string {
                 py::object inspect = py::module::import("inspect");
                 // Search locals first, walking up the call stack
