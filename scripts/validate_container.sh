@@ -253,7 +253,7 @@ if [ -n "$(find $(pwd) -name '*.ipynb')" ]; then
     echo "Validating notebooks:"
     echo "Installing packages required for notebook validation"
     ## Ref: https://github.com/qutip/qutip/issues/2412
-    python3 -m pip install --no-cache-dir "qutip<5"
+    python3 -m pip install --no-cache-dir "qutip<5" matplotlib
     echo "$available_backends" | python3 notebook_validation.py
     if [ $? -eq 0 ]; then 
         let "passed+=1"
