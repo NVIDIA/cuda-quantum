@@ -35,7 +35,6 @@ public:
     // instead of replacing the controls in place.
     SmallVector<Value> newControls;
     bool update = false;
-    rewriter.startRootUpdate(op);
 
     // Search through the controls for veqs with known sizes
     for (auto [index, control] : llvm::enumerate(op.getControls())) {
@@ -57,24 +56,24 @@ public:
     }
 
     if (!update) {
-      rewriter.cancelRootUpdate(op);
       return failure();
     }
 
-    // Reconstruct the operands with the new controls
-    ValueRange parameters = op.getParameters();
-    ValueRange targets = op.getTargets();
-    SmallVector<Value> operands(parameters);
-    operands.append(newControls.begin(), newControls.end());
-    operands.append(targets.begin(), targets.end());
-    op->setOperands(operands);
+    // Reconstruct the operation with the new controls
     auto segmentSizes =
-      rewriter.getDenseI32ArrayAttr({static_cast<int32_t>(parameters.size()),
-                                    static_cast<int32_t>(newControls.size()),
-                                    static_cast<int32_t>(targets.size())});
-    op->setAttr("operand_segment_sizes", segmentSizes);
+      rewriter.getDenseI32ArrayAttr({static_cast<int32_t>(op.getParameters().size()),
+                                     static_cast<int32_t>(newControls.size()),
+                                     static_cast<int32_t>(op.getTargets().size())});
 
-    rewriter.finalizeRootUpdate(op);
+    auto newOp = rewriter.replaceOpWithNewOp<OP>(op,
+                                                 op.getIsAdj(),
+                                                 op.getParameters(),
+                                                 newControls,
+                                                 op.getTargets(),
+                                                 op.getNegatedQubitControlsAttr());
+
+    newOp->setAttr("operand_segment_sizes", segmentSizes);
+
     return success();
   }
 };
