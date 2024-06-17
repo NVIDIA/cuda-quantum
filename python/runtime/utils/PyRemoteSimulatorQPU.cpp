@@ -98,7 +98,6 @@ public:
                                                                /*shots=*/1);
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
-
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,

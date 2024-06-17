@@ -172,27 +172,12 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
             auto &platform = cudaq::get_platform();
             if (platform.supports_remote_serialized_code() &&
                 platform.num_qpus() == 1) {
-              std::string optimizer_var_name = [&]() -> std::string {
-                py::object inspect = py::module::import("inspect");
-                // Search locals first, walking up the call stack
-                auto current_frame = inspect.attr("currentframe")();
-                while (current_frame && !current_frame.is_none()) {
-                  py::dict f_locals = current_frame.attr("f_locals");
-                  for (auto item : f_locals)
-                    if (item.second.is(py::cast(&opt)))
-                      return py::str(item.first);
-                  current_frame = current_frame.attr("f_back");
-                }
-                // Search globals now
-                current_frame = inspect.attr("currentframe")();
-                py::dict f_globals = current_frame.attr("f_globals");
-                for (auto item : f_globals)
-                  if (item.second.is(py::cast(&opt)))
-                    return py::str(item.first);
+              std::string optimizer_var_name =
+                  cudaq::get_var_name_for_handle(py::cast(&opt));
+              if (optimizer_var_name.empty())
                 throw std::runtime_error(
-                    "Unable to find desired optimizer object in "
-                    "global namespace. Aborting.");
-              }();
+                    "Unable to find desired optimizer object in any "
+                    "namespace. Aborting.");
 
               auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
               platform.set_exec_ctx(ctx.get());

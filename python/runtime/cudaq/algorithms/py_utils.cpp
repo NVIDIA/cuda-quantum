@@ -142,4 +142,24 @@ std::string get_imports() {
   return imports_str;
 }
 
+std::string get_var_name_for_handle(const py::handle &h) {
+  py::object inspect = py::module::import("inspect");
+  // Search locals first, walking up the call stack
+  auto current_frame = inspect.attr("currentframe")();
+  while (current_frame && !current_frame.is_none()) {
+    py::dict f_locals = current_frame.attr("f_locals");
+    for (auto item : f_locals)
+      if (item.second.is(h))
+        return py::str(item.first);
+    current_frame = current_frame.attr("f_back");
+  }
+  // Search globals now
+  current_frame = inspect.attr("currentframe")();
+  py::dict f_globals = current_frame.attr("f_globals");
+  for (auto item : f_globals)
+    if (item.second.is(h))
+      return py::str(item.first);
+  return std::string();
+}
+
 } // namespace cudaq
