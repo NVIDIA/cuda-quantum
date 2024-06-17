@@ -273,6 +273,29 @@ def test_column_major():
     assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.2) 
     cudaq.reset_target()
 
+def test_noise_u3():
+    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_random_seed(13)
+    # Amplitude damping
+    error_prob = 0.2
+    shots = 10000
+    kraus_0=np.array([[1.0,0.0], [0.0,np.sqrt(1-error_prob)]],dtype=np.complex128)
+    kraus_1=np.array([[0.0,np.sqrt(error_prob)],[0.0,0.0]],dtype=np.complex128)
+    # This will throw if the row-column major convention is mixed up
+    t1_channel=cudaq.KrausChannel([kraus_0,kraus_1])
+    noise = cudaq.NoiseModel()
+    noise.add_channel('u3', [0], t1_channel)
+    cudaq.set_noise(noise)
+    circuit = cudaq.make_kernel()
+    q = circuit.qalloc()
+    # U3(pi,−pi/2,pi/2) == X
+    circuit.u3(np.pi, -np.pi/2, np.pi/2, q)
+    noisy_counts = cudaq.sample(circuit, shots_count=shots)
+    noisy_counts.dump()
+    # Decay to |0> ~ error_prob
+    assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.1) 
+    cudaq.reset_target()
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
