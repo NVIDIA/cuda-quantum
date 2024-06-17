@@ -28,7 +28,7 @@ get_serialized_code(std::string &source_code) {
   SerializedCodeExecutionContext ctx;
   try {
     ctx.imports = get_imports();
-    ctx.scoped_var_dict = get_base64_encoded_var_dict();
+    ctx.scoped_var_dict = b64encode_dict(get_serializable_var_dict());
     ctx.source_code = source_code;
   } catch (py::error_already_set &e) {
     throw std::runtime_error("Failed to serialized data: " +

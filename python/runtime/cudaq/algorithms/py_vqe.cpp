@@ -100,48 +100,72 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
       .value();
 }
 
+static optimization_result
+pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
+             spin_op &hamiltonian, cudaq::optimizer &optimizer,
+             cudaq::gradient *gradient, py::function *argumentMapper,
+             const int n_params, const int shots) {
+  py::object pickle = py::module_::import("pickle");
+  py::object base64 = py::module_::import("base64");
+  py::object inspect = py::module_::import("inspect");
+
+  // Form scoped_vars_str
+  py::dict scoped_vars;
+  // We only need to capture user variables when an argumentMapper is provided.
+  if (argumentMapper)
+    scoped_vars = get_serializable_var_dict();
+  scoped_vars["__hamiltonian"] = pickle.attr("dumps")(hamiltonian);
+  scoped_vars["__optimizer"] = pickle.attr("dumps")(optimizer);
+  scoped_vars["__vqe_kernel"] = pickle.attr("dumps")(kernel);
+  if (gradient)
+    scoped_vars["__gradient"] = pickle.attr("dumps")(gradient);
+  auto scoped_vars_str = b64encode_dict(scoped_vars);
+
+  // Form SerializedCodeExecutionContext.source_code
+  std::ostringstream os;
+  if (argumentMapper) {
+    std::string source_code = cudaq::get_source_code(*argumentMapper);
+    os << "__arg_mapper = " << source_code << '\n';
+  }
+  os << "energy, params_at_energy = cudaq.vqe(";
+  os << "kernel=__vqe_kernel, ";
+  if (gradient)
+    os << "gradient_strategy=__gradient, ";
+  os << "spin_operator=__hamiltonian, ";
+  os << "optimizer=__optimizer, ";
+  os << "parameter_count=" << n_params << ", ";
+  if (argumentMapper)
+    os << "argument_mapper=__arg_mapper, ";
+  os << "shots=" << shots << ")\n";
+  os << "_json_request_result['executionContext']['optResult'] = [energy, "
+        "params_at_energy]\n";
+  auto function_call = os.str();
+
+  SerializedCodeExecutionContext scCtx;
+  scCtx.imports = "import cudaq\n";
+  scCtx.scoped_var_dict = std::move(scoped_vars_str);
+  scCtx.source_code = std::move(function_call);
+
+  auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
+  platform.set_exec_ctx(ctx.get());
+  platform.launchSerializedCodeExecution(
+      kernel.attr("name").cast<std::string>(), scCtx);
+  platform.reset_exec_ctx();
+  auto result = cudaq::optimization_result{};
+  if (ctx->optResult)
+    result = std::move(*ctx->optResult);
+  return result;
+}
+
 /// @brief Run `cudaq.vqe()` without a gradient strategy.
 optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           const int shots = -1) {
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_serialized_code()) {
-    py::object pickle = py::module_::import("pickle");
-    py::object base64 = py::module_::import("base64");
-
-    // Form scoped_var_dict
-    py::dict scoped_vars;
-    scoped_vars["hamiltonian"] = pickle.attr("dumps")(hamiltonian);
-    scoped_vars["optimizer"] = pickle.attr("dumps")(optimizer);
-    scoped_vars["vqe_kernel"] = pickle.attr("dumps")(kernel);
-    py::bytes scoped_vars_bytes = pickle.attr("dumps")(scoped_vars);
-    py::object encoded_dict = base64.attr("b64encode")(scoped_vars_bytes);
-    auto scoped_vars_str = encoded_dict.cast<std::string>();
-
-    // Form source_code
-    std::ostringstream os;
-    os << "energy, params_at_energy = cudaq.vqe(vqe_kernel, hamiltonian, "
-          "optimizer, "
-       << n_params << ", " << shots << ")\n";
-    os << "_json_request_result['executionContext']['optResult'] = [energy, "
-          "params_at_energy]\n";
-    auto function_call = os.str();
-
-    SerializedCodeExecutionContext scCtx;
-    scCtx.imports = "import cudaq\n";
-    scCtx.scoped_var_dict = std::move(scoped_vars_str);
-    scCtx.source_code = std::move(function_call);
-
-    auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
-    platform.set_exec_ctx(ctx.get());
-    platform.launchSerializedCodeExecution(
-        kernel.attr("name").cast<std::string>(), scCtx);
-    platform.reset_exec_ctx();
-    auto result = cudaq::optimization_result{};
-    if (ctx->optResult)
-      result = std::move(*ctx->optResult);
-    return result;
-  }
+  if (platform.supports_remote_serialized_code())
+    return pyVQE_remote(platform, kernel, hamiltonian, optimizer,
+                        /*gradient=*/nullptr, /*argumentMapper=*/nullptr,
+                        n_params, shots);
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     py::args params = py::make_tuple(x);
@@ -157,48 +181,9 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           py::function &argumentMapper, const int shots = -1) {
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_serialized_code()) {
-    py::object pickle = py::module_::import("pickle");
-    py::object base64 = py::module_::import("base64");
-    py::object inspect = py::module_::import("inspect");
-    std::string source_code = cudaq::get_source_code(argumentMapper);
-
-    // Form scoped_var_dict
-    py::dict scoped_vars;
-    scoped_vars["hamiltonian"] = pickle.attr("dumps")(hamiltonian);
-    scoped_vars["optimizer"] = pickle.attr("dumps")(optimizer);
-    scoped_vars["vqe_kernel"] = pickle.attr("dumps")(kernel);
-    py::bytes scoped_vars_bytes = pickle.attr("dumps")(scoped_vars);
-    py::object encoded_dict = base64.attr("b64encode")(scoped_vars_bytes);
-    auto scoped_vars_str = encoded_dict.cast<std::string>();
-
-    // FIXME - add necessary global vars required by the lambda
-
-    // Form source_code
-    std::ostringstream os;
-    os << "arg_mapper = " << source_code << '\n';
-    os << "energy, params_at_energy = cudaq.vqe(vqe_kernel, hamiltonian, "
-          "optimizer, "
-       << n_params << ", arg_mapper, " << shots << ")\n";
-    os << "_json_request_result['executionContext']['optResult'] = [energy, "
-          "params_at_energy]\n";
-    auto function_call = os.str();
-
-    SerializedCodeExecutionContext scCtx;
-    scCtx.imports = "import cudaq\n";
-    scCtx.scoped_var_dict = std::move(scoped_vars_str);
-    scCtx.source_code = std::move(function_call);
-
-    auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
-    platform.set_exec_ctx(ctx.get());
-    platform.launchSerializedCodeExecution(
-        kernel.attr("name").cast<std::string>(), scCtx);
-    platform.reset_exec_ctx();
-    auto result = cudaq::optimization_result{};
-    if (ctx->optResult)
-      result = std::move(*ctx->optResult);
-    return result;
-  }
+  if (platform.supports_remote_serialized_code())
+    return pyVQE_remote(platform, kernel, hamiltonian, optimizer,
+                        /*gradient=*/nullptr, &argumentMapper, n_params, shots);
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     py::args params;
@@ -222,44 +207,9 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
   // to allow for the calculation of the gradient vector with the
   // provided gradient strategy.
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_serialized_code()) {
-    py::object pickle = py::module_::import("pickle");
-    py::object base64 = py::module_::import("base64");
-
-    // Form scoped_var_dict
-    py::dict scoped_vars;
-    scoped_vars["hamiltonian"] = pickle.attr("dumps")(hamiltonian);
-    scoped_vars["gradient"] = pickle.attr("dumps")(gradient);
-    scoped_vars["optimizer"] = pickle.attr("dumps")(optimizer);
-    scoped_vars["vqe_kernel"] = pickle.attr("dumps")(kernel);
-    py::bytes scoped_vars_bytes = pickle.attr("dumps")(scoped_vars);
-    py::object encoded_dict = base64.attr("b64encode")(scoped_vars_bytes);
-    auto scoped_vars_str = encoded_dict.cast<std::string>();
-
-    // Form source_code
-    std::ostringstream os;
-    os << "energy, params_at_energy = cudaq.vqe(vqe_kernel, gradient, "
-          "hamiltonian, optimizer, "
-       << n_params << ", " << shots << ")\n";
-    os << "_json_request_result['executionContext']['optResult'] = [energy, "
-          "params_at_energy]\n";
-    auto function_call = os.str();
-
-    SerializedCodeExecutionContext scCtx;
-    scCtx.imports = "import cudaq\n";
-    scCtx.scoped_var_dict = std::move(scoped_vars_str);
-    scCtx.source_code = std::move(function_call);
-
-    auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
-    platform.set_exec_ctx(ctx.get());
-    platform.launchSerializedCodeExecution(
-        kernel.attr("name").cast<std::string>(), scCtx);
-    platform.reset_exec_ctx();
-    auto result = cudaq::optimization_result{};
-    if (ctx->optResult)
-      result = std::move(*ctx->optResult);
-    return result;
-  }
+  if (platform.supports_remote_serialized_code())
+    return pyVQE_remote(platform, kernel, hamiltonian, optimizer, &gradient,
+                        /*argumentMapper=*/nullptr, n_params, shots);
   std::function<double(std::vector<double>)> get_expected_value =
       [&](std::vector<double> x) {
         py::args params = py::make_tuple(x);
@@ -289,49 +239,9 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
   // to allow for the calculation of the gradient vector with the
   // provided gradient strategy.
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_serialized_code()) {
-    py::object pickle = py::module_::import("pickle");
-    py::object base64 = py::module_::import("base64");
-    py::object inspect = py::module_::import("inspect");
-    std::string source_code = cudaq::get_source_code(argumentMapper);
-
-    // Form scoped_var_dict
-    py::dict scoped_vars;
-    scoped_vars["hamiltonian"] = pickle.attr("dumps")(hamiltonian);
-    scoped_vars["gradient"] = pickle.attr("dumps")(gradient);
-    scoped_vars["optimizer"] = pickle.attr("dumps")(optimizer);
-    scoped_vars["vqe_kernel"] = pickle.attr("dumps")(kernel);
-    py::bytes scoped_vars_bytes = pickle.attr("dumps")(scoped_vars);
-    py::object encoded_dict = base64.attr("b64encode")(scoped_vars_bytes);
-    auto scoped_vars_str = encoded_dict.cast<std::string>();
-
-    // FIXME - add necessary global vars required by the lambda
-
-    // Form source_code
-    std::ostringstream os;
-    os << "arg_mapper = " << source_code << '\n';
-    os << "energy, params_at_energy = cudaq.vqe(vqe_kernel, gradient, "
-          "hamiltonian, optimizer, "
-       << n_params << ", arg_mapper, " << shots << ")\n";
-    os << "_json_request_result['executionContext']['optResult'] = [energy, "
-          "params_at_energy]\n";
-    auto function_call = os.str();
-
-    SerializedCodeExecutionContext scCtx;
-    scCtx.imports = "import cudaq\n";
-    scCtx.scoped_var_dict = std::move(scoped_vars_str);
-    scCtx.source_code = std::move(function_call);
-
-    auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
-    platform.set_exec_ctx(ctx.get());
-    platform.launchSerializedCodeExecution(
-        kernel.attr("name").cast<std::string>(), scCtx);
-    platform.reset_exec_ctx();
-    auto result = cudaq::optimization_result{};
-    if (ctx->optResult)
-      result = std::move(*ctx->optResult);
-    return result;
-  }
+  if (platform.supports_remote_serialized_code())
+    return pyVQE_remote(platform, kernel, hamiltonian, optimizer, &gradient,
+                        &argumentMapper, n_params, shots);
   std::function<double(std::vector<double>)> get_expected_value =
       [&](std::vector<double> x) {
         py::args params;

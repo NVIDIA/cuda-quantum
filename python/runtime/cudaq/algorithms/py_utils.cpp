@@ -12,7 +12,7 @@
 
 namespace cudaq {
 
-std::string get_base64_encoded_var_dict() {
+py::dict get_serializable_var_dict() {
   py::object pickle = py::module_::import("pickle");
   py::object base64 = py::module_::import("base64");
 
@@ -63,7 +63,13 @@ std::string get_base64_encoded_var_dict() {
     }
   }
 
-  py::bytes serialized_code = pickle.attr("dumps")(serialized_dict);
+  return serialized_dict;
+}
+
+std::string b64encode_dict(py::dict serializable_dict) {
+  py::object pickle = py::module_::import("pickle");
+  py::object base64 = py::module_::import("base64");
+  py::bytes serialized_code = pickle.attr("dumps")(serializable_dict);
   py::object encoded_dict = base64.attr("b64encode")(serialized_code);
   return encoded_dict.cast<std::string>();
 }
