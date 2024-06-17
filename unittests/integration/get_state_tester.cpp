@@ -42,6 +42,12 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   EXPECT_NEAR(0.0, state.amplitude({1, 0}).real(), 1e-3);
   EXPECT_NEAR(0.0, state.amplitude({0, 1}).real(), 1e-3);
   EXPECT_NEAR(1. / std::sqrt(2.), state.amplitude({1, 1}).real(), 1e-3);
+
+  // Multiple amplitude access
+  const auto amplitudes = state.amplitudes({{0, 0}, {1, 1}});
+  EXPECT_EQ(amplitudes.size(), 2);
+  EXPECT_NEAR(1. / std::sqrt(2.), amplitudes[0].real(), 1e-3);
+  EXPECT_NEAR(1. / std::sqrt(2.), amplitudes[1].real(), 1e-3);
 #endif
 
   EXPECT_NEAR(state.overlap(state).real(), 1.0, 1e-3);

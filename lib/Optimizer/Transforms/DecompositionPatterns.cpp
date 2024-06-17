@@ -1127,6 +1127,56 @@ struct RzToPhasedRx : public OpRewritePattern<quake::RzOp> {
   }
 };
 
+//===----------------------------------------------------------------------===//
+// U3Op decompositions
+//===----------------------------------------------------------------------===//
+
+// quake.u3(θ,ϕ,λ) target
+// ──────────────────────────────────
+// quake.rz(λ) target
+// quake.rx(π/2) target
+// quake.rz(θ) target
+// quake.rx(-π/2) target
+// quake.rz(ϕ) target
+struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
+  using OpRewritePattern<quake::U3Op>::OpRewritePattern;
+
+  void initialize() { setDebugName("U3ToRotations"); }
+
+  LogicalResult matchAndRewrite(quake::U3Op op,
+                                PatternRewriter &rewriter) const override {
+    if (!quake::isAllReferences(op))
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    Value theta = op.getParameters()[0];
+    Value phi = op.getParameters()[1];
+    Value lam = op.getParameters()[2];
+
+    if (op.isAdj()) {
+      theta = rewriter.create<arith::NegFOp>(loc, theta);
+      phi = rewriter.create<arith::NegFOp>(loc, phi);
+      lam = rewriter.create<arith::NegFOp>(loc, lam);
+    }
+
+    // Necessary/Helpful constants
+    Type angleType = op.getParameter().getType();
+    Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
+    Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
+
+    rewriter.create<quake::RzOp>(loc, lam, op.getControls(), target);
+    rewriter.create<quake::RxOp>(loc, pi_2, op.getControls(), target);
+    rewriter.create<quake::RzOp>(loc, theta, op.getControls(), target);
+    rewriter.create<quake::RxOp>(loc, negPi_2, op.getControls(), target);
+    rewriter.create<quake::RzOp>(loc, phi, op.getControls(), target);
+
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 } // namespace
 
 //===----------------------------------------------------------------------===//
@@ -1170,6 +1220,8 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     RzToPhasedRx,
     // Swap
     SwapToCX,
+    // U3Op
+    U3ToRotations,
     ExpPauliDecomposition
   >(patterns.getContext());
   // clang-format on

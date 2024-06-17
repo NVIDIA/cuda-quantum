@@ -68,17 +68,27 @@ generateFullGateTensor(std::size_t num_control_qubits,
   return gate_tensor;
 }
 
+/// @brief Provide a unique hash code for the input vector of complex values.
+std::size_t vecComplexHash(const std::vector<std::complex<double>> &vec) {
+  std::size_t seed = vec.size();
+  for (auto &i : vec) {
+    seed ^= std::hash<double>{}(i.real()) + std::hash<double>{}(i.imag()) +
+            0x9e3779b9 + (seed << 6) + (seed >> 2);
+  }
+  return seed;
+}
+
 void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   const auto &controls = task.controls;
   const auto &targets = task.targets;
   // Cache name lookup key:
-  // <GateName>_<Param>
+  // <GateName>_<Param>_<Matrix>
   const std::string gateKey = task.operationName + "_" + [&]() {
     std::stringstream paramsSs;
     for (const auto &param : task.parameters) {
       paramsSs << param << "_";
     }
-    return paramsSs.str();
+    return paramsSs.str() + "__" + std::to_string(vecComplexHash(task.matrix));
   }();
   const auto iter = m_gateDeviceMemCache.find(gateKey);
 

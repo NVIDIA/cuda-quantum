@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once
+// REQUIRES: c++20
+// RUN: nvq++ --enable-mlir -c %s -v -fPIC -o %t
 
-#include <pybind11/pybind11.h>
+#include "cudaq.h"
 
-namespace py = pybind11;
-
-namespace cudaq {
-class LinkedLibraryHolder;
-void bindPyState(py::module &mod, LinkedLibraryHolder &holder);
-} // namespace cudaq
+__qpu__ void bell() {
+    cudaq::qubit q, r;
+    h(q);
+    x<cudaq::ctrl>(q,r);
+}
