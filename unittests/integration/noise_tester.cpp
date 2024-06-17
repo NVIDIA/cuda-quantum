@@ -165,8 +165,9 @@ CUDAQ_TEST(NoiseTest, checkExceptions) {
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
                                         {0., 0.5, 0.0, 0.}};
   cudaq::noise_model noise;
-  EXPECT_ANY_THROW(
-      { noise.add_channel<cudaq::types::x>({0, 1}, amplitudeDamping); });
+  EXPECT_ANY_THROW({
+    noise.add_channel<cudaq::types::x>({0, 1}, amplitudeDamping);
+  });
 }
 
 CUDAQ_TEST(NoiseTest, checkDepolType) {
