@@ -39,7 +39,7 @@ However, if you want to perform multi-GPU simulations, or if you are using
 We recommend using [Conda](https://docs.conda.io/en/latest/) to do so.
 If you are not already using Conda,
 you can install a minimal version following the instructions
-[here](https://docs.conda.io/projects/miniconda/en/latest/index.html). The
+[here](https://docs.anaconda.com/miniconda/). The
 following commands will create and activate a complete environment for CUDA-Q
 with all its dependencies:
 
