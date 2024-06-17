@@ -39,3 +39,17 @@ func.func @size3() {
 // CHECK:         %[[VAL_7:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<3>) -> !quake.ref
 // CHECK:         %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]][2] : (!quake.veq<3>) -> !quake.ref
 // CHECK:         quake.x [%[[VAL_6]], %[[VAL_7]], %[[VAL_8]]] %[[VAL_4]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+
+func.func @noreplace() {
+  %c0 = arith.constant 0 : i32
+  %one = arith.constant 1 : i32
+  %q = quake.alloca !quake.ref
+  %p = quake.alloca !quake.ref
+  quake.x [%q] %p : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @noreplace() {
+// CHECK:         %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[VAL_4:.*]] = quake.alloca !quake.ref
+// CHECK:         quake.x [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
