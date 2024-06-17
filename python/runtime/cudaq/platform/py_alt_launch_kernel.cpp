@@ -79,9 +79,9 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   auto hashKey = static_cast<size_t>(hash);
 
   ExecutionEngine *jit = nullptr;
-  if (jitCache->hasJITEngine(hashKey))
+  if (jitCache->hasJITEngine(hashKey)) {
     jit = jitCache->getJITEngine(hashKey);
-  else {
+  } else {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
                            "jitAndCreateArgs - execute passes", name);
 
@@ -319,6 +319,63 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                            (uint64_t)returnOffset);
 
   return std::make_tuple(rawArgs, size, returnOffset);
+}
+
+cudaq::KernelArgsHolder
+pyCreateNativeKernel(const std::string &name, MlirModule module,
+                     cudaq::OpaqueArguments &runtimeArgs) {
+  auto [jit, rawArgs, size, returnOffset] =
+      jitAndCreateArgs(name, module, runtimeArgs, {},
+                       mlir::NoneType::get(unwrap(module).getContext()));
+
+  auto thunkName = name + ".thunk";
+  auto thunkPtr = jit->lookup(thunkName);
+  if (!thunkPtr)
+    throw std::runtime_error("Failed to get thunk function");
+  const std::string properName = name;
+  // If we have any state vector data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, svdata] : *stateStorage) {
+    if (svdata.kernelName != name)
+      continue;
+    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
+    if (!setStateFPtr)
+      throw std::runtime_error(
+          "python CreateNativeKernel failed to get set state function.");
+
+    if (svdata.precision == simulation_precision::fp64) {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
+      continue;
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
+    setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+  }
+
+  // Need to first invoke the init_func()
+  auto kernelInitFunc = properName + ".init_func";
+  auto initFuncPtr = jit->lookup(kernelInitFunc);
+  if (!initFuncPtr) {
+    throw std::runtime_error(
+        "cudaq::builder failed to get kernelReg function.");
+  }
+  auto kernelInit = reinterpret_cast<void (*)()>(*initFuncPtr);
+  kernelInit();
+
+  // Need to first invoke the kernelRegFunc()
+  auto kernelRegFunc = properName + ".kernelRegFunc";
+  auto regFuncPtr = jit->lookup(kernelRegFunc);
+  if (!regFuncPtr) {
+    throw std::runtime_error(
+        "cudaq::builder failed to get kernelReg function.");
+  }
+  auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
+  kernelReg();
+  cudaq::ArgWrapper wrapper{unwrap(module), {}, rawArgs};
+  return cudaq::KernelArgsHolder(wrapper, size, returnOffset);
 }
 
 void pyAltLaunchKernel(const std::string &name, MlirModule module,

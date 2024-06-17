@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <complex>
 #include <memory>
 #include <variant>
@@ -160,6 +161,17 @@ public:
   /// basis state.
   virtual std::complex<double>
   getAmplitude(const std::vector<int> &basisState) = 0;
+
+  /// @brief Return the amplitudes of the given list of computational
+  /// basis states.
+  virtual std::vector<std::complex<double>>
+  getAmplitudes(const std::vector<std::vector<int>> &basisStates) {
+    std::vector<std::complex<double>> amplitudes(basisStates.size());
+    std::generate(amplitudes.begin(), amplitudes.end(), [&, idx = 0]() mutable {
+      return getAmplitude(basisStates[idx++]);
+    });
+    return amplitudes;
+  }
 
   /// @brief Dump a representation of the state to the
   /// given output stream.
