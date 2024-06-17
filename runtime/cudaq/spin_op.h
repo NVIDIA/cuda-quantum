@@ -342,7 +342,6 @@ public:
   /// is fully reconstructible with a spin_op() constructor.
   std::tuple<std::vector<double>, std::size_t> getDataTuple() const;
 
-
   /// @brief Return a vector of spin_op representing a distribution of the
   /// terms in this spin_op into equally sized chunks.
   std::vector<spin_op> distribute_terms(std::size_t numChunks) const;
