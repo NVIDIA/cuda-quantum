@@ -88,6 +88,14 @@ struct FunctionProfileAnalysis {
   const FunctionAnalysisInfo &getAnalysisInfo() const { return infoMap; }
 
 private:
+  static bool isAllocateArray(StringRef f) {
+    return f == cudaq::opt::QIRArrayQubitAllocateArray ||
+           f == cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64 ||
+           f == cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32 ||
+           f == cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64 ||
+           f == cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32;
+  }
+
   // Scan the body of a function for ops that will be used for profiling.
   void performAnalysis(Operation *operation) {
     auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(operation);
@@ -109,7 +117,7 @@ private:
         }
       };
 
-      if (funcName.equals(cudaq::opt::QIRArrayQubitAllocateArray)) {
+      if (isAllocateArray(funcName)) {
         addAllocation([&]() { return getNumQubits(callOp); });
       } else if (funcName.equals(cudaq::opt::QIRQubitAllocate)) {
         addAllocation([]() { return 1; });
