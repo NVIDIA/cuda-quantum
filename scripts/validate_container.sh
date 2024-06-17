@@ -251,6 +251,8 @@ done
 
 if [ -n "$(find $(pwd) -name '*.ipynb')" ]; then
     echo "Validating notebooks:"
+    echo "Installing packages required for notebook validation"
+    python3 -m pip install --no-cache-dir qutip==5.0.2 matplotlib==3.9.0
     echo "$available_backends" | python3 notebook_validation.py
     if [ $? -eq 0 ]; then 
         let "passed+=1"
