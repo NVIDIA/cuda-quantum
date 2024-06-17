@@ -13,8 +13,9 @@
 using namespace cudaq;
 
 CUDAQ_TEST(NoiseModelTester, checkConstruction) {
+  // Amplitude damping, p = 0.5
   cudaq::kraus_channel simpleChannel{{1., 0., 0., .8660254037844386},
-                                     {0., 0.0, 0.5, 0.}};
+                                     {0., 0.5, 0., 0.}};
 
   cudaq::kraus_channel moreComplicatedChannel(
       {complex{0.99498743710662, 0.0},
