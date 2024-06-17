@@ -474,6 +474,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
 
   PassManager pm(context);
   pm.addPass(createCanonicalizerPass());
+  pm.addPass(cudaq::opt::createStatePreparation(name, rawArgs));
   pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs));
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());

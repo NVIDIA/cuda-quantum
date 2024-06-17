@@ -23,9 +23,18 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
 
+#include <iostream>
+
 #define DEBUG_TYPE "quake-synthesizer"
 
 using namespace mlir;
+
+// cudaq::state is defined in the runtime. The compiler will never need to know
+// about its implementation and there should not be a circular build/library
+// dependence because of it. Simply forward declare it, as it is notional.
+namespace cudaq {
+class state;
+}
 
 /// Replace a BlockArgument of a specific type with a concrete instantiation of
 /// that type, and add the generation of that constant as an MLIR Op to the
@@ -366,7 +375,9 @@ public:
   }
 
   void runOnOperation() override final {
+    std::cout << "Module before synthesis " << std::endl;
     auto module = getModule();
+    module.dump();
     if (args == nullptr || kernelName.empty()) {
       module.emitOpError("Synthesis requires a kernel and the values of the "
                          "arguments passed when it is called.");
@@ -470,6 +481,27 @@ public:
                   loc, f, builder.getF64Type());
             });
         continue;
+      }
+
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
+        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+          // Special case of a `cudaq::state*` which must be in the same address
+          // space. This references a container to a set of simulation
+          // amplitudes.
+          synthesizeRuntimeArgument<cudaq::state *>(
+              builder, argument, args, offset, sizeof(void *),
+              [=](OpBuilder &builder, cudaq::state **concrete) {
+                Value rawPtr = builder.create<arith::ConstantIntOp>(
+                    loc, reinterpret_cast<std::intptr_t>(*concrete),
+                    sizeof(void *) * 8);
+                auto stateTy = cudaq::cc::StateType::get(builder.getContext());
+                return builder.create<cudaq::cc::CastOp>(
+                    loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
+              });
+          continue;
+        }
+        // N.B. Other pointers will not be materialized and may be in a
+        // different address space.
       }
 
       // If std::vector<arithmetic> type, add it to the list of vector info.
@@ -601,6 +633,8 @@ public:
       }
     }
     funcOp.eraseArguments(argsToErase);
+    std::cout << "Module after synthesis " << std::endl; 
+    module.dump();
   }
 };
 

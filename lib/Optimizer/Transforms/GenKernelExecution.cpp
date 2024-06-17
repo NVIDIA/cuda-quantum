@@ -434,8 +434,18 @@ public:
         hasTrailingData = true;
         continue;
       }
-      if (isa<cudaq::cc::PointerType>(currEleTy) &&
-          !isStatePointerType(currEleTy)) {
+      //if (isa<cudaq::cc::PointerType>(currEleTy) &&
+      //    !isStatePointerType(currEleTy)) {
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(currEleTy)) {
+        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+          // Special case: if the argument is a `cudaq::state*`, then just pass
+          // the pointer. We can do that in this case because the synthesis step
+          // (which will receive the argument data) is assumed to run in the
+          // same memory space.
+          argPtr = builder.create<cudaq::cc::CastOp>(loc, currEleTy, argPtr);
+          stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
+                                                           stVal, argPtr, idx);
+        }
         continue;
       }
 
@@ -941,8 +951,8 @@ public:
         cudaq::cc::numberOfHiddenArgs(hasThisPointer, hiddenSRet);
     if (count > 0 && args.size() >= count &&
         std::all_of(args.begin(), args.begin() + count, [](auto i) {
-          return isa<cudaq::cc::PointerType>(i.getType()) &&
-                 !isStatePointerType(i.getType());
+          return isa<cudaq::cc::PointerType>(i.getType());// &&
+                // !isStatePointerType(i.getType());
         }))
       return args.drop_front(count);
     return args;
@@ -1208,9 +1218,21 @@ public:
         hasTrailingData = true;
         continue;
       }
-      if (isa<cudaq::cc::PointerType>(inTy) && !isStatePointerType(inTy))
+      //if (isa<cudaq::cc::PointerType>(inTy) && !isStatePointerType(inTy))
+      //  continue;
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
+        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+          // Special case: if the argument is a `cudaq::state*`, then just pass
+          // the pointer. We can do that in this case because the synthesis step
+          // (which will receive the argument data) is assumed to run in the
+          // same memory space.
+          Value argPtr = builder.create<cudaq::cc::CastOp>(loc, inTy, arg);
+          stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
+                                                           stVal, argPtr, idx);
+        }
         continue;
-
+      }
+      
       stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
                                                        stVal, arg, idx);
     }
