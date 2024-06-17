@@ -629,12 +629,16 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.all_gather">all_gather() (in module cudaq.mpi)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.State.amplitude">amplitude() (cudaq.State method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.AmplitudeDampingChannel">AmplitudeDampingChannel (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.KrausChannel.append">append() (cudaq.KrausChannel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.State.amplitudes">amplitudes() (cudaq.State method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.KrausChannel.append">append() (cudaq.KrausChannel method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernel.argument_count">argument_count (cudaq.PyKernel attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernel.arguments">arguments (cudaq.PyKernel attribute)</a>
@@ -764,6 +768,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContextE">cudaq::ExecutionContext (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext13amplitudeMapsE">cudaq::ExecutionContext::amplitudeMaps (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext9asyncExecE">cudaq::ExecutionContext::asyncExec (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext14batchIterationE">cudaq::ExecutionContext::batchIteration (C++ member)</a>
@@ -785,6 +791,10 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext4nameE">cudaq::ExecutionContext::name (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext10noiseModelE">cudaq::ExecutionContext::noiseModel (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext20overlapComputeStatesE">cudaq::ExecutionContext::overlapComputeStates (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext13overlapResultE">cudaq::ExecutionContext::overlapResult (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext13registerNamesE">cudaq::ExecutionContext::registerNames (C++ member)</a>
 </li>
@@ -984,10 +994,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE">cudaq::qreg (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backENSt6size_tE">cudaq::qreg::back (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backEv">[1]</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backENSt6size_tE">cudaq::qreg::back (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backEv">[1]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5beginEv">cudaq::qreg::begin (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5clearEv">cudaq::qreg::clear (C++ function)</a>
@@ -1132,6 +1142,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8registry14RegisteredTypeE">cudaq::registry::RegisteredType (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq21RemoteSimulationStateE">cudaq::RemoteSimulationState (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9ResourcesE">cudaq::Resources (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultE">cudaq::sample_result (C++ class)</a>
@@ -1267,6 +1279,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5stateE">cudaq::state (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5state9amplitudeERKNSt6vectorIiEE">cudaq::state::amplitude (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5state10amplitudesERKNSt6vectorINSt6vectorIiEEEE">cudaq::state::amplitudes (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5state4dumpERNSt7ostreamE">cudaq::state::dump (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5state4dumpEv">[1]</a>
 </li>
@@ -1554,6 +1568,8 @@
       <li><a href="api/languages/python_api.html#cudaq.num_available_gpus">num_available_gpus() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target.num_qpus">num_qpus() (cudaq.Target method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.State.num_qubits">num_qubits() (cudaq.State method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.num_ranks">num_ranks() (in module cudaq.mpi)</a>
 </li>
