@@ -60,17 +60,17 @@ func.func @tocc.test() {
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i64 x 3>>) -> !cc.ptr<!cc.array<i64 x ?>>
 // CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_9]], %[[VAL_11]], %[[VAL_5]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
 // CHECK:           call @__nvqpp__cudaq_em_allocate_veq(%[[VAL_9]], %[[VAL_5]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, i64) -> ()
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_9]][0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_9]][0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_13:.*]] = cc.load %[[VAL_12]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]][0] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.array<i64 x ?>>
 // CHECK:           %[[VAL_15:.*]] = cc.alloca !cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>
 // CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_15]], %[[VAL_14]], %[[VAL_3]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
-// CHECK:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_9]][0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_9]][0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_17:.*]] = cc.load %[[VAL_16]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_17]][1] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.array<i64 x ?>>
 // CHECK:           %[[VAL_19:.*]] = cc.alloca !cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>
 // CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_19]], %[[VAL_18]], %[[VAL_3]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
-// CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_9]][0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_9]][0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_20]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_22:.*]] = cc.compute_ptr %[[VAL_21]][2] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.array<i64 x ?>>
 // CHECK:           %[[VAL_23:.*]] = cc.alloca !cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>
@@ -300,17 +300,18 @@ func.func @tocc.test() {
 // CHECK:         func.func private @__nvqpp__cudaq_em_allocate() -> i64
 
 // CHECK-LABEL:   func.func private @__nvqpp__cudaq_em_allocate_veq(
-// CHECK-SAME:                                                      %[[VAL_0:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>,
-// CHECK-SAME:                                                      %[[VAL_1:.*]]: i64) {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_1:.*]]: i64) {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_0]][0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_11]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_3]]) -> (i64)) {
 // CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_1]] : i64
 // CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_7:.*]]: i64):
 // CHECK:             %[[VAL_8:.*]] = func.call @__nvqpp__cudaq_em_allocate() : () -> i64
-// CHECK:             %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_0]]{{\[}}%[[VAL_7]]] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, i64) -> !cc.ptr<i64>
+// CHECK:             %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_12]][%[[VAL_7]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
 // CHECK:             cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<i64>
 // CHECK:             cc.continue %[[VAL_7]] : i64
 // CHECK:           } step {
@@ -327,7 +328,7 @@ func.func @tocc.test() {
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i64>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_2:.*]]: i64) {
 // CHECK:           %[[VAL_3:.*]] = arith.constant false
 // CHECK:           %[[VAL_4:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_1]][0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_1]][0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_7:.*]] = arith.muli %[[VAL_2]], %[[VAL_4]] : i64
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i64>) -> !cc.ptr<i8>
@@ -341,9 +342,9 @@ func.func @tocc.test() {
 
 // CHECK-LABEL:   func.func private @__nvqpp__cudaq_em_writeToSpan(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_1:.*]]: !cc.ptr<!cc.array<i64 x ?>>, %[[VAL_2:.*]]: i64) {
-// CHECK:           %[[VAL_3:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_3:.*]] = cc.compute_ptr %[[VAL_0]][0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
+// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][0, 1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_4]] : !cc.ptr<i64>
 // CHECK:           return
 // CHECK:         }
@@ -378,7 +379,7 @@ func.func @tocc.test() {
 // LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_4]], %[[VAL_6]], %[[VAL_5]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
 // LLVM:           llvm.call @__nvqpp__cudaq_em_allocate_veq(%[[VAL_4]], %[[VAL_5]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, i64) -> ()
 // LLVM:           %[[VAL_7:.*]] = llvm.mlir.constant(0 : i64) : i64
-// LLVM:           %[[VAL_8:.*]] = llvm.getelementptr %[[VAL_4]][0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
+// LLVM:           %[[VAL_8:.*]] = llvm.getelementptr %[[VAL_4]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
 // LLVM:           %[[VAL_9:.*]] = llvm.load %[[VAL_8]] : !llvm.ptr<ptr<i64>>
 // LLVM:           %[[VAL_10:.*]] = llvm.getelementptr %[[VAL_9]][0] : (!llvm.ptr<i64>) -> !llvm.ptr<i64>
 // LLVM:           %[[VAL_11:.*]] = llvm.mlir.constant(1 : i32) : i32
@@ -592,14 +593,15 @@ func.func @tocc.test() {
 // LLVM-SAME:      %[[VAL_1:.*]]: i64) attributes {sym_visibility = "private"} {
 // LLVM:           %[[VAL_2:.*]] = llvm.mlir.constant(1 : i64) : i64
 // LLVM:           %[[VAL_3:.*]] = llvm.mlir.constant(0 : i64) : i64
-// LLVM:           %[[VAL_4:.*]] = llvm.getelementptr %[[VAL_0]][0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<i64>
+// LLVM:           %[[VAL_4:.*]] = llvm.getelementptr %[[VAL_0]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
+// LLVM:           %[[VAL_13:.*]] = llvm.load %[[VAL_4]] : !llvm.ptr<ptr<i64>>
 // LLVM:           llvm.br ^bb1(%[[VAL_3]] : i64)
 // LLVM:         ^bb1(%[[VAL_5:.*]]: i64):
 // LLVM:           %[[VAL_6:.*]] = llvm.icmp "slt" %[[VAL_5]], %[[VAL_1]] : i64
 // LLVM:           llvm.cond_br %[[VAL_6]], ^bb2(%[[VAL_5]] : i64), ^bb4(%[[VAL_5]] : i64)
 // LLVM:         ^bb2(%[[VAL_7:.*]]: i64):
 // LLVM:           %[[VAL_8:.*]] = llvm.call @__nvqpp__cudaq_em_allocate() : () -> i64
-// LLVM:           %[[VAL_9:.*]] = llvm.getelementptr %[[VAL_4]]{{\[}}%[[VAL_7]]] : (!llvm.ptr<i64>, i64) -> !llvm.ptr<i64>
+// LLVM:           %[[VAL_9:.*]] = llvm.getelementptr %[[VAL_13]][%[[VAL_7]]] : (!llvm.ptr<i64>, i64) -> !llvm.ptr<i64>
 // LLVM:           llvm.store %[[VAL_8]], %[[VAL_9]] : !llvm.ptr<i64>
 // LLVM:           llvm.br ^bb3(%[[VAL_7]] : i64)
 // LLVM:         ^bb3(%[[VAL_10:.*]]: i64):
@@ -619,7 +621,7 @@ func.func @tocc.test() {
 // LLVM-SAME:      %[[VAL_2:.*]]: i64) attributes {sym_visibility = "private"} {
 // LLVM:           %[[VAL_3:.*]] = llvm.mlir.constant(false) : i1
 // LLVM:           %[[VAL_4:.*]] = llvm.mlir.constant(8 : i64) : i64
-// LLVM:           %[[VAL_5:.*]] = llvm.getelementptr %[[VAL_1]][0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
+// LLVM:           %[[VAL_5:.*]] = llvm.getelementptr %[[VAL_1]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
 // LLVM:           %[[VAL_6:.*]] = llvm.load %[[VAL_5]] : !llvm.ptr<ptr<i64>>
 // LLVM:           %[[VAL_7:.*]] = llvm.mul %[[VAL_2]], %[[VAL_4]]  : i64
 // LLVM:           %[[VAL_8:.*]] = llvm.bitcast %[[VAL_0]] : !llvm.ptr<i64> to !llvm.ptr<i8>
@@ -635,9 +637,9 @@ func.func @tocc.test() {
 // LLVM-SAME:      %[[VAL_0:.*]]: !llvm.ptr<struct<(ptr<i64>, i64)>>,
 // LLVM-SAME:      %[[VAL_1:.*]]: !llvm.ptr<i64>,
 // LLVM-SAME:      %[[VAL_2:.*]]: i64) attributes {sym_visibility = "private"} {
-// LLVM:           %[[VAL_3:.*]] = llvm.getelementptr %[[VAL_0]][0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
+// LLVM:           %[[VAL_3:.*]] = llvm.getelementptr %[[VAL_0]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
 // LLVM:           llvm.store %[[VAL_1]], %[[VAL_3]] : !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_4:.*]] = llvm.getelementptr %[[VAL_0]][1] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<i64>
+// LLVM:           %[[VAL_4:.*]] = llvm.getelementptr %[[VAL_0]][0, 1] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<i64>
 // LLVM:           llvm.store %[[VAL_2]], %[[VAL_4]] : !llvm.ptr<i64>
 // LLVM:           llvm.return
 // LLVM:         }

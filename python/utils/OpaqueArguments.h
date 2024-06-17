@@ -171,6 +171,11 @@ inline void addArgument(OpaqueArguments &argData, T &&arg) {
                        [](void *ptr) { delete static_cast<T *>(ptr); });
 }
 
+template <typename T>
+inline void valueArgument(OpaqueArguments &argData, T *arg) {
+  argData.emplace_back(static_cast<void *>(arg), [](void *) {});
+}
+
 inline std::string mlirTypeToString(mlir::Type ty) {
   std::string msg;
   {
@@ -243,7 +248,7 @@ packArgs(OpaqueArguments &argData, py::args args,
         })
         .Case([&](cudaq::cc::PointerType ty) {
           if (isa<cudaq::cc::StateType>(ty.getElementType())) {
-            addArgument(argData, arg.cast<cudaq::state *>());
+            valueArgument(argData, arg.cast<cudaq::state *>());
           } else {
             throw std::runtime_error("Invalid pointer type argument: " +
                                      py::str(arg).cast<std::string>() +
