@@ -20,6 +20,18 @@
 
 namespace cudaq {
 
+// TODO - Remove this once the public NVQC deployment supports this capability.
+static inline bool serializedCodeExecOverride() {
+  if (auto envVal = std::getenv("CUDAQ_SER_CODE_EXEC")) {
+    std::string tmp(envVal);
+    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
+      return true;
+  }
+  return false;
+}
+
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
 class BaseRemoteSimulatorQPU : public cudaq::QPU {
@@ -226,6 +238,14 @@ public:
       clientConfigs.emplace("ngpus", ngpus);
 
     m_client->setConfig(clientConfigs);
+  }
+
+  // Remote serializable code is executed fully on the server without the need
+  // to go back and forth in between observe calls (see
+  // launchSerializedCodeExecution).
+  // TODO - set this to true when NVQC supports this.
+  virtual bool supportsRemoteSerializedCode() override {
+    return serializedCodeExecOverride();
   }
 
 protected:

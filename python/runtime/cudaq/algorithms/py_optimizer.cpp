@@ -8,17 +8,15 @@
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
-#include "py_optimizer.h"
-#include "py_utils.h"
-
 #include "common/JsonConvert.h"
-#include "common/RemoteKernelExecutor.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
+#include "py_optimizer.h"
+#include "py_utils.h"
 
 namespace cudaq {
 

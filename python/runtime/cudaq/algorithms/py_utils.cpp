@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #include "py_utils.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <pybind11/functional.h>

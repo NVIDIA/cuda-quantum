@@ -602,9 +602,9 @@ public:
   std::size_t version;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
-  // The SerializedCodeExecutionContext to compile and to execute
-  // the source code of the objective function.
-  // The server will execute serialized code in this context
+  // The SerializedCodeExecutionContext to compile and to execute a limited
+  // subset of Python source code. The server will execute serialized code in
+  // this context
   std::optional<SerializedCodeExecutionContext> serializedCodeExecutionContext;
 
   friend void to_json(json &j, const RestRequest &p) {

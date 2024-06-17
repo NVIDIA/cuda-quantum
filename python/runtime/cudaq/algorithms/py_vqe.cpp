@@ -9,19 +9,17 @@
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
-#include "py_utils.h"
-#include "py_vqe.h"
-
 #include "common/JsonConvert.h"
-#include "common/RemoteKernelExecutor.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
-#include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "py_utils.h"
+#include "py_vqe.h"
+#include "utils/OpaqueArguments.h"
 
 namespace cudaq {
 
