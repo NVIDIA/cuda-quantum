@@ -57,10 +57,8 @@ public:
 
   LogicalResult matchAndRewrite(func::CallOp op,
                                 PatternRewriter &rewriter) const override {
-    if (!isIndirectFunc(op.getCallee(), indirectMap)) {
-      llvm::dbgs() << "not indirect call: " << op.getCallee() << '\n';
+    if (!isIndirectFunc(op.getCallee(), indirectMap))
       return failure();
-    }
 
     rewriter.startRootUpdate(op);
     auto callee = op.getCallee();
