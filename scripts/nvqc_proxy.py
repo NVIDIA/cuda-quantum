@@ -7,26 +7,17 @@
 # ============================================================================ #
 
 from http import HTTPStatus
-from concurrent.futures import ProcessPoolExecutor
-from cudaq import spin
-from datetime import datetime
 import http.server
 import json
 import requests
 import socketserver
 import sys
 import time
-import base64
-import asyncio
 import json
-import ast
 import subprocess
-import pickle
 import multiprocessing
 import os
-import threading
 import tempfile
-from request_validator import RequestValidator
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
@@ -43,10 +34,6 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 class Server(http.server.SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
-
-    def __init__(self, *args, **kwargs):
-        self.validator = RequestValidator()
-        super().__init__(*args, **kwargs)
 
     # Override this function because we seem to be getting a lot of
     # ConnectionResetError exceptions in the health monitoring endpoint,
@@ -80,147 +67,6 @@ class Server(http.server.SimpleHTTPRequestHandler):
             self.send_response(HTTPStatus.NOT_FOUND)
             self.send_header("Content-Length", "0")
             self.end_headers()
-
-    def get_deserialized_dict(self, globals):
-        deserialized_dict = {}
-
-        for key, serialized_bytes in globals.items():
-            try:
-                deserialized_value = pickle.loads(serialized_bytes)
-                deserialized_dict[key] = deserialized_value
-            except (pickle.UnpicklingError, TypeError, Exception) as e:
-                print(f"Error deserializing key '{key}': {e}")
-
-        return deserialized_dict
-
-    def validate_execution_context(self, source_code,
-                                   deserialized_globals_dict):
-        validation_context = {
-            'source_code': source_code,
-            'scoped_var_dict': deserialized_globals_dict
-        }
-        is_valid, validation_message = self.validator.validate_request(
-            validation_context)
-        if not is_valid:
-            return False, {
-                "status": "Failed to process incoming request",
-                "errorMessage": validation_message
-            }
-        return True, None
-
-    async def handle_job_request(self, request_json):
-        sim2target = {
-            'qpp': 'qpp-cpu',
-            'custatevec_fp32': 'nvidia',
-            'custatevec_fp64': 'nvidia-fp64',
-            'tensornet': 'tensornet',
-            'tensornet_mps': 'tensornet-mps',
-            'dm': 'density-matrix-cpu',
-            'nvidia_mgpu': 'nvidia-mgpu'
-        }
-
-        try:
-            print('Handling request from:', request_json['clientVersion'])
-
-            serialized_ctx = request_json['serializedCodeExecutionContext']
-            imports_code = serialized_ctx['imports']
-            source_code = serialized_ctx['source_code']
-            serialized_dict = pickle.loads(
-                base64.b64decode(serialized_ctx['scoped_var_dict']))
-            deserialized_globals_dict = self.get_deserialized_dict(
-                serialized_dict)
-
-            # Inject the desired simulator and seed into the formulated Python code
-            simulator_name = request_json['simulator']
-
-            # C++ and Python are often inconsistent in there simulator names.
-            # The `sim2target` dict is expecting all underscores for the
-            # simulator name lookups
-            simulator_name = simulator_name.replace('-', '_')
-            if simulator_name in sim2target:
-                target_name = sim2target[simulator_name]
-            else:
-                return {
-                    'status':
-                        'Failed to process incoming request',
-                    'errorMessage':
-                        f'Cannot map simulator name to target: {simulator_name}'
-                }
-
-            seed_str = ''
-            seed_num = request_json['seed']
-            if request_json['seed'] > 0:
-                seed_str = f'cudaq.set_random_seed({seed_num})\n'
-
-            full_source_code = imports_code + f'\ncudaq.set_target("{target_name}")\n{seed_str}' + source_code
-
-            # Validate the source code
-            is_valid, validation_response = self.validate_execution_context(
-                full_source_code, deserialized_globals_dict)
-            if not is_valid:
-                return validation_response
-
-            loop = asyncio.get_running_loop()
-            with ProcessPoolExecutor() as pool:
-                result = await loop.run_in_executor(
-                    pool, self.execute_code_in_subprocess, full_source_code,
-                    deserialized_globals_dict)
-
-            return result
-        except Exception as e:
-            return {
-                'status': 'Exception during processing',
-                'errorMessage': str(e)
-            }
-
-    @staticmethod
-    def execute_code_in_subprocess(source_code, globals_dict):
-        # Watchdog timeout
-        watchdog_timeout = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
-        if watchdog_timeout > 0:
-            # This raises a BrokenProcessPool exception to run_in_executor()
-            timer = threading.Timer(watchdog_timeout, lambda: os._exit(1))
-            timer.start()
-
-        try:
-            simulationStart = int(datetime.now().timestamp() * 1000)
-            exec(source_code, globals_dict)
-            simulationEnd = int(datetime.now().timestamp() * 1000)
-            result = {
-                "status": "success",
-                "executionContext": {
-                    "shots":
-                        0,
-                    "hasConditionalsOnMeasureResults":
-                        False,
-                    "optResult": [
-                        globals_dict['energy'], globals_dict['params_at_energy']
-                    ]
-                }
-            }
-            try:
-                cmd_result = subprocess.run(['cudaq-qpud', '--cuda-properties'],
-                                            capture_output=True,
-                                            text=True)
-                deviceProps = json.loads(cmd_result.stdout)
-            except:
-                deviceProps = dict()
-            # We don't have visibility into the difference between `requestStart`
-            # and `simulationStart`, so simply use `simulationStart` for both
-            executionInfo = {
-                'requestStart': simulationStart,
-                'simulationStart': simulationStart,
-                'simulationEnd': simulationEnd,
-                'deviceProps': deviceProps
-            }
-            result['executionInfo'] = executionInfo
-            if watchdog_timeout > 0:
-                timer.cancel()  # Must do this before exiting to avoid stall
-            return result
-        except Exception as e:
-            if watchdog_timeout > 0:
-                timer.cancel()  # Must do this before exiting to avoid stall
-            return {"status": "error", "errorMessage": str(e)}
 
     def is_serialized_code_execution_request(self, request_json):
         return 'serializedCodeExecutionContext' in request_json and 'source_code' in request_json[

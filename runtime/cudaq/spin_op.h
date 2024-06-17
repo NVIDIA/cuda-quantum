@@ -339,7 +339,7 @@ public:
   std::vector<double> getDataRepresentation() const;
 
   /// @brief Return the serialized representation of this spin_op, such that it
-  /// is fully reconstructible with a spin_op() constructor.
+  /// is fully constructible with a spin_op() constructor.
   std::tuple<std::vector<double>, std::size_t> getDataTuple() const;
 
   /// @brief Return a vector of spin_op representing a distribution of the
