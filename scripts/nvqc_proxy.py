@@ -19,7 +19,7 @@ import time
 # allows the NVCF port (3030) to remain up while allowing the main `cudaq-qpud`
 # application to restart if necessary.
 PROXY_PORT = 3030
-QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
+QPUD_PORT = 3031  # see `docker/release/cudaq.Dockerfile`
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
