@@ -107,7 +107,10 @@ def test_optimizer():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
-def test_simple_vqe():
+@pytest.mark.parametrize(
+    "optimizer", [cudaq.optimizers.COBYLA(),
+                  cudaq.optimizers.NelderMead()])
+def test_simple_vqe(optimizer):
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
@@ -118,7 +121,6 @@ def test_simple_vqe():
         ry(angles[0], qvector[1])
         x.ctrl(qvector[1], qvector[0])
 
-    optimizer = cudaq.optimizers.COBYLA()
     energy, parameter = cudaq.vqe(kernel=kernel,
                                   spin_operator=hamiltonian,
                                   optimizer=optimizer,
@@ -126,8 +128,13 @@ def test_simple_vqe():
 
     print(f"\nminimized <H> = {round(energy,16)}")
     print(f"optimal theta = {round(parameter[0],16)}")
-    assert assert_close(energy, -1.7488648395275948, 1e-3)
-    assert assert_close(parameter[0], 0.594417555305686, 1e-3)
+    want_expectation_value = -1.7487948611472093
+    want_optimal_parameters = [0.59]
+    assert assert_close(want_expectation_value, energy, tolerance=1e-2)
+    assert all(
+        assert_close(want_parameter, got_parameter, tolerance=1e-2)
+        for want_parameter, got_parameter in zip(want_optimal_parameters,
+                                                 parameter))
 
 
 def test_complex_vqe_inline_lambda():
@@ -158,7 +165,18 @@ def test_complex_vqe_inline_lambda():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
-def test_complex_vqe_named_lambda():
+@pytest.mark.parametrize("optimizer", [
+    cudaq.optimizers.LBFGS(),
+    cudaq.optimizers.Adam(),
+    cudaq.optimizers.GradientDescent(),
+    cudaq.optimizers.SGD(),
+])
+@pytest.mark.parametrize("gradient", [
+    cudaq.gradients.CentralDifference(),
+    cudaq.gradients.ParameterShift(),
+    cudaq.gradients.ForwardDifference()
+])
+def test_complex_vqe_named_lambda(optimizer, gradient):
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
@@ -169,13 +187,10 @@ def test_complex_vqe_named_lambda():
         ry(angles[0], qvector[1])
         x.ctrl(qvector[1], qvector[0])
 
-    optimizer = cudaq.optimizers.Adam()
-    grad = cudaq.gradients.CentralDifference()
-
     num_qubits = 2
     arg_mapper = lambda x: (x, num_qubits)
     energy, parameter = cudaq.vqe(kernel=kernel,
-                                  gradient_strategy=grad,
+                                  gradient_strategy=gradient,
                                   spin_operator=hamiltonian,
                                   optimizer=optimizer,
                                   argument_mapper=arg_mapper,
@@ -183,8 +198,13 @@ def test_complex_vqe_named_lambda():
 
     print(f"\nminimized <H> = {round(energy,16)}")
     print(f"optimal theta = {round(parameter[0],16)}")
-    assert assert_close(energy, -1.7488648395275948, 1e-3)
-    assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
+    want_expectation_value = -1.7487948611472093
+    want_optimal_parameters = [0.59]
+    assert assert_close(want_expectation_value, energy, tolerance=1e-2)
+    assert all(
+        assert_close(want_parameter, got_parameter, tolerance=1e-2)
+        for want_parameter, got_parameter in zip(want_optimal_parameters,
+                                                 parameter))
 
 
 # leave for gdb debugging
