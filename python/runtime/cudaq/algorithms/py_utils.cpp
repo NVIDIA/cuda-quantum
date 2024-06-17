@@ -136,7 +136,7 @@ std::string get_imports() {
       std::string name = py::str(mod.attr("__name__"));
       if (alias == name)
         imports_str += "import " + name + "\n";
-      else
+      else if (!alias.starts_with("@"))
         imports_str += "import " + name + " as " + alias + "\n";
     }
   }

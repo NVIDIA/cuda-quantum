@@ -123,6 +123,11 @@ pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
   std::ostringstream os;
   if (argumentMapper) {
     std::string source_code = cudaq::get_source_code(*argumentMapper);
+    // If it is a lambda function and it is used inline with a function call, it
+    // can sometimes include the trailing comma. Remove that here.
+    auto end = source_code.find_last_not_of(", \t\r\n");
+    if (end != std::string::npos)
+      source_code.erase(end + 1);
     os << "__arg_mapper = " << source_code << '\n';
   }
   os << "energy, params_at_energy = cudaq.vqe(";
