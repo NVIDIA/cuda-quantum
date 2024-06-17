@@ -199,8 +199,11 @@ struct AdotConjB
   };
 };
 
+template struct complexValue<double>;
+template struct complexValue<float>;
+
 template <typename ScalarType>
-thrust::complex<ScalarType> innerProduct(
+complexValue<ScalarType> innerProduct(
   void *devicePtr, void *otherPtr, std::size_t size, bool createDeviceAlloc) {
 
   auto *castedDevicePtr =
@@ -226,17 +229,23 @@ thrust::complex<ScalarType> innerProduct(
     thrustDevPtrBBegin = thrust::device_ptr<thrust::complex<ScalarType>>(castedOtherPtr);
   }
 
-  return thrust::inner_product(
+  thrust::complex<ScalarType> result = thrust::inner_product(
     thrustDevPtrABegin, thrustDevPtrAEnd, thrustDevPtrBBegin,
     thrust::complex<ScalarType>(0.0),
     thrust::plus<thrust::complex<ScalarType>>(),
     AdotConjB<ScalarType>());
+
+  complexValue<ScalarType> complex;
+  complex.real = result.real();
+  complex.imaginary = result.imag();
+  return complex;
 }
 
-template thrust::complex<double> 
+
+template complexValue<double> 
 innerProduct(void *devicePtr, void *otherPtr, std::size_t size, bool createDeviceAlloc);
 
-template thrust::complex<float> 
+template complexValue<float> 
 innerProduct(void *devicePtr, void *otherPtr, std::size_t size, bool createDeviceAlloc);
 
 }
