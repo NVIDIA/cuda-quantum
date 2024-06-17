@@ -89,13 +89,13 @@ void bindSpinOperator(py::module &mod) {
            "list. The list is ended with the total number of terms.")
       .def(py::init<std::size_t>(), py::arg("num_qubits"),
            "Construct the identity term on the given number of qubits.")
-      .def(
-          py::pickle([](const cudaq::spin_op &op) { return op.__getstate__(); },
-                     [](const std::vector<double> &state) {
-                       cudaq::spin_op op;
-                       op.__setstate__(state);
-                       return op;
-                     }))
+      .def(py::pickle(
+          [](const cudaq::spin_op &op) { return op.getDataTuple(); },
+          [](const std::tuple<std::vector<double>, std::size_t> &state) {
+            auto &data = std::get<0>(state);
+            auto &num_qubits = std::get<1>(state);
+            return cudaq::spin_op(data, num_qubits);
+          }))
 
       /// @brief Bind the member functions.
       .def("get_raw_data", &cudaq::spin_op::get_raw_data,
@@ -178,9 +178,6 @@ void bindSpinOperator(py::module &mod) {
            "Each term is appended to the array forming one large 1d array of "
            "doubles. The array is ended with the total number of terms "
            "represented as a double.")
-      .def(
-          "deserialize", &spin_op::deserialize,
-          "Return a deserialized representation of the :class:`SpinOperator`. ")
       .def("to_matrix", &spin_op::to_matrix,
            "Return `self` as a :class:`ComplexMatrix`.")
       .def("to_sparse_matrix", &spin_op::to_sparse_matrix,

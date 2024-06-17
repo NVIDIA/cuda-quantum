@@ -274,42 +274,8 @@ std::complex<double> spin_op::get_coefficient() const {
   return terms.begin()->second;
 }
 
-spin_op spin_op::deserialize(const std::vector<double> &state) {
-  auto n_terms = static_cast<int>(state.back());
-  auto nQubits = (state.size() - 1 - 2 * n_terms) / n_terms;
-  terms.clear();
-
-  for (std::size_t i = 0; i < state.size() - 1; i += nQubits + 2) {
-    std::vector<bool> tmpv(2 * nQubits);
-    for (std::size_t j = 0; j < nQubits; j++) {
-      int val = static_cast<int>(state[i + j]);
-      if (val == 1) {
-        tmpv[j] = true;
-      } else if (val == 2) {
-        tmpv[j + nQubits] = true;
-      } else if (val == 3) {
-        tmpv[j] = true;
-        tmpv[j + nQubits] = true;
-      }
-    }
-
-    auto el_real = state[i + nQubits];
-    auto el_imag = state[i + nQubits + 1];
-    terms.emplace(tmpv, std::complex<double>(el_real, el_imag));
-  }
-
-  return spin_op(terms);
-}
-
-std::vector<double> spin_op::__getstate__() const {
-  return getDataRepresentation();
-}
-
-void spin_op::__setstate__(const std::vector<double> &state) {
-  if (state.size() < 1) {
-    throw std::runtime_error("Invalid state!");
-  }
-  *this = deserialize(state);
+std::tuple<std::vector<double>, std::size_t> spin_op::getDataTuple() const {
+  return std::tuple(getDataRepresentation(), num_qubits());
 }
 
 void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) const {
@@ -632,7 +598,7 @@ void spin_op::dump() const {
   std::cout << str;
 }
 
-spin_op::spin_op(std::vector<double> &input_vec, std::size_t nQubits) {
+spin_op::spin_op(const std::vector<double> &input_vec, std::size_t nQubits) {
   auto n_terms = (int)input_vec.back();
   if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
     throw std::runtime_error("Invalid data representation for construction "

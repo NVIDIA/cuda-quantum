@@ -287,7 +287,7 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
       .def_readwrite(
           "upper_bounds", &OptimizerT::upper_bounds,
           "Set the upper value bound for the optimization parameters.")
-      .def("requiresGradients", &OptimizerT::requiresGradients,
+      .def("requires_gradients", &OptimizerT::requiresGradients,
            "Returns whether the optimizer requires gradient.")
       .def(
           "optimize",
