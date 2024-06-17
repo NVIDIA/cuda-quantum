@@ -216,7 +216,7 @@ public:
     auto ptrptrTy = cudaq::cc::PointerType::get(ptrI64Ty);
     auto qspan = adaptor.getVeq();
     auto qspanDataPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrptrTy, qspan, ArrayRef<cudaq::cc::ComputePtrArg>{0});
+        loc, ptrptrTy, qspan, ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
     auto qspanData = rewriter.create<cudaq::cc::LoadOp>(loc, qspanDataPtr);
     auto buffer = rewriter.create<cudaq::cc::ComputePtrOp>(
         loc, ptrI64Ty, qspanData, ArrayRef<cudaq::cc::ComputePtrArg>{offset});
