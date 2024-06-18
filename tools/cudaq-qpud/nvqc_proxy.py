@@ -153,7 +153,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
                         json_req_path = os.path.join(
                             os.path.dirname(current_script_path),
                             'json_request_runner.py')
-                        cmd_list = ['python3', json_req_path, temp_file.name]
+                        cmd_list = [sys.executable, json_req_path, temp_file.name]
                         cmd_result = subprocess.run(cmd_list,
                                                     capture_output=True,
                                                     text=True)
