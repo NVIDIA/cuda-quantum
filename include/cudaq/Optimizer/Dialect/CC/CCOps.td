@@ -1019,6 +1019,7 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
 
   let hasFolder = 1;
   let hasCanonicalizer = 1;
+  let hasVerifier = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
@@ -1031,6 +1032,10 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
   let extraClassDeclaration = [{
     static constexpr std::int32_t kDynamicIndex =
       std::numeric_limits<std::int32_t>::min();
+
+    static std::int32_t getDynamicIndexValue() { return kDynamicIndex; }
+
+    bool llvmNormalForm();
   }];
 }
 

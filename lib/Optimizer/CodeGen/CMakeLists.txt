@@ -22,6 +22,7 @@ add_cudaq_library(OptCodeGen
   Passes.cpp
   Pipelines.cpp
   QuakeToCC.cpp
+  QuakeToCodegen.cpp
   QuakeToLLVM.cpp
   RemoveMeasurements.cpp
   TranslateToIQMJson.cpp

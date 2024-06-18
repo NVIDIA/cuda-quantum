@@ -334,8 +334,8 @@ class QuakeValue(object):
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             if cc.StdvecType.isinstance(self.mlirValue.type):
                 eleTy = cc.StdvecType.getElementType(self.mlirValue.type)
-                arrPtrTy = cc.PointerType.get(self.ctx,
-                                              cc.ArrayType.get(self.ctx, eleTy))
+                arrTy = cc.ArrayType.get(self.ctx, eleTy)
+                arrPtrTy = cc.PointerType.get(self.ctx, arrTy)
                 vecPtr = cc.StdvecDataOp(arrPtrTy, self.mlirValue).result
                 elePtrTy = cc.PointerType.get(self.ctx, eleTy)
                 eleAddr = None

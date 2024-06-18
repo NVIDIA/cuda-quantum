@@ -46,8 +46,8 @@ def test_list_int():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_11:.*]]: i64):
 # CHECK:             %[[VAL_12:.*]] = cc.undef !cc.struct<{i64, i64}>
-# CHECK:             %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<i64>) -> !cc.ptr<i64>
-# CHECK:             %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]]{{\[}}%[[VAL_11]]] : (!cc.ptr<i64>, i64) -> !cc.ptr<i64>
+# CHECK:             %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+# CHECK:             %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]][%[[VAL_11]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_7]]{{\[}}%[[VAL_11]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, i64}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, i64}>>
 # CHECK:             %[[VAL_17:.*]] = cc.insert_value %[[VAL_11]], %[[VAL_12]][0] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>
