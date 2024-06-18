@@ -801,13 +801,15 @@ else
 	# Save the object file to what the user specified
 	NUMBER_SRCS=$( ( set -o noglob; set -- ${SRCS[0]}; echo "$#" ) )
 	if (($NUMBER_SRCS == 1)); then
-		if [ ! -z "${OUTPUTFILE}" ]; then
+		if [ -n "${OUTPUTFILE}" ]; then
 			OBJ=$(trim "${OBJS}")
 			if [ "${OBJ}" != "${OUTPUTFILE}" ]; then
 				run mv ${OBJ} ${OUTPUTFILE}
 			fi
 	    	fi
 	else
-		run ${LINKER_CXX} ${LINKER_PATH} ${LINKDIRS} -r ${OBJS} -o ${OUTPUTFILE}
+		if [ -n "${OUTPUTFILE}" ]; then
+			run ${LINKER_CXX} ${LINKER_PATH} ${LINKDIRS} -r ${OBJS} -o ${OUTPUTFILE}
+		fi
 	fi
 fi
