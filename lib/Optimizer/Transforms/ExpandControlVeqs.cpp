@@ -55,9 +55,8 @@ public:
       }
     }
 
-    if (!update) {
+    if (!update)
       return failure();
-    }
 
     // Reconstruct the operation with the new controls
     auto segmentSizes =
@@ -100,17 +99,18 @@ public:
     auto *ctx = &getContext();
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<ExpandPat<quake::HOp>, ExpandPat<quake::PhasedRxOp>,
-                    ExpandPat<quake::R1Op>, ExpandPat<quake::RxOp>,
-                    ExpandPat<quake::RyOp>, ExpandPat<quake::RzOp>,
-                    ExpandPat<quake::SOp>, ExpandPat<quake::SwapOp>,
-                    ExpandPat<quake::TOp>, ExpandPat<quake::U2Op>,
-                    ExpandPat<quake::U3Op>, ExpandPat<quake::XOp>,
-                    ExpandPat<quake::YOp>, ExpandPat<quake::ZOp>>(ctx);
+    patterns.insert<
+        ExpandPat<quake::HOp>, ExpandPat<quake::PhasedRxOp>,
+        ExpandPat<quake::R1Op>, ExpandPat<quake::RxOp>, ExpandPat<quake::RyOp>,
+        ExpandPat<quake::RzOp>, ExpandPat<quake::SOp>, ExpandPat<quake::SwapOp>,
+        ExpandPat<quake::TOp>, ExpandPat<quake::U2Op>, ExpandPat<quake::U3Op>,
+        ExpandPat<quake::XOp>, ExpandPat<quake::YOp>, ExpandPat<quake::ZOp>>(
+        ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<quake::QuakeDialect>();
     target.addDynamicallyLegalOp<quake::HOp>(checkLegal<quake::HOp>);
-    target.addDynamicallyLegalOp<quake::PhasedRxOp>(checkLegal<quake::PhasedRxOp>);
+    target.addDynamicallyLegalOp<quake::PhasedRxOp>(
+        checkLegal<quake::PhasedRxOp>);
     target.addDynamicallyLegalOp<quake::R1Op>(checkLegal<quake::R1Op>);
     target.addDynamicallyLegalOp<quake::RxOp>(checkLegal<quake::RxOp>);
     target.addDynamicallyLegalOp<quake::RyOp>(checkLegal<quake::RyOp>);
