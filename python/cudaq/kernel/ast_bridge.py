@@ -13,7 +13,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
+from .utils import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -1215,6 +1215,8 @@ class PyASTBridge(ast.NodeVisitor):
             ry(np.pi, qubits)
         ```
         """
+        global globalRegisteredOperations
+
         if self.verbose:
             print("[Visit Call] {}".format(
                 ast.unparse(node) if hasattr(ast, 'unparse') else node))
@@ -1645,6 +1647,42 @@ class PyASTBridge(ast.NodeVisitor):
                         params[idx] = arith.SIToFPOp(self.getFloatType(),
                                                      val).result
                 self.__applyQuantumOperation(node.func.id, params, qubitTargets)
+                return
+
+            if node.func.id in globalRegisteredOperations:
+                unitary = globalRegisteredOperations[node.func.id]
+                numTargets = int(np.log2(np.sqrt(unitary.size)))
+                targets = [self.popValue() for _ in range(numTargets)]
+                targets.reverse()
+                self.checkControlAndTargetTypes([], targets)
+
+                globalName = f'{node.func.id}.generator'
+                currentST = SymbolTable(self.module.operation)
+                if not globalName in currentST:
+                    with InsertionPoint(self.module.body):
+                        arrayAttrList = []
+                        for el in unitary:
+                            arrayAttrList.append(
+                                DenseF64ArrayAttr.get(
+                                    [np.real(el), np.imag(el)]))
+
+                        complexType = ComplexType.get(self.getFloatType())
+                        globalTy = cc.ArrayType.get(self.ctx, complexType,
+                                                    len(arrayAttrList))
+
+                        cc.GlobalOp(TypeAttr.get(globalTy),
+                                    globalName,
+                                    value=ArrayAttr.get(arrayAttrList),
+                                    constant=True,
+                                    external=False)
+
+                quake.CustomUnitarySymbolOp(
+                    [],
+                    generator=FlatSymbolRefAttr.get(globalName),
+                    parameters=[],
+                    controls=[],
+                    targets=targets,
+                    is_adj=False)
                 return
 
             if node.func.id in globalKernelRegistry:
@@ -2328,6 +2366,73 @@ class PyASTBridge(ast.NodeVisitor):
                         self.emitFatalError(
                             'adj quantum operation on incorrect type {}.'.
                             format(target.type), node)
+
+            # custom `ctrl` and `adj`
+            if node.func.value.id in globalRegisteredOperations:
+                unitary = globalRegisteredOperations[node.func.value.id]
+                numTargets = int(np.log2(np.sqrt(unitary.size)))
+                numValues = len(self.valueStack)
+                targets = [self.popValue() for _ in range(numTargets)]
+                targets.reverse()
+
+                globalName = f'{node.func.value.id}.generator'
+                currentST = SymbolTable(self.module.operation)
+                if not globalName in currentST:
+                    with InsertionPoint(self.module.body):
+                        arrayAttrList = []
+                        for el in unitary:
+                            arrayAttrList.append(
+                                DenseF64ArrayAttr.get(
+                                    [np.real(el), np.imag(el)]))
+
+                        complexType = ComplexType.get(self.getFloatType())
+                        globalTy = cc.ArrayType.get(self.ctx, complexType,
+                                                    len(arrayAttrList))
+
+                        cc.GlobalOp(TypeAttr.get(globalTy),
+                                    globalName,
+                                    value=ArrayAttr.get(arrayAttrList),
+                                    constant=True,
+                                    external=False)
+
+                if node.func.attr == 'ctrl':
+                    controls = [
+                        self.popValue() for _ in range(numValues - numTargets)
+                    ]
+                    negatedControlQubits = None
+                    if len(self.controlNegations):
+                        negCtrlBools = [None] * len(controls)
+                        for i, c in enumerate(controls):
+                            negCtrlBools[i] = c in self.controlNegations
+                        negatedControlQubits = DenseBoolArrayAttr.get(
+                            negCtrlBools)
+                        self.controlNegations.clear()
+
+                    self.checkControlAndTargetTypes(controls, targets)
+                    quake.CustomUnitarySymbolOp(
+                        [],
+                        generator=FlatSymbolRefAttr.get(globalName),
+                        parameters=[],
+                        controls=controls,
+                        targets=targets,
+                        is_adj=False,
+                        negated_qubit_controls=negatedControlQubits)
+                    return
+
+                if node.func.attr == 'adj':
+                    self.checkControlAndTargetTypes([], targets)
+                    quake.CustomUnitarySymbolOp(
+                        [],
+                        generator=FlatSymbolRefAttr.get(globalName),
+                        parameters=[],
+                        controls=[],
+                        targets=targets,
+                        is_adj=True)
+                    return
+
+                self.emitFatalError(
+                    f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
+                )
 
             self.emitFatalError(
                 f"Invalid function call - '{node.func.value.id}' is unknown.")

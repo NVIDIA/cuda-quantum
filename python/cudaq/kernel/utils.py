@@ -33,6 +33,9 @@ globalKernelRegistry = {}
 # and the source code location for the kernel.
 globalAstRegistry = {}
 
+# Keep a global registry of all registered custom operations.
+globalRegisteredOperations = {}
+
 
 class Color:
     YELLOW = '\033[93m'
