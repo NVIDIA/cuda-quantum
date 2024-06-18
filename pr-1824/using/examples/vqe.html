@@ -714,9 +714,6 @@ Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA
 <span class="c1"># of parameters as input and returns either the cost as a single float,</span>
 <span class="c1"># or a tuple of (cost, gradient_vector) depending on the optimizer used.</span>
 
-<span class="c1"># FIXME - for remote optimization implementation. Remove later.</span>
-<span class="c1"># `cudaq.set_target(&quot;remote-mqpu&quot;,url=&quot;localhost:3030&quot;)`</span>
-
 <span class="c1"># In this example, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`</span>
 <span class="c1"># and find the `angles` that minimize the expectation value of the system.</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span>
