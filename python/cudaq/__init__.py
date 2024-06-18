@@ -105,6 +105,10 @@ draw = cudaq_runtime.draw
 translate = cudaq_runtime.translate
 
 ComplexMatrix = cudaq_runtime.ComplexMatrix
+
+# to be deprecated
+to_qir = cudaq_runtime.get_qir
+
 testing = cudaq_runtime.testing
 
 # target-specific

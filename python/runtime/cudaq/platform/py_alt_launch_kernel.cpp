@@ -539,7 +539,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
 }
 
 std::string getASM(const std::string &name, MlirModule module,
-                     cudaq::OpaqueArguments &runtimeArgs) {
+                   cudaq::OpaqueArguments &runtimeArgs) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
@@ -624,6 +624,23 @@ void bindAltLaunchKernel(py::module &mod) {
                     [](OpaqueArguments &, py::object &) { return false; });
     return synthesizeKernel(name, module, args);
   });
+
+  mod.def(
+      "get_qir",
+      [](py::object kernel, std::string profile) {
+        PyErr_WarnEx(PyExc_DeprecationWarning,
+                     "to_qir()/get_qir() is deprecated, use translate() "
+                     "with `format=\"qir\"`.",
+                     1);
+
+        if (py::hasattr(kernel, "compile"))
+          kernel.attr("compile")();
+        MlirModule module = kernel.attr("module").cast<MlirModule>();
+        auto name = kernel.attr("name").cast<std::string>();
+        cudaq::OpaqueArguments args;
+        return getQIRLL(name, module, args, profile);
+      },
+      py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
 
   mod.def(
       "storePointerToStateData",

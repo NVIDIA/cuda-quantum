@@ -5,9 +5,9 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "cudaq/algorithms/draw.h" // TODO  translate.h
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/algorithms/draw.h" // TODO  translate.h
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 
@@ -21,11 +21,10 @@ void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
 std::string getQIRLL(const std::string &name, MlirModule module,
-                     cudaq::OpaqueArguments &runtimeArgs,
-                     std::string &profile);
+                     cudaq::OpaqueArguments &runtimeArgs, std::string &profile);
 
 std::string getASM(const std::string &name, MlirModule module,
-                     cudaq::OpaqueArguments &runtimeArgs);
+                   cudaq::OpaqueArguments &runtimeArgs);
 
 /// @brief Run `cudaq::translate` on the provided kernel.
 std::string pyTranslate(py::object &kernel, py::args args, std::string format) {
@@ -36,29 +35,34 @@ std::string pyTranslate(py::object &kernel, py::args args, std::string format) {
   auto name = kernel.attr("name").cast<std::string>();
   auto module = kernel.attr("module").cast<MlirModule>();
 
-  auto result = llvm::StringSwitch<std::function<std::string()>>(format)
-      .Case("qir", [&]() {
-        cudaq::OpaqueArguments args;
-        std::string profile = "";
-        return getQIRLL(name, module, args, profile);
-      })
-      .Cases("qir-adaptive", "qir-base",
-            [&]() {
-              cudaq::OpaqueArguments args;
-              return getQIRLL(name, module, args, format);
-            })
-      .Case("openqasm",
-            [&]() {
-              if (py::hasattr(kernel, "arguments") && py::len(kernel.attr("arguments")) > 0) {
-                  throw std::runtime_error("Cannot translate function with arguments to OpenQasm 2.0.");
-              }
-              cudaq::OpaqueArguments args;
-              return getASM(name, module, args);
-            })
-      .Default([&]() {
-          throw std::runtime_error("Invalid format to translate to: " + format);
-          return "Failed to translate to " + format;
-      })();
+  auto result =
+      llvm::StringSwitch<std::function<std::string()>>(format)
+          .Case("qir",
+                [&]() {
+                  cudaq::OpaqueArguments args;
+                  std::string profile = "";
+                  return getQIRLL(name, module, args, profile);
+                })
+          .Cases("qir-adaptive", "qir-base",
+                 [&]() {
+                   cudaq::OpaqueArguments args;
+                   return getQIRLL(name, module, args, format);
+                 })
+          .Case("openqasm",
+                [&]() {
+                  if (py::hasattr(kernel, "arguments") &&
+                      py::len(kernel.attr("arguments")) > 0) {
+                    throw std::runtime_error("Cannot translate function with "
+                                             "arguments to OpenQasm 2.0.");
+                  }
+                  cudaq::OpaqueArguments args;
+                  return getASM(name, module, args);
+                })
+          .Default([&]() {
+            throw std::runtime_error("Invalid format to translate to: " +
+                                     format);
+            return "Failed to translate to " + format;
+          })();
 
   return result;
 }
@@ -66,11 +70,11 @@ std::string pyTranslate(py::object &kernel, py::args args, std::string format) {
 /// @brief Bind the draw cudaq function
 void bindPyTranslate(py::module &mod) {
   mod.def(
-      "translate", &pyTranslate,
-      py::arg("kernel"), py::kw_only(), py::arg("format") = "qir",
+      "translate", &pyTranslate, py::arg("kernel"), py::kw_only(),
+      py::arg("format") = "qir",
       R"#(Return a UTF-8 encoded string representing drawing of the execution
 path, i.e., the trace, of the provided `kernel`.
-      
+
 Args:
   format (str): format to translate to. Available formats: `qir`, `qir-base`,
     `qir-adaptive`, `openqasm`.
