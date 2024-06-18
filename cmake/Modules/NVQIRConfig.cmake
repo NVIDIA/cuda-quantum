@@ -10,13 +10,10 @@ get_filename_component(NVQIR_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include(CMakeFindDependencyMacro)
 
 get_filename_component(PARENT_DIRECTORY ${NVQIR_CMAKE_DIR} DIRECTORY)
-set (CUDAQCommon_DIR "${PARENT_DIRECTORY}/cudaq")
-set (CUDAQSpin_DIR "${PARENT_DIRECTORY}/cudaq")
-set(fmt_DIR "${PARENT_DIRECTORY}/fmt")
 
-find_dependency(CUDAQSpin REQUIRED)
-find_dependency(CUDAQCommon REQUIRED)
-find_dependency(fmt REQUIRED)
+find_dependency(CUDAQSpin REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
+find_dependency(CUDAQCommon REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
+find_dependency(fmt REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
 
 if(NOT TARGET nvqir::nvqir)
     include("${NVQIR_CMAKE_DIR}/NVQIRTargets.cmake")
