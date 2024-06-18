@@ -62,7 +62,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
 RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev \
-    && python3 -m pip install --no-cache-dir notebook==7.1.3 \
+    && python3 -m pip install --no-cache-dir notebook==7.1.3 "qutip<5" matplotlib \
     && apt-get remove -y gcc python3-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
