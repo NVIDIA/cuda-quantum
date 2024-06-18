@@ -15,9 +15,9 @@ import sys
 import time
 import json
 import subprocess
-import multiprocessing
 import os
 import tempfile
+import shutil
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
@@ -25,6 +25,9 @@ import tempfile
 # application to restart if necessary.
 PROXY_PORT = 3030
 QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
+
+NUM_GPUS = 0
+MPI_FOUND = False
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
@@ -153,7 +156,14 @@ class Server(http.server.SimpleHTTPRequestHandler):
                         json_req_path = os.path.join(
                             os.path.dirname(current_script_path),
                             'json_request_runner.py')
-                        cmd_list = [sys.executable, json_req_path, temp_file.name]
+                        cmd_list = [
+                            sys.executable, json_req_path, temp_file.name
+                        ]
+                        if NUM_GPUS > 1 and MPI_FOUND:
+                            cmd_list = [
+                                'mpiexec', '--allow-run-as-root', '-np',
+                                str(NUM_GPUS)
+                            ] + cmd_list
                         cmd_result = subprocess.run(cmd_list,
                                                     capture_output=True,
                                                     text=True)
@@ -189,15 +199,11 @@ class Server(http.server.SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    # By default, Linux uses the "fork" method where the child process inherits
-    # a copy of the parent's memory space, including any condition variables and
-    # locks that might be in use. If the parent process was holding a lock or
-    # waiting on a condition variable at the time of the fork, this can lead to
-    # deadlocks or other synchronization problems in the child process. Instead,
-    # use the "spawn" method instead, where a fresh Python interpreter is
-    # started for each new process.
-    multiprocessing.set_start_method('spawn')
-
+    try:
+        NUM_GPUS = int(subprocess.getoutput('nvidia-smi --list-gpus | wc -l'))
+    except:
+        NUM_GPUS = 0
+    MPI_FOUND = (shutil.which('mpiexec') != None)
     Handler = Server
     with ThreadedHTTPServer(("", PROXY_PORT), Handler) as httpd:
         print("Serving at port", PROXY_PORT)

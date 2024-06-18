@@ -8,7 +8,6 @@
 import pytest
 import os
 import sys
-import multiprocessing
 import requests
 import subprocess
 import time
@@ -47,11 +46,10 @@ def wait_until_port_active(port: int) -> bool:
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
-    multiprocessing.set_start_method('spawn')
-    cudaq_qpud = os.path.dirname(cudaq.__file__) + "/../bin/cudaq-qpud"
+    cudaq_qpud = os.path.dirname(cudaq.__file__) + "/../bin/cudaq-qpud.py"
     nvqc_proxy = os.path.dirname(cudaq.__file__) + "/../bin/nvqc_proxy.py"
     p1 = subprocess.Popen([sys.executable, nvqc_proxy])
-    p2 = subprocess.Popen([cudaq_qpud, '--port', '3031'])
+    p2 = subprocess.Popen([sys.executable, cudaq_qpud, '--port', '3031'])
     cudaq.set_target("remote-mqpu", url="localhost:3030")
     proxy_up = wait_until_port_active(3030)
     qpud_up = wait_until_port_active(3031)
