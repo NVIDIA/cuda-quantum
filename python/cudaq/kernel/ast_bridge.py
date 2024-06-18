@@ -539,15 +539,18 @@ class PyASTBridge(ast.NodeVisitor):
         if (sourceEleType == targetEleType):
             return sourcePtr
 
+        sourceArrEleTy = cc.ArrayType.get(self.ctx, sourceEleType)
         sourceElePtrTy = cc.PointerType.get(self.ctx, sourceEleType)
+        sourceArrElePtrTy = cc.PointerType.get(self.ctx, sourceArrType)
         sourceValue = self.ifPointerThenLoad(sourcePtr)
-        sourceDataPtr = cc.StdvecDataOp(sourceElePtrTy, sourceValue).result
+        sourceDataPtr = cc.StdvecDataOp(sourceArrElePtrTy, sourceValue).result
         sourceSize = cc.StdvecSizeOp(self.getIntegerType(), sourceValue).result
 
         targetElePtrType = cc.PointerType.get(self.ctx, targetEleType)
         targetTy = cc.ArrayType.get(self.ctx, targetEleType)
+        targetArrElePtrTy = cc.PointerType.get(self.ctx, targetTy)
         targetVecTy = cc.StdvecType.get(self.ctx, targetEleType)
-        targetPtr = cc.AllocaOp(cc.PointerType.get(self.ctx, targetTy),
+        targetPtr = cc.AllocaOp(targetArrElePtr,
                                 TypeAttr.get(targetEleType),
                                 seqSize=sourceSize).result
 
@@ -1384,8 +1387,10 @@ class PyASTBridge(ast.NodeVisitor):
                                                     iterable).result
 
                         def extractFunctor(idxVal):
+                            arrEleTy = cc.ArrayType.get(self.ctx, iterEleTy)
                             elePtrTy = cc.PointerType.get(self.ctx, iterEleTy)
-                            vecPtr = cc.StdvecDataOp(elePtrTy, iterable).result
+                            arrPtrTy = cc.PointerType.get(self.ctx, arrEleTy)
+                            vecPtr = cc.StdvecDataOp(arrPtrTy, iterable).result
                             eleAddr = cc.ComputePtrOp(
                                 elePtrTy, vecPtr, [idxVal],
                                 DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -1931,10 +1936,12 @@ class PyASTBridge(ast.NodeVisitor):
                         # and if the state is normalized
 
                         ptrTy = cc.PointerType.get(self.ctx, eleTy)
+                        arrTy = cc.ArrayType.get(self.ctx, eleTy)
+                        ptrArrTy = cc.PointerType.get(self.ctx, arrTy)
                         veqTy = quake.VeqType.get(self.ctx)
 
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                        data = cc.StdvecDataOp(ptrTy, value).result
+                        data = cc.StdvecDataOp(ptrArrTy, value).result
                         init = quake.InitializeStateOp(veqTy, qubits,
                                                        data).result
                         self.pushValue(init)
@@ -2408,9 +2415,6 @@ class PyASTBridge(ast.NodeVisitor):
             listValue = cc.AllocaOp(cc.PointerType.get(self.ctx, arrOfStdvecTy),
                                     TypeAttr.get(listComputePtrTy),
                                     seqSize=iterableSize).result
-            listValue = cc.CastOp(
-                cc.PointerType.get(self.ctx, listComputePtrTy),
-                listValue).result
 
         def bodyBuilder(iterVar):
             self.symbolTable.pushScope()
@@ -2610,10 +2614,12 @@ class PyASTBridge(ast.NodeVisitor):
             elif cc.StdvecType.isinstance(var.type):
                 eleTy = cc.StdvecType.getElementType(var.type)
                 ptrTy = cc.PointerType.get(self.ctx, eleTy)
+                arrTy = cc.ArrayType.get(self.ctx, eleTy)
+                ptrArrTy = cc.PointerType.get(self.ctx, arrTy)
                 nElementsVal = arith.SubIOp(upperVal, lowerVal).result
                 # need to compute the distance between `upperVal` and `lowerVal`
                 # then slice is `stdvecdataOp + computeptr[lower] + stdvecinit[ptr,distance]`
-                vecPtr = cc.StdvecDataOp(ptrTy, var).result
+                vecPtr = cc.StdvecDataOp(ptrArrTy, var).result
                 ptr = cc.ComputePtrOp(
                     ptrTy, vecPtr, [lowerVal],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -2668,7 +2674,9 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.StdvecType.isinstance(var.type):
             eleTy = cc.StdvecType.getElementType(var.type)
             elePtrTy = cc.PointerType.get(self.ctx, eleTy)
-            vecPtr = cc.StdvecDataOp(elePtrTy, var).result
+            arrTy = cc.ArrayType.get(self.ctx, eleTy)
+            ptrArrTy = cc.PointerType.get(self.ctx, arrTy)
+            vecPtr = cc.StdvecDataOp(ptrArrTy, var).result
             eleAddr = cc.ComputePtrOp(
                 elePtrTy, vecPtr, [idx],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -2775,7 +2783,9 @@ class PyASTBridge(ast.NodeVisitor):
 
                 def functor(iter, idxVal):
                     elePtrTy = cc.PointerType.get(self.ctx, iterEleTy)
-                    vecPtr = cc.StdvecDataOp(elePtrTy, iter).result
+                    arrTy = cc.ArrayType.get(self.ctx, iterEleTy)
+                    ptrArrTy = cc.PointerType.get(self.ctx, arrTy)
+                    vecPtr = cc.StdvecDataOp(ptrArrTy, iter).result
                     eleAddr = cc.ComputePtrOp(
                         elePtrTy, vecPtr, [idxVal],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -3155,7 +3165,9 @@ class PyASTBridge(ast.NodeVisitor):
             load_intrinsic(self.module, symName)
             eleTy = cc.StdvecType.getElementType(result.type)
             ptrTy = cc.PointerType.get(self.ctx, self.getIntegerType(8))
-            resBuf = cc.StdvecDataOp(ptrTy, result).result
+            arrTy = cc.ArrayType.get(self.ctx, self.getIntegerType(8))
+            ptrArrTy = cc.PointerType.get(self.ctx, arrTy)
+            resBuf = cc.StdvecDataOp(ptrArrTy, result).result
             # TODO Revisit this calculation
             byteWidth = 16 if ComplexType.isinstance(eleTy) else 8
             eleSize = self.getConstantInt(byteWidth)
