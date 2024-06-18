@@ -131,9 +131,9 @@ int main() {
     // the variable `init_state` by reference.
     auto sim_builder = cudaq::make_kernel();
     std::vector<cudaq::complex> init_state;
-    auto q = sim_builder.qalloc(init_state);
+    auto qubits = sim_builder.qalloc(init_state);
     // Build the quantum circuit template here.
-    sim_builder.mz(q);
+    sim_builder.mz(qubits);
 
     // Now we are ready to instantiate the kernel and invoke it. So we can set
     // the `init_state` to a vector with 2 complex values (1 qubit) and
