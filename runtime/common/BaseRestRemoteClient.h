@@ -245,7 +245,7 @@ public:
       request.entryPoint = stateIrPayload1.entryPoint;
       // Second kernel of the overlap calculation
       request.overlapKernel = stateIrPayload2;
-    } else {
+    } else if (serializedCodeContext == nullptr) {
       request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                             kernelArgs, argsSize);
     }
