@@ -176,13 +176,17 @@ def ExpandControlVeqs: Pass<"expand-control-veqs", "mlir::func::FuncOp"> {
   let summary = "Expands veqs used as controls into individual qubits.";
   let description = [{
     Given an operation of the form
-    ```quake.any [%veq] %r : (!quake.veq<n>, !quake.ref) -> ()```
+    ```mlir
+    quake.any [%veq] %r : (!quake.veq<n>, !quake.ref) -> ()
+    ```
     this pass will extract each qubit from `%veq%` and explicitly provide them
     as qubits:
-    ```%arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
+    ```mlir
+    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
     ...
     %argn = quake.extract_ref %veq[n] : (!quake.veq<n>) -> !quake.ref
-    quake.any [%arg0, ..., %argn] %0 : (!quake.ref, ..., !quake.ref, !quake.ref) -> ()```
+    quake.any [%arg0, ..., %argn] %0 : (!quake.ref, ..., !quake.ref, !quake.ref) -> ()
+    ```
   }];
 }
 

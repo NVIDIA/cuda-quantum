@@ -17,7 +17,7 @@ namespace cudaq::opt {
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "Expand-control-veqs"
+#define DEBUG_TYPE "expand-control-veqs"
 
 using namespace mlir;
 
