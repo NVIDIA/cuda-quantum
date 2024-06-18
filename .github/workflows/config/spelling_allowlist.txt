@@ -183,7 +183,6 @@ extremal
 fermionic
 frontend
 frontends
-hamiltonians
 homogenous
 iff
 increment
