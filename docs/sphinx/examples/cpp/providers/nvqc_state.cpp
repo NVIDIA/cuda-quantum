@@ -7,7 +7,7 @@
 // variable. Please refer to the documentations for information about how to
 // attain NVQC API key.
 
-#include "cudaq/algorithms/state.h"
+#include "cudaq/algorithms/get_state.h"
 #include <cudaq.h>
 #include <iostream>
 

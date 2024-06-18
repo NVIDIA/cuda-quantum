@@ -17,6 +17,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 
 // Our hook into configuring the NVQIR backend.
 extern "C" {

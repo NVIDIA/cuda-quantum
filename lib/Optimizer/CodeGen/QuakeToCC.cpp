@@ -121,16 +121,15 @@ public:
                                     cudaq::opt::CudaqEMWriteToSpan,
                                     ValueRange{qspan, buffer, one});
     } else {
-
       Value sizeOperand;
       if (adaptor.getOperands().empty()) {
-        if (auto type = dyn_cast<quake::VeqType>(alloca.getType())) {
-          auto constantSize = type.getSize();
-          sizeOperand =
-              rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
-        }
+        auto type = cast<quake::VeqType>(alloca.getType());
+        assert(type.hasSpecifiedSize() && "veq must have a constant size");
+        auto constantSize = type.getSize();
+        sizeOperand =
+            rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
       } else if (auto intSizeTy =
-                     dyn_cast<IntegerType>(sizeOperand.getType())) {
+                     dyn_cast<IntegerType>(adaptor.getSize().getType())) {
         sizeOperand = adaptor.getSize();
         if (intSizeTy.getWidth() != 64)
           sizeOperand = rewriter.create<cudaq::cc::CastOp>(
@@ -216,7 +215,7 @@ public:
     auto ptrptrTy = cudaq::cc::PointerType::get(ptrI64Ty);
     auto qspan = adaptor.getVeq();
     auto qspanDataPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrptrTy, qspan, ArrayRef<cudaq::cc::ComputePtrArg>{0});
+        loc, ptrptrTy, qspan, ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
     auto qspanData = rewriter.create<cudaq::cc::LoadOp>(loc, qspanDataPtr);
     auto buffer = rewriter.create<cudaq::cc::ComputePtrOp>(
         loc, ptrI64Ty, qspanData, ArrayRef<cudaq::cc::ComputePtrArg>{offset});

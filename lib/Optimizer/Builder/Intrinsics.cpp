@@ -148,7 +148,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      R"#(
   func.func private @__nvqpp__cudaq_em_allocate_veq(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %size : i64) {
-    %buffer = cc.compute_ptr %span[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.array<i64 x ?>>
+    %buffptr = cc.compute_ptr %span[0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %buffer = cc.load %buffptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     %0 = arith.constant 0 : i64
     %1 = cc.loop while ((%arg0 = %0) -> (i64)) {
       %cond = arith.cmpi slt, %arg0, %size : i64
@@ -178,7 +179,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {cudaq::llvmMemCopyIntrinsic},
      R"#(
   func.func private @__nvqpp__cudaq_em_concatSpan(%dest : !cc.ptr<i64>, %from : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %length : i64) {
-    %ptrptr = cc.compute_ptr %from[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %ptrptr = cc.compute_ptr %from[0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     %src = cc.load %ptrptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     %eight = arith.constant 8 : i64
     %len = arith.muli %length, %eight : i64
@@ -211,9 +212,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      R"#(
   func.func private @__nvqpp__cudaq_em_writeToSpan(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %ptr : !cc.ptr<!cc.array<i64 x ?>>, %size : i64) {
-    %buffptr = cc.compute_ptr %span[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %buffptr = cc.compute_ptr %span[0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     cc.store %ptr, %buffptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
-    %szptr = cc.compute_ptr %span[1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
+    %szptr = cc.compute_ptr %span[0, 1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
     cc.store %size, %szptr : !cc.ptr<i64>
     return
   })#"},

@@ -792,7 +792,10 @@ if ${DO_LINK}; then
 	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified
-	if [ ! -z "${OUTPUTFILE}" ] && ((${#OBJS[@]} == 0)); then
+	NUMBER_SRCS=$( ( set -o noglob; set -- ${SRCS[0]}; echo "$#" ) )
+	if [ ! -z "${OUTPUTFILE}" ] && (($NUMBER_SRCS == 1)); then
 		run mv ${OBJS} ${OUTPUTFILE}
+	else
+		run ${LINKER_CXX} ${LINKER_PATH} ${LINKDIRS} -r ${OBJS} -o ${OUTPUTFILE}
 	fi
 fi

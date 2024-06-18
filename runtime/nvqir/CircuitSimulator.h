@@ -335,6 +335,8 @@ public:
   virtual bool mz(const std::size_t qubitIdx,
                   const std::string &registerName) = 0;
 
+  virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
+
   /// @brief Reset the qubit to the |0> state
   virtual void resetQubit(const std::size_t qubitIdx) = 0;
 
@@ -1318,6 +1320,62 @@ public:
     // Return the result
     return measureResult;
   }
+
+  void measureSpinOp(const cudaq::spin_op &op) override {
+    flushGateQueue();
+
+    if (executionContext->canHandleObserve) {
+      auto result = observe(*executionContext->spin.value());
+      executionContext->expectationValue = result.expectation();
+      executionContext->result = result.raw_data();
+      return;
+    }
+
+    assert(op.num_terms() == 1 && "Number of terms is not 1.");
+
+    cudaq::info("Measure {}", op.to_string(false));
+    std::vector<std::size_t> qubitsToMeasure;
+    std::vector<std::function<void(bool)>> basisChange;
+    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
+      if (type != cudaq::pauli::I)
+        qubitsToMeasure.push_back(qubitIdx);
+
+      if (type == cudaq::pauli::Y)
+        basisChange.emplace_back([&, qubitIdx](bool reverse) {
+          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIdx);
+        });
+      else if (type == cudaq::pauli::X)
+        basisChange.emplace_back([&, qubitIdx](bool) { h(qubitIdx); });
+    });
+
+    // Change basis, flush the queue
+    if (!basisChange.empty()) {
+      for (auto &basis : basisChange)
+        basis(false);
+
+      flushGateQueue();
+    }
+
+    // Get whether this is shots-based
+    int shots = 0;
+    if (executionContext->shots > 0)
+      shots = executionContext->shots;
+
+    // Sample and give the data to the context
+    cudaq::ExecutionResult result = sample(qubitsToMeasure, shots);
+    executionContext->expectationValue = result.expectationValue;
+    executionContext->result = cudaq::sample_result(result);
+
+    // Restore the state.
+    if (!basisChange.empty()) {
+      std::reverse(basisChange.begin(), basisChange.end());
+      for (auto &basis : basisChange)
+        basis(true);
+
+      flushGateQueue();
+    }
+  }
+
 }; // namespace nvqir
 } // namespace nvqir
 
