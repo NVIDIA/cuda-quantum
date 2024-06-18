@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
@@ -1219,6 +1220,39 @@ class CustomUnitaryOpRewrite
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
+  Value mapConstMatrixToLLVMPointer(Location &loc,
+                                    ConversionPatternRewriter &rewriter,
+                                    ModuleOp parentModule,
+                                    std::int64_t numUnitaryElements,
+                                    StringRef matrixIdentifier,
+                                    ArrayRef<double> data) const {
+    auto f64Ty = rewriter.getF64Type();
+    SmallVector<std::int64_t> shape{numUnitaryElements};
+    auto vectorTy = VectorType::get(shape, f64Ty);
+    auto insertPoint = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+
+    LLVM::GlobalOp llvmGlobalOp;
+    if (auto existingArr =
+            parentModule.lookupSymbol<LLVM::GlobalOp>(matrixIdentifier))
+      llvmGlobalOp = existingArr;
+    else
+      llvmGlobalOp = rewriter.create<LLVM::GlobalOp>(
+          loc, vectorTy, /*isConstant=*/true, LLVM::Linkage::Internal,
+          matrixIdentifier, DenseFPElementsAttr::get(vectorTy, data),
+          /*alignment=*/0);
+
+    rewriter.restoreInsertionPoint(insertPoint);
+
+    Value addrOp = rewriter.create<LLVM::AddressOfOp>(
+        loc, cudaq::opt::factory::getPointerType(llvmGlobalOp.getType()),
+        llvmGlobalOp.getSymName());
+    Value zero =
+        rewriter.create<LLVM::ConstantOp>(loc, rewriter.getIntegerType(64), 0);
+    return rewriter.create<LLVM::GEPOp>(loc, LLVM::LLVMPointerType::get(f64Ty),
+                                        addrOp, ValueRange{zero, zero});
+  }
+
   LogicalResult
   matchAndRewrite(quake::CustomUnitarySymbolOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
@@ -1227,48 +1261,10 @@ public:
     auto context = op->getContext();
     auto typeConverter = this->getTypeConverter();
 
-    auto sref = op->getAttrOfType<SymbolRefAttr>("generator");
-    StringRef generateFuncName = sref.getRootReference();
     auto numParameters = op.getParameters().size();
     auto numTargets = op.getTargets().size();
-
-    Value numParametersVal =
-        rewriter.create<arith::ConstantIntOp>(loc, numParameters, 64);
-    auto paramsPtr = rewriter.create<LLVM::AllocaOp>(
-        loc, LLVM::LLVMPointerType::get(rewriter.getF64Type()),
-        numParametersVal);
-    auto f64PtrTy = LLVM::LLVMPointerType::get(rewriter.getF64Type());
-    for (std::size_t i = 0; i < numParameters; i++) {
-      auto ptr = rewriter.create<LLVM::GEPOp>(
-          loc, f64PtrTy, paramsPtr,
-          SmallVector<LLVM::GEPArg>{static_cast<int32_t>(i)});
-      rewriter.create<LLVM::StoreOp>(loc, op->getOperand(i), ptr);
-    }
-
-    // Create output pointer
-    auto complexTy =
-        typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
-    auto complexPtrTy = LLVM::LLVMPointerType::get(complexTy);
     auto powTwo = (1UL << numTargets);
-    Value numElementsVal =
-        rewriter.create<arith::ConstantIntOp>(loc, powTwo * powTwo, 64);
-    auto unitaryData =
-        rewriter.create<LLVM::AllocaOp>(loc, complexPtrTy, numElementsVal);
-
-    if (!parentModule.lookupSymbol(generateFuncName)) {
-      auto ip = rewriter.saveInsertionPoint();
-      rewriter.setInsertionPointToStart(parentModule.getBody());
-      auto ftype = FunctionType::get(
-          context, {f64PtrTy, rewriter.getI64Type(), complexPtrTy}, {});
-      auto func = rewriter.create<func::FuncOp>(loc, generateFuncName, ftype);
-      rewriter.restoreInsertionPoint(ip);
-      rewriter.create<func::CallOp>(
-          loc, func, ValueRange{paramsPtr, numParametersVal, unitaryData});
-    } else {
-      rewriter.create<func::CallOp>(
-          loc, generateFuncName, TypeRange{},
-          ValueRange{paramsPtr, numParametersVal, unitaryData});
-    }
+    auto matrixSize = powTwo * powTwo;
 
     auto targets = op.getTargets();
     Value concatTargets = rewriter.create<quake::ConcatOp>(
@@ -1297,12 +1293,112 @@ public:
       concatControls = rewriter.create<quake::ConcatOp>(
           loc, quake::VeqType::getUnsized(context), controls);
 
+    Value numParametersVal =
+        rewriter.create<arith::ConstantIntOp>(loc, numParameters, 64);
+    auto paramsPtr = rewriter.create<LLVM::AllocaOp>(
+        loc, LLVM::LLVMPointerType::get(rewriter.getF64Type()),
+        numParametersVal);
+    auto f64PtrTy = LLVM::LLVMPointerType::get(rewriter.getF64Type());
+    for (std::size_t i = 0; i < numParameters; i++) {
+      auto ptr = rewriter.create<LLVM::GEPOp>(
+          loc, f64PtrTy, paramsPtr,
+          SmallVector<LLVM::GEPArg>{static_cast<int32_t>(i)});
+      rewriter.create<LLVM::StoreOp>(loc, op->getOperand(i), ptr);
+    }
+
+    // Fetch the unitary matrix for this custom operation
+    auto sref = op->getAttrOfType<SymbolRefAttr>("generator");
+    StringRef generatorName = sref.getRootReference();
+
+    auto globalOp =
+        parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
+
+    if ((numParameters == 0) && (globalOp)) {
+      auto unitary = dyn_cast<ArrayAttr>(
+          dyn_cast<mlir::Attribute>(globalOp.getValue().value()));
+
+      SmallVector<double> realPart(matrixSize), imagPart(matrixSize);
+      for (std::size_t i = 0; auto &element : unitary) {
+        auto values = dyn_cast<DenseF64ArrayAttr>(element).asArrayRef();
+        realPart[i] = values[0];
+        imagPart[i] = values[1];
+        i++;
+      }
+
+      std::string matrixReal = generatorName.str() + "_real";
+      std::string matrixImag = generatorName.str() + "_imag";
+
+      Value realPartVal = mapConstMatrixToLLVMPointer(
+          loc, rewriter, parentModule, matrixSize, matrixReal, realPart);
+      if (!realPartVal)
+        return op->emitOpError("could not translate unitary data to llvm.");
+
+      Value imaginaryPartVal = mapConstMatrixToLLVMPointer(
+          loc, rewriter, parentModule, matrixSize, matrixImag, imagPart);
+      if (!imaginaryPartVal)
+        return op->emitOpError("could not translate unitary data to llvm.");
+
+      if (!parentModule.lookupSymbol("__quantum__qis__constant_unitary")) {
+        auto ip = rewriter.saveInsertionPoint();
+        rewriter.setInsertionPointToStart(parentModule.getBody());
+        auto ftype = FunctionType::get(context,
+                                       {realPartVal.getType(),
+                                        imaginaryPartVal.getType(),
+                                        cudaq::opt::getArrayType(context),
+                                        cudaq::opt::getArrayType(context)},
+                                       {});
+        auto func = rewriter.create<func::FuncOp>(
+            loc, "__quantum__qis__constant_unitary", ftype);
+        rewriter.restoreInsertionPoint(ip);
+
+        rewriter.replaceOpWithNewOp<func::CallOp>(
+            op, func,
+            ValueRange{realPartVal, imaginaryPartVal, concatControls,
+                       concatTargets});
+      } else {
+        rewriter.replaceOpWithNewOp<func::CallOp>(
+            op, "__quantum__qis__constant_unitary", TypeRange{},
+            ValueRange{realPartVal, imaginaryPartVal, concatControls,
+                       concatTargets});
+      }
+      // FIXME Keeping the cc.global constant array results in 'error:
+      // unsupported constant value'. Despite checking the usage the following
+      // throws error when a custom op is reused in a module
+      if (globalOp.use_empty())
+        rewriter.eraseOp(globalOp);
+      // FIXME need to release the arrays
+      return success();
+    }
+
+    // Create output pointer
+    auto complex64Ty =
+        typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
+    auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
+    Value numElementsVal =
+        rewriter.create<arith::ConstantIntOp>(loc, matrixSize, 64);
+    auto unitaryData =
+        rewriter.create<LLVM::AllocaOp>(loc, complex64PtrTy, numElementsVal);
+    if (!parentModule.lookupSymbol(generatorName)) {
+      auto ip = rewriter.saveInsertionPoint();
+      rewriter.setInsertionPointToStart(parentModule.getBody());
+      auto ftype = FunctionType::get(
+          context, {f64PtrTy, rewriter.getI64Type(), complex64PtrTy}, {});
+      auto func = rewriter.create<func::FuncOp>(loc, generatorName, ftype);
+      rewriter.restoreInsertionPoint(ip);
+      rewriter.create<func::CallOp>(
+          loc, func, ValueRange{paramsPtr, numParametersVal, unitaryData});
+    } else {
+      rewriter.create<func::CallOp>(
+          loc, generatorName, TypeRange{},
+          ValueRange{paramsPtr, numParametersVal, unitaryData});
+    }
+
     if (!parentModule.lookupSymbol("__quantum__qis__custom_unitary")) {
       auto ip = rewriter.saveInsertionPoint();
       rewriter.setInsertionPointToStart(parentModule.getBody());
       auto ftype =
           FunctionType::get(context,
-                            {complexPtrTy, cudaq::opt::getArrayType(context),
+                            {complex64PtrTy, cudaq::opt::getArrayType(context),
                              cudaq::opt::getArrayType(context)},
                             {});
       auto func = rewriter.create<func::FuncOp>(
@@ -1316,7 +1412,6 @@ public:
           op, "__quantum__qis__custom_unitary", TypeRange{},
           ValueRange{unitaryData, concatControls, concatTargets});
     }
-
     return success();
   }
 };
