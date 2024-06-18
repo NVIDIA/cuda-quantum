@@ -63,7 +63,7 @@ class PyKernelDecorator(object):
 
         self.capturedDataStorage = None
 
-        self.module = None if module is None else module
+        self.module = module
         self.verbose = verbose
         self.argTypes = None
 
