@@ -7,7 +7,7 @@
 # ============================================================================ #
 import pytest
 import os
-import numpy as np
+import sys
 import multiprocessing
 import requests
 import subprocess
@@ -15,6 +15,11 @@ import time
 
 import cudaq
 from cudaq import spin
+
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:
@@ -44,7 +49,8 @@ def wait_until_port_active(port: int) -> bool:
 def startUpMockServer():
     multiprocessing.set_start_method('spawn')
     cudaq_qpud = os.path.dirname(cudaq.__file__) + "/../bin/cudaq-qpud"
-    p1 = subprocess.Popen(['python3', 'scripts/nvqc_proxy.py'])
+    nvqc_proxy = os.path.dirname(cudaq.__file__) + "/../bin/nvqc_proxy.py"
+    p1 = subprocess.Popen(['python3', nvqc_proxy])
     p2 = subprocess.Popen([cudaq_qpud, '--port', '3031'])
     cudaq.set_target("remote-mqpu", url="localhost:3030")
     proxy_up = wait_until_port_active(3030)
@@ -74,6 +80,7 @@ def test_setup():
     assert numQpus == 1
 
 
+@skipIfPythonLessThan39
 def test_optimizer():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -107,6 +114,7 @@ def test_optimizer():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
+@skipIfPythonLessThan39
 @pytest.mark.parametrize(
     "optimizer", [cudaq.optimizers.COBYLA(),
                   cudaq.optimizers.NelderMead()])
@@ -137,6 +145,7 @@ def test_simple_vqe(optimizer):
                                                  parameter))
 
 
+@skipIfPythonLessThan39
 def test_complex_vqe_inline_lambda():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -165,6 +174,7 @@ def test_complex_vqe_inline_lambda():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
+@skipIfPythonLessThan39
 @pytest.mark.parametrize("optimizer", [
     cudaq.optimizers.LBFGS(),
     cudaq.optimizers.Adam(),
