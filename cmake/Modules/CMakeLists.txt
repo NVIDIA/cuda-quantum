@@ -6,9 +6,22 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-file(GLOB CONFIG_FILES CUDAQ*Config.cmake)
-file (GLOB LANG_FILES CMake*)
-install(FILES NVQIRConfig.cmake DESTINATION lib/cmake/nvqir)
+set(CONFIG_FILES
+  CUDAQCommonConfig.cmake
+  CUDAQEmDefaultConfig.cmake
+  CUDAQNloptConfig.cmake
+  CUDAQSpinConfig.cmake
+  CUDAQConfig.cmake
+  CUDAQEnsmallenConfig.cmake
+  CUDAQPlatformDefaultConfig.cmake
+)
+set(LANG_FILES
+  CMakeCUDAQCompiler.cmake.in
+  CMakeCUDAQInformation.cmake
+  CMakeDetermineCUDAQCompiler.cmake
+  CMakeTestCUDAQCompiler.cmake
+)
+
 install(FILES ${CONFIG_FILES} DESTINATION lib/cmake/cudaq)
 install(FILES ${LANG_FILES} DESTINATION lib/cmake/cudaq)
-install(FILES CUDAQConfig.cmake DESTINATION lib/cmake/cudaq)
+install(FILES NVQIRConfig.cmake DESTINATION lib/cmake/nvqir)
