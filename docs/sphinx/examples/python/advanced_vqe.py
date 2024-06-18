@@ -7,9 +7,6 @@ from typing import List, Tuple
 # of parameters as input and returns either the cost as a single float,
 # or a tuple of (cost, gradient_vector) depending on the optimizer used.
 
-# FIXME - for remote optimization implementation. Remove later.
-# `cudaq.set_target("remote-mqpu",url="localhost:3030")`
-
 # In this example, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`
 # and find the `angles` that minimize the expectation value of the system.
 hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
