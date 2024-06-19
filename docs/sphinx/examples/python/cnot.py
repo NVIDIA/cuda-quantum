@@ -8,6 +8,7 @@
 
 import cudaq
 
+
 @cudaq.kernel
 def kernel():
     # 2 qubits both initialized to the ground/ zero state.

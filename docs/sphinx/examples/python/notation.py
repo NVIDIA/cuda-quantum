@@ -8,6 +8,7 @@
 
 import cudaq
 
+
 @cudaq.kernel
 def kernel():
     # 2 qubits both initialized to the ground/ zero state.
@@ -18,6 +19,7 @@ def kernel():
 
     mz(qvector[0])
     mz(qvector[1])
+
 
 print(cudaq.draw(kernel))
 result = cudaq.sample(kernel)

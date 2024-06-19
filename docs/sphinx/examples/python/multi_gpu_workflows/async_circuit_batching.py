@@ -21,9 +21,9 @@ parameter_count = qubit_count
 
 # Below we run a circuit for 10000 different input parameters.
 parameters = np.random.default_rng(13).uniform(low=0,
-                                                high=1,
-                                                size=(sample_count,
-                                                        parameter_count))
+                                               high=1,
+                                               size=(sample_count,
+                                                     parameter_count))
 
 kernel, params = cudaq.make_kernel(list)
 

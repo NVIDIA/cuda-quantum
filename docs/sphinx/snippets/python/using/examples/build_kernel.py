@@ -10,6 +10,7 @@ import cudaq
 
 # Build a cudaq kernel.
 
+
 @cudaq.kernel
 def kernel():
     # Allocate a single qubit to the kernel.

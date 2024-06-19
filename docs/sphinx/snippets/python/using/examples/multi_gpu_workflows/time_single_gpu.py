@@ -7,4 +7,6 @@
 # ============================================================================ #
 
 import timeit
-timeit.timeit(lambda: cudaq.observe(kernel, h, parameters), number=1) # Single GPU result.
+
+timeit.timeit(lambda: cudaq.observe(kernel, h, parameters),
+              number=1)  # Single GPU result.
