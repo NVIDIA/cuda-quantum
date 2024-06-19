@@ -72,15 +72,16 @@ std::string pyDraw(std::string format, py::object &kernel, py::args args) {
 void bindPyDraw(py::module &mod) {
   mod.def("draw",
           py::overload_cast<std::string, py::object &, py::args>(&pyDraw),
-          R"(Return a string representing the drawing of the execution path, 
-          in the format specified as the first argument. If the format is 
-          'ascii', the output will be a UTF-8 encoded string. If the format 
-          is 'latex', the output will be a LaTeX string.
+          R"#(Return a string representing the drawing of the execution path, 
+in the format specified as the first argument. If the format is 
+'ascii', the output will be a UTF-8 encoded string. If the format 
+is 'latex', the output will be a LaTeX string.
+
 Args:
   format (str): The format of the output. Can be 'ascii' or 'latex'.
   kernel (:class:`Kernel`): The :class:`Kernel` to draw.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel 
-    function at. Leave empty if the kernel doesn't accept any arguments.)")
+    function at. Leave empty if the kernel doesn't accept any arguments.)#")
       .def(
           "draw", py::overload_cast<py::object &, py::args>(&pyDraw),
           R"#(Return a UTF-8 encoded string representing drawing of the execution 
