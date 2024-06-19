@@ -15,7 +15,7 @@ namespace py = pybind11;
 namespace cudaq {
 
 /// @brief Get a JSON-encoded dictionary of a combination of all local
-/// and global variables that are JSON serializable
+/// and global variables that are JSON compatible
 py::dict get_serializable_var_dict();
 
 /// @brief Fetch the Python source code from a `py::function`

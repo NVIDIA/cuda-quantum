@@ -47,13 +47,14 @@ class PyKernelDecorator(object):
                  funcSrc=None,
                  signature=None,
                  location=None):
-        # When deserialization with a provided funcSrc, we cannot use inspect
+
+        is_deserializing = isinstance(function, str)
+
+        # When initializing with a provided `funcSrc`, we cannot use inspect
         # because we only have a string for the function source. That is - the
         # "function" isn't actually a concrete Python Function object in memory
         # that we can "inspect". Hence, use alternate approaches when
-        # deserializing from funcSrc.
-        is_deserializing = isinstance(function, str)
-
+        # initializing from `funcSrc`.
         if is_deserializing:
             self.kernelFunction = None
             self.name = kernelName
@@ -251,7 +252,7 @@ class PyKernelDecorator(object):
     @staticmethod
     def type_to_str(t):
         """
-        This converts types to strings in a clean, serializable way.
+        This converts types to strings in a clean JSON-compatible way.
         int -> 'int'
         list[float] -> 'list[float]'
         List[float] -> 'list[float]'

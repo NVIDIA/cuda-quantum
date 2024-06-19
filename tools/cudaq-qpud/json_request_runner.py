@@ -63,7 +63,7 @@ if __name__ == "__main__":
         source_code = serialized_ctx['source_code']
         imports_code += '\nfrom typing import List, Tuple\n'
 
-        # Be sure to do this before running any code from serialized_ctx
+        # Be sure to do this before running any code from `serialized_ctx`
         globals_dict = get_deserialized_dict(serialized_ctx['scoped_var_dict'])
 
         # Determine which target to set
