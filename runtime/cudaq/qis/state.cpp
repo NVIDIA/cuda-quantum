@@ -85,6 +85,11 @@ std::complex<double> state::amplitude(const std::vector<int> &basisState) {
   return internal->getAmplitude(basisState);
 }
 
+std::vector<std::complex<double>>
+state::amplitudes(const std::vector<std::vector<int>> &basisStates) {
+  return internal->getAmplitudes(basisStates);
+}
+
 state &state::operator=(state &&other) {
   // Copy and swap idiom
   std::swap(internal, other.internal);

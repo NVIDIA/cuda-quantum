@@ -14,6 +14,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
+#include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
 #include <complex>
 #include <vector>
@@ -40,7 +41,6 @@ state extractState(KernelFunctor &&kernel) {
   // This can only be done in simulation
   if (!platform.is_simulator())
     throw std::runtime_error("Cannot use get_state on a physical QPU.");
-
   // Create an execution context, indicate this is for
   // extracting the state representation
   ExecutionContext context("extract-state");
@@ -97,10 +97,22 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
 /// runtime arguments.
 template <typename QuantumKernel, typename... Args>
 auto get_state(QuantumKernel &&kernel, Args &&...args) {
+#if defined(CUDAQ_REMOTE_SIM) && !defined(CUDAQ_LIBRARY_MODE)
+  return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
+                                         std::forward<Args>(args)...));
+#else
+#if defined(CUDAQ_REMOTE_SIM)
+  // Kernel builder is MLIR-based kernel.
+  if constexpr (has_name<QuantumKernel>::value) {
+    return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
+                                           std::forward<Args>(args)...));
+  }
+#endif
   return details::extractState([&]() mutable {
     cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                         std::forward<Args>(args)...);
   });
+#endif
 }
 
 /// @brief Return type for asynchronous `get_state`.

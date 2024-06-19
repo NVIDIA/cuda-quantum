@@ -113,7 +113,7 @@ to other events while that task runs, rather than having to wait until
 that task has finished. Once that task has finished, your program is
 presented with the result.
 
-``sample`` can be a time intensive task. We can parallelize the
+Executing ``sample`` can be a time intensive task. We can parallelize the
 execution of ``sample`` via the arguments it accepts.
 
 .. literalinclude:: ../../examples/python/platform/sample_async.py
@@ -134,8 +134,7 @@ Observe Asynchronous
 ~~~~~~~~~~~~~~~~~~~~
 
 Similar to ``sample_async`` above, also supports asynchronous execution for the 
-`arguments it accepts 
-<https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async:~:text=cudaq.observe_async(),%C2%B6>`__.
+:func:`arguments it accepts<cudaq.observe_async>`.
 One can parallelize over various kernels, spin operators, variational
 parameters or even noise models.
 

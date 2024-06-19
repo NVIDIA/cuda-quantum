@@ -67,9 +67,9 @@ void invokeWrappedKernel(std::string_view irString,
     // Hence, fix the linkage.
     const auto fixUpLinkage = [](auto &func) {
       if (func.hasInternalLinkage()) {
-        llvm::dbgs() << "Change linkage type for symbol " << func.getName()
-                     << " internal to "
-                        "external linkage.";
+        LLVM_DEBUG(llvm::dbgs()
+                   << "Change linkage type for symbol " << func.getName()
+                   << " internal to external linkage.");
         func.setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
       }
     };

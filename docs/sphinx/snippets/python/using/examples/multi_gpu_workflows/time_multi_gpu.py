@@ -8,8 +8,6 @@
 
 import cudaq
 
-%%timeit
-
 # Timing the execution on a single GPU vs 4 GPUs,
 # one will see a 4x performance improvement if 4 GPUs are available.
 

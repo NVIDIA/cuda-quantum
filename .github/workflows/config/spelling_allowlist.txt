@@ -5,6 +5,7 @@ Aer
 AlmaLinux
 Asynchronous
 BFGS
+Bloch
 CLA
 CLI
 CMake
@@ -46,6 +47,7 @@ Kagome
 Kraus
 LLVM
 LSB
+Libraries
 MCA
 MLIR
 MPI
@@ -81,6 +83,7 @@ QPUs
 QPU’s
 QTX
 Qiskit
+QuTiP
 Quake
 Quantinuum
 RHEL
@@ -193,6 +196,7 @@ inlined
 inlining
 instantiation
 instantiations
+interoperational
 intrinsics
 iterable
 iteratively
@@ -280,6 +284,6 @@ upvote
 variadic
 variational
 verifier
-verticies
+vertices
 wavefunction
 workflow

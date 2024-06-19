@@ -317,6 +317,7 @@ def quake_InitializeStateOp : QuakeOp<"init_state",
     $targets `,` $state `:` functional-type(operands, results) attr-dict
   }];
 
+  let hasCanonicalizer = 1;
   let hasVerifier = 1;
 }
 

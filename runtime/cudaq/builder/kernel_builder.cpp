@@ -316,7 +316,7 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
     auto inAsVeqTy = inType.dyn_cast_or_null<quake::VeqType>();
     auto argAsVeqTy = argType.dyn_cast_or_null<quake::VeqType>();
 
-    // If both are veqs, make sure we dont have veq<N> -> veq<?>
+    // If both are veqs, make sure we don't have veq<N> -> veq<?>
     if (inAsVeqTy && argAsVeqTy) {
       // make sure they are both the same veq<...> type
       if (inAsVeqTy.hasSpecifiedSize() && !argAsVeqTy.hasSpecifiedSize())
@@ -369,7 +369,7 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
     auto inAsVeqTy = inType.dyn_cast_or_null<quake::VeqType>();
     auto argAsVeqTy = argType.dyn_cast_or_null<quake::VeqType>();
 
-    // If both are veqs, make sure we dont have veq<N> -> veq<?>
+    // If both are veqs, make sure we don't have veq<N> -> veq<?>
     if (inAsVeqTy && argAsVeqTy) {
       // make sure they are both the same veq<...> type
       if (inAsVeqTy.hasSpecifiedSize() && !argAsVeqTy.hasSpecifiedSize())
@@ -494,7 +494,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
 
     auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
     Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
-    builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
     return QuakeValue(builder, qubits);
   }
 

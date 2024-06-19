@@ -109,7 +109,7 @@ a visual cue to help us make sense of quantum states and their
 evolution?
 
 We know our qubit can have 2 distinct states: :math:`\ket{0}` and
-:math:`\ket{1}`. Maybe we need a 1 dimensional line whose verticies can
+:math:`\ket{1}`. Maybe we need a 1 dimensional line whose vertices can
 represent each of the aforementioned states.
 
 We also know that qubits can be in an equal superposition states:

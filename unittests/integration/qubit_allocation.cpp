@@ -9,27 +9,23 @@
 #include "CUDAQTestUtils.h"
 #include <algorithm>
 #include <cudaq/algorithm.h>
-#include <execution>
 
 std::vector<cudaq::complex> randomState(int numQubits) {
   std::vector<cudaq::complex> stateVec(1ULL << numQubits);
-  std::generate(
-      std::execution::par_unseq, stateVec.begin(), stateVec.end(),
-      []() -> cudaq::complex {
-        thread_local std::default_random_engine
-            generator; // thread_local so we don't have to do any locking
-        thread_local std::normal_distribution<double> distribution(
-            0.0, 1.0); // mean = 0.0, stddev = 1.0
-        return cudaq::complex(distribution(generator), distribution(generator));
-      });
+  std::generate(stateVec.begin(), stateVec.end(), []() -> cudaq::complex {
+    thread_local std::default_random_engine
+        generator; // thread_local so we don't have to do any locking
+    thread_local std::normal_distribution<double> distribution(
+        0.0, 1.0); // mean = 0.0, stddev = 1.0
+    return cudaq::complex(distribution(generator), distribution(generator));
+  });
 
   const double norm =
       std::sqrt(std::accumulate(stateVec.begin(), stateVec.end(), 0.0,
                                 [](double accumulatedNorm, cudaq::complex val) {
                                   return accumulatedNorm + std::norm(val);
                                 }));
-  std::transform(std::execution::par_unseq, stateVec.begin(), stateVec.end(),
-                 stateVec.begin(),
+  std::transform(stateVec.begin(), stateVec.end(), stateVec.begin(),
                  [norm](std::complex<double> x) { return x / norm; });
   return stateVec;
 }
@@ -46,6 +42,7 @@ CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecGeneral) {
   // Large number of shots
   constexpr int numShots = 1000000;
   const auto stateVec = randomState(numQubits);
+  cudaq::set_random_seed(13); // set for repeatability
   auto counts = cudaq::sample(numShots, test_state_vector_init{}, stateVec);
   counts.dump();
   for (const auto &[bitStrOrg, count] : counts) {
@@ -78,6 +75,7 @@ CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecWithGate) {
   // Large number of shots
   constexpr int numShots = 1000000;
   const auto stateVec = randomState(numQubits);
+  cudaq::set_random_seed(13); // set for repeatability
   auto counts =
       cudaq::sample(numShots, test_state_vector_init_gate{}, stateVec);
   counts.dump();

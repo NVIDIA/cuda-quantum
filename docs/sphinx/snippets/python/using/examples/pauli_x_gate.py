@@ -8,6 +8,7 @@
 
 import cudaq
 
+
 @cudaq.kernel
 def kernel():
     # A single qubit initialized to the ground / zero state.
@@ -20,7 +21,7 @@ def kernel():
     mz(qubit)
 
 
-# Sample the qubit for 1000 shots to gather statsitics.
+# Sample the qubit for 1000 shots to gather statistics.
 result = cudaq.sample(kernel, shots_count=1000)
 
 print(result)

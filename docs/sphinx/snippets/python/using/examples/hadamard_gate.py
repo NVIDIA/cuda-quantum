@@ -8,12 +8,13 @@
 
 import cudaq
 
+
 @cudaq.kernel
 def kernel():
-    # A single qubit initialised to the ground/ zero state.
+    # A single qubit initialized to the ground/ zero state.
     qubit = cudaq.qubit()
 
-    # Apply hadamard gate to single qubit to put it in equal superposition.
+    # Apply Hadamard gate to single qubit to put it in equal superposition.
     h(qubit)
 
     # Measurement operator.

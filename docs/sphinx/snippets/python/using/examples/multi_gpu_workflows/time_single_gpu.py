@@ -6,5 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import timeit
 
-%timeit result = cudaq.observe(kernel, h, parameters)   # Single GPU result.
+timeit.timeit(lambda: cudaq.observe(kernel, h, parameters),
+              number=1)  # Single GPU result.

@@ -10,8 +10,9 @@
 
 import cudaq
 
+
 @cudaq.kernel
-def kernel(n_iter:int):
+def kernel(n_iter: int):
     q0 = cudaq.qubit()
     for i in range(n_iter):
         h(q0)
@@ -19,11 +20,12 @@ def kernel(n_iter:int):
         if q0Result:
             break
 
+
 nShots = 100
-nIter = 20 
+nIter = 20
 cudaq.set_random_seed(13)
 
 counts = cudaq.sample(kernel, nIter, shots_count=nShots)
 counts.dump()
 
-assert len(counts.register_names)-1 < nIter 
+assert len(counts.register_names) - 1 < nIter

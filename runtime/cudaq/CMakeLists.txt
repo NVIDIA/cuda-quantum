@@ -18,6 +18,7 @@ add_library(${LIBRARY_NAME}
                 target_control.cpp
                 algorithms/draw.cpp
                 qis/state.cpp
+                qis/remote_state.cpp
                 platform/quantum_platform.cpp 
                 qis/execution_manager.cpp
                 utils/cudaq_utils.cpp

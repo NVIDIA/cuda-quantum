@@ -5,22 +5,38 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include <pybind11/complex.h>
-#include <pybind11/stl.h>
-
 #include "py_state.h"
+#include "LinkedLibraryHolder.h"
+#include "common/ArgumentWrapper.h"
+#include "common/Logger.h"
+#include "cudaq/algorithms/get_state.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
+#include <pybind11/complex.h>
+#include <pybind11/stl.h>
 
-#include "common/Logger.h"
-#include "cudaq/algorithms/get_state.h"
-
+namespace {
+std::vector<int> bitStringToIntVec(const std::string &bitString) {
+  // Check that this is a valid bit string.
+  const bool isValidBitString =
+      std::all_of(bitString.begin(), bitString.end(),
+                  [](char c) { return c == '0' || c == '1'; });
+  if (!isValidBitString)
+    throw std::invalid_argument("Invalid bitstring: " + bitString);
+  std::vector<int> result;
+  result.reserve(bitString.size());
+  for (const auto c : bitString)
+    result.emplace_back(c == '0' ? 0 : 1);
+  return result;
+}
+} // namespace
 namespace cudaq {
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
-
+cudaq::KernelArgsHolder pyCreateNativeKernel(const std::string &, MlirModule,
+                                             cudaq::OpaqueArguments &);
 /// @brief If we have any implicit device-to-host data transfers
 /// we will store that data here and ensure it is deleted properly.
 std::vector<std::unique_ptr<void, std::function<void(void *)>>>
@@ -42,8 +58,87 @@ state pyGetState(py::object kernel, py::args args) {
   });
 }
 
+/// @brief Python implementation of the `RemoteSimulationState`.
+// Note: Python kernel arguments are wrapped hence need to be unwrapped
+// accordingly.
+class PyRemoteSimulationState : public RemoteSimulationState {
+  cudaq::ArgWrapper argsWrapper;
+  std::size_t argsSize;
+  // Holder of args data for clean-up.
+  cudaq::OpaqueArguments *argsData;
+
+public:
+  PyRemoteSimulationState(const std::string &in_kernelName,
+                          cudaq::ArgWrapper args,
+                          cudaq::OpaqueArguments *argsDataToOwn,
+                          std::size_t size, std::size_t returnOffset)
+      : argsWrapper(args), argsSize(size), argsData(argsDataToOwn) {
+    this->kernelName = in_kernelName;
+  }
+
+  void execute() const override {
+    if (!state) {
+      auto &platform = cudaq::get_platform();
+      // Create an execution context, indicate this is for
+      // extracting the state representation
+      ExecutionContext context("extract-state");
+      // Perform the usual pattern set the context,
+      // execute and then reset
+      platform.set_exec_ctx(&context);
+      // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
+      // ArgWrapper pointer.
+      platform.launchKernel(kernelName, nullptr,
+                            reinterpret_cast<void *>(
+                                const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
+                            argsSize, 0);
+      platform.reset_exec_ctx();
+      state = std::move(context.simulationState);
+    }
+  }
+
+  std::tuple<std::string, void *, std::size_t> getKernelInfo() const override {
+    return {kernelName, argsWrapper.rawArgs, argsSize};
+  }
+
+  std::complex<double> overlap(const cudaq::SimulationState &other) override {
+    const auto &otherState =
+        dynamic_cast<const PyRemoteSimulationState &>(other);
+    auto &platform = cudaq::get_platform();
+    ExecutionContext context("state-overlap");
+    context.overlapComputeStates = std::make_pair(
+        static_cast<const cudaq::SimulationState *>(this),
+        static_cast<const cudaq::SimulationState *>(&otherState));
+    platform.set_exec_ctx(&context);
+    platform.launchKernel(
+        kernelName, nullptr,
+        reinterpret_cast<void *>(const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
+        0, 0);
+    platform.reset_exec_ctx();
+    assert(context.overlapResult.has_value());
+    return context.overlapResult.value();
+  }
+
+  ~PyRemoteSimulationState() { delete argsData; }
+};
+
+/// @brief Run `cudaq::get_state` for remote execution targets on the provided
+/// kernel and args
+state pyGetStateRemote(py::object kernel, py::args args) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  args = simplifiedValidateInputArguments(args);
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+  auto [argWrapper, size, returnOffset] =
+      pyCreateNativeKernel(kernelName, kernelMod, *argData);
+  return state(new PyRemoteSimulationState(kernelName, argWrapper, argData,
+                                           size, returnOffset));
+}
+
 /// @brief Bind the get_state cudaq function
-void bindPyState(py::module &mod) {
+void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
 
   py::class_<SimulationState::Tensor>(
       mod, "Tensor",
@@ -141,6 +236,9 @@ void bindPyState(py::module &mod) {
           },
           "For vector-like state data, return the number of state vector "
           "elements.")
+      .def(
+          "num_qubits", [](state &self) { return self.get_num_qubits(); },
+          "Returns the number of qubits represented by this state.")
       .def_static(
           "from_data",
           [](py::buffer data) {
@@ -290,14 +388,18 @@ void bindPyState(py::module &mod) {
           "getTensors", [](state &self) { return self.get_tensors(); },
           "Return all the tensors that comprise this state representation.")
       .def(
-          "__getitem__", [](state &s, std::size_t idx) { return s[idx]; },
+          "__getitem__",
+          [](state &s, int idx) {
+            // Support Pythonic negative index
+            if (idx < 0)
+              idx += (1 << s.get_num_qubits());
+            return s[idx];
+          },
           R"#(Return the `index`-th element of the state vector.
           
 .. code-block:: python
 
   # Example:
-  import numpy as np
-
   # Create a simple state vector.
   # Requires state-vector simulator
   state = cudaq.get_state(kernel)
@@ -305,7 +407,15 @@ void bindPyState(py::module &mod) {
   value = state[0])#")
       .def(
           "__getitem__",
-          [](state &s, std::vector<std::size_t> idx) {
+          [](state &s, std::vector<int> idx) {
+            if (idx.size() != 2)
+              throw std::runtime_error("Density matrix needs 2 indices; " +
+                                       std::to_string(idx.size()) +
+                                       " provided.");
+            for (auto &val : idx)
+              // Support Pythonic negative index
+              if (val < 0)
+                val += (1 << s.get_num_qubits());
             return s(idx[0], idx[1]);
           },
           R"#(Return the element of the density matrix at the provided
@@ -314,13 +424,71 @@ index pair.
 .. code-block:: python
 
   # Example:
-  import numpy as np
-
   # Create a simple density matrix.
   cudaq.set_target('density-matrix-cpu')
   densityMatrix = cudaq.get_state(kernel)
   # Return the upper-left most entry of the matrix.
   value = densityMatrix[0,0])#")
+      .def(
+          "amplitude",
+          [](state &s, std::vector<int> basisState) {
+            return s.amplitude(basisState);
+          },
+          R"#(Return the amplitude of a state in computational basis.
+          
+.. code-block:: python
+
+  # Example:
+  # Create a simulation state.
+  state = cudaq.get_state(kernel)
+  # Return the amplitude of |0101>, assuming this is a 4-qubit state.
+  amplitude = state.amplitude([0,1,0,1])#")
+      .def(
+          "amplitude",
+          [](state &s, const std::string &bitString) {
+            return s.amplitude(bitStringToIntVec(bitString));
+          },
+          R"#(Return the amplitude of a state in computational basis.
+          
+.. code-block:: python
+
+  # Example:
+  # Create a simulation state.
+  state = cudaq.get_state(kernel)
+  # Return the amplitude of |0101>, assuming this is a 4-qubit state.
+  amplitude = state.amplitude('0101')#")
+      .def(
+          "amplitudes",
+          [](state &s, const std::vector<std::vector<int>> &basisStates) {
+            return s.amplitudes(basisStates);
+          },
+          R"#(Return the amplitude of a list of states in computational basis.
+          
+.. code-block:: python
+
+  # Example:
+  # Create a simulation state.
+  state = cudaq.get_state(kernel)
+  # Return the amplitude of |0101> and |1010>, assuming this is a 4-qubit state.
+  amplitudes = state.amplitudes([[0,1,0,1], [1,0,1,0])#")
+      .def(
+          "amplitudes",
+          [](state &s, const std::vector<std::string> &bitStrings) {
+            std::vector<std::vector<int>> basisStates;
+            basisStates.reserve(bitStrings.size());
+            for (const auto &bitString : bitStrings)
+              basisStates.emplace_back(bitStringToIntVec(bitString));
+            return s.amplitudes(basisStates);
+          },
+          R"#(Return the amplitudes of a list of states in computational basis.
+          
+.. code-block:: python
+
+  # Example:
+  # Create a simulation state.
+  state = cudaq.get_state(kernel)
+  # Return the amplitudes of |0101> and |1010>, assuming this is a 4-qubit state.
+  amplitudes = state.amplitudes(['0101', '1010'])#")
       .def(
           "dump",
           [](state &self) {
@@ -457,7 +625,12 @@ index pair.
 
   mod.def(
       "get_state",
-      [](py::object kernel, py::args args) { return pyGetState(kernel, args); },
+      [&](py::object kernel, py::args args) {
+        if (holder.getTarget().name == "remote-mqpu" ||
+            holder.getTarget().name == "nvqc")
+          return pyGetStateRemote(kernel, args);
+        return pyGetState(kernel, args);
+      },
       R"#(Return the :class:`State` of the system after execution of the provided `kernel`.
 
 Args:

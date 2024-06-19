@@ -217,8 +217,35 @@ public:
       request.format = cudaq::CodeFormat::MLIR;
     }
 
-    request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                          kernelArgs, argsSize);
+    if (io_context.name == "state-overlap") {
+      if (!io_context.overlapComputeStates.has_value())
+        throw std::runtime_error("Invalid execution context: no input states");
+      const auto *castedState1 = dynamic_cast<const RemoteSimulationState *>(
+          io_context.overlapComputeStates->first);
+      const auto *castedState2 = dynamic_cast<const RemoteSimulationState *>(
+          io_context.overlapComputeStates->second);
+      if (!castedState1 || !castedState2)
+        throw std::runtime_error(
+            "Invalid execution context: input states are not compatible");
+      auto [kernelName1, args1, argsSize1] = castedState1->getKernelInfo();
+      auto [kernelName2, args2, argsSize2] = castedState2->getKernelInfo();
+      cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
+
+      stateIrPayload1.entryPoint = kernelName1;
+      stateIrPayload1.ir = constructKernelPayload(mlirContext, kernelName1,
+                                                  nullptr, args1, argsSize1);
+      stateIrPayload2.entryPoint = kernelName2;
+      stateIrPayload2.ir = constructKernelPayload(mlirContext, kernelName2,
+                                                  nullptr, args2, argsSize2);
+      // First kernel of the overlap calculation
+      request.code = stateIrPayload1.ir;
+      request.entryPoint = stateIrPayload1.entryPoint;
+      // Second kernel of the overlap calculation
+      request.overlapKernel = stateIrPayload2;
+    } else {
+      request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
+                                            kernelArgs, argsSize);
+    }
     request.simulator = backendSimName;
     // Remote server seed
     // Note: unlike local executions whereby a static instance of the simulator
