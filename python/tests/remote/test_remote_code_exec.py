@@ -11,6 +11,7 @@ import sys
 import requests
 import subprocess
 import time
+import psutil
 
 import cudaq
 from cudaq import spin
@@ -23,6 +24,39 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
+
+
+def kill_proc_and_child_processes(parent_proc: subprocess.Popen):
+    try:
+        parent = psutil.Process(parent_proc.pid)
+    except psutil.NoSuchProcess:
+        return
+
+    # Try to kill the children processes, giving them 3 seconds for a graceful
+    # exit, and then a forceful kill after that.
+    children = parent.children(recursive=True)
+    for child in children:
+        try:
+            child.terminate()
+        except psutil.NoSuchProcess:
+            continue
+
+    _, still_alive = psutil.wait_procs(children, timeout=3)
+
+    for child in still_alive:
+        try:
+            child.kill()
+        except psutil.NoSuchProcess:
+            continue
+
+    # Now kill the parent process
+    parent.terminate()
+    _, still_alive = psutil.wait_procs([parent], timeout=3)
+    for p in still_alive:
+        try:
+            p.kill()
+        except psutil.NoSuchProcess:
+            continue
 
 
 def wait_until_port_active(port: int) -> bool:
@@ -57,13 +91,13 @@ def startUpMockServer():
     # Shutdown servers if either one fails to come up. The tests will fail
     # downstream.
     if not proxy_up or not qpud_up:
-        p1.terminate()
-        p2.terminate()
+        kill_proc_and_child_processes(p1)
+        kill_proc_and_child_processes(p2)
 
     yield
     cudaq.reset_target()
-    p1.terminate()
-    p2.terminate()
+    kill_proc_and_child_processes(p1)
+    kill_proc_and_child_processes(p2)
 
 
 @pytest.fixture(autouse=True)
