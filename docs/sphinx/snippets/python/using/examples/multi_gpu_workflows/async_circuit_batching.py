@@ -54,7 +54,6 @@ print('We split this into', len(xi), 'batches of', xi[0].shape[0], ',',
       xi[1].shape[0], ',', xi[2].shape[0], ',', xi[3].shape[0])
 # [End split]
 
-
 # [Begin multiple]
 # Timing the execution on a single GPU vs 4 GPUs,
 # one will see a 4x performance improvement if 4 GPUs are available.

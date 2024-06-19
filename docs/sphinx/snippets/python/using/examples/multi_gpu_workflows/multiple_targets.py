@@ -28,6 +28,8 @@ def ghz_state(qubit_count, target):
     result = cudaq.sample(kernel, shots_count=1000)
 
     return result
+
+
 # [End state]
 
 # [Begin CPU]
