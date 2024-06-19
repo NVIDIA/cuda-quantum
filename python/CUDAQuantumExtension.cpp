@@ -161,11 +161,23 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
 
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
-  orcaSubmodule.def("sample", &cudaq::orca::sample, "[Documentation TODO]",
-                    py::arg("bs_angles"), py::arg("ps_angles"),
-                    py::arg("input_state"), py::arg("loop_lengths"),
-                    py::arg("n_samples") = 10000);
-
+  orcaSubmodule.def(
+      "sample",
+      py::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
+                        std::vector<double> &, std::vector<double> &, int>(
+          &cudaq::orca::sample),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      py::arg("input_state"), py::arg("loop_lengths"), py::arg("bs_angles"),
+      py::arg("ps_angles") = nullptr, py::arg("n_samples") = 10000);
+  orcaSubmodule.def(
+      "sample",
+      py::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
+                        std::vector<double> &, int>(&cudaq::orca::sample),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      py::arg("input_state"), py::arg("loop_lengths"), py::arg("bs_angles"),
+      py::arg("n_samples") = 10000);
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
