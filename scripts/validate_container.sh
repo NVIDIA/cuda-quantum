@@ -238,7 +238,7 @@ do
         fi
     done
 
-    if skip_example;
+    if $skip_example;
     then
         let "skipped+=1"
         echo "Skipped.";
