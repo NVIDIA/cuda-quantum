@@ -28,7 +28,6 @@ namespace details {
 /// @brief execute the kernel functor (with optional arguments) and return the
 /// trace of the execution path.
 template <typename KernelFunctor, typename... Args>
-  requires std::invocable<KernelFunctor &, Args...>
 cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   // Get the platform.
   auto &platform = cudaq::get_platform();
@@ -112,15 +111,27 @@ std::string extractTraceLatex(KernelFunctor &&kernel) {
 ///
 // clang-format on
 
+#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
+#else
+template <
+    typename QuantumKernel, typename... Args,
+    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
+#endif
 std::string draw(QuantumKernel &&kernel, Args &&...args) {
   return __internal__::draw(
       details::traceFromKernel(kernel, std::forward<Args>(args)...));
 }
 
+#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
+#else
+template <
+    typename QuantumKernel, typename... Args,
+    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
+#endif
 std::string draw(std::string format, QuantumKernel &&kernel, Args &&...args) {
   if (format == "ascii") {
     return draw(kernel, std::forward<Args>(args)...);
