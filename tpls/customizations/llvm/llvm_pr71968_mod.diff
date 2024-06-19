@@ -10,7 +10,7 @@ index 455efc9f90..97e03ba553 100644
 +  ///
 +  /// If \p ReserveAlloc is true all memory will be pre-allocated, and any
 +  /// attempts to allocate beyond pre-allocated memory will fail.
-+  SectionMemoryManager(MemoryMapper *MM = nullptr, bool ReserveAlloc = false);
++  SectionMemoryManager(MemoryMapper *MM = nullptr, bool ReserveAlloc = true);
    SectionMemoryManager(const SectionMemoryManager &) = delete;
    void operator=(const SectionMemoryManager &) = delete;
    ~SectionMemoryManager() override;
