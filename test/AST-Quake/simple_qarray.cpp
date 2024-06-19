@@ -8,8 +8,8 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// RUN: cudaq-quake %cpp_std --emit-llvm-file %s | FileCheck %s
-// RUN: FileCheck --check-prefixes=CHECK-LLVM %s < simple_qarray.ll
+// REQUIRES: c++20
+// RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s && FileCheck --check-prefix=LLVM %s < simple_qarray.ll
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -26,7 +26,7 @@ struct ghz {
   }
 };
 
-// CHECK-LLVM: define {{(dso_local )?}}noundef i32 @main
+// LLVM: define {{(dso_local )?}}noundef i32 @main
 
 int main() {
   // Run the kernel in NISQ mode (i.e. run and

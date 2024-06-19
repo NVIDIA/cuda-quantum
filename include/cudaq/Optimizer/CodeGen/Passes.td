@@ -11,7 +11,37 @@
 
 include "mlir/Pass/PassBase.td"
 
-def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
+def QuakeToCC : Pass<"quake-to-cc", "mlir::ModuleOp"> {
+  let summary = "Lower Quake to CC.";
+  let description = [{
+    Converts Quake to CC. The add-dealloc pass should be run before this pass
+    in order to properly generate deallocations for allocated qubits.
+  }];
+
+  let dependentDialects = [
+    "cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"
+  ];
+}
+
+def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare for lowering Quake to CC.";
+  let description = [{
+    Do the preparation work on the module.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
+def CCToLLVM : Pass<"cc-to-llvm", "mlir::ModuleOp"> {
+  let summary = "Convert CC dialect (and others) to LLVM-IR.";
+  let description = [{
+    Complete the conversion of modules from 'CC dialect' to LLVM-IR dialect.
+    This is the final step before generating LLVM code. It would typically be
+    used after `-quake-to-cc` when a simulator is the target.
+  }];
+}
+
+def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{
     Converts Quake to QIR (as LLVM-IR). The add-dealloc pass should be run
@@ -19,8 +49,17 @@ def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
     QIR qubits.
   }];
 
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
-  let constructor = "cudaq::opt::createConvertToQIRPass()";
+  let dependentDialects = [
+    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
+  ];
+}
+
+def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
+  let summary = "Lower Quake to CG dialect.";
+  let description = [{
+    For testing purposes only.
+  }];
+  let dependentDialects = [ "cudaq::codegen::CodeGenDialect" ];
 }
 
 def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
@@ -59,7 +98,8 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
   let description = [{
-    This is a (function) subpass of the pipeline to convert to specific QIR Profile.
+    This is a (function) subpass of the pipeline to convert to specific QIR
+    Profile.
 
     Each function with a body is analyzed for qubit allocations and qubit
     measurements. Attributes for the total count of qubits are added to the
@@ -108,22 +148,22 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
     extracted from the program to allow reconstruction of the outputs from the
     backend.
   }];
-
-  let constructor = "cudaq::opt::createRemoveMeasurementsPass()";
 }
 
-def VerifyNVQIRCallOps : Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
+def VerifyNVQIRCallOps :
+    Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
   let summary =
     "Verify that all LLVM CallOps' callees are NVQIR compliant";
   let description = [{
-    This is a function pass to verify that all function calls within the function body are 
-    referring to pre-defined allowed functions or QIR functions, i.e., 
-    starting with a __quantum prefix, or NVQIR runtime functions.
+    This is a function pass to verify that all function calls within the
+    function body are referring to pre-defined allowed functions or QIR
+    functions, i.e., starting with a __quantum prefix, or NVQIR runtime
+    functions.
   }];
   
   let options = [
     ListOption<"allowedFuncs", "allowed-funcs", "llvm::StringRef",
-               "Allowed list of functions in addition to NVQIR-defined function.">
+        "Allowed list of functions in addition to NVQIR-defined function.">
   ];
 
   let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass({})";

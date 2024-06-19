@@ -471,5 +471,5 @@ RestHeaders IonQServerHelper::getHeaders() {
 
 } // namespace cudaq
 
-// Register the IonQ server helper in the CUDAQ server helper factory
+// Register the IonQ server helper in the CUDA-Q server helper factory
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::IonQServerHelper, ionq)

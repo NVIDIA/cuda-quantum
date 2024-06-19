@@ -1,7 +1,7 @@
 # Code of Conduct
 
-This document outlines the code of conduct followed and enforced for the CUDA
-Quantum project. This Code of Conduct is adapted from the [Contributor
+This document outlines the code of conduct followed and enforced for the CUDA-Q
+project. This Code of Conduct is adapted from the [Contributor
 Covenant][homepage], version 1.4, available [here][codeofconduct]. For answers
 to common questions about this code of conduct, see the [FAQs][faqs].
 

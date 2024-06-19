@@ -6,9 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file builds the necessary Open MPI dependencies used by CUDA Quantum.
+# This file builds the necessary Open MPI dependencies used by CUDA-Q.
 # This image can be passed as argument to docker/build/devdeps.ext.Dockerfile
-# to create a complete development environment for CUDA Quantum that contains all
+# to create a complete development environment for CUDA-Q that contains all
 # necessary dependencies.
 #
 # Usage:
@@ -22,7 +22,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
 ENV COMMON_COMPILER_FLAGS="-march=x86-64-v3 -mtune=generic -O2 -pipe"
-ENV COMMON_COMPILER_FLAGS_ARM="-march=native -mtune=generic -O2 -pipe"
+ENV COMMON_COMPILER_FLAGS_ARM="-march=armv8-a -mtune=generic -O2 -pipe"
 
 # 1 - Install basic tools needed for the builds
 

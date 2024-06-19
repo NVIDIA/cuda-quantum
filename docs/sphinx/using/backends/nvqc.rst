@@ -24,7 +24,7 @@ You may wish to persist that environment variable between bash sessions, e.g., b
 
 3. Run your first NVQC example
 
-The following is a typical CUDA Quantum kernel example. 
+The following is a typical CUDA-Q kernel example. 
 By selecting the `nvqc` target, the quantum circuit simulation will run on NVQC in the cloud, rather than running locally.
 
 
@@ -78,7 +78,7 @@ By selecting the `nvqc` target, the quantum circuit simulation will run on NVQC 
 Simulator Backend Selection
 ++++++++++++++++++++++++++++
 
-NVQC hosts all CUDA Quantum simulator backends (see :doc:`simulators`). 
+NVQC hosts all CUDA-Q simulator backends (see :doc:`simulators`). 
 You may use the NVQC `backend` (Python) or `--nvqc-backend` (C++) option to select the simulator to be used by the service.
 
 For example, to request the `tensornet` simulator backend, the user can do the following for C++ or Python.
@@ -103,7 +103,7 @@ For example, to request the `tensornet` simulator backend, the user can do the f
 Multiple GPUs
 +++++++++++++
 
-Some CUDA Quantum simulator backends are capable of multi-GPU distribution as detailed in :doc:`simulators`.
+Some CUDA-Q simulator backends are capable of multi-GPU distribution as detailed in :doc:`simulators`.
 For example, the `nvidia-mgpu` backend can partition and distribute state vector simulation to multiple GPUs to simulate 
 a larger number of qubits, whose state vector size grows beyond the memory size of a single GPU.
 
@@ -144,7 +144,7 @@ To select a specific number of GPUs on the NVQC managed service, the following `
         
         The requested backend simulator (custatevec-fp32) is not capable of using all 4 GPUs requested.
         Only one GPU will be used for simulation.
-        Please refer to CUDA Quantum documentation for a list of multi-GPU capable simulator backends.
+        Please refer to CUDA-Q documentation for a list of multi-GPU capable simulator backends.
 
     Consider removing the `ngpus` value (Python) or `--nvqc-ngpus` value (C++) to use the default of 1 GPU 
     if you don't need to use a multi-GPU backend to better utilize NVQC resources.

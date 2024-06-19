@@ -12,11 +12,13 @@ set(LIBRARY_NAME cudaq)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
-# Create the CUDA Quantum Library
+# Create the CUDA-Q Library
 add_library(${LIBRARY_NAME} 
          SHARED cudaq.cpp 
+                target_control.cpp
                 algorithms/draw.cpp
-                algorithms/state.cpp
+                qis/state.cpp
+                qis/remote_state.cpp
                 platform/quantum_platform.cpp 
                 qis/execution_manager.cpp
                 utils/cudaq_utils.cpp

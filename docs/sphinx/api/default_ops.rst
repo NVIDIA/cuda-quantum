@@ -1,7 +1,7 @@
 Quantum Operations
 ******************************
 
-CUDA Quantum provides a default set of quantum operations on qubits. 
+CUDA-Q provides a default set of quantum operations on qubits. 
 These operations can be used to define custom kernels and libraries.
 Since the set of quantum intrinsic operations natively supported on a specific target 
 depends on the backends architecture, the :code:`nvq++` compiler automatically
@@ -13,7 +13,7 @@ The sections `Unitary Operations on Qubits`_ and `Measurements on Qubits`_ list 
 Operations that implement unitary transformations of the quantum state are templated.
 The template argument allows to invoke the adjoint and controlled version of the quantum transformation, see the section on `Adjoint and Controlled Operations`_.
 
-CUDA Quantum additionally provides overloads to support broadcasting of
+CUDA-Q additionally provides overloads to support broadcasting of
 single-qubit operations across a vector of qubits.  For example,
 :code:`x(cudaq::qvector<>&)` flips the state of each qubit in the provided
 :code:`cudaq::qvector`. 
@@ -323,6 +323,33 @@ This operation swaps the states of two qubits.
         //        | 0 1 0 0 |
         //        | 0 0 0 1 |
         swap(qubit_1, qubit_2);
+
+:code:`u3`
+---------------------
+
+This operation applies the universal three-parameters operator to target qubit. The three parameters are Euler angles - theta (θ), phi (φ), and lambda (λ).
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        qubit = cudaq.qubit()
+
+        # Apply the unitary transformation
+        # U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
+        #             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
+        u3(np.pi, np.pi, np.pi / 2, q)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qubit qubit;
+
+        // Apply the unitary transformation
+        // U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
+        //             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
+        u3(M_PI, M_PI, M_PI_2, q);
 
 
 Adjoint and Controlled Operations

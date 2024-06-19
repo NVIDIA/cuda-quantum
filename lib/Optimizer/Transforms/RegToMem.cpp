@@ -109,7 +109,7 @@ private:
   }
 
   void insertToEqClass(Value v) {
-    if (quake::isValueSSAForm(v))
+    if (quake::isLinearValueForm(v))
       eqClasses.insert(toOpaque(v));
     insertBlockArgumentToEqClass(v);
   }
@@ -123,7 +123,7 @@ private:
   }
 
   void insertToEqClass(Value v, Value u) {
-    if (quake::isValueSSAForm(v) || isUnwrapRef(v))
+    if (quake::isLinearValueForm(v) || isUnwrapRef(v))
       eqClasses.unionSets(toOpaque(v), toOpaque(u));
     insertBlockArgumentToEqClass(v);
   }

@@ -30,9 +30,9 @@ struct excitations {
 /// system, return the single and double excitation indices.
 excitations get_uccsd_excitations(std::size_t numElectrons,
                                   std::size_t numQubits) {
-  auto numSpatialOrbs = numQubits / 2;
+  std::make_signed_t<std::size_t> numSpatialOrbs = numQubits / 2;
   // check rounding
-  auto numOccupied = static_cast<std::size_t>(std::ceil(numElectrons / 2));
+  std::make_signed_t<std::size_t> numOccupied = std::ceil(numElectrons / 2);
   auto numVirtual = numSpatialOrbs - numOccupied;
   excitation_list singlesAlpha, singlesBeta, doublesMixed, doublesAlpha,
       doublesBeta;
@@ -81,22 +81,22 @@ excitations get_uccsd_excitations(std::size_t numElectrons,
         for (auto s : virtualAlpha)
           doublesMixed.push_back({p, q, r, s});
 
-  auto numOccAlpha = occupiedAlpha.size();
-  auto numOccBeta = occupiedBeta.size();
-  auto numVirtAlpha = virtualAlpha.size();
-  auto numVirtBeta = virtualBeta.size();
+  std::make_signed_t<std::size_t> numOccAlpha = occupiedAlpha.size();
+  std::make_signed_t<std::size_t> numOccBeta = occupiedBeta.size();
+  std::make_signed_t<std::size_t> numVirtAlpha = virtualAlpha.size();
+  std::make_signed_t<std::size_t> numVirtBeta = virtualBeta.size();
 
   for (auto p : cudaq::range(numOccAlpha - 1))
-    for (std::size_t q = p + 1; q < numOccAlpha; q++)
+    for (auto q = p + 1; q < numOccAlpha; q++)
       for (auto r : cudaq::range(numVirtAlpha - 1))
-        for (std::size_t s = r + 1; s < numVirtAlpha; s++)
+        for (auto s = r + 1; s < numVirtAlpha; s++)
           doublesAlpha.push_back({occupiedAlpha[p], occupiedAlpha[q],
                                   virtualAlpha[r], virtualAlpha[s]});
 
   for (auto p : cudaq::range(numOccBeta - 1))
-    for (std::size_t q = p + 1; q < numOccBeta; q++)
+    for (auto q = p + 1; q < numOccBeta; q++)
       for (auto r : cudaq::range(numVirtBeta - 1))
-        for (std::size_t s = r + 1; s < numVirtBeta; s++)
+        for (auto s = r + 1; s < numVirtBeta; s++)
           doublesBeta.push_back({occupiedBeta[p], occupiedBeta[q],
                                  virtualBeta[r], virtualBeta[s]});
 
@@ -566,25 +566,30 @@ __qpu__ void uccsd(cudaq::qview<> qubits, const std::vector<double> &thetas,
       get_uccsd_excitations(numElectrons, qubits.size());
 
   std::size_t thetaCounter = 0;
-  for (auto i : cudaq::range(singlesAlpha.size()))
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(singlesAlpha.size())))
     singleExcitation(qubits, singlesAlpha[i][0], singlesAlpha[i][1],
                      thetas[thetaCounter++]);
 
-  for (auto i : cudaq::range(singlesBeta.size()))
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(singlesBeta.size())))
     singleExcitation(qubits, singlesBeta[i][0], singlesBeta[i][1],
                      thetas[thetaCounter++]);
 
-  for (auto i : cudaq::range(doublesMixed.size()))
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(doublesMixed.size())))
     doubleExcitation(qubits, doublesMixed[i][0], doublesMixed[i][1],
                      doublesMixed[i][2], doublesMixed[i][3],
                      thetas[thetaCounter++]);
 
-  for (auto i : cudaq::range(doublesAlpha.size()))
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(doublesAlpha.size())))
     doubleExcitation(qubits, doublesAlpha[i][0], doublesAlpha[i][1],
                      doublesAlpha[i][2], doublesAlpha[i][3],
                      thetas[thetaCounter++]);
 
-  for (auto i : cudaq::range(doublesBeta.size()))
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(doublesBeta.size())))
     doubleExcitation(qubits, doublesBeta[i][0], doublesBeta[i][1],
                      doublesBeta[i][2], doublesBeta[i][3],
                      thetas[thetaCounter++]);
@@ -598,32 +603,37 @@ void uccsd(Kernel &kernel, QuakeValue &qubits, QuakeValue &thetas,
       get_uccsd_excitations(numElectrons, numQubits);
 
   std::size_t thetaCounter = 0;
-  for (auto i : cudaq::range(singlesAlpha.size())) {
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(singlesAlpha.size()))) {
     // FIXME fix const correctness on quake value
     auto theta = thetas[thetaCounter++];
     singleExcitation(kernel, qubits, singlesAlpha[i][0], singlesAlpha[i][1],
                      theta);
   }
 
-  for (auto i : cudaq::range(singlesBeta.size())) {
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(singlesBeta.size()))) {
     auto theta = thetas[thetaCounter++];
     singleExcitation(kernel, qubits, singlesBeta[i][0], singlesBeta[i][1],
                      theta);
   }
 
-  for (auto i : cudaq::range(doublesMixed.size())) {
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(doublesMixed.size()))) {
     auto theta = thetas[thetaCounter++];
     doubleExcitation(kernel, qubits, doublesMixed[i][0], doublesMixed[i][1],
                      doublesMixed[i][2], doublesMixed[i][3], theta);
   }
 
-  for (auto i : cudaq::range(doublesAlpha.size())) {
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(doublesAlpha.size()))) {
     auto theta = thetas[thetaCounter++];
     doubleExcitation(kernel, qubits, doublesAlpha[i][0], doublesAlpha[i][1],
                      doublesAlpha[i][2], doublesAlpha[i][3], theta);
   }
 
-  for (auto i : cudaq::range(doublesBeta.size())) {
+  for (auto i : cudaq::range(
+           static_cast<std::make_signed_t<std::size_t>>(doublesBeta.size()))) {
     auto theta = thetas[thetaCounter++];
     doubleExcitation(kernel, qubits, doublesBeta[i][0], doublesBeta[i][1],
                      doublesBeta[i][2], doublesBeta[i][3], theta);

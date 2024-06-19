@@ -21,60 +21,30 @@
 
 namespace cudaq::opt {
 
-/// @brief Pipeline builder to convert Quake to QIR. `convertTo` should be
-/// specified if `QIRProfile` is true.
-/// @param QIRProfile whether or not this is lowering to a specific QIR profile
-/// @param pm Pass manager to append passes to
-/// @param convertTo String name of QIR profile (e.g., `qir-base`,
-/// `qir-adaptive`)
-template <bool QIRProfile = false>
-void addPipelineToQIR(mlir::PassManager &pm,
-                      llvm::StringRef convertTo = "none") {
-  pm.addNestedPass<mlir::func::FuncOp>(
-      cudaq::opt::createApplyControlNegations());
-  cudaq::opt::addAggressiveEarlyInlining(pm);
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
-  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(mlir::createCSEPass());
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLowerToCFGPass());
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addPass(cudaq::opt::createLoopNormalize());
-  cudaq::opt::LoopUnrollOptions luo;
-  luo.allowBreak = convertTo.equals("qir-adaptive");
-  pm.addPass(cudaq::opt::createLoopUnroll(luo));
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(mlir::createCSEPass());
-  pm.addNestedPass<mlir::func::FuncOp>(
-      cudaq::opt::createCombineQuantumAllocations());
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(mlir::createCSEPass());
-  if (convertTo.equals("qir-base"))
-    pm.addNestedPass<mlir::func::FuncOp>(
-        cudaq::opt::createDelayMeasurementsPass());
-  pm.addPass(mlir::createConvertMathToFuncs());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
-  if constexpr (QIRProfile) {
-    cudaq::opt::addQIRProfilePipeline(pm, convertTo);
-  }
+/// The common pipeline.
+/// Adds the common pipeline (with or without a profile specifier) but without
+/// the final QIR profile lowering passes.
+void commonPipelineConvertToQIR(
+    mlir::PassManager &pm, const std::optional<mlir::StringRef> &convertTo);
+
+/// \brief Pipeline builder to convert Quake to QIR.
+/// Does not specify a particular QIR profile.
+inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
+  commonPipelineConvertToQIR(pm, std::nullopt);
 }
 
-inline void addPipelineToOpenQASM(mlir::PassManager &pm) {
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(mlir::createCSEPass());
+/// \brief Pipeline builder to convert Quake to QIR.
+/// Specifies a particular QIR profile in \p convertTo.
+/// \p pm Pass manager to append passes to
+/// \p convertTo name of QIR profile (e.g., `qir-base`, `qir-adaptive`, ...)
+inline void addPipelineConvertToQIR(mlir::PassManager &pm,
+                                    mlir::StringRef convertTo) {
+  commonPipelineConvertToQIR(pm, convertTo);
+  addQIRProfilePipeline(pm, convertTo);
 }
 
-inline void addPipelineToIQMJson(mlir::PassManager &pm) {
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLowerToCFGPass());
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addNestedPass<mlir::func::FuncOp>(
-      cudaq::opt::createCombineQuantumAllocations());
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(mlir::createCSEPass());
-}
+void addLowerToCCPipeline(mlir::OpPassManager &pm);
+
+void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
+void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
 } // namespace cudaq::opt

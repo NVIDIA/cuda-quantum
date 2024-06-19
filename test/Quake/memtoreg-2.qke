@@ -26,14 +26,16 @@ func.func @classical_if01(%c1: i1) {
 // CHECK-SAME:                              %[[VAL_0:.*]]: i1) {
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
-// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_0]]) -> (!quake.wire, !quake.wire) {
-// CHECK:             %[[VAL_4:.*]]:2 = quake.x [%[[VAL_1]]] %[[VAL_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:             cc.continue %[[VAL_4]]#0, %[[VAL_4]]#1 : !quake.wire, !quake.wire
+// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_0]]) ((%[[VAL_4:.*]] = %[[VAL_1]], %[[VAL_5:.*]] = %[[VAL_2]])) -> (!quake.wire, !quake.wire) {
+// CHECK:             %[[VAL_6:.*]]:2 = quake.x [%[[VAL_4]]] %[[VAL_5]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_6]]#0, %[[VAL_6]]#1 : !quake.wire, !quake.wire
 // CHECK:           } else {
-// CHECK:             %[[VAL_5:.*]]:2 = quake.y [%[[VAL_1]]] %[[VAL_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:             cc.continue %[[VAL_5]]#0, %[[VAL_5]]#1 : !quake.wire, !quake.wire
+// CHECK:             %[[VAL_7:.*]]:2 = quake.y [%[[VAL_8:.*]]] %[[VAL_9:.*]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_7]]#0, %[[VAL_7]]#1 : !quake.wire, !quake.wire
 // CHECK:           }
-// CHECK:           %[[VAL_6:.*]]:2 = quake.z [%[[VAL_3]]#0] %[[VAL_3]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_10:.*]]:2 = quake.z [%[[VAL_11:.*]]#0] %[[VAL_11]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_10]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_10]]#1 : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
@@ -55,14 +57,16 @@ func.func @classical_if02(%c1: i1) {
 // CHECK-SAME:                              %[[VAL_0:.*]]: i1) {
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
-// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_0]]) -> (!quake.wire, !quake.wire) {
-// CHECK:             %[[VAL_4:.*]]:2 = quake.x [%[[VAL_1]]] %[[VAL_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:             cc.continue %[[VAL_4]]#0, %[[VAL_4]]#1 : !quake.wire, !quake.wire
+// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_0]]) ((%[[VAL_4:.*]] = %[[VAL_1]], %[[VAL_5:.*]] = %[[VAL_2]])) -> (!quake.wire, !quake.wire) {
+// CHECK:             %[[VAL_6:.*]]:2 = quake.x [%[[VAL_4]]] %[[VAL_5]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_6]]#0, %[[VAL_6]]#1 : !quake.wire, !quake.wire
 // CHECK:           } else {
-// CHECK:             %[[VAL_5:.*]]:2 = quake.y [%[[VAL_2]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:             cc.continue %[[VAL_5]]#1, %[[VAL_5]]#0 : !quake.wire, !quake.wire
+// CHECK:             %[[VAL_7:.*]]:2 = quake.y [%[[VAL_8:.*]]] %[[VAL_9:.*]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_7]]#1, %[[VAL_7]]#0 : !quake.wire, !quake.wire
 // CHECK:           }
-// CHECK:           %[[VAL_6:.*]]:2 = quake.z [%[[VAL_3]]#0] %[[VAL_3]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_10:.*]]:2 = quake.z [%[[VAL_11:.*]]#0] %[[VAL_11]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_10]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_10]]#1 : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
@@ -82,13 +86,15 @@ func.func @classical_if03(%c1: i1) {
 // CHECK-SAME:                              %[[VAL_0:.*]]: i1) {
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
-// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_0]]) -> (!quake.wire, !quake.wire) {
-// CHECK:             %[[VAL_4:.*]]:2 = quake.x [%[[VAL_1]]] %[[VAL_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:             cc.continue %[[VAL_4]]#0, %[[VAL_4]]#1 : !quake.wire, !quake.wire
+// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_0]]) ((%[[VAL_4:.*]] = %[[VAL_1]], %[[VAL_5:.*]] = %[[VAL_2]])) -> (!quake.wire, !quake.wire) {
+// CHECK:             %[[VAL_6:.*]]:2 = quake.x [%[[VAL_4]]] %[[VAL_5]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_6]]#0, %[[VAL_6]]#1 : !quake.wire, !quake.wire
 // CHECK:           } else {
-// CHECK:             cc.continue %[[VAL_1]], %[[VAL_2]] : !quake.wire, !quake.wire
+// CHECK:             cc.continue %[[VAL_4]], %[[VAL_5]] : !quake.wire, !quake.wire
 // CHECK:           }
-// CHECK:           %[[VAL_5:.*]]:2 = quake.y [%[[VAL_3]]#0] %[[VAL_3]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_9:.*]]:2 = quake.y [%[[VAL_10:.*]]#0] %[[VAL_10]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_9]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_9]]#1 : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
@@ -111,27 +117,27 @@ func.func @classical_if04(%c1: i1, %c2: i1) {
 }
 
 // CHECK-LABEL:   func.func @classical_if04(
-// CHECK-SAME:        %[[VAL_0:.*]]: i1, %[[VAL_1:.*]]: i1) {
+// CHECK-SAME:      %[[VAL_0:.*]]: i1, %[[VAL_1:.*]]: i1) {
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
 // CHECK:           %[[VAL_3:.*]] = quake.null_wire
 // CHECK:           %[[VAL_4:.*]] = quake.null_wire
-// CHECK:           %[[VAL_5:.*]]:3 = cc.if(%[[VAL_0]]) -> (!quake.wire, !quake.wire, !quake.wire) {
-// CHECK:             %[[VAL_6:.*]]:2 = quake.h [%[[VAL_2]]] %[[VAL_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:             %[[VAL_7:.*]]:2 = cc.if(%[[VAL_1]]) -> (!quake.wire, !quake.wire) {
-// CHECK:               %[[VAL_8:.*]]:2 = quake.x [%[[VAL_6]]#0] %[[VAL_4]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:               cc.continue %[[VAL_8]]#0, %[[VAL_8]]#1 : !quake.wire, !quake.wire
+// CHECK:           %[[VAL_5:.*]]:3 = cc.if(%[[VAL_0]]) ((%[[VAL_6:.*]] = %[[VAL_2]], %[[VAL_7:.*]] = %[[VAL_3]], %[[VAL_8:.*]] = %[[VAL_4]])) -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK:             %[[VAL_9:.*]]:2 = quake.h [%[[VAL_6]]] %[[VAL_7]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[VAL_10:.*]]:2 = cc.if(%[[VAL_1]]) ((%[[VAL_11:.*]] = %[[VAL_9]]#0, %[[VAL_12:.*]] = %[[VAL_8]])) -> (!quake.wire, !quake.wire) {
+// CHECK:               %[[VAL_13:.*]]:2 = quake.x [%[[VAL_11]]] %[[VAL_12]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:               cc.continue %[[VAL_13]]#0, %[[VAL_13]]#1 : !quake.wire, !quake.wire
 // CHECK:             } else {
-// CHECK:               cc.continue %[[VAL_6]]#0, %[[VAL_4]] : !quake.wire, !quake.wire
+// CHECK:               cc.continue %[[VAL_11]], %[[VAL_12]] : !quake.wire, !quake.wire
 // CHECK:             }
-// CHECK:             cc.continue %[[VAL_7]]#0, %[[VAL_6]]#1, %[[VAL_7]]#1 : !quake.wire, !quake.wire, !quake.wire
+// CHECK:             cc.continue %[[VAL_10]]#0, %[[VAL_9]]#1, %[[VAL_10]]#1 : !quake.wire, !quake.wire, !quake.wire
 // CHECK:           } else {
-// CHECK:             cc.continue %[[VAL_2]], %[[VAL_3]], %[[VAL_4]] : !quake.wire, !quake.wire, !quake.wire
+// CHECK:             cc.continue %[[VAL_6]], %[[VAL_7]], %[[VAL_19:.*]] : !quake.wire, !quake.wire, !quake.wire
 // CHECK:           }
-// CHECK:           %[[VAL_10:.*]]:2 = quake.y [%[[VAL_5]]#0] %[[VAL_5]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_12:.*]]:2 = quake.z [%[[VAL_10]]#0] %[[VAL_5]]#2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           quake.sink %[[VAL_12]]#0
-// CHECK:           quake.sink %[[VAL_10]]#1
-// CHECK:           quake.sink %[[VAL_12]]#1
+// CHECK:           %[[VAL_20:.*]]:2 = quake.y [%[[VAL_21:.*]]#0] %[[VAL_21]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_22:.*]]:2 = quake.z [%[[VAL_20]]#0] %[[VAL_21]]#2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_22]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_20]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_22]]#1 : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
@@ -149,19 +155,21 @@ func.func @classical_if05(%q0: !quake.ref, %c1: i1) {
 }
 
 // CHECK-LABEL:   func.func @classical_if05(
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: i1) {
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: i1) {
 // CHECK:           %[[VAL_2:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[VAL_6:.*]] = cc.if(%[[VAL_1]]) -> !quake.wire {
-// CHECK:             %[[VAL_7:.*]] = cc.scope -> (!quake.wire) {
-// CHECK:               %[[VAL_3:.*]] = quake.null_wire
-// CHECK:               %[[VAL_4:.*]]:2 = quake.x [%[[VAL_2]]] %[[VAL_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:               quake.sink
-// CHECK:               cc.continue %[[VAL_4]]#0
+// CHECK:           %[[VAL_3:.*]] = cc.if(%[[VAL_1]]) ((%[[VAL_4:.*]] = %[[VAL_2]])) -> !quake.wire {
+// CHECK:             %[[VAL_5:.*]] = cc.scope -> (!quake.wire) {
+// CHECK:               %[[VAL_6:.*]] = quake.null_wire
+// CHECK:               %[[VAL_7:.*]]:2 = quake.x [%[[VAL_4]]] %[[VAL_6]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:               quake.sink %[[VAL_7]]#1 : !quake.wire
+// CHECK:               cc.continue %[[VAL_7]]#0 : !quake.wire
 // CHECK:             }
+// CHECK:             cc.continue %[[VAL_5]] : !quake.wire
 // CHECK:           } else {
+// CHECK:             cc.continue %[[VAL_4]] : !quake.wire
 // CHECK:           }
-// CHECK:           %[[VAL_5:.*]] = quake.y %[[VAL_6]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[VAL_5]] to %[[VAL_0]] : !quake.wire, !quake.ref
+// CHECK:           %[[VAL_10:.*]] = quake.y %[[VAL_3]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[VAL_10]] to %[[VAL_0]] : !quake.wire, !quake.ref
 // CHECK:           return
 // CHECK:         }
 
@@ -179,19 +187,21 @@ func.func @classical_if06(%veq : !quake.veq<2>, %c1: i1) {
 }
 
 // CHECK-LABEL:   func.func @classical_if06(
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<2>, %[[VAL_1:.*]]: i1) {
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<2>, %[[VAL_1:.*]]: i1) {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_2]]] : (!quake.veq<2>, i32) -> !quake.ref
 // CHECK:           %[[VAL_4:.*]] = quake.unwrap %[[VAL_3]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_5:.*]] = quake.x %[[VAL_4]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[VAL_5]] to %[[VAL_3]] : !quake.wire, !quake.ref
 // CHECK:           cc.if(%[[VAL_1]]) {
 // CHECK:             %[[VAL_6:.*]] = arith.constant 1 : i32
 // CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_6]]] : (!quake.veq<2>, i32) -> !quake.ref
 // CHECK:             %[[VAL_8:.*]] = quake.unwrap %[[VAL_7]] : (!quake.ref) -> !quake.wire
 // CHECK:             %[[VAL_9:.*]] = quake.y %[[VAL_8]] : (!quake.wire) -> !quake.wire
+// CHECK:             quake.wrap %[[VAL_9]] to %[[VAL_7]] : !quake.wire, !quake.ref
 // CHECK:           } else {
 // CHECK:           }
-// CHECK:           quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 

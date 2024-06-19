@@ -17,6 +17,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include <unordered_set>
 
 using namespace mlir;
 
@@ -33,31 +34,19 @@ static bool isQuakeOperation(Operation *op) {
   return false;
 }
 
-// If a wire value is used more than once but in distinct blocks, assume that
-// the uses are dynamically mutually exclusive. This is an approximation and not
-// sufficient to prove the value has a linear type.
-// TODO: implement an analysis that proves the control-flow to the blocks is
-// mutually exclusive (a then and an else block, for example).
-inline static bool allUsesInDistinctBlocks(Operation *defOp, Value v) {
-  SmallPtrSet<Block *, 4> blockSet;
-  for (Operation *u : v.getUsers()) {
-    // If `u` is not in quake, then it is not a quantum operation. Skip it.
-    if (!isQuakeOperation(u))
-      continue;
-    Block *b = u->getBlock();
-    if (blockSet.count(b))
-      return false;
-    blockSet.insert(b);
-  }
-  return true;
-}
-
 static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   for (Value v : op->getOpResults())
     if (isa<quake::WireType>(v.getType())) {
       // Terminators can forward wire values, but they are not quantum
       // operations.
-      if (v.hasOneUse() || allUsesInDistinctBlocks(op, v))
+      if (v.hasOneUse() || v.use_empty())
+        continue;
+      // Allow a single cf.cond_br to use the value twice, once for each arm.
+      std::unordered_set<Operation *> uniqs;
+      for (auto *op : v.getUsers())
+        uniqs.insert(op);
+      if (uniqs.size() == 1 &&
+          (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
         continue;
       return op->emitOpError(
           "wires are a linear type and must have exactly one use");
@@ -94,7 +83,7 @@ bool quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, SinkOp>(op);
 }
 
-mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
+ValueRange quake::getQuantumTypesFromRange(ValueRange range) {
 
   // Skip over classical types at the beginning
   int numClassical = 0;
@@ -105,7 +94,7 @@ mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
       break;
   }
 
-  mlir::ValueRange retVals = range.drop_front(numClassical);
+  ValueRange retVals = range.drop_front(numClassical);
 
   // Make sure all remaining operands are quantum
   for (auto operand : retVals)
@@ -115,17 +104,16 @@ mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
   return retVals;
 }
 
-mlir::ValueRange quake::getQuantumResults(Operation *op) {
+ValueRange quake::getQuantumResults(Operation *op) {
   return getQuantumTypesFromRange(op->getResults());
 }
 
-mlir::ValueRange quake::getQuantumOperands(Operation *op) {
+ValueRange quake::getQuantumOperands(Operation *op) {
   return getQuantumTypesFromRange(op->getOperands());
 }
 
 LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
-  mlir::ValueRange quantumOperands =
-      getQuantumTypesFromRange(op->getOperands());
+  ValueRange quantumOperands = getQuantumTypesFromRange(op->getOperands());
 
   if (quantumOperands.size() != quantumVals.size())
     return failure();
@@ -183,6 +171,14 @@ LogicalResult quake::AllocaOp::verify() {
       }
     }
   }
+
+  // Check the uses. If any use is a InitializeStateOp, then it must be the only
+  // use.
+  Operation *self = getOperation();
+  if (!self->getUsers().empty() && !self->hasOneUse())
+    for (auto *op : self->getUsers())
+      if (isa<quake::InitializeStateOp>(op))
+        return emitOpError("init_state must be the only use");
   return success();
 }
 
@@ -192,6 +188,15 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   // changes the type. Uses may still expect a veq with unspecified size.
   // Folding is strictly reductive and doesn't allow the creation of ops.
   patterns.add<FuseConstantToAllocaPattern>(context);
+}
+
+quake::InitializeStateOp quake::AllocaOp::getInitializedState() {
+  auto *self = getOperation();
+  if (self->hasOneUse()) {
+    auto x = self->getUsers().begin();
+    return dyn_cast<quake::InitializeStateOp>(*x);
+  }
+  return {};
 }
 
 //===----------------------------------------------------------------------===//
@@ -481,6 +486,60 @@ LogicalResult quake::ExtractRefOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// InitializeStateOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::InitializeStateOp::verify() {
+  auto veqTy = cast<quake::VeqType>(getTargets().getType());
+  if (veqTy.hasSpecifiedSize())
+    if (!std::has_single_bit(veqTy.getSize()))
+      return emitOpError("initialize state vector must be power of 2, but is " +
+                         std::to_string(veqTy.getSize()) + " instead.");
+  auto ptrTy = cast<cudaq::cc::PointerType>(getState().getType());
+  Type ty = ptrTy.getElementType();
+  if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
+    if (!isa<FloatType, ComplexType>(arrTy.getElementType()))
+      return emitOpError("invalid data pointer type");
+  } else if (!isa<FloatType, ComplexType, cudaq::cc::StateType>(ty)) {
+    return emitOpError("invalid data pointer type");
+  }
+  return success();
+}
+
+namespace {
+// %22 = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<?>
+// ────────────────────────────────────────────────────────────────────
+// %22' = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<k>
+// %22 = quake.relax_size %22' : (!quake.veq<k>) -> !quake.veq<?>
+struct ForwardAllocaTypePattern
+    : public OpRewritePattern<quake::InitializeStateOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
+                                PatternRewriter &rewriter) const override {
+    if (auto isTy = dyn_cast<quake::VeqType>(initState.getType()))
+      if (!isTy.hasSpecifiedSize()) {
+        auto targ = initState.getTargets();
+        if (auto targTy = dyn_cast<quake::VeqType>(targ.getType()))
+          if (targTy.hasSpecifiedSize()) {
+            auto newInit = rewriter.create<quake::InitializeStateOp>(
+                initState.getLoc(), targTy, targ, initState.getState());
+            rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(initState, isTy,
+                                                            newInit);
+            return success();
+          }
+      }
+    return failure();
+  }
+};
+} // namespace
+
+void quake::InitializeStateOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardAllocaTypePattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // RelaxSizeOp
 //===----------------------------------------------------------------------===//
 
@@ -490,6 +549,7 @@ LogicalResult quake::RelaxSizeOp::verify() {
   return success();
 }
 
+namespace {
 // Forward the argument to a relax_size to the users for all users that are
 // quake operations. All quake ops that take a sized veq argument are
 // polymorphic on all veq types. If the op is not a quake op, then maintain
@@ -511,6 +571,7 @@ struct ForwardRelaxedSizePattern : public RewritePattern {
     return success();
   };
 };
+} // namespace
 
 void quake::RelaxSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
@@ -521,6 +582,7 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 // SubVeqOp
 //===----------------------------------------------------------------------===//
 
+namespace {
 struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -563,6 +625,7 @@ struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
     return failure();
   }
 };
+} // namespace
 
 Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
@@ -589,9 +652,36 @@ void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 // VeqSizeOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+struct FoldInitStateSizePattern : public OpRewritePattern<quake::VeqSizeOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  // %11 = quake.init_state %_, %_ : (!quake.veq<2>, T1) -> !quake.veq<?>
+  // %12 = quake.veq_size %11 : (!quake.veq<?>) -> i64
+  // ────────────────────────────────────────────────────────────────────
+  // %11 = quake.init_state %_, %_ : (!quake.veq<2>, T1) -> !quake.veq<?>
+  // %12 = constant 2 : i64
+  LogicalResult matchAndRewrite(quake::VeqSizeOp veqSize,
+                                PatternRewriter &rewriter) const override {
+    Value veq = veqSize.getVeq();
+    if (auto initState = veq.getDefiningOp<quake::InitializeStateOp>())
+      if (auto veqTy =
+              dyn_cast<quake::VeqType>(initState.getTargets().getType()))
+        if (veqTy.hasSpecifiedSize()) {
+          std::size_t numQubits = veqTy.getSize();
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, numQubits,
+                                                            veqSize.getType());
+          return success();
+        }
+    return failure();
+  }
+};
+} // namespace
+
 void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                    MLIRContext *context) {
-  patterns.add<ForwardConstantVeqSizePattern>(context);
+  patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -694,8 +784,8 @@ static LogicalResult getParameterAsDouble(Value parameter, double &result) {
   auto paramDefOp = parameter.getDefiningOp();
   if (!paramDefOp)
     return failure();
-  if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp)) {
-    if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
+  if (auto constOp = dyn_cast<arith::ConstantOp>(paramDefOp)) {
+    if (auto value = dyn_cast<FloatAttr>(constOp.getValue())) {
       result = value.getValueAsDouble();
       return success();
     }
@@ -926,7 +1016,11 @@ bool cudaq::EnableInlinerInterface::isLegalToInline(Operation *call,
   if (auto applyOp = dyn_cast<quake::ApplyOp>(call))
     if (applyOp.applyToVariant())
       return false;
-  return !(callable->hasAttr(cudaq::entryPointAttrName));
+  if (auto destFunc = call->getParentOfType<mlir::func::FuncOp>())
+    if (destFunc.getName().ends_with(".thunk"))
+      if (auto srcFunc = call->getParentOfType<mlir::func::FuncOp>())
+        return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
+  return true;
 }
 
 using EffectsVectorImpl =

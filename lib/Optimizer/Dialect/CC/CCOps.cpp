@@ -9,11 +9,13 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -30,6 +32,13 @@ R getParentOfType(Operation *op) {
   return {};
 }
 
+std::optional<std::int64_t> cudaq::opt::factory::getIntIfConstant(Value value) {
+  APInt constant;
+  if (matchPattern(value, m_ConstantInt(&constant)))
+    return {constant.getSExtValue()};
+  return {};
+}
+
 //===----------------------------------------------------------------------===//
 // AddressOfOp
 //===----------------------------------------------------------------------===//
@@ -39,10 +48,8 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   Operation *op = symbolTable.lookupSymbolIn(
       getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
 
-  // TODO: add globals?
-  auto function = dyn_cast_or_null<func::FuncOp>(op);
-  if (!function)
-    return emitOpError("must reference a global defined by 'func.func'");
+  if (!isa_and_nonnull<func::FuncOp, GlobalOp, LLVM::GlobalOp>(op))
+    return emitOpError("must reference a global");
   return success();
 }
 
@@ -80,27 +87,38 @@ ParseResult cudaq::cc::AllocaOp::parse(OpAsmParser &parser,
   return success();
 }
 
-OpFoldResult cudaq::cc::AllocaOp::fold(FoldAdaptor adaptor) {
-  auto params = adaptor.getOperands();
-  if (params.size() == 1) {
-    // If allocating a contiguous block of elements and the size of the block is
-    // a constant, fold the size into the cc.array type and allocate a constant
-    // sized block.
-    if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[0])) {
-      auto size = intAttr.getInt();
-      if (size > 0) {
-        auto resTy = cast<cc::ArrayType>(
-            cast<cc::PointerType>(getType()).getElementType());
-        auto arrTy = cc::ArrayType::get(resTy.getContext(),
-                                        resTy.getElementType(), size);
-        getOperation()->setAttr("elementType", TypeAttr::get(arrTy));
-        getResult().setType(cc::PointerType::get(arrTy));
-        getOperation()->eraseOperand(0);
-        return getResult();
-      }
+namespace {
+struct FuseAllocLength : public OpRewritePattern<cudaq::cc::AllocaOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::AllocaOp alloca,
+                                PatternRewriter &rewriter) const override {
+    auto params = alloca.getOperands();
+    if (params.size() == 1) {
+      // If allocating a contiguous block of elements and the size of the block
+      // is a constant, fold the size into the cc.array type and allocate a
+      // constant sized block.
+      if (auto size = cudaq::opt::factory::getIntIfConstant(params[0]))
+        if (*size > 0) {
+          auto loc = alloca.getLoc();
+          auto *context = rewriter.getContext();
+          Type oldTy = alloca.getElementType();
+          auto arrTy = cudaq::cc::ArrayType::get(context, oldTy, *size);
+          Type origTy = alloca.getType();
+          auto newAlloc = rewriter.create<cudaq::cc::AllocaOp>(loc, arrTy);
+          rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(alloca, origTy,
+                                                         newAlloc);
+          return success();
+        }
     }
+    return failure();
   }
-  return nullptr;
+};
+} // namespace
+
+void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FuseAllocLength>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -179,6 +197,34 @@ LogicalResult cudaq::cc::CastOp::verify() {
     return emitOpError("invalid cast.");
   }
   return success();
+}
+
+namespace {
+// There are a number of series of casts that can be fused. For now, fuse
+// pointer cast chains.
+struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
+                                PatternRewriter &rewriter) const override {
+    if (auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>())
+      if (isa<cudaq::cc::PointerType>(castOp.getType()) &&
+          isa<cudaq::cc::PointerType>(castToCast.getType())) {
+        // %4 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<U>
+        // %5 = cc.cast %4 : (!cc.ptr<U>) -> !cc.ptr<V>
+        // ────────────────────────────────────────────
+        // %5 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<V>
+        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
+                                                       castToCast.getValue());
+      }
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                    MLIRContext *context) {
+  patterns.add<FuseCastCascade>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -322,8 +368,7 @@ namespace {
 // Address arithmetic for pointers to arrays is additive.
 struct FuseAddressArithmetic
     : public OpRewritePattern<cudaq::cc::ComputePtrOp> {
-  using Base = OpRewritePattern<cudaq::cc::ComputePtrOp>;
-  using Base::Base;
+  using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::ComputePtrOp ptrOp,
                                 PatternRewriter &rewriter) const override {
@@ -380,6 +425,23 @@ struct FuseAddressArithmetic
       rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
           ptrOp, ptrOp.getType(), origPtr.getBase(),
           ArrayRef<cudaq::cc::ComputePtrArg>{myOffset + inOffset});
+    } else if (auto castOp =
+                   ptrOp.getBase().getDefiningOp<cudaq::cc::CastOp>()) {
+      if (auto castFromPtrTy =
+              dyn_cast<cudaq::cc::PointerType>(castOp.getValue().getType()))
+        if (auto castFromArrTy =
+                dyn_cast<cudaq::cc::ArrayType>(castFromPtrTy.getElementType()))
+          if (auto castToPtrTy =
+                  dyn_cast<cudaq::cc::PointerType>(castOp.getType()))
+            if (auto castToArrTy = dyn_cast<cudaq::cc::ArrayType>(
+                    castToPtrTy.getElementType()))
+              if (!castFromArrTy.isUnknownSize() &&
+                  castToArrTy.isUnknownSize()) {
+                rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+                    ptrOp, ptrOp.getType(), castOp.getValue(),
+                    ptrOp.getDynamicIndices(), ptrOp.getRawConstantIndices());
+                return success();
+              }
     }
     return success();
   }
@@ -408,7 +470,7 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
   auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
   if (!conArr)
     return nullptr;
-  cudaq::cc::ArrayType arrTy = conArr.getType();
+  cc::ArrayType arrTy = conArr.getType();
   if (arrTy.isUnknownSize())
     return nullptr;
   auto eleTy = arrTy.getElementType();
@@ -420,18 +482,75 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
     if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
       auto floatConstVal =
           cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
-      Value val =
-          builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy);
-      return val;
+      return builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy)
+          .getResult();
     }
     auto intConstVal =
         cast<IntegerAttr>(conArr.getConstantValues()[offset]).getInt();
     auto intTy = cast<IntegerType>(eleTy);
-    Value val = builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy);
-    return val;
+    return builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy)
+        .getResult();
   }
-  Value val = builder.create<cc::PoisonOp>(loc, eleTy);
-  return val;
+  return builder.create<cc::PoisonOp>(loc, eleTy).getResult();
+}
+
+//===----------------------------------------------------------------------===//
+// GlobalOp
+//===----------------------------------------------------------------------===//
+
+ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  // Check for the `extern` optional keyword first.
+  if (succeeded(parser.parseOptionalKeyword("extern")))
+    result.addAttribute(getExternalAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Check for the `constant` optional keyword second.
+  if (succeeded(parser.parseOptionalKeyword("constant")))
+    result.addAttribute(getConstantAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Parse the rest of the global.
+  //   @<symbol> ( <initializer-attr> ) : <result-type>
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  if (succeeded(parser.parseOptionalLParen())) {
+    Attribute value;
+    if (parser.parseAttribute(value, getValueAttrName(result.name),
+                              result.attributes) ||
+        parser.parseRParen())
+      return failure();
+  }
+  SmallVector<Type, 1> types;
+  if (parser.parseOptionalColonTypeList(types) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  if (types.size() > 1)
+    return parser.emitError(parser.getNameLoc(), "expected zero or one type");
+  result.addAttribute(getGlobalTypeAttrName(result.name),
+                      TypeAttr::get(types[0]));
+  return success();
+}
+
+void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  if (getExternal())
+    p << "extern ";
+  if (getConstant())
+    p << "constant ";
+  p.printSymbolName(getSymName());
+  if (auto value = getValue()) {
+    p << " (";
+    p.printAttribute(*value);
+    p << ")";
+  }
+  p << " : " << getGlobalType();
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(),
+      {getSymNameAttrName(), getValueAttrName(), getGlobalTypeAttrName(),
+       getConstantAttrName(), getExternalAttrName()});
 }
 
 //===----------------------------------------------------------------------===//
@@ -531,6 +650,7 @@ void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
   auto *whileRegion = result.addRegion();
   auto *bodyRegion = result.addRegion();
   auto *stepRegion = result.addRegion();
+  [[maybe_unused]] auto *elseRegion = result.addRegion();
   whileBuilder(builder, result.location, *whileRegion);
   bodyBuilder(builder, result.location, *bodyRegion);
   if (stepBuilder) {
@@ -547,36 +667,74 @@ void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
                               RegionBuilderFn whileBuilder,
                               RegionBuilderFn bodyBuilder,
                               RegionBuilderFn stepBuilder) {
-  build(builder, result, TypeRange{}, iterArgs, postCond, whileBuilder,
+  build(builder, result, iterArgs.getTypes(), iterArgs, postCond, whileBuilder,
         bodyBuilder, stepBuilder);
+}
+
+void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
+                              TypeRange resultTypes, ValueRange iterArgs,
+                              RegionBuilderFn whileBuilder,
+                              RegionBuilderFn bodyBuilder,
+                              RegionBuilderFn stepBuilder,
+                              RegionBuilderFn elseBuilder) {
+  auto *whileRegion = result.addRegion();
+  auto *bodyRegion = result.addRegion();
+  auto *stepRegion = result.addRegion();
+  auto *elseRegion = result.addRegion();
+  whileBuilder(builder, result.location, *whileRegion);
+  bodyBuilder(builder, result.location, *bodyRegion);
+  stepBuilder(builder, result.location, *stepRegion);
+  ensureStepTerminator(builder, result, stepRegion);
+  elseBuilder(builder, result.location, *elseRegion);
+  result.addAttribute(postCondAttrName(), builder.getBoolAttr(false));
+  result.addOperands(iterArgs);
+  result.addTypes(resultTypes);
+}
+
+void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
+                              ValueRange iterArgs, RegionBuilderFn whileBuilder,
+                              RegionBuilderFn bodyBuilder,
+                              RegionBuilderFn stepBuilder,
+                              RegionBuilderFn elseBuilder) {
+  build(builder, result, iterArgs.getTypes(), iterArgs, whileBuilder,
+        bodyBuilder, stepBuilder, elseBuilder);
 }
 
 LogicalResult cudaq::cc::LoopOp::verify() {
   const auto initArgsSize = getInitialArgs().size();
   if (getResults().size() != initArgsSize)
     return emitOpError("size of init args and outputs must be equal");
-  if (getWhileRegion().front().getArguments().size() != initArgsSize)
+  if (getWhileArguments().size() != initArgsSize)
     return emitOpError("size of init args and while region args must be equal");
-  if (auto condOp = dyn_cast<cudaq::cc::ConditionOp>(
-          getWhileRegion().front().getTerminator())) {
+  if (auto condOp = dyn_cast<ConditionOp>(getWhileBlock()->getTerminator())) {
     if (condOp.getResults().size() != initArgsSize)
       return emitOpError("size of init args and condition op must be equal");
   } else {
     return emitOpError("while region must end with condition op");
   }
-  if (getBodyRegion().front().getArguments().size() != initArgsSize)
+  if (getDoEntryArguments().size() != initArgsSize)
     return emitOpError("size of init args and body region args must be equal");
-  if (!getStepRegion().empty()) {
-    if (getStepRegion().front().getArguments().size() != initArgsSize)
+  if (hasStep()) {
+    if (isPostConditional())
+      return emitOpError("post-conditional loop cannot have a step region");
+    if (getStepArguments().size() != initArgsSize)
       return emitOpError(
           "size of init args and step region args must be equal");
-    if (auto contOp = dyn_cast<cudaq::cc::ContinueOp>(
-            getStepRegion().front().getTerminator())) {
+    if (auto contOp = dyn_cast<ContinueOp>(getStepBlock()->getTerminator())) {
       if (contOp.getOperands().size() != initArgsSize)
         return emitOpError("size of init args and continue op must be equal");
     } else {
       return emitOpError("step region must end with continue op");
     }
+  }
+  if (hasPythonElse()) {
+    if (isPostConditional())
+      return emitOpError("post-conditional loop cannot have an else region");
+    if (!hasStep())
+      return emitOpError("python for-else must have step region");
+    if (getElseEntryArguments().size() != initArgsSize)
+      return emitOpError(
+          "size of init args and else region args must be equal");
   }
   return success();
 }
@@ -599,8 +757,7 @@ static void printInitializationList(OpAsmPrinter &p,
 void cudaq::cc::LoopOp::print(OpAsmPrinter &p) {
   if (isPostConditional()) {
     p << " do ";
-    printInitializationList(p, getBodyRegion().front().getArguments(),
-                            getOperands());
+    printInitializationList(p, getDoEntryArguments(), getOperands());
     p.printRegion(getBodyRegion(), /*printEntryBlockArgs=*/false,
                   /*printBlockTerminators=*/true);
     p << " while ";
@@ -608,16 +765,20 @@ void cudaq::cc::LoopOp::print(OpAsmPrinter &p) {
                   /*printBlockTerminators=*/true);
   } else {
     p << " while ";
-    printInitializationList(p, getWhileRegion().front().getArguments(),
-                            getOperands());
+    printInitializationList(p, getWhileArguments(), getOperands());
     p.printRegion(getWhileRegion(), /*printEntryBlockArgs=*/false,
                   /*printBlockTerminators=*/true);
     p << " do ";
     p.printRegion(getBodyRegion(), /*printEntryBlockArgs=*/hasArguments(),
                   /*printBlockTerminators=*/true);
-    if (!getStepRegion().empty()) {
+    if (hasStep()) {
       p << " step ";
       p.printRegion(getStepRegion(), /*printEntryBlockArgs=*/hasArguments(),
+                    /*printBlockTerminators=*/hasArguments());
+    }
+    if (hasPythonElse()) {
+      p << " else ";
+      p.printRegion(getElseRegion(), /*printEntryBlockArgs=*/hasArguments(),
                     /*printBlockTerminators=*/hasArguments());
     }
   }
@@ -631,6 +792,7 @@ ParseResult cudaq::cc::LoopOp::parse(OpAsmParser &parser,
   auto *cond = result.addRegion();
   auto *body = result.addRegion();
   auto *step = result.addRegion();
+  auto *elseReg = result.addRegion();
   auto parseOptBlockArgs =
       [&](SmallVector<OpAsmParser::Argument, 4> &regionArgs) {
         SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
@@ -664,6 +826,10 @@ ParseResult cudaq::cc::LoopOp::parse(OpAsmParser &parser,
         return failure();
       OpBuilder opBuilder(builder.getContext());
       ensureStepTerminator(opBuilder, result, step);
+    }
+    if (succeeded(parser.parseOptionalKeyword("else"))) {
+      if (parser.parseRegion(*elseReg, emptyArgs))
+        return failure();
     }
   } else if (succeeded(parser.parseOptionalKeyword("do"))) {
     isPostCondition = true;
@@ -710,9 +876,14 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
   }
   switch (index.value()) {
   case 0:
-    // WHILE region, successors are the owning loop op and the DO region.
+    // WHILE region, successors are the DO region and either the owning loop op
+    // (if no else region is present) or the else region.
     regions.push_back(RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
-    regions.push_back(RegionSuccessor(getResults()));
+    if (hasPythonElse())
+      regions.push_back(
+          RegionSuccessor(&getElseRegion(), getElseEntryArguments()));
+    else
+      regions.push_back(RegionSuccessor(getResults()));
     break;
   case 1:
     // DO region, successor is STEP region (2) if present, or WHILE region (0)
@@ -731,6 +902,11 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
     if (hasStep())
       regions.push_back(
           RegionSuccessor(&getWhileRegion(), getWhileArguments()));
+    break;
+  case 3:
+    // ELSE region, successors are the owning loop op.
+    if (hasPythonElse())
+      regions.push_back(RegionSuccessor(getResults()));
     break;
   }
 }
@@ -769,6 +945,10 @@ namespace {
 //    ^bb1(%invariant : T):
 //      ...
 //      cc.continue %invariant : T
+//    } else {
+//    ^bb1(%invariant : T):
+//      ...
+//      cc.continue %invariant : T
 //    }
 //  ──────────────────────────────────────
 //    cc.loop while {
@@ -779,6 +959,10 @@ namespace {
 //      ...⟦%invariant := %1⟧...
 //      cc.continue
 //    } step {
+//    ^bb1:
+//      ...⟦%invariant := %1⟧...
+//      cc.continue
+//    } else {
 //    ^bb1:
 //      ...⟦%invariant := %1⟧...
 //      cc.continue
@@ -901,7 +1085,7 @@ ParseResult cudaq::cc::ScopeOp::parse(OpAsmParser &parser,
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
   auto *body = result.addRegion();
-  if (parser.parseRegion(*body, /*arguments=*/{}, /*argTypes=*/{}) ||
+  if (parser.parseRegion(*body, /*arguments=*/{}) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
   OpBuilder opBuilder(parser.getContext());
@@ -1032,6 +1216,13 @@ LogicalResult cudaq::cc::IfOp::verify() {
 
 void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
   p << '(' << getCondition() << ')';
+  if (!getLinearArgs().empty()) {
+    p << " ((";
+    llvm::interleaveComma(
+        llvm::zip(getThenEntryArguments(), getLinearArgs()), p,
+        [&](auto it) { p << std::get<0>(it) << " = " << std::get<1>(it); });
+    p << "))";
+  }
   p.printOptionalArrowTypeList(getResultTypes());
   p << ' ';
   const bool printBlockTerminators =
@@ -1076,16 +1267,43 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
       parser.parseRParen() ||
       parser.resolveOperand(cond, i1Type, result.operands))
     return failure();
+  SmallVector<OpAsmParser::Argument, 4> regionArgs;
+  if (succeeded(parser.parseOptionalLParen())) {
+    // Linear type arguments.
+    SmallVector<OpAsmParser::UnresolvedOperand, 4> linearOperands;
+    if (parser.parseAssignmentList(regionArgs, linearOperands) ||
+        parser.parseRParen())
+      return failure();
+    Type wireTy = quake::WireType::get(builder.getContext());
+    for (auto argOperand : llvm::zip(regionArgs, linearOperands)) {
+      std::get<0>(argOperand).type = wireTy;
+      if (parser.resolveOperand(std::get<1>(argOperand), wireTy,
+                                result.operands))
+        return failure();
+    }
+  }
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
-  if (parser.parseRegion(*thenRegion, /*arguments=*/{}, /*argTypes=*/{}))
+  if (!regionArgs.empty()) {
+    // Check that the result.types is compatible with the regionArgs. To be
+    // compatible, it must have at least as many linear types as there are
+    // region arguments. (It can have more.)
+    std::int64_t numRegionArgs = regionArgs.size();
+    std::for_each(result.types.begin(), result.types.end(), [&](Type t) {
+      if (quake::isLinearType(t))
+        --numRegionArgs;
+    });
+    if (numRegionArgs > 0)
+      return failure();
+  }
+  if (parser.parseRegion(*thenRegion, regionArgs))
     return failure();
   OpBuilder opBuilder(parser.getContext());
   ensureIfRegionTerminator(opBuilder, result, thenRegion);
 
   // If we find an 'else' keyword then parse the 'else' region.
   if (!parser.parseOptionalKeyword("else")) {
-    if (parser.parseRegion(*elseRegion, /*arguments=*/{}, /*argTypes=*/{}))
+    if (parser.parseRegion(*elseRegion, regionArgs))
       return failure();
     ensureIfRegionTerminator(opBuilder, result, elseRegion);
   }
@@ -1113,6 +1331,42 @@ void cudaq::cc::IfOp::getSuccessorRegions(
   regions.push_back(RegionSuccessor(&getThenRegion()));
   if (!getElseRegion().empty())
     regions.push_back(RegionSuccessor(&getElseRegion()));
+}
+
+template <typename A>
+long countLinearArgs(const A &iterable) {
+  return std::count_if(iterable.begin(), iterable.end(),
+                       [](Type t) { return quake::isLinearType(t); });
+}
+
+LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
+  auto regionOp = dyn_cast_if_present<RegionBranchOpInterface>(op);
+  if (!regionOp)
+    return failure();
+  SmallVector<RegionSuccessor> successors;
+  regionOp.getSuccessorRegions(std::nullopt, {}, successors);
+  // For each region successor, determine the number of distinct linear-typed
+  // definitions in the region.
+  long linearMax = -1;
+  for (auto iter : successors)
+    if (iter.getSuccessor())
+      for (Block &block : *iter.getSuccessor())
+        if (auto term = dyn_cast<cc::ContinueOp>(block.getTerminator())) {
+          auto numLinearArgs = countLinearArgs(term.getOperands().getTypes());
+          if (numLinearArgs > linearMax)
+            linearMax = numLinearArgs;
+        }
+
+  // All regions must have the same number of linear-type arguments and the
+  // region with the maximal number of distinct linear-typed definitions.
+  for (auto iter : successors)
+    if (iter.getSuccessor()) {
+      auto *block = &iter.getSuccessor()->front();
+      if (static_cast<long>(block->getNumArguments()) != linearMax)
+        return failure();
+    }
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -1151,7 +1405,7 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
                                              OperationState &result) {
   auto *body = result.addRegion();
   Type lambdaTy;
-  if (parser.parseRegion(*body, /*arguments=*/{}, /*argTypes=*/{}) ||
+  if (parser.parseRegion(*body, /*arguments=*/{}) ||
       parser.parseColonType(lambdaTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
@@ -1168,7 +1422,7 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
 LogicalResult cudaq::cc::CallCallableOp::verify() {
   FunctionType funcTy;
   auto ty = getCallee().getType();
-  if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(ty))
+  if (auto lambdaTy = dyn_cast<CallableType>(ty))
     funcTy = lambdaTy.getSignature();
   else if (auto fTy = dyn_cast<FunctionType>(ty))
     funcTy = fTy;
@@ -1191,6 +1445,25 @@ LogicalResult cudaq::cc::CallCallableOp::verify() {
     if (targRes != callVal.getType())
       return emitOpError("result type mismatch");
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// ConditionOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::ConditionOp::verify() {
+  Operation *self = getOperation();
+  Region *region = self->getBlock()->getParent();
+  auto parentOp = self->getParentOfType<LoopOp>();
+  assert(parentOp); // checked by tablegen constraints
+  if (&parentOp.getWhileRegion() != region)
+    return emitOpError("only valid in the while region of a loop");
+  return success();
+}
+
+MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
+    std::optional<unsigned> index) {
+  return getResultsMutable();
 }
 
 //===----------------------------------------------------------------------===//
@@ -1246,26 +1519,41 @@ struct ReplaceInFunc : public OpRewritePattern<FROM> {
 
 void cudaq::cc::ReturnOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ReplaceInFunc<cudaq::cc::ReturnOp, func::ReturnOp>>(context);
+  patterns.add<ReplaceInFunc<ReturnOp, func::ReturnOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
-// ConditionOp
+// SizeOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult cudaq::cc::ConditionOp::verify() {
-  Operation *self = getOperation();
-  Region *region = self->getBlock()->getParent();
-  auto parentOp = self->getParentOfType<LoopOp>();
-  assert(parentOp); // checked by tablegen constraints
-  if (&parentOp.getWhileRegion() != region)
-    return emitOpError("only valid in the while region of a loop");
-  return success();
-}
+namespace {
+struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
+  using Base = OpRewritePattern<cudaq::cc::SizeOfOp>;
+  using Base::Base;
 
-MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
-    std::optional<unsigned> index) {
-  return getResultsMutable();
+  LogicalResult matchAndRewrite(cudaq::cc::SizeOfOp sizeOp,
+                                PatternRewriter &rewriter) const override {
+    // TODO: Add handling of more types.
+    auto inpTy = sizeOp.getInputType();
+    std::optional<unsigned> bitsize;
+    if (isa<IntegerType, FloatType>(inpTy)) {
+      bitsize = inpTy.getIntOrFloatBitWidth();
+    } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(inpTy)) {
+      if (auto bits = strTy.getBitSize())
+        bitsize = bits;
+    }
+    if (!bitsize)
+      return failure();
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
+        sizeOp, cudaq::opt::convertBitsToBytes(*bitsize), sizeOp.getType());
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::SizeOfOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ReplaceConstantSizes>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1316,8 +1604,7 @@ struct ReplaceInLoop : public OpRewritePattern<FROM> {
 
 void cudaq::cc::UnwindBreakOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ReplaceInLoop<cudaq::cc::UnwindBreakOp, cudaq::cc::BreakOp>>(
-      context);
+  patterns.add<ReplaceInLoop<UnwindBreakOp, BreakOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1346,9 +1633,7 @@ LogicalResult cudaq::cc::UnwindContinueOp::verify() {
 
 void cudaq::cc::UnwindContinueOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns
-      .add<ReplaceInLoop<cudaq::cc::UnwindContinueOp, cudaq::cc::ContinueOp>>(
-          context);
+  patterns.add<ReplaceInLoop<UnwindContinueOp, ContinueOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//

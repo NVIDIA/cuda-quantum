@@ -1,0 +1,118 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -lower-to-cg %s | FileCheck %s
+
+func.func @test1(%arg : !cc.ptr<f64>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<f64>) -> !quake.veq<2>
+  return
+}
+
+func.func @test2(%arg : !cc.ptr<f32>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<f32>) -> !quake.veq<2>
+  return
+}
+
+func.func @test3(%arg : !cc.ptr<!cc.array<f64 x 4>>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
+  return
+}
+
+func.func @test4(%arg : !cc.ptr<!cc.array<f32 x ?>>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<!cc.array<f32 x ?>>) -> !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @test1(
+// CHECK-SAME:                     %[[VAL_0:.*]]: !cc.ptr<f64>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from f64 onto !quake.veq<2> : (!cc.ptr<f64>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @test2(
+// CHECK-SAME:                     %[[VAL_0:.*]]: !cc.ptr<f32>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from f32 onto !quake.veq<2> : (!cc.ptr<f32>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @test3(
+// CHECK-SAME:                     %[[VAL_0:.*]]: !cc.ptr<!cc.array<f64 x 4>>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from !cc.array<f64 x 4> onto !quake.veq<2> : (!cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @test4(
+// CHECK-SAME:                     %[[VAL_0:.*]]: !cc.ptr<!cc.array<f32 x ?>>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from !cc.array<f32 x ?> onto !quake.veq<2> : (!cc.ptr<!cc.array<f32 x ?>>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+func.func @testc1(%arg : !cc.ptr<complex<f64>>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<complex<f64>>) -> !quake.veq<2>
+  return
+}
+
+func.func @testc2(%arg : !cc.ptr<complex<f32>>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<complex<f32>>) -> !quake.veq<2>
+  return
+}
+
+func.func @testc3(%arg : !cc.ptr<!cc.array<complex<f64> x ?>>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<2>
+  return
+}
+
+func.func @testc4(%arg : !cc.ptr<!cc.array<complex<f32> x 4>>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @testc1(
+// CHECK-SAME:                      %[[VAL_0:.*]]: !cc.ptr<complex<f64>>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from complex<f64> onto !quake.veq<2> : (!cc.ptr<complex<f64>>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @testc2(
+// CHECK-SAME:                      %[[VAL_0:.*]]: !cc.ptr<complex<f32>>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from complex<f32> onto !quake.veq<2> : (!cc.ptr<complex<f32>>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @testc3(
+// CHECK-SAME:                      %[[VAL_0:.*]]: !cc.ptr<!cc.array<complex<f64> x ?>>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from !cc.array<complex<f64> x ?> onto !quake.veq<2> : (!cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @testc4(
+// CHECK-SAME:                      %[[VAL_0:.*]]: !cc.ptr<!cc.array<complex<f32> x 4>>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from !cc.array<complex<f32> x 4> onto !quake.veq<2> : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+func.func @teststate(%arg : !cc.ptr<!cc.state>) {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.init_state %0, %arg : (!quake.veq<2>, !cc.ptr<!cc.state>) -> !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @teststate(
+// CHECK-SAME:                         %[[VAL_0:.*]]: !cc.ptr<!cc.state>) {
+// CHECK:           %[[VAL_1:.*]] = codegen.qmem_raii %[[VAL_0]] from !cc.state onto !quake.veq<2> : (!cc.ptr<!cc.state>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+

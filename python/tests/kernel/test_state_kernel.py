@@ -19,6 +19,10 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
     sys.version_info < (3, 9),
     reason="built-in collection types such as `list` not supported")
 
+skipIfNoGQPU = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    reason="nvidia-mqpu backend not available")
+
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -26,12 +30,14 @@ def do_something():
     cudaq.__clearKernelRegistries()
 
 
+@skipIfNoGQPU
 def test_state_vector_simple():
     """
     A simple end-to-end test of the state class on a state vector
     backend. Begins with a kernel, converts to state, then checks
     its member functions.
     """
+    cudaq.set_target('nvidia-fp64')
 
     @cudaq.kernel
     def bell():
@@ -42,8 +48,11 @@ def test_state_vector_simple():
     # Get the quantum state, which should be a vector.
     got_state = cudaq.get_state(bell)
 
-    want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
-                          dtype=np.complex128)
+    want_state = cudaq.State.from_data(
+        np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex128))
+
+    assert len(want_state) == 4
 
     # Check the indexing operators on the State class
     # while also checking their values
@@ -60,6 +69,7 @@ def test_state_vector_simple():
         print(f"want = {want_state[i]}")
         print(f"got = {got_vector[i]}")
     assert np.allclose(want_state, np.array(got_state))
+    cudaq.reset_target()
 
 
 def check_state_vector_integration(entity):
@@ -88,7 +98,7 @@ def check_state_vector_integration(entity):
 @skipIfPythonLessThan39
 def test_state_vector_integration():
     """
-    An integration test on the state vector class. Uses a CUDA Quantum
+    An integration test on the state vector class. Uses a CUDA-Q
     optimizer to find the correct kernel parameters for a Bell state.
     """
     # Make a general 2 qubit SO4 rotation.
@@ -110,7 +120,7 @@ def test_state_vector_integration():
 
 def test_state_vector_integration_with_List():
     """
-    An integration test on the state vector class. Uses a CUDA Quantum
+    An integration test on the state vector class. Uses a CUDA-Q
     optimizer to find the correct kernel parameters for a Bell state.
     """
     # Make a general 2 qubit SO4 rotation.

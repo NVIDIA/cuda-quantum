@@ -37,7 +37,8 @@ public:
   MultiQPUQuantumPlatform() {
     if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
       int nDevices = cudaq::getCudaGetDeviceCount();
-      // Skipped if CUDAQ was built with CUDA but no devices present at runtime.
+      // Skipped if CUDA-Q was built with CUDA but no devices present at
+      // runtime.
       if (nDevices > 0) {
         const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
         if (envVal != nullptr) {

@@ -8,15 +8,21 @@
 
 #pragma once
 
+#include "common/JsonConvert.h"
+#include "common/Logger.h"
 #include "common/NvqcConfig.h"
+#include "common/RemoteKernelExecutor.h"
+#include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
+#include "common/UnzipUtils.h"
+#include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -35,14 +41,6 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
-
-#include "common/JsonConvert.h"
-#include "common/Logger.h"
-#include "common/RemoteKernelExecutor.h"
-#include "common/RestClient.h"
-#include "common/UnzipUtils.h"
-#include "cudaq.h"
-
 #include <dlfcn.h>
 #include <fstream>
 #include <iostream>
@@ -73,33 +71,11 @@ private:
 };
 } // namespace
 
-using namespace mlir;
-
 namespace cudaq {
 class BaseRemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
 protected:
   std::string m_url;
-  static inline const std::vector<std::string> clientPasses = {
-      "func.func(unwind-lowering)",
-      "func.func(indirect-to-direct-calls)",
-      "inline",
-      "canonicalize",
-      "apply-op-specialization",
-      "func.func(apply-control-negations)",
-      "func.func(memtoreg{quantum=0})",
-      "canonicalize",
-      "expand-measurements",
-      "cc-loop-normalize",
-      "cc-loop-unroll",
-      "canonicalize",
-      "func.func(add-dealloc)",
-      "func.func(quake-add-metadata)",
-      "canonicalize",
-      "func.func(lower-to-cfg)",
-      "func.func(combine-quantum-alloc)",
-      "canonicalize",
-      "cse",
-      "quake-to-qir"};
+  static inline const std::vector<std::string> clientPasses = {};
   static inline const std::vector<std::string> serverPasses = {};
   // Random number generator.
   std::mt19937 randEngine{std::random_device{}()};
@@ -121,7 +97,7 @@ public:
     return cudaq::RestRequest::REST_PAYLOAD_VERSION;
   }
 
-  std::string constructKernelPayload(MLIRContext &mlirContext,
+  std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
                                      const std::string &name,
                                      void (*kernelFunc)(void *), void *args,
                                      std::uint64_t voidStarSize) {
@@ -146,7 +122,7 @@ public:
     } else {
       // Get the quake representation of the kernel
       auto quakeCode = cudaq::get_quake_by_name(name);
-      auto module = parseSourceString<ModuleOp>(quakeCode, &mlirContext);
+      auto module = parseSourceString<mlir::ModuleOp>(quakeCode, &mlirContext);
       if (!module)
         throw std::runtime_error("module cannot be parsed");
 
@@ -155,18 +131,19 @@ public:
           std::string("__nvqpp__mlirgen__") + name);
 
       // Create a new Module to clone the function into
-      auto location = FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
-      ImplicitLocOpBuilder builder(location, &mlirContext);
-      // Add cuda quantum kernel attribute if not already set.
+      auto location =
+          mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
+      mlir::ImplicitLocOpBuilder builder(location, &mlirContext);
+      // Add CUDA-Q kernel attribute if not already set.
       if (!func->hasAttr(cudaq::kernelAttrName))
         func->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
       // Add entry-point attribute if not already set.
       if (!func->hasAttr(cudaq::entryPointAttrName))
         func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-      auto moduleOp = builder.create<ModuleOp>();
+      auto moduleOp = builder.create<mlir::ModuleOp>();
       moduleOp->setAttrs((*module)->getAttrDictionary());
       for (auto &op : *module) {
-        auto funcOp = dyn_cast<func::FuncOp>(op);
+        auto funcOp = dyn_cast<mlir::func::FuncOp>(op);
         // Add quantum kernels defined in the module.
         if (funcOp && (funcOp->hasAttr(cudaq::kernelAttrName) ||
                        funcOp.getName().startswith("__nvqpp__mlirgen__")))
@@ -175,31 +152,33 @@ public:
 
       if (args) {
         cudaq::info("Run Quake Synth.\n");
-        PassManager pm(&mlirContext);
+        mlir::PassManager pm(&mlirContext);
         pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
 
-      // Client-side passes
-      if (!clientPasses.empty()) {
-        PassManager pm(&mlirContext);
-        std::string errMsg;
-        llvm::raw_string_ostream os(errMsg);
-        const std::string pipeline =
-            std::accumulate(clientPasses.begin(), clientPasses.end(),
-                            std::string(), [](const auto &ss, const auto &s) {
-                              return ss.empty() ? s : ss + "," + s;
-                            });
-        if (failed(parsePassPipeline(pipeline, pm, os)))
-          throw std::runtime_error(
-              "Remote rest platform failed to add passes to pipeline (" +
-              errMsg + ").");
+      // Run client-side passes. `clientPasses` is empty right now, but the code
+      // below accommodates putting passes into it.
+      mlir::PassManager pm(&mlirContext);
+      std::string errMsg;
+      llvm::raw_string_ostream os(errMsg);
+      const std::string pipeline =
+          std::accumulate(clientPasses.begin(), clientPasses.end(),
+                          std::string(), [](const auto &ss, const auto &s) {
+                            return ss.empty() ? s : ss + "," + s;
+                          });
+      if (failed(parsePassPipeline(pipeline, pm, os)))
+        throw std::runtime_error(
+            "Remote rest platform failed to add passes to pipeline (" + errMsg +
+            ").");
 
-        if (failed(pm.run(moduleOp)))
-          throw std::runtime_error(
-              "Remote rest platform: applying IR passes failed.");
-      }
+      cudaq::opt::addPipelineConvertToQIR(pm);
+
+      if (failed(pm.run(moduleOp)))
+        throw std::runtime_error(
+            "Remote rest platform: applying IR passes failed.");
+
       std::string mlirCode;
       llvm::raw_string_ostream outStr(mlirCode);
       mlir::OpPrintingFlags opf;
@@ -211,7 +190,7 @@ public:
   }
 
   cudaq::RestRequest constructJobRequest(
-      MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+      mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
@@ -238,8 +217,35 @@ public:
       request.format = cudaq::CodeFormat::MLIR;
     }
 
-    request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                          kernelArgs, argsSize);
+    if (io_context.name == "state-overlap") {
+      if (!io_context.overlapComputeStates.has_value())
+        throw std::runtime_error("Invalid execution context: no input states");
+      const auto *castedState1 = dynamic_cast<const RemoteSimulationState *>(
+          io_context.overlapComputeStates->first);
+      const auto *castedState2 = dynamic_cast<const RemoteSimulationState *>(
+          io_context.overlapComputeStates->second);
+      if (!castedState1 || !castedState2)
+        throw std::runtime_error(
+            "Invalid execution context: input states are not compatible");
+      auto [kernelName1, args1, argsSize1] = castedState1->getKernelInfo();
+      auto [kernelName2, args2, argsSize2] = castedState2->getKernelInfo();
+      cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
+
+      stateIrPayload1.entryPoint = kernelName1;
+      stateIrPayload1.ir = constructKernelPayload(mlirContext, kernelName1,
+                                                  nullptr, args1, argsSize1);
+      stateIrPayload2.entryPoint = kernelName2;
+      stateIrPayload2.ir = constructKernelPayload(mlirContext, kernelName2,
+                                                  nullptr, args2, argsSize2);
+      // First kernel of the overlap calculation
+      request.code = stateIrPayload1.ir;
+      request.entryPoint = stateIrPayload1.entryPoint;
+      // Second kernel of the overlap calculation
+      request.overlapKernel = stateIrPayload2;
+    } else {
+      request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
+                                            kernelArgs, argsSize);
+    }
     request.simulator = backendSimName;
     // Remote server seed
     // Note: unlike local executions whereby a static instance of the simulator
@@ -259,11 +265,13 @@ public:
     return request;
   }
 
-  virtual bool
-  sendRequest(MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
+                           cudaq::ExecutionContext &io_context,
+                           const std::string &backendSimName,
+                           const std::string &kernelName,
+                           void (*kernelFunc)(void *), void *kernelArgs,
+                           std::uint64_t argsSize,
+                           std::string *optionalErrorMsg) override {
     cudaq::RestRequest request =
         constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
                             kernelFunc, kernelArgs, argsSize);
@@ -391,8 +399,31 @@ protected:
                          "", headers, /*enableSsl=*/true);
     const std::string cudaqNvcfFuncNamePrefix = "cuda_quantum";
     DeploymentInfo info;
+
+    // NCA ID Precedence order is:
+    // 1. CUDAQ_NCA_ID if it was specifically overriden
+    // 2. Dev org NCA ID if active dev functions are visible with selected key
+    // 3. Production NCA ID
+    const std::string ncaIdToSearch = [&]() {
+      // Check for override
+      if (isNvqcNcaIdOverridden())
+        return CUDAQ_NCA_ID;
+      // Check to see if dev NCA ID functions are available
+      for (auto funcInfo : allVisibleFunctions["functions"]) {
+        if (funcInfo["ncaId"].get<std::string>() ==
+                std::string(DEV_NVQC_NCA_ID) &&
+            funcInfo["status"].get<std::string>() == "ACTIVE" &&
+            funcInfo["name"].get<std::string>().starts_with(
+                cudaqNvcfFuncNamePrefix)) {
+          return std::string(DEV_NVQC_NCA_ID);
+        }
+      }
+      // Fallback on production NCA ID
+      return CUDAQ_NCA_ID;
+    }();
+
     for (auto funcInfo : allVisibleFunctions["functions"]) {
-      if (funcInfo["ncaId"].get<std::string>() == CUDAQ_NCA_ID &&
+      if (funcInfo["ncaId"].get<std::string>() == ncaIdToSearch &&
           funcInfo["status"].get<std::string>() == "ACTIVE" &&
           funcInfo["name"].get<std::string>().starts_with(
               cudaqNvcfFuncNamePrefix)) {
@@ -638,11 +669,13 @@ public:
       }
     }
   }
-  virtual bool
-  sendRequest(MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
+                           cudaq::ExecutionContext &io_context,
+                           const std::string &backendSimName,
+                           const std::string &kernelName,
+                           void (*kernelFunc)(void *), void *kernelArgs,
+                           std::uint64_t argsSize,
+                           std::string *optionalErrorMsg) override {
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {"tensornet",
                                                                 "nvidia-mgpu"};
     {
@@ -659,7 +692,7 @@ public:
                   << m_availableFuncs[m_functionId].numGpus
                   << " GPUs requested.\n";
         std::cout << "Only one GPU will be used for simulation.\n";
-        std::cout << "Please refer to CUDA Quantum documentation for a list of "
+        std::cout << "Please refer to CUDA-Q documentation for a list of "
                      "multi-GPU capable simulator backends.\n";
         printOnce = true;
       }
@@ -681,7 +714,7 @@ public:
     if (request.format != cudaq::CodeFormat::MLIR) {
       // The `.config` file may have been tampered with.
       std::cerr << "Internal error: unsupported kernel IR detected.\nThis may "
-                   "indicate a corrupted CUDA Quantum installation.";
+                   "indicate a corrupted CUDA-Q installation.";
       std::abort();
     }
 

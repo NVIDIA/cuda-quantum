@@ -9,9 +9,9 @@
 
 def print_i64(value: int) -> None:
     raise RuntimeError(
-        'cudaq.dbg.ast.print_i64 can only be called from a CUDA Quantum kernel')
+        'cudaq.dbg.ast.print_i64 can only be called from a CUDA-Q kernel')
 
 
 def print_f64(value: float) -> None:
     raise RuntimeError(
-        'cudaq.dbg.ast.print_f64 can only be called from a CUDA Quantum kernel')
+        'cudaq.dbg.ast.print_f64 can only be called from a CUDA-Q kernel')

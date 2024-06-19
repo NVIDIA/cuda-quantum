@@ -201,7 +201,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
 ///        callable with non-trivial (not `std::vector<double>`) argument
 ///        structure.
 ///
-/// \param kernel The CUDA Quantum callable with non-trivial function
+/// \param kernel The CUDA-Q callable with non-trivial function
 /// signature. \param H The hermitian cudaq::spin_op to compute the minimal
 /// eigenvalue for. \param optimizer The cudaq::optimizer to use for iteratively
 /// searching for

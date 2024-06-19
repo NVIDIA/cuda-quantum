@@ -8,16 +8,16 @@
 
 #pragma once
 
+#include "PyTypes.h"
 #include "common/FmtCore.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/pauli_word.h"
-
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-
 #include <chrono>
+#include <complex>
 #include <functional>
 #include <future>
 #include <pybind11/complex.h>
@@ -71,71 +71,10 @@ public:
   }
 };
 
-/// @brief Validate that the number of arguments provided is
-/// correct for the given kernel_builder. Throw an exception if not.
-inline py::args validateInputArguments(kernel_builder<> &kernel,
-                                       py::args &args) {
-  // Ensure the user input is correct.
-  auto nInputArgs = args.size();
-  auto nRequiredParams = kernel.getNumParams();
-  if (nRequiredParams != nInputArgs)
-    throw std::runtime_error(
-        fmt::format("Kernel requires {} input parameter{} but {} provided.",
-                    nRequiredParams, nRequiredParams > 1 ? "s" : "",
-                    nInputArgs == 0 ? "none" : std::to_string(nInputArgs)));
-
-  // Look at the input arguments, validate they are ok
-  // Specifically here we'll check if we've been given
-  // other list-like types as input for a stdvec (like numpy array)
-  py::args processed = py::tuple(args.size());
-  for (std::size_t i = 0; i < args.size(); ++i) {
-    auto arg = args[i];
-    if (kernel.isArgStdVec(i)) {
-
-      auto nRequiredElements = kernel.getArguments()[i].getRequiredElements();
-
-      // Check if it has tolist, so it might be a 1d buffer (array / numpy
-      // ndarray)
-      if (py::hasattr(args[i], "tolist")) {
-        // This is a valid ndarray if it has tolist and shape
-        if (!py::hasattr(args[i], "shape"))
-          throw std::runtime_error(
-              "Invalid input argument type, could not get shape of array.");
-
-        // This is an ndarray with tolist() and shape attributes
-        // get the shape and check its size
-        auto shape = args[i].attr("shape").cast<py::tuple>();
-        if (shape.size() != 1)
-          throw std::runtime_error("Cannot pass ndarray with shape != (N,).");
-
-        arg = args[i].attr("tolist")();
-      }
-
-      // has to be a list if its not a nd array
-      if (!py::isinstance<py::list>(arg))
-        throw std::runtime_error(
-            "Invalid list-like argument to Kernel.__call__()");
-
-      auto nElements = arg.cast<py::list>().size();
-      if (nRequiredElements != nElements)
-        throw std::runtime_error("Kernel list argument requires " +
-                                 std::to_string(nRequiredElements) + " but " +
-                                 std::to_string(nElements) + " were provided.");
-    }
-
-    processed[i] = arg;
-  }
-
-  // TODO: Handle more type checking
-
-  return processed;
-}
-
-/// @brief FIXME. This is a simple version of the above function,
-// it will only process numpy arrays of 1D shape and make them compatible
-// with our MLIR code. Future work should make this function perform more
-// checks, we probably want to take the Kernel MLIR argument Types as input and
-// use that to validate that the passed arguments are good to go.
+/// @brief This function modifies input arguments to convert them into valid
+/// CUDA-Q argument types. Future work should make this function perform more
+/// checks, we probably want to take the Kernel MLIR argument Types as input and
+/// use that to validate that the passed arguments are good to go.
 inline py::args simplifiedValidateInputArguments(py::args &args) {
   py::args processed = py::tuple(args.size());
   for (std::size_t i = 0; i < args.size(); ++i) {
@@ -155,6 +94,23 @@ inline py::args simplifiedValidateInputArguments(py::args &args) {
         throw std::runtime_error("Cannot pass ndarray with shape != (N,).");
 
       arg = args[i].attr("tolist")();
+    } else if (py::isinstance<py::str>(arg)) {
+      arg = cudaq::pauli_word(py::cast<std::string>(arg));
+    } else if (py::isinstance<py::list>(arg)) {
+      py::list arg_list = py::cast<py::list>(arg);
+      const bool all_strings = [&]() {
+        for (auto &item : arg_list)
+          if (!py::isinstance<py::str>(item))
+            return false;
+        return true;
+      }();
+      if (all_strings) {
+        std::vector<cudaq::pauli_word> pw_list;
+        pw_list.reserve(arg_list.size());
+        for (auto &item : arg_list)
+          pw_list.emplace_back(py::cast<std::string>(item));
+        arg = std::move(pw_list);
+      }
     }
 
     processed[i] = arg;
@@ -184,6 +140,51 @@ inline mlir::func::FuncOp getKernelFuncOp(MlirModule module,
   return kernelFunc;
 }
 
+template <typename T>
+void checkArgumentType(py::handle arg, int index) {
+  if (!py_ext::isConvertible<T>(arg)) {
+    throw std::runtime_error(
+        "kernel argument type is '" + std::string(py_ext::typeName<T>()) + "'" +
+        " but argument provided is not (argument " + std::to_string(index) +
+        ", value=" + py::str(arg).cast<std::string>() +
+        ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
+  }
+}
+
+template <typename T>
+void checkListElementType(py::handle arg, int index, int elementIndex) {
+  if (!py_ext::isConvertible<T>(arg)) {
+    throw std::runtime_error(
+        "kernel argument's element type is '" +
+        std::string(py_ext::typeName<T>()) + "'" +
+        " but argument provided is not (argument " + std::to_string(index) +
+        ", element " + std::to_string(elementIndex) +
+        ", value=" + py::str(arg).cast<std::string>() +
+        ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
+  }
+}
+
+template <typename T>
+inline void addArgument(OpaqueArguments &argData, T &&arg) {
+  T *allocatedArg = new T(std::move(arg));
+  argData.emplace_back(allocatedArg,
+                       [](void *ptr) { delete static_cast<T *>(ptr); });
+}
+
+template <typename T>
+inline void valueArgument(OpaqueArguments &argData, T *arg) {
+  argData.emplace_back(static_cast<void *>(arg), [](void *) {});
+}
+
+inline std::string mlirTypeToString(mlir::Type ty) {
+  std::string msg;
+  {
+    llvm::raw_string_ostream os(msg);
+    ty.print(os);
+  }
+  return msg;
+}
+
 inline void
 packArgs(OpaqueArguments &argData, py::args args,
          mlir::func::FuncOp kernelFuncOp,
@@ -199,159 +200,172 @@ packArgs(OpaqueArguments &argData, py::args args,
     py::object arg = args[i];
     auto kernelArgTy = kernelFuncOp.getArgument(i).getType();
     llvm::TypeSwitch<mlir::Type, void>(kernelArgTy)
+        .Case([&](mlir::ComplexType ty) {
+          checkArgumentType<py_ext::Complex>(arg, i);
+          if (isa<Float64Type>(ty.getElementType())) {
+            addArgument(argData, arg.cast<std::complex<double>>());
+          } else if (isa<Float32Type>(ty.getElementType())) {
+            addArgument(argData, arg.cast<std::complex<float>>());
+          } else {
+            throw std::runtime_error("Invalid complex type argument: " +
+                                     py::str(args).cast<std::string>() +
+                                     " Type: " + mlirTypeToString(ty));
+          }
+        })
         .Case([&](mlir::Float64Type ty) {
+          checkArgumentType<py_ext::Float>(arg, i);
+          addArgument(argData, arg.cast<double>());
+        })
+        .Case([&](mlir::Float32Type ty) {
+          checkArgumentType<py_ext::Float>(arg, i);
+          addArgument(argData, arg.cast<float>());
+        })
+        .Case([&](mlir::Float32Type ty) {
           if (!py::isinstance<py::float_>(arg))
             throw std::runtime_error("kernel argument type is `float` but "
                                      "argument provided is not (argument " +
                                      std::to_string(i) + ", value=" +
                                      py::str(arg).cast<std::string>() + ").");
-          double *ourAllocatedArg = new double();
-          *ourAllocatedArg = PyFloat_AsDouble(arg.ptr());
+          float *ourAllocatedArg = new float();
+          *ourAllocatedArg = arg.cast<float>();
           argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<double *>(ptr);
+            delete static_cast<float *>(ptr);
           });
         })
         .Case([&](mlir::IntegerType ty) {
           if (ty.getIntOrFloatBitWidth() == 1) {
-            if (!py::isinstance<py::bool_>(arg))
-              throw std::runtime_error("kernel argument type is `bool` but "
-                                       "argument provided is not (argument " +
-                                       std::to_string(i) + ", value=" +
-                                       py::str(arg).cast<std::string>() + ").");
-            bool *ourAllocatedArg = new bool();
-            *ourAllocatedArg = arg.ptr() == (PyObject *)&_Py_TrueStruct;
-            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-              delete static_cast<bool *>(ptr);
-            });
+            checkArgumentType<py::bool_>(arg, i);
+            addArgument(argData, arg.cast<bool>());
             return;
           }
 
-          if (!py::isinstance<py::int_>(arg))
-            throw std::runtime_error("kernel argument type is `int` but "
-                                     "argument provided is not (argument " +
-                                     std::to_string(i) + ", value=" +
-                                     py::str(arg).cast<std::string>() + ").");
-
-          long *ourAllocatedArg = new long();
-          *ourAllocatedArg = PyLong_AsLong(arg.ptr());
-          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<long *>(ptr);
-          });
+          checkArgumentType<py::int_>(arg, i);
+          addArgument(argData, arg.cast<long>());
         })
         .Case([&](cudaq::cc::CharspanType ty) {
-          // pauli word
-          cudaq::pauli_word *ourAllocatedArg =
-              new cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str());
-          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<cudaq::pauli_word *>(ptr);
-          });
+          addArgument(argData,
+                      cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str()));
+        })
+        .Case([&](cudaq::cc::PointerType ty) {
+          if (isa<cudaq::cc::StateType>(ty.getElementType())) {
+            valueArgument(argData, arg.cast<cudaq::state *>());
+          } else {
+            throw std::runtime_error("Invalid pointer type argument: " +
+                                     py::str(arg).cast<std::string>() +
+                                     " Type: " + mlirTypeToString(ty));
+          }
         })
         .Case([&](cudaq::cc::StdvecType ty) {
-          if (!py::isinstance<py::list>(arg))
-            throw std::runtime_error("kernel argument type is `list` but "
-                                     "argument provided is not (argument " +
-                                     std::to_string(i) + ", value=" +
-                                     py::str(arg).cast<std::string>() + ").");
+          checkArgumentType<py::list>(arg, i);
           auto casted = py::cast<py::list>(arg);
           auto eleTy = ty.getElementType();
           if (casted.empty()) {
             // Handle boolean different since C++ library implementation
             // for vectors of bool is different than other types.
             if (eleTy.isInteger(1)) {
-              std::vector<bool> *ourAllocatedArg = new std::vector<bool>();
-              argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-                delete static_cast<std::vector<bool> *>(ptr);
-              });
+              addArgument(argData, std::vector<bool>());
               return;
             }
 
             // If its empty, just put any vector on the `argData`,
             // it won't matter since it is empty and all
             // vectors have the same memory footprint (span-like).
-            std::vector<std::size_t> *ourAllocatedArg =
-                new std::vector<std::size_t>();
-            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-              delete static_cast<std::vector<std::size_t> *>(ptr);
-            });
+            addArgument(argData, std::vector<std::size_t>());
             return;
           }
 
           // Define a generic vector allocator as a
           // templated lambda so we can capture argData and casted.
           auto genericVecAllocator = [&]<typename VecTy>(auto &&converter) {
-            std::vector<VecTy> *ourAllocatedArg =
-                new std::vector<VecTy>(casted.size());
+            auto values = std::vector<VecTy>(casted.size());
             for (std::size_t counter = 0; auto el : casted) {
-              (*ourAllocatedArg)[counter++] = converter(el);
+              auto converted = converter(el, i, counter);
+              values[counter++] = converted;
             }
-            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-              delete static_cast<std::vector<VecTy> *>(ptr);
-            });
+            addArgument(argData, std::move(values));
           };
 
-          // Switch on the vector element type
+          // Switch on the vector element type.
           TypeSwitch<Type, void>(eleTy)
               .Case([&](IntegerType type) {
                 // Handle vec<bool> and vec<int>
                 if (type.getIntOrFloatBitWidth() == 1) {
                   genericVecAllocator.template operator()<bool>(
-                      [](py::handle element) {
-                        return element.ptr() == (PyObject *)&_Py_TrueStruct;
+                      [](py::handle element, int index, int elementIndex) {
+                        checkListElementType<py::bool_>(element, index,
+                                                        elementIndex);
+                        return element.cast<bool>();
                       });
                   return;
                 }
 
-                genericVecAllocator.template operator()<std::size_t>(
-                    [](py::handle element) -> std::size_t {
-                      return PyLong_AsLong(element.ptr());
+                genericVecAllocator.template operator()<long>(
+                    [](py::handle element, int index,
+                       int elementIndex) -> long {
+                      checkListElementType<py::int_>(element, index,
+                                                     elementIndex);
+                      return element.cast<long>();
                     });
                 return;
               })
               .Case([&](Float64Type type) {
                 genericVecAllocator.template operator()<double>(
-                    [](py::handle element) {
-                      return PyFloat_AsDouble(element.ptr());
+                    [](py::handle element, int index, int elementIndex) {
+                      checkListElementType<py_ext::Float>(element, index,
+                                                          elementIndex);
+                      return element.cast<double>();
+                    });
+                return;
+              })
+              .Case([&](Float32Type type) {
+                genericVecAllocator.template operator()<float>(
+                    [](py::handle element, int index, int elementIndex) {
+                      checkListElementType<py_ext::Float>(element, index,
+                                                          elementIndex);
+                      return element.cast<float>();
                     });
                 return;
               })
               .Case([&](cudaq::cc::CharspanType type) {
                 genericVecAllocator.template operator()<cudaq::pauli_word>(
-                    [](py::handle element) {
+                    [](py::handle element, int index, int elementIndex) {
                       auto pw = element.cast<cudaq::pauli_word>();
                       return cudaq::pauli_word(pw.str());
                     });
                 return;
               })
               .Case([&](ComplexType type) {
-                genericVecAllocator.template operator()<std::complex<double>>(
-                    [](py::handle element) -> std::complex<double> {
-                      if (!py::hasattr(element, "real"))
-                        throw std::runtime_error(
-                            "invalid complex element type");
-                      if (!py::hasattr(element, "imag"))
-                        throw std::runtime_error(
-                            "invalid complex element type");
-                      return {PyFloat_AsDouble(element.attr("real").ptr()),
-                              PyFloat_AsDouble(element.attr("imag").ptr())};
-                    });
+                if (isa<Float64Type>(type.getElementType())) {
+                  genericVecAllocator.template operator()<std::complex<double>>(
+                      [](py::handle element, int index,
+                         int elementIndex) -> std::complex<double> {
+                        checkListElementType<py_ext::Complex>(element, index,
+                                                              elementIndex);
+                        return element.cast<std::complex<double>>();
+                      });
+                } else {
+                  genericVecAllocator.template operator()<std::complex<float>>(
+                      [](py::handle element, int index,
+                         int elementIndex) -> std::complex<float> {
+                        checkListElementType<py_ext::Complex>(element, index,
+                                                              elementIndex);
+                        return element.cast<std::complex<float>>();
+                      });
+                }
                 return;
               })
               .Default([](Type ty) {
-                std::string msg;
-                {
-                  llvm::raw_string_ostream os(msg);
-                  ty.print(os);
-                }
-                throw std::runtime_error("invalid list element type (" + msg +
-                                         ").");
+                throw std::runtime_error("invalid list element type (" +
+                                         mlirTypeToString(ty) + ").");
               });
         })
-        .Default([&](Type) {
+        .Default([&](Type ty) {
           // See if we have a backup type handler.
           auto worked = backupHandler(argData, arg);
           if (!worked)
-            throw std::runtime_error("Could not pack argument: " +
-                                     py::str(args).cast<std::string>());
+            throw std::runtime_error(
+                "Could not pack argument: " + py::str(arg).cast<std::string>() +
+                " Type: " + mlirTypeToString(ty));
         });
   }
 }

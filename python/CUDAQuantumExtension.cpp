@@ -8,11 +8,7 @@
 
 #include "common/Logger.h"
 #include "cudaq.h"
-
-#include <pybind11/complex.h>
-#include <pybind11/pytypes.h>
-#include <pybind11/stl.h>
-
+#include "cudaq/platform/orca/orca_qpu.h"
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
@@ -33,10 +29,13 @@
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
+
+#include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 
-#include "cudaq/Optimizer/CAPI/Dialects.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include <pybind11/complex.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 
@@ -85,7 +84,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
             holder->setTarget(value, extraConfig);
         }
       },
-      "Initialize the CUDA Quantum environment.");
+      "Initialize the CUDA-Q environment.");
 
   cudaq::bindRuntimeTarget(cudaqRuntime, *holder.get());
   cudaq::bindMeasureCounts(cudaqRuntime);
@@ -97,7 +96,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindNoise(cudaqRuntime);
   cudaq::bindExecutionContext(cudaqRuntime);
   cudaq::bindExecutionManager(cudaqRuntime);
-  cudaq::bindPyState(cudaqRuntime);
+  cudaq::bindPyState(cudaqRuntime, *holder.get());
   cudaq::bindPyDraw(cudaqRuntime);
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);
@@ -111,7 +110,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
                    "The number of available GPUs detected on the system.");
 
   std::stringstream ss;
-  ss << "CUDA Quantum Version " << cudaq::getVersion() << " ("
+  ss << "CUDA-Q Version " << cudaq::getVersion() << " ("
      << cudaq::getFullRepositoryVersion() << ")";
   cudaqRuntime.attr("__version__") = ss.str();
 
@@ -160,6 +159,12 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "Returns true if MPI has already been initialized.");
   mpiSubmodule.def(
       "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
+
+  auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
+  orcaSubmodule.def("sample", &cudaq::orca::sample, "[Documentation TODO]",
+                    py::arg("bs_angles"), py::arg("ps_angles"),
+                    py::arg("input_state"), py::arg("loop_lengths"),
+                    py::arg("n_samples") = 10000);
 
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });

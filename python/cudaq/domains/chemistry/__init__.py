@@ -75,7 +75,7 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
                                                 n_active_electrons=None,
                                                 n_active_orbitals=None):
     '''
-    Internal function meant for integration with CUDA Quantum C++. 
+    Internal function meant for integration with CUDA-Q C++. 
     (Does not require `import cudaq`)
     
     Create the molecular Hamiltonian corresponding to the provided 

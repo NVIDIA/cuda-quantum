@@ -8,11 +8,13 @@
 
 #pragma once
 #include <algorithm>
+#include <cassert>
 #include <memory>
 #include <numeric>
 #include <random>
 #include <sstream>
 #include <string>
+#include <variant>
 #include <vector>
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -102,6 +104,21 @@ auto make_copyable_function(F &&f) {
 template <std::size_t Ofst, class Tuple, std::size_t... I>
 constexpr auto slice_impl(Tuple &&t, std::index_sequence<I...>) {
   return std::forward_as_tuple(std::get<I + Ofst>(std::forward<Tuple>(t))...);
+}
+
+/// @brief Return the index of a type in a variant
+template <typename VariantType, typename T, std::size_t index = 0>
+constexpr std::size_t variant_index() {
+  static_assert(std::variant_size_v<VariantType> > index,
+                "Type not found in variant");
+  if constexpr (index == std::variant_size_v<VariantType>) {
+    return index;
+  } else if constexpr (std::is_same_v<
+                           std::variant_alternative_t<index, VariantType>, T>) {
+    return index;
+  } else {
+    return variant_index<VariantType, T, index + 1>();
+  }
 }
 } // namespace detail
 
@@ -244,7 +261,14 @@ std::vector<double> random_vector(const double l_range, const double r_range,
 /// user-specified `start` value. The remaining values are all values
 /// incremented by `step` (defaults to 1) until the `stop` value is reached
 /// (exclusive).
+#if CUDAQ_USE_STD20
 template <typename ElementType>
+  requires(std::signed_integral<ElementType>)
+#else
+template <typename ElementType,
+          typename = std::enable_if_t<std::is_integral_v<ElementType> &&
+                                      std::is_signed_v<ElementType>>>
+#endif
 inline std::vector<ElementType> range(ElementType start, ElementType stop,
                                       ElementType step = 1) {
   std::vector<ElementType> vec;
@@ -259,9 +283,27 @@ inline std::vector<ElementType> range(ElementType start, ElementType stop,
 /// @brief Return a vector of integers. The first element is zero, and
 /// the remaining elements are all values incremented by 1 to the total
 /// size value provided (exclusive).
+#if CUDAQ_USE_STD20
 template <typename ElementType>
+  requires(std::signed_integral<ElementType>)
+#else
+template <typename ElementType,
+          typename = std::enable_if_t<std::is_integral_v<ElementType> &&
+                                      std::is_signed_v<ElementType>>>
+#endif
 inline std::vector<ElementType> range(ElementType N) {
   return range(ElementType(0), N);
+}
+
+/// @brief Return a vector of unsigned integers. The first element is zero, and
+/// the remaining elements are all values incremented by 1 to the total
+/// size value provided (exclusive).
+inline std::vector<std::size_t> range(std::size_t N) {
+  if (N > std::numeric_limits<std::make_signed_t<std::size_t>>::max())
+    throw std::runtime_error("invalid size value to cudaq::range()");
+  std::vector<std::size_t> vec(N);
+  std::iota(vec.begin(), vec.end(), 0);
+  return vec;
 }
 
 inline std::vector<std::string> split(const std::string &s, char delim) {

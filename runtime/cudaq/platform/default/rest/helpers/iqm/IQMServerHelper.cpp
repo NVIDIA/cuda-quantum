@@ -156,6 +156,10 @@ public:
   std::string constructGetJobPath(ServerMessage &postResponse) override;
   std::string constructGetJobPath(std::string &jobId) override;
 
+  /// @brief Return next results polling interval
+  std::chrono::microseconds
+  nextResultPollingInterval(ServerMessage &postResponse) override;
+
   /// @brief Return true if the job is done
   bool jobIsDone(ServerMessage &getJobResponse) override;
 
@@ -203,6 +207,11 @@ std::string IQMServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 std::string IQMServerHelper::constructGetJobPath(std::string &jobId) {
   return iqmServerUrl + "jobs/" + jobId + "/counts";
 }
+
+std::chrono::microseconds
+IQMServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
+  return std::chrono::seconds(1); // jobs never take less than few seconds
+};
 
 bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   cudaq::debug("getJobResponse: {}", getJobResponse.dump());

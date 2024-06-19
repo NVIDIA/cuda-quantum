@@ -1,0 +1,45 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --add-dealloc %s | FileCheck %s
+
+module {
+  func.func @__nvqpp__mlirgen__FromState() {
+    %c4 = arith.constant 4 : index
+    %c1 = arith.constant 1 : index
+    %c0 = arith.constant 0 : index
+    %0 = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
+    %1 = quake.alloca !quake.veq<4>
+    %2 = quake.init_state %1, %0 : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
+    %3 = cc.loop while ((%arg0 = %c0) -> (index)) {
+      %4 = arith.cmpi slt, %arg0, %c4 : index
+      cc.condition %4(%arg0 : index)
+    } do {
+    ^bb0(%arg0: index):
+      %4 = quake.extract_ref %2[%arg0] : (!quake.veq<4>, index) -> !quake.ref
+      quake.h %4 : (!quake.ref) -> ()
+      cc.continue %arg0 : index
+    } step {
+    ^bb0(%arg0: index):
+      %4 = arith.addi %arg0, %c1 : index
+      cc.continue %4 : index
+    } {invariant}
+    return
+  }
+  cc.global constant @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4>
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__FromState() {
+// CHECK:           %[[VAL_3:.*]] = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
+// CHECK:           quake.dealloc %[[VAL_5]] : !quake.veq<4>
+// CHECK:           return
+// CHECK:         }
+// CHECK:         cc.global constant @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01]> : tensor<4xf64>) : !cc.array<f64 x 4>
+

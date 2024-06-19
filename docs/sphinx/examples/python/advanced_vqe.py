@@ -24,8 +24,8 @@ def kernel(angles: List[float]):
 # Define the optimizer that we'd like to use.
 optimizer = cudaq.optimizers.Adam()
 
-# Since we'll be using a gradient-based optimizer, we can leverage
-# CUDA Quantum's gradient helper class to automatically compute the gradient
+# Since we'll be using a gradient-based optimizer, we can leverage the
+# CUDA-Q gradient helper class to automatically compute the gradient
 # vector for us. The use of this class for gradient calculations is
 # purely optional and can be replaced with your own custom gradient
 # routine.
@@ -51,7 +51,7 @@ def objective_function(parameter_vector: List[float],
     # function. If you were using a gradient-free optimizer,
     # you could purely define `cost = cudaq.observe().expectation()`.
     get_result = lambda parameter_vector: cudaq.observe(
-        kernel, hamiltonian, parameter_vector, shots_count=100).expectation()
+        kernel, hamiltonian, parameter_vector).expectation()
     # `cudaq.observe` returns a `cudaq.ObserveResult` that holds the
     # counts dictionary and the `expectation`.
     cost = get_result(parameter_vector)

@@ -12,7 +12,9 @@
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
+include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
+include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
 
 def AnyPointerType : Type<CPred<"$_self.isa<mlir::LLVM::LLVMPointerType,"
                           "cudaq::cc::PointerType>()">, "any pointer type">;
@@ -51,7 +53,7 @@ def cc_ScopeOp : CCOp<"scope",
     be added to reclaim stack space, or a call to `free` may be inserted to
     deallocate any compiler-generated heap allocations.
 
-    For a CUDA Quantum variable, cc.scope will, at minimum add calls to
+    For a CUDA-Q variable, cc.scope will, at minimum add calls to
     deallocate any quantum references created inside the ScopeOp's region. It
     may also be desirable to autogenerate adjoint code.
 
@@ -101,10 +103,11 @@ def cc_LoopOp : CCOp<"loop",
          DeclareOpInterfaceMethods<RegionBranchOpInterface>]> {
   let summary = "generalized loop construct";
   let description = [{
-    A LoopOp is a generalized C-like loop structure. It can be used to capture
-    the semantics of C's `for`, `while`, and `do while` statements. A LoopOp is
-    at its core a gated backedge with three distinct phases. Each phase is
-    a Region in the LoopOp. A LoopOp has the following structure.
+    A LoopOp is a generalized C-like or Python loop structure. It can be used to
+    capture the semantics of C's `for`, `while`, and `do while` statements and
+    Python's for-else statement. A LoopOp is at its core a gated backedge with
+    up to four distinct phases. Each phase is a Region in the LoopOp. A LoopOp
+    has the following (maximal) structure.
 
     Example:
     
@@ -115,10 +118,15 @@ def cc_LoopOp : CCOp<"loop",
         <do-code>
       } step {
         <step-code>
+      } else {
+        <else-code>
       }
     ```
 
-    - `for` statement:
+    The following show how statements in the surface syntax are lowered to the
+    cc.loop construct.
+
+    - C/C++ `for` statement:
     
     ```c++
       for (<init-code>; <while-code>; <step-code>) {
@@ -144,7 +152,7 @@ def cc_LoopOp : CCOp<"loop",
       }
     ```
 
-    - `while` statement:
+    - C/C++ `while` statement:
 
     ```c++
       while (<while-code>) {
@@ -164,7 +172,7 @@ def cc_LoopOp : CCOp<"loop",
       }
     ```
 
-    - `do while` statement:
+    - C/C++ `do while` statement:
 
     ```c++
       do {
@@ -185,6 +193,38 @@ def cc_LoopOp : CCOp<"loop",
         cc.condition ...
       }
     ```
+
+    - Python `for else` statement:
+
+    ```python
+      for x in <iterable-expr>:
+        <do-code>
+      else:
+        <else-code>
+    ```
+
+    The `<iterable-expr>` will be decomposed into separate steps of
+    `<init-code>`, `<while-code>`, and `<step-code>` by the Python bridge.
+
+    The above python loop, properly decomposed, is lowered to the following
+    MLIR code.
+
+    ```mlir
+      cc.scope {
+        <init-code>
+        cc.loop while {
+          <while-code>
+          cc.condition ...
+        } do {
+          <do-code>
+        } step {
+          <step-code>
+        } else {
+          <else-code>
+        }
+        cc.continue
+      }
+    ```
   }];
 
   let arguments = (ins
@@ -194,8 +234,9 @@ def cc_LoopOp : CCOp<"loop",
   let results = (outs Variadic<AnyType>:$results);
   let regions = (region
     SizedRegion<1>:$whileRegion,
-    AnyRegion:$bodyRegion,
-    AnyRegion:$stepRegion
+    AnyRegion:$bodyRegion, // 1 or more blocks
+    AnyRegion:$stepRegion, // 0 or 1 blocks
+    AnyRegion:$elseRegion  // 0 or more blocks
   );
 
   let hasCanonicalizer = 1;
@@ -203,6 +244,7 @@ def cc_LoopOp : CCOp<"loop",
   let hasVerifier = 1;
 
   let builders = [
+    // Generalized C++ loop statements
     OpBuilder<(ins "mlir::ValueRange":$iterArgs, "bool":$postCond,
       "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
                               "mlir::Region &)>":$whileBuilder,
@@ -219,7 +261,26 @@ def cc_LoopOp : CCOp<"loop",
                               "mlir::Region &)>":$bodyBuilder,
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
                                    "mlir::Region &)>",
-                                   "nullptr">:$stepBuilder)>
+                                   "nullptr">:$stepBuilder)>,
+    // Python's for-else
+    OpBuilder<(ins "mlir::ValueRange":$iterArgs,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                              "mlir::Region &)>":$whileBuilder,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                              "mlir::Region &)>":$bodyBuilder,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                                   "mlir::Region &)>":$stepBuilder,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                                   "mlir::Region &)>":$elseBuilder)>,
+    OpBuilder<(ins "mlir::TypeRange":$results, "mlir::ValueRange":$iterArgs,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                              "mlir::Region &)>":$whileBuilder,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                              "mlir::Region &)>":$bodyBuilder,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                                   "mlir::Region &)>":$stepBuilder,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                                   "mlir::Region &)>":$elseBuilder)>
   ];
 
   let extraClassDeclaration = [{
@@ -227,7 +288,7 @@ def cc_LoopOp : CCOp<"loop",
         mlir::Location, mlir::Region &)>;
 
     bool hasArguments() { return getOperands().size(); }
-    constexpr static llvm::StringRef postCondAttrName() {
+    static constexpr llvm::StringRef postCondAttrName() {
       return llvm::StringLiteral("post_condition");
     }
     bool isPostConditional() {
@@ -240,18 +301,30 @@ def cc_LoopOp : CCOp<"loop",
     mlir::Block::BlockArgListType getWhileArguments() {
       return getWhileBlock()->getArguments();
     }
+
     mlir::Block *getDoEntryBlock() { return &getBodyRegion().front(); }
     mlir::Block::BlockArgListType getDoEntryArguments() {
       return getDoEntryBlock()->getArguments();
     }
+
     bool hasStep() { return !getStepRegion().empty(); }
     mlir::Block *getStepBlock() {
+      // The step region is expected to have 0 or 1 block.
       return hasStep() ? &getStepRegion().front() : nullptr;
     }
     mlir::Block::BlockArgListType getStepArguments() {
       if (hasStep())
         return getStepBlock()->getArguments();
       return {};
+    }
+
+    bool hasPythonElse() { return !getElseRegion().empty(); }
+    mlir::Block *getElseEntryBlock() {
+      return hasPythonElse() ? &getElseRegion().front() : nullptr;
+    }
+    mlir::Block::BlockArgListType getElseEntryArguments() {
+      return hasPythonElse() ? getElseEntryBlock()->getArguments() :
+        mlir::Block::BlockArgListType{};
     }
 
     mlir::OperandRange
@@ -269,7 +342,7 @@ def cc_IfOp : CCOp<"if",
     [DeclareOpInterfaceMethods<RegionBranchOpInterface,
                                ["getNumRegionInvocations",
                                 "getRegionInvocationBounds"]>,
-     RecursiveMemoryEffects, NoRegionArguments]> {
+     RecursiveMemoryEffects, LinearTypeArgsTrait]> {
   let summary = "if-then-else operation";
   let description = [{
     An IfOp is a C-like if statement that supports single-entry, multiple-exit
@@ -297,9 +370,15 @@ def cc_IfOp : CCOp<"if",
     ```
   }];
 
-  let arguments = (ins I1:$condition);
+  let arguments = (ins
+    I1:$condition,
+    Variadic<AnyQLinearType>:$linearArgs
+  );
   let results = (outs Variadic<AnyType>:$results);
-  let regions = (region AnyRegion:$thenRegion, AnyRegion:$elseRegion);
+  let regions = (region
+    AnyRegion:$thenRegion,
+    AnyRegion:$elseRegion
+  );
 
   let builders = [
     OpBuilder<(ins "mlir::TypeRange":$resultTypes, "mlir::Value":$cond,
@@ -317,6 +396,23 @@ def cc_IfOp : CCOp<"if",
         mlir::Location, mlir::Region &)>;
 
     bool hasResults() { return getResults().size(); }
+
+    // A cc.if must have a valid then region.
+    bool hasThen() { return !getThenRegion().empty(); }
+    mlir::Block *getThenEntryBlock() { return &getThenRegion().front(); }
+    mlir::Block::BlockArgListType getThenEntryArguments() {
+      return getThenEntryBlock()->getArguments();
+    }
+
+    bool hasElse() { return !getElseRegion().empty(); }
+    mlir::Block *getElseEntryBlock() {
+      return hasElse() ? &getElseRegion().front() :
+        static_cast<mlir::Block*>(nullptr);
+    }
+    mlir::Block::BlockArgListType getElseEntryArguments() {
+      return hasElse() ? getElseEntryBlock()->getArguments() :
+        mlir::Block::BlockArgListType{};
+    }
   }];
 }
 
@@ -702,7 +798,7 @@ def cc_AllocaOp : CCOp<"alloca", [
   );
   let results = (outs cc_PointerType:$address);
 
-  let hasFolder = 1;
+  let hasCanonicalizer = 1;
   let hasCustomAssemblyFormat = 1;
   let builders = [
     OpBuilder<(ins "mlir::Type":$elementType, "mlir::Value":$seqSize), [{
@@ -791,6 +887,35 @@ def cc_AddressOfOp : CCOp<"address_of", [Pure,
 
   let assemblyFormat = [{
     $global_name `:` qualified(type($res)) attr-dict
+  }];
+}
+
+def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
+  let summary = "Create a global constant or variable";
+  let description = [{
+    A GlobalOp is used to create a global variable or constant that can be
+    referenced by symbol using the AddressOfOp. The type of this op is always
+    implicitly a cc::PointerType.
+
+    For example, this op may be used to define arrays of doubles, which may in
+    turn be used as initial state vectors for quantum memory (VeqType).
+  }];
+
+  let arguments = (ins
+    TypeAttr:$global_type,
+    StrAttr:$sym_name,
+    OptionalAttr<AnyAttr>:$value,
+    UnitAttr:$constant,
+    UnitAttr:$external
+  );
+
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+    cudaq::cc::PointerType getType() {
+      auto globalTy = getGlobalType();
+      return cudaq::cc::PointerType::get(globalTy);
+    }
   }];
 }
 
@@ -909,6 +1034,32 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
   }];
 }
 
+def cc_SizeOfOp : CCOp<"sizeof", [Pure]> {
+  let summary = "Return the size, in bytes, of a type.";
+  let description = [{
+    This operation is the size, in bytes, of a type that can be reified. It can
+    be used to determine how many bytes to allocate or move when a value is in
+    memory, for example. If the type cannot be reified, it returns a size of
+    poison.
+
+    Example:
+
+    ```mlir
+      %0 = cc.sizeof i32 : i64   // same as: arith.constant 4 : i64
+      %1 = cc.sizeof !cc.struct<"a_thing" ...> : i64
+    ```
+  }];
+
+  let arguments = (ins TypeAttr:$inputType);
+  let results = (outs AnySignlessInteger);
+
+  let hasCanonicalizer = 1;
+
+  let assemblyFormat = [{
+    $inputType `:` qualified(type(results)) attr-dict
+  }];
+}
+
 def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
   let summary = "A one dimensional array of constant values.";
   let description = [{
@@ -998,7 +1149,9 @@ def cc_CastOp : CCOp<"cast", [Pure]> {
     OptionalAttr<UnitAttr>:$zint
   );
   let results = (outs AnyType:$result);
+
   let hasFolder = 1;
+  let hasCanonicalizer = 1;
   let hasVerifier = 1;
   
   let assemblyFormat = [{

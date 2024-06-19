@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// This tool takes a snippet of CUDA Quantum code, translates it to the Quake
+/// This tool takes a snippet of CUDA-Q code, translates it to the Quake
 /// dialect, runs user-specified passes, and prints the result. (Note that Quake
 /// is a "minimalist" dialect, so translating to Quake can and does make use of
 /// other MLIR dialects as well. These other dialects are convenient but not the
@@ -39,8 +39,8 @@
 
 using namespace llvm;
 
-constexpr static const char toolName[] = "cudaq-quake";
-constexpr static const char mangledKernelNameMapAttrName[] =
+static constexpr const char toolName[] = "cudaq-quake";
+static constexpr const char mangledKernelNameMapAttrName[] =
     "quake.mangled_name_map";
 
 //===----------------------------------------------------------------------===//
@@ -193,7 +193,7 @@ private:
 };
 
 /// Action to create both the LLVM IR for the entire C++ compilation unit and to
-/// translate the CUDA Quantum kernels.
+/// translate the CUDA-Q kernels.
 class CudaQAction : public clang::EmitLLVMAction {
 public:
   using Base = clang::EmitLLVMAction;
@@ -343,8 +343,8 @@ int main(int argc, char **argv) {
   });
 
   // Process arguments.
-  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-Wno-c++20-extensions",
-                                     "-resource-dir", resourceDirPath.string()};
+  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-resource-dir",
+                                     resourceDirPath.string()};
   if (verboseClang)
     clArgs.push_back("-v");
 
@@ -381,8 +381,8 @@ int main(int argc, char **argv) {
 
   // One final check here, do we have this header, if not we cannot proceed.
   if (!std::filesystem::exists(cudaqIncludeDir / "cudaq.h")) {
-    llvm::errs() << "Invalid CUDA Quantum install configuration, cannot find "
-                    "CUDA Quantum include directory.\n";
+    llvm::errs() << "Invalid CUDA-Q install configuration, cannot find "
+                    "CUDA-Q include directory.\n";
     return 1;
   }
 

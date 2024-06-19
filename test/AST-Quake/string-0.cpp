@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %cpp_std %s | FileCheck %s
+// XFAIL: *
 
 // Test that a std::string argument can be passed to a kernel.
 

@@ -25,7 +25,7 @@ class MLIRContext;
 namespace cudaq {
 class ExecutionContext;
 
-/// Base interface encapsulating a CUDA Quantum runtime server capable of
+/// Base interface encapsulating a CUDA-Q runtime server capable of
 /// running kernel IR code.
 class RemoteRuntimeServer
     : public registry::RegisteredType<RemoteRuntimeServer> {
@@ -53,7 +53,7 @@ public:
   virtual ~RemoteRuntimeServer() = default;
 };
 
-/// Base interface encapsulating a CUDA Quantum runtime client, delegating
+/// Base interface encapsulating a CUDA-Q runtime client, delegating
 /// kernel execution to a remote server.
 class RemoteRuntimeClient
     : public registry::RegisteredType<RemoteRuntimeClient> {
@@ -68,7 +68,7 @@ public:
   virtual int version() const = 0;
 
   // Reset the random seed sequence using for remote execution.
-  // This is triggered by a random seed value being set in CUDAQ runtime.
+  // This is triggered by a random seed value being set in CUDA-Q runtime.
   virtual void resetRemoteRandomSeed(std::size_t seed) = 0;
 
   // Delegate/send kernel execution to a remote server.

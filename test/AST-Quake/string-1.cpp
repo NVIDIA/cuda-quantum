@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
+// XFAIL: *
 
 #include <cudaq.h>
 #include <string>

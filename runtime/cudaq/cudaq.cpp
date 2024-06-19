@@ -43,7 +43,6 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
     //  (2) Previously-activated custom plugin at its default location
     //  (3) Built-in comm plugin (e.g., docker container or build from source
     // with MPI)
-    //  (4) mpi4py-based wrapper
     const char *mpiLibPath = std::getenv("CUDAQ_MPI_COMM_LIB");
     if (mpiLibPath) {
       // The user has set the environment variable.
@@ -79,29 +78,11 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
         // The builtin (native) plugin if present
         const auto pluginLibFile =
             pluginsPath / fmt::format("libcudaq-comm-plugin.{}", libSuffix);
-        // The mpi4py-based plugin
-        const auto pyPluginLibFile =
-            pluginsPath / fmt::format("libcudaq-py-comm-plugin.{}", libSuffix);
         if (std::filesystem::exists(pluginLibFile) &&
             cudaq::MPIPlugin::isValidInterfaceLib(pluginLibFile.c_str())) {
           cudaq::info("Load builtin MPI comm plugin at '{}'",
                       pluginLibFile.c_str());
           g_plugin = std::make_unique<cudaq::MPIPlugin>(pluginLibFile.c_str());
-        } else if (std::filesystem::exists(pyPluginLibFile) &&
-                   cudaq::MPIPlugin::isValidInterfaceLib(
-                       pyPluginLibFile.c_str())) {
-          cudaq::info("Try loading mpi4py MPI comm plugin at '{}'",
-                      pyPluginLibFile.c_str());
-          g_plugin =
-              std::make_unique<cudaq::MPIPlugin>(pyPluginLibFile.c_str());
-          // With mpi4py plugin, we need to check if it is actually working.
-          // If mpi4py is not present at runtime, we cannot use this plugin.
-          if (!g_plugin->isValid()) {
-            cudaq::info("Failed to load mpi4py MPI comm plugin (mpi4py is not "
-                        "available).");
-            // Don't use it since mpi4py is not available.
-            g_plugin.reset();
-          }
         }
       }
     }

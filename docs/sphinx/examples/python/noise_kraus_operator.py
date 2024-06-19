@@ -4,7 +4,7 @@ import numpy as np
 # Set the target to our density matrix simulator.
 cudaq.set_target('density-matrix-cpu')
 
-# CUDA Quantum supports custom noise models through the definition of
+# CUDA-Q supports custom noise models through the definition of
 # `KrausChannel`'s. In this case, we will define a set of `KrausOperator`'s
 # that  affect the same noise as the `AmplitudeDampingChannel`. This
 # channel will model the energy dissipation within our system via

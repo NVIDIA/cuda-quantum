@@ -65,7 +65,7 @@ public:
 
 extern "C" ::cudaq::PluginLibraryInfo LLVM_ATTRIBUTE_WEAK cudaqGetPluginInfo();
 
-/// Register a general CUDA Quantum Plugin
+/// Register a general CUDA-Q Plugin
 #define CUDAQ_REGISTER_MLIR_PLUGIN(NAME, REGISTRATION_FUNCTOR)                 \
   extern "C" LLVM_ATTRIBUTE_WEAK ::cudaq::PluginLibraryInfo                    \
   cudaqGetPluginInfo() {                                                       \

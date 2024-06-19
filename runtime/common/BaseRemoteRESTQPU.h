@@ -48,8 +48,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-using namespace mlir;
-
 namespace cudaq {
 
 class BaseRemoteRESTQPU : public cudaq::QPU {
@@ -104,10 +102,11 @@ protected:
 
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
-  std::vector<ExecutionEngine *> jitEngines;
+  std::vector<mlir::ExecutionEngine *> jitEngines;
 
   /// @brief Invoke the kernel in the JIT engine
-  void invokeJITKernel(ExecutionEngine *jit, const std::string &kernelName) {
+  void invokeJITKernel(mlir::ExecutionEngine *jit,
+                       const std::string &kernelName) {
     auto funcPtr = jit->lookup(std::string("__nvqpp__mlirgen__") + kernelName);
     if (!funcPtr) {
       throw std::runtime_error(
@@ -117,7 +116,7 @@ protected:
   }
 
   /// @brief Invoke the kernel in the JIT engine and then delete the JIT engine.
-  void invokeJITKernelAndRelease(ExecutionEngine *jit,
+  void invokeJITKernelAndRelease(mlir::ExecutionEngine *jit,
                                  const std::string &kernelName) {
     invokeJITKernel(jit, kernelName);
     delete jit;
@@ -135,9 +134,9 @@ protected:
     return defaultVal;
   }
 
-  virtual std::tuple<ModuleOp, MLIRContext *, void *>
+  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
-  virtual void cleanupContext(MLIRContext *context) { return; }
+  virtual void cleanupContext(mlir::MLIRContext *context) { return; }
 
 public:
   /// @brief The constructor
@@ -207,7 +206,7 @@ public:
 
   /// @brief This setTargetBackend override is in charge of reading the
   /// specific target backend configuration file (bundled as part of this
-  /// CUDA Quantum installation) and extract MLIR lowering pipelines and
+  /// CUDA-Q installation) and extract MLIR lowering pipelines and
   /// specific code generation output required by this backend (QIR/QASM2).
   void setTargetBackend(const std::string &backend) override {
     cudaq::info("Remote REST platform is targeting {}.", backend);
@@ -363,27 +362,27 @@ public:
     auto [m_module, contextPtr, updatedArgs] =
         extractQuakeCodeAndContext(kernelName, kernelArgs);
 
-    MLIRContext &context = *contextPtr;
+    mlir::MLIRContext &context = *contextPtr;
 
     // Extract the kernel name
     auto func = m_module.lookupSymbol<mlir::func::FuncOp>(
         std::string("__nvqpp__mlirgen__") + kernelName);
 
     // Create a new Module to clone the function into
-    auto location = FileLineColLoc::get(&context, "<builder>", 1, 1);
-    ImplicitLocOpBuilder builder(location, &context);
+    auto location = mlir::FileLineColLoc::get(&context, "<builder>", 1, 1);
+    mlir::ImplicitLocOpBuilder builder(location, &context);
 
     // FIXME this should be added to the builder.
     if (!func->hasAttr(cudaq::entryPointAttrName))
       func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-    auto moduleOp = builder.create<ModuleOp>();
+    auto moduleOp = builder.create<mlir::ModuleOp>();
     moduleOp.push_back(func.clone());
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
-                               ModuleOp moduleOpIn) {
-      PassManager pm(&context);
+                               mlir::ModuleOp moduleOpIn) {
+      mlir::PassManager pm(&context);
       std::string errMsg;
       llvm::raw_string_ostream os(errMsg);
       cudaq::info("Pass pipeline for {} = {}", kernelName, pipeline);
@@ -401,7 +400,7 @@ public:
 
     if (updatedArgs) {
       cudaq::info("Run Quake Synth.\n");
-      PassManager pm(&context);
+      mlir::PassManager pm(&context);
       pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
@@ -414,15 +413,16 @@ public:
     // Run the config-specified pass pipeline
     runPassPipeline(passPipelineConfig, moduleOp);
 
-    auto entryPointFunc = moduleOp.lookupSymbol<func::FuncOp>(
+    auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
         std::string("__nvqpp__mlirgen__") + kernelName);
     std::vector<std::size_t> mapping_reorder_idx;
-    if (auto mappingAttr = dyn_cast_if_present<ArrayAttr>(
+    if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
             entryPointFunc->getAttr("mapping_reorder_idx"))) {
       mapping_reorder_idx.resize(mappingAttr.size());
-      std::transform(
-          mappingAttr.begin(), mappingAttr.end(), mapping_reorder_idx.begin(),
-          [](Attribute attr) { return attr.cast<IntegerAttr>().getInt(); });
+      std::transform(mappingAttr.begin(), mappingAttr.end(),
+                     mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
+                       return mlir::cast<mlir::IntegerAttr>(attr).getInt();
+                     });
     }
 
     if (executionContext) {
@@ -432,7 +432,7 @@ public:
         executionContext->reorderIdx.clear();
     }
 
-    std::vector<std::pair<std::string, ModuleOp>> modules;
+    std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
     // Apply observations if necessary
     if (executionContext && executionContext->name == "observe") {
       mapping_reorder_idx.clear();
@@ -443,11 +443,11 @@ public:
           continue;
 
         // Get the ansatz
-        auto ansatz = moduleOp.lookupSymbol<func::FuncOp>(
+        auto ansatz = moduleOp.lookupSymbol<mlir::func::FuncOp>(
             std::string("__nvqpp__mlirgen__") + kernelName);
 
         // Create a new Module to clone the ansatz into it
-        auto tmpModuleOp = builder.create<ModuleOp>();
+        auto tmpModuleOp = builder.create<mlir::ModuleOp>();
         tmpModuleOp.push_back(ansatz.clone());
 
         // Extract the binary symplectic encoding
@@ -455,8 +455,8 @@ public:
 
         // Create the pass manager, add the quake observe ansatz pass
         // and run it followed by the canonicalizer
-        PassManager pm(&context);
-        OpPassManager &optPM = pm.nest<func::FuncOp>();
+        mlir::PassManager pm(&context);
+        mlir::OpPassManager &optPM = pm.nest<mlir::func::FuncOp>();
         optPM.addPass(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
         if (disableMLIRthreading || enablePrintMLIREachPass)

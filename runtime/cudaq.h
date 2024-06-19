@@ -9,8 +9,8 @@
 #pragma once
 
 #include "common/NoiseModel.h"
+#include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
-#include "host_config.h"
 #include <string>
 #include <type_traits>
 
@@ -219,16 +219,16 @@ std::size_t get_random_seed();
 int num_available_gpus();
 
 namespace mpi {
-/// @brief Return true if CUDA Quantum has MPI plugin support.
+/// @brief Return true if CUDA-Q has MPI plugin support.
 bool available();
 
 /// @brief Initialize MPI if available. This function
-/// is a no-op if there CUDA Quantum has not been built
+/// is a no-op if there CUDA-Q has not been built
 /// against MPI.
 void initialize();
 
 /// @brief Initialize MPI if available. This function
-/// is a no-op if there CUDA Quantum has not been built
+/// is a no-op if there CUDA-Q has not been built
 /// against MPI. Takes program arguments as input.
 void initialize(int argc, char **argv);
 
@@ -280,7 +280,7 @@ void broadcast(std::vector<double> &data, int rootRank);
 void broadcast(std::string &data, int rootRank);
 
 /// @brief Finalize MPI. This function
-/// is a no-op if there CUDA Quantum has not been built
+/// is a no-op if there CUDA-Q has not been built
 /// against MPI.
 void finalize();
 
@@ -292,3 +292,5 @@ void finalize();
 #include "cudaq/algorithms/sample.h"
 // Users should get observe by default
 #include "cudaq/algorithms/observe.h"
+// Users should get get_state by default
+#include "cudaq/algorithms/get_state.h"

@@ -39,6 +39,7 @@ def test_list_init():
 # CHECK-DAG:           %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
 # CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<6>
 # CHECK:           %[[VAL_8:.*]] = cc.alloca !cc.array<f64 x 4>
+# CHECK:           %[[VAL_81:.*]] = cc.cast %[[VAL_8]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<!cc.array<f64 x ?>>
 # CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_8]][0] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
 # CHECK:           cc.store %[[VAL_6]], %[[VAL_9]] : !cc.ptr<f64>
 # CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_8]][1] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
@@ -47,7 +48,7 @@ def test_list_init():
 # CHECK:           cc.store %[[VAL_4]], %[[VAL_11]] : !cc.ptr<f64>
 # CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_8]][3] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
 # CHECK:           cc.store %[[VAL_3]], %[[VAL_12]] : !cc.ptr<f64>
-# CHECK:           %[[VAL_13:.*]] = cc.stdvec_init %[[VAL_8]], %[[VAL_2]] : (!cc.ptr<!cc.array<f64 x 4>>, i64) -> !cc.stdvec<f64>
+# CHECK:           %[[VAL_13:.*]] = cc.stdvec_init %[[VAL_81]], %[[VAL_2]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.stdvec<f64>
 # CHECK:           %[[VAL_14:.*]] = cc.alloca !cc.stdvec<f64>
 # CHECK:           cc.store %[[VAL_13]], %[[VAL_14]] : !cc.ptr<!cc.stdvec<f64>>
 # CHECK:           %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!cc.stdvec<f64>>

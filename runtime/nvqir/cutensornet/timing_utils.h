@@ -10,7 +10,7 @@
 #include "common/Logger.h"
 
 #ifndef NTIMING
-#define LOG_API_TIME() cudaq::ScopedTrace trace(__FUNCTION__);
+#define LOG_API_TIME() ScopedTraceWithContext(__FUNCTION__);
 #else
 #define LOG_API_TIME()
 #endif

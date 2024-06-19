@@ -18,8 +18,10 @@
 
 namespace cudaq {
 namespace cc {
+class CharspanType;
 class LoopOp;
 class PointerType;
+class StateType;
 class StructType;
 } // namespace cc
 
@@ -115,6 +117,11 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   return mlir::LLVM::LLVMStructType::getLiteral(ctx, eleTys);
 }
 
+/// Used to convert `StateType*` to a pointer in LLVM-IR.
+inline mlir::Type stateImplType(mlir::Type eleTy) {
+  return cudaq::opt::factory::getPointerType(eleTy.getContext());
+}
+
 // Host side types for std::string and std::vector
 
 cudaq::cc::StructType stlStringType(mlir::MLIRContext *ctx);
@@ -159,6 +166,17 @@ inline mlir::Value createF64Constant(mlir::Location loc,
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
 
+/// Return the integer value if \p v is an integer constant.
+std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
+
+/// Return the floating point value if \p v is a floating-point constant.
+std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
+
+/// Create a temporary on the stack. The temporary is created such that it is
+/// \em{not} control dependent (other than on function entry).
+mlir::Value createLLVMTemporary(mlir::Location loc, mlir::OpBuilder &builder,
+                                mlir::Type type, std::size_t size = 1);
+
 //===----------------------------------------------------------------------===//
 
 inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
@@ -172,7 +190,7 @@ inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
 mlir::Value packIsArrayAndLengthArray(mlir::Location loc,
                                       mlir::ConversionPatternRewriter &rewriter,
                                       mlir::ModuleOp parentModule,
-                                      mlir::Value numOperands,
+                                      std::size_t numOperands,
                                       mlir::ValueRange operands);
 mlir::FlatSymbolRefAttr
 createLLVMFunctionSymbol(mlir::StringRef name, mlir::Type retType,
@@ -197,6 +215,19 @@ createInvariantLoop(mlir::OpBuilder &builder, mlir::Location loc,
                                             mlir::Region &, mlir::Block &)>
                         bodyBuilder);
 
+/// Builds a monotonic loop. A monotonic loop is a loop that is guaranteed to
+/// execute the body of the loop from \p start to (but not including) \p stop
+/// stepping by \p step times. Exceptional conditions will cause the loop body
+/// to execute 0 times. Early exits are not allowed. This builder threads the
+/// loop control value, which will be returned as the value \p stop (or the next
+/// value near \p stop) when the loop exits.
+cc::LoopOp
+createMonotonicLoop(mlir::OpBuilder &builder, mlir::Location loc,
+                    mlir::Value start, mlir::Value stop, mlir::Value step,
+                    llvm::function_ref<void(mlir::OpBuilder &, mlir::Location,
+                                            mlir::Region &, mlir::Block &)>
+                        bodyBuilder);
+
 bool hasHiddenSRet(mlir::FunctionType funcTy);
 
 /// Convert the function type \p funcTy to a signature compatible with the code
@@ -217,6 +248,7 @@ bool isAArch64(mlir::ModuleOp);
 /// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`.
 bool structUsesTwoArguments(mlir::Type ty);
 
+std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
 } // namespace factory
 } // namespace opt
 } // namespace cudaq

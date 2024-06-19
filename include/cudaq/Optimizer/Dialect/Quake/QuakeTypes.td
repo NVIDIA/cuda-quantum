@@ -27,6 +27,7 @@ class QuakeType<string name, string typeMnemonic, list<Trait> traits = [],
 //===----------------------------------------------------------------------===//
 
 def WireType : QuakeType<"Wire", "wire"> {
+  let summary = "A quantum value. Wires are a linear type.";
   let description = [{
     A `wire` is a primitive quantum "SSA-value" that differs from a traditional
     SSA-value in that it can and will be modified when used in any target
@@ -65,6 +66,7 @@ def WireType : QuakeType<"Wire", "wire"> {
 //===----------------------------------------------------------------------===//
 
 def ControlType : QuakeType<"Control", "control"> {
+  let summary = "A quantum control value.";
   let description = [{
     A value having type `control` is quite similar to a value of type `wire`.
     The distinction is that a value of type `control` must be used in a control
@@ -192,6 +194,7 @@ def AnyRefType : Type<AnyRefTypeLike.predicate, "quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
         ControlType.predicate]>, "quake quantum value types">;
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
+def AnyQLinearType : Type<WireType.predicate, "linear quantum value type">;
 
 def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
 

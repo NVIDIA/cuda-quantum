@@ -17,15 +17,23 @@
 #include <cudaq/gradients.h>
 #include <cudaq/optimizers.h>
 
+static bool results_are_close(const cudaq::sample_result &f1,
+                              const cudaq::sample_result &f2) {
+  // Stub for a fancy comparison.
+  f1.dump();
+  f2.dump();
+  return true;
+}
+
 // This example demonstrates various uses for the `cudaq::builder`
 // type. This type enables one to dynamically construct callable
-// CUDA Quantum kernels via just-in-time compilation. The typical workflow
-// starts by creating a `cudaq::builder` and any CUDA Quantum kernel runtime
+// CUDA-Q kernels via just-in-time compilation. The typical workflow
+// starts by creating a `cudaq::builder` and any CUDA-Q kernel runtime
 // arguments via the `cudaq::make_kernel<ParameterTypes...>()` function.
 // Programmers get reference to the builder and the concrete runtime
 // parameters for the kernel function, and can then begin building up
-// the CUDA Quantum kernel. Once done adding gates, the builder itself is
-// callable, and can be used just like any other CUDA Quantum kernel.
+// the CUDA-Q kernel. Once done adding gates, the builder itself is
+// callable, and can be used just like any other CUDA-Q kernel.
 
 int main() {
   {
@@ -48,7 +56,7 @@ int main() {
     ansatz.ry(theta, q[1]);
     ansatz.x<cudaq::ctrl>(q[1], q[0]); // Need to get rid of ::
 
-    // The buildable kernel can be passed to CUDA Quantum functions
+    // The buildable kernel can be passed to CUDA-Q functions
     // just like a declared kernel type.
     ansatz(.59);
     double exp = cudaq::observe(ansatz, h, .59);
@@ -57,7 +65,7 @@ int main() {
 
   {
     // Build up a 2 parameter circuit using a vector<double> parameter
-    // Run the CUDA Quantum optimizer to find optimal value.
+    // Run the CUDA-Q optimizer to find optimal value.
     using namespace cudaq::spin;
     cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                        .21829 * z(0) - 6.125 * z(1);
@@ -112,6 +120,37 @@ int main() {
     // Sample and get the counts
     auto counts = cudaq::sample(ghz_builder);
     counts.dump();
+  }
+
+  {
+    // In a simulated environment, it is sometimes useful to be able to
+    // specify an initial state vector. The initial state vector is 2 to the
+    // power `n` where `n` is the number of qubits.
+
+    // In this example, we create a kernel template `sim_kernel` that captures
+    // the variable `init_state` by reference.
+    auto sim_builder = cudaq::make_kernel();
+    std::vector<cudaq::complex> init_state;
+    auto qubits = sim_builder.qalloc(init_state);
+    // Build the quantum circuit template here.
+    sim_builder.mz(qubits);
+
+    // Now we are ready to instantiate the kernel and invoke it. So we can set
+    // the `init_state` to a vector with 2 complex values (1 qubit) and
+    // get the results.
+    init_state = {{0.0, 1.0}, {1.0, 0.0}};
+    auto counts0 = cudaq::sample(sim_builder);
+
+    // Now suppose we have a different initial state with 4 complex values (2
+    // qubits). Let's rerun the kernel with the new `init_state`.
+    init_state = {{1.0, 0.0}, {0.0, 1.0}, {0.0, 1.0}, {1.0, 0.0}};
+    auto counts1 = cudaq::sample(sim_builder);
+
+    // Finally in this wholly contrived example, we test the results to make
+    // sure they are "close".
+    if (results_are_close(counts0, counts1)) {
+      printf("The two initial states generated results that are \"close\".\n");
+    }
   }
 
   {

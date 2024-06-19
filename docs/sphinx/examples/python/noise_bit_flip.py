@@ -3,7 +3,7 @@ import cudaq
 # Set the target to our density matrix simulator.
 cudaq.set_target('density-matrix-cpu')
 
-# CUDA Quantum supports several different models of noise. In this case,
+# CUDA-Q supports several different models of noise. In this case,
 # we will examine the modeling of decoherence of the qubit state. This
 # will occur from "bit flip" errors, wherein the qubit has a user-specified
 # probability of undergoing an X-180 rotation.

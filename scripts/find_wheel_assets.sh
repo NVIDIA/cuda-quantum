@@ -8,7 +8,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This script finds CUDA Quantum simulator assets and constructs the CMake
+# This script finds CUDA-Q simulator assets and constructs the CMake
 # string argument in the form "<simulator's .so>;<simulator's .config>;...",
 # suitable for wheel build.
 #
@@ -24,11 +24,10 @@ if [ ! -d $1 ] ; then
 fi
 
 for config_file in `find $1/*.config -maxdepth 0 -type f`; do 
-    current_dir="$(dirname "${config_file}")"
-    current_dir=$(cd $current_dir; pwd)
-    target_name=${config_file##*/}
-    target_name=${target_name%.config}
-    RESULT_CONFIG="${RESULT_CONFIG:+$RESULT_CONFIG;}$current_dir/libnvqir-$target_name.so;$current_dir/$target_name.config"; 
+    RESULT_CONFIG="${RESULT_CONFIG:+$RESULT_CONFIG;}${config_file}"; 
 done 
+for lib_file in `find $1/libnvqir-*.so -maxdepth 0 -type f`; do 
+    RESULT_CONFIG="${RESULT_CONFIG:+$RESULT_CONFIG;}${lib_file}"; 
+done
 
 echo $RESULT_CONFIG

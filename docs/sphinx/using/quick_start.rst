@@ -1,30 +1,26 @@
 Quick Start
 ===================
 
-**NVIDIA CUDA Quantum**
+**NVIDIA CUDA-Q**
 
-CUDA Quantum streamlines hybrid application development and promotes productivity and scalability
+CUDA-Q streamlines hybrid application development and promotes productivity and scalability
 in quantum computing. It offers a unified programming model designed for a hybrid
-setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA Quantum contains support for 
-programming in Python and in C++.
+setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA-Q contains support for 
+programming in Python and in C++. Learn more about the `key benefits of CUDA-Q <https://developer.nvidia.com/cuda-q>`_.
 
-.. 
-    Fix Me: Learn more about CUDA Quantum’s key benefits here [Link to CUDA Quantum Marketing page].
-    Issue 1351.
-
-This Quick Start page guides you through installing CUDA Quantum and running your first program.
-If you have already installed and configured CUDA Quantum, or if you are using our 
-`Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`_, you can move directly to our
+This Quick Start page guides you through installing CUDA-Q and running your first program.
+If you have already installed and configured CUDA-Q, or if you are using our 
+`Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`_, you can move directly to our
 :doc:`Basics Section <basics/basics>`. More information about working with containers and Docker alternatives can be 
 found in our complete :doc:`Installation Guide <install/install>`.
 
-Install CUDA Quantum
+Install CUDA-Q
 ----------------------------
 
 .. tab:: Python
 
-   To develop CUDA Quantum applications using Python, 
-   please follow the instructions for `installing CUDA Quantum <https://pypi.org/project/cuda-quantum/>`_ from PyPI. 
+   To develop CUDA-Q applications using Python, 
+   please follow the instructions for `installing CUDA-Q <https://pypi.org/project/cuda-quantum/>`_ from PyPI. 
    If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.
 
    .. include:: ../../../python/README.md
@@ -33,32 +29,32 @@ Install CUDA Quantum
       :end-before: (End complete install)
 
    Once you completed the installation, please follow the instructions
-   :ref:`below <validate-installation>` to run your first CUDA Quantum program!
+   :ref:`below <validate-installation>` to run your first CUDA-Q program!
 
 .. tab:: C++
 
-   To develop CUDA Quantum applications using C++, please make sure you have a C++ toolchain installed
+   To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
    that supports C++20, for example `g++` version 11 or newer.
    Download the `install_cuda_quantum` file for your processor architecture from
    the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__; that is the file with the `aarch64` extension for ARM processors, and the one with `x86_64` for, e.g., Intel and AMD processors.
 
-   To install CUDA Quantum, execute the commands
+   To install CUDA-Q, execute the commands
 
    .. code-block:: bash
 
       sudo -E bash install_cuda_quantum.$(uname -m) --accept 
       . /etc/profile
 
-   If you have an NVIDIA GPU, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA Quantum.
+   If you have an NVIDIA GPU, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA-Q.
 
    Please see the complete :ref:`installation guide <install-prebuilt-binaries>` for more details, including
 
    - a list of :ref:`supported operating systems <dependencies-and-compatibility>`, 
-   - instructions on how to :ref:`enable MPI parallelization <distributed-computing-with-mpi>` within CUDA Quantum, and
-   - information about :ref:`updating CUDA Quantum <updating-cuda-quantum>`.
+   - instructions on how to :ref:`enable MPI parallelization <distributed-computing-with-mpi>` within CUDA-Q, and
+   - information about :ref:`updating CUDA-Q <updating-cuda-quantum>`.
 
    Once you completed the installation, please follow the instructions
-   :ref:`below <validate-installation>` to run your first CUDA Quantum program!   
+   :ref:`below <validate-installation>` to run your first CUDA-Q program!   
 
 .. |---|   unicode:: U+2014 .. EM DASH
    :trim:
@@ -129,6 +125,6 @@ For more information about enabling GPU-acceleration, please see
 our complete :ref:`Installation Guide <additional-cuda-tools>`.
 For further information on available targets, see :doc:`Backends <backends/backends>`.
 
-You are now all set to start developing quantum applications using CUDA Quantum!
+You are now all set to start developing quantum applications using CUDA-Q!
 Please proceed to :doc:`Basics <basics/basics>` for an introduction
-to the fundamental features of CUDA Quantum.
+to the fundamental features of CUDA-Q.

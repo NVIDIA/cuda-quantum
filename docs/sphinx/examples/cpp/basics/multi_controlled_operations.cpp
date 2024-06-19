@@ -7,7 +7,7 @@
 #include <cudaq/algorithm.h>
 
 // Here we demonstrate how one might apply multi-controlled
-// operations on a general CUDA Quantum kernel.
+// operations on a general CUDA-Q kernel.
 struct ApplyX {
   void operator()(cudaq::qubit &q) __qpu__ { x(q); }
 };

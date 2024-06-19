@@ -1,4 +1,4 @@
-Overview of CUDA Quantum Testing
+Overview of CUDA-Q Testing
 --------------------------------
 
 There are several directories in the repo related to testing. Please make sure
@@ -29,15 +29,15 @@ targettests
   interfaces being operational, etc.
 
   Note: At some future point in time, the tests in targettests will be used to
-  test out-of-tree on CUDA Quantum installations. Such installations will not
+  test out-of-tree on CUDA-Q installations. Such installations will not
   have the source code around. Be mindful of writing tests that use the content
   or paths of other files in other areas of the repo.
 
 python/tests
 
   The python tests, for historical reasons, are broken out into their own
-  directory at present. CUDA Quantum support for the python language continues
-  to develop and improve. At some point, CUDA Quantum will integrate both C++ and
+  directory at present. CUDA-Q support for the python language continues
+  to develop and improve. At some point, CUDA-Q will integrate both C++ and
   python and these tests will be merged with and into the 3 directories explained
   above. In the meantime, python specific tests will continue to be placed in
   the python/tests directory.

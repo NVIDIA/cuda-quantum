@@ -167,7 +167,7 @@ public:
   }
 
   // Check some of the restrictions and limitations on kernel classes. These
-  // restrictions are noted in the CUDA Quantum language specification.
+  // restrictions are noted in the CUDA-Q language specification.
   void check(const clang::CXXRecordDecl *x) {
     if (!checkedClass)
       return;
@@ -176,23 +176,22 @@ public:
     if (!x->bases().empty()) {
       auto id = de.getCustomDiagID(
           clang::DiagnosticsEngine::Error,
-          "class inheritance is not allowed for CUDA Quantum kernel");
+          "class inheritance is not allowed for CUDA-Q kernel");
       de.Report(x->getBeginLoc(), id);
     }
     if (!x->fields().empty()) {
       auto id = de.getCustomDiagID(
           clang::DiagnosticsEngine::Error,
-          "CUDA Quantum kernel class with data members is not yet supported");
+          "CUDA-Q kernel class with data members is not yet supported");
       de.Report(x->getBeginLoc(), id);
     }
     unsigned quantumCount = 0;
     for (auto *method : x->methods()) {
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(method)) {
         if (quantumCount++) {
-          auto id =
-              de.getCustomDiagID(clang::DiagnosticsEngine::Error,
-                                 "CUDA Quantum kernel class with multiple "
-                                 "quantum methods not yet supported");
+          auto id = de.getCustomDiagID(clang::DiagnosticsEngine::Error,
+                                       "CUDA-Q kernel class with multiple "
+                                       "quantum methods not yet supported");
           de.Report(method->getBeginLoc(), id);
           break;
         }
@@ -549,7 +548,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       // from other quantum code and never from classical code. Conversely, a
       // kernel that is called from a quantum kernel entry function must (for
       // now) take or return qubits in order to be stitched into the same
-      // circuit with the calling function. CUDA Quantum does not presently
+      // circuit with the calling function. CUDA-Q does not presently
       // support a quantum circuit that invokes a separable quantum circuit.
       // Launching a quantum circuit implies exactly one distinct circuit
       // will be mapped to and execute on the QPU.

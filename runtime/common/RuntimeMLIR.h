@@ -32,7 +32,7 @@ using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
     mlir::Operation *, llvm::raw_string_ostream &, const std::string &, bool,
     bool)>;
 
-/// @brief Initialize MLIR with CUDA Quantum dialects and return the
+/// @brief Initialize MLIR with CUDA-Q dialects and return the
 /// MLIRContext.
 std::unique_ptr<mlir::MLIRContext> initializeMLIR();
 /// @brief Given an LLVM Module, set its target triple corresponding to the

@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s --add-dealloc | cudaq-translate --convert-to=qir | FileCheck %s
+// RUN: cudaq-opt -add-dealloc %s | cudaq-translate --convert-to=qir | FileCheck %s
 
 func.func @test_func(%p : i32) {
   %qv = quake.alloca !quake.veq<?>[%p : i32]
@@ -74,6 +74,7 @@ func.func @test_ctrl_swap_basic() {
 }
 
 // CHECK-LABEL: define void @test_ctrl_swap_basic() local_unnamed_addr {
+// CHECK:         %[[VAL_12:.*]] = alloca i64, align 8
 // CHECK:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 3)
 // CHECK:         %[[VAL_2:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 0)
 // CHECK:         %[[VAL_3:.*]] = bitcast i8* %[[VAL_2]] to %Qubit**
@@ -84,7 +85,6 @@ func.func @test_ctrl_swap_basic() {
 // CHECK:         %[[VAL_9:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 2)
 // CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_9]] to %Qubit**
 // CHECK:         %[[VAL_11:.*]] = load %Qubit*, %Qubit** %[[VAL_10]], align 8
-// CHECK:         %[[VAL_12:.*]] = alloca i64, align 8
 // CHECK:         store i64 0, i64* %[[VAL_12]], align 8
 // CHECK:         call void (i64, i64*, i64, void (%Array*, %Qubit*, %Qubit*)*, ...) @invokeWithControlRegisterOrQubits(i64 1, i64* nonnull %[[VAL_12]], i64 2, void (%Array*, %Qubit*, %Qubit*)* nonnull @__quantum__qis__swap__ctl, %Qubit* %[[VAL_5]], %Qubit* %[[VAL_8]], %Qubit* %[[VAL_11]])
 // CHECK:         call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
@@ -103,6 +103,10 @@ func.func @test_ctrl_swap_complex() {
 }
 
 // CHECK-LABEL: define void @test_ctrl_swap_complex() local_unnamed_addr {
+// CHECK:     %[[VAL_17:.*]] = alloca [2 x i64], align 8
+// CHECK:     %[[VAL_13:.*]] = alloca [2 x i64], align 8
+// CHECK:     %[[VAL_14:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_13]], i64 0, i64 0
+// CHECK:     %[[VAL_18:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_17]], i64 0, i64 0
 // CHECK:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 7)
 // CHECK:         %[[VAL_2:.*]] = tail call %Array* @__quantum__rt__array_slice(%Array* %[[VAL_0]], i32 1, i64 0, i64 1, i64 3)
 // CHECK:         %[[VAL_3:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 4)
@@ -115,15 +119,11 @@ func.func @test_ctrl_swap_complex() {
 // CHECK:         %[[VAL_11:.*]] = bitcast i8* %[[VAL_10]] to %Qubit**
 // CHECK:         %[[VAL_12:.*]] = load %Qubit*, %Qubit** %[[VAL_11]], align 8
 // CHECK:         tail call void @__quantum__qis__swap__ctl(%Array* %[[VAL_2]], %Qubit* %[[VAL_6]], %Qubit* %[[VAL_9]])
-// CHECK:         %[[VAL_13:.*]] = alloca [2 x i64], align 8
-// CHECK:         %[[VAL_14:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_13]], i64 0, i64 0
 // CHECK:         store i64 0, i64* %[[VAL_14]], align 8
 // CHECK:         %[[VAL_15:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_13]], i64 0, i64 1
 // CHECK:         %[[VAL_16:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%Array* %[[VAL_2]])
 // CHECK:         store i64 %[[VAL_16]], i64* %[[VAL_15]], align 8
 // CHECK:         call void (i64, i64*, i64, void (%Array*, %Qubit*, %Qubit*)*, ...) @invokeWithControlRegisterOrQubits(i64 2, i64* nonnull %[[VAL_14]], i64 2, void (%Array*, %Qubit*, %Qubit*)* nonnull @__quantum__qis__swap__ctl, %Qubit* %[[VAL_6]], %Array* %[[VAL_2]], %Qubit* %[[VAL_9]], %Qubit* %[[VAL_12]])
-// CHECK:         %[[VAL_17:.*]] = alloca [2 x i64], align 8
-// CHECK:         %[[VAL_18:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_17]], i64 0, i64 0
 // CHECK:         %[[VAL_19:.*]] = call i64 @__quantum__rt__array_get_size_1d(%Array* %[[VAL_2]])
 // CHECK:         store i64 %[[VAL_19]], i64* %[[VAL_18]], align 8
 // CHECK:         %[[VAL_20:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_17]], i64 0, i64 1

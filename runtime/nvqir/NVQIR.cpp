@@ -10,14 +10,16 @@
 #include "QIRTypes.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
+#include "cudaq/qis/state.h"
 #include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 /// This file implements the primary QIR quantum-classical runtime API used
-/// by the CUDA Quantum compilation platform.
+/// by the CUDA-Q compilation platform.
 
 // Useful preprocessor defines for building up the
 // NVQIR quantum instruction functions
@@ -134,6 +136,63 @@ std::size_t qubitToSizeT(Qubit *q) {
   return q->idx;
 }
 
+template <typename T>
+concept FloatType = std::is_same<T, float>::value;
+
+template <typename T>
+concept DoubleType = std::is_same<T, double>::value;
+
+template <typename T>
+concept SimPrecisionType = FloatType<T> || DoubleType<T>;
+
+template <FloatType T>
+constexpr std::string_view typeName() {
+  return "float";
+}
+
+template <DoubleType T>
+constexpr std::string_view typeName() {
+  return "double";
+}
+
+/// Input was complex<float>/complex<double> but we prefer
+/// complex<double>/complex<float>. Make a copy, extending or truncating the
+/// values.
+template <SimPrecisionType To, SimPrecisionType From>
+std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
+                                                     std::size_t numQubits) {
+  // The state size is `2^numQubits`
+  auto size = pow(2, numQubits);
+  constexpr auto toType = typeName<To>();
+  constexpr auto fromType = typeName<From>();
+  cudaq::info("copying {} complex<{}> values to complex<{}>", size, fromType,
+              toType);
+
+  auto convertData = std::make_unique<std::complex<To>[]>(size);
+  for (std::size_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<To>{static_cast<To>(data[i].real()),
+                                      static_cast<To>(data[i].imag())};
+  return convertData;
+}
+
+/// Input was float/double but we prefer complex<float>/complex<double>.
+/// Make a copy, extending or truncating the values.
+template <SimPrecisionType To, SimPrecisionType From>
+std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
+                                                     std::size_t numQubits) {
+  // The state size is `2^numQubits`
+  auto size = pow(2, numQubits);
+  constexpr auto toType = typeName<To>();
+  constexpr auto fromType = typeName<From>();
+  cudaq::info("copying {} {} values to complex<{}>", size, fromType, toType);
+
+  auto convertData = std::make_unique<std::complex<To>[]>(size);
+  for (std::size_t i = 0; i < size; ++i)
+    convertData[i] =
+        std::complex<To>{static_cast<To>(data[i]), static_cast<To>(0.0)};
+  return convertData;
+}
+
 } // namespace nvqir
 
 using namespace nvqir;
@@ -161,7 +220,7 @@ void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
   __quantum__rt__initialize(0, nullptr);
 
   if (ctx) {
-    cudaq::ScopedTrace trace("NVQIR::setExecutionContext", ctx->name);
+    ScopedTraceWithContext("NVQIR::setExecutionContext", ctx->name);
     cudaq::info("Setting execution context: {}{}", ctx ? ctx->name : "basic",
                 ctx->hasConditionalsOnMeasureResults ? " with conditionals"
                                                      : "");
@@ -171,22 +230,115 @@ void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
 
 /// @brief Reset the Execution Context
 void __quantum__rt__resetExecutionContext() {
-  cudaq::ScopedTrace trace("NVQIR::resetExecutionContext");
+  ScopedTraceWithContext("NVQIR::resetExecutionContext");
   cudaq::info("Resetting execution context.");
   nvqir::getCircuitSimulatorInternal()->resetExecutionContext();
 }
 
 /// @brief QIR function for allocated a qubit array
-Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
-  cudaq::ScopedTrace trace("NVQIR::qubit_allocate_array", size);
+Array *__quantum__rt__qubit_allocate_array(uint64_t numQubits) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array", numQubits);
   __quantum__rt__initialize(0, nullptr);
-  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(size);
+  auto qubitIdxs =
+      nvqir::getCircuitSimulatorInternal()->allocateQubits(numQubits);
   return vectorSizetToArray(qubitIdxs);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
+    uint64_t numQubits, std::complex<float> *data);
+
+Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
+    uint64_t numQubits, std::complex<double> *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex64",
+                         numQubits);
+  __quantum__rt__initialize(0, nullptr);
+  if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
+    auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+        numQubits, data, cudaq::simulation_precision::fp64);
+    return vectorSizetToArray(qubitIdxs);
+  }
+  auto convertData = convertToComplex<float>(data, numQubits);
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+      numQubits, convertData.get(), cudaq::simulation_precision::fp32);
+  return vectorSizetToArray(qubitIdxs);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_fp64(uint64_t numQubits,
+                                                           double *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64",
+                         numQubits);
+  if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
+    auto convertData = convertToComplex<double>(data, numQubits);
+    return __quantum__rt__qubit_allocate_array_with_state_complex64(
+        numQubits, convertData.get());
+  }
+  auto convertData = convertToComplex<float>(data, numQubits);
+  return __quantum__rt__qubit_allocate_array_with_state_complex32(
+      numQubits, convertData.get());
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
+    cudaq::SimulationState *state) {
+  if (!state)
+    throw std::invalid_argument("[NVQIR] Invalid simulation state encountered "
+                                "in qubit array allocation.");
+  ScopedTraceWithContext(
+      "NVQIR::__quantum__rt__qubit_allocate_array_with_state_ptr",
+      state->getNumQubits());
+
+  __quantum__rt__initialize(0, nullptr);
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+      state->getNumQubits(), state);
+  return vectorSizetToArray(qubitIdxs);
+}
+
+Array *
+__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(int _,
+                                                         cudaq::state *state) {
+  if (!state)
+    throw std::invalid_argument("[NVQIR] Invalid state encountered "
+                                "in qubit array allocation.");
+  ScopedTraceWithContext(
+      "NVQIR::__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr",
+      state->get_num_qubits());
+
+  auto simStatePtr = cudaq::state_helper::getSimulationState(state);
+  return __quantum__rt__qubit_allocate_array_with_state_ptr(simStatePtr);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
+    uint64_t numQubits, std::complex<float> *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex32",
+                         numQubits);
+  __quantum__rt__initialize(0, nullptr);
+  if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
+    auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+        numQubits, data, cudaq::simulation_precision::fp32);
+    return vectorSizetToArray(qubitIdxs);
+  }
+  auto convertData = convertToComplex<double>(data, numQubits);
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+      numQubits, convertData.get(), cudaq::simulation_precision::fp64);
+  return vectorSizetToArray(qubitIdxs);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t numQubits,
+                                                           float *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp32",
+                         numQubits);
+  if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
+    auto convertData = convertToComplex<float>(data, numQubits);
+    return __quantum__rt__qubit_allocate_array_with_state_complex32(
+        numQubits, convertData.get());
+  }
+  auto convertData = convertToComplex<double>(data, numQubits);
+  return __quantum__rt__qubit_allocate_array_with_state_complex64(
+      numQubits, convertData.get());
 }
 
 /// @brief Once done, release the QIR qubit array
 void __quantum__rt__qubit_release_array(Array *arr) {
-  cudaq::ScopedTrace trace("NVQIR::qubit_release_array", arr->size());
+  ScopedTraceWithContext("NVQIR::qubit_release_array", arr->size());
   for (std::size_t i = 0; i < arr->size(); i++) {
     auto arrayPtr = (*arr)[i];
     Qubit *idxVal = *reinterpret_cast<Qubit **>(arrayPtr);
@@ -205,7 +357,7 @@ void __quantum__rt__qubit_release_array(Array *arr) {
 
 /// @brief Allocate a single QIR Qubit
 Qubit *__quantum__rt__qubit_allocate() {
-  cudaq::ScopedTrace trace("NVQIR::allocate_qubit");
+  ScopedTraceWithContext("NVQIR::allocate_qubit");
   __quantum__rt__initialize(0, nullptr);
   auto qubitIdx = nvqir::getCircuitSimulatorInternal()->allocateQubit();
   auto qubit = std::make_unique<Qubit>(qubitIdx);
@@ -215,7 +367,7 @@ Qubit *__quantum__rt__qubit_allocate() {
 
 /// @brief Once done, release that qubit
 void __quantum__rt__qubit_release(Qubit *q) {
-  cudaq::ScopedTrace trace("NVQIR::release_qubit");
+  ScopedTraceWithContext("NVQIR::release_qubit");
   nvqir::getCircuitSimulatorInternal()->deallocate(q->idx);
   auto begin = nvqir::allocatedSingleQubits.begin();
   auto end = nvqir::allocatedSingleQubits.end();
@@ -234,14 +386,14 @@ void __quantum__rt__deallocate_all(const std::size_t numQubits,
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
   void QIS_FUNCTION_NAME(GATENAME)(Qubit * qubit) {                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \
-    cudaq::ScopedTrace trace("NVQIR::" + std::string(#GATENAME), targetIdx);   \
+    ScopedTraceWithContext("NVQIR::" + std::string(#GATENAME), targetIdx);     \
     nvqir::getCircuitSimulatorInternal()->GATENAME(targetIdx);                 \
   }                                                                            \
   void QIS_FUNCTION_CTRL_NAME(GATENAME)(Array * ctrlQubits, Qubit * qubit) {   \
     auto ctrlIdxs = arrayToVectorSizeT(ctrlQubits);                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \
-    cudaq::ScopedTrace trace("NVQIR::ctrl-" + std::string(#GATENAME),          \
-                             ctrlIdxs, targetIdx);                             \
+    ScopedTraceWithContext("NVQIR::ctrl-" + std::string(#GATENAME), ctrlIdxs,  \
+                           targetIdx);                                         \
     nvqir::getCircuitSimulatorInternal()->GATENAME(ctrlIdxs, targetIdx);       \
   }                                                                            \
   void QIS_FUNCTION_BODY_NAME(GATENAME)(Qubit * qubit) {                       \
@@ -270,8 +422,8 @@ void __quantum__qis__s__adj(Qubit *qubit) {
 #define ONE_QUBIT_PARAM_QIS_FUNCTION(GATENAME)                                 \
   void QIS_FUNCTION_NAME(GATENAME)(double param, Qubit *qubit) {               \
     auto targetIdx = qubitToSizeT(qubit);                                      \
-    cudaq::ScopedTrace trace("NVQIR::" + std::string(#GATENAME), param,        \
-                             targetIdx);                                       \
+    ScopedTraceWithContext("NVQIR::" + std::string(#GATENAME), param,          \
+                           targetIdx);                                         \
     nvqir::getCircuitSimulatorInternal()->GATENAME(param, targetIdx);          \
   }                                                                            \
   void QIS_FUNCTION_BODY_NAME(GATENAME)(double param, Qubit *qubit) {          \
@@ -281,8 +433,8 @@ void __quantum__qis__s__adj(Qubit *qubit) {
                                         Qubit *qubit) {                        \
     auto ctrlIdxs = arrayToVectorSizeT(ctrlQubits);                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \
-    cudaq::ScopedTrace trace("NVQIR::" + std::string(#GATENAME), param,        \
-                             ctrlIdxs, targetIdx);                             \
+    ScopedTraceWithContext("NVQIR::" + std::string(#GATENAME), param,          \
+                           ctrlIdxs, targetIdx);                               \
     nvqir::getCircuitSimulatorInternal()->GATENAME(param, ctrlIdxs,            \
                                                    targetIdx);                 \
   }
@@ -295,7 +447,7 @@ ONE_QUBIT_PARAM_QIS_FUNCTION(r1);
 void __quantum__qis__swap(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);
-  cudaq::ScopedTrace trace("NVQIR::swap", qI, rI);
+  ScopedTraceWithContext("NVQIR::swap", qI, rI);
   nvqir::getCircuitSimulatorInternal()->swap(qI, rI);
 }
 
@@ -326,10 +478,35 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
 }
 
+auto u3_matrix = [](double theta, double phi, double lambda) {
+  std::complex<double> i(0, 1.);
+  std::vector<std::complex<double>> matrix{
+      std::cos(theta / 2.), -std::exp(i * lambda) * std::sin(theta / 2.),
+      std::exp(i * phi) * std::sin(theta / 2.),
+      std::exp(i * (lambda + phi)) * std::cos(theta / 2.)};
+  return matrix;
+};
+
+void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q) {
+  auto qI = qubitToSizeT(q);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      u3_matrix(theta, phi, lambda), {}, {qI});
+}
+
+void __quantum__qis__u3__ctl(double theta, double phi, double lambda,
+                             Array *ctrls, Qubit *q) {
+  auto ctrlIdxs = arrayToVectorSizeT(ctrls);
+  auto qI = qubitToSizeT(q);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      u3_matrix(theta, phi, lambda), ctrlIdxs, {qI});
+}
+
+// ASKME: Do we need `__quantum__qis__u3__body(...)`?
+
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);
-  cudaq::ScopedTrace trace("NVQIR::cnot", qI, rI);
+  ScopedTraceWithContext("NVQIR::cnot", qI, rI);
   std::vector<std::size_t> controls{qI};
   nvqir::getCircuitSimulatorInternal()->x(controls, rI);
 }
@@ -337,27 +514,27 @@ void __quantum__qis__cnot(Qubit *q, Qubit *r) {
 void __quantum__qis__cnot__body(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);
-  cudaq::ScopedTrace trace("NVQIR::cnot", qI, rI);
+  ScopedTraceWithContext("NVQIR::cnot", qI, rI);
   std::vector<std::size_t> controls{qI};
   nvqir::getCircuitSimulatorInternal()->x(controls, rI);
 }
 
 void __quantum__qis__reset(Qubit *q) {
   auto qI = qubitToSizeT(q);
-  cudaq::ScopedTrace trace("NVQIR::reset", qI);
+  ScopedTraceWithContext("NVQIR::reset", qI);
   nvqir::getCircuitSimulatorInternal()->resetQubit(qI);
 }
 
 Result *__quantum__qis__mz(Qubit *q) {
   auto qI = qubitToSizeT(q);
-  cudaq::ScopedTrace trace("NVQIR::mz", qI);
+  ScopedTraceWithContext("NVQIR::mz", qI);
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, "");
   return b ? ResultOne : ResultZero;
 }
 
 Result *__quantum__qis__mz__body(Qubit *q) {
   auto qI = qubitToSizeT(q);
-  cudaq::ScopedTrace trace("NVQIR::mz", qI);
+  ScopedTraceWithContext("NVQIR::mz", qI);
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, "");
   return b ? ResultOne : ResultZero;
 }
@@ -367,14 +544,14 @@ bool __quantum__qis__read_result__body(Result *result) {
   // typical simulator operation (other than to have it defined), but it may be
   // useful in the future.
   // https://github.com/NVIDIA/cuda-quantum/issues/758
-  cudaq::ScopedTrace trace("NVQIR::read_result (stubbed out)");
+  ScopedTraceWithContext("NVQIR::read_result (stubbed out)");
   return ResultZeroVal;
 }
 
 Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   std::string regName(name);
   auto qI = qubitToSizeT(q);
-  cudaq::ScopedTrace trace("NVQIR::mz", qI, regName);
+  ScopedTraceWithContext("NVQIR::mz", qI, regName);
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
   return b ? ResultOne : ResultZero;
 }
@@ -415,7 +592,7 @@ static std::vector<Pauli> extractPauliTermIds(Array *paulis) {
 /// @return
 Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   cudaq::info("NVQIR measuring in pauli basis");
-  cudaq::ScopedTrace trace("NVQIR::observe_measure_body");
+  ScopedTraceWithContext("NVQIR::observe_measure_body");
 
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   auto currentContext = circuitSimulator->getExecutionContext();
@@ -496,7 +673,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
 /// @param qubits
 void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits) {
   auto n_qubits = qubits->size();
-  cudaq::ScopedTrace trace("NVQIR::exp_body");
+  ScopedTraceWithContext("NVQIR::exp_body");
 
   // if identity, do nothing
   std::vector<int> test;
@@ -652,7 +829,7 @@ static void commonInvokeWithRotationsControlsTargets(
     std::size_t numControlOperands, std::size_t *isArrayAndLength,
     Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
     void (*QISFunction)()) {
-  if (numRotationOperands > 2)
+  if (numRotationOperands > 3)
     throw std::runtime_error("Invoke has invalid number of rotations.");
   if (numTargetOperands < 1 || numTargetOperands > 2)
     throw std::runtime_error("Invoke has invalid number of targets.");
@@ -717,6 +894,17 @@ static void commonInvokeWithRotationsControlsTargets(
       reinterpret_cast<void (*)(double, double, Array *, Qubit *, Qubit *)>(
           QISFunction)(params[0], params[1], ctrlArray.get(), targets[0],
                        targets[1]);
+    break;
+  case 3: // Three rotations.
+    if (numTargetOperands == 1)
+      reinterpret_cast<void (*)(double, double, double, Array *, Qubit *)>(
+          QISFunction)(params[0], params[1], params[2], ctrlArray.get(),
+                       targets[0]);
+    else
+      reinterpret_cast<void (*)(double, double, double, Array *, Qubit *,
+                                Qubit *)>(QISFunction)(
+          params[0], params[1], params[2], ctrlArray.get(), targets[0],
+          targets[1]);
     break;
   }
 }
@@ -791,6 +979,27 @@ void invokeRotationWithControlQubits(
   va_end(args);
   commonInvokeWithRotationsControlsTargets(
       /*rotations=*/1, params, numControlOperands, isArrayAndLength, controls,
+      /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
+}
+
+/// @brief Utility function same as `invokeRotationWithControlQubits`, but used
+/// for U3 controlled rotations.
+void invokeU3RotationWithControlQubits(
+    double theta, double phi, double lambda,
+    const std::size_t numControlOperands, std::size_t *isArrayAndLength,
+    void (*QISFunction)(double, double, double, Array *, Qubit *), ...) {
+  va_list args;
+  va_start(args, QISFunction);
+  double params[3] = {theta, phi, lambda};
+  Qubit *targets[1];
+  auto **controls =
+      reinterpret_cast<Qubit **>(alloca(numControlOperands * sizeof(Qubit *)));
+  for (std::size_t i = 0; i < numControlOperands; ++i)
+    controls[i] = va_arg(args, Qubit *);
+  targets[0] = va_arg(args, Qubit *);
+  va_end(args);
+  commonInvokeWithRotationsControlsTargets(
+      /*rotations=*/3, params, numControlOperands, isArrayAndLength, controls,
       /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
 }
 }

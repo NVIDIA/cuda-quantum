@@ -71,3 +71,7 @@ void cudaq::opt::registerTargetPipelines() {
                              "Convert kernels to IonQ gate set.",
                              addIonQPipeline);
 }
+
+void cudaq::opt::registerCodeGenDialect(DialectRegistry &registry) {
+  registry.insert<cudaq::codegen::CodeGenDialect>();
+}

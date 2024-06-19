@@ -6,15 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// clang-format on
 
-#include <cudaq.h>
 #include <algorithm>
+#include <cudaq.h>
 #include <iostream>
 #include <unordered_set>
 
@@ -57,7 +58,7 @@ int main() {
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
   }
-  std::sort(strings.begin(), strings.end(), [&](auto& a, auto& b) {
+  std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
     return result.count(a) > result.count(b);
   });
   std::cout << strings[0] << '\n';

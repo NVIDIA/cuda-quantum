@@ -37,7 +37,7 @@ inline std::vector<cnot_coupling> default_cnot_coupling(std::size_t numQubits) {
   return cnotCoupling;
 }
 
-/// @brief This CUDA Quantum kernel implements the hardware-efficient ansatz
+/// @brief This CUDA-Q kernel implements the hardware-efficient ansatz
 /// from Kandala et. al [https://arxiv.org/abs/1704.05018]. It takes the
 /// qubits the state is on, the number of layers, the vector of variational
 /// parameters and the CNOT couplers.
@@ -65,7 +65,7 @@ __qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers,
   }
 }
 
-/// @brief This CUDA Quantum kernel implements the hardware-efficient ansatz
+/// @brief This CUDA-Q kernel implements the hardware-efficient ansatz
 /// from Kandala et. al [https://arxiv.org/abs/1704.05018]. It takes the
 /// qubits the state is on, the number of layers, and the vector of
 /// variational parameters. Uses default CNOT couplers.

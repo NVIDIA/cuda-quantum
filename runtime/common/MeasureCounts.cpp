@@ -28,6 +28,32 @@ std::string longToBitString(int size, long x) {
   return s;
 }
 
+void deserializeCounts(
+    std::vector<std::size_t> &data, std::size_t &stride,
+    std::unordered_map<std::string, std::size_t> &localCounts) {
+  auto nBs = data[stride];
+  stride++;
+
+  for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
+    auto bitstring_as_long = data[j];
+    auto size_of_bitstring = data[j + 1];
+    auto count = data[j + 2];
+    auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
+    localCounts.insert({bs, count});
+  }
+  stride += nBs * 3;
+}
+
+std::string extractNameFromData(std::vector<std::size_t> &data,
+                                std::size_t &stride) {
+  auto nChars = data[stride++];
+
+  std::string name(data.begin() + stride, data.begin() + stride + nChars);
+
+  stride += nChars;
+  return name;
+}
+
 ExecutionResult::ExecutionResult(CountsDictionary c) : counts(c) {}
 ExecutionResult::ExecutionResult(std::string name) : registerName(name) {}
 ExecutionResult::ExecutionResult(double e) : expectationValue(e) {}
@@ -52,13 +78,11 @@ ExecutionResult &ExecutionResult::operator=(const ExecutionResult &other) {
 }
 
 void ExecutionResult::appendResult(std::string bitString, std::size_t count) {
-  auto iter = counts.find(bitString);
-  if (iter == counts.end())
-    counts.insert({bitString, count});
-  else
+  auto [iter, inserted] = counts.emplace(std::move(bitString), count);
+  if (!inserted)
     iter->second += count;
 
-  sequentialData.insert(sequentialData.end(), count, bitString);
+  sequentialData.insert(sequentialData.end(), count, iter->first);
 }
 
 bool ExecutionResult::operator==(const ExecutionResult &result) const {
@@ -88,31 +112,20 @@ std::vector<std::size_t> ExecutionResult::serialize() const {
     retData.push_back(bits.length());
     retData.push_back(count);
   }
-
   return retData;
 }
 
 void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   std::size_t stride = 0;
   while (stride < data.size()) {
-    auto nChars = data[stride];
-    stride++;
-    std::string name = "";
-    for (std::size_t i = 0; i < nChars; i++)
-      name += std::string(1, char(data[stride + i]));
+    std::string name = extractNameFromData(data, stride);
 
-    stride += nChars;
     std::unordered_map<std::string, std::size_t> localCounts;
-    auto nBs = data[stride];
-    stride++;
-    for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
-      auto bitstring_as_long = data[j];
-      auto size_of_bitstring = data[j + 1];
-      auto count = data[j + 2];
-      auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
-      counts.insert({bs, count});
+    deserializeCounts(data, stride, localCounts);
+
+    for (const auto &entry : localCounts) {
+      counts.insert({entry.first, entry.second});
     }
-    stride += nBs * 3;
   }
 }
 
@@ -127,31 +140,21 @@ std::vector<std::size_t> sample_result::serialize() const {
 
 void sample_result::deserialize(std::vector<std::size_t> &data) {
   std::size_t stride = 0;
-  while (stride < data.size()) {
-    auto nChars = data[stride];
-    stride++;
-    std::string name = "";
-    for (std::size_t i = 0; i < nChars; i++)
-      name += std::string(1, char(data[stride + i]));
+  totalShots = 0;
 
-    stride += nChars;
-    std::size_t localShots = 0;
+  while (stride < data.size()) {
+    std::string name = extractNameFromData(data, stride);
+
     std::unordered_map<std::string, std::size_t> localCounts;
-    auto nBs = data[stride];
-    stride++;
-    for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
-      auto bitstring_as_long = data[j];
-      auto size_of_bitstring = data[j + 1];
-      auto count = data[j + 2];
-      auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
-      localShots += count;
-      localCounts.insert({bs, count});
-    }
+    deserializeCounts(data, stride, localCounts);
 
     sampleResults.insert({name, ExecutionResult{localCounts, name}});
 
-    stride += nBs * 3;
-    totalShots = localShots;
+    if (stride >= data.size()) {
+      totalShots = std::accumulate(
+          localCounts.begin(), localCounts.end(), 0,
+          [](std::size_t sum, const auto &pair) { return sum + pair.second; });
+    }
   }
 }
 
@@ -455,7 +458,7 @@ void sample_result::clear() {
   totalShots = 0;
 }
 
-void sample_result::dump(std::ostream &os) {
+void sample_result::dump(std::ostream &os) const {
   os << "{ ";
   if (sampleResults.size() > 1) {
     os << "\n  ";
@@ -492,7 +495,7 @@ void sample_result::dump(std::ostream &os) {
   os << "}\n";
 }
 
-void sample_result::dump() { dump(std::cout); }
+void sample_result::dump() const { dump(std::cout); }
 
 bool sample_result::has_even_parity(std::string_view bitString) {
   int c = std::count(bitString.begin(), bitString.end(), '1');

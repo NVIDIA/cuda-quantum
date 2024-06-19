@@ -6,7 +6,7 @@
 
 #include <cudaq.h>
 
-// Define a CUDA Quantum kernel that is fully specified
+// Define a CUDA-Q kernel that is fully specified
 // at compile time via templates.
 template <std::size_t N>
 struct ghz {

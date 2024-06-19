@@ -117,6 +117,27 @@ def test_quantinuum_exp_pauli():
     assert assert_close(res.expectation())
 
 
+def test_u3_emulatation():
+
+    @cudaq.kernel
+    def check_x():
+        q = cudaq.qubit()
+        u3(np.pi, np.pi, np.pi / 2, q)
+
+    counts = cudaq.sample(check_x)
+
+
+def test_u3_ctrl_emulation():
+
+    @cudaq.kernel
+    def kernel():
+        control = cudaq.qubit()
+        target = cudaq.qubit()
+        u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
+
+    result = cudaq.sample(kernel)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

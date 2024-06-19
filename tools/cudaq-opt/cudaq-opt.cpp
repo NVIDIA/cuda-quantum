@@ -46,9 +46,9 @@ static void registerInlinerExtension(mlir::DialectRegistry &registry) {
 }
 
 /// @brief Add a command line flag for loading plugins
-static cl::list<std::string> CudaQPlugins(
-    "load-cudaq-plugin",
-    cl::desc("Load CUDA Quantum plugin by specifying its library"));
+static cl::list<std::string>
+    CudaQPlugins("load-cudaq-plugin",
+                 cl::desc("Load CUDA-Q plugin by specifying its library"));
 
 int main(int argc, char **argv) {
   // Set the bug report message to indicate users should file issues on
@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
   cudaq::opt::registerOptTransformsPasses();
   cudaq::opt::registerAggressiveEarlyInlining();
   cudaq::opt::registerUnrollingPipeline();
+  cudaq::opt::registerToExecutionManagerCCPipeline();
   cudaq::opt::registerTargetPipelines();
 
   // See if we have been asked to load a pass plugin,

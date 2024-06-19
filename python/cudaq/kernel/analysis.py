@@ -38,24 +38,45 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
         ]:
             self.measureResultsVars.append(target.id)
 
+    # Get the variable name from a variable node.
+    # Returns an empty string if not something we know how to get a variable name from.
+    def getVariableName(self, node):
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Subscript):
+            return self.getVariableName(node.value)
+        return ''
+
     def visit_If(self, node):
         condition = node.test
         # catch `if mz(q)`
         if self.isMeasureCallOp(condition):
             self.hasMidCircuitMeasures = True
             return
-
-        # Catch if val, where `val = mz(q)`
-        if 'id' in condition.__dict__ and condition.id in self.measureResultsVars:
+        # Catch `if val`, where `val = mz(q)` or `if var[k]`, where `var = mz(qvec)`
+        if self.getVariableName(condition) in self.measureResultsVars:
             self.hasMidCircuitMeasures = True
-        # Catch `if UnaryOp mz(q)`
+        elif isinstance(condition, ast.Compare):
+            # Compare: look at left expression.
+            # Handle: `if var == True/False` and `if var[k] == True/False:`
+            if self.getVariableName(condition.left) in self.measureResultsVars:
+                self.hasMidCircuitMeasures = True
+            elif self.isMeasureCallOp(condition.left):
+                # Handle: `if mz(q) == True/False`
+                self.hasMidCircuitMeasures = True
+        # Catch `if UnaryOp mz(q)` or `if UnaryOp var` (`var = mz(q)`)
         elif isinstance(condition, ast.UnaryOp):
-            self.hasMidCircuitMeasures = self.isMeasureCallOp(condition.operand)
-        # Catch `if something BoolOp mz(q)`
+            self.hasMidCircuitMeasures = self.isMeasureCallOp(
+                condition.operand) or (self.getVariableName(condition.operand)
+                                       in self.measureResultsVars)
+        # Catch `if something BoolOp mz(q)` or `something BoolOp var` (`var = mz(q)`)
         elif isinstance(condition,
                         ast.BoolOp) and 'values' in condition.__dict__:
             for node in condition.__dict__['values']:
                 if self.isMeasureCallOp(node):
+                    self.hasMidCircuitMeasures = True
+                    break
+                elif self.getVariableName(node) in self.measureResultsVars:
                     self.hasMidCircuitMeasures = True
                     break
 
@@ -212,8 +233,9 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                 raise RuntimeError(
                     'cudaq.kernel functions must have argument type annotations.'
                 )
-            if isinstance(annotation,
-                          ast.Subscript) and annotation.value.id == 'Callable':
+            if isinstance(annotation, ast.Subscript) and hasattr(
+                    annotation.value,
+                    "id") and annotation.value.id == 'Callable':
                 if not hasattr(annotation, 'slice'):
                     raise RuntimeError(
                         'Callable type must have signature specified.')

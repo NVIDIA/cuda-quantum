@@ -9,7 +9,9 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
+#include "common/Logger.h"
 #include "common/Registry.h"
+#include "common/Timing.h"
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -21,7 +23,7 @@ namespace cudaq {
 /// Expose the function that will return the current ExecutionManager
 ExecutionManager *getExecutionManager();
 
-/// A CUDA Quantum QPU is an abstraction on the quantum processing
+/// A CUDA-Q QPU is an abstraction on the quantum processing
 /// unit which executes quantum kernel expressions. The QPU exposes
 /// certain information about the QPU being targeting, such as the
 /// number of available qubits, the logical ID for this QPU in a set
@@ -50,7 +52,17 @@ protected:
   /// observation and perform state-preparation circuit measurement
   /// based on the `spin_op` terms.
   void handleObservation(ExecutionContext *localContext) {
-    if (localContext && localContext->name == "observe") {
+    // The reason for the 2 if checks is simply to do a flushGateQueue() before
+    // initiating the trace.
+    bool execute = localContext && localContext->name == "observe";
+    if (execute) {
+      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
+                             "handleObservation flushGateQueue()");
+      getExecutionManager()->flushGateQueue();
+    }
+    if (execute) {
+      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
+                             "QPU::handleObservation (after flush)");
       double sum = 0.0;
       if (!localContext->spin.has_value())
         throw std::runtime_error("[QPU] Observe ExecutionContext specified "
@@ -74,6 +86,8 @@ protected:
           if (term.is_identity())
             sum += term.get_coefficient().real();
           else {
+            // This takes a longer time for the first iteration unless
+            // flushGateQueue() is called above.
             auto [exp, data] = cudaq::measure(term);
             results.emplace_back(data.to_map(), term.to_string(false), exp);
             sum += term.get_coefficient().real() * exp;

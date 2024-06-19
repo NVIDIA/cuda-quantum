@@ -16,8 +16,8 @@ std::string get_quake_by_name(const std::string &);
 
 namespace {
 
-/// @brief The RemoteRESTQPU is a subtype of QPU that enables the
-/// execution of CUDA Quantum kernels on remotely hosted quantum computing
+/// @brief The `RemoteRESTQPU` is a subtype of QPU that enables the
+/// execution of CUDA-Q kernels on remotely hosted quantum computing
 /// services via a REST Client / Server interaction. This type is meant
 /// to be general enough to support any remotely hosted service. Specific
 /// details about JSON payloads are abstracted via an abstract type called

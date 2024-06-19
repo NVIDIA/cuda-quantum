@@ -12,9 +12,12 @@
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/InitAllDialects.h"
 
 #include <fmt/core.h>
 #include <pybind11/stl.h>
@@ -113,6 +116,12 @@ void registerCCDialectAndTypes(py::module &m) {
     return unwrap(type).isa<cudaq::cc::CharspanType>();
   }).def_classmethod("get", [](py::object cls, MlirContext ctx) {
     return wrap(cudaq::cc::CharspanType::get(unwrap(ctx)));
+  });
+
+  mlir_type_subclass(ccMod, "StateType", [](MlirType type) {
+    return unwrap(type).isa<cudaq::cc::StateType>();
+  }).def_classmethod("get", [](py::object cls, MlirContext ctx) {
+    return wrap(cudaq::cc::StateType::get(unwrap(ctx)));
   });
 
   mlir_type_subclass(
@@ -231,6 +240,16 @@ void bindRegisterDialects(py::module &mod) {
     cudaq::IRBuilder builder = IRBuilder::atBlockEnd(unwrapped.getBody());
     if (failed(builder.loadIntrinsic(unwrapped, name)))
       unwrapped.emitError("failed to load intrinsic " + name);
+  });
+
+  mod.def("register_all_dialects", [](MlirContext context) {
+    DialectRegistry registry;
+    registry.insert<quake::QuakeDialect, cudaq::cc::CCDialect>();
+    cudaq::opt::registerCodeGenDialect(registry);
+    registerAllDialects(registry);
+    auto *mlirContext = unwrap(context);
+    mlirContext->appendDialectRegistry(registry);
+    mlirContext->loadAllAvailableDialects();
   });
 }
 } // namespace cudaq

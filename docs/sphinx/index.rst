@@ -1,17 +1,17 @@
 ************
-CUDA Quantum
+CUDA-Q
 ************
 
-Welcome to the CUDA Quantum documentation page!
+Welcome to the CUDA-Q documentation page!
 
-CUDA Quantum streamlines hybrid application development and promotes productivity and scalability
+CUDA-Q streamlines hybrid application development and promotes productivity and scalability
 in quantum computing. It offers a unified programming model designed for a hybrid
-setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA Quantum contains support for 
+setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA-Q contains support for 
 programming in Python and in C++.
 
-You are browsing the documentation for |version| version of CUDA Quantum. You can find documentation for all released versions :doc:`here <versions>`.
+You are browsing the documentation for |version| version of CUDA-Q. You can find documentation for all released versions :doc:`here <versions>`.
 
-**CUDA Quantum** is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.
+**CUDA-Q** is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.
 
 .. toctree::
    :caption: Contents

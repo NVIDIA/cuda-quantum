@@ -105,6 +105,7 @@ public:
   }
 
   void resetExecutionContext() override {
+    ScopedTraceWithContext("BasicExecutionManager::resetExecutionContext");
     synchronize();
 
     if (!executionContext)
@@ -122,7 +123,7 @@ public:
     executionContext = nullptr;
   }
 
-  std::size_t getAvailableIndex(std::size_t quditLevels) override {
+  std::size_t allocateQudit(std::size_t quditLevels) override {
     auto new_id = getNextIndex();
     if (isInTracerMode())
       return new_id;

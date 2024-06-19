@@ -1,8 +1,8 @@
-Extending CUDA Quantum with a new Simulator
+Extending CUDA-Q with a new Simulator
 *******************************************
 
-Backend circuit simulation in CUDA Quantum is enabled via the 
-NVQIR library (:code:`libnvqir`). CUDA Quantum code is ultimately lowered 
+Backend circuit simulation in CUDA-Q is enabled via the 
+NVQIR library (:code:`libnvqir`). CUDA-Q code is ultimately lowered 
 to the LLVM IR in a manner that is adherent to the `QIR specification <https://qir-alliance.org>`_.
 NVQIR provides function implementations for the various declared functions 
 in the specification, which in turn delegate to an extensible simulation 
@@ -97,7 +97,7 @@ must be installed to :code:`$CUDA_QUANTUM_PATH/platforms`.
 Let's see this in action 
 ------------------------
 
-CUDA Quantum provides some CMake utilities to make the creation of your new simulation library 
+CUDA-Q provides some CMake utilities to make the creation of your new simulation library 
 easier. Specifically, by using :code:`find_package(NVQIR)`, you'll get access to a :code:`nvqir_add_backend` function
 that will automate much of the boilerplate for creating your library and configuration file.
 
@@ -164,7 +164,7 @@ To build, install, and use this simulation backend, run the following from the t
     cmake .. -G Ninja -DNVQIR_DIR="$CUDA_QUANTUM_PATH/lib/cmake/nvqir"
     ninja install 
 
-Then given any CUDA Quantum source file, you can compile and target your backend simulator with the following: 
+Then given any CUDA-Q source file, you can compile and target your backend simulator with the following: 
 
 .. code:: bash 
 

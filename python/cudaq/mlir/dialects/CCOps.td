@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
  
-#ifndef PYTHON_BINDINGS_QUAKE_OPS
-#define PYTHON_BINDINGS_QUAKE_OPS
+#ifndef PYTHON_BINDINGS_CC_OPS
+#define PYTHON_BINDINGS_CC_OPS
 
 include "mlir/Bindings/Python/Attributes.td"
 include "cudaq/Optimizer/Dialect/CC/CCOps.td"

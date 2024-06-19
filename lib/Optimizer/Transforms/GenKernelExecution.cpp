@@ -42,7 +42,9 @@ static constexpr const char cudaqRegisterArgsCreator[] =
 static constexpr const char cudaqRegisterKernelName[] =
     "cudaqRegisterKernelName";
 
-static constexpr std::size_t NoResultOffset = ~0u >> 1;
+/// This value is used to indicate that a kernel does not return a result.
+static constexpr std::uint64_t NoResultOffset =
+    std::numeric_limits<std::int32_t>::max();
 
 class GenerateKernelExecution
     : public cudaq::opt::impl::GenerateKernelExecutionBase<
@@ -268,6 +270,44 @@ public:
     return {stVal, extraBytes};
   }
 
+  Value genComputeReturnOffset(Location loc, OpBuilder &builder,
+                               FunctionType funcTy,
+                               cudaq::cc::StructType msgStructTy,
+                               Value nullSt) {
+    auto i64Ty = builder.getI64Type();
+    if (funcTy.getNumResults() == 0)
+      return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
+    auto members = msgStructTy.getMembers();
+    std::int32_t numKernelArgs = funcTy.getNumInputs();
+    auto resTy = cudaq::cc::PointerType::get(members[numKernelArgs]);
+    auto gep = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, resTy, nullSt,
+        SmallVector<cudaq::cc::ComputePtrArg>{0, numKernelArgs});
+    return builder.create<cudaq::cc::CastOp>(loc, i64Ty, gep);
+  }
+
+  /// Create a function that determines the return value offset in the message
+  /// buffer.
+  void genReturnOffsetFunction(Location loc, OpBuilder &builder,
+                               FunctionType devKernelTy,
+                               cudaq::cc::StructType msgStructTy,
+                               const std::string &classNameStr) {
+    auto *ctx = builder.getContext();
+    auto i64Ty = builder.getI64Type();
+    auto funcTy = FunctionType::get(ctx, {}, {i64Ty});
+    auto returnOffsetFunc = builder.create<func::FuncOp>(
+        loc, classNameStr + ".returnOffset", funcTy);
+    OpBuilder::InsertionGuard guard(builder);
+    auto *entry = returnOffsetFunc.addEntryBlock();
+    builder.setInsertionPointToStart(entry);
+    auto ptrTy = cudaq::cc::PointerType::get(msgStructTy);
+    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto basePtr = builder.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
+    auto result =
+        genComputeReturnOffset(loc, builder, devKernelTy, msgStructTy, basePtr);
+    builder.create<func::ReturnOp>(loc, result);
+  }
+
   /// Creates a function that can take a block of pointers to argument values
   /// and using the compiler's knowledge of a kernel encodes those argument
   /// values into a message buffer. The message buffer is a pointer-free block
@@ -394,8 +434,19 @@ public:
         hasTrailingData = true;
         continue;
       }
-      if (isa<cudaq::cc::PointerType>(currEleTy))
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(currEleTy)) {
+        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+          // Special case: if the argument is a `cudaq::state*`, then just pass
+          // the pointer. We can do that in this case because the synthesis step
+          // (which will receive the argument data) is assumed to run in the
+          // same memory space.
+          argPtr = builder.create<cudaq::cc::CastOp>(loc, currEleTy, argPtr);
+          stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
+                                                           stVal, argPtr, idx);
+        }
         continue;
+      }
+
       // cast to the struct element type, void* -> TYPE *
       argPtr = builder.create<cudaq::cc::CastOp>(
           loc, cudaq::cc::PointerType::get(currEleTy), argPtr);
@@ -406,11 +457,8 @@ public:
     }
 
     // Compute the struct size
-    auto nullSt = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, zero);
-    auto computedOffset = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, structPtrTy, nullSt, SmallVector<cudaq::cc::ComputePtrArg>{1});
     Value structSize =
-        builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
+        builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, msgStructTy);
 
     // Here we do have vector args
     Value extendedStructSize =
@@ -741,14 +789,8 @@ public:
     auto i64Ty = builder.getI64Type();
 
     // Compute the struct size without the trailing bytes, structSize.
-    auto ptrArrayStructTy = cudaq::opt::factory::getIndexedObjectType(structTy);
-    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto nullSt =
-        builder.create<cudaq::cc::CastOp>(loc, ptrArrayStructTy, zero);
-    auto computedOffset = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, structPtrTy, nullSt, SmallVector<cudaq::cc::ComputePtrArg>{1});
     Value structSize =
-        builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
+        builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, structTy);
 
     // Compute location of trailing bytes.
     auto bufferPtrTy =
@@ -1052,7 +1094,7 @@ public:
   /// circuit. These entry points are `operator()` member functions in a class,
   /// so account for the `this` argument here.
   void genNewHostEntryPoint(Location loc, OpBuilder &builder,
-                            FunctionType funcTy, Type structTy,
+                            FunctionType funcTy, cudaq::cc::StructType structTy,
                             LLVM::GlobalOp kernelNameObj, func::FuncOp thunk,
                             func::FuncOp rewriteEntry, bool addThisPtr) {
     auto *ctx = builder.getContext();
@@ -1090,7 +1132,7 @@ public:
           continue;
 
       if (auto stdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(quakeTy)) {
-        // Per the CUDAQ spec, an entry point kernel must take a `[const]
+        // Per the CUDA-Q spec, an entry point kernel must take a `[const]
         // std::vector<T>` value argument.
         // Should the spec stipulate that pure device kernels must pass by
         // read-only reference, i.e., take `const std::vector<T> &` arguments?
@@ -1166,8 +1208,19 @@ public:
         hasTrailingData = true;
         continue;
       }
-      if (isa<cudaq::cc::PointerType>(inTy))
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
+        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+          // Special case: if the argument is a `cudaq::state*`, then just pass
+          // the pointer. We can do that in this case because the synthesis step
+          // (which will receive the argument data) is assumed to run in the
+          // same memory space.
+          Value argPtr = builder.create<cudaq::cc::CastOp>(loc, inTy, arg);
+          stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
+                                                           stVal, argPtr, idx);
+        }
         continue;
+      }
+
       stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
                                                        stVal, arg, idx);
     }
@@ -1175,10 +1228,8 @@ public:
     // Compute the struct size without the trailing bytes, structSize, and with
     // the trailing bytes, extendedStructSize.
     auto nullSt = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, zero);
-    auto computedOffset = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, structPtrTy, nullSt, SmallVector<cudaq::cc::ComputePtrArg>{1});
     Value structSize =
-        builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
+        builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, structTy);
     Value extendedStructSize =
         builder.create<arith::AddIOp>(loc, structSize, extraBytes);
 
@@ -1245,15 +1296,8 @@ public:
         builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrI8Ty, loadThunk);
     auto castTemp = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, temp);
 
-    auto resultOffset = [&]() -> Value {
-      if (funcTy.getNumResults() == 0)
-        return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
-      int offset = funcTy.getNumInputs();
-      auto gep = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, structPtrTy, nullSt,
-          SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
-      return builder.create<cudaq::cc::CastOp>(loc, i64Ty, gep);
-    }();
+    auto resultOffset =
+        genComputeReturnOffset(loc, builder, funcTy, structTy, nullSt);
 
     // Generate the call to `launchKernel`.
     builder.create<func::CallOp>(
@@ -1323,10 +1367,10 @@ public:
   /// must be called via other quantum code.
   bool hasLegalType(FunctionType funTy) {
     for (auto ty : funTy.getInputs())
-      if (quake::isaQuantumType(ty))
+      if (quake::isQuantumType(ty))
         return false;
     for (auto ty : funTy.getResults())
-      if (quake::isaQuantumType(ty))
+      if (quake::isQuantumType(ty))
         return false;
     return true;
   }
@@ -1449,6 +1493,9 @@ public:
         hostFuncTy =
             cudaq::opt::factory::toHostSideFuncType(funcTy, hasThisPtr, module);
       }
+
+      // Generate the function that computes the return offset.
+      genReturnOffsetFunction(loc, builder, funcTy, structTy, classNameStr);
 
       // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
       auto thunk = genThunkFunction(loc, builder, classNameStr, structTy,

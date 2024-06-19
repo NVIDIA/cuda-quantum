@@ -6,11 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os, sys
+import os, sys, random
 
 import pytest
 import numpy as np
-from typing import List 
+from typing import List
 
 import cudaq
 from cudaq import spin
@@ -157,7 +157,6 @@ def test_broadcast():
     print(energies)
     assert len(energies) == 50
 
-
     qubit_count = 5
     sample_count = 10
     spin_z = spin.z(0)
@@ -165,21 +164,24 @@ def test_broadcast():
 
     # Below we run a circuit for 10000 different input parameters.
     parameters = np.random.default_rng(13).uniform(low=0,
-                                                high=1,
-                                                size=(sample_count, parameter_count))
+                                                   high=1,
+                                                   size=(sample_count,
+                                                         parameter_count))
 
     @cudaq.kernel
     def kernel(qubit_count: int, parameters: List[float]):
         qvector = cudaq.qvector(qubit_count)
-        for i in range(qubit_count-1):
+        for i in range(qubit_count - 1):
             rx(parameters[i], qvector[i])
 
     # Has to fail, user passed a single `qubit_count` with a broadcast call
     with pytest.raises(RuntimeError) as e:
         result = cudaq.observe(kernel, spin_z, qubit_count, parameters)
-    
-    results = cudaq.observe(kernel, spin_z, [qubit_count]*sample_count, parameters)
+
+    results = cudaq.observe(kernel, spin_z, [qubit_count] * sample_count,
+                            parameters)
     print([r for r in results])
+
 
 @skipIfPythonLessThan39
 def test_broadcast_py39Plus():
@@ -196,7 +198,6 @@ def test_broadcast_py39Plus():
         x.ctrl(qubits[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
 
-    
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(
             1) + 9.625 - 9.625 * spin.z(2) - 3.913119 * spin.x(1) * spin.x(
@@ -258,16 +259,34 @@ def test_observe_async():
         future = cudaq.observe_async(kernel0, hamiltonian, qpu_id=12)
 
 
-def test_spec_adherence():
-    
+# This tests whether a backend can support receiving an empty spin_op. This can
+# happen when parallelizing a spin_op over QPUs when it has more QPUs than
+# terms.
+def test_empty_spin_op():
+
     @cudaq.kernel
     def circuit(theta: float):
         q = cudaq.qvector(2)
         x(q[0])
         ry(theta, q[1])
-        x.ctrl(q[1], q[0]) 
+        x.ctrl(q[1], q[0])
+
+    h = spin.z(0)
+    batched = h.distribute_terms(2)
+    assert batched[1].get_term_count() == 0
+    assert cudaq.observe(circuit, batched[1], .59).expectation() == 0
+
+
+def test_spec_adherence():
+
+    @cudaq.kernel
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(theta, q[1])
+        x.ctrl(q[1], q[0])
         mz(q[0])
-    
+
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
@@ -275,9 +294,57 @@ def test_spec_adherence():
         cudaq.observe(circuit, hamiltonian, .59)
 
     @cudaq.kernel
-    def returnsSomethign() -> int :
+    def returnsSomething() -> int:
         return 0
-    
+
     with pytest.raises(RuntimeError) as e:
-        cudaq.observe(returnsSomethign, hamiltonian, .59)
-    
+        cudaq.observe(returnsSomething, hamiltonian, .59)
+
+
+@skipIfPythonLessThan39
+def test_pack_args_pauli_list():
+    random.seed(13)
+    np.random.seed(13)
+
+    def generateRandomPauliStrings(numQubits, numPaulis):
+        s = ['X', 'Y', 'Z', 'I']
+        return [
+            ''.join([random.choice(s)
+                     for i in range(numQubits)])
+            for i in range(numPaulis)
+        ]
+
+    def build_cudaq_obs(hs, paulis):
+        observable = cudaq.SpinOperator()
+        for h, p in zip(hs, paulis):
+            observable += h * cudaq.SpinOperator.from_word(p)
+        return observable - cudaq.SpinOperator()
+
+    @cudaq.kernel
+    def gqeCirc1(N: int, thetas: list[float], one_pauli: cudaq.pauli_word):
+        q = cudaq.qvector(N)
+        exp_pauli(thetas[0], q, one_pauli)
+
+    @cudaq.kernel
+    def gqeCirc2(N: int, thetas: list[float], paulis: list[cudaq.pauli_word]):
+        q = cudaq.qvector(N)
+        for i in range(len(paulis)):
+            exp_pauli(thetas[i], q, paulis[i])
+
+    numQubits = 4
+    numPaulis = 8
+    numberOfTerms = 4
+
+    # Generate the observable
+    obs_ps = generateRandomPauliStrings(numQubits, numberOfTerms)
+    obs = build_cudaq_obs([1.0] * len(obs_ps), obs_ps)
+
+    pauliStings = generateRandomPauliStrings(numQubits, numPaulis)
+    ts = np.random.rand(len(pauliStings))
+
+    exp_val1 = cudaq.observe_async(gqeCirc1, obs, numQubits, list(ts),
+                                   pauliStings[0]).get().expectation()
+    print('observe_async exp_val1', exp_val1)
+    exp_val2 = cudaq.observe_async(gqeCirc2, obs, numQubits, list(ts),
+                                   pauliStings).get().expectation()
+    print('observe_async exp_val2', exp_val2)

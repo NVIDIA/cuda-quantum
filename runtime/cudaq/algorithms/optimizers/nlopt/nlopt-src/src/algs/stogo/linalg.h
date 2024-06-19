@@ -3,13 +3,12 @@
    This is more or less borrowed from Serguei's program
 */
 
-#ifndef LINALG_H
-#define LINALG_H
+#pragma once
 
-#include <iostream>
-using namespace std;
+#include <algorithm>
+#include <cmath> // for sqrt()
 #include <float.h>
-#include <math.h> // for sqrt()
+#include <iostream>
 
 typedef const class RVector CRVector;
 typedef CRVector &RCRVector;
@@ -18,8 +17,9 @@ typedef CRMatrix &RCRMatrix;
 
 double eps();
 
-#define max(A, B) ((A) > (B) ? (A) : (B))
-#define min(A, B) ((A) < (B) ? (A) : (B))
+// FIXME: just use std::max(), etc. directly.
+#define max(A, B) std::max(A, B)
+#define min(A, B) std::min(A, B)
 
 /********************* Class RVector *********************/
 
@@ -82,12 +82,10 @@ public:
   RCRMatrix operator=(RCRMatrix); // (needed for template stuff)
 
   double &operator()(int vidx, int hidx);
-  friend ostream &operator<<(ostream &, const RMatrix &);
+  friend ostream &operator<<(std::ostream &, const RMatrix &);
 
   friend void gemv(char, double, RCRMatrix, RCRVector, double, RCRVector);
   friend void ger(double alpha, RCRVector, RCRVector, RCRMatrix);
 
   int GetDim() { return Dim; }; // get dimension
 };
-
-#endif

@@ -9,7 +9,7 @@
 
 #include <cudaq.h>
 
-// CUDA Quantum supports several different models of noise. In this
+// CUDA-Q supports several different models of noise. In this
 // case, we will examine the modeling of decoherence of the qubit phase.
 // This will occur from "phase flip" errors, wherein the qubit has a
 // user-specified probability of undergoing a Z-180 rotation.

@@ -10,7 +10,7 @@
 #define CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS
 
 //===----------------------------------------------------------------------===//
-// High-level CUDA Quantum support
+// High-level CUDA-Q support
 //===----------------------------------------------------------------------===//
 
 include "mlir/Interfaces/CallInterfaces.td"
@@ -71,8 +71,12 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     See DeallocOp.
   }];
 
-  let arguments = (ins Optional<AnySignlessInteger>:$size);
-  let results = (outs AnyRefType:$ref_or_vec);
+  let arguments = (ins
+    Optional<AnySignlessInteger>:$size
+  );
+  let results = (outs
+    AnyRefType:$ref_or_vec
+  );
 
   let builders = [
     OpBuilder<(ins ), [{
@@ -92,6 +96,16 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
 
   let hasCanonicalizer = 1;
   let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    bool hasInitializedState() {
+      auto *self = getOperation();
+      return self->hasOneUse() &&
+        mlir::isa<quake::InitializeStateOp>(*self->getUsers().begin());
+    }
+
+    quake::InitializeStateOp getInitializedState();
+  }];
 }
 
 def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
@@ -121,7 +135,7 @@ def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
 def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   let summary = "Captures the compute/action/uncompute high-level idiom.";
   let description = [{
-    CUDA Quantum supports the high-level compute, action, uncompute idiom by
+    CUDA-Q supports the high-level compute, action, uncompute idiom by
     providing a custom template function (class) that takes pure kernels (a
     callable like a λ) as arguments. This operation captures uses of the idiom
     and can be systematically expanded into a quantum circuit via successive
@@ -279,6 +293,32 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
     bool hasConstantIndex() { return !getIndex(); }
     std::size_t getConstantIndex() { return getRawIndex(); }
   }];
+}
+
+def quake_InitializeStateOp : QuakeOp<"init_state",
+    [MemoryEffects<[MemAlloc, MemWrite]>]> {
+  let summary = "Initialize the quantum state to a specific complex vector.";
+  let description = [{
+    Given a !cc.ptr pointing to a complex data array of size 2**N, where N is
+    the number of qubits in the targets operand, initialize the state of those
+    target qubits to the provided state vector. This operation returns a new
+    quake.veq instance. There should be no other uses of the input veq value,
+    \em{targets}, that was allocated. This supports a RAII (resource allocation
+    is initialization) semantics on the qubits in the vector.
+  }];
+
+  let arguments = (ins
+    VeqType:$targets,
+    AnyStateInitType:$state
+  );
+  let results = (outs VeqType);
+  
+  let assemblyFormat = [{
+    $targets `,` $state `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasCanonicalizer = 1;
+  let hasVerifier = 1;
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
@@ -666,7 +706,7 @@ def MzOp : Measurement<"mz"> {
   let extraClassDeclaration = OpBaseDeclaration;
 }
 
-def DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
+def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   let summary = "Converts a measurement to a classical integral value.";
   let description = [{
     Quake's measurement operators return a value of type `!quake.measure`. The
@@ -821,7 +861,7 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 // Unitary quantum transformations
 //===----------------------------------------------------------------------===//
 
-def ExpPauliOp : QuakeOp<"exp_pauli"> {
+def quake_ExpPauliOp : QuakeOp<"exp_pauli"> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
     This operation affects a general Pauli tensor product rotation on 

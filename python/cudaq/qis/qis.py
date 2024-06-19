@@ -11,7 +11,7 @@
 
 def raise_error():
     raise RuntimeError("This function is here for documentation purposes only.\
-         Its implementation is populated by the CUDA Quantum toolchain.")
+         Its implementation is populated by the CUDA-Q toolchain.")
 
 
 def h(*args):

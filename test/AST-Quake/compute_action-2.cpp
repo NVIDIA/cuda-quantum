@@ -6,8 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --apply-op-specialization | FileCheck %s
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization -o %t && FileCheck --check-prefix=LAMBDA %s < %t && FileCheck --check-prefix=LAMBDA2 %s < %t
+// REQUIRES: c++20
+// RUN: cudaq-quake %s | cudaq-opt --apply-op-specialization | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization -o %t && FileCheck --check-prefix=LAMBDA %s < %t && FileCheck --check-prefix=LAMBDA2 %s < %t
 
 #include <cudaq.h>
 

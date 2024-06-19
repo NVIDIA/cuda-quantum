@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This script sets the necessary environment variables to make CUDA Quantum
+# This script sets the necessary environment variables to make CUDA-Q
 # discoverable for all tools.
 
 # Prefix all paths such that running this script manually for a local installation

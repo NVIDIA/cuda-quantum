@@ -4,6 +4,7 @@ AST
 Aer
 AlmaLinux
 BFGS
+Bloch
 CLA
 CLI
 CMake
@@ -43,6 +44,7 @@ Kagome
 Kraus
 LLVM
 LSB
+Libraries
 MCA
 MLIR
 MPI
@@ -76,6 +78,7 @@ QPU
 QPUs
 QTX
 Qiskit
+QuTiP
 Quake
 Quantinuum
 RHEL
@@ -96,6 +99,8 @@ Vazirani
 WSL
 accessor
 acknowledgement
+adaptor
+adaptors
 adjoint
 al
 amongst
@@ -125,6 +130,7 @@ composability
 composable
 constructible
 controlled
+coprocessing
 coprocessor
 coprocessors
 copyable
@@ -144,6 +150,7 @@ decrement
 decrementing
 deserialize
 destructor
+dimensionality
 discoverable
 discretization
 discretize
@@ -183,6 +190,7 @@ inlined
 inlining
 instantiation
 instantiations
+interoperational
 intrinsics
 iterable
 iteratively
@@ -218,6 +226,7 @@ qudit
 qudits
 reStructuredText
 runtime
+runtimes
 rvalue
 scalability
 scalable

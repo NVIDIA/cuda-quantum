@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <complex>
 #include <random>
+
 #define HANDLE_CUDA_ERROR(x)                                                   \
   {                                                                            \
     const auto err = x;                                                        \
@@ -96,5 +97,5 @@ void initCuTensornetComm(cutensornetHandle_t cutnHandle);
 
 /// Reset `cutensornet` MPI Comm, e.g., in preparation for shutdown.
 /// Note: this will make sure no further MPI activities from `cutensornet` can
-/// occur once MPI has been finalized by CUDAQ.
+/// occur once MPI has been finalized by CUDA-Q.
 void resetCuTensornetComm(cutensornetHandle_t cutnHandle);

@@ -15,6 +15,7 @@ target_include_directories(unzip_util PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_D
 find_package(PkgConfig)
 # By default, Minizip has package config (.pc) file.
 # If CMake can find PkgConfig, use it to find minizip
+
 find_path(MINIZIP_PKG_CONFIG_DIR NAMES minizip.pc
   HINTS 
     ${ZLIB_ROOT}/lib/pkgconfig
@@ -38,8 +39,8 @@ else()
   # Make sure that we find minizip static library
   find_library(MINI_ZIP_LIB NAMES libminizip.a
     HINTS 
-      ${ZLIB_ROOT}
-      $ENV{ZLIB_INSTALL_PREFIX}
+      ${ZLIB_ROOT}/lib
+      $ENV{ZLIB_INSTALL_PREFIX}/lib
       ${ZLIB_INCLUDE_DIR}/../lib
   )
   get_filename_component(MINI_LIB_DIR ${MINI_ZIP_LIB} DIRECTORY)
@@ -73,7 +74,7 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-mlir-runtime fmt::fmt-header-only unzip_util)
+target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-mlir-runtime fmt::fmt-header-only unzip_util nvqir)
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")

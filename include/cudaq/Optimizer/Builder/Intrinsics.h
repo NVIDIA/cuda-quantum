@@ -12,19 +12,42 @@
 
 namespace cudaq {
 
+/// This is the name of a dummy builtin to identify a std::move() call. These
+/// calls will be erased before code gen.
+static constexpr const char stdMoveBuiltin[] = ".std::move";
+
 static constexpr const char llvmMemCopyIntrinsic[] =
     "llvm.memcpy.p0i8.p0i8.i64";
+
+// cudaq::range(count);
 static constexpr const char setCudaqRangeVector[] = "__nvqpp_CudaqRangeInit";
+// cudaq::range(start, stop, step);
+static constexpr const char setCudaqRangeVectorTriple[] =
+    "__nvqpp_CudaqRangeInitTriple";
+// Computes the number of iterations as from a semi-open interval as given by a
+// cudaq::range() triple.
+static constexpr const char getCudaqSizeFromTriple[] =
+    "__nvqpp_CudaqSizeFromTriple";
+
+// Convert a sequence of booleans (as bytes) into a std::vector<bool> (which is
+// typically specialized to be bit packed).
 static constexpr const char stdvecBoolCtorFromInitList[] =
     "__nvqpp_initializer_list_to_vector_bool";
+// Convert a (likely packed) std::vector<bool> into a sequence of bytes, each
+// holding a boolean value.
 static constexpr const char stdvecBoolUnpackToInitList[] =
     "__nvqpp_vector_bool_to_initializer_list";
 
-/// Builder for lowering the clang AST to an IR for CUDA Quantum. Lowering
-/// includes the transformation of both quantum and classical computation.
-/// Different features of the CUDA Quantum programming model are lowered into
-/// different dialects of MLIR. This builder makes heavy use of the Quake
-/// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
+// The internal data of the cudaq::state object must be `2**n` in length. This
+// function returns the value `n`.
+static constexpr const char getNumQubitsFromCudaqState[] =
+    "__nvqpp_cudaq_state_numberOfQubits";
+
+/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
+/// the transformation of both quantum and classical computation. Different
+/// features of the CUDA-Q programming model are lowered into different dialects
+/// of MLIR. This builder makes heavy use of the Quake (QUAntum Kernel
+/// Execution) and CC (Classical Computation) dialects.
 ///
 /// This builder also allows for the inclusion of predefined intrinsics into
 /// the `ModuleOp` on demand. Intrinsics exist in a map accessed by a symbol

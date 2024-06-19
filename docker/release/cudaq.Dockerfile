@@ -6,10 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file builds an image that contains a CUDA Quantum installation and all necessary runtime 
-# dependencies for using CUDA Quantum.
+# This file builds an image that contains a CUDA-Q installation and all necessary runtime 
+# dependencies for using CUDA-Q.
 #
-# This image requires specifing an image as argument that contains a CUDA Quantum installation
+# This image requires specifing an image as argument that contains a CUDA-Q installation
 # along with its development dependencies. This file then copies that installation into a more
 # minimal runtime environment. 
 # A suitable base image can be obtained by building docker/build/cudaq.dev.Dockerfile.
@@ -18,9 +18,9 @@
 # Must be built from the repo root with:
 #   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:latest-base -f docker/release/cudaq.Dockerfile .
 # 
-# The build argument cudaqdev_image defines the CUDA Quantum dev image that contains the CUDA
+# The build argument cudaqdev_image defines the CUDA-Q dev image that contains the CUDA
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
-# base_image must contain the necessary CUDA Quantum runtime dependencies.
+# base_image must contain the necessary CUDA-Q runtime dependencies.
 
 ARG base_image=ubuntu:22.04
 ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
@@ -54,15 +54,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates wget git sudo vim \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# Install CUDA Quantum runtime dependencies.
+# Install CUDA-Q runtime dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip libstdc++-12-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
+    RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
+    # Ref: https://github.com/qutip/qutip/issues/2412
+    && python3 -m pip install --no-cache-dir notebook==7.1.3 "qutip<5" matplotlib \
+    && apt-get remove -y gcc g++ python3-dev \
+    && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy over the CUDA Quantum installation, and the necessary compiler tools.
+# Copy over the CUDA-Q installation, and the necessary compiler tools.
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
@@ -71,8 +76,8 @@ ENV CUDA_QUANTUM_PATH="/opt/nvidia/cudaq"
 COPY --from=cudaqbuild "/usr/local/cudaq/" "$CUDA_QUANTUM_PATH"
 COPY --from=cudaqbuild "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/assets"
 
-# For now, the CUDA Quantum build hardcodes certain paths and hence expects to find its 
-# dependencies in specific locations. While a relocatable installation of CUDA Quantum should 
+# For now, the CUDA-Q build hardcodes certain paths and hence expects to find its 
+# dependencies in specific locations. While a relocatable installation of CUDA-Q should 
 # be a good/better option in the future, for now we make sure to copy the dependencies to the 
 # expected locations. The CUDQ Quantum installation contains an xml file that lists these.
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
@@ -89,7 +94,7 @@ RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep 
 # Some tools related to shell handling.
 
 ARG COPYRIGHT_NOTICE="=========================\n\
-   NVIDIA CUDA Quantum   \n\
+      NVIDIA CUDA-Q      \n\
 =========================\n\n\
 Version: ${CUDA_QUANTUM_VERSION}\n\n\
 Copyright (c) 2024 NVIDIA Corporation & Affiliates \n\

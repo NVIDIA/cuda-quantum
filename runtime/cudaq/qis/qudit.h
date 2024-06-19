@@ -27,7 +27,30 @@ class qudit {
 
 public:
   /// Construct a qudit, will allocated a new unique index
-  qudit() : idx(getExecutionManager()->getAvailableIndex(n_levels())) {}
+  qudit() : idx(getExecutionManager()->allocateQudit(n_levels())) {}
+  qudit(const std::vector<complex> &state) : qudit() {
+    if (state.size() != Levels)
+      throw std::runtime_error(
+          "Invalid number of state vector elements for qudit allocation (" +
+          std::to_string(state.size()) + ").");
+
+    auto norm = std::inner_product(
+                    state.begin(), state.end(), state.begin(), complex{0., 0.},
+                    [](auto a, auto b) { return a + b; },
+                    [](auto a, auto b) { return std::conj(a) * b; })
+                    .real();
+    if (std::fabs(1.0 - norm) > 1e-4)
+      throw std::runtime_error("Invalid vector norm for qudit allocation.");
+
+    // Perform the initialization
+    auto precision = std::is_same_v<complex::value_type, float>
+                         ? simulation_precision::fp32
+                         : simulation_precision::fp64;
+    getExecutionManager()->initializeState({QuditInfo(n_levels(), idx)},
+                                           state.data(), precision);
+  }
+  qudit(const std::initializer_list<complex> &list)
+      : qudit({list.begin(), list.end()}) {}
 
   // Qudits cannot be copied
   qudit(const qudit &q) = delete;

@@ -11,7 +11,7 @@ FROM $base_image
 
 USER root
 
-# Copy over additional CUDA Quantum assets.
+# Copy over additional CUDA-Q assets.
 ARG assets=./assets
 COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
@@ -35,7 +35,7 @@ RUN apt-get install -y --no-install-recommends \
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \
         apt-get install -y --no-install-recommends gcc libpython3-dev \
-        && pip install --no-cache-dir jupyterlab matplotlib; \
+        && pip install --no-cache-dir jupyterlab; \
         if [ -n "$MPI_ROOT" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \
         fi; \

@@ -1,4 +1,4 @@
-Running your first CUDA Quantum Program
+Running your first CUDA-Q Program
 ----------------------------------------
 
 Now that you have defined your first quantum kernel, let's look at different options for how to execute it.
@@ -10,7 +10,7 @@ Sample
 
   The :func:`cudaq.sample` method takes a kernel and its arguments as inputs, and returns a :class:`cudaq.SampleResult`.
   This result dictionary contains the distribution of measured states for the system.
-  Continuing with the GHZ kernel defined in :doc:`Building Your First CUDA Quantum Program <build_kernel>`,
+  Continuing with the GHZ kernel defined in :doc:`Building Your First CUDA-Q Program <build_kernel>`,
   we will set the concrete value of our `qubit_count` to be two. The following will assume this code exists in
   a file named `sample.py`.
 
@@ -47,7 +47,7 @@ Sample
 
   The :func:`cudaq.sample` method takes a kernel and its arguments as inputs, and returns a :class:`cudaq.SampleResult`.
   This result dictionary contains the distribution of measured states for the system.
-  Continuing with the GHZ kernel defined in :doc:`Building Your First CUDA Quantum Program <build_kernel>`,
+  Continuing with the GHZ kernel defined in :doc:`Building Your First CUDA-Q Program <build_kernel>`,
   we will set the concrete value of our `qubit_count` to be two. The following will assume this code exists in
   a file named `sample.cpp`.
 

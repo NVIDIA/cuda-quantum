@@ -75,7 +75,7 @@ if __name__ == '__main__':
         prog='python',
         description='Run a Bernstein-Vazirani algorithm using NVQC.',
         epilog=
-        'For more information about CUDA Quantum, see https://nvidia.github.io/cuda-quantum'
+        'For more information about CUDA-Q, see https://nvidia.github.io/cuda-quantum'
     )
     parser.add_argument('--size',
                         type=int,

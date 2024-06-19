@@ -17,10 +17,16 @@ namespace cudaq {
 
 void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
 
+  py::enum_<simulation_precision>(
+      mod, "SimulationPrecision",
+      "Enumeration describing the precision of the underyling simulation.")
+      .value("fp32", simulation_precision::fp32)
+      .value("fp64", simulation_precision::fp64);
+
   py::class_<cudaq::RuntimeTarget>(
       mod, "Target",
-      "The `cudaq.Target` represents the underlying infrastructure that CUDA "
-      "Quantum kernels will execute on. Instances of `cudaq.Target` describe "
+      "The `cudaq.Target` represents the underlying infrastructure that "
+      "CUDA-Q kernels will execute on. Instances of `cudaq.Target` describe "
       "what simulator they may leverage, the quantum_platform required for "
       "execution, and a description for the target.")
       .def_readonly("name", &cudaq::RuntimeTarget::name,
@@ -40,13 +46,18 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       .def("is_emulated", &cudaq::RuntimeTarget::is_emulated,
            "Returns true if the emulation mode for the target has been "
            "activated.")
+      .def("get_precision", &cudaq::RuntimeTarget::get_precision,
+           "Return the simulation precision for the current target.")
       .def(
           "__str__",
           [](cudaq::RuntimeTarget &self) {
-            return fmt::format("Target {}\n\tsimulator={}\n\tplatform={}"
-                               "\n\tdescription={}\n",
-                               self.name, self.simulatorName, self.platformName,
-                               self.description);
+            return fmt::format(
+                "Target {}\n\tsimulator={}\n\tplatform={}"
+                "\n\tdescription={}\n\tprecision={}\n",
+                self.name, self.simulatorName, self.platformName,
+                self.description,
+                self.get_precision() == simulation_precision::fp32 ? "fp32"
+                                                                   : "fp64");
           },
           "Persist the information in this `cudaq.Target` to a string.");
 
@@ -85,11 +96,13 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), strValue);
+          // Ignore empty parameter values
+          if (!strValue.empty())
+            config.emplace(key.cast<std::string>(), strValue);
         }
         holder.setTarget(target.name, config);
       },
-      "Set the `cudaq.Target` to be used for CUDA Quantum kernel execution. "
+      "Set the `cudaq.Target` to be used for CUDA-Q kernel execution. "
       "Can provide optional, target-specific configuration data via Python "
       "kwargs.");
   mod.def(
@@ -108,11 +121,13 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), strValue);
+          // Ignore empty parameter values
+          if (!strValue.empty())
+            config.emplace(key.cast<std::string>(), strValue);
         }
         holder.setTarget(name, config);
       },
-      "Set the `cudaq.Target` with given name to be used for CUDA Quantum "
+      "Set the `cudaq.Target` with given name to be used for CUDA-Q "
       "kernel execution. Can provide optional, target-specific configuration "
       "data via Python kwargs.");
 }

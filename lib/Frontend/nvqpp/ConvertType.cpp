@@ -11,12 +11,16 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Todo.h"
+#include "clang/Basic/TargetInfo.h"
+#include "llvm/TargetParser/Triple.h"
 
 #define DEBUG_TYPE "lower-ast-type"
 
 using namespace mlir;
 
-static bool isArithmeticType(Type t) { return isa<IntegerType, FloatType>(t); }
+static bool isArithmeticType(Type t) {
+  return isa<IntegerType, FloatType, ComplexType>(t);
+}
 
 /// Is \p t a quantum reference type. In the bridge, quantum types are always
 /// reference types.
@@ -133,16 +137,12 @@ static bool isKernelResultType(Type t) {
          isStaticArithmeticProductType(t);
 }
 
-/// Is \p t a std::string type?
-static bool isStringType(Type t) { return isa<cudaq::cc::CharspanType>(t); }
-
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
 /// dynamic type composed of arithmetic types, a quantum type, a callable
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-         isStringType(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -235,7 +235,10 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   auto [width, alignInBytes] = [&]() -> std::pair<std::uint64_t, unsigned> {
     auto *defn = x->getDefinition();
     assert(defn && "struct must be defined here");
-    auto ti = getContext()->getTypeInfo(defn->getTypeForDecl());
+    auto *ty = defn->getTypeForDecl();
+    if (ty->isDependentType())
+      return {0, 0};
+    auto ti = getContext()->getTypeInfo(ty);
     return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
   }();
   if (name.empty())
@@ -245,8 +248,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
 }
 
 bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *t) {
-  assert(t->exceptions().empty() &&
-         "exceptions are not supported in CUDA Quantum");
+  assert(t->exceptions().empty() && "exceptions are not supported in CUDA-Q");
   if (t->getNoexceptExpr()) {
     // Throw away the boolean value from this clause.
     // TODO: Could enforce that it must be `true`.
@@ -321,9 +323,15 @@ Type QuakeBridgeVisitor::builtinTypeToType(const clang::BuiltinType *t) {
     return builder.getF32Type();
   case BuiltinType::Double:
     return builder.getF64Type();
-  case BuiltinType::LongDouble:
-    return astContext->getTypeSize(t) == 64 ? builder.getF64Type()
-                                            : builder.getF128Type();
+  case BuiltinType::LongDouble: {
+    auto bitWidth = astContext->getTargetInfo().getLongDoubleWidth();
+    if (bitWidth == 64)
+      return builder.getF64Type();
+    llvm::Triple triple(astContext->getTargetInfo().getTargetOpts().Triple);
+    if (triple.isX86())
+      return builder.getF80Type();
+    return builder.getF128Type();
+  }
   case BuiltinType::Float128:
   case BuiltinType::Ibm128: /* double double format -> {double, double} */
     return builder.getF128Type();
@@ -404,6 +412,12 @@ SmallVector<Type> QuakeBridgeVisitor::lastTypes(unsigned n) {
   return result;
 }
 
+static bool isReferenceToCudaqStateType(Type t) {
+  if (auto ptrTy = dyn_cast<cc::PointerType>(t))
+    return isa<cc::StateType>(ptrTy.getElementType());
+  return false;
+}
+
 // Do syntax checking on the signature of kernel \p x.
 // Precondition: the top of the type stack is the kernel's `mlir::FunctionType`.
 // Return true if and only if the kernel \p x has a legal signature.
@@ -424,7 +438,8 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
     // Structs, lambdas, functions are valid callable objects. Also pure
     // device kernels may take veq and/or ref arguments.
-    if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p))
+    if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p) ||
+        isReferenceToCudaqStateType(t))
       continue;
     reportClangError(p, mangler, "kernel argument type not supported");
     return false;

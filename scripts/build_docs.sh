@@ -82,7 +82,7 @@ if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" 
 
     python3 -c "import cudaq" 2>/dev/null
     if [ ! "$?" -eq "0" ] || [ ! "$cudaq_build_exit_code" -eq "0" ]; then
-        echo "Failed to build and install the CUDA Quantum Python package needed for docs generation."
+        echo "Failed to build and install the CUDA-Q Python package needed for docs generation."
         cd "$working_dir" && if $is_sourced; then return 2; else exit 2; fi
     else 
         echo "Python package has been installed in $CUDAQ_INSTALL_PREFIX."
@@ -142,7 +142,7 @@ if [ ! "$doxygen_exit_code" -eq "0" ]; then
     docs_exit_code=11
 fi
 
-echo "Building CUDA Quantum documentation using Sphinx..."
+echo "Building CUDA-Q documentation using Sphinx..."
 cd "$repo_root/docs"
 # The docs build so far is fast such that we do not care about the cached outputs.
 # Revisit this when caching becomes necessary.

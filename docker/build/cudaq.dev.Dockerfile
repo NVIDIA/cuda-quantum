@@ -13,7 +13,7 @@
 # If a custom base image is used, then that image (i.e. the build environment) must 
 # 1) have all the necessary build dependendencies installed
 # 2) define the LLVM_INSTALL_PREFIX environment variable indicating where the 
-#    the LLVM binaries that CUDA Quantum depends on are installed
+#    the LLVM binaries that CUDA-Q depends on are installed
 # 3) set the CC and CXX environment variable to use the same compiler toolchain
 #    as the LLVM dependencies have been built with.
 

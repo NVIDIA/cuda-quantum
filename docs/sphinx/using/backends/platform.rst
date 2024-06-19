@@ -1,6 +1,6 @@
 Multi-Processor Platforms
 ---------------------------------------------------
-The CUDA Quantum machine model elucidates the various devices considered in the 
+The CUDA-Q machine model elucidates the various devices considered in the 
 broader quantum-classical compute node context. Programmers will have one or many 
 host CPUs, zero or many NVIDIA GPUs, a classical QPU control space, and the
 quantum register itself. Moreover, the :doc:`specification </specification/cudaq/platform>`
@@ -8,10 +8,10 @@ notes that the underlying platform may expose multiple QPUs. In the near-term,
 this will be unlikely with physical QPU instantiations, but the availability of
 GPU-based circuit simulators on NVIDIA multi-GPU architectures does give one an
 opportunity to think about programming such a multi-QPU architecture in the near-term.
-CUDA Quantum starts by enabling one to query information about the underlying quantum
+CUDA-Q starts by enabling one to query information about the underlying quantum
 platform via the :code:`quantum_platform` abstraction. This type exposes a
 :code:`num_qpus()` method that can be used to query the number of available
-QPUs for asynchronous CUDA Quantum kernel and :code:`cudaq::` function invocations.
+QPUs for asynchronous CUDA-Q kernel and :code:`cudaq::` function invocations.
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.
 
@@ -49,7 +49,7 @@ Here is a simple example demonstrating its usage.
         nvq++ sample_async.cpp -target nvidia-mqpu
         ./a.out
 
-CUDA Quantum exposes asynchronous versions of the default :code:`cudaq` algorithmic
+CUDA-Q exposes asynchronous versions of the default :code:`cudaq` algorithmic
 primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`sample_async` function in the above code snippets).
 
 Depending on the number of GPUs available on the system, the :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
@@ -107,7 +107,7 @@ is selected, these circuits will be distributed across all available QPUs. The f
 Parallel distribution mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The CUDA Quantum :code:`nvidia-mqpu` platform supports two modes of parallel distribution of expectation value computation:
+The CUDA-Q :code:`nvidia-mqpu` platform supports two modes of parallel distribution of expectation value computation:
 
 * MPI: distribute the expectation value computations across available MPI ranks and GPUs for each Hamiltonian term.
 * Thread: distribute the expectation value computations among available GPUs via standard C++ threads (each thread handles one GPU).
@@ -142,7 +142,7 @@ An example of MPI distribution mode usage in both C++ and Python is given below:
         mpiexec -np <N> a.out
 
 In the above example, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.
-CUDA Quantum provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime. 
+CUDA-Q provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime. 
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpiexec`, :code:`mpirun`, :code:`srun`, etc.
 
@@ -195,13 +195,29 @@ To customize how many and which GPUs are used for simulating each virtual QPU, o
 For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
 4 virtual QPU instances, each manages 2 GPUs. To do so, first launch a :code:`cudaq-qpud` server for each virtual QPU:
 
+.. tab:: Python
 
-.. code-block:: console
-    
-    CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 cudaq-qpud --port <QPU 1 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 cudaq-qpud --port <QPU 2 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 cudaq-qpud --port <QPU 3 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 cudaq-qpud --port <QPU 4 TCP/IP port number>
+     .. See scripts/validate_wheel.sh for examples of how similar commands are run automatically during release validation.
+
+     .. code-block:: bash
+         
+         # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
+         cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
+         qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
+         CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 python3 "$qpud_py" --port <QPU 1 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 python3 "$qpud_py" --port <QPU 2 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 python3 "$qpud_py" --port <QPU 3 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 python3 "$qpud_py" --port <QPU 4 TCP/IP port number>
+
+.. tab:: C++
+     
+     .. code-block:: bash
+         
+         # It is assumed that your $LD_LIBRARY_PATH is able to find all the necessary dependencies.
+         CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 cudaq-qpud --port <QPU 1 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 cudaq-qpud --port <QPU 2 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 cudaq-qpud --port <QPU 3 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 cudaq-qpud --port <QPU 4 TCP/IP port number>
 
 
 In the above code snippet, four :code:`nvidia-mgpu` daemons are started in MPI context via the :code:`mpiexec` launcher.
@@ -254,9 +270,9 @@ such as nested vectors or class objects, or other kernels as arguments to the en
 These type limitations only apply to the **entry-point** kernel and not when passing arguments
 to other quantum kernels.
 
-Support for the full range of argument types within CUDA Quantum can be enabled by compiling the 
+Support for the full range of argument types within CUDA-Q can be enabled by compiling the 
 code with the :code:`--enable-mlir` option. This flag forces quantum kernels to be compiled with 
-the CUDA Quantum MLIR-based compiler. As a result, runtime arguments can be resolved by the CUDA 
+the CUDA-Q MLIR-based compiler. As a result, runtime arguments can be resolved by the CUDA 
 Quantum compiler infrastructure to support wider range of argument types. However, certain
 language constructs within quantum kernels may not yet be fully supported.
 

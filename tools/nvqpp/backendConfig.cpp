@@ -9,10 +9,15 @@
 /// This file is meant to be used by the nvq++ driver script, the
 /// NVQPP_TARGET_BACKEND_CONFIG string must be replaced (e.g. with sed)
 /// with the actual target backend string.
+
+// TODO: Replace this file with a compiler generated constant string and cleanup
+// the driver.
 namespace cudaq {
 void set_target_backend(const char *);
 }
-constexpr static const char ____targetBackend[] = NVQPP_TARGET_BACKEND_CONFIG;
+
+static constexpr const char targetBackendName[] = NVQPP_TARGET_BACKEND_CONFIG;
+
 __attribute__((constructor)) void setTargetBackend() {
-  cudaq::set_target_backend(____targetBackend);
+  cudaq::set_target_backend(targetBackendName);
 }

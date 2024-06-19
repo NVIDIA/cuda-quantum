@@ -134,8 +134,9 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
     auto eleTy = stdvecTy.getElementType();
     auto dataPtrTy = cc::PointerType::get(eleTy);
     auto dataArrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-    auto [iters, ptr] = [&]() -> std::pair<Value, Value> {
-      if (auto call = buffer.getDefiningOp<func::CallOp>())
+    auto [iters, ptr, initial,
+          stepBy] = [&]() -> std::tuple<Value, Value, Value, Value> {
+      if (auto call = buffer.getDefiningOp<func::CallOp>()) {
         if (call.getCallee().equals(setCudaqRangeVector)) {
           // The std::vector was produced by cudaq::range(). Optimize this
           // special case to use the loop control directly. Erase the transient
@@ -148,11 +149,30 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
             // shouldn't get here, but we can erase the call at minimum
             call->erase();
           }
-          return {i, {}};
+          return {i, {}, {}, {}};
+        } else if (call.getCallee().equals(setCudaqRangeVectorTriple)) {
+          Value i = call.getOperand(2);
+          if (auto alloc = call.getOperand(0).getDefiningOp<cc::AllocaOp>()) {
+            Operation *callGetSizeOp = nullptr;
+            if (auto seqSize = alloc.getSeqSize()) {
+              if (auto callSize = seqSize.getDefiningOp<func::CallOp>())
+                if (callSize.getCallee().equals(getCudaqSizeFromTriple))
+                  callGetSizeOp = callSize.getOperation();
+            }
+            call->erase(); // erase call must be first
+            alloc->erase();
+            if (callGetSizeOp)
+              callGetSizeOp->erase();
+          } else {
+            // shouldn't get here, but we can erase the call at minimum
+            call->erase();
+          }
+          return {i, {}, call.getOperand(1), call.getOperand(3)};
         }
+      }
       Value i = builder.create<cc::StdvecSizeOp>(loc, i64Ty, buffer);
       Value p = builder.create<cc::StdvecDataOp>(loc, dataArrPtrTy, buffer);
-      return {i, p};
+      return {i, p, {}, {}};
     }();
 
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region,
@@ -196,9 +216,16 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
       builder.create<cc::ScopeOp>(loc, scopeBuilder);
     };
 
-    auto idxIters = builder.create<cudaq::cc::CastOp>(
-        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
-    opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
+    if (!initial) {
+      auto idxIters = builder.create<cudaq::cc::CastOp>(
+          loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
+      opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
+    } else {
+      auto idxIters = builder.create<cudaq::cc::CastOp>(
+          loc, i64Ty, iters, cudaq::cc::CastOpMode::Signed);
+      opt::factory::createMonotonicLoop(builder, loc, initial, idxIters, stepBy,
+                                        bodyBuilder);
+    }
   } else if (auto veqTy = dyn_cast<quake::VeqType>(buffer.getType());
              veqTy && veqTy.hasSpecifiedSize()) {
     Value iters =

@@ -242,7 +242,7 @@ func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:       }
 
 // CHECK-LABEL: define i64 @test_0.argsCreator(i8** nocapture readonly 
-// CHECK-SAME:    %[[VAL_0:.*]], i8** nocapture writeonly %[[VAL_1:.*]]) #2 {
+// CHECK-SAME:    %[[VAL_0:.*]], i8** nocapture writeonly %[[VAL_1:.*]]) #{{[0-9]+}} {
 // CHECK:         %[[VAL_2:.*]] = bitcast i8** %[[VAL_0]] to { { i32, double }*, { i32, double }*, { i32, double }* }**
 // CHECK:         %[[VAL_3:.*]] = load { { i32, double }*, { i32, double }*, { i32, double }* }*, { { i32, double }*, { i32, double }*, { i32, double }* }** %[[VAL_2]], align 8
 // CHECK:         %[[VAL_4:.*]] = getelementptr { { i32, double }*, { i32, double }*, { i32, double }* }, { { i32, double }*, { i32, double }*, { i32, double }* }* %[[VAL_3]], i64 0, i32 1
