@@ -113,7 +113,7 @@ to other events while that task runs, rather than having to wait until
 that task has finished. Once that task has finished, your program is
 presented with the result.
 
-``sample`` can be a time intensive task. We can parallelize the
+Executing ``sample`` can be a time intensive task. We can parallelize the
 execution of ``sample`` via the arguments it accepts.
 
 .. literalinclude:: ../../examples/python/platform/sample_async.py
