@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using CUDA and CUDA Quantum in a Project &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Using CUDA and CUDA-Q in a Project &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -29,7 +29,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA Quantum and CMake" href="cmake_app.html" />
+    <link rel="next" title="CUDA-Q and CMake" href="cmake_app.html" />
     <link rel="prev" title="Integration with other Software Tools" href="integration.html" /> 
 </head>
 
@@ -42,7 +42,7 @@
           
           
           <a href="../../index.html" class="icon icon-home">
-            NVIDIA CUDA Quantum
+            NVIDIA CUDA-Q
           </a>
               <div class="version">
                 amd64-pr-1444
@@ -99,14 +99,14 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
@@ -158,6 +158,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
@@ -166,6 +167,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
@@ -176,8 +178,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
@@ -280,7 +289,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
@@ -292,7 +301,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../install/data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#python-support">Python Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
@@ -305,7 +314,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="integration.html">   Integration</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Combining CUDA with CUDA Quantum</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cmake_app.html">Downstream CMake Integration</a></li>
 </ul>
 </li>
@@ -315,14 +324,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../extending/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../extending/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../specification/cudaq.html">   Language Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/machine_model.html">1. Machine Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/namespace.html">2. Namespace and Standard</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/types.html">3. Quantum Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
@@ -333,12 +342,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/operations.html">5. Quantum Operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -350,8 +358,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -381,6 +389,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#algorithms">Algorithms</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
 </ul>
 </li>
@@ -418,8 +427,10 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -466,6 +477,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -488,7 +500,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">NVIDIA CUDA Quantum</a>
+          <a href="../../index.html">NVIDIA CUDA-Q</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -497,24 +509,24 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="integration.html">Integration with other Software Tools</a></li>
-      <li class="breadcrumb-item active">Using CUDA and CUDA Quantum in a Project</li>
+      <li class="breadcrumb-item active">Using CUDA and CUDA-Q in a Project</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/using/integration/cuda_gpu.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="integration.html" class="btn btn-neutral float-left" title="Integration with other Software Tools" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cmake_app.html" class="btn btn-neutral float-right" title="CUDA Quantum and CMake" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cmake_app.html" class="btn btn-neutral float-right" title="CUDA-Q and CMake" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="using-cuda-and-cuda-quantum-in-a-project">
-<h1>Using CUDA and CUDA Quantum in a Project<a class="headerlink" href="#using-cuda-and-cuda-quantum-in-a-project" title="Permalink to this heading">¶</a></h1>
-<p>It may be the case that a project that uses CUDA Quantum kernels may also
+  <section id="using-cuda-and-cuda-q-in-a-project">
+<h1>Using CUDA and CUDA-Q in a Project<a class="headerlink" href="#using-cuda-and-cuda-q-in-a-project" title="Permalink to this heading">¶</a></h1>
+<p>It may be the case that a project that uses CUDA-Q kernels may also
 want to use CUDA code to do computation on a GPU.  This is possible by using
-both the CUDA Toolkit and CUDA Quantum tools. More about programming GPUs
+both the CUDA Toolkit and CUDA-Q tools. More about programming GPUs
 in CUDA can be found in the <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html">Quick Start Guide</a>.</p>
 <p>Once the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler is installed, it is possible to write
 CUDA kernels and have them execute on the system GPU. See NVIDIA’s <a class="reference external" href="https://developer.nvidia.com/blog/easy-introduction-cuda-c-and-c/">An
@@ -523,7 +535,7 @@ for more information on getting started with CUDA.</p>
 <p>CUDA code uses a unique syntax and is, typically, saved in a file with
 the extension <code class="code docutils literal notranslate"><span class="pre">.cu</span></code>. For our example, assume we have written our
 CUDA code in the file <code class="code docutils literal notranslate"><span class="pre">my_proj.cu</span></code>.</p>
-<p>CUDA Quantum code is a library-based extension of C++ and uses
+<p>CUDA-Q code is a library-based extension of C++ and uses
 standard conforming C++ syntax. Typically, a quantum kernel would be
 saved in a file with the <code class="code docutils literal notranslate"><span class="pre">.cpp</span></code> extension. Again for our
 example, let’s assume that we’ve written quantum kernels and saved
@@ -531,7 +543,7 @@ them in the file <code class="code docutils literal notranslate"><span class="pr
 <p>There is a bit of a wrinkle to be aware of before we compile these two
 compilation units. Version 11 (and earlier) of CUDA <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code>
 supports the C++ 11, 14, and 17 standards and the default standard is
-determined by the host C++ compiler. The CUDA Quantum compiler,
+determined by the host C++ compiler. The CUDA-Q compiler,
 <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>, defaults to the C++ 20 standard. To get around this
 limitation, the project makefiles should select a common C++ standard
 version. Fortunately, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> does allow the use of C++ 17.</p>
@@ -542,8 +554,8 @@ standard is supported.</p>
 nvq++<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_project_quantum.cpp<span class="w"> </span>my_proj.o<span class="w"> </span>-L<span class="w"> </span><span class="si">${</span><span class="nv">CUDA_INSTALL</span><span class="si">}</span>/lib64<span class="w"> </span>-lcudart<span class="w"> </span>-o<span class="w"> </span>my_executable
 </pre></div>
 </div>
-<p>Above, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> is used for the link step and will make sure the CUDA
-Quantum runtime libraries are linked correctly to the executable program.
+<p>Above, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> is used for the link step and will make sure the CUDA-Q
+runtime libraries are linked correctly to the executable program.
 The CUDA runtime is explicitly added to this command.</p>
 </section>
 
@@ -552,13 +564,13 @@ The CUDA runtime is explicitly added to this command.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="integration.html" class="btn btn-neutral float-left" title="Integration with other Software Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cmake_app.html" class="btn btn-neutral float-right" title="CUDA Quantum and CMake" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cmake_app.html" class="btn btn-neutral float-right" title="CUDA-Q and CMake" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

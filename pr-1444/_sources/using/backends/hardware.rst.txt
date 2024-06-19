@@ -1,7 +1,7 @@
-CUDA Quantum Hardware Backends
+CUDA-Q Hardware Backends
 *********************************
 
-CUDA Quantum supports submission to a set of hardware providers. 
+CUDA-Q supports submission to a set of hardware providers. 
 To submit to a hardware backend, you need an account with the respective provider.
 
 
@@ -13,7 +13,7 @@ Quantinuum
 Setting Credentials
 ```````````````````
 
-Programmers of CUDA Quantum may access the Quantinuum API from either
+Programmers of CUDA-Q may access the Quantinuum API from either
 C++ or Python. Quantinuum requires a credential configuration file. 
 The configuration file can be generated as follows, replacing
 the ``email`` and ``credentials`` in the first line with your Quantinuum
@@ -41,7 +41,7 @@ Submission from C++
 `````````````````````````
 
 To target quantum kernel code for execution in the Quantinuum backends,
-pass the flag ``--target quantinuum`` to the ``nvq++`` compiler. CUDA Quantum will 
+pass the flag ``--target quantinuum`` to the ``nvq++`` compiler. CUDA-Q will 
 authenticate via the Quantinuum REST API using the credential in your configuration file.
 By default, quantum kernel code will be submitted to the Quantinuum syntax checker.
 Submission to the syntax checker merely validates the program; the kernels are not executed.
@@ -131,7 +131,7 @@ IonQ
 Setting Credentials
 `````````````````````````
 
-Programmers of CUDA Quantum may access the `IonQ Quantum Cloud
+Programmers of CUDA-Q may access the `IonQ Quantum Cloud
 <https://cloud.ionq.com/>`__ from either C++ or Python. Generate
 an API key from your `IonQ account <https://cloud.ionq.com/>`__ and export
 it as an environment variable:
@@ -243,7 +243,7 @@ Support for automatically injecting the necessary operations during compilation 
 Setting Credentials
 `````````````````````````
 
-Programmers of CUDA Quantum may access the IQM Server from either C++ or Python. Following the `quick start guide <https://iqm-finland.github.io/cortex-cli/readme.html#using-cortex-cli>`__, install `iqm-cortex-cli` and login to initialize the tokens file.
+Programmers of CUDA-Q may access the IQM Server from either C++ or Python. Following the `quick start guide <https://iqm-finland.github.io/cortex-cli/readme.html#using-cortex-cli>`__, install `iqm-cortex-cli` and login to initialize the tokens file.
 The path to the tokens file can either be passed explicitly via an environment variable or it will be loaded automatically if located in
 the default location :code:`~/.cache/iqm-cortex-cli/tokens.json`.
 
@@ -320,7 +320,7 @@ OQC
 
 .. _oqc-backend:
 
-`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA quantum integration for multiple Quantum Processing Unit types.
+`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA-Q integration for multiple Quantum Processing Unit types.
 The 8 qubit ring topology Lucy device and the 32 qubit Kagome lattice topology Toshiko device are both supported via machine options described below.
 
 Setting Credentials

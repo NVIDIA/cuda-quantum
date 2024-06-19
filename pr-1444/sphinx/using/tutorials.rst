@@ -1,8 +1,8 @@
 *************************
-CUDA Quantum Tutorials
+CUDA-Q Tutorials
 *************************
 
-Tutorials that give an in depth view of CUDA Quantum and its applications in Python.
+Tutorials that give an in depth view of CUDA-Q and its applications in Python.
 
 .. nbgallery::
 
@@ -13,5 +13,8 @@ Tutorials that give an in depth view of CUDA Quantum and its applications in Pyt
     /examples/python/tutorials/multi_gpu_workflows.ipynb
     /examples/python/tutorials/multiple_qubits.ipynb
     /examples/python/tutorials/noisy_simulations.ipynb
+    /examples/python/tutorials/qaoa.ipynb
     /examples/python/tutorials/quantum_bits.ipynb
+    /examples/python/tutorials/quantum_fourier_transform.ipynb
+    /examples/python/tutorials/readout_error_mitigation.ipynb
     /examples/python/tutorials/vqe.ipynb

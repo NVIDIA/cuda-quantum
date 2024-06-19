@@ -3,7 +3,7 @@ import cudaq
 # Set the target to our density matrix simulator.
 cudaq.set_target('density-matrix-cpu')
 
-# CUDA Quantum supports several different models of noise. In this case,
+# CUDA-Q supports several different models of noise. In this case,
 # we will examine the modeling of energy dissipation within our system
 # via environmental interactions. The result of this "amplitude damping"
 # is to return the qubit to the |0> state with a user-specified probability.

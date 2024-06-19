@@ -4,8 +4,8 @@ Troubleshooting
 Debugging and Verbose Simulation Output
 +++++++++++++++++++++++++++++++++++++++++
 
-One helpful mechanism of debugging CUDA Quantum simulation execution is
-the :code:`CUDAQ_LOG_LEVEL` environment variable. For any CUDA Quantum
+One helpful mechanism of debugging CUDA-Q simulation execution is
+the :code:`CUDAQ_LOG_LEVEL` environment variable. For any CUDA-Q
 executable, just prepend this and turn it on:
 
 .. tab:: Python
@@ -22,7 +22,7 @@ executable, just prepend this and turn it on:
 
 Similarly, one may write the IR to their console or to a file before remote
 submission. This may be done through the :code:`CUDAQ_DUMP_JIT_IR` environment
-variable. For any CUDA Quantum executable, just prepend as follows:
+variable. For any CUDA-Q executable, just prepend as follows:
 
 .. tab:: Python
 

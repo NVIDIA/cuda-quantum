@@ -1,4 +1,4 @@
-CUDA Quantum Python API
+CUDA-Q Python API
 ******************************
 
 .. automodule:: cudaq
@@ -50,6 +50,7 @@ Program Construction
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
+    .. automethod:: u3
 
 .. autoclass:: cudaq::PyKernelDecorator
     :members:
@@ -86,11 +87,16 @@ Backend Configuration
 Data Types
 =============================
 
+.. autoclass:: cudaq::SimulationPrecision
+    :members:
+    
 .. autoclass:: cudaq::Target
     :members:
 
 .. autoclass:: cudaq::State
     :members:
+
+.. autoclass:: cudaq::Tensor
 
 .. autoclass:: cudaq::QuakeValue
 

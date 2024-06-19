@@ -5,8 +5,8 @@ The Variational Quantum Eigensolver (VQE) algorithm, originally proposed in
 `this publication <https://arxiv.org/abs/1304.3061>`__, 
 is a hybrid algorithm that can make use of both quantum and classical resources.
 
-Let's take a look at how we can use CUDA Quantum's built-in `vqe` module to run our own custom VQE routines! 
-Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA Quantum's optimizers, 
+Let's take a look at how we can use CUDA-Q's built-in `vqe` module to run our own custom VQE routines! 
+Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA-Q's optimizers, 
 `cudaq.vqe` will find and return the optimal set of parameters that minimize the energy, <Z>, of the system.
 
 The code block below represents the contents of a file titled `simple_vqe.py`. 

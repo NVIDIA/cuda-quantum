@@ -3,7 +3,7 @@ import cudaq
 # Set the target to our density matrix simulator.
 cudaq.set_target('density-matrix-cpu')
 
-# CUDA Quantum supports several different models of noise. In this
+# CUDA-Q supports several different models of noise. In this
 # case, we will examine the modeling of depolarization noise. This
 # depolarization will result in the qubit state decaying into a mix
 # of the basis states, |0> and |1>, with a user provided probability.

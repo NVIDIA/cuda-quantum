@@ -1,8 +1,8 @@
 Computing Expectation Values
 -----------------------------
 
-CUDA Quantum provides generic library functions enabling one to compute expectation values 
-of quantum spin operators with respect to a parameterized CUDA Quantum kernel. Let's take a look 
+CUDA-Q provides generic library functions enabling one to compute expectation values 
+of quantum spin operators with respect to a parameterized CUDA-Q kernel. Let's take a look 
 at an example of this:
 
 .. tab:: Python
@@ -10,12 +10,12 @@ at an example of this:
    .. literalinclude:: ../../examples/python/expectation_values.py
       :language: python
 
-   Here we define a parameterized CUDA Quantum kernel that takes an angle, `theta`, as a single
+   Here we define a parameterized CUDA-Q kernel that takes an angle, `theta`, as a single
    input. This angle becomes the argument of a single `ry` rotation.
 
-   We define a Hamiltonian operator via the CUDA Quantum `cudaq.SpinOperator` type.
+   We define a Hamiltonian operator via the CUDA-Q `cudaq.SpinOperator` type.
 
-   CUDA Quantum provides a generic function `cudaq.observe`. This function takes as input three
+   CUDA-Q provides a generic function `cudaq.observe`. This function takes as input three
    arguments. The first two argument are a parameterized kernel and the `cudaq.SpinOperator` whose
    expectation value we wish to compute. The final arguments are the runtime parameters at which we
    evaluate the parameterized kernel.
@@ -26,11 +26,11 @@ at an example of this:
    .. literalinclude:: ../../examples/cpp/basics/expectation_values.cpp
       :language: cpp
 
-   Here we define a parameterized CUDA Quantum kernel, a callable type named :code:`ansatz` that takes as 
+   Here we define a parameterized CUDA-Q kernel, a callable type named :code:`ansatz` that takes as 
    input a single angle :code:`theta`. This angle becomes the argument of a single :code:`ry` rotation. 
 
-   In host code, we define a Hamiltonian operator via the CUDA Quantum :code:`spin_op` type. 
-   CUDA Quantum provides a generic function :code:`cudaq::observe`. This function takes as input three terms. 
+   In host code, we define a Hamiltonian operator via the CUDA-Q :code:`spin_op` type. 
+   CUDA-Q provides a generic function :code:`cudaq::observe`. This function takes as input three terms. 
    The first two terms are a parameterized kernel and the :code:`spin_op` whose expectation value we wish to compute.
    The last term contains the runtime parameters at which we evaluate the parameterized kernel. 
 

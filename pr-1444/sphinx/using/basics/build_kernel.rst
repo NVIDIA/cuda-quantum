@@ -1,4 +1,4 @@
-Building your first CUDA Quantum Program
+Building your first CUDA-Q Program
 -----------------------------------------
 
 .. tab:: Python

@@ -1,4 +1,4 @@
-Working with the CUDA Quantum IR
+Working with the CUDA-Q IR
 ********************************
 Let's see the output of :code:`nvq++` in verbose mode. Consider a simple code like the one below, saved to file :code:`simple.cpp`.
 
@@ -38,7 +38,7 @@ This workflow orchestration is represented in the figure below:
 
 .. image:: ../../_static/nvqpp_workflow.png
 
-We start by mapping CUDA Quantum C++ kernel representations (structs, lambdas, and free functions) 
+We start by mapping CUDA-Q C++ kernel representations (structs, lambdas, and free functions) 
 to the Quake dialect. Since we added :code:`--save-temps`, 
 we can look at the IR code that was produced. The base Quake file, :code:`simple.qke`, contains the following: 
 
@@ -94,18 +94,18 @@ we can look at the IR code that was produced. The base Quake file, :code:`simple
 This base Quake file is unoptimized and unchanged. It is produced by the 
 :code:`cudaq-quake` tool, which also allows us to output the full LLVM IR representation 
 for the code. This LLVM IR is classical-only, and is directly produced by :code:`clang++` 
-code-generation. The LLVM IR file :code:`simple.ll` contains the CUDA Quantum kernel 
+code-generation. The LLVM IR file :code:`simple.ll` contains the CUDA-Q kernel 
 :code:`operator()(Args...)` LLVM function, with a mangled name. Ultimately, we 
 want to replace this function with our own MLIR-generated function. 
 
 Next, the :code:`cudaq-opt` tool is invoked on the :code:`simple.qke` file. This runs an
 MLIR pass pipeline that canonicalizes and optimizes the code. It will also process quantum 
 lambdas, lift those lambdas to functions, and synthesis adjoint and controlled versions of 
-CUDA Quantum kernel functions if necessary. The most important pass that this step applies is the 
+CUDA-Q kernel functions if necessary. The most important pass that this step applies is the 
 :code:`kernel-execution` pass, which synthesizes a new entry point LLVM function with the 
 same name and signature as the original :code:`operator()(Args...)` call function in the 
 classical :code:`simple.ll` file. We also extract all Quake code representations as strings
-and register them with the CUDA Quantum runtime for runtime IR introspection. 
+and register them with the CUDA-Q runtime for runtime IR introspection. 
 
 After :code:`cudaq-opt`, the :code:`cudaq-translate` tool is used to lower the transformed 
 Quake representation to an LLVM IR representation, specifically the QIR. We finish by lowering 
@@ -122,12 +122,12 @@ via the :code:`--platform` and :code:`--target` compiler flags.
 The above figure demonstrate the MLIR dialects involved and the overall workflow mapping 
 high-level language constructs to lower-level MLIR dialect code, and ultimately LLVM IR. 
 
-CUDA Quantum also provides value-semantics form of Quake for static circuit
+CUDA-Q also provides value-semantics form of Quake for static circuit
 representation. This dialect directly enables robust circuit 
 optimizations via data-flow analysis of the representative circuit. This dialect 
 is typically produced just-in-time when the structure of the circuit is fully known. 
 
-You will notice that there are a number of CUDA Quantum executable tools installed as part 
+You will notice that there are a number of CUDA-Q executable tools installed as part 
 of this open beta release. These tools are directly related to the generation, 
 processing, optimization, and lowering of the core :code:`nvq++` compiler representations.
 The tools available are 
@@ -136,8 +136,8 @@ The tools available are
 2. :code:`cudaq-opt` - Process Quake with various MLIR Passes
 3. :code:`cudaq-translate` - Lower Quake to external representations like QIR
 
-CUDA Quantum and :code:`nvq++` rely on Quake for the core quantum intermediate representation.
-Quake represents an IR closer to the CUDA Quantum source language and models qubits and
+CUDA-Q and :code:`nvq++` rely on Quake for the core quantum intermediate representation.
+Quake represents an IR closer to the CUDA-Q source language and models qubits and
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime 
 arguments fully specified, Quake code can be used to generate or synthesize
@@ -149,7 +149,7 @@ expresses the flow of quantum information explicitly as MLIR values.
 This approach makes it easier for finding circuit patterns and leveraging it for common 
 optimization tasks. 
 
-To demonstrate how these tools work together, let's take the simple GHZ CUDA Quantum 
+To demonstrate how these tools work together, let's take the simple GHZ CUDA-Q 
 program and lower the kernel from C++ to Quake, synthesize that Quake code, 
 and produce QIR. Recall the code snippet for the kernel
 

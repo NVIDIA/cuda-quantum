@@ -1,7 +1,7 @@
 Using Quantum Hardware Providers
 -----------------------------------
 
-CUDA Quantum contains support for using a set of hardware providers (IonQ, IQM, OQC, and Quantinuum). 
+CUDA-Q contains support for using a set of hardware providers (IonQ, IQM, OQC, and Quantinuum). 
 For more information about executing quantum kernels on different hardware backends, please take a look
 at :doc:`hardware <../backends/hardware>`.
 

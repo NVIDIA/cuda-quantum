@@ -9,12 +9,12 @@
 #include <cudaq/gradients.h>
 #include <cudaq/optimizers.h>
 
-// Here we build up a CUDA Quantum kernel with N layers and each
+// Here we build up a CUDA-Q kernel with N layers and each
 // layer containing an arrangement of random SO(4) rotations. The algorithm
-// leverages the CUDA Quantum VQE support to compute the ground state of the
+// leverages the CUDA-Q VQE support to compute the ground state of the
 // Hydrogen atom.
 
-// The SO4 random entangler written as a CUDA Quantum kernel free function
+// The SO4 random entangler written as a CUDA-Q kernel free function
 // since this is a pure-device quantum kernel
 __qpu__ void so4(cudaq::qubit &q, cudaq::qubit &r,
                  const std::vector<double> &thetas) {
@@ -40,7 +40,7 @@ __qpu__ void so4(cudaq::qubit &q, cudaq::qubit &r,
   h(r);
 }
 
-// The SO4 fabric CUDA Quantum kernel. Keeps track of simple
+// The SO4 fabric CUDA-Q kernel. Keeps track of simple
 // arithmetic class members controlling the number of qubits and
 // entangling layers.
 struct so4_fabric {
@@ -98,11 +98,10 @@ int main() {
   int n_params = n_layers * 6 * n_blocks_per_layer;
   printf("%d qubit hamiltonian -> %d parameters\n", n_qubits, n_params);
 
-  // Run the VQE algorithm from specific initial parameters.
+  // Define the initial parameters and ansatz.
   auto init_params =
       cudaq::random_vector(-1, 1, n_params, std::mt19937::default_seed);
 
-  // Create the CUDA Quantum kernel
   so4_fabric ansatz;
 
   auto argMapper = [&](std::vector<double> x) {

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>6. Quantum Kernels &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>6. Quantum Kernels &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -42,7 +42,7 @@
           
           
           <a href="../../index.html" class="icon icon-home">
-            NVIDIA CUDA Quantum
+            NVIDIA CUDA-Q
           </a>
               <div class="version">
                 amd64-pr-1444
@@ -99,14 +99,14 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../using/quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/basics/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
@@ -158,6 +158,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
@@ -166,6 +167,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
@@ -176,8 +178,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
@@ -280,7 +289,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
@@ -292,7 +301,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#python-support">Python Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
@@ -305,7 +314,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/integration/cuda_gpu.html">Combining CUDA with CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/integration/cmake_app.html">Downstream CMake Integration</a></li>
 </ul>
 </li>
@@ -315,14 +324,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">   Specifications</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../cudaq.html">   Language Specification</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="machine_model.html">1. Machine Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="namespace.html">2. Namespace and Standard</a></li>
 <li class="toctree-l3"><a class="reference internal" href="types.html">3. Quantum Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
@@ -333,12 +342,11 @@
 <li class="toctree-l4"><a class="reference internal" href="operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="operations.html">5. Quantum Operations</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">6. Quantum Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#kernel-composability">6.1. Kernel Composability</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">6. Quantum Kernels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -350,8 +358,8 @@
 <li class="toctree-l3"><a class="reference internal" href="algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="examples.html">13. Example Programs</a><ul>
@@ -381,6 +389,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#algorithms">Algorithms</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
 </ul>
 </li>
@@ -418,8 +427,10 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -466,6 +477,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -488,7 +500,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">NVIDIA CUDA Quantum</a>
+          <a href="../../index.html">NVIDIA CUDA-Q</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -513,94 +525,282 @@
              
   <section id="quantum-kernels">
 <h1><span class="section-number">6. </span>Quantum Kernels<a class="headerlink" href="#quantum-kernels" title="Permalink to this heading">¶</a></h1>
-<p>To differentiate between host and quantum device code, the CUDA Quantum programming
-model defines the concept of a <strong>quantum kernel</strong>. CUDA Quantum specifically
-differentiates between kernels invoked from host code and those invoked
+<p><strong>[1]</strong> To differentiate between host and quantum device code, the CUDA-Q programming
+model defines the concept of a <strong>quantum kernel</strong>. A quantum kernel is any callable
+in C++ annotated to indicate compilation and execution on an available quantum coprocessor.</p>
+<p><strong>[2]</strong> All quantum kernels must be annotated to indicate they are to be compiled for, and executed
+on, a specified quantum coprocessor. CUDA-Q requires the <code class="code docutils literal notranslate"><span class="pre">__qpu__</span></code> function
+attribute for quantum kernel declarations. Other language bindings may opt to use other language
+features to enable function annotation or decoration (e.g. a <code class="code docutils literal notranslate"><span class="pre">&#64;cudaq.kernel()</span></code> function
+decorator in Python).</p>
+<p><strong>[3]</strong> CUDA-Q specifically differentiates between kernels invoked from host code and those invoked
 from within another quantum kernel. The former are denoted <strong>entry-point</strong>
-quantum kernels, the latter are <strong>pure device</strong> quantum kernels. All quantum
-kernels must be annotated to indicate they are to be compiled to and executed
-on a specified quantum coprocessor. CUDA Quantum requires the <code class="code docutils literal notranslate"><span class="pre">__qpu__</span></code> function
-attribute for quantum kernel declarations.</p>
-<p>Quantum kernel function bodies are programmed in a subset of C++. They can be composed of the following:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>quantum intrinsic operations and measurements</p></li>
-<li><p>in-scope kernel calls with or without any kernel modifiers</p></li>
-<li><p>classical control flow constructs (<code class="code docutils literal notranslate"><span class="pre">if</span></code>, <code class="code docutils literal notranslate"><span class="pre">for</span></code>, <code class="code docutils literal notranslate"><span class="pre">while</span></code>, etc.)</p></li>
-<li><p>primitive variable declarations and arithmetic manipulations (<code class="code docutils literal notranslate"><span class="pre">std::is_arithmetic&lt;T&gt;</span></code> types)</p></li>
-<li><p>coherent conditional execution ( <code class="code docutils literal notranslate"><span class="pre">if</span> <span class="pre">(</span> <span class="pre">qubit</span> <span class="pre">)</span> <span class="pre">{</span> <span class="pre">x</span> <span class="pre">(another_qubit);</span> <span class="pre">}</span></code> )</p></li>
-<li><p>novel syntax for common quantum programming patterns (e.g. compute-action-uncompute).</p></li>
-<li><p>kernels may reference and call previously defined quantum kernels, but cannot operate on global data.</p></li>
-</ul>
-</div></blockquote>
-<p>An entry-point quantum kernel must be defined as a <a class="reference external" href="https://en.cppreference.com/w/cpp/utility/functional">typed callable</a>
-(i.e. a lambda, or struct with <code class="code docutils literal notranslate"><span class="pre">R</span> <span class="pre">operator()(Args...)</span></code> implemented)
-that can be annotated with an appropriate function attribute. This requirement
-on typed-callables directly enables the implementation of generic libraries
-of quantum algorithms parameterized on user-specified quantum kernels. CUDA Quantum
-requires these typed quantum callables to be annotated with the <code class="code docutils literal notranslate"><span class="pre">__qpu__</span></code>
-attribute preceding the left brace that opens the function body declaration:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">my_first_kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">double</span><span class="w"> </span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="n">quantum</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-<span class="k">struct</span><span class="w"> </span><span class="nc">my_second_kernel</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+quantum kernels, the latter are <strong>pure device</strong> quantum kernels. Entry point kernels can
+only take classical types as input and return classical output. Pure-device kernels
+can take quantum types as input.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Entry point lambda kernel</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">my_first_entry_point_kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">double</span><span class="w"> </span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="n">quantum</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+
+<span class="c1">// Entry point typed callable kernel</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">my_second_entry_point_kernel</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="p">...</span><span class="w"> </span><span class="n">quantum</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="p">...</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">};</span>
-</pre></div>
-</div>
-<p>Entry-point quantum kernels expressed as structs or classes with an <code class="code docutils literal notranslate"><span class="pre">operator()(...)</span></code>
-overload may leverage primitive class members within the kernel body,
-specifically any type by which <code class="code docutils literal notranslate"><span class="pre">std::is_arithmetic</span></code> evaluates to <code class="code docutils literal notranslate"><span class="pre">true</span></code>.</p>
-<p>All quantum kernels can specify a return type from the set
-<code class="code docutils literal notranslate"><span class="pre">{void,</span> <span class="pre">T</span> <span class="pre">:</span> <span class="pre">std::is_arithmetic&lt;T&gt;</span> <span class="pre">==</span> <span class="pre">true,</span> <span class="pre">std::vector&lt;bool&gt;}</span></code>.
-All quantum kernels can take as input any type in the set
-<code class="code docutils literal notranslate"><span class="pre">{T</span> <span class="pre">:</span> <span class="pre">std::is_arithmetic&lt;T&gt;</span> <span class="pre">==</span> <span class="pre">true,</span> <span class="pre">std::vector&lt;T&gt;,</span> <span class="pre">std::span&lt;T&gt;}</span></code>. All
-kernels can take <code class="code docutils literal notranslate"><span class="pre">cudaq:spin_op</span></code> instances as input.
-Entry-point quantum kernels cannot take quantum input arguments because quantum
-memory cannot be allocated from within host code.</p>
-<p>Pure device quantum kernels can be expressed as typed-callables, but can also
-be represented as annotated free functions. Pure device quantum kernels can take
-<code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;N&gt;</span></code> specializations and containers (e.g.
-<code class="code docutils literal notranslate"><span class="pre">cudaq::qview</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>) as input.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">my_first_device_kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;&gt;&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">   </span><span class="p">...</span><span class="w"> </span><span class="n">quantum</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="k">using</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="p">...</span>
-<span class="w">   </span><span class="p">};</span>
-<span class="k">struct</span><span class="w"> </span><span class="nc">my_second_device_kernel</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="o">&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="p">...</span><span class="w"> </span><span class="n">quantum</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="p">...</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">};</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">my_third_device_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="o">&amp;</span><span class="w"> </span><span class="n">qb</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="p">...</span><span class="w"> </span><span class="n">quantum</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="k">using</span><span class="w"> </span><span class="n">qb</span><span class="w"> </span><span class="p">...</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Classical arithmetic data can be instantiated and manipulated within
-any quantum kernel and is modeled implicitly using the quantum device
-classical control memory space. Returning classical data requires an
-implicit data transfer from device to host, and this should be configured
-by the compiler implementation.</p>
-<p>CUDA Quantum kernels expressed as lambda expressions can capture simple arithmetic
-variables by value. Specifically, any valid input type for a CUDA Quantum kernel
-function argument can also be provided as a variable captured by value.</p>
-<p>All quantum kernel invocations are synchronous calls by default.</p>
-<section id="kernel-composability">
-<h2><span class="section-number">6.1. </span>Kernel Composability<a class="headerlink" href="#kernel-composability" title="Permalink to this heading">¶</a></h2>
-<p>CUDA Quantum kernels can also serve as input to other quantum kernels. This is a typical
-pattern in quantum computing, whereby you have an algorithm that is dependent on
-some input sub-circuit, e.g. for state preparation, oracle invocation, etc. In order to
-to support this pattern, CUDA Quantum kernels can be passed as arguments for indirect invocation.</p>
-<p>CUDA Quantum builds upon C++ to enable this capability. To support CUDA Quantum kernel parameterization
-on callable quantum kernel code, programmers can leverage standard C++ template definitions:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">MyStatePrep</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qview</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">qubits</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="p">...</span><span class="w"> </span><span class="n">apply</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="n">prep</span><span class="w"> </span><span class="n">operations</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">qubits</span><span class="w"> </span><span class="p">...</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">};</span>
 
+<span class="c1">// Pure device free function kernel</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">my_first_pure_device_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qview</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">qubits</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="p">...</span><span class="w"> </span><span class="n">quantum</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="p">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">my_first_entry_point_kernel</span><span class="p">(</span><span class="n">x</span> <span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+   <span class="o">...</span> <span class="n">quantum</span> <span class="n">code</span> <span class="o">...</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">my_second_entry_point_kernel</span><span class="p">(</span><span class="n">x</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">params</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+   <span class="o">...</span> <span class="n">quantum</span> <span class="n">code</span> <span class="o">...</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">my_first_pure_device_kernel</span><span class="p">(</span><span class="n">qubits</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+   <span class="o">...</span> <span class="n">quantum</span> <span class="n">code</span> <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>[4]</strong> Quantum kernel function bodies are programmed in a subset of the parent classical language.
+Kernels can be composed of the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Quantum intrinsic operations and measurements</p></li>
+<li><p>In-scope kernel calls with or without any kernel modifiers (e.g. <code class="code docutils literal notranslate"><span class="pre">cudaq::control</span></code>)</p></li>
+<li><p>Classical control flow constructs from the classical language (<code class="code docutils literal notranslate"><span class="pre">if</span></code>, <code class="code docutils literal notranslate"><span class="pre">for</span></code>, <code class="code docutils literal notranslate"><span class="pre">while</span></code>, etc.)</p></li>
+<li><p>Stack variable declarations for supported types.</p></li>
+<li><p>Arithmetic operations on integer and floating point stack variables</p></li>
+<li><p>Coherent conditional execution - <code class="code docutils literal notranslate"><span class="pre">if</span> <span class="pre">(</span> <span class="pre">boolExprFromQubitMeasurement</span> <span class="pre">)</span> <span class="pre">{</span> <span class="pre">x</span> <span class="pre">(another_qubit);</span> <span class="pre">}</span></code></p></li>
+<li><p>Syntax for common quantum programming patterns (e.g. compute-action-uncompute).</p></li>
+</ul>
+</div></blockquote>
+<p><strong>[5]</strong> CUDA-Q defines a set of allowed types that can be leveraged in quantum kernel
+function signatures (input and return types), in-function variable declaration or construction,
+and in variable capture from parent scope.</p>
+<p>The allowed types are as follows:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">T</span></code> such that <code class="code docutils literal notranslate"><span class="pre">std::is_arithmetic_v&lt;T&gt;</span> <span class="pre">==</span> <span class="pre">true</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">std::vector&lt;T&gt;</span></code> such that <code class="code docutils literal notranslate"><span class="pre">std::is_arithmetic_v&lt;T&gt;</span> <span class="pre">==</span> <span class="pre">true</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">std::span&lt;T&gt;</span></code> such that <code class="code docutils literal notranslate"><span class="pre">std::is_arithmetic_v&lt;T&gt;</span> <span class="pre">==</span> <span class="pre">true</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">std::vector&lt;V&gt;</span></code> such that type <code class="code docutils literal notranslate"><span class="pre">V</span></code> is a valid <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;T&gt;</span></code> (possibly recursively)</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">struct</span></code> types composed of any valid CUDA-Q type.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">std::tuple&lt;Ts...&gt;</span></code> such that T is any allowed type.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">std::pair&lt;T,U&gt;</span></code> such that T is any allowed type.</p></li>
+</ul>
+</div></blockquote>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">MyCustomSimpleStruct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">angles</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">// Valid CUDA-Q Types used in Kernels</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">flag</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">layers</span><span class="p">,</span>
+<span class="w">         </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">parameters</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">recursiveVec</span><span class="p">,</span>
+<span class="w">         </span><span class="n">MyCustomSimpleStruct</span><span class="w"> </span><span class="n">var</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">kernelThatReturns</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="p">...</span>
+<span class="w">   </span><span class="k">return</span><span class="w"> </span><span class="n">M_PI_2</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MySimpleStruct</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">N</span> <span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">flag</span> <span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">angle</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">layers</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+            <span class="n">parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">recursiveList</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
+            <span class="n">var</span> <span class="p">:</span> <span class="n">MySimpleStruct</span><span class="p">):</span> <span class="o">...</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernelThatReturns</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>[6]</strong> Any variable with an allowed CUDA-Q type can be allocated on the stack within
+CUDA-Q kernels. Variables of type <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;T&gt;</span></code> for any allowed type
+<code class="code docutils literal notranslate"><span class="pre">T</span></code> can only be constructed with known size. Vector-like variables cannot be
+default constructed and later filled with type <code class="code docutils literal notranslate"><span class="pre">T</span></code> data (i.e. no dynamic memory allocation).</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Valid CUDA-Q Types used in Kernels</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="c1">// Not Allowed.</span>
+<span class="w">  </span><span class="c1">// std::vector&lt;int&gt; i;</span>
+<span class="w">  </span><span class="c1">// i.push_back(1);</span>
+
+<span class="w">  </span><span class="c1">// Valid variable declarations</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">i</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">  </span><span class="n">i</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">};</span>
+
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="n">pi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.1415926</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+   <span class="c1"># Not Allowed</span>
+   <span class="c1"># i = []</span>
+   <span class="c1"># i.append(1)</span>
+
+   <span class="n">i</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
+   <span class="n">i</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+
+   <span class="n">f</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">3.</span><span class="p">]</span>
+
+   <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span>
+
+   <span class="n">pi</span> <span class="o">=</span> <span class="mf">3.1415926</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>[7]</strong> All entry-point kernel arguments adhere to pass-by-value semantics.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="c1">// i == 2, allocate 2 qubits</span>
+<span class="w">   </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+<span class="w">   </span><span class="c1">// v[1] == 2.0, angle here is 2.0</span>
+<span class="w">   </span><span class="n">ry</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+
+<span class="w">   </span><span class="c1">// Change the variables, caller does not see this</span>
+<span class="w">   </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+<span class="w">   </span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.0</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">};</span>
+
+<span class="n">kernel</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">d</span><span class="p">);</span>
+
+<span class="c1">// k is still 2, pass by value</span>
+<span class="c1">// d is still {1.0, 2.0}, pass by value</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">i</span> <span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+    <span class="c1"># i = 2, allocate 2 qubits</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="c1"># v[1] == 2.0, angle here is 2.0</span>
+    <span class="n">ry</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># Change the variables, caller does not see this</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">3.0</span>
+
+<span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">]</span>
+<span class="n">kernel</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+<span class="c1"># k is still 2, pass by value</span>
+<span class="c1"># d is still {1.0, 2.0}, pass by value</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>[8]</strong> CUDA-Q kernel lambdas in C++ can capture variables of allowed type
+by value. CUDA-Q kernels defined as custom callable types can define non-reference type
+class members of any allowed type. These member variables can be set with
+pass-by-value semantics at kernel construction.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-C++ notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">kernel</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">f</span><span class="p">;</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">     </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+<span class="w">     </span><span class="n">ry</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="n">kernel</span><span class="p">{</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mf">2.2</span><span class="p">}();</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.2</span><span class="p">;</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">kernelLambda</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">=</span><span class="p">]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Use captured variables</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ry</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernelLambda</span><span class="p">();</span>
+
+<span class="c1">// Pass by value semantics</span>
+<span class="n">assert</span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">i</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">i</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+   <span class="c1"># Use captured variables</span>
+   <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+   <span class="n">ry</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+   <span class="n">i</span> <span class="o">=</span> <span class="mi">5</span>
+   <span class="k">return</span> <span class="n">i</span>
+
+<span class="n">k</span> <span class="o">=</span> <span class="n">kernel</span><span class="p">()</span>
+
+<span class="c1"># Pass by value semantics</span>
+<span class="k">assert</span> <span class="n">k</span> <span class="o">!=</span> <span class="n">i</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>[9]</strong> All quantum kernel invocations are synchronous calls by default.</p>
+<p><strong>[10]</strong> CUDA-Q kernels can serve as input to other quantum kernels and invoked by kernel
+function body code. To support CUDA-Q kernel parameterization on callable quantum kernel
+code, programmers can leverage standard C++ template definitions or dynamic typing in language bindings such as Python:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">MyStatePrep</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qview</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">qubits</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">...</span><span class="w"> </span><span class="n">apply</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="n">prep</span><span class="w"> </span><span class="n">operations</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">qubits</span><span class="w"> </span><span class="p">...</span>
+<span class="p">}</span>
+
 <span class="k">struct</span><span class="w"> </span><span class="nc">MyGenericAlgorithm</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">StatePrep</span><span class="o">&gt;</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="n">StatePrep</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="n">StatePrep</span><span class="o">&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">statePrep</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="w">    </span><span class="p">...</span>
@@ -609,21 +809,41 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
 
 <span class="c1">// -or- with placeholder type specifiers</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">MyGenericAlgorithm2</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="k">auto</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">statePrep</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">};</span>
 
-<span class="n">MyGenericAlgorithm</span><span class="w"> </span><span class="n">algorithm</span><span class="p">;</span>
-<span class="n">algorithm</span><span class="p">(</span><span class="n">MyStatePrep</span><span class="p">{});</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">callKernels</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 
-<span class="n">MyGenericAlgorithm2</span><span class="w"> </span><span class="n">anotherVersion</span><span class="p">;</span>
-<span class="n">anotherVersion</span><span class="p">(</span><span class="n">MyStatePrep</span><span class="p">{});</span>
+<span class="w">  </span><span class="n">MyGenericAlgorithm</span><span class="w"> </span><span class="n">algorithm</span><span class="p">;</span>
+<span class="w">  </span><span class="n">algorithm</span><span class="p">(</span><span class="n">MyStatePrep</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">MyGenericAlgorithm2</span><span class="w"> </span><span class="n">anotherVersion</span><span class="p">;</span>
+<span class="w">  </span><span class="n">anotherVersion</span><span class="p">(</span><span class="n">MyStatePrep</span><span class="p">);</span>
+<span class="p">}</span>
 </pre></div>
 </div>
-<p>CUDA Quantum kernel inputs can also be <a class="reference external" href="https://en.cppreference.com/w/cpp/language/constraints">constrained</a>.</p>
+</div>
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">MyStatePrep</span><span class="p">(</span><span class="n">qubits</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+    <span class="o">...</span> <span class="n">apply</span> <span class="n">state</span> <span class="n">prep</span> <span class="n">operations</span> <span class="n">on</span> <span class="n">qubits</span> <span class="o">...</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">MyGenericAlgorithm</span><span class="p">(</span><span class="n">statePrep</span> <span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">],</span> <span class="kc">None</span><span class="p">]):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">statePrep</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="o">...</span>
+
+<span class="n">MyGenericAlgorithm</span><span class="p">(</span><span class="n">MyStatePrep</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>CUDA-Q kernel inputs can also be <a class="reference external" href="https://en.cppreference.com/w/cpp/language/constraints">constrained</a>.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
 
 <span class="w">  </span><span class="c1">// Generic constraint on Kernel Function Signatures</span>
@@ -655,11 +875,6 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
 <p>This approach enables the development of generic libraries of quantum
 algorithms that are parameterized on sub-units of the global circuit representation.</p>
 </section>
-<section id="allowed-kernel-classical-function-invocations">
-<h2><span class="section-number">6.2. </span>Allowed Kernel Classical Function Invocations<a class="headerlink" href="#allowed-kernel-classical-function-invocations" title="Permalink to this heading">¶</a></h2>
-<p>To be filled in…</p>
-</section>
-</section>
 
 
            </div>
@@ -672,7 +887,7 @@ algorithms that are parameterized on sub-units of the global circuit representat
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

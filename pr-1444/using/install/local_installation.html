@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Local Installation &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Local Installation &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -42,7 +42,7 @@
           
           
           <a href="../../index.html" class="icon icon-home">
-            NVIDIA CUDA Quantum
+            NVIDIA CUDA-Q
           </a>
               <div class="version">
                 amd64-pr-1444
@@ -99,14 +99,14 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
@@ -158,6 +158,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
@@ -166,6 +167,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
@@ -176,8 +178,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
@@ -280,7 +289,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#updating-cuda-quantum">Updating CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#updating-cuda-q">Updating CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#next-steps">Next Steps</a></li>
 </ul>
@@ -292,7 +301,7 @@
 <li class="toctree-l4"><a class="reference internal" href="data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#python-support">Python Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
@@ -305,7 +314,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../integration/cmake_app.html">Downstream CMake Integration</a></li>
 </ul>
 </li>
@@ -315,14 +324,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../extending/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../extending/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../specification/cudaq.html">   Language Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/machine_model.html">1. Machine Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/namespace.html">2. Namespace and Standard</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/types.html">3. Quantum Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
@@ -333,12 +342,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/operations.html">5. Quantum Operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -350,8 +358,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -381,6 +389,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#algorithms">Algorithms</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
 </ul>
 </li>
@@ -418,8 +427,10 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -466,6 +477,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -488,7 +500,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">NVIDIA CUDA Quantum</a>
+          <a href="../../index.html">NVIDIA CUDA-Q</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -514,20 +526,20 @@
 <h1>Local Installation<a class="headerlink" href="#local-installation" title="Permalink to this heading">¶</a></h1>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h2>
-<p>This guide walks through how to <a class="reference internal" href="install.html#install-cuda-quantum"><span class="std std-ref">install CUDA Quantum</span></a> on your system, and how to set up <a class="reference internal" href="#local-development-with-vscode"><span class="std std-ref">VS Code for local development</span></a>.
+<p>This guide walks through how to <a class="reference internal" href="install.html#install-cuda-quantum"><span class="std std-ref">install CUDA-Q</span></a> on your system, and how to set up <a class="reference internal" href="#local-development-with-vscode"><span class="std std-ref">VS Code for local development</span></a>.
 The section on <a class="reference internal" href="#connect-to-remote"><span class="std std-ref">connecting to a remote host</span></a> contains some
-guidance for application development on a remote host where CUDA Quantum is installed.</p>
-<p>The following sections contain instructions for how to install CUDA Quantum on your machine using</p>
+guidance for application development on a remote host where CUDA-Q is installed.</p>
+<p>The following sections contain instructions for how to install CUDA-Q on your machine using</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker</span></a>: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a <a class="reference external" href="https://docs.docker.com/get-started/overview/">Docker</a> image.</p></li>
+<li><p><a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker</span></a>: A fully featured CUDA-Q installation including all C++ and Python tools is available as a <a class="reference external" href="https://docs.docker.com/get-started/overview/">Docker</a> image.</p></li>
 <li><p><a class="reference internal" href="#install-singularity-image"><span class="std std-ref">Singularity</span></a>: A <a class="reference external" href="https://docs.sylabs.io/guides/latest/user-guide/introduction.html">Singularity</a> container can easily be created based on our Docker images.</p></li>
 <li><p><a class="reference internal" href="#install-python-wheels"><span class="std std-ref">PyPI</span></a>: Additionally, we distribute pre-built Python wheels via <a class="reference external" href="https://pypi.org">PyPI</a>.</p></li>
 <li><p><a class="reference internal" href="#install-prebuilt-binaries"><span class="std std-ref">Pre-built binaries</span></a>: We also provide pre-built C++ binaries, bundled as <a class="reference external" href="https://makeself.io/">self-extracting archive</a>, that work across a range of Linux operating systems.</p></li>
 </ul>
-<p>If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.
-If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to
-build a custom version of CUDA Quantum from source, follow the instructions on the
-<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a> instead.</p>
+<p>If you would like to build CUDA-Q from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.
+If, on the other hand, you want to contribute to the development of CUDA-Q itself and hence want to
+build a custom version of CUDA-Q from source, follow the instructions on the
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA-Q GitHub repository</a> instead.</p>
 <p>If you are unsure which option suits you best, we recommend using our <a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker image</span></a> to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.</p>
 <section id="docker">
@@ -536,8 +548,8 @@ that is installed on your system.</p>
 If you do not already have Docker installed on your system, you can get it by downloading and installing <a class="reference external" href="https://docs.docker.com/get-docker/">Docker Desktop</a>.
 If you do not have the necessary administrator permissions to install software on your machine,
 take a look at the section below on how to use <a class="reference internal" href="#singularity">Singularity</a> instead.</p>
-<p>Docker images for all CUDA Quantum releases are available on the <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">NGC Container Registry</a>.
-In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">stable releases</a>,
+<p>Docker images for all CUDA-Q releases are available on the <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum">NGC Container Registry</a>.
+In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">stable releases</a>,
 we also publish Docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 These images are published in our <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags">nightly channel on NGC</a>.
 To download the latest version on the main branch of our GitHub repository, for example, use the command</p>
@@ -587,7 +599,7 @@ You can then launch the container and connect to it via SSH by executing the fol
 </section>
 <section id="singularity">
 <span id="install-singularity-image"></span><h3>Singularity<a class="headerlink" href="#singularity" title="Permalink to this heading">¶</a></h3>
-<p>You can use <a class="reference external" href="https://github.com/sylabs/singularity">Singularity</a> to run a CUDA Quantum container in a folder without needing administrator permissions.
+<p>You can use <a class="reference external" href="https://github.com/sylabs/singularity">Singularity</a> to run a CUDA-Q container in a folder without needing administrator permissions.
 If you do not already have Singularity installed, you can build a relocatable installation from source.
 To do so on Linux or WSL, make sure you have the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/user-guide/quick_start.html#prerequisites">necessary prerequisites</a> installed, download a suitable version of the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/user-guide/quick_start.html#install-go">go toolchain</a>, and make sure the <code class="code docutils literal notranslate"><span class="pre">go</span></code> binaries are on your <code class="code docutils literal notranslate"><span class="pre">PATH</span></code>. You can then build Singularity with the commands</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">wget https://github.com/sylabs/singularity/releases/download/v4.0.1/singularity-ce-4.0.1.tar.gz</span>
@@ -609,13 +621,13 @@ To do so on Linux or WSL, make sure you have the <a class="reference external" h
 </pre></div>
 </div>
 <p>Replace the image name and/or tag in the <code class="code docutils literal notranslate"><span class="pre">From</span></code> line, if necessary, with the one you want to use;
-In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">stable releases</a>,
+In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">stable releases</a>,
 we also publish Docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 These images are published in our <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags">nightly channel on NGC</a>.
 Early prototypes for features we are considering can be tried out by using the image tags starting
 with <code class="code docutils literal notranslate"><span class="pre">experimental</span></code>. We welcome and appreciate your feedback about these early prototypes;
 how popular they are will help inform whether we should include them in future releases.</p>
-<p>You can then create a CUDA Quantum container by running the following commands:</p>
+<p>You can then create a CUDA-Q container by running the following commands:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">singularity build --fakeroot cuda-quantum.sif cuda-quantum.def</span>
 <span class="go">singularity run --writable --fakeroot cuda-quantum.sif</span>
 </pre></div>
@@ -651,12 +663,12 @@ please take a look at the section on <a class="reference internal" href="#singul
 </section>
 <section id="python-wheels">
 <span id="install-python-wheels"></span><h3>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h3>
-<p>CUDA Quantum Python wheels are available on <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>.
+<p>CUDA-Q Python wheels are available on <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>.
 Installation instructions can be found in the <a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">project description</a>.
 For more information about available versions and documentation,
-see <a class="reference internal" href="../../releases.html"><span class="doc">CUDA Quantum Releases</span></a>.</p>
+see <a class="reference internal" href="../../releases.html"><span class="doc">CUDA-Q Releases</span></a>.</p>
 <p>There are currently no source distributions available on PyPI, but you can download the
-source code for the latest version of the CUDA Quantum Python wheels from our
+source code for the latest version of the CUDA-Q Python wheels from our
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 The source code for previous versions can be downloaded from the respective
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub Release</a>.</p>
@@ -664,7 +676,7 @@ The source code for previous versions can be downloaded from the respective
 If your platform is not <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">officially supported</span></a> and
 <code class="code docutils literal notranslate"><span class="pre">pip</span></code> does not find a compatible wheel to install, you can build your own
 wheel from source following the instructions here: <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.</p>
-<p>To build the CUDA Quantum Python API for the purpose of contributing to
+<p>To build the CUDA-Q Python API for the purpose of contributing to
 our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>,
 follow the instructions for
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Dev_Setup.md">Setting up your Environment</a>,
@@ -677,7 +689,7 @@ and then run the following commands in the repository root:</p>
 <section id="pre-built-binaries">
 <span id="install-prebuilt-binaries"></span><h3>Pre-built binaries<a class="headerlink" href="#pre-built-binaries" title="Permalink to this heading">¶</a></h3>
 <p>Starting with the 0.6.0 release, we provide pre-built binaries for using
-CUDA Quantum with C++. Support for using CUDA Quantum with Python can be installed
+CUDA-Q with C++. Support for using CUDA-Q with Python can be installed
 side-by-side with the pre-built binaries for C++ by following the instructions on
 <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>.
 The pre-built binaries work across a range of Linux operating systems listed
@@ -696,10 +708,10 @@ The installer is a <a class="reference external" href="https://makeself.io/">sel
 pre-built binaries as well as a script to move them to the correct locations. You will need
 <code class="code docutils literal notranslate"><span class="pre">bash</span></code>, <code class="code docutils literal notranslate"><span class="pre">tar</span></code>, and <code class="code docutils literal notranslate"><span class="pre">gzip</span></code> (usually already installed on most Linux distributions) to run
 the installer.
-The installation location of CUDA Quantum is not currently configurable and using the installer
+The installation location of CUDA-Q is not currently configurable and using the installer
 hence requires admin privileges on the system. We may revise that in the future; please see and
 upvote the corresponding <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/1075">GitHub issue</a>.</p>
-<p>To install CUDA Quantum, execute the command</p>
+<p>To install CUDA-Q, execute the command</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MPI_PATH</span><span class="o">=</span>/usr/local/openmpi<span class="w"> </span><span class="se">\</span>
 sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
 </pre></div>
@@ -709,14 +721,14 @@ sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </spa
 <p>To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on <a class="reference internal" href="#cuda-dependencies-prebuilt-binaries"><span class="std std-ref">Additional CUDA Tools</span></a>.</p>
 </div>
 <p>The installation ensures that the necessary environment variables for
-using the CUDA Quantum toolchain are set upon login for all POSIX shells.
+using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command is found. If it is not, please make sure
 to set the environment variables defined by the <code class="code docutils literal notranslate"><span class="pre">set_env.sh</span></code> script in the
-CUDA Quantum installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
+CUDA-Q installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
 <p>If an MPI installation is available in the directory defined by <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code>,
-the installer automatically enables MPI support in CUDA Quantum.
+the installer automatically enables MPI support in CUDA-Q.
 If you do not have MPI installed on your system, you can simply
-leave that path empty, and CUDA Quantum will be installed without MPI support.
+leave that path empty, and CUDA-Q will be installed without MPI support.
 If you install MPI at a later point in time, you can activate the MPI support in CUDA
 Quantum by setting the <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code> variable to its installation location and
 executing the commands</p>
@@ -726,7 +738,7 @@ executing the commands</p>
 </div>
 <p id="local-development-with-vscode">To develop C++ code, you most likely also want to install the
 <a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>.
-CUDA Quantum supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
+CUDA-Q supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
 version 11 or newer. Other libraries may work but can cause issues in certain cases.
 The C++ standard library, including development headers, is almost certainly
 available via the package manager for your system. To ensure the libraries and headers
@@ -743,11 +755,11 @@ we recommend using <a class="reference external" href="https://code.visualstudio
 development experience on all platforms, and is also available without installation via web browser.
 This sections describes how to connect VS Code to a running container on your machine.
 The section on <a class="reference internal" href="#connect-to-remote"><span class="std std-ref">connecting to a remote host</span></a> contains information on
-how to set up your development environment when accessing CUDA Quantum on a remote host instead.</p>
+how to set up your development environment when accessing CUDA-Q on a remote host instead.</p>
 <section id="using-a-docker-container">
 <span id="docker-in-vscode"></span><h3>Using a Docker container<a class="headerlink" href="#using-a-docker-container" title="Permalink to this heading">¶</a></h3>
 <p>Before connecting VS Code, open a terminal/shell,
-and start the CUDA Quantum Docker container following the
+and start the CUDA-Q Docker container following the
 instructions in the <a class="reference internal" href="#install-docker-image"><span class="std std-ref">section above</span></a>.</p>
 <p>If you have a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>
 you can connect to the running container using the
@@ -760,12 +772,12 @@ You should see and select the running <code class="code docutils literal notrans
 After the window reloaded, enter “File: Open Folder” in the Command Palette to open the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq/</span></code> folder.</p>
 <p>To run the examples, open the Command Palette and enter “View: Show Terminal”
 to launch an integrated terminal. You are now all set to
-<a class="reference internal" href="#post-installation"><span class="std std-ref">get started</span></a> with CUDA Quantum development.</p>
+<a class="reference internal" href="#post-installation"><span class="std std-ref">get started</span></a> with CUDA-Q development.</p>
 </section>
 <section id="using-a-singularity-container">
 <span id="singularity-in-vscode"></span><h3>Using a Singularity container<a class="headerlink" href="#using-a-singularity-container" title="Permalink to this heading">¶</a></h3>
 <p>If you have a GitHub or Microsoft account, we recommend that you connect
-to a CUDA Quantum container using tunnels. To do so, launch a CUDA Quantum Singularity
+to a CUDA-Q container using tunnels. To do so, launch a CUDA-Q Singularity
 container following the instructions in the <a class="reference internal" href="#install-singularity-image"><span class="std std-ref">section above</span></a>,
 and then follow the instructions in the section <a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a>.</p>
 <p>If you cannot use tunnels, you need a local installation of
@@ -774,7 +786,7 @@ the <a class="reference external" href="https://marketplace.visualstudio.com/ite
 Make sure you also have a suitable SSH key pair; if your <code class="code docutils literal notranslate"><span class="pre">~/.ssh/</span></code> folder does not already contain
 the files <code class="code docutils literal notranslate"><span class="pre">id_rsa.pub</span></code> and <code class="code docutils literal notranslate"><span class="pre">id.rsa</span></code>, follow the instructions for generating a new SSH key on
 <a class="reference external" href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent">this page</a>.</p>
-<p>To connect VS Code to a running CUDA Quantum container,
+<p>To connect VS Code to a running CUDA-Q container,
 the most convenient setup is to install and run an SSH server
 in the Singularity container. Open a terminal/shell in a separate window,
 and enter the following commands to create a suitable sandbox:</p>
@@ -818,21 +830,21 @@ After the window reloaded, enter “File: Open Folder” in the
 Command Palette to open the desired folder.</p>
 <p>To run the examples, open the Command Palette and enter “View: Show Terminal”
 to launch an integrated terminal. You are now all set to
-<a class="reference internal" href="#post-installation"><span class="std std-ref">get started</span></a> with CUDA Quantum development.</p>
+<a class="reference internal" href="#post-installation"><span class="std std-ref">get started</span></a> with CUDA-Q development.</p>
 </section>
 </section>
 <section id="connecting-to-a-remote-host">
 <span id="connect-to-remote"></span><h2>Connecting to a Remote Host<a class="headerlink" href="#connecting-to-a-remote-host" title="Permalink to this heading">¶</a></h2>
 <p>Depending on the setup on the remote host, there are a couple of different options
-for developing CUDA Quantum applications.</p>
+for developing CUDA-Q applications.</p>
 <ul class="simple">
-<li><p>If a CUDA Quantum container is running on the remote host,
+<li><p>If a CUDA-Q container is running on the remote host,
 and you have a GitHub or Microsoft account, take a look at
 <a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a>. This works for both Docker
 and Singularity containers on the remote host, and should also
 work for other containers.</p></li>
 <li><p>If you cannot use tunnels, or if you want to work with an
-existing CUDA Quantum installation without using a container,
+existing CUDA-Q installation without using a container,
 take a look at <a class="reference internal" href="#remote-access-via-ssh">Remote Access via SSH</a> instead.</p></li>
 </ul>
 <section id="developing-with-remote-tunnels">
@@ -840,10 +852,10 @@ take a look at <a class="reference internal" href="#remote-access-via-ssh">Remot
 <p><a class="reference external" href="https://code.visualstudio.com/blogs/2022/12/07/remote-even-better">Remote access via tunnel</a>
 can easily be enabled with the <a class="reference external" href="https://code.visualstudio.com/docs/editor/command-line">VS Code CLI</a>.
 This allows to connect either a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>,
-or the <a class="reference external" href="https://vscode.dev/">VS Code Web UI</a>, to a running CUDA Quantum container on the same or a different machine.</p>
+or the <a class="reference external" href="https://vscode.dev/">VS Code Web UI</a>, to a running CUDA-Q container on the same or a different machine.</p>
 <p>Creating a secure connection requires authenticating with the same GitHub or Microsoft account on each end.
 Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the VS Code CLI, if necessary, and create a tunnel, execute the
-following command in the running CUDA Quantum container,
+following command in the running CUDA-Q container,
 and follow the instructions to authenticate:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">vscode-setup tunnel --name cuda-quantum-remote --accept-server-license-terms</span>
 </pre></div>
@@ -864,7 +876,7 @@ You can always see the list of recommended extensions that aren’t installed ye
 you can connect a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a> to a remote host via SSH.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>For the best user experience, we recommend to launch a CUDA Quantum container on the remote host,
+<p>For the best user experience, we recommend to launch a CUDA-Q container on the remote host,
 and then connect <a class="reference internal" href="#connect-vscode-via-tunnel"><span class="std std-ref">VS Code using tunnels</span></a>.
 If a connection via tunnel is not possible, this section describes using SSH instead.</p>
 </div>
@@ -877,8 +889,8 @@ You can then connect to the host by opening the Command Palette, entering
 password. After the window reloaded, enter “File: Open Folder” in the
 Command Palette to open the desired folder. Our GitHub repository contains
 a folder with VS Code configurations including a list of recommended extensions for
-working with CUDA Quantum; you can copy <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docker/release/config/.vscode">these configurations</a> into the a folder named <code class="code docutils literal notranslate"><span class="pre">.vscode</span></code> in your workspace to use them.</p>
-<p>If you want to work with an existing CUDA Quantum installation on the remote host, you are all set.
+working with CUDA-Q; you can copy <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docker/release/config/.vscode">these configurations</a> into the a folder named <code class="code docutils literal notranslate"><span class="pre">.vscode</span></code> in your workspace to use them.</p>
+<p>If you want to work with an existing CUDA-Q installation on the remote host, you are all set.
 Alternatively, you can use Singularity to build and run a container following the instructions in
 <a class="reference internal" href="#install-singularity-image"><span class="std std-ref">this section</span></a>. Once the <code class="code docutils literal notranslate"><span class="pre">cuda-quantum.sif</span></code> image is built and
 available in your home directory on the remote host, you can update your VS Code configuration
@@ -908,7 +920,7 @@ following configurations:</p>
 </pre></div>
 </div>
 <p>After saving the changes, you should now be able to select <code class="code docutils literal notranslate"><span class="pre">cuda-quantum~remote-host</span></code> as the host
-when connecting via SSH, which will launch the CUDA Quantum container and connect VS Code to it.</p>
+when connecting via SSH, which will launch the CUDA-Q container and connect VS Code to it.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If the connection to <code class="code docutils literal notranslate"><span class="pre">cuda-quantum~remote-host</span></code> fails, you may need to specify the full
@@ -920,11 +932,11 @@ and specifically the configured <code class="code docutils literal notranslate">
 <section id="dgx-cloud">
 <h2>DGX Cloud<a class="headerlink" href="#dgx-cloud" title="Permalink to this heading">¶</a></h2>
 <p>If you are using <a class="reference external" href="https://www.nvidia.com/en-us/data-center/dgx-cloud/">DGX Cloud</a>,
-you can easily use it to run CUDA Quantum applications.
-While submitting jobs to DGX Cloud directly from within CUDA Quantum is not (yet) supported,
+you can easily use it to run CUDA-Q applications.
+While submitting jobs to DGX Cloud directly from within CUDA-Q is not (yet) supported,
 you can use the NGC CLI to launch and interact with workloads in DGX Cloud.
 The following sections detail how to do that, and how to connect JupyterLab and/or VS Code
-to a running CUDA Quantum job in DGX Cloud.</p>
+to a running CUDA-Q job in DGX Cloud.</p>
 <section id="get-started">
 <span id="dgx-cloud-setup"></span><h3>Get Started<a class="headerlink" href="#get-started" title="Permalink to this heading">¶</a></h3>
 <p>To get started with DGX Cloud, you can
@@ -979,7 +991,7 @@ we refer to the <a class="reference external" href="https://docs.ngc.nvidia.com/
 <section id="use-jupyterlab">
 <h3>Use JupyterLab<a class="headerlink" href="#use-jupyterlab" title="Permalink to this heading">¶</a></h3>
 <p>Once you can <a class="reference internal" href="#dgx-cloud-setup"><span class="std std-ref">run jobs on DGX Cloud</span></a>, you can launch an interactive job
-to use CUDA Quantum with <a class="reference external" href="https://jupyterlab.readthedocs.io/en/latest/">JupyterLab</a>
+to use CUDA-Q with <a class="reference external" href="https://jupyterlab.readthedocs.io/en/latest/">JupyterLab</a>
 running on DGX Cloud:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ngc base-command job run \</span>
 <span class="go">  --name Job-interactive-001 --total-runtime 600s \</span>
@@ -998,13 +1010,13 @@ under ”URL/Hostname” in Service Mapped Ports.</p>
 if you encounter a “404: Not Found” error, be patient and try again in a couple of minutes.</p>
 </div>
 <p>Once this URL opens, you should see the JupyterLab authentication page; enter the
-token you selected above to get access to the running CUDA Quantum container.
+token you selected above to get access to the running CUDA-Q container.
 On the left you should see a folder with tutorials. Happy coding!</p>
 </section>
 <section id="use-vs-code">
 <h3>Use VS Code<a class="headerlink" href="#use-vs-code" title="Permalink to this heading">¶</a></h3>
 <p>Once you can <a class="reference internal" href="#dgx-cloud-setup"><span class="std std-ref">run jobs on DGX Cloud</span></a>, you can launch an interactive job
-to use CUDA Quantum with a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>,
+to use CUDA-Q with a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>,
 or the <a class="reference external" href="https://vscode.dev/">VS Code Web UI</a>, running on DGX Cloud:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ngc base-command job run \</span>
 <span class="go">  --name Job-interactive-001 --total-runtime 600s \</span>
@@ -1028,21 +1040,21 @@ to open the <code class="code docutils literal notranslate"><span class="pre">/h
 configure VS Code with extensions for working with C++, Python, and Jupyter.
 You can always see the list of recommended extensions that aren’t installed yet by clicking on the “Extensions” icon in the sidebar and navigating to the “Recommended” tab.</p>
 <p>If you enter “View: Show Explorer” in the Command Palette, you should see a folder with tutorials and examples
-to help you get started. Take a look at <a class="reference internal" href="#next-steps">Next Steps</a> to dive into CUDA Quantum development.</p>
+to help you get started. Take a look at <a class="reference internal" href="#next-steps">Next Steps</a> to dive into CUDA-Q development.</p>
 </section>
 </section>
 <section id="additional-cuda-tools">
 <span id="id7"></span><h2>Additional CUDA Tools<a class="headerlink" href="#additional-cuda-tools" title="Permalink to this heading">¶</a></h2>
-<p>CUDA Quantum makes use of GPU-acceleration in certain backends and components.
-Depending on how you installed CUDA Quantum, you may need to install
+<p>CUDA-Q makes use of GPU-acceleration in certain backends and components.
+Depending on how you installed CUDA-Q, you may need to install
 certain CUDA libraries separately to take advantage of these.</p>
 <section id="installation-via-pypi">
 <h3>Installation via PyPI<a class="headerlink" href="#installation-via-pypi" title="Permalink to this heading">¶</a></h3>
-<p>If you installed CUDA Quantum via <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI</a>, please follow the installation instructions there to install the necessary CUDA dependencies.</p>
+<p>If you installed CUDA-Q via <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI</a>, please follow the installation instructions there to install the necessary CUDA dependencies.</p>
 </section>
 <section id="installation-in-container-images">
 <h3>Installation In Container Images<a class="headerlink" href="#installation-in-container-images" title="Permalink to this heading">¶</a></h3>
-<p>If you are using the CUDA Quantum container image, the image already contains all necessary runtime libraries to use all CUDA Quantum components. To take advantage of GPU-acceleration, make sure
+<p>If you are using the CUDA-Q container image, the image already contains all necessary runtime libraries to use all CUDA-Q components. To take advantage of GPU-acceleration, make sure
 to enable GPU support when you launch the container, that is pass the <code class="code docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> flag when launching
 the container with Docker and the <code class="code docutils literal notranslate"><span class="pre">--nv</span></code> flag when launching the container with Singularity.</p>
 <p>Note that the image does not contain all development dependencies for CUDA, such as, for example the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. You can install all CUDA development dependencies by running the command</p>
@@ -1056,8 +1068,8 @@ the container with Docker and the <code class="code docutils literal notranslate
 </section>
 <section id="installing-pre-built-binaries">
 <span id="cuda-dependencies-prebuilt-binaries"></span><h3>Installing Pre-built Binaries<a class="headerlink" href="#installing-pre-built-binaries" title="Permalink to this heading">¶</a></h3>
-<p>If you installed pre-built binaries for CUDA Quantum, you will need to install
-the necessary CUDA runtime libraries to use GPU-acceleration in CUDA Quantum.
+<p>If you installed pre-built binaries for CUDA-Q, you will need to install
+the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for RHEL 8:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
@@ -1077,19 +1089,19 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 of your selected <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>.
 Please make sure to install CUDA version 11.8 or newer, and confirm that your
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">GPU driver</a> supports that version.
-While the above packages are sufficient to use GPU-acceleration within CUDA Quantum,
+While the above packages are sufficient to use GPU-acceleration within CUDA-Q,
 we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-11-8</span></code>) that also
 includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler.</p>
 </section>
 </section>
 <section id="distributed-computing-with-mpi">
 <span id="id8"></span><h2>Distributed Computing with MPI<a class="headerlink" href="#distributed-computing-with-mpi" title="Permalink to this heading">¶</a></h2>
-<p>CUDA Quantum supports the Message Passing Interface (MPI) parallelism via a plugin interface.
-It is possible to activate or replace such an MPI plugin without re-installing or re-compiling CUDA Quantum.
-MPI calls via CUDA Quantum API for C++ and Python will be delegated to the currently activated plugin at runtime.</p>
+<p>CUDA-Q supports the Message Passing Interface (MPI) parallelism via a plugin interface.
+It is possible to activate or replace such an MPI plugin without re-installing or re-compiling CUDA-Q.
+MPI calls via CUDA-Q API for C++ and Python will be delegated to the currently activated plugin at runtime.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Built-in MPI Support</label><div class="tab-content docutils">
-<p>The <a class="reference internal" href="#install-docker-image"><span class="std std-ref">CUDA Quantum Docker image</span></a> is shipped with a pre-built MPI plugin based on an
+<p>The <a class="reference internal" href="#install-docker-image"><span class="std std-ref">CUDA-Q Docker image</span></a> is shipped with a pre-built MPI plugin based on an
 optimized OpenMPI installation included in the image. No action is required to use this plugin.
 We recommend using this plugin unless the container host has an existing MPI implementation other than OpenMPI.</p>
 <p>If you are not using the Docker image, or are using the image on a system that has a
@@ -1098,13 +1110,13 @@ to enable MPI support.</p>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Custom MPI Support</label><div class="tab-content docutils">
 <p>If you are not using the Docker image, or are using the image on a system that has a
-vendor-optimized MPI library pre-installed, CUDA Quantum can be configured to use the local MPI installation by
+vendor-optimized MPI library pre-installed, CUDA-Q can be configured to use the local MPI installation by
 manually activating a suitable plugin post-installation.
 To do so,</p>
 <ul>
-<li><p>Make sure the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDA_QUANTUM_PATH</span></code> points to the CUDA Quantum installation directory.
-If you installed CUDA Quantum using the <code class="code docutils literal notranslate"><span class="pre">installer</span> <span class="pre">&lt;install-prebuilt-binaries&gt;</span></code>, or if you are using the CUDA Quantum
-container image, this variable should already be defined. If you installed the CUDA Quantum
+<li><p>Make sure the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDA_QUANTUM_PATH</span></code> points to the CUDA-Q installation directory.
+If you installed CUDA-Q using the <code class="code docutils literal notranslate"><span class="pre">installer</span> <span class="pre">&lt;install-prebuilt-binaries&gt;</span></code>, or if you are using the CUDA-Q
+container image, this variable should already be defined. If you installed the CUDA-Q
 <code class="code docutils literal notranslate"><span class="pre">Python</span> <span class="pre">wheels</span> <span class="pre">&lt;install-python-wheels&gt;</span></code>, set this variable to the directory listed under “Location” when you run the
 command <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">show</span> <span class="pre">cuda-quantum</span></code>.</p></li>
 <li><p>Set the environment variable <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code> to the location of your MPI installation. In particular, <code class="code docutils literal notranslate"><span class="pre">${MPI_PATH}/include</span></code>
@@ -1124,13 +1136,13 @@ and guarantee compatibility when MPI injection into a container occurs.</p>
 </div>
 <p>Manually activating an MPI plugin replaces any existing plugin; After the initial activation, the newly built
 <code class="code docutils literal notranslate"><span class="pre">libcudaq_distributed_interface_mpi.so</span></code> in the installation directory will subsequently always be used to
-handle CUDA Quantum MPI calls.</p>
+handle CUDA-Q MPI calls.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Executing the activation script from the CUDA Quantum installation directory requires <em>write</em> permissions to that directory.
+<p>Executing the activation script from the CUDA-Q installation directory requires <em>write</em> permissions to that directory.
 If you do not have the necessary permissions, copy the <code class="code docutils literal notranslate"><span class="pre">distributed_interfaces</span></code> sub-directory to a local location and execute the
 activation script from there.</p>
-<p>In this scenario, since the activated plugin (<code class="code docutils literal notranslate"><span class="pre">libcudaq_distributed_interface_mpi.so</span></code>) is outside the CUDA Quantum installation,
+<p>In this scenario, since the activated plugin (<code class="code docutils literal notranslate"><span class="pre">libcudaq_distributed_interface_mpi.so</span></code>) is outside the CUDA-Q installation,
 you must set the environment variable <code class="code docutils literal notranslate"><span class="pre">$CUDAQ_MPI_COMM_LIB</span></code> to the path of that shared library.
 This is done automatically when executing that activation script, but you may wish to persist that environment variable
 between bash sessions, e.g., by adding it to the <code class="code docutils literal notranslate"><span class="pre">.bashrc</span></code> file.</p>
@@ -1138,16 +1150,16 @@ between bash sessions, e.g., by adding it to the <code class="code docutils lite
 </div>
 </div>
 </section>
-<section id="updating-cuda-quantum">
-<span id="id9"></span><h2>Updating CUDA Quantum<a class="headerlink" href="#updating-cuda-quantum" title="Permalink to this heading">¶</a></h2>
-<p>If you installed the CUDA Quantum Python wheels, you can update to the latest release
+<section id="updating-cuda-q">
+<span id="updating-cuda-quantum"></span><h2>Updating CUDA-Q<a class="headerlink" href="#updating-cuda-q" title="Permalink to this heading">¶</a></h2>
+<p>If you installed the CUDA-Q Python wheels, you can update to the latest release
 by running the command</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install --upgrade cuda-quantum</span>
 </pre></div>
 </div>
-<p>If you previously installed the CUDA Quantum pre-built binaries, you should first uninstall your
-current CUDA Quantum installation before installing the new version using the installer.
-To uninstall your current CUDA Quantum version, run the command</p>
+<p>If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your
+current CUDA-Q installation before installing the new version using the installer.
+To uninstall your current CUDA-Q version, run the command</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sudo bash &quot;${CUDA_QUANTUM_PATH}/uninstall.sh&quot; -y</span>
 </pre></div>
 </div>
@@ -1155,20 +1167,20 @@ To uninstall your current CUDA Quantum version, run the command</p>
 and folders that were created as part of the installation, whether they were modified
 in the meantime or not. It does not remove any additional files that existed prior
 to the installation or that you have added to the installation location since then.
-You can then download and install the new version of CUDA Quantum following the
+You can then download and install the new version of CUDA-Q following the
 instructions <a class="reference internal" href="#install-prebuilt-binaries"><span class="std std-ref">above</span></a>.</p>
 </section>
 <section id="dependencies-and-compatibility">
-<span id="id10"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
-<p>CUDA Quantum can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also <a class="reference internal" href="../backends/simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>.</p>
-<p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.</p>
+<span id="id9"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
+<p>CUDA-Q can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also <a class="reference internal" href="../backends/simulators.html"><span class="doc">CUDA-Q Simulation Backends</span></a>.</p>
+<p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Some of the components included in the CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this section</span></a>.</p>
+<p>Some of the components included in the CUDA-Q Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA-Q Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this section</span></a>.</p>
 </div>
 <p>The following table summarizes the required components.</p>
-<table class="docutils align-default" id="id11">
-<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id11" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id10" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
@@ -1188,8 +1200,8 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id12">
-<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id12" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id11" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
@@ -1214,8 +1226,8 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 To open a terminal in VS Code, open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code> and
 enter “View: Show Terminal”.</p>
 <img alt="../../_images/getToWork.png" src="../../_images/getToWork.png" />
-<p>The CUDA Quantum image contains a folder with examples and tutorials in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory.
-These examples are provided to get you started with CUDA Quantum and understanding
+<p>The CUDA-Q image contains a folder with examples and tutorials in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory.
+These examples are provided to get you started with CUDA-Q and understanding
 the programming and execution model.
 If you are not using a container image, you can find these examples on our
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
@@ -1277,9 +1289,9 @@ succeeds, please confirm that your CUDA and driver version matches the
 </div>
 <p>When you execute this command, the program simply seems to hang; that is because it takes
 a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with <code class="code docutils literal notranslate"><span class="pre">Ctrl+C</span></code>.</p>
-<p>You are now all set to start developing quantum applications using CUDA Quantum!
+<p>You are now all set to start developing quantum applications using CUDA-Q!
 Please proceed to <a class="reference internal" href="../basics/basics.html"><span class="doc">Basics</span></a> for an introduction
-to the fundamental features of CUDA Quantum.</p>
+to the fundamental features of CUDA-Q.</p>
 </section>
 </section>
 
@@ -1294,7 +1306,7 @@ to the fundamental features of CUDA Quantum.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

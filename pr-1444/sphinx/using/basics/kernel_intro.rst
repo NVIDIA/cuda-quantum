@@ -1,4 +1,4 @@
-What is a CUDA Quantum kernel?
+What is a CUDA-Q kernel?
 -------------------------------
 
 Quantum kernels are defined as functions that are executed on a quantum processing unit (QPU) or
@@ -17,7 +17,7 @@ standard quantum circuit. We can not only parameterize the kernel, but can also 
 flow statements (`if`, `for`, `while`, etc.), and classical computations such as additions, multiplication, etc.
 Conditional statements on quantum memory and qubit measurements can be included in quantum kernels to enable 
 dynamic circuits and fast feedback, particularly useful for quantum error correction. To learn more about what
-language constructs are supported within quantum kernels, take a look at the CUDA Quantum 
+language constructs are supported within quantum kernels, take a look at the CUDA-Q 
 :doc:`specification <../../specification/cudaq/kernels>`.
 
 **How do I build and run a quantum kernel?**
@@ -25,4 +25,4 @@ language constructs are supported within quantum kernels, take a look at the CUD
 Once a quantum kernel has been defined in a program, it may be called as a typical function, or can be executed
 using the `sample` or `observe` primitives.
 
-Let’s take a closer look at how to build and execute a quantum kernel with CUDA Quantum.
+Let’s take a closer look at how to build and execute a quantum kernel with CUDA-Q.

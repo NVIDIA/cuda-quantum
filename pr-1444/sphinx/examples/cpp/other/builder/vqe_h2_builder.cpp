@@ -17,9 +17,9 @@
 #include <cudaq/optimizers.h>
 
 // This example demonstrates the utility of the builder pattern
-// for a common chemistry example. Here we build up a CUDA Quantum kernel
+// for a common chemistry example. Here we build up a CUDA-Q kernel
 // with N layers and each layer containing an arrangement of
-// random SO(4) rotations. The algorithm leverages the CUDA Quantum
+// random SO(4) rotations. The algorithm leverages the CUDA-Q
 // VQE support to compute the ground state of the Hydrogen atom.
 
 namespace cudaq {

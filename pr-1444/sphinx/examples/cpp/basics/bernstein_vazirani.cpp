@@ -16,7 +16,7 @@
 
 std::vector<int> random_bitstring(int qubit_count) {
   std::vector<int> vector_of_bits;
-  for (auto i = 0; i <= qubit_count; i++) {
+  for (auto i = 0; i < qubit_count; i++) {
     // Populate our vector of bits with random binary
     // values (base 2).
     vector_of_bits.push_back(rand() % 2);
@@ -26,7 +26,7 @@ std::vector<int> random_bitstring(int qubit_count) {
 
 __qpu__ void oracle(cudaq::qview<> qvector, cudaq::qubit &auxillary_qubit,
                     std::vector<int> &hidden_bitstring) {
-  for (auto i = 0; i <= hidden_bitstring.size(); i++) {
+  for (auto i = 0; i < hidden_bitstring.size(); i++) {
     if (hidden_bitstring[i] == 1)
       // Apply a `cx` gate with the current qubit as
       // the control and the auxillary qubit as the target.
@@ -60,6 +60,7 @@ __qpu__ void bernstein_vazirani(std::vector<int> &hidden_bitstring) {
 }
 
 int main() {
+  // Note: this algorithm will require an additional ancillary qubit.
   auto qubit_count = 5; // set to around 30 qubits for `nvidia` target
 
   // Generate a bitstring to encode and recover with our algorithm.
