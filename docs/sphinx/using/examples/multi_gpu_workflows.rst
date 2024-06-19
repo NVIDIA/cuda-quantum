@@ -30,12 +30,16 @@ Below we explore how to effectively utilize multiple CUDA-Q targets with the sam
 
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
     :language: python
+    :start-after: [Begin state]
+    :end-before: [End state]
 
 QPP-based CPU Backend
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/qpp_cpu_backend.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
     :language: python
+    :start-after: [Begin CPU]
+    :end-before: [End CPU]
 
 .. parsed-literal::
 
@@ -48,8 +52,10 @@ Acceleration via NVIDIA GPUs
 Users will notice a speedup of up to **2500x** in executing the circuit below on
 NVIDIA GPUs vs CPUs.
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/nvidia_backend.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
     :language: python
+    :start-after: [Begin GPU]
+    :end-before: [End GPU]
 
 .. parsed-literal::
 
@@ -115,13 +121,17 @@ executed asynchronously via the ``mqpu`` platform.
 
 .. image:: ../../examples/python/tutorials/images/circsplit.png
 
-.. literalinclude:: ../../examples/python/multi_gpu_workflows/async_circuit_batching.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/async_circuit_batching.py
     :language: python
+    :start-after: [Begin prepare]
+    :end-before: [End prepare]
 
 Let's time the execution on single GPU.
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/time_single_gpu.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/async_circuit_batching.py
     :language: python
+    :start-after: [Begin single]
+    :end-before: [End single]
 
 .. parsed-literal::
 
@@ -129,8 +139,10 @@ Let's time the execution on single GPU.
 
 Now let's try to time multi GPU run.
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multi_gpu_prepare.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/async_circuit_batching.py
     :language: python
+    :start-after: [Begin split]
+    :end-before: [End split]
 
 .. parsed-literal::
 
@@ -138,8 +150,10 @@ Now let's try to time multi GPU run.
     We split this into 4 batches of 2500 , 2500 , 2500 , 2500
 
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/time_multi_gpu.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/async_circuit_batching.py
     :language: python
+    :start-after: [Begin multiple]
+    :end-before: [End multiple]
 
 .. parsed-literal::
 
