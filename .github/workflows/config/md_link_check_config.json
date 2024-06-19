@@ -22,6 +22,12 @@
         "pattern": "^https://vscode.dev/"
       },
       {
+        "pattern": "microsoft.com/"
+      },
+      {
+        "pattern": "visualstudio.com/"
+      },
+      {
         "pattern": "openapi.html"
       }
     ]
