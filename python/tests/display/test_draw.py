@@ -1,67 +1,63 @@
-/*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
- * All rights reserved.                                                        *
- *                                                                             *
- * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
 
-#include "CUDAQTestUtils.h"
-#include <cudaq/algorithms/draw.h>
+import cudaq
+import numpy as np
+import os
+import pytest
 
-CUDAQ_TEST(DrawTester, checkEmpty) {
 
-  auto kernel = []() __qpu__ {};
+@cudaq.kernel
+def bar(qvec: cudaq.qview):
+    # FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
+    # rx(np.e, qvec[0])
+    rx(2.71828182845904523536028, qvec[0])
+    ry(np.pi, qvec[1])
+    # FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
+    # cudaq.adjoint(rz, np.pi, qvec[2])
+    rz(-np.pi, qvec[2])
 
-  std::string expected_str = "<empty trace>";
-  auto produced_str = cudaq::draw(kernel);
-  EXPECT_EQ(expected_str, produced_str);
-}
 
-namespace {
-__qpu__ void bar(cudaq::qvector<> &q) {
-  double pi_d = M_PI;
-  float pi_f = M_PI;
-  rx(M_E, q[0]);
-  ry(pi_d, q[1]);
-  rz<cudaq::adj>(pi_f, q[2]);
-}
+@cudaq.kernel
+def zaz(qub: cudaq.qubit):
+    sdg(qub)
 
-__qpu__ void zaz(cudaq::qubit &q) { s<cudaq::adj>(q); }
 
-auto kernel = []() __qpu__ {
-  cudaq::qvector q(4);
-  h(q); // Broadcast
-  x<cudaq::ctrl>(q[0], q[1]);
-  y<cudaq::ctrl>(q[0], q[1], q[2]);
-  y<cudaq::ctrl>(q[2], q[0], q[1]);
-  y<cudaq::ctrl>(q[1], q[2], q[0]);
-  z(q[2]);
+@cudaq.kernel
+def kernel():
+    q = cudaq.qvector(4)
+    h(q)
+    x.ctrl(q[0], q[1])
+    y.ctrl(q[0], q[1], q[2])
+    y.ctrl(q[2], q[0], q[1])
+    y.ctrl(q[1], q[2], q[0])
+    z(q[2])
+    r1(3.14159, q[0])
+    tdg(q[1])
+    s(q[2])
+    swap.ctrl(q[0], q[2])
+    swap.ctrl(q[1], q[2])
+    swap.ctrl(q[0], q[1])
+    swap.ctrl(q[0], q[2])
+    swap.ctrl(q[1], q[2])
+    swap.ctrl(q[3], q[0], q[1])
+    swap.ctrl(q[0], q[3], q[1], q[2])
+    swap.ctrl(q[1], q[0], q[3])
+    swap.ctrl(q[1], q[2], q[0], q[3])
+    bar(q)
+    cudaq.control(zaz, q[1], q[0])
+    cudaq.adjoint(bar, q)
 
-  r1(3.14159, q[0]);
-  t<cudaq::adj>(q[1]);
-  s(q[2]);
 
-  swap(q[0], q[2]);
-  swap(q[1], q[2]);
-  swap(q[0], q[1]);
-  swap(q[0], q[2]);
-  swap(q[1], q[2]);
-  swap<cudaq::ctrl>(q[3], q[0], q[1]);
-  swap<cudaq::ctrl>(q[0], q[3], q[1], q[2]);
-  swap<cudaq::ctrl>(q[1], q[0], q[3]);
-  swap<cudaq::ctrl>(q[1], q[2], q[0], q[3]);
-  bar(q);
-  cudaq::control(zaz, q[1], q[0]);
-  cudaq::adjoint(bar, q);
-};
-} // namespace
-
-CUDAQ_TEST(DrawTester, checkOps) {
-  // clang-format off
-  // CAUTION: Changing white spaces here will cause the test to fail. Thus be
-  // careful that your editor does not remove them automatically!
-  std::string expected_str = R"(
+def test_draw():
+    """Test draw function, mainly copied from draw_tester.cpp"""
+    # fmt: off
+    expected_str = R"""
      ╭───╮               ╭───╮╭───────────╮                          ╭───────╮»
 q0 : ┤ h ├──●────●────●──┤ y ├┤ r1(3.142) ├──────╳─────╳──╳─────╳──●─┤>      ├»
      ├───┤╭─┴─╮  │  ╭─┴─╮╰─┬─╯╰──┬─────┬──╯      │     │  │     │  │ │       │»
@@ -83,18 +79,17 @@ q3 : ┤ h ├──────────────────────
 │       │╰────────────╯╰───────────╯              
 ┤>      ├─────────────────────────────────────────
 ╰───────╯                                         
-)";
-  // clang-format on
+"""
+    # fmt: on
+    expected_str = expected_str[1:]
+    produced_string = cudaq.draw(kernel)
+    assert expected_str == produced_string
 
-  expected_str = expected_str.substr(1);
-  std::string produced_str = cudaq::draw(kernel);
-  EXPECT_EQ(expected_str.size(), produced_str.size());
-  EXPECT_EQ(expected_str, produced_str);
-}
 
-CUDAQ_TEST(LatexDrawTester, checkOps) {
-  // clang-format off
-  std::string expected_str = R"(
+def test_draw_latex():
+    """Test draw function, mainly copied from draw_tester.cpp"""
+    # fmt: off
+    expected_str = R"""
 \documentclass{minimal}
 \usepackage{quantikz}
 \begin{document}
@@ -105,10 +100,14 @@ CUDAQ_TEST(LatexDrawTester, checkOps) {
   \lstick{$q_3$} & \gate{H} & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \ctrl{-3} & \ctrl{-2} & \targX{} & \targX{} & \qw & \qw & \qw & \qw \\
 \end{quantikz}
 \end{document}
-)";
-  // clang-format on
-  expected_str = expected_str.substr(1);
-  std::string produced_str = cudaq::draw("latex", kernel);
-  EXPECT_EQ(expected_str.size(), produced_str.size());
-  EXPECT_EQ(expected_str, produced_str);
-}
+"""
+    # fmt: on
+    expected_str = expected_str[1:]
+    produced_string = cudaq.draw("latex", kernel)
+    assert expected_str == produced_string
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-s"])
