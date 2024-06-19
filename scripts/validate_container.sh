@@ -228,11 +228,20 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"oqc"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvqc"* ]] || [[ "$ex" == *"orca"* ]];
+    skip_example=false
+    explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
+    for t in $explicit_targets; do
+        if [ -z "$(echo $requested_backends | grep $t)" ]; then 
+            echo "Explicitly set target $t not available."
+            skip_example=true
+        fi
+    done
+
+    if skip_example;
     then
         let "skipped+=1"
         echo "Skipped.";
-        echo ":white_flag: $filename: External backend. Test skipped." >> "${tmpFile}"
+        echo ":white_flag: $filename: Necessary backend(s) not available. Test skipped." >> "${tmpFile}"
     else
         python3 $ex 1> /dev/null
         status=$?
