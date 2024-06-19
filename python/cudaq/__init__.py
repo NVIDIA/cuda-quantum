@@ -43,6 +43,15 @@ from .runtime.observe import observe
 from .runtime.state import to_cupy
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
+try:
+    from qutip import Qobj, Bloch
+except ImportError:
+    from .visualization.bloch_visualize_err import install_qutip_request as add_to_bloch_sphere
+    from .visualization.bloch_visualize_err import install_qutip_request as show
+else:
+    from .visualization.bloch_visualize import add_to_bloch_sphere
+    from .visualization.bloch_visualize import show_bloch_sphere as show
+
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
 
