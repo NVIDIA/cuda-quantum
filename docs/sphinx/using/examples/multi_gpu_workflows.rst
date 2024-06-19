@@ -34,7 +34,7 @@ Below we explore how to effectively utilize multiple CUDA-Q targets with the sam
 QPP-based CPU Backend
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/qpu_cpu_backend.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/qpp_cpu_backend.py
     :language: python
 
 .. parsed-literal::
@@ -48,9 +48,8 @@ Acceleration via NVIDIA GPUs
 Users will notice a speedup of up to **2500x** in executing the circuit below on
 NVIDIA GPUs vs CPUs.
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/qpu_gpu_backend.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/nvidia_backend.py
     :language: python
-
 
 .. parsed-literal::
 

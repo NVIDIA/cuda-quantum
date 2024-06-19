@@ -134,8 +134,7 @@ Observe Asynchronous
 ~~~~~~~~~~~~~~~~~~~~
 
 Similar to ``sample_async`` above, also supports asynchronous execution for the 
-`arguments it accepts 
-<https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async:~:text=cudaq.observe_async(),%C2%B6>`__.
+:func:`arguments it accepts<cudaq.observe_async>`.
 One can parallelize over various kernels, spin operators, variational
 parameters or even noise models.
 
