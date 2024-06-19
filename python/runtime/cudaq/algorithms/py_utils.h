@@ -14,11 +14,8 @@ namespace py = pybind11;
 
 namespace cudaq {
 
-/// @brief Perform base64 encoding of a dictionary.
-std::string b64encode_dict(py::dict serializable_dict);
-
-/// @brief Get a Base64-encoded pickled dictionary of a combination of all local
-/// and global variables that are pickle-able.
+/// @brief Get a JSON-encoded dictionary of a combination of all local
+/// and global variables that are JSON serializable
 py::dict get_serializable_var_dict();
 
 /// @brief Fetch the Python source code from a `py::function`

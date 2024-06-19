@@ -25,8 +25,10 @@ static SerializedCodeExecutionContext
 get_serialized_code(std::string &source_code) {
   SerializedCodeExecutionContext ctx;
   try {
+    py::object json = py::module_::import("json");
     ctx.imports = get_imports();
-    ctx.scoped_var_dict = b64encode_dict(get_serializable_var_dict());
+    auto var_dict = get_serializable_var_dict();
+    ctx.scoped_var_dict = py::str(json.attr("dumps")(var_dict));
     ctx.source_code = source_code;
   } catch (py::error_already_set &e) {
     throw std::runtime_error("Failed to serialized data: " +
@@ -73,13 +75,18 @@ void bindGradientStrategies(py::module &mod) {
   py::class_<gradients::central_difference, gradient>(gradients_submodule,
                                                       "CentralDifference")
       .def(py::init<>())
-      .def(py::pickle(
+      .def(
+          "to_json",
           [](const gradients::central_difference &p) { return json(p).dump(); },
-          [](const std::string &data) {
+          "Convert gradient to JSON string")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
             gradients::central_difference p;
-            from_json(json::parse(data), p);
+            from_json(json::parse(j), p);
             return p;
-          }))
+          },
+          "Convert JSON string to gradient")
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -95,13 +102,18 @@ void bindGradientStrategies(py::module &mod) {
   py::class_<gradients::forward_difference, gradient>(gradients_submodule,
                                                       "ForwardDifference")
       .def(py::init<>())
-      .def(py::pickle(
+      .def(
+          "to_json",
           [](const gradients::forward_difference &p) { return json(p).dump(); },
-          [](const std::string &data) {
+          "Convert gradient to JSON string")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
             gradients::forward_difference p;
-            from_json(json::parse(data), p);
+            from_json(json::parse(j), p);
             return p;
-          }))
+          },
+          "Convert JSON string to gradient")
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -117,13 +129,18 @@ void bindGradientStrategies(py::module &mod) {
   py::class_<gradients::parameter_shift, gradient>(gradients_submodule,
                                                    "ParameterShift")
       .def(py::init<>())
-      .def(py::pickle(
+      .def(
+          "to_json",
           [](const gradients::parameter_shift &p) { return json(p).dump(); },
-          [](const std::string &data) {
+          "Convert gradient to JSON string")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
             gradients::parameter_shift p;
-            from_json(json::parse(data), p);
+            from_json(json::parse(j), p);
             return p;
-          }))
+          },
+          "Convert JSON string to gradient")
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -146,12 +163,17 @@ template <typename OptimizerT>
 py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
   return py::class_<OptimizerT, optimizer>(mod, name.c_str())
       .def(py::init<>())
-      .def(py::pickle([](const OptimizerT &p) { return json(p).dump(); },
-                      [](const std::string &data) {
-                        OptimizerT p;
-                        from_json(json::parse(data), p);
-                        return p;
-                      }))
+      .def(
+          "to_json", [](const OptimizerT &p) { return json(p).dump(); },
+          "Convert optimizer to JSON string")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
+            OptimizerT p;
+            from_json(json::parse(j), p);
+            return p;
+          },
+          "Convert JSON string to optimizer")
       .def_readwrite("max_iterations", &OptimizerT::max_eval,
                      "Set the maximum number of optimizer iterations.")
       .def_readwrite("initial_parameters", &OptimizerT::initial_parameters,

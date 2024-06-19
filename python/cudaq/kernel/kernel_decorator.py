@@ -8,6 +8,7 @@
 import ast, sys, traceback
 import importlib
 import inspect
+import json
 from typing import Callable
 from ..mlir.ir import *
 from ..mlir.passmanager import *
@@ -45,15 +46,19 @@ class PyKernelDecorator(object):
                  kernelName=None,
                  funcSrc=None,
                  signature=None,
-                 arguments=None,
-                 returnType=None,
                  location=None):
-        restoring_from_pickle = isinstance(function, str)
+        # When deserialization with a provided funcSrc, we cannot use inspect
+        # because we only have a string for the function source. That is - the
+        # "function" isn't actually a concrete Python Function object in memory
+        # that we can "inspect". Hence, use alternate approaches when
+        # deserializing from funcSrc.
+        is_deserializing = isinstance(function, str)
 
-        if restoring_from_pickle:
+        if is_deserializing:
             self.kernelFunction = None
             self.name = kernelName
             self.location = location
+            self.signature = signature
         else:
             self.kernelFunction = function
             self.name = kernelName if kernelName != None else self.kernelFunction.__name__
@@ -81,7 +86,7 @@ class PyKernelDecorator(object):
         # used in the kernel. We need to track these.
         self.dependentCaptures = None
 
-        if self.kernelFunction is None and not restoring_from_pickle:
+        if self.kernelFunction is None and not is_deserializing:
             if self.module is not None:
                 # Could be that we don't have a function
                 # but someone has provided an external Module.
@@ -104,22 +109,16 @@ class PyKernelDecorator(object):
                     "Invalid kernel decorator. Module and function are both None."
                 )
 
-        if restoring_from_pickle:
+        if is_deserializing:
             self.funcSrc = funcSrc
-            self.signature = signature
-            self.arguments = arguments
-            self.returnType = returnType
         else:
-            try:
-                # Get the function source
-                src = inspect.getsource(self.kernelFunction)
+            # Get the function source
+            src = inspect.getsource(self.kernelFunction)
 
-                # Strip off the extra tabs
-                leadingSpaces = len(src) - len(src.lstrip())
-                self.funcSrc = '\n'.join(
-                    [line[leadingSpaces:] for line in src.split('\n')])
-            except OSError:
-                self.funcSrc = None
+            # Strip off the extra tabs
+            leadingSpaces = len(src) - len(src.lstrip())
+            self.funcSrc = '\n'.join(
+                [line[leadingSpaces:] for line in src.split('\n')])
 
         # Create the AST
         self.astModule = ast.parse(self.funcSrc)
@@ -129,15 +128,14 @@ class PyKernelDecorator(object):
 
         # Assign the signature for use later and
         # keep a list of arguments (used for validation in the runtime)
-        # Bypass if restoring from pickle because they are directly provided.
-        if not restoring_from_pickle:
+        if not is_deserializing:
             self.signature = inspect.getfullargspec(
                 self.kernelFunction).annotations
-            self.arguments = [
-                (k, v) for k, v in self.signature.items() if k != 'return'
-            ]
-            self.returnType = self.signature[
-                'return'] if 'return' in self.signature else None
+        self.arguments = [
+            (k, v) for k, v in self.signature.items() if k != 'return'
+        ]
+        self.returnType = self.signature[
+            'return'] if 'return' in self.signature else None
 
         # Validate that we have a return type annotation if necessary
         hasRetNodeVis = HasReturnNodeVisitor()
@@ -250,11 +248,55 @@ class PyKernelDecorator(object):
                                    name=self.name,
                                    module=self.module)
 
-    def __reduce__(self):
-        args = (self.kernelFunction.__name__ if self.kernelFunction else '',
-                self.verbose, None, self.name, self.funcSrc, self.signature,
-                self.arguments, self.returnType, self.location)
-        return (self.__class__, args)
+    @staticmethod
+    def type_to_str(t):
+        """
+        This converts types to strings in a clean, serializable way.
+        int -> 'int'
+        list[float] -> 'list[float]'
+        List[float] -> 'list[float]'
+        """
+        if hasattr(t, '__origin__') and t.__origin__ is not None:
+            # Handle generic types from typing
+            origin = t.__origin__
+            args = t.__args__
+            args_str = ', '.join(
+                PyKernelDecorator.type_to_str(arg) for arg in args)
+            return f'{origin.__name__}[{args_str}]'
+        elif hasattr(t, '__name__'):
+            return t.__name__
+        else:
+            return str(t)
+
+    def to_json(self):
+        """
+        Convert `self` to a JSON-serialized version of the kernel such that
+        `from_json` can reconstruct it elsewhere.
+        """
+        obj = dict()
+        obj['name'] = self.name
+        obj['location'] = self.location
+        obj['funcSrc'] = self.funcSrc
+        obj['signature'] = {
+            k: PyKernelDecorator.type_to_str(v)
+            for k, v in self.signature.items()
+        }
+        return json.dumps(obj)
+
+    @staticmethod
+    def from_json(jStr):
+        """
+        Convert a JSON string into a new PyKernelDecorator object.
+        """
+        j = json.loads(jStr)
+        return PyKernelDecorator(
+            'kernel',  # just set to any string
+            verbose=False,
+            module=None,
+            kernelName=j['name'],
+            funcSrc=j['funcSrc'],
+            signature=j['signature'],
+            location=j['location'])
 
     def __call__(self, *args):
         """

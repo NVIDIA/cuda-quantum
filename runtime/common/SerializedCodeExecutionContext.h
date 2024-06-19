@@ -24,7 +24,8 @@ public:
   /// @brief Necessary Python imports required to execute \p source_code.
   std::string imports;
 
-  /// @brief All variables visible to the objective function as a Base64 string.
+  /// @brief All variables visible to the Python \p source_code to execute, as a
+  /// JSON-like string object.
   std::string scoped_var_dict;
 
   /// @brief The source code of the objective function and its call as a string.

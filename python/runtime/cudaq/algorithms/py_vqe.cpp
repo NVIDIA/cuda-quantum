@@ -98,13 +98,14 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
       .value();
 }
 
+/// @brief Perform VQE on a remote platform. This function is used for many of
+/// the pyVQE variants below, so some of the parameters may be nullptr.
 static optimization_result
 pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
              spin_op &hamiltonian, cudaq::optimizer &optimizer,
              cudaq::gradient *gradient, py::function *argumentMapper,
              const int n_params, const int shots) {
-  py::object pickle = py::module_::import("pickle");
-  py::object base64 = py::module_::import("base64");
+  py::object json = py::module_::import("json");
   py::object inspect = py::module_::import("inspect");
 
   // Form scoped_vars_str
@@ -112,12 +113,38 @@ pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
   // We only need to capture user variables when an argumentMapper is provided.
   if (argumentMapper)
     scoped_vars = get_serializable_var_dict();
-  scoped_vars["__hamiltonian"] = pickle.attr("dumps")(hamiltonian);
-  scoped_vars["__optimizer"] = pickle.attr("dumps")(optimizer);
-  scoped_vars["__vqe_kernel"] = pickle.attr("dumps")(kernel);
+
+// This macro loads a JSON-like object into scoped_vars[] as
+// scoped_vars["__varname"] = varname. This roughly corresponds to the
+// following Python code:
+//  scoped_vars["__varname/module.name"] = json.loads(varname.to_json())
+#define LOAD_VAR(VAR_NAME)                                                     \
+  do {                                                                         \
+    py::object val = py::cast(VAR_NAME);                                       \
+    scoped_vars[py::str(                                                       \
+        std::string("__" #VAR_NAME "/") +                                      \
+        val.get_type().attr("__module__").cast<std::string>() + "." +          \
+        val.get_type().attr("__name__").cast<std::string>())] =                \
+        json.attr("loads")(val.attr("to_json")());                             \
+  } while (0)
+#define LOAD_VAR_NO_CAST(VAR_NAME)                                             \
+  do {                                                                         \
+    scoped_vars[py::str(                                                       \
+        std::string("__" #VAR_NAME "/") +                                      \
+        VAR_NAME.get_type().attr("__module__").cast<std::string>() + "." +     \
+        VAR_NAME.get_type().attr("__name__").cast<std::string>())] =           \
+        json.attr("loads")(VAR_NAME.attr("to_json")());                        \
+  } while (0)
+  LOAD_VAR(hamiltonian);
+  LOAD_VAR(optimizer);
+  LOAD_VAR_NO_CAST(kernel);
   if (gradient)
-    scoped_vars["__gradient"] = pickle.attr("dumps")(gradient);
-  auto scoped_vars_str = b64encode_dict(scoped_vars);
+    LOAD_VAR(gradient);
+
+  // Get a string representation of the scoped_vars dictionary. This is
+  // guaranteed to be a JSON-friendly dictionary, so the conversion should occur
+  // cleanly.
+  auto scoped_vars_str = json.attr("dumps")(scoped_vars).cast<std::string>();
 
   // Form SerializedCodeExecutionContext.source_code
   std::ostringstream os;
@@ -131,7 +158,7 @@ pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
     os << "__arg_mapper = " << source_code << '\n';
   }
   os << "energy, params_at_energy = cudaq.vqe(";
-  os << "kernel=__vqe_kernel, ";
+  os << "kernel=__kernel, ";
   if (gradient)
     os << "gradient_strategy=__gradient, ";
   os << "spin_operator=__hamiltonian, ";

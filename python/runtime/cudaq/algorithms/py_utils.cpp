@@ -14,25 +14,43 @@
 namespace cudaq {
 
 py::dict get_serializable_var_dict() {
-  py::object pickle = py::module_::import("pickle");
-  py::object base64 = py::module_::import("base64");
-
+  py::object json = py::module_::import("json");
   py::dict serialized_dict;
-  for (const auto item : py::globals()) {
+
+  auto try_to_add_item = [&](const auto item) {
     try {
       auto key = item.first;
       auto value = item.second;
 
-      py::bytes serialized_value = pickle.attr("dumps")(value);
-      serialized_dict[key] = serialized_value;
+      if (key.template cast<std::string>().starts_with("__")) {
+        // Ignore items that start with "__" (like Python __builtins__, etc.)
+      } else if (py::hasattr(value, "to_json")) {
+        auto type = value.get_type();
+        std::string module =
+            type.attr("__module__").template cast<std::string>();
+        std::string name = type.attr("__name__").template cast<std::string>();
+        auto type_name = py::str(module + "." + name);
+        auto json_key_name = py::str(key) + py::str("/") + type_name;
+        serialized_dict[json_key_name] =
+            json.attr("loads")(value.attr("to_json")());
+      } else if (py::hasattr(value, "tolist")) {
+        serialized_dict[key] =
+            json.attr("loads")(json.attr("dumps")(value.attr("tolist")()));
+      } else {
+        serialized_dict[key] = json.attr("loads")(json.attr("dumps")(value));
+      }
     } catch (const py::error_already_set &e) {
       // Uncomment the following lines for debug, but all this really means is
       // that we won't send this to the remote server.
 
-      // std::cout << "Failed to pickle key: " + std::string(e.what())
-      //           << std::endl;
+      // std::cout << "Failed to serialize key '"
+      //           << item.first.template cast<std::string>()
+      //           << "' : " + std::string(e.what()) << std::endl;
     }
-  }
+  };
+
+  for (const auto item : py::globals())
+    try_to_add_item(item);
 
   py::object inspect = py::module::import("inspect");
   std::vector<py::object> frame_vec;
@@ -47,32 +65,11 @@ py::dict get_serializable_var_dict() {
   // precedence to closest-to-locals.
   for (auto it = frame_vec.rbegin(); it != frame_vec.rend(); ++it) {
     py::dict f_locals = it->attr("f_locals");
-    for (const auto item : f_locals) {
-      try {
-        auto key = item.first;
-        auto value = item.second;
-
-        py::bytes serialized_value = pickle.attr("dumps")(value);
-        serialized_dict[key] = serialized_value;
-      } catch (const py::error_already_set &e) {
-        // Uncomment the following lines for debug, but all this really means is
-        // that we won't send this to the remote server.
-
-        // std::cout << "Failed to pickle key: " + std::string(e.what())
-        //           << std::endl;
-      }
-    }
+    for (const auto item : f_locals)
+      try_to_add_item(item);
   }
 
   return serialized_dict;
-}
-
-std::string b64encode_dict(py::dict serializable_dict) {
-  py::object pickle = py::module_::import("pickle");
-  py::object base64 = py::module_::import("base64");
-  py::bytes serialized_code = pickle.attr("dumps")(serializable_dict);
-  py::object encoded_dict = base64.attr("b64encode")(serialized_code);
-  return encoded_dict.cast<std::string>();
 }
 
 // Find the minimum indent level for a set of lines in string and remove them

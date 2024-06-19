@@ -9,23 +9,37 @@
 import cudaq
 import sys
 import json
-import pickle
-import base64
 import threading
 import os
 import subprocess
+import importlib
 from datetime import datetime
 
 
 def get_deserialized_dict(scoped_dict):
     deserialized_dict = {}
 
-    for key, serialized_bytes in scoped_dict.items():
+    # If the scoped_dict is one big JSON string, then load it into a
+    # dictionary-like object.
+    if isinstance(scoped_dict, str):
+        scoped_dict = json.loads(scoped_dict)
+
+    for key, val in scoped_dict.items():
         try:
-            deserialized_value = pickle.loads(serialized_bytes)
-            deserialized_dict[key] = deserialized_value
-        except (pickle.UnpicklingError, TypeError, Exception) as e:
-            print(f"Error deserializing key '{key}': {e}")
+            if "/" in key:
+                key, val_type = key.split('/')
+                if val_type.startswith('cudaq.'):
+                    module_name, type_name = val_type.rsplit('.', 1)
+                    module = importlib.import_module(module_name)
+                    type_class = getattr(module, type_name)
+                    result = type_class.from_json(json.dumps(val))
+                    deserialized_dict[key] = result
+                else:
+                    raise Exception(f'Invalid val_type in key: {val_type}')
+            else:
+                deserialized_dict[key] = val
+        except Exception as e:
+            raise Exception(f"Error deserializing key '{key}': {e}")
 
     return deserialized_dict
 
@@ -47,10 +61,10 @@ if __name__ == "__main__":
         serialized_ctx = request['serializedCodeExecutionContext']
         imports_code = serialized_ctx['imports']
         source_code = serialized_ctx['source_code']
+        imports_code += '\nfrom typing import List, Tuple\n'
 
-        serialized_dict = pickle.loads(
-            base64.b64decode(serialized_ctx['scoped_var_dict']))
-        globals_dict = get_deserialized_dict(serialized_dict)
+        # Be sure to do this before running any code from serialized_ctx
+        globals_dict = get_deserialized_dict(serialized_ctx['scoped_var_dict'])
 
         # Determine which target to set
         sim2target = {
