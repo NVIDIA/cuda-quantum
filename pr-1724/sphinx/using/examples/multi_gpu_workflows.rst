@@ -88,7 +88,7 @@ name chosen.
 Multiple QPUs
 ~~~~~~~~~~~~~~
 
-The ``nvidia-mqpu`` backend allows for future multi-QPUs workflows made possible
+The ``remote-mqpu`` backend allows for future multi-QPUs workflows made possible
 via GPU simulation today.
 
 Asynchronous Data Collection via Batching Hamiltonian Terms

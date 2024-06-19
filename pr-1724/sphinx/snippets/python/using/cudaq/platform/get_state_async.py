@@ -8,7 +8,7 @@
 # [Begin Documentation]
 import cudaq
 
-cudaq.set_target("nvidia-mqpu")
+cudaq.set_target("remote-mqpu")
 target = cudaq.get_target()
 qpu_count = target.num_qpus()
 print("Number of QPUs:", qpu_count)

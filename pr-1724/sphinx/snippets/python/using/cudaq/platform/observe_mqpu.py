@@ -9,7 +9,7 @@
 import cudaq
 from cudaq import spin
 
-cudaq.set_target("nvidia-mqpu")
+cudaq.set_target("remote-mqpu")
 target = cudaq.get_target()
 num_qpus = target.num_qpus()
 print("Number of QPUs:", num_qpus)
