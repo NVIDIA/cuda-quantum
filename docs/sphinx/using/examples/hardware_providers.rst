@@ -48,7 +48,11 @@ The following code illustrates how to run kernels on Quantinuum's backends.
    .. literalinclude:: ../../examples/cpp/providers/quantinuum.cpp
       :language: cpp
 
-The following image shows the schematic of a Time Bin Interferometer (TBI) boson sampling experiment that runs on ORCA's backends. A TBI uses optical delay lines with reconfigurable coupling parameters. A TBI can be represented by a circuit diagram, like the one below, where this illustration example corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit composed of a single delay line. 
+The following image shows the schematic of a Time Bin Interferometer (TBI) boson sampling experiment 
+that runs on ORCA's backends. A TBI uses optical delay lines with reconfigurable coupling parameters. 
+A TBI can be represented by a circuit diagram, like the one below, where this illustration example 
+corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit composed of two 
+delay lines in series. 
 
 .. image:: ./images/orca_tbi.png
    :width: 400px
