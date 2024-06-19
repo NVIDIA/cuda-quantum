@@ -28,7 +28,7 @@ struct Vanilla {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
 // clang-format on
 
 struct Cherry {
@@ -60,7 +60,7 @@ struct Cherry {
 // CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_10]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_13]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_16]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_16]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<2>
 // clang-format on
 
 struct MooseTracks {
@@ -93,7 +93,7 @@ struct MooseTracks {
 // CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_10]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_13]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_16]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_16]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<2>
 // clang-format on
 
 struct RockyRoad {
@@ -137,7 +137,7 @@ struct RockyRoad {
 // CHECK:           %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_18]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_17]], %[[VAL_21]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_22:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_24]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_24]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x ?>>) -> !quake.veq<2>
 // clang-format on
 
 std::vector<double> getTwoTimesRank();
@@ -285,7 +285,6 @@ __qpu__ bool Peppermint() {
 // clang-format off
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Vanilla() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state_fp64(i64 2, i8* nonnull bitcast ([4 x double]* @__nvqpp__rodata_init_0 to i8*))
-// QIR:         %[[VAL_2:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_1]]* %[[VAL_0]])
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Cherry() local_unnamed_addr {
@@ -304,7 +303,6 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_7:.*]] = bitcast [4 x { double, double }]* %[[VAL_0]] to i8*
 // QIR:         call void @llvm.memset
 // QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, i8* nonnull %[[VAL_7]])
-// QIR:         %[[VAL_10:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_9]]* %[[VAL_8]])
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__MooseTracks() local_unnamed_addr {
@@ -323,7 +321,6 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_7:.*]] = bitcast [4 x { double, double }]* %[[VAL_0]] to i8*
 // QIR:         call void @llvm.memset
 // QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, i8* nonnull %[[VAL_7]])
-// QIR:         %[[VAL_10:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_9]]* %[[VAL_8]])
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__RockyRoad() local_unnamed_addr {
@@ -368,7 +365,6 @@ __qpu__ bool Peppermint() {
 // QIR:         store double %[[VAL_25]], double* %[[VAL_26]], align 8
 // QIR:         %[[VAL_27:.*]] = bitcast [4 x { double, double }]* %[[VAL_16]] to i8*
 // QIR:         %[[VAL_28:.*]] = call %[[VAL_29:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 2, i8* nonnull %[[VAL_27]])
-// QIR:         %[[VAL_30:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_29]]* %[[VAL_28]])
 // QIR:       }
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__Pistachio() local_unnamed_addr {
@@ -378,7 +374,6 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_2:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_3:.*]] = bitcast double* %[[VAL_2]] to i8*
 // QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]* @__quantum__rt__qubit_allocate_array_with_state_fp64(i64 %[[VAL_1]], i8* %[[VAL_3]])
-// QIR:         %[[VAL_6:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_5]]* %[[VAL_4]])
 // QIR:       }
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__ChocolateMint() local_unnamed_addr {
@@ -388,7 +383,6 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_2:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_3:.*]] = bitcast double* %[[VAL_2]] to i8*
 // QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]* @__quantum__rt__qubit_allocate_array_with_state_fp64(i64 %[[VAL_1]], i8* %[[VAL_3]])
-// QIR:         %[[VAL_6:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_5]]* %[[VAL_4]])
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Neapolitan() local_unnamed_addr {
@@ -398,7 +392,6 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_2:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_3:.*]] = bitcast { double, double }* %[[VAL_2]] to i8*
 // QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 %[[VAL_1]], i8* %[[VAL_3]])
-// QIR:         %[[VAL_6:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_5]]* %[[VAL_4]])
 // QIR:       }
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__ButterPecan() local_unnamed_addr {
@@ -408,6 +401,5 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_2:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_3:.*]] = bitcast { double, double }* %[[VAL_2]] to i8*
 // QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]* @__quantum__rt__qubit_allocate_array_with_state_complex64(i64 %[[VAL_1]], i8* %[[VAL_3]])
-// QIR:         %[[VAL_6:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_5]]* %[[VAL_4]])
 // QIR:       }
 

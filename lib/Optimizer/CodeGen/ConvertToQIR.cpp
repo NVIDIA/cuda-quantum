@@ -31,6 +31,7 @@
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -94,6 +95,7 @@ public:
   // buffer of constants.
   LogicalResult eraseConstantArrayOps() {
     bool ok = true;
+    SmallVector<Operation *> cleanUps;
     getOperation().walk([&](cudaq::cc::ConstantArrayOp carr) {
       // If there is a constant array, then we expect that it is involved in
       // a stdvec initializer expression. So look for the pattern and expand
@@ -122,30 +124,44 @@ public:
       auto eleTy = cast<cudaq::cc::ArrayType>(carr.getType()).getElementType();
       auto ptrTy = cudaq::cc::PointerType::get(eleTy);
       auto loc = carr.getLoc();
+
       for (auto *user : carr->getUsers()) {
         auto origStore = cast<cudaq::cc::StoreOp>(user);
         OpBuilder builder(origStore);
         auto buffer = origStore.getPtrvalue();
-        for (auto iter : llvm::enumerate(carr.getConstantValues())) {
+        const std::int32_t numConstants = carr.getConstantValues().size();
+        auto constantValues = carr.getConstantValues();
+        const bool isComplex = isa<ComplexType>(eleTy);
+        for (std::int32_t idx = 0; idx < numConstants;
+             idx += isComplex ? 2 : 1) {
           auto v = [&]() -> Value {
-            auto val = iter.value();
+            auto val = constantValues[idx];
             if (auto fTy = dyn_cast<FloatType>(eleTy))
               return builder.create<arith::ConstantFloatOp>(
                   loc, cast<FloatAttr>(val).getValue(), fTy);
-            auto iTy = cast<IntegerType>(eleTy);
-            return builder.create<arith::ConstantIntOp>(
-                loc, cast<IntegerAttr>(val).getInt(), iTy);
+            if (auto iTy = dyn_cast<IntegerType>(eleTy))
+              return builder.create<arith::ConstantIntOp>(
+                  loc, cast<IntegerAttr>(val).getInt(), iTy);
+            auto cTy = cast<ComplexType>(eleTy);
+            auto complexVal = builder.getArrayAttr(
+                {cast<FloatAttr>(val),
+                 cast<FloatAttr>(constantValues[idx + 1])});
+            return builder.create<complex::ConstantOp>(loc, cTy, complexVal);
           }();
-          std::int32_t idx = iter.index();
+          std::int32_t vidx = isComplex ? (idx / 2) : idx;
           Value arrWithOffset = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+              loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{vidx});
           builder.create<cudaq::cc::StoreOp>(loc, v, arrWithOffset);
         }
-        origStore.erase();
+        cleanUps.push_back(user);
       }
-
-      carr.erase();
+      cleanUps.push_back(carr.getOperation());
     });
+
+    for (auto *op : cleanUps) {
+      op->dropAllUses();
+      op->erase();
+    }
     return ok ? success() : failure();
   }
 

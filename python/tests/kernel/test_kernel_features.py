@@ -1324,6 +1324,7 @@ def test_return_int_int_param():
 
     assert kernel(42, 53) == 42
 
+
 def test_return_no_param():
 
     @cudaq.kernel
@@ -1331,6 +1332,7 @@ def test_return_no_param():
         return 42
 
     assert kernel() == 42
+
 
 def test_no_param_no_return():
 

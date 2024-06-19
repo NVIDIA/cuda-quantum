@@ -35,7 +35,8 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 # We must use h5py<3.11 because 3.11 doesn't include aarch64 Linux wheels.
 # https://github.com/h5py/h5py/issues/2408
 [project.optional-dependencies]
-chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11" ]
+chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
+visualization = [ "qutip<5" , "matplotlib>=3.5" ]
 
 [build-system]
 requires = ["scikit-build-core", "cmake>=3.26,<3.29"]
@@ -54,7 +55,7 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=FALSE",
+    "-DCUDAQ_BUILD_TESTS=FALSE"
 ]
 
 [tool.setuptools_scm]
