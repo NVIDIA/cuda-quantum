@@ -585,15 +585,7 @@ feasible with any QPU today.</p></li>
 calculations. CPU only for now with GPU support coming soon.</p></li>
 </ul>
 <p>Below we explore how to effectively utilize multiple CUDA-Q targets with the same GHZ state preparation code</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 
 <span class="k">def</span> <span class="nf">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
@@ -614,20 +606,14 @@ calculations. CPU only for now with GPU support coming soon.</p></li>
     <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">result</span>
+
+
 </pre></div>
 </div>
 </section>
 <section id="qpp-based-cpu-backend">
 <h2>QPP-based CPU Backend<a class="headerlink" href="#qpp-based-cpu-backend" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="n">cpu_result</span> <span class="o">=</span> <span class="n">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cpu_result</span> <span class="o">=</span> <span class="n">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 <span class="n">cpu_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -639,15 +625,7 @@ calculations. CPU only for now with GPU support coming soon.</p></li>
 <h2>Acceleration via NVIDIA GPUs<a class="headerlink" href="#acceleration-via-nvidia-gpus" title="Permalink to this heading">¶</a></h2>
 <p>Users will notice a speedup of up to <strong>2500x</strong> in executing the circuit below on
 NVIDIA GPUs vs CPUs.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="n">gpu_result</span> <span class="o">=</span> <span class="n">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gpu_result</span> <span class="o">=</span> <span class="n">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
 <span class="n">gpu_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -748,15 +726,7 @@ rank 0 num_ranks 1
 <p>Execution of parameterized circuits with different parameters can be
 executed asynchronously via the <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> platform.</p>
 <img alt="../../_images/circsplit.png" src="../../_images/circsplit.png" />
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
@@ -785,15 +755,7 @@ executed asynchronously via the <code class="docutils literal notranslate"><span
 </pre></div>
 </div>
 <p>Let’s time the execution on single GPU.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">timeit</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">timeit</span>
 
 <span class="n">timeit</span><span class="o">.</span><span class="n">timeit</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">parameters</span><span class="p">),</span>
               <span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Single GPU result.</span>
@@ -803,15 +765,7 @@ executed asynchronously via the <code class="docutils literal notranslate"><span
 </pre></div>
 </div>
 <p>Now let’s try to time multi GPU run.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;We have&#39;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;We have&#39;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
       <span class="s1">&#39;parameters which we would like to execute&#39;</span><span class="p">)</span>
 
 <span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
@@ -826,17 +780,7 @@ executed asynchronously via the <code class="docutils literal notranslate"><span
 <span class="n">We</span> <span class="n">split</span> <span class="n">this</span> <span class="n">into</span> <span class="mi">4</span> <span class="n">batches</span> <span class="n">of</span> <span class="mi">2500</span> <span class="p">,</span> <span class="mi">2500</span> <span class="p">,</span> <span class="mi">2500</span> <span class="p">,</span> <span class="mi">2500</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
-
-<span class="c1"># Timing the execution on a single GPU vs 4 GPUs,</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Timing the execution on a single GPU vs 4 GPUs,</span>
 <span class="c1"># one will see a 4x performance improvement if 4 GPUs are available.</span>
 
 <span class="n">asyncresults</span> <span class="o">=</span> <span class="p">[]</span>
