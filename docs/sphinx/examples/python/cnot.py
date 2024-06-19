@@ -10,7 +10,7 @@ import cudaq
 
 @cudaq.kernel
 def kernel():
-    # 2 qubits both initialised to the ground/ zero state.
+    # 2 qubits both initialized to the ground/ zero state.
     qvector = cudaq.qvector(2)
 
     x(qvector[0])

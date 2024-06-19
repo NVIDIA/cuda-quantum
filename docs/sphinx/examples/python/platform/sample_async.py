@@ -27,7 +27,7 @@ def kernel_1(qubit_count: int):
     for i in range(1, qubit_count):
         x.ctrl(qvector[0], qvector[i])
 
-    # If we dont specify measurements, all qubits are measured in
+    # If we don't specify measurements, all qubits are measured in
     # the Z-basis by default.
     mz(qvector)
 
@@ -44,7 +44,7 @@ def kernel_2(qubit_count: int):
     for i in range(1, qubit_count):
         x.ctrl(qvector[0], qvector[i])
 
-    # If we dont specify measurements, all qubits are measured in
+    # If we don't specify measurements, all qubits are measured in
     # the Z-basis by default.
     mz(qvector)
 

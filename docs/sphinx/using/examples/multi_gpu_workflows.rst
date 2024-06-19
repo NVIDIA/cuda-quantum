@@ -88,7 +88,7 @@ via GPU simulation today.
 Asynchronous Data Collection via Batching Hamiltonian Terms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Expectation value computations of multi-term hamiltonians can be
+Expectation value computations of multi-term Hamiltonians can be
 asynchronously processed via the ``mqpu`` platform.
 
 .. image:: ../../examples/python/tutorials/images/hsplit.png

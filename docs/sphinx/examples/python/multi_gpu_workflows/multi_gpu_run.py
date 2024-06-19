@@ -27,7 +27,7 @@ kernel.h(qubits[0])
 for i in range(1, qubit_count):
     kernel.cx(qubits[0], qubits[i])
 
-# We create a random hamiltonian
+# We create a random Hamiltonian
 hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count)
 
 # The observe calls allows us to calculate the expectation value of the Hamiltonian with respect to a specified kernel.
