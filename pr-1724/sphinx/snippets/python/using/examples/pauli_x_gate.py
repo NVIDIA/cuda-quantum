@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+#[Begin Docs]
 import cudaq
 
 
@@ -22,6 +23,6 @@ def kernel():
 
 
 # Sample the qubit for 1000 shots to gather statistics.
-result = cudaq.sample(kernel, shots_count=1000)
-
-print(result)
+result = cudaq.sample(kernel)
+print(result.most_probable())
+#[End Docs]

@@ -11,8 +11,11 @@ import cudaq
 from cudaq import spin
 import numpy as np
 
-np.random.seed(1)
+if cudaq.num_available_gpus() == 0:
+    print("This example requires a GPU to run. No GPU detected.")
+    exit(0)
 
+np.random.seed(1)
 cudaq.set_target("nvidia-mqpu")
 
 qubit_count = 5

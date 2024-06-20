@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quantum Operations &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Quantum Computing 101 &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -122,31 +122,23 @@
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="examples.html">   Examples</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="introduction.html">   Introduction</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Operations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#qubit">Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pauli-x-gate">Pauli X Gate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#superpositions-measurements">Superpositions &amp; Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#qubit-visualizations">Qubit Visualizations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#gate-linearity">Gate Linearity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#gate-unitarity">Gate Unitarity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#single-qubit-gates">Single Qubit Gates</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Computing 101</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quantum-states">Quantum States</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#measurements">Measurements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#state-visualization">State Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#multiple-qubits">Multiple Qubits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#some-notation-conventions">Some Notation Conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#controlled-not-gate">Controlled-NOT Gate</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="expectation_values.html">   Computing Expectation Values</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multi_control.html">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#available-targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#qpp-based-cpu-backend">QPP-based CPU Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#acceleration-via-nvidia-gpus">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#multiple-nvidia-gpus">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#multiple-qpus">Multiple QPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#asynchronous-data-collection-via-batching-hamiltonian-terms">Asynchronous Data Collection via Batching Hamiltonian Terms</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#asynchronous-data-collection-via-circuit-batching">Asynchronous Data Collection via Circuit Batching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
@@ -158,7 +150,6 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -167,54 +158,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample">Sample</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample-Async">Sample Async</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe">Observe</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe-Async">Observe Async</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-linearity">Gate linearity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
 </ul>
@@ -272,7 +229,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../backends/platform.html">   Multi-Processor Platforms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
 </ul>
 </li>
@@ -536,7 +492,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="examples.html">CUDA-Q by Example</a></li>
-      <li class="breadcrumb-item active">Quantum Operations</li>
+      <li class="breadcrumb-item active">Quantum Computing 101</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/using/examples/quantum_operations.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -549,32 +505,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="quantum-operations">
-<h1>Quantum Operations<a class="headerlink" href="#quantum-operations" title="Permalink to this heading">¶</a></h1>
-<section id="qubit">
-<h2>Qubit<a class="headerlink" href="#qubit" title="Permalink to this heading">¶</a></h2>
+  <section id="quantum-computing-101">
+<h1>Quantum Computing 101<a class="headerlink" href="#quantum-computing-101" title="Permalink to this heading">¶</a></h1>
 <p>The fundamental unit of classical information storage, processing and
 transmission is the bit. Analogously, we define its quantum counterpart,
-a quantum bit or simply the qubit. Below we define a qubit in CUDA-Q.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
-
-<span class="c1"># Build a cudaq kernel.</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
-    <span class="c1"># Allocate a single qubit to the kernel.</span>
-    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
-</pre></div>
-</div>
+a quantum bit or simply the qubit.</p>
 <p>Classical bits are transistor elements whose states can be altered to
 perform computations. Similarly qubits too have physical realizations
 within superconducting materials, ion-traps and photonic systems. We
@@ -582,6 +517,9 @@ shall not concern ourselves with specific qubit architectures but rather
 think of them as systems which obey the laws of quantum mechanics and
 the mathematical language physicists have developed to describe the
 theory: linear algebra.</p>
+</section>
+<section id="quantum-states">
+<h1>Quantum States<a class="headerlink" href="#quantum-states" title="Permalink to this heading">¶</a></h1>
 <p>Information storage scales linearly if bits have a single state. Access
 to multiple states, namely a 0 and a 1 allows for information encoding
 to scale logarithmically. Similarly we define a qubit to have the states
@@ -590,24 +528,42 @@ to scale logarithmically. Similarly we define a qubit to have the states
 \[\begin{split}\ket{0} = \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix}\end{split}\]</div>
 <div class="math notranslate nohighlight">
 \[\begin{split}\ket{1} = \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix}\end{split}\]</div>
+<p>Rather than just the two states each classical bit can be in,
+quantum theory allows one to explore linear combinations of states,
+also called superpositions:</p>
+<div class="math notranslate nohighlight">
+\[\ket{\psi} = \alpha\ket{0} + \beta\ket{1}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\alpha\)</span> and <span class="math notranslate nohighlight">\(\beta\)</span> <span class="math notranslate nohighlight">\(\in \mathbb{C}\)</span>. It is
+important to note that this is still the state of one qubit;
+although we have two kets, they both represent a
+superposition state of one qubit.</p>
+<p>If we have two classical bits, the possible states we could encode
+information in would be 00, 01, 10 and 11. Correspondingly, multiple
+qubits can be combined and the possible combinations of their states
+used to process information.</p>
+<p>A two qubit system has four computational basis states:
+<span class="math notranslate nohighlight">\(\ket{00}, \ket{01}, \ket{10}, \ket{11}\)</span>.</p>
+<p>More generally, the quantum state of a <span class="math notranslate nohighlight">\(n\)</span> qubit system is written
+as a sum of <span class="math notranslate nohighlight">\(2^n\)</span> possible basis states where the coefficients
+track the probability of the system collapsing into that state if a
+measurement is applied.</p>
+<p>For <span class="math notranslate nohighlight">\(n = 500\)</span>, <span class="math notranslate nohighlight">\(2^n \approx 10^{150}\)</span> which is greater than
+the number of atoms in the universe. Storing the complex numbers
+associated with <span class="math notranslate nohighlight">\(2^{500}\)</span> amplitudes would not be feasible using
+bits and classical computations but nature seems to only require 500
+qubits to do so. The art of quantum computation is thus to build quantum
+systems that we can manipulate with fine precision such that evolving a
+large statevector can be offloaded onto a quantum computer.</p>
 </section>
-<section id="pauli-x-gate">
-<h2>Pauli X Gate<a class="headerlink" href="#pauli-x-gate" title="Permalink to this heading">¶</a></h2>
-<p>We can manipulate the state of the qubit via quantum gates. The Pauli X
-gate allows us to flip the state of the qubit:</p>
+<section id="quantum-gates">
+<h1>Quantum Gates<a class="headerlink" href="#quantum-gates" title="Permalink to this heading">¶</a></h1>
+<p>We can manipulate the state of a qubit via quantum gates.
+For example, the Pauli X gate allows us to flip the state of the qubit:</p>
 <div class="math notranslate nohighlight">
 \[X \ket{0} = \ket{1}\]</div>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{bmatrix} 0 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix}\end{split}\]</div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -623,35 +579,13 @@ gate allows us to flip the state of the qubit:</p>
 
 
 <span class="c1"># Sample the qubit for 1000 shots to gather statistics.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">())</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">1</span><span class="p">:</span><span class="mi">1000</span> <span class="p">}</span>
 </pre></div>
 </div>
-</section>
-<section id="superpositions-measurements">
-<h2>Superpositions &amp; Measurements<a class="headerlink" href="#superpositions-measurements" title="Permalink to this heading">¶</a></h2>
-<p>We have explored the 2 states accessible to us via a qubit. In fact,
-quantum theory allows one to explore linear combinations of states
-namely superpositions:</p>
-<div class="math notranslate nohighlight">
-\[\ket{\psi} = \alpha\ket{0} + \beta\ket{1}\]</div>
-<p>where <span class="math notranslate nohighlight">\(\alpha\)</span> and <span class="math notranslate nohighlight">\(\beta\)</span> <span class="math notranslate nohighlight">\(\in \mathbb{C}\)</span>. It is
-important to note that this is still the state of one qubit even though
-<span class="math notranslate nohighlight">\(\ket{\psi}\)</span> has 2 kets.</p>
-<p>Quantum theory is probabilistic and hence requires statistical inference
-to derive observations. Prior to measurement, the state of a qubit is
-all possible combinations of <span class="math notranslate nohighlight">\(\alpha\)</span> and <span class="math notranslate nohighlight">\(\beta\)</span> and upon
-measurement, wavefunction collapse yields either a classical 0 or 1.</p>
-<p>The mathematical theory devised to explain quantum phenomena tells us
-that the probability of observing the qubit in the state
-<span class="math notranslate nohighlight">\(\ket{0}\)</span> / <span class="math notranslate nohighlight">\(\ket{1}\)</span> yielding a classical 0 / 1 is
-<span class="math notranslate nohighlight">\(\lvert \alpha \rvert ^2\)</span> / <span class="math notranslate nohighlight">\(\lvert \beta \rvert ^2\)</span>. The
-theory has been verified experimentally countless times and we shall
-verify it once more below.</p>
 <p>The Hadamard gate allows us to put the qubit in an equal superposition
 state:</p>
 <div class="math notranslate nohighlight">
@@ -661,15 +595,7 @@ state:</p>
 <p>The probability of finding the qubit in the 0 / 1 state is hence
 <span class="math notranslate nohighlight">\(\lvert \tfrac{1}{\sqrt{2}} \rvert ^2 = \tfrac{1}{2}\)</span>. Lets verify
 this with some code:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -684,177 +610,36 @@ this with some code:</p>
     <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measured |0&gt; with probability &quot;</span> <span class="o">+</span>
+      <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measured |1&gt; with probability &quot;</span> <span class="o">+</span>
+      <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;1&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">0</span><span class="p">:</span><span class="mi">502</span> <span class="mi">1</span><span class="p">:</span><span class="mi">498</span> <span class="p">}</span>
 </pre></div>
 </div>
-<p>Quantum theory is statistical and statistical accuracy increases with
-sampling. Above we see how with a 1000 shots, the result 0 / 1 is
-yielded roughly 50% of the times as predicted by the postulate stated
-above thus proving the theory.</p>
-<p>For completeness:</p>
-<div class="math notranslate nohighlight">
-\[H \ket{1} =  \tfrac{1}{\sqrt{2}} \ket{0} - \tfrac{1}{\sqrt{2}} \ket{1}  \equiv \ket{-}\]</div>
-</section>
-<section id="qubit-visualizations">
-<h2>Qubit Visualizations<a class="headerlink" href="#qubit-visualizations" title="Permalink to this heading">¶</a></h2>
-<p>What are the possible states our qubit can be in and how can we build up
-a visual cue to help us make sense of quantum states and their
-evolution?</p>
-<p>We know our qubit can have 2 distinct states: <span class="math notranslate nohighlight">\(\ket{0}\)</span> and
-<span class="math notranslate nohighlight">\(\ket{1}\)</span>. Maybe we need a 1 dimensional line whose vertices can
-represent each of the aforementioned states.</p>
-<p>We also know that qubits can be in an equal superposition states:
-<span class="math notranslate nohighlight">\(\ket{+}\)</span> and <span class="math notranslate nohighlight">\(\ket{-}\)</span>. This now forces us to extend our
-1-D line to a 2-D Cartesian coordinate system.</p>
-<p>Later, we will learn the existence of states that can be represented
-with <span class="math notranslate nohighlight">\(\ket{+i}\)</span> and <span class="math notranslate nohighlight">\(\ket{-i}\)</span>, this calls for a 3-D
-extension.</p>
-<p>It turns out that a sphere is able to depict all the possible states of
-a single qubit. This is called a Bloch sphere and as shown in figure below:</p>
-</section>
-<section id="gate-linearity">
-<h2>Gate Linearity<a class="headerlink" href="#gate-linearity" title="Permalink to this heading">¶</a></h2>
-<p>Lets manipulate a single qubit:</p>
-<ol class="arabic">
-<li><div class="math notranslate nohighlight">
-\[X  \ket{0} = \ket{1}\]</div>
-</li>
-<li><div class="math notranslate nohighlight">
-\[X  \ket{1} = \ket{0}\]</div>
-</li>
-</ol>
-<p>And more generally, for a qubit in a superposition state, quantum gates
+<p>For a qubit in a superposition state, quantum gates
 act linearly:</p>
 <div class="math notranslate nohighlight">
 \[X (\alpha\ket{0} + \beta\ket{1}) = \alpha\ket{1} + \beta\ket{0}\]</div>
-<p>It is important to note that states such as
-<span class="math notranslate nohighlight">\(\alpha\ket{0} + \beta\ket{1}\)</span> reference a single qubit in a
-superposition state. Although we have two kets, they both represent a
-superposition state of one qubit. We shall explore multiple qubits and
-their notation in the next chapter.</p>
-</section>
-<section id="gate-unitarity">
-<h2>Gate Unitarity<a class="headerlink" href="#gate-unitarity" title="Permalink to this heading">¶</a></h2>
 <p>As we evolve quantum states via quantum gates, the normalization
 condition requires that the sum of modulus squared of amplitudes must
 equal 1 at all times:</p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi} = \alpha\ket{0} + \beta\ket{1},          |\alpha|^2 + |\beta|^2 = 1.\]</div>
 <p>This is to adhere to the conservation of probabilities which translates
-to a constraint on types of quantum gates we can define.</p>
-<p>For a general quantum state <span class="math notranslate nohighlight">\(\ket{\psi}\)</span>, upholding the
+to a constraint on types of quantum gates we can define.
+For a general quantum state <span class="math notranslate nohighlight">\(\ket{\psi}\)</span>, upholding the
 normalization condition requires quantum gates to be unitary, that is
 <span class="math notranslate nohighlight">\(U^{\dagger}U = U^{*^{T}}U = \mathbb{I}\)</span>.</p>
-</section>
-<section id="single-qubit-gates">
-<h2>Single Qubit Gates<a class="headerlink" href="#single-qubit-gates" title="Permalink to this heading">¶</a></h2>
-<p>Below we summarize a few single qubit gates and their effects on quantum
-states:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}X \equiv \begin{bmatrix} 0 &amp; 1 \\ 1 &amp; 0 \end{bmatrix}, \hspace{1cm} X(\alpha\ket{0} + \beta\ket{1}) = \alpha\ket{1} + \beta\ket{0} \hspace{1cm}\end{split}\]</div>
-<div class="math notranslate nohighlight">
-\[\begin{split}Z \equiv \begin{bmatrix} 1 &amp; 0 \\ 0 &amp; -1 \end{bmatrix}, \hspace{1cm} Z(\alpha\ket{0} + \beta\ket{1}) = \alpha\ket{0} - \beta\ket{1}\end{split}\]</div>
-<div class="math notranslate nohighlight">
-\[\begin{split}H \equiv \tfrac{1}{\sqrt{2}}\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; -1 \end{bmatrix}, \hspace{1cm} H(\alpha\ket{0} + \beta\ket{1}) = \alpha\tfrac{\ket{0}+\ket{1}}{\sqrt{2}} + \beta\tfrac{\ket{0}-\ket{1}}{\sqrt{2}}\end{split}\]</div>
-</section>
-</section>
-<section id="multiple-qubits">
-<h1>Multiple Qubits<a class="headerlink" href="#multiple-qubits" title="Permalink to this heading">¶</a></h1>
-<p>If we have 2 classical bits, the possible states we could encode
-information in would be 00, 01, 10 and 11. Correspondingly, multiple
-qubits can be combined and the possible combinations of their states
-used to process information.</p>
-<p>A two qubit system has 4 computational basis states:
-<span class="math notranslate nohighlight">\(\ket{00}, \ket{01}, \ket{10}, \ket{11}\)</span>.</p>
-<p>Classically, we cannot encode information within states such as 00 + 11
-but quantum mechanics allows us to write linear superpositions</p>
-<div class="math notranslate nohighlight">
-\[\ket{\psi} = \alpha_{00}\ket{00} + \alpha_{01}\ket{01} + \alpha_{10}\ket{10} + \alpha_{11}\ket{11}\]</div>
-<p>where the probability of measuring <span class="math notranslate nohighlight">\(x = 00, 01, 10, 11\)</span> occurs
-with probability <span class="math notranslate nohighlight">\(\lvert \alpha_{x} \rvert ^2\)</span> with the
-normalization condition that
-<span class="math notranslate nohighlight">\(\sum_{x \in \{ 0,1 \}^2} \lvert \alpha_{x} \rvert ^2 = 1\)</span></p>
-<p>More generally, the quantum state of a <span class="math notranslate nohighlight">\(n\)</span> qubit system is written
-as a sum of <span class="math notranslate nohighlight">\(2^n\)</span> possible basis states where the coefficients
-track the probability of the system collapsing into that state if a
-measurement is applied.</p>
-<p>For <span class="math notranslate nohighlight">\(n = 500\)</span>, <span class="math notranslate nohighlight">\(2^n \approx 10^{150}\)</span> which is greater than
-the number of atoms in the universe. Storing the complex numbers
-associated with <span class="math notranslate nohighlight">\(2^{500}\)</span> amplitudes would not be feasible using
-bits and classical computations but nature seems to only require 500
-qubits to do so. The art of quantum computation is thus to build quantum
-systems that we can manipulate with fine precision such that evolving a
-large statevector can be offloaded onto a quantum computer.</p>
-<section id="some-notation-conventions">
-<h2>Some Notation Conventions<a class="headerlink" href="#some-notation-conventions" title="Permalink to this heading">¶</a></h2>
-<p>Qubit counting starts from 0 and the 0th qubit is represented on the
-left most side in Dirac notation. For e.g. in <span class="math notranslate nohighlight">\(\ket{01}\)</span> the 0th
-qubit is in state <span class="math notranslate nohighlight">\(\ket{0}\)</span> and the first in state
-<span class="math notranslate nohighlight">\(\ket{1}\)</span>.</p>
-<p>For brevity, we denote gate application with subscripts to reference the
-qubit it acts on. For e.g. <span class="math notranslate nohighlight">\(X_{0}\ket{00} = \ket{10}\)</span> refers to
-<span class="math notranslate nohighlight">\(X_{0}\)</span> acting on the 0th qubit flipping it to the state 1 as
-shown. Below we see how this is done in CUDA-Q.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
-    <span class="c1"># 2 qubits both initialized to the ground/ zero state.</span>
-    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-
-    <span class="c1"># Application of a flip gate to see ordering notation.</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-
-    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-
-
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">))</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>     ╭───╮
-q0 : ┤ x ├
-     ╰───╯
-
-{ 10:1000 }
-</pre></div>
-</div>
-</section>
-<section id="controlled-not-gate">
-<h2>Controlled-NOT Gate<a class="headerlink" href="#controlled-not-gate" title="Permalink to this heading">¶</a></h2>
-<p>Analogous to classical computing, we now introduce multi-qubit gates to
-quantum computing.</p>
-<p>The controlled-NOT or CNOT gate acts on 2 qubits: the control qubit and
+<p>Just like the single-qubit gates above, we can define
+multi-qubit gates to act on multiple-qubits.
+The controlled-NOT or CNOT gate, for example, acts on 2 qubits: the control qubit and
 the target qubit. Its effect is to flip the target if the control is in
 the excited <span class="math notranslate nohighlight">\(\ket{1}\)</span> state.</p>
-<p>We use the notation CNOT01<span class="math notranslate nohighlight">\(\ket{10} = \ket{11}\)</span> to describe its
-effects. The subscripts denote that the 0th qubit is the control qubit
-and the 1st qubit is the target qubit.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2022 - 2024 NVIDIA Corporation &amp; Affiliates.                   #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -878,22 +663,62 @@ and the 1st qubit is the target qubit.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">11</span><span class="p">:</span><span class="mi">1000</span> <span class="p">}</span>
 </pre></div>
 </div>
-<p>In summary, the CNOT gate in matrix notation is represented as:</p>
+<p>The CNOT gate in matrix notation is represented as</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}CNOT \equiv \begin{bmatrix} 1 &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 0 &amp; 1 \\ 0 &amp; 0 &amp; 1 &amp; 0 \end{bmatrix}\end{split}\]</div>
-<p>To conserve probability and preserve the normalization condition,
-quantum gates must obey unitarity and one can check that
-<span class="math notranslate nohighlight">\(CNOT^\dagger CNOT = \mathbb{I}\)</span></p>
-<p>and its effect on the computational basis states is:</p>
+<p>and one can check that <span class="math notranslate nohighlight">\(CNOT^\dagger CNOT = \mathbb{I}\)</span>.
+Its effect on the computational basis states is:</p>
 <div class="math notranslate nohighlight">
-\[CNOT_{01}\ket{00} = \ket{00}\]</div>
+\[CNOT\ket{00} = \ket{00}\]</div>
 <div class="math notranslate nohighlight">
-\[CNOT_{01}\ket{01} = \ket{01}\]</div>
+\[CNOT\ket{01} = \ket{01}\]</div>
 <div class="math notranslate nohighlight">
-\[CNOT_{01}\ket{10} = \ket{11}\]</div>
+\[CNOT\ket{10} = \ket{11}\]</div>
 <div class="math notranslate nohighlight">
-\[CNOT_{01}\ket{11} = \ket{10}\]</div>
+\[CNOT\ket{11} = \ket{10}\]</div>
+<p>For a full list of gates supported in CUDA-Q see <a class="reference internal" href="../../api/default_ops.html"><span class="doc">Quantum Operations</span></a>.</p>
 </section>
+<section id="measurements">
+<h1>Measurements<a class="headerlink" href="#measurements" title="Permalink to this heading">¶</a></h1>
+<p>Quantum theory is probabilistic and hence requires statistical inference
+to derive observations. Prior to measurement, the state of a qubit is
+all possible combinations of <span class="math notranslate nohighlight">\(\alpha\)</span> and <span class="math notranslate nohighlight">\(\beta\)</span> and upon
+measurement, wavefunction collapse yields either a classical 0 or 1.</p>
+<p>The mathematical theory devised to explain quantum phenomena tells us
+that the probability of observing the qubit in the state
+<span class="math notranslate nohighlight">\(\ket{0}\)</span> / <span class="math notranslate nohighlight">\(\ket{1}\)</span> yielding a classical 0 / 1 is
+<span class="math notranslate nohighlight">\(\lvert \alpha \rvert ^2\)</span> / <span class="math notranslate nohighlight">\(\lvert \beta \rvert ^2\)</span>.</p>
+<p>As we see in the example of the Hadamard gate above,
+the result 0 or 1 each is yielded roughly 50% of the times as predicted
+by the postulate stated above thus proving the theory.</p>
+<p>Classically, we cannot encode information within states such as 00 + 11
+but quantum mechanics allows us to write linear superpositions</p>
+<div class="math notranslate nohighlight">
+\[\ket{\psi} = \alpha_{00}\ket{00} + \alpha_{01}\ket{01} + \alpha_{10}\ket{10} + \alpha_{11}\ket{11}\]</div>
+<p>where the probability of measuring <span class="math notranslate nohighlight">\(x = 00, 01, 10, 11\)</span> occurs
+with probability <span class="math notranslate nohighlight">\(\lvert \alpha_{x} \rvert ^2\)</span> with the
+normalization condition that
+<span class="math notranslate nohighlight">\(\sum_{x \in \{ 0,1 \}^2} \lvert \alpha_{x} \rvert ^2 = 1\)</span>.</p>
+</section>
+<section id="state-visualization">
+<h1>State Visualization<a class="headerlink" href="#state-visualization" title="Permalink to this heading">¶</a></h1>
+<p>What are the possible states a qubit can be in and how can we build up
+a visual cue to help us make sense of quantum states and their
+evolution?</p>
+<p>We know our qubit can have two distinct states: <span class="math notranslate nohighlight">\(\ket{0}\)</span> and
+<span class="math notranslate nohighlight">\(\ket{1}\)</span>. Maybe we need a one-dimensional line whose vertices can
+represent each of the aforementioned states.
+We also know that qubits can be in an equal superposition states:
+<span class="math notranslate nohighlight">\(\ket{+}\)</span> and <span class="math notranslate nohighlight">\(\ket{-}\)</span>. This now forces us to extend our
+1D line to a 2D Cartesian coordinate system.
+If you dive deeper you will learn about the existence of states like
+<span class="math notranslate nohighlight">\(\ket{+i}\)</span> and <span class="math notranslate nohighlight">\(\ket{-i}\)</span>, this calls for a 3D
+extension.</p>
+<p>It turns out that a sphere is able to depict all the possible states of
+a single qubit. This is called a Bloch sphere.</p>
+<p>Unfortunately, there is no such handy visualization for multi-qubit states.
+In particular, a multi-qubit state cannot be visualized as multiple Bloch
+spheres due to the nature of entanglement that makes quantum computing so powerful.</p>
 </section>
 
 
