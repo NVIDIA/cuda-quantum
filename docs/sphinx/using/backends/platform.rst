@@ -104,39 +104,6 @@ In the above code snippets, since the Hamiltonian contains four non-identity ter
 in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
 is selected, these circuits will be distributed across all available QPUs. The final expectation value result is computed from all QPU execution results.
 
-Sample Asynchronous
-~~~~~~~~~~~~~~~~~~~
-
-Asynchronous programming is a technique that enables your program to
-start a potentially long-running task and still be able to be responsive
-to other events while that task runs, rather than having to wait until
-that task has finished. Once that task has finished, your program is
-presented with the result.
-
-Executing ``sample`` can be a time intensive task. We can parallelize the
-execution of ``sample`` via the arguments it accepts.
-
-.. literalinclude:: ../../examples/python/platform/sample_async.py
-    :language: python
-
-.. parsed-literal::
-
-    { 00:493 11:507 }
-    
-    { 00:509 11:491 }
-    
-
-
-Similar to the above, one can also parallelize over the ``shots_count``
-or the variational parameters of a quantum circuit.
-
-Observe Asynchronous
-~~~~~~~~~~~~~~~~~~~~
-
-Similar to ``sample_async`` above, also supports asynchronous execution for the 
-:func:`arguments it accepts<cudaq.observe_async>`.
-One can parallelize over various kernels, spin operators, variational
-parameters or even noise models.
 
 Parallel distribution mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
