@@ -208,6 +208,29 @@ class PyKernelDecorator(object):
         self.compile()
         return str(self.module)
 
+    def _repr_svg_(self):
+        """
+        Return the SVG representation of `self` (:class:`PyKernelDecorator`).
+        This assumes no arguments are required to execute the kernel,
+        and `latex` (with `quantikz` package) and `dvisvgm` are installed,
+        and the temporary directory is writable.
+        If any of these assumptions fail, returns None.
+        """
+        self.compile()  # compile if not yet compiled
+        if self.argTypes is None or len(self.argTypes) != 0:
+            return None
+        from cudaq import getSVGstring
+
+        try:
+            from subprocess import CalledProcessError
+
+            try:
+                return getSVGstring(self)
+            except CalledProcessError:
+                return None
+        except ImportError:
+            return None
+
     def isCastable(self, fromTy, toTy):
         if F64Type.isinstance(toTy):
             return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)

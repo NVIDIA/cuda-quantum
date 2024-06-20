@@ -229,7 +229,7 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               // and return.
               if (!opt.requiresGradients() && isTupleReturn)
                 return ret.cast<py::tuple>()[0].cast<double>();
-              // If we dont need gradients and it doesn't return tuple, then
+              // If we don't need gradients and it doesn't return tuple, then
               // just pass what we got.
               if (!opt.requiresGradients() && !isTupleReturn)
                 return ret.cast<double>();
