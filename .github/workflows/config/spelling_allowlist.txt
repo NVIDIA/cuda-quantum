@@ -4,6 +4,7 @@ AST
 Aer
 AlmaLinux
 BFGS
+Bloch
 CLA
 CLI
 CMake
@@ -43,6 +44,7 @@ Kagome
 Kraus
 LLVM
 LSB
+Libraries
 MCA
 MLIR
 MPI
@@ -76,6 +78,7 @@ QPU
 QPUs
 QTX
 Qiskit
+QuTiP
 Quake
 Quantinuum
 RHEL
@@ -187,6 +190,7 @@ inlined
 inlining
 instantiation
 instantiations
+interoperational
 intrinsics
 iterable
 iteratively
