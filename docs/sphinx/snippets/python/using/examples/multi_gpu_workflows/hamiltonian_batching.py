@@ -10,14 +10,12 @@
 import cudaq
 from cudaq import spin
 
-cudaq.set_target("remote-mqpu")
+if cudaq.num_available_gpus() == 0:
+    print("This example requires a GPU to run. No GPU detected.")
+    exit(0)
 
+cudaq.set_target("nvidia-mqpu")
 cudaq.mpi.initialize()
-num_ranks = cudaq.mpi.num_ranks()
-rank = cudaq.mpi.rank()
-
-print('mpi is initialized? ', cudaq.mpi.is_initialized())
-print('rank', rank, 'num_ranks', num_ranks)
 
 qubit_count = 15
 term_count = 100000

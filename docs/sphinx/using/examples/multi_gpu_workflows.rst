@@ -9,7 +9,7 @@ involving multiple architectures working in tandem.
     :language: python
 
 Available Targets
-~~~~~~~~~~~~~~~~~
+-------------------
 
 -  **`qpp-cpu`**: The QPP based CPU backend which is multithreaded to
    maximize the usage of available cores on your system.
@@ -33,8 +33,7 @@ Below we explore how to effectively utilize multiple CUDA-Q targets with the sam
     :start-after: [Begin state]
     :end-before: [End state]
 
-QPP-based CPU Backend
-~~~~~~~~~~~~~~~~~~~~~
+You can execute the code by running a statevector simulator on your CPU:
 
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
     :language: python
@@ -45,12 +44,8 @@ QPP-based CPU Backend
 
     { 00:475 11:525 }
 
-
-Acceleration via NVIDIA GPUs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Users will notice a speedup of up to **2500x** in executing the circuit below on
-NVIDIA GPUs vs CPUs.
+You will notice a speedup of up to **2500x** in executing the circuit below on
+NVIDIA GPUs vs CPUs:
 
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
     :language: python
@@ -61,21 +56,20 @@ NVIDIA GPUs vs CPUs.
 
     { 0000000000000000000000000:510 1111111111111111111111111:490 }
 
-
-Multiple NVIDIA GPUs
-~~~~~~~~~~~~~~~~~~~~
-
-A :math:`n` qubit quantum state has :math:`2^n` complex amplitudes, each
+If one incrementally increases the qubit count, we
+reach a limit where the memory required is beyond the capabilities of a
+single GPU: A :math:`n` qubit quantum state has :math:`2^n` complex amplitudes, each
 of which require 8 bytes of memory to store. Hence the total memory
 required to store a :math:`n` qubit quantum state is :math:`8` bytes
 :math:`\times 2^n`. For :math:`n = 30` qubits, this is roughly :math:`8`
 GB but for :math:`n = 40`, this exponentially increases to 8700 GB.
 
-If one incrementally increases the qubit count in their circuit, we
-reach a limit where the memory required is beyond the capabilities of a
-single GPU. The ``nvidia-mgpu`` target allows for memory from additional
-GPUs to be pooled enabling qubit counts to be scaled.
 
+Parallelization across Multiple Processors
+---------------------------------------------
+
+The ``nvidia-mgpu`` target allows for memory from additional
+GPUs to be pooled enabling qubit counts to be scaled.
 Execution on the ``nvidia-mgpu`` backend is enabled via ``mpirun``. Users
 need to create a ``.py`` file with their code and run the command below
 in terminal:
@@ -85,14 +79,15 @@ in terminal:
 where 4 is the number of GPUs one has access to and ``test`` is the file
 name chosen.
 
-Multiple QPUs
-~~~~~~~~~~~~~~
+The ``nvidia-mqpu`` target uses a statevector simulator to simulate execution 
+on each virtual QPU.
+The ``remote-mqpu`` platform allows to freely configure what backend is used 
+for each platform QPU. 
+For more information about the different platform targets, please take a look at
+:doc:`../backends/platform`.
 
-The ``remote-mqpu`` backend allows for future multi-QPUs workflows made possible
-via GPU simulation today.
-
-Asynchronous Data Collection via Batching Hamiltonian Terms
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Batching Hamiltonian Terms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Expectation value computations of multi-term Hamiltonians can be
 asynchronously processed via the ``mqpu`` platform.
@@ -104,7 +99,7 @@ For workflows involving multiple GPUs, save the code below in a
 ``mpirun -np n python3 filename.py`` where ``n`` is an integer
 specifying the number of GPUs you have access to.
 
-.. literalinclude:: ../../examples/python/multi_gpu_workflows/multi_gpu_run.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/hamiltonian_batching.py
     :language: python
     :start-after: [Begin Docs]
     :end-before: [End Docs]
@@ -115,22 +110,22 @@ specifying the number of GPUs you have access to.
     rank 0 num_ranks 1
 
 
-Asynchronous Data Collection via Circuit Batching
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Circuit Batching
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Execution of parameterized circuits with different parameters can be
 executed asynchronously via the ``mqpu`` platform.
 
 .. image:: ../../examples/python/tutorials/images/circsplit.png
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/async_circuit_batching.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/circuit_batching.py
     :language: python
     :start-after: [Begin prepare]
     :end-before: [End prepare]
 
 Let's time the execution on single GPU.
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/async_circuit_batching.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/circuit_batching.py
     :language: python
     :start-after: [Begin single]
     :end-before: [End single]
@@ -141,7 +136,7 @@ Let's time the execution on single GPU.
 
 Now let's try to time multi GPU run.
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/async_circuit_batching.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/circuit_batching.py
     :language: python
     :start-after: [Begin split]
     :end-before: [End split]
@@ -152,7 +147,7 @@ Now let's try to time multi GPU run.
     We split this into 4 batches of 2500 , 2500 , 2500 , 2500
 
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/async_circuit_batching.py
+.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/circuit_batching.py
     :language: python
     :start-after: [Begin multiple]
     :end-before: [End multiple]

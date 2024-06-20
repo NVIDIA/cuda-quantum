@@ -71,39 +71,6 @@ The results might look like the following 4 different random samplings:
   To specify the number QPUs to be instantiated, one can set the :code:`CUDAQ_MQPU_NGPUS` environment variable.
   For example, use :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
 
-Asynchronous expectation value computations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-One typical use case of the :code:`nvidia-mqpu` platform is to distribute the
-expectation value computations of a multi-term Hamiltonian across multiple virtual QPUs (:code:`GPUEmulatedQPU`).
-
-Here is an example.
-
-.. tab:: Python
-
-    .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu.py
-        :language: python
-        :start-after: [Begin Documentation]
-
-.. tab:: C++
-
-    .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu.cpp
-        :language: cpp
-        :start-after: [Begin Documentation]
-        :end-before: [End Documentation]
-
-
-    One can then target the :code:`nvidia-mqpu` platform by executing the following commands:
-
-    .. code-block:: console
-
-        nvq++ observe_mqpu.cpp -target nvidia-mqpu
-        ./a.out
-
-In the above code snippets, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
-in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
-is selected, these circuits will be distributed across all available QPUs. The final expectation value result is computed from all QPU execution results.
-
 
 Parallel distribution mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
