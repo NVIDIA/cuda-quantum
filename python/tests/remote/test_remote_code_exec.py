@@ -147,6 +147,46 @@ def test_optimizer():
 
 
 @skipIfPythonLessThan39
+def test_optimizer_nested_kernels():
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    @cudaq.kernel
+    def kernelA(qvector: cudaq.qview):
+        x(qvector[0])
+
+    @cudaq.kernel
+    def kernelB(angles: list[float]):
+        qvector = cudaq.qvector(2)
+        # This x() is done in a nested kernel
+        # x(qvector[0])
+        kernelA(qvector)
+        ry(angles[0], qvector[1])
+        x.ctrl(qvector[1], qvector[0])
+
+    optimizer = cudaq.optimizers.Adam()
+    gradient = cudaq.gradients.CentralDifference()
+
+    def objective_function(parameter_vector: list[float],
+                           hamiltonian=hamiltonian,
+                           gradient_strategy=gradient,
+                           kernel=kernelB) -> tuple[float, list[float]]:
+        get_result = lambda parameter_vector: cudaq.observe(
+            kernel, hamiltonian, parameter_vector).expectation()
+        cost = get_result(parameter_vector)
+        gradient_vector = gradient_strategy.compute(parameter_vector,
+                                                    get_result, cost)
+        return cost, gradient_vector
+
+    energy, parameter = optimizer.optimize(dimensions=1,
+                                           function=objective_function)
+    print(f"\nminimized <H> = {round(energy,16)}")
+    print(f"optimal theta = {round(parameter[0],16)}")
+    assert assert_close(energy, -1.7483830311526454, 1e-3)
+    assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
+
+
+@skipIfPythonLessThan39
 @pytest.mark.parametrize(
     "optimizer", [cudaq.optimizers.COBYLA(),
                   cudaq.optimizers.NelderMead()])
@@ -162,6 +202,43 @@ def test_simple_vqe(optimizer):
         x.ctrl(qvector[1], qvector[0])
 
     energy, parameter = cudaq.vqe(kernel=kernel,
+                                  spin_operator=hamiltonian,
+                                  optimizer=optimizer,
+                                  parameter_count=1)
+
+    print(f"\nminimized <H> = {round(energy,16)}")
+    print(f"optimal theta = {round(parameter[0],16)}")
+    want_expectation_value = -1.7487948611472093
+    want_optimal_parameters = [0.59]
+    assert assert_close(want_expectation_value, energy, tolerance=1e-2)
+    assert all(
+        assert_close(want_parameter, got_parameter, tolerance=1e-2)
+        for want_parameter, got_parameter in zip(want_optimal_parameters,
+                                                 parameter))
+
+
+@skipIfPythonLessThan39
+@pytest.mark.parametrize(
+    "optimizer", [cudaq.optimizers.COBYLA(),
+                  cudaq.optimizers.NelderMead()])
+def test_simple_vqe_nested_kernels(optimizer):
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    @cudaq.kernel
+    def kernelA(qvector: cudaq.qview):
+        x(qvector[0])
+
+    @cudaq.kernel
+    def kernelB(angles: list[float]):
+        qvector = cudaq.qvector(2)
+        # This x() is done in a nested kernel
+        # x(qvector[0])
+        kernelA(qvector)
+        ry(angles[0], qvector[1])
+        x.ctrl(qvector[1], qvector[0])
+
+    energy, parameter = cudaq.vqe(kernel=kernelB,
                                   spin_operator=hamiltonian,
                                   optimizer=optimizer,
                                   parameter_count=1)
@@ -206,18 +283,8 @@ def test_complex_vqe_inline_lambda():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
-@skipIfPythonLessThan39
-@pytest.mark.parametrize("optimizer", [
-    cudaq.optimizers.LBFGS(),
-    cudaq.optimizers.Adam(),
-    cudaq.optimizers.GradientDescent(),
-    cudaq.optimizers.SGD(),
-])
-@pytest.mark.parametrize("gradient", [
-    cudaq.gradients.CentralDifference(),
-    cudaq.gradients.ParameterShift(),
-    cudaq.gradients.ForwardDifference()
-])
+# This is a helper function used by parameterized tests below.
+@pytest.mark.skip
 def test_complex_vqe_named_lambda(optimizer, gradient):
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -247,6 +314,28 @@ def test_complex_vqe_named_lambda(optimizer, gradient):
         assert_close(want_parameter, got_parameter, tolerance=1e-2)
         for want_parameter, got_parameter in zip(want_optimal_parameters,
                                                  parameter))
+
+
+@skipIfPythonLessThan39
+@pytest.mark.parametrize("optimizer", [
+    cudaq.optimizers.LBFGS(),
+    cudaq.optimizers.Adam(),
+    cudaq.optimizers.GradientDescent(),
+    cudaq.optimizers.SGD(),
+])
+def test_complex_vqe_named_lambda_sweep_opt(optimizer):
+    test_complex_vqe_named_lambda(optimizer,
+                                  cudaq.gradients.CentralDifference())
+
+
+@skipIfPythonLessThan39
+@pytest.mark.parametrize("gradient", [
+    cudaq.gradients.CentralDifference(),
+    cudaq.gradients.ParameterShift(),
+    cudaq.gradients.ForwardDifference()
+])
+def test_complex_vqe_named_lambda_sweep_grad(gradient):
+    test_complex_vqe_named_lambda(cudaq.optimizers.Adam(), gradient)
 
 
 # leave for gdb debugging

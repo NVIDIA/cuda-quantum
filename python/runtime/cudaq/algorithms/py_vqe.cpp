@@ -108,11 +108,10 @@ pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
   py::object json = py::module_::import("json");
   py::object inspect = py::module_::import("inspect");
 
-  // Form scoped_vars_str
-  py::dict scoped_vars;
-  // We only need to capture user variables when an argumentMapper is provided.
-  if (argumentMapper)
-    scoped_vars = get_serializable_var_dict();
+  // Form scoped_vars_str. This is needed for a) capturing user variables when
+  // an argumentMapper is provided, and b) automatically capturing all nested
+  // cudaq.kernels.
+  py::dict scoped_vars = get_serializable_var_dict();
 
 // This macro loads a JSON-like object into scoped_vars[] as
 // scoped_vars["__varname"] = varname. This roughly corresponds to the
