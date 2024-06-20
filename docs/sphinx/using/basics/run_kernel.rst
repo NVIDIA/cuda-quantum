@@ -115,8 +115,7 @@ is available, for example, by choosing the target `nvidia-mqpu`:
   if you actually have multiple QPU or CPU available. Otherwise, the 
   sampling will still have to execute sequentially due to resource constraints. 
 
-More information about parallelizing execution can be found at 
-:doc:`Sample Asynchronous <../backends/platform>` page.
+More information about parallelizing execution can be found at :doc:`../backends/platform` page.
 
 Observe
 +++++++++
@@ -199,7 +198,7 @@ be specified to any integer.
 
 Similar to sample_async above, observe also supports asynchronous execution. 
 More information about parallelizing execution can be found at 
-:doc:`Observe Asynchronous <../backends/platform>` page.
+:doc:`../backends/platform` page.
 
 Running on a GPU
 ++++++++++++++++++
