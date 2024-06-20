@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os, platform
+import sys, os, numpy, platform
 from ._packages import *
 
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
@@ -34,12 +34,23 @@ if not "CUDAQ_DYNLIBS" in os.environ:
             print("Could not find a suitable cuQuantum Python package.")
         pass
 
+from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
 from .runtime.sample import sample
 from .runtime.observe import observe
+from .runtime.state import to_cupy
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
+
+try:
+    from qutip import Qobj, Bloch
+except ImportError:
+    from .visualization.bloch_visualize_err import install_qutip_request as add_to_bloch_sphere
+    from .visualization.bloch_visualize_err import install_qutip_request as show
+else:
+    from .visualization.bloch_visualize import add_to_bloch_sphere
+    from .visualization.bloch_visualize import show_bloch_sphere as show
 
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
@@ -55,6 +66,8 @@ Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
+Tensor = cudaq_runtime.Tensor
+SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
@@ -99,6 +112,8 @@ AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult
 vqe = cudaq_runtime.vqe
 draw = cudaq_runtime.draw
+displaySVG = display_trace.displaySVG
+getSVGstring = display_trace.getSVGstring
 
 ComplexMatrix = cudaq_runtime.ComplexMatrix
 to_qir = cudaq_runtime.get_qir
@@ -116,6 +131,26 @@ def synthesize(kernel, *args):
                              kernelName=kernel.name)
 
 
+def complex():
+    """
+    Return the data type for the current simulation backend, 
+    either `numpy.complex128` or `numpy.complex64`.
+    """
+    target = get_target()
+    precision = target.get_precision()
+    if precision == cudaq_runtime.SimulationPrecision.fp64:
+        return numpy.complex128
+    return numpy.complex64
+
+
+def amplitudes(array_data):
+    """
+    Create a state array with the appropriate data type for the 
+    current simulation backend target. 
+    """
+    return numpy.array(array_data, dtype=complex())
+
+
 def __clearKernelRegistries():
     global globalKernelRegistry, globalAstRegistry
     globalKernelRegistry.clear()
@@ -129,6 +164,14 @@ from .dbg import ast
 
 initKwargs = {}
 
+# Look for --target=<target> options
+for p in sys.argv:
+    split_params = p.split('=')
+    if len(split_params) == 2:
+        if split_params[0] in ['-target', '--target']:
+            initKwargs['target'] = split_params[1]
+
+# Look for --target <target> (with a space)
 if '-target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
 if '--target' in sys.argv:

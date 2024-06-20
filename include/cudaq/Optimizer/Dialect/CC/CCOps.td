@@ -905,7 +905,8 @@ def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
     TypeAttr:$global_type,
     StrAttr:$sym_name,
     OptionalAttr<AnyAttr>:$value,
-    UnitAttr:$constant
+    UnitAttr:$constant,
+    UnitAttr:$external
   );
 
   let hasCustomAssemblyFormat = 1;

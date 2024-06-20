@@ -17,7 +17,7 @@ def bar(qvec: cudaq.qview):
     rx(np.e, qvec[0])
     ry(np.pi, qvec[1])
     rz.adj(np.pi, qvec[2])
-
+    
 
 @cudaq.kernel
 def zaz(qub: cudaq.qubit):
@@ -81,6 +81,26 @@ q3 : ┤ h ├──────────────────────
     produced_string = cudaq.draw(kernel)
     assert expected_str == produced_string
 
+
+def test_draw_latex():
+    """Test draw function, mainly copied from draw_tester.cpp"""
+    # fmt: off
+    expected_str = R"""
+\documentclass{minimal}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz}
+  \lstick{$q_0$} & \gate{H} & \ctrl{1} & \ctrl{2} & \ctrl{1} & \gate{Y} & \gate{R_1(3.142)} & \qw & \swap{2} & \qw & \swap{1} & \swap{2} & \qw & \swap{1} & \ctrl{2} & \swap{3} & \swap{3} & \gate{R_x(2.718)} & \gate{S^\dag} & \gate{R_x(-2.718)} & \qw \\
+  \lstick{$q_1$} & \gate{H} & \gate{X} & \ctrl{1} & \gate{Y} & \ctrl{-1} & \gate{T^\dag} & \qw & \qw & \swap{1} & \targX{} & \qw & \swap{1} & \targX{} & \swap{1} & \ctrl{2} & \ctrl{2} & \gate{R_y(3.142)} & \ctrl{-1} & \gate{R_y(-3.142)} & \qw \\
+  \lstick{$q_2$} & \gate{H} & \qw & \gate{Y} & \ctrl{-1} & \ctrl{-2} & \gate{Z} & \gate{S} & \targX{} & \targX{} & \qw & \targX{} & \targX{} & \qw & \targX{} & \qw & \ctrl{-2} & \gate{R_z(-3.142)} & \gate{R_z(3.142)} & \qw & \qw \\
+  \lstick{$q_3$} & \gate{H} & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \ctrl{-3} & \ctrl{-2} & \targX{} & \targX{} & \qw & \qw & \qw & \qw \\
+\end{quantikz}
+\end{document}
+"""
+    # fmt: on
+    expected_str = expected_str[1:]
+    produced_string = cudaq.draw("latex", kernel)
+    assert expected_str == produced_string
 
 # leave for gdb debugging
 if __name__ == "__main__":

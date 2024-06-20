@@ -233,8 +233,9 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                 raise RuntimeError(
                     'cudaq.kernel functions must have argument type annotations.'
                 )
-            if isinstance(annotation,
-                          ast.Subscript) and annotation.value.id == 'Callable':
+            if isinstance(annotation, ast.Subscript) and hasattr(
+                    annotation.value,
+                    "id") and annotation.value.id == 'Callable':
                 if not hasattr(annotation, 'slice'):
                     raise RuntimeError(
                         'Callable type must have signature specified.')

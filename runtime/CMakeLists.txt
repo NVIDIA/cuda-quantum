@@ -23,4 +23,4 @@ install (FILES nvqir/CircuitSimulator.h
                nvqir/QIRTypes.h
                nvqir/Gates.h
         DESTINATION include/nvqir)
-install (FILES cudaq.h host_config.h DESTINATION include)
+install (FILES cudaq.h DESTINATION include)

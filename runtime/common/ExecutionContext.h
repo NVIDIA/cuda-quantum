@@ -11,17 +11,13 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
+#include "SimulationState.h"
 #include "Trace.h"
 #include <optional>
 #include <string_view>
 
 namespace cudaq {
 class spin_op;
-
-// A State is the vector of data for the density matrix or state vector,
-// as well as the array shape (n,n) or (n)
-using State =
-    std::tuple<std::vector<std::size_t>, std::vector<std::complex<double>>>;
 
 /// @brief The ExecutionContext is an abstraction to indicate
 /// how a CUDA-Q kernel should be executed.
@@ -62,9 +58,20 @@ public:
   /// the expected results as a cudaq::future here.
   details::future futureResult;
 
-  /// @brief simulationData provides a mechanism for
-  /// simulation clients to extract the underlying simulation data.
-  State simulationData;
+  /// @brief Pointer to simulation-specific simulation data.
+  std::unique_ptr<SimulationState> simulationState;
+
+  /// @brief A map of basis-state amplitudes
+  // The list of basis state is set before kernel launch and the map is filled
+  // by the executor platform.
+  std::optional<std::map<std::vector<int>, std::complex<double>>> amplitudeMaps;
+
+  /// @brief List of pairs of states to compute the overlap
+  std::optional<std::pair<const SimulationState *, const SimulationState *>>
+      overlapComputeStates;
+
+  /// @brief Overlap results
+  std::optional<std::complex<double>> overlapResult;
 
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.

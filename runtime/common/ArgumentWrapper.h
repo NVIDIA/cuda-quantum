@@ -18,4 +18,12 @@ struct ArgWrapper {
   std::vector<std::string> callableNames;
   void *rawArgs = nullptr;
 };
+
+/// Holder of wrapped kernel `args`.
+struct KernelArgsHolder {
+  cudaq::ArgWrapper argsWrapper;
+  // Info about the argsWrapper's rawArgs pointer.
+  std::size_t argsSize;
+  std::int32_t returnOffset;
+};
 } // namespace cudaq

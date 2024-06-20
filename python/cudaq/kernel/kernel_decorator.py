@@ -16,6 +16,9 @@ from .ast_bridge import compile_to_mlir, PyASTBridge
 from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from .captured_data import CapturedDataStorage
+
+import numpy as np
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
@@ -37,6 +40,8 @@ class PyKernelDecorator(object):
 
     def __init__(self, function, verbose=False, module=None, kernelName=None):
         self.kernelFunction = function
+        self.capturedDataStorage = None
+
         self.module = None if module == None else module
         self.verbose = verbose
         self.name = kernelName if kernelName != None else self.kernelFunction.__name__
@@ -158,6 +163,7 @@ class PyKernelDecorator(object):
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
             self.metadata,
+            self.capturedDataStorage,
             verbose=self.verbose,
             returnType=self.returnType,
             location=self.location,
@@ -174,11 +180,77 @@ class PyKernelDecorator(object):
         self.compile()
         return str(self.module)
 
+    def _repr_svg_(self):
+        """
+        Return the SVG representation of `self` (:class:`PyKernelDecorator`).
+        This assumes no arguments are required to execute the kernel,
+        and `latex` (with `quantikz` package) and `dvisvgm` are installed,
+        and the temporary directory is writable.
+        If any of these assumptions fail, returns None.
+        """
+        self.compile()  # compile if not yet compiled
+        if self.argTypes is None or len(self.argTypes) != 0:
+            return None
+        from cudaq import getSVGstring
+
+        try:
+            from subprocess import CalledProcessError
+
+            try:
+                return getSVGstring(self)
+            except CalledProcessError:
+                return None
+        except ImportError:
+            return None
+
+    def isCastable(self, fromTy, toTy):
+        if F64Type.isinstance(toTy):
+            return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
+
+        if F32Type.isinstance(toTy):
+            return F64Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
+
+        if ComplexType.isinstance(toTy):
+            floatToType = ComplexType(toTy).element_type
+            if ComplexType.isinstance(fromTy):
+                floatFromType = ComplexType(fromTy).element_type
+                return self.isCastable(floatFromType, floatToType)
+
+            return fromTy == floatToType or self.isCastable(fromTy, floatToType)
+
+        return False
+
+    def castPyList(self, fromEleTy, toEleTy, list):
+        if self.isCastable(fromEleTy, toEleTy):
+            if F64Type.isinstance(toEleTy):
+                return [float(i) for i in list]
+
+            if F32Type.isinstance(toEleTy):
+                return [np.float32(i) for i in list]
+
+            if ComplexType.isinstance(toEleTy):
+                floatToType = ComplexType(toEleTy).element_type
+
+                if F64Type.isinstance(floatToType):
+                    return [complex(i) for i in list]
+
+                return [np.complex64(i) for i in list]
+        return list
+
+    def createStorage(self):
+        ctx = None if self.module == None else self.module.context
+        return CapturedDataStorage(ctx=ctx,
+                                   loc=self.location,
+                                   name=self.name,
+                                   module=self.module)
+
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the 
         kernel AST to MLIR will occur here if it has not already occurred. 
         """
+        # Prepare captured state storage for the run
+        self.capturedDataStorage = self.createStorage()
 
         # Compile, no-op if the module is not None
         self.compile()
@@ -211,13 +283,16 @@ class PyKernelDecorator(object):
                                           argTypeToCompareTo=self.argTypes[i])
 
             # Support passing `list[int]` to a `list[float]` argument
+            # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
             if cc.StdvecType.isinstance(mlirType):
                 if cc.StdvecType.isinstance(self.argTypes[i]):
-                    argEleTy = cc.StdvecType.getElementType(mlirType)
-                    eleTy = cc.StdvecType.getElementType(self.argTypes[i])
-                    if F64Type.isinstance(eleTy) and IntegerType.isinstance(
-                            argEleTy):
-                        processedArgs.append([float(i) for i in arg])
+                    argEleTy = cc.StdvecType.getElementType(mlirType)  # actual
+                    eleTy = cc.StdvecType.getElementType(
+                        self.argTypes[i])  # formal
+
+                    if self.isCastable(argEleTy, eleTy):
+                        processedArgs.append(
+                            self.castPyList(argEleTy, eleTy, arg))
                         mlirType = self.argTypes[i]
                         continue
 
@@ -236,7 +311,8 @@ class PyKernelDecorator(object):
                 # so that it shares self.module's MLIR Context
                 symbols = SymbolTable(self.module.operation)
                 if nvqppPrefix + arg.name not in symbols:
-                    tmpBridge = PyASTBridge(existingModule=self.module,
+                    tmpBridge = PyASTBridge(self.capturedDataStorage,
+                                            existingModule=self.module,
                                             disableEntryPointTag=True)
                     tmpBridge.visit(globalAstRegistry[arg.name][0])
 
@@ -255,13 +331,19 @@ class PyKernelDecorator(object):
                                             self.module,
                                             *processedArgs,
                                             callable_names=callableNames)
+            self.capturedDataStorage.__del__()
+            self.capturedDataStorage = None
         else:
-            return cudaq_runtime.pyAltLaunchKernelR(
+            result = cudaq_runtime.pyAltLaunchKernelR(
                 self.name,
                 self.module,
                 mlirTypeFromPyType(self.returnType, self.module.context),
                 *processedArgs,
                 callable_names=callableNames)
+
+            self.capturedDataStorage.__del__()
+            self.capturedDataStorage = None
+            return result
 
 
 def kernel(function=None, **kwargs):

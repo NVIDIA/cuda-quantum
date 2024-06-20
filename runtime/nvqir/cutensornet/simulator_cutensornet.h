@@ -46,6 +46,8 @@ public:
   /// @brief Perform a measurement on a given qubit
   virtual bool measureQubit(const std::size_t qubitIdx) override;
 
+  QubitOrdering getQubitOrdering() const override { return QubitOrdering::msb; }
+
   /// @brief Sample a subset of qubits
   virtual cudaq::ExecutionResult
   sample(const std::vector<std::size_t> &measuredBits,
@@ -54,15 +56,14 @@ public:
   /// @brief Evaluate the expectation value of a given observable
   virtual cudaq::observe_result observe(const cudaq::spin_op &op) override;
 
-  /// @brief Add qubits to the underlying quantum state
-  virtual void addQubitsToState(std::size_t count) override;
-
-  /// @brief Return the state vector data
-  virtual cudaq::State getStateData() override;
-
   /// Clone API
   virtual nvqir::CircuitSimulator *clone() override;
 
+  virtual std::unique_ptr<cudaq::SimulationState>
+  getSimulationState() override {
+    throw std::runtime_error("[tensornet] getSimulationState not implemented");
+    return nullptr;
+  }
   /// Swap gate implementation
   // Note: cutensornetStateApplyControlledTensorOperator can only handle
   // single-target.

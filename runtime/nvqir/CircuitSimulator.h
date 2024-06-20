@@ -14,14 +14,17 @@
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
 #include "common/Timing.h"
-
+#include "cudaq/host_config.h"
 #include <cstdarg>
 #include <cstddef>
 #include <queue>
 #include <sstream>
 #include <string>
+#include <variant>
 
 namespace nvqir {
+
+enum class QubitOrdering { lsb, msb };
 
 // @brief Collect summary data and print upon simulator termination
 struct SummaryData {
@@ -107,6 +110,12 @@ public:
     // do nothing
   }
 
+  /// @brief Provide a mechanism for simulators to
+  /// create and return a `SimulationState` instance from
+  /// a user-specified data set.
+  virtual std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) = 0;
+
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
   /// simulation strategies that support noise modeling.
@@ -191,7 +200,12 @@ public:
   virtual std::size_t allocateQubit() = 0;
 
   /// @brief Allocate `count` qubits.
-  virtual std::vector<std::size_t> allocateQubits(const std::size_t count) = 0;
+  virtual std::vector<std::size_t>
+  allocateQubits(std::size_t count, const void *state = nullptr,
+                 cudaq::simulation_precision precision =
+                     cudaq::simulation_precision::fp32) = 0;
+  virtual std::vector<std::size_t>
+  allocateQubits(std::size_t count, const cudaq::SimulationState *state) = 0;
 
   /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
@@ -217,7 +231,8 @@ public:
   virtual void
   applyCustomOperation(const std::vector<std::complex<double>> &matrix,
                        const std::vector<std::size_t> &controls,
-                       const std::vector<std::size_t> &targets) = 0;
+                       const std::vector<std::size_t> &targets,
+                       const std::string_view customUnitaryName = "") = 0;
 
 #define CIRCUIT_SIMULATOR_ONE_QUBIT(NAME)                                      \
   void NAME(const std::size_t qubitIdx) {                                      \
@@ -320,6 +335,8 @@ public:
   virtual bool mz(const std::size_t qubitIdx,
                   const std::string &registerName) = 0;
 
+  virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
+
   /// @brief Reset the qubit to the |0> state
   virtual void resetQubit(const std::size_t qubitIdx) = 0;
 
@@ -333,6 +350,10 @@ public:
 
   /// @brief Return a thread_local pointer to this CircuitSimulator
   virtual CircuitSimulator *clone() = 0;
+
+  /// Determine the (preferred) precision of the simulator.
+  virtual bool isSinglePrecision() const = 0;
+  bool isDoublePrecision() const { return !isSinglePrecision(); }
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -344,6 +365,12 @@ class CircuitSimulatorBase : public CircuitSimulator {
 private:
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
+
+private:
+  /// @brief Return true if the simulator is in the tracer mode.
+  bool isInTracerMode() const {
+    return executionContext && executionContext->name == "tracer";
+  }
 
 protected:
   /// @brief The current Execution Context (typically this is null,
@@ -453,7 +480,10 @@ protected:
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
-  virtual cudaq::State getStateData() { return {}; }
+  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() {
+    throw std::runtime_error(
+        "Simulation data not available for this simulator backend.");
+  }
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in resetExecutionContext. Return true to indicate this is
@@ -594,9 +624,20 @@ protected:
   }
 
   /// @brief Add the given number of qubits to the state.
-  virtual void addQubitsToState(std::size_t count) {
+  virtual void addQubitsToState(std::size_t count,
+                                const void *state = nullptr) {
+    if (state != nullptr)
+      throw std::runtime_error("State initialization must be handled by "
+                               "subclasses, override addQubitsToState.");
     for (std::size_t i = 0; i < count; i++)
       addQubitToState();
+  }
+
+  /// @brief Add (appending) the given simulation state to the current simulator
+  /// state.
+  virtual void addQubitsToState(const cudaq::SimulationState &state) {
+    throw std::runtime_error("State initialization must be handled by "
+                             "subclasses, override addQubitsToState.");
   }
 
   /// @brief Execute a sampling task with the current set of sample qubits.
@@ -663,7 +704,7 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
-    if (executionContext && executionContext->name == "tracer") {
+    if (isInTracerMode()) {
       std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
       for (auto &c : controls)
         controlsInfo.emplace_back(2, c);
@@ -748,11 +789,25 @@ protected:
     return defaultConfig;
   }
 
+  bool isSinglePrecision() const override {
+    return std::is_same_v<ScalarType, float>;
+  }
+
+  /// @brief Return this simulator's qubit ordering.
+  virtual QubitOrdering getQubitOrdering() const { return QubitOrdering::lsb; }
+
 public:
   /// @brief The constructor
   CircuitSimulatorBase() = default;
   /// @brief The destructor
   virtual ~CircuitSimulatorBase() = default;
+
+  /// @brief Create a simulation-specific SimulationState
+  /// instance from a user-provided data set.
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return getSimulationState()->createFromData(data);
+  }
 
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
@@ -774,7 +829,6 @@ public:
   std::size_t allocateQubit() override {
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
-
     if (isInBatchMode()) {
       batchModeCurrentNumQubits++;
       // In batch mode, we might already have an allocated state that
@@ -793,8 +847,9 @@ public:
     nQubitsAllocated++;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    // Tell the subtype to grow the state representation
-    addQubitToState();
+    if (!isInTracerMode())
+      // Tell the subtype to grow the state representation
+      addQubitToState();
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -806,8 +861,26 @@ public:
   }
 
   /// @brief Allocate `count` qubits.
-  std::vector<std::size_t> allocateQubits(std::size_t count) override {
-    ScopedTraceWithContext("allocateQubits", count);
+  std::vector<std::size_t>
+  allocateQubits(std::size_t count, const void *state = nullptr,
+                 cudaq::simulation_precision precision =
+                     cudaq::simulation_precision::fp32) override {
+    // Make sure if someone gives us state data, that the precision
+    // is correct for this simulation.
+    if (state != nullptr) {
+      if constexpr (std::is_same_v<ScalarType, float>) {
+        if (precision == cudaq::simulation_precision::fp64)
+          throw std::runtime_error(
+              "Invalid user-provided state data. Simulator "
+              "is FP32 but state data is FP64.");
+      } else {
+        if (precision == cudaq::simulation_precision::fp32)
+          throw std::runtime_error(
+              "Invalid user-provided state data. Simulator "
+              "is FP64 but state data is FP32.");
+      }
+    }
+
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());
@@ -831,8 +904,55 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    // Tell the subtype to allocate more qubits
-    addQubitsToState(count);
+    if (!isInTracerMode())
+      // Tell the subtype to allocate more qubits
+      addQubitsToState(count, state);
+
+    // May be that the state grows enough that we
+    // want to handle observation via sampling
+    if (executionContext)
+      executionContext->canHandleObserve = canHandleObserve();
+
+    return qubits;
+  }
+
+  /// @brief Allocate `count` qubits in a specific state.
+  std::vector<std::size_t>
+  allocateQubits(std::size_t count,
+                 const cudaq::SimulationState *state) override {
+    if (!state)
+      return allocateQubits(count);
+
+    if (!isInTracerMode() && count != state->getNumQubits())
+      throw std::invalid_argument("Dimension mismatch: the input state doesn't "
+                                  "match the number of qubits");
+
+    std::vector<std::size_t> qubits;
+    for (std::size_t i = 0; i < count; i++)
+      qubits.emplace_back(tracker.getNextIndex());
+
+    if (isInBatchMode()) {
+      // Store the current number of qubits requested
+      batchModeCurrentNumQubits += count;
+
+      // We have an allocated state, it has been set to |0>,
+      // we want to reuse it as is. If the state needs to grow, then
+      // we will ask the subtype to add more qubits.
+      if (qubits.back() < nQubitsAllocated)
+        count = 0;
+      else
+        count = qubits.back() + 1 - nQubitsAllocated;
+    }
+
+    cudaq::info("Allocating {} new qubits.", count);
+
+    previousStateDimension = stateDimension;
+    nQubitsAllocated += count;
+    stateDimension = calculateStateDim(nQubitsAllocated);
+
+    if (!isInTracerMode())
+      // Tell the subtype to allocate more qubits
+      addQubitsToState(*state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -844,7 +964,7 @@ public:
 
   /// @brief Deallocate the qubit with give index
   void deallocate(const std::size_t qubitIdx) override {
-    if (executionContext) {
+    if (executionContext && executionContext->name != "tracer") {
       cudaq::info("Deferring qubit {} deallocation", qubitIdx);
       deferredDeallocation.push_back(qubitIdx);
       return;
@@ -853,7 +973,8 @@ public:
     cudaq::info("Deallocating qubit {}", qubitIdx);
 
     // Reset the qubit
-    resetQubit(qubitIdx);
+    if (!isInTracerMode())
+      resetQubit(qubitIdx);
 
     // Return the index to the tracker
     tracker.returnIndex(qubitIdx);
@@ -966,7 +1087,7 @@ public:
     // Set the state data if requested.
     if (executionContext->name == "extract-state") {
       flushGateQueue();
-      executionContext->simulationData = getStateData();
+      executionContext->simulationState = getSimulationState();
     }
 
     // Deallocate the deferred qubits, but do so
@@ -1010,19 +1131,52 @@ public:
   /// @brief Apply a custom quantum operation
   void applyCustomOperation(const std::vector<std::complex<double>> &matrix,
                             const std::vector<std::size_t> &controls,
-                            const std::vector<std::size_t> &targets) override {
+                            const std::vector<std::size_t> &targets,
+                            const std::string_view customName) override {
     flushAnySamplingTasks();
+    auto numRows = std::sqrt(matrix.size());
+    auto numQubits = std::log2(numRows);
     std::vector<std::complex<ScalarType>> actual;
-    std::transform(matrix.begin(), matrix.end(), std::back_inserter(actual),
-                   [](auto &&element) -> std::complex<ScalarType> {
-                     if (!std::is_same_v<double, ScalarType>) {
-                       return static_cast<std::complex<ScalarType>>(element);
-                     } else {
-                       return std::complex<ScalarType>(element.real(),
-                                                       element.imag());
-                     }
-                   });
-    cudaq::info(gateToString("custom_unitary", controls, {}, targets));
+    if (numQubits > 1 && getQubitOrdering() != QubitOrdering::msb) {
+      // Convert the matrix to LSB qubit ordering
+      auto convertOrdering = [](std::size_t numQubits, std::size_t idx) {
+        std::size_t newIdx = 0;
+        for (std::size_t i = 0; i < numQubits; ++i)
+          if (idx & (1ULL << i))
+            newIdx |= (1ULL << ((numQubits - 1) - i));
+        return newIdx;
+      };
+      actual.resize(matrix.size());
+      for (std::size_t i = 0; i < numRows; i++) {
+        for (std::size_t j = 0; j < numRows; j++) {
+          auto k = convertOrdering(numQubits, i);
+          auto l = convertOrdering(numQubits, j);
+          if (!std::is_same_v<double, ScalarType>) {
+            actual[i * numRows + j] =
+                static_cast<std::complex<ScalarType>>(matrix[k * numRows + l]);
+          } else {
+            auto element = matrix[k * numRows + l];
+            actual[i * numRows + j] =
+                std::complex<ScalarType>(element.real(), element.imag());
+          }
+        }
+      }
+    } else {
+      std::transform(matrix.begin(), matrix.end(), std::back_inserter(actual),
+                     [](auto &&element) -> std::complex<ScalarType> {
+                       if (!std::is_same_v<double, ScalarType>) {
+                         return static_cast<std::complex<ScalarType>>(element);
+                       } else {
+                         return std::complex<ScalarType>(element.real(),
+                                                         element.imag());
+                       }
+                     });
+    }
+    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
+      cudaq::info(gateToString(customName.empty() ? "unknown op" : customName,
+                               controls, {}, targets) +
+                      " = {}",
+                  matrix);
     enqueueGate("custom", actual, controls, targets, {});
   }
 
@@ -1152,6 +1306,9 @@ public:
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
 
+    if (isInTracerMode())
+      return true;
+
     // Get the actual measurement from the subtype measureQubit implementation
     auto measureResult = measureQubit(qubitIdx);
     auto bitResult = measureResult == true ? "1" : "0";
@@ -1163,6 +1320,62 @@ public:
     // Return the result
     return measureResult;
   }
+
+  void measureSpinOp(const cudaq::spin_op &op) override {
+    flushGateQueue();
+
+    if (executionContext->canHandleObserve) {
+      auto result = observe(*executionContext->spin.value());
+      executionContext->expectationValue = result.expectation();
+      executionContext->result = result.raw_data();
+      return;
+    }
+
+    assert(op.num_terms() == 1 && "Number of terms is not 1.");
+
+    cudaq::info("Measure {}", op.to_string(false));
+    std::vector<std::size_t> qubitsToMeasure;
+    std::vector<std::function<void(bool)>> basisChange;
+    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
+      if (type != cudaq::pauli::I)
+        qubitsToMeasure.push_back(qubitIdx);
+
+      if (type == cudaq::pauli::Y)
+        basisChange.emplace_back([&, qubitIdx](bool reverse) {
+          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIdx);
+        });
+      else if (type == cudaq::pauli::X)
+        basisChange.emplace_back([&, qubitIdx](bool) { h(qubitIdx); });
+    });
+
+    // Change basis, flush the queue
+    if (!basisChange.empty()) {
+      for (auto &basis : basisChange)
+        basis(false);
+
+      flushGateQueue();
+    }
+
+    // Get whether this is shots-based
+    int shots = 0;
+    if (executionContext->shots > 0)
+      shots = executionContext->shots;
+
+    // Sample and give the data to the context
+    cudaq::ExecutionResult result = sample(qubitsToMeasure, shots);
+    executionContext->expectationValue = result.expectationValue;
+    executionContext->result = cudaq::sample_result(result);
+
+    // Restore the state.
+    if (!basisChange.empty()) {
+      std::reverse(basisChange.begin(), basisChange.end());
+      for (auto &basis : basisChange)
+        basis(true);
+
+      flushGateQueue();
+    }
+  }
+
 }; // namespace nvqir
 } // namespace nvqir
 

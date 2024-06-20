@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <concepts>
+
 #include "common/ExecutionContext.h"
 #include "cudaq/platform.h"
 
@@ -17,14 +19,16 @@ namespace __internal__ {
 
 std::string draw(const Trace &trace);
 
-}
+std::string getLaTeXString(const Trace &trace);
+
+} // namespace __internal__
 
 namespace details {
 
-/// @brief Execute the given kernel functor and extract the
-/// state representation.
-template <typename KernelFunctor>
-std::string extractTrace(KernelFunctor &&kernel) {
+/// @brief execute the kernel functor (with optional arguments) and return the
+/// trace of the execution path.
+template <typename KernelFunctor, typename... Args>
+cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   // Get the platform.
   auto &platform = cudaq::get_platform();
 
@@ -36,12 +40,26 @@ std::string extractTrace(KernelFunctor &&kernel) {
   // path
   ExecutionContext context("tracer");
 
-  // Perform the usual pattern set the context, execute and then reset
+  // set the context, execute and then reset
   platform.set_exec_ctx(&context);
-  kernel();
+  kernel(args...);
   platform.reset_exec_ctx();
 
-  return __internal__::draw(context.kernelTrace);
+  return context.kernelTrace;
+}
+
+/// @brief Execute the given kernel functor and extract the
+/// state representation.
+template <typename KernelFunctor>
+std::string extractTrace(KernelFunctor &&kernel) {
+  return __internal__::draw(traceFromKernel(kernel));
+}
+
+/// @brief Execute the given kernel functor and extract the
+/// state representation as LaTeX.
+template <typename KernelFunctor>
+std::string extractTraceLatex(KernelFunctor &&kernel) {
+  return __internal__::getLaTeXString(traceFromKernel(kernel));
 }
 
 } // namespace details
@@ -92,14 +110,38 @@ std::string extractTrace(KernelFunctor &&kernel) {
 /// \endcode
 ///
 // clang-format on
+
+#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
+  requires std::invocable<QuantumKernel &, Args...>
+#else
+template <
+    typename QuantumKernel, typename... Args,
+    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
+#endif
 std::string draw(QuantumKernel &&kernel, Args &&...args) {
-  ExecutionContext context("tracer");
-  auto &platform = get_platform();
-  platform.set_exec_ctx(&context);
-  kernel(args...);
-  platform.reset_exec_ctx();
-  return __internal__::draw(context.kernelTrace);
+  return __internal__::draw(
+      details::traceFromKernel(kernel, std::forward<Args>(args)...));
+}
+
+#if CUDAQ_USE_STD20
+template <typename QuantumKernel, typename... Args>
+  requires std::invocable<QuantumKernel &, Args...>
+#else
+template <
+    typename QuantumKernel, typename... Args,
+    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
+#endif
+std::string draw(std::string format, QuantumKernel &&kernel, Args &&...args) {
+  if (format == "ascii") {
+    return draw(kernel, std::forward<Args>(args)...);
+  } else if (format == "latex") {
+    return __internal__::getLaTeXString(
+        details::traceFromKernel(kernel, std::forward<Args>(args)...));
+  } else {
+    throw std::runtime_error(
+        "Invalid format. Supported formats are 'ascii' and 'latex'.");
+  }
 }
 
 /// @brief Outputs the drawing of a circuit to an output stream.

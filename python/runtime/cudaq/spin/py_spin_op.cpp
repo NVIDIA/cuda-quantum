@@ -87,6 +87,8 @@ void bindSpinOperator(py::module &mod) {
            "`Z` on qubit `i`, followed by the real and imaginary part of the "
            "coefficient. Each set of term elements is appended to the one "
            "list. The list is ended with the total number of terms.")
+      .def(py::init<std::size_t>(), py::arg("num_qubits"),
+           "Construct the identity term on the given number of qubits.")
 
       /// @brief Bind the member functions.
       .def("get_raw_data", &cudaq::spin_op::get_raw_data,
