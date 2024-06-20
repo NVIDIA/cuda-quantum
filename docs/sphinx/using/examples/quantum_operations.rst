@@ -10,6 +10,8 @@ a quantum bit or simply the qubit. Below we define a qubit in CUDA-Q.
 
 .. literalinclude:: ../../snippets/python/using/examples/build_kernel.py
     :language: python
+    :start-after: [Begin Docs]
+    :end-before: [End Docs]
 
 Classical bits are transistor elements whose states can be altered to
 perform computations. Similarly qubits too have physical realizations
@@ -40,11 +42,12 @@ gate allows us to flip the state of the qubit:
 
 .. literalinclude:: ../../snippets/python/using/examples/pauli_x_gate.py
     :language: python
+    :start-after: [Begin Docs]
+    :end-before: [End Docs]
 
 .. parsed-literal::
 
     { 1:1000 }
-    
 
 
 Superpositions & Measurements
@@ -85,12 +88,13 @@ this with some code:
 
 .. literalinclude:: ../../snippets/python/using/examples/hadamard_gate.py
     :language: python
+    :start-after: [Begin Docs]
+    :end-before: [End Docs]
 
 .. parsed-literal::
 
     { 0:502 1:498 }
     
-
 
 Quantum theory is statistical and statistical accuracy increases with
 sampling. Above we see how with a 1000 shots, the result 0 / 1 is
@@ -224,6 +228,8 @@ shown. Below we see how this is done in CUDA-Q.
 
 .. literalinclude:: ../../examples/python/notation.py
     :language: python
+    :start-after: [Begin Docs]
+    :end-before: [End Docs]
 
 .. parsed-literal::
 
@@ -232,7 +238,6 @@ shown. Below we see how this is done in CUDA-Q.
          ╰───╯
     
     { 10:1000 }
-    
 
 
 Controlled-NOT Gate
@@ -251,12 +256,13 @@ and the 1st qubit is the target qubit.
 
 .. literalinclude:: ../../examples/python/cnot.py
     :language: python
+    :start-after: [Begin Docs]
+    :end-before: [End Docs]
 
 .. parsed-literal::
 
     { 11:1000 }
     
-
 
 In summary, the CNOT gate in matrix notation is represented as:
 

@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+#[Begin Docs]
 import cudaq
 
 # Build a cudaq kernel.
@@ -15,3 +16,4 @@ import cudaq
 def kernel():
     # Allocate a single qubit to the kernel.
     qubit = cudaq.qubit()
+#[End Docs]

@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+#[Begin Docs]
 import cudaq
 
 
@@ -25,3 +26,4 @@ def kernel():
 result = cudaq.sample(kernel, shots_count=1000)
 
 print(result)
+#[End Docs]
