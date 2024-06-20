@@ -5,9 +5,6 @@ There are many backends available with CUDA-Q which enable seamless
 switching between GPUs, QPUs and CPUs and also allow for workflows
 involving multiple architectures working in tandem.
 
-.. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/get_targets.py
-    :language: python
-
 Available Targets
 -------------------
 

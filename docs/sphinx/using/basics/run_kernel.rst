@@ -17,7 +17,7 @@ Quantum states collapse upon measurement and hence need to be sampled many times
 
 .. tab:: C++
 
-  The :func:`cudaq::sample` method takes a kernel and its arguments as inputs, and returns a :class:`cudaq::SampleResult`.
+  The `cudaq::sample` method takes a kernel and its arguments as inputs, and returns a `cudaq::SampleResult`.
 
 This result dictionary contains the distribution of measured states for the system.
 
@@ -132,7 +132,7 @@ The observe function allows us to calculate expectation values for a defined qua
 
 .. tab:: C++
 
-  The :func:`cudaq::observe` method takes a kernel and its arguments as inputs, along with a `cudaq::spin_op`.
+  The `cudaq::observe` method takes a kernel and its arguments as inputs, along with a `cudaq::spin_op`.
 
   Within the `cudaq::spin` namespace, operators may be defined as a linear combination of Pauli strings. Functions, such
   as `cudaq::spin::i`, `cudaq::spin::x`, `cudaq::spin::y`, `cudaq::spin::z` may be used to construct more
@@ -229,7 +229,7 @@ all of the available targets and ways to accelerate kernel execution, visit the
 .. tab:: C++
 
   To compare the performance, we can create a simple timing script that isolates just the call
-  to :func:`cudaq::sample`. We are still using the same GHZ kernel as earlier, but the following
+  to `cudaq::sample`. We are still using the same GHZ kernel as earlier, but the following
   modification made to the main function:
 
   .. literalinclude:: ../../snippets/cpp/using/time.cpp
