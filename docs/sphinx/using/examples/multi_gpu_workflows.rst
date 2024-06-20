@@ -20,7 +20,7 @@ Available Targets
 -  **`nvidia-mgpu`**: Allows for scaling circuit simulation on multiple GPUs.
 
 -  **`nvidia-mqpu`**: Enables users to program workflows utilizing
-   multiple virtual quantum processors in parallel, where each QPU is simulated by the nvidia backend.
+   multiple virtual quantum processors in parallel, where each QPU is simulated by the `nvidia` backend.
 
 -  **`remote-mqpu`**: Enables users to program workflows utilizing
    multiple virtual quantum processors in parallel, where the backend used to simulate each QPU is configurable.

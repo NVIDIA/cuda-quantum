@@ -196,7 +196,7 @@ be specified to any integer.
         :start-after: [Begin Observe3]
         :end-before: [End Observe3]
 
-Similar to sample_async above, observe also supports asynchronous execution. 
+Similar to `sample_async` above, observe also supports asynchronous execution. 
 More information about parallelizing execution can be found at 
 :doc:`../backends/platform` page.
 

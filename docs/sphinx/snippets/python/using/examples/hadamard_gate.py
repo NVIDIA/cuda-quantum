@@ -23,6 +23,8 @@ def kernel():
 
 
 result = cudaq.sample(kernel)
-print("Measured |0> with probability " + str(result["0"] / sum(result.values())))
-print("Measured |1> with probability " + str(result["1"] / sum(result.values())))
+print("Measured |0> with probability " +
+      str(result["0"] / sum(result.values())))
+print("Measured |1> with probability " +
+      str(result["1"] / sum(result.values())))
 #[End Docs]

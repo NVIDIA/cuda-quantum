@@ -9,6 +9,7 @@
 # [Begin state]
 import cudaq
 
+
 @cudaq.kernel
 def ghz_state(qubit_count: int):
     qubits = cudaq.qvector(qubit_count)
@@ -16,12 +17,15 @@ def ghz_state(qubit_count: int):
     for i in range(1, qubit_count):
         cx(qubits[0], qubits[i])
     mz(qubits)
-    
+
+
 def sample_ghz_state(qubit_count, target):
     """A function that will sample a variable sized GHZ state."""
     cudaq.set_target(target)
     result = cudaq.sample(ghz_state, qubit_count, shots_count=1000)
     return result
+
+
 # [End state]
 
 # [Begin CPU]
