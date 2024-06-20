@@ -14,7 +14,7 @@ the mathematical language physicists have developed to describe the
 theory: linear algebra.
 
 Quantum States
-====================
+-----------------------------
 
 Information storage scales linearly if bits have a single state. Access
 to multiple states, namely a 0 and a 1 allows for information encoding
@@ -59,7 +59,7 @@ large statevector can be offloaded onto a quantum computer.
 
 
 Quantum Gates
-====================
+-----------------------------
 
 We can manipulate the state of a qubit via quantum gates. 
 For example, the Pauli X gate allows us to flip the state of the qubit:
@@ -148,7 +148,7 @@ Its effect on the computational basis states is:
 For a full list of gates supported in CUDA-Q see :doc:`../../api/default_ops`. 
 
 Measurements
-====================
+-----------------------------
 
 Quantum theory is probabilistic and hence requires statistical inference
 to derive observations. Prior to measurement, the state of a qubit is
@@ -176,7 +176,7 @@ normalization condition that
 
 
 State Visualization
-====================
+-----------------------------
 
 What are the possible states a qubit can be in and how can we build up
 a visual cue to help us make sense of quantum states and their
