@@ -17,15 +17,15 @@ Available Targets
 -  **`nvidia`**: Single GPU based backend which accelerates quantum circuit
    simulation on NVIDIA GPUs powered by cuQuantum.
 
+-  **`nvidia-mgpu`**: Allows for scaling circuit simulation on multiple GPUs.
+
 -  **`nvidia-mqpu`**: Enables users to program workflows utilizing
-   multiple quantum processors in parallel, enabled today by GPU emulation.
+   multiple virtual quantum processors in parallel, where each QPU is simulated by the nvidia backend.
 
--  **`nvidia-mgpu`**: Allows for scaling circuit simulation on multiple GPUs, which is beyond what is
-   feasible with any QPU today.
+-  **`remote-mqpu`**: Enables users to program workflows utilizing
+   multiple virtual quantum processors in parallel, where the backend used to simulate each QPU is configurable.
 
--  **`density-matrix-cpu`**: Noisy simulations via density matrix
-   calculations. CPU only for now with GPU support coming soon.
-
+Please see :doc:`../backends/backends` for a full list of all available backends. 
 Below we explore how to effectively utilize multiple CUDA-Q targets with the same GHZ state preparation code
 
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/multiple_targets.py
@@ -76,7 +76,7 @@ reach a limit where the memory required is beyond the capabilities of a
 single GPU. The ``nvidia-mgpu`` target allows for memory from additional
 GPUs to be pooled enabling qubit counts to be scaled.
 
-Execution on the ``nvidia-mgpu`` backed is enabled via ``mpirun``. Users
+Execution on the ``nvidia-mgpu`` backend is enabled via ``mpirun``. Users
 need to create a ``.py`` file with their code and run the command below
 in terminal:
 
@@ -106,6 +106,8 @@ specifying the number of GPUs you have access to.
 
 .. literalinclude:: ../../examples/python/multi_gpu_workflows/multi_gpu_run.py
     :language: python
+    :start-after: [Begin Docs]
+    :end-before: [End Docs]
 
 .. parsed-literal::
 

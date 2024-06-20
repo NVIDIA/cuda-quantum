@@ -6,10 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+#[Begin Docs]
 import cudaq
 from cudaq import spin
 
-cudaq.set_target("nvidia-mqpu")
+cudaq.set_target("remote-mqpu")
 
 cudaq.mpi.initialize()
 num_ranks = cudaq.mpi.num_ranks()
@@ -47,3 +48,4 @@ result = cudaq.observe(kernel, hamiltonian, execution=cudaq.parallel.mpi)
 result.expectation()
 
 cudaq.mpi.finalize()
+#[End Docs]
