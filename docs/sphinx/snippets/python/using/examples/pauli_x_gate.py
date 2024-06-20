@@ -23,7 +23,6 @@ def kernel():
 
 
 # Sample the qubit for 1000 shots to gather statistics.
-result = cudaq.sample(kernel, shots_count=1000)
-
-print(result)
+result = cudaq.sample(kernel)
+print(result.most_probable())
 #[End Docs]
