@@ -106,10 +106,11 @@ static std::size_t strip_leading_whitespace(std::string &source_code) {
 
 std::string get_source_code(const py::function &func) {
   // Get the source code
-  py::object inspect = py::module::import("inspect");
+  py::module_ analysis = py::module_::import("cudaq.kernel.analysis");
+  py::object FetchDepFuncsSourceCode = analysis.attr("FetchDepFuncsSourceCode");
   py::object source_code;
   try {
-    source_code = inspect.attr("getsource")(func);
+    source_code = FetchDepFuncsSourceCode.attr("fetch")(func);
   } catch (py::error_already_set &e) {
     throw std::runtime_error("Failed to get source code: " +
                              std::string(e.what()));
