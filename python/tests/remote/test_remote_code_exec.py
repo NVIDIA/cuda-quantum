@@ -175,6 +175,11 @@ def test_optimizer_nested_kernels():
                            gradient_strategy=gradient,
                            kernel=kernelB) -> tuple[float, list[float]]:
         nested_obj_func()  # gratuitous call to a nested function (for testing)
+
+        def another_nested_obj_func():
+            print('I am in another_nested_obj_func')
+
+        another_nested_obj_func()
         get_result = lambda parameter_vector: cudaq.observe(
             kernel, hamiltonian, parameter_vector).expectation()
         cost = get_result(parameter_vector)
