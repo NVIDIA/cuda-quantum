@@ -319,8 +319,8 @@ class HasReturnNodeVisitor(ast.NodeVisitor):
 
 class FindDepFuncsVisitor(ast.NodeVisitor):
     """
-    Populate a list of function names that have ast.Call nodes in them. This
-    only populates functions, not attributes (like np.sum()).
+    Populate a list of function names that have `ast.Call` nodes in them. This
+    only populates functions, not attributes (like `np.sum()`).
     """
 
     def __init__(self):
