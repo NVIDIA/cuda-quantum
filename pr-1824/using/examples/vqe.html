@@ -521,27 +521,21 @@ Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-mqpu&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;localhost:3030&quot;</span><span class="p">)</span>
-
 <span class="c1"># We begin by defining the spin Hamiltonian for the system that we are working</span>
 <span class="c1"># with. This is achieved through the use of `cudaq.SpinOperator`&#39;s, which allow</span>
 <span class="c1"># for the convenient creation of complex Hamiltonians out of Pauli spin operators.</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span>
     <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">nested_kernel</span><span class="p">(</span><span class="n">qubits</span> <span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 <span class="c1"># Next, using the `cudaq.Kernel`, we define the variational quantum circuit</span>
 <span class="c1"># that we&#39;d like to use as an ansatz.</span>
 <span class="c1"># Create a kernel that takes a list of floats as a function argument.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">angles</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span><span class="c1">#, extraVal: int):</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">angles</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
     <span class="c1"># Allocate 2 qubits.</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">nested_kernel</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
-    <span class="c1"># x(qubits[0])</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="c1"># Apply an `ry` gate that is parameterized by the first value</span>
     <span class="c1"># of our `angles`.</span>
     <span class="n">ry</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -553,8 +547,6 @@ Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA
 <span class="c1"># We can optionally tune this optimizer through its initial parameters, iterations,</span>
 <span class="c1"># optimization bounds, etc. before passing it to `cudaq.vqe`.</span>
 <span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">COBYLA</span><span class="p">()</span>
-<span class="c1"># optimizer = cudaq.optimizers.Adam()</span>
-<span class="c1"># grad = cudaq.gradients.CentralDifference()</span>
 <span class="c1"># optimizer.max_iterations = ...</span>
 <span class="c1"># optimizer...</span>
 
@@ -562,14 +554,10 @@ Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA
 <span class="c1"># optimization loop, returning a tuple of the minimized eigenvalue of our `spin_operator`</span>
 <span class="c1"># and the list of optimal variational parameters.</span>
 
-<span class="n">argmap</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span> <span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-
 <span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">vqe</span><span class="p">(</span>
     <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
-    <span class="c1">#gradient_strategy=grad,</span>
     <span class="n">spin_operator</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
     <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
-    <span class="c1">#argument_mapper=argmap,</span>
     <span class="c1"># list of parameters has length of 1:</span>
     <span class="n">parameter_count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
