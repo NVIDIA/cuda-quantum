@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quantum Approximate Optimization Algorithm for Max Cut &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Max-Cut with QAOA &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Quantum Bits" href="quantum_bits.html" />
-    <link rel="prev" title="Noisy Simulation" href="noisy_simulations.html" /> 
+    <link rel="next" title="Hybrid Quantum Neural Networks" href="hybrid_qnns.html" />
+    <link rel="prev" title="Variational Quantum Eigensolver" href="vqe.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -123,8 +123,27 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/vqe.html">   Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
@@ -134,7 +153,6 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -143,48 +161,20 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Sample">Sample</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Sample-Async">Sample Async</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Observe-Async">Observe Async</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="multiple_qubits.html">Multiple Qubits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quantum_bits.html">Quantum Bits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit">Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-linearity">Gate linearity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
 </ul>
@@ -242,7 +232,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/backends/platform.html">   Multi-Processor Platforms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
 </ul>
 </li>
@@ -506,21 +495,21 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Quantum Approximate Optimization Algorithm for Max Cut</li>
+      <li class="breadcrumb-item active">Max-Cut with QAOA</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../../_sources/examples/python/tutorials/qaoa.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="noisy_simulations.html" class="btn btn-neutral float-left" title="Noisy Simulation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="quantum_bits.html" class="btn btn-neutral float-right" title="Quantum Bits" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="vqe.html" class="btn btn-neutral float-left" title="Variational Quantum Eigensolver" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hybrid_qnns.html" class="btn btn-neutral float-right" title="Hybrid Quantum Neural Networks" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Quantum-Approximate-Optimization-Algorithm-for-Max-Cut">
-<h1>Quantum Approximate Optimization Algorithm for Max Cut<a class="headerlink" href="#Quantum-Approximate-Optimization-Algorithm-for-Max-Cut" title="Permalink to this heading">¶</a></h1>
+  <section id="Max-Cut-with-QAOA">
+<h1>Max-Cut with QAOA<a class="headerlink" href="#Max-Cut-with-QAOA" title="Permalink to this heading">¶</a></h1>
 <p><a class="reference external" href="https://arxiv.org/abs/1411.4028">Farhi et al.</a> introduced the quantum approximation optimization algorithm (QAOA) to solve optimization problems like the max cut problem. Before diving into the details of QAOA, we’ll first define the max cut problem.</p>
 <p><a class="reference external" href="https://en.wikipedia.org/wiki/Maximum_cut">Max Cut</a> is the problem of finding a partition of a graph’s nodes into two sets which maximizes the edges between the two sets. Although this problem is relatively easy to solve for graphs with few vertices, this problem is <a class="reference external" href="https://en.wikipedia.org/wiki/NP-hardness#:~:text=7%20References-,Definition,complete%20problem%20G%20to%20H.">NP-hard</a>. The max cut problem has a wide range of applications including <a class="reference external" href="https://jmlr.org/papers/volume14/wang13a/wang13a.pdf">machine
 learning</a>, <a class="reference external" href="https://math.mit.edu/research/highschool/primes/materials/2020/Hong-Lee-Wei.pdf">circuit design</a> and <a class="reference external" href="https://www.researchgate.net/publication/262162554_An_Application_of_Combinatorial_Optimization_to_Statistical_Physics_and_Circuit_Layout_Design">statistical physics</a>, among others. Furthermore, the QAOA algorithm presented in this tutorial can be adapted to other related optimization problems with an even wider
@@ -831,8 +820,8 @@ CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="noisy_simulations.html" class="btn btn-neutral float-left" title="Noisy Simulation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="quantum_bits.html" class="btn btn-neutral float-right" title="Quantum Bits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="vqe.html" class="btn btn-neutral float-left" title="Variational Quantum Eigensolver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hybrid_qnns.html" class="btn btn-neutral float-right" title="Hybrid Quantum Neural Networks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
