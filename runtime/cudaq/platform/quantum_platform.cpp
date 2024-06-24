@@ -148,7 +148,9 @@ void quantum_platform::onRandomSeedSet(std::size_t seed) {
 }
 
 void quantum_platform::resetLogStream() { platformLogStream = nullptr; }
+
 std::ostream *quantum_platform::getLogStream() { return platformLogStream; }
+
 void quantum_platform::setLogStream(std::ostream &logStream) {
   platformLogStream = &logStream;
 }
