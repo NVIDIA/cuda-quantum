@@ -15,9 +15,9 @@
 
 __qpu__ void test1(std::vector<cudaq::complex> inState) {
     cudaq::qvector q1 = inState;
-    h(q1[0]);
-    cx(q1[0], q1[1]);
-
+    // Should synthesize to
+    // h(q1[0]);
+    // cx(q1[0], q1[1]);
 }
 
 //  __qpu__ void test2(cudaq::state *inState) {

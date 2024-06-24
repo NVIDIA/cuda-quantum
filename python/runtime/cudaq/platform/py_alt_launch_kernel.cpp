@@ -79,9 +79,9 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   auto hashKey = static_cast<size_t>(hash);
 
   ExecutionEngine *jit = nullptr;
-  if (jitCache->hasJITEngine(hashKey))
+  if (jitCache->hasJITEngine(hashKey)) {
     jit = jitCache->getJITEngine(hashKey);
-  else {
+  } else {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
                            "jitAndCreateArgs - execute passes", name);
 

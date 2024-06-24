@@ -132,6 +132,16 @@ protected:
   }
 
   void handleExecutionContextEnded() override {
+    if (!requestedAllocations.empty()) {
+      cudaq::info("[DefaultExecutionManager] Flushing remaining {} allocations "
+                  "at handleExecutionContextEnded.",
+                  requestedAllocations.size());
+      // If there are pending allocations, flush them to the simulator.
+      // Making sure the simulator's state is consistent with the number of
+      // allocations even though the circuit might be empty.
+      simulator()->allocateQubits(requestedAllocations.size());
+      requestedAllocations.clear();
+    }
     simulator()->resetExecutionContext();
   }
 

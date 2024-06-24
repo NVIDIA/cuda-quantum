@@ -104,11 +104,22 @@ Value makeComplexElement(OpBuilder &builder, Location argLoc,
   return builder.create<complex::ConstantOp>(argLoc, eleTy, complexVal);
 }
 
+/// returns true if and only if \p argument is used by a `quake.init_state`
+/// operation.
+static bool hasInitStateUse(BlockArgument argument) {
+  for (auto *argUser : argument.getUsers())
+    if (auto stdvecDataOp = dyn_cast<cudaq::cc::StdvecDataOp>(argUser))
+      for (auto *dataUser : stdvecDataOp->getUsers())
+        if (isa<quake::InitializeStateOp>(dataUser))
+          return true;
+  return false;
+}
+
 template <typename ELETY, typename T, typename ATTR, typename MAKER>
-LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                       BlockArgument argument,
-                                       std::vector<T> &vec, ATTR arrayAttr,
-                                       MAKER makeElementValue) {
+LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument, std::vector<T> &vec,
+                         ATTR arrayAttr, MAKER makeElementValue) {
   auto *ctx = builder.getContext();
   auto argTy = argument.getType();
   assert(isa<cudaq::cc::StdvecType>(argTy));
@@ -128,9 +139,23 @@ LogicalResult synthesizeVectorArgument(OpBuilder &builder,
     if (arrayInMemory)
       return *arrayInMemory;
     OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointAfter(conArray);
-    Value buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
-    builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
+    Value buffer;
+    if (hasInitStateUse(argument)) {
+      // Stick global at end of Module.
+      builder.setInsertionPointToEnd(module.getBody());
+      std::string symbol =
+          "__nvqpp_rodata_init_state." + std::to_string(counter++);
+      builder.create<cudaq::cc::GlobalOp>(argLoc, arrTy, symbol, arrayAttr,
+                                          /*isConstant=*/true,
+                                          /*isExternal=*/false);
+      builder.setInsertionPointAfter(conArray);
+      buffer = builder.create<cudaq::cc::AddressOfOp>(
+          argLoc, cudaq::cc::PointerType::get(arrTy), symbol);
+    } else {
+      builder.setInsertionPointAfter(conArray);
+      buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
+      builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
+    }
     Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrEleTy, buffer);
     arrayInMemory = res;
     return res;
@@ -251,64 +276,80 @@ std::vector<std::int32_t> asI32(const std::vector<A> &v) {
 
 // TODO: consider using DenseArrayAttr here instead. NB: such a change may alter
 // the output of the constant array op.
-static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                              BlockArgument argument,
-                                              std::vector<bool> &vec) {
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument, std::vector<bool> &vec) {
   auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
-  return synthesizeVectorArgument<IntegerType>(
-      builder, argument, vec, arrayAttr, makeIntegerElement<bool>);
+  return synthesizeVectorArgument<IntegerType>(builder, module, counter,
+                                               argument, vec, arrayAttr,
+                                               makeIntegerElement<bool>);
 }
 
 static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
+                                              ModuleOp module,
+                                              unsigned &counter,
                                               BlockArgument argument,
                                               std::vector<std::int8_t> &vec) {
   auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
-  return synthesizeVectorArgument<IntegerType>(
-      builder, argument, vec, arrayAttr, makeIntegerElement<std::int8_t>);
+  return synthesizeVectorArgument<IntegerType>(builder, module, counter,
+                                               argument, vec, arrayAttr,
+                                               makeIntegerElement<std::int8_t>);
 }
 
 static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
+                                              ModuleOp module,
+                                              unsigned &counter,
                                               BlockArgument argument,
                                               std::vector<std::int16_t> &vec) {
   auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
   return synthesizeVectorArgument<IntegerType>(
-      builder, argument, vec, arrayAttr, makeIntegerElement<std::int16_t>);
+      builder, module, counter, argument, vec, arrayAttr,
+      makeIntegerElement<std::int16_t>);
 }
 
 static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
+                                              ModuleOp module,
+                                              unsigned &counter,
                                               BlockArgument argument,
                                               std::vector<std::int32_t> &vec) {
   auto arrayAttr = builder.getI32ArrayAttr(vec);
   return synthesizeVectorArgument<IntegerType>(
-      builder, argument, vec, arrayAttr, makeIntegerElement<std::int32_t>);
+      builder, module, counter, argument, vec, arrayAttr,
+      makeIntegerElement<std::int32_t>);
 }
 
 static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
+                                              ModuleOp module,
+                                              unsigned &counter,
                                               BlockArgument argument,
                                               std::vector<std::int64_t> &vec) {
   auto arrayAttr = builder.getI64ArrayAttr(vec);
   return synthesizeVectorArgument<IntegerType>(
-      builder, argument, vec, arrayAttr, makeIntegerElement<std::int64_t>);
+      builder, module, counter, argument, vec, arrayAttr,
+      makeIntegerElement<std::int64_t>);
 }
 
-static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                              BlockArgument argument,
-                                              std::vector<float> &vec) {
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument, std::vector<float> &vec) {
   auto arrayAttr = builder.getF32ArrayAttr(vec);
-  return synthesizeVectorArgument<FloatType>(builder, argument, vec, arrayAttr,
+  return synthesizeVectorArgument<FloatType>(builder, module, counter, argument,
+                                             vec, arrayAttr,
                                              makeFloatElement<float>);
 }
 
-static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                              BlockArgument argument,
-                                              std::vector<double> &vec) {
+static LogicalResult
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument, std::vector<double> &vec) {
   auto arrayAttr = builder.getF64ArrayAttr(vec);
-  return synthesizeVectorArgument<FloatType>(builder, argument, vec, arrayAttr,
+  return synthesizeVectorArgument<FloatType>(builder, module, counter, argument,
+                                             vec, arrayAttr,
                                              makeFloatElement<double>);
 }
 
 static LogicalResult
-synthesizeVectorArgument(OpBuilder &builder, BlockArgument argument,
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument,
                          std::vector<std::complex<float>> &vec) {
   std::vector<float> vec2;
   for (auto c : vec) {
@@ -316,12 +357,14 @@ synthesizeVectorArgument(OpBuilder &builder, BlockArgument argument,
     vec2.push_back(c.imag());
   }
   auto arrayAttr = builder.getF32ArrayAttr(vec2);
-  return synthesizeVectorArgument<ComplexType>(
-      builder, argument, vec, arrayAttr, makeComplexElement<float>);
+  return synthesizeVectorArgument<ComplexType>(builder, module, counter,
+                                               argument, vec, arrayAttr,
+                                               makeComplexElement<float>);
 }
 
 static LogicalResult
-synthesizeVectorArgument(OpBuilder &builder, BlockArgument argument,
+synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                         BlockArgument argument,
                          std::vector<std::complex<double>> &vec) {
   std::vector<double> vec2;
   for (auto c : vec) {
@@ -329,8 +372,9 @@ synthesizeVectorArgument(OpBuilder &builder, BlockArgument argument,
     vec2.push_back(c.imag());
   }
   auto arrayAttr = builder.getF64ArrayAttr(vec2);
-  return synthesizeVectorArgument<ComplexType>(
-      builder, argument, vec, arrayAttr, makeComplexElement<double>);
+  return synthesizeVectorArgument<ComplexType>(builder, module, counter,
+                                               argument, vec, arrayAttr,
+                                               makeComplexElement<double>);
 }
 
 namespace {
@@ -377,7 +421,9 @@ public:
   void runOnOperation() override final {
     std::cout << "Module before synthesis " << std::endl;
     auto module = getModule();
-    module.dump();
+    // module.dump();
+    unsigned counter = 0;
+
     if (args == nullptr || kernelName.empty()) {
       module.emitOpError("Synthesis requires a kernel and the values of the "
                          "arguments passed when it is called.");
@@ -516,13 +562,12 @@ public:
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto sizeFromBuffer =
             *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        unsigned bytesInType;
-        if (auto complexTy = dyn_cast<ComplexType>(eleTy))
-          bytesInType = cudaq::opt::convertBitsToBytes(
-              complexTy.getElementType().getIntOrFloatBitWidth() * 2);
-        else
-          bytesInType =
-              cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+        unsigned bytesInType = [&eleTy]() {
+          if (auto complexTy = dyn_cast<ComplexType>(eleTy))
+            return 2 * cudaq::opt::convertBitsToBytes(
+                           complexTy.getElementType().getIntOrFloatBitWidth());
+          return cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+        }();
         assert(bytesInType > 0 && "element must have a size");
         auto vectorSize = sizeFromBuffer / bytesInType;
         stdVecInfo.emplace_back(argNum, eleTy, vectorSize);
@@ -546,6 +591,7 @@ public:
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
         continue;
       }
+
       funcOp.emitOpError("We cannot synthesize argument(s) of this type.");
       signalPassFailure();
       return;
@@ -567,7 +613,8 @@ public:
       auto doVector = [&]<typename T>(T) {
         auto *ptr = reinterpret_cast<T *>(bufferAppendix);
         std::vector<T> v(ptr, ptr + vecLength);
-        if (failed(synthesizeVectorArgument(builder, arguments[idx], v)))
+        if (failed(synthesizeVectorArgument(builder, module, counter,
+                                            arguments[idx], v)))
           funcOp.emitOpError("synthesis failed for vector<T>");
         bufferAppendix += vecLength * sizeof(T);
       };
@@ -633,7 +680,7 @@ public:
       }
     }
     funcOp.eraseArguments(argsToErase);
-    std::cout << "Module after synthesis " << std::endl; 
+    // std::cout << "Module after synthesis " << std::endl;
     module.dump();
   }
 };
