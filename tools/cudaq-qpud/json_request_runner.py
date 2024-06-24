@@ -46,6 +46,8 @@ def get_deserialized_dict(scoped_dict):
 
 if __name__ == "__main__":
     try:
+        requestStart = int(datetime.now().timestamp() * 1000)
+        
         watchdog_timeout = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
         if watchdog_timeout > 0:
             timer = threading.Timer(watchdog_timeout, lambda: os._exit(1))
@@ -118,10 +120,8 @@ if __name__ == "__main__":
         except:
             deviceProps = dict()
 
-        # We don't have visibility into the difference between `requestStart`
-        # and `simulationStart`, so simply use `simulationStart` for both
         executionInfo = {
-            'requestStart': simulationStart,
+            'requestStart': requestStart,
             'simulationStart': simulationStart,
             'simulationEnd': simulationEnd,
             'deviceProps': deviceProps
