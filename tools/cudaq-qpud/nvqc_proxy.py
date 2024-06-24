@@ -164,6 +164,9 @@ class Server(http.server.SimpleHTTPRequestHandler):
                                 'mpiexec', '--allow-run-as-root', '-np',
                                 str(NUM_GPUS)
                             ] + cmd_list
+                            os.environ['CUDAQ_USE_MPI'] = '1'
+                        else:
+                            os.environ['CUDAQ_USE_MPI'] = '0'
                         cmd_result = subprocess.run(cmd_list,
                                                     capture_output=True,
                                                     text=True)
@@ -201,6 +204,8 @@ class Server(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     try:
         NUM_GPUS = int(subprocess.getoutput('nvidia-smi --list-gpus | wc -l'))
+        if 'NUM_GPUS' in os.environ:
+            NUM_GPUS = min(NUM_GPUS, int(os.environ['NUM_GPUS']))
     except:
         NUM_GPUS = 0
     MPI_FOUND = (shutil.which('mpiexec') != None)

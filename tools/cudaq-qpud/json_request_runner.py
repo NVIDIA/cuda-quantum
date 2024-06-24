@@ -48,6 +48,9 @@ if __name__ == "__main__":
     try:
         requestStart = int(datetime.now().timestamp() * 1000)
 
+        if int(os.environ.get('CUDAQ_USE_MPI', 0)) > 0:
+            cudaq.mpi.initialize()
+
         watchdog_timeout = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
         if watchdog_timeout > 0:
             timer = threading.Timer(watchdog_timeout, lambda: os._exit(1))
@@ -65,8 +68,9 @@ if __name__ == "__main__":
 
         # Limit imports for the user code to a small subset of possible imports.
         imports_code = '\n'.join([
-            'import cudaq', 'from cudaq import spin', 'import numpy',
-            'import numpy as np', 'from typing import List, Tuple'
+            'import cudaq', 'from cudaq import spin', 'import math',
+            'import numpy', 'import numpy as np',
+            'from typing import List, Tuple'
         ])
 
         # Be sure to do this before running any code from `serialized_ctx`
@@ -80,7 +84,9 @@ if __name__ == "__main__":
             'tensornet': 'tensornet',
             'tensornet_mps': 'tensornet-mps',
             'dm': 'density-matrix-cpu',
-            'nvidia_mgpu': 'nvidia-mgpu'
+            'nvidia_mgpu': 'nvidia-mgpu',
+            'nvidia_mqpu': 'nvidia-mqpu',
+            'nvidia_mqpu-fp64': 'nvidia-mqpu-fp64'
         }
         simulator_name = request['simulator']
         simulator_name = simulator_name.replace('-', '_')
@@ -111,7 +117,9 @@ if __name__ == "__main__":
 
         # Execute main source_code
         simulationStart = int(datetime.now().timestamp() * 1000)
-        exec(source_code, globals_dict)
+        if target_name == 'nvidia-mgpu' or (
+                not cudaq.mpi.is_initialized()) or cudaq.mpi.rank() == 0:
+            exec(source_code, globals_dict)
         simulationEnd = int(datetime.now().timestamp() * 1000)
 
         # Collect results
@@ -137,6 +145,9 @@ if __name__ == "__main__":
             print('\n' + json.dumps(result))
         if watchdog_timeout > 0:
             timer.cancel()  # Must do this before exiting to avoid stall
+
+        if cudaq.mpi.is_initialized():
+            cudaq.mpi.finalize()
 
     except Exception as e:
         result = {
