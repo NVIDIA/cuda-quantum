@@ -10,9 +10,7 @@ import os
 
 # To use the ORCA target you will need to set the ORCA_ACCESS_URL environment variable
 # or pass a url.
-orca_url = os.getenv(
-    "ORCA_ACCESS_URL", "http://api.orcacomputing.com/v1/sample"
-)  # "http://localhost:8080/sample")
+orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost/sample")
 
 cudaq.set_target("orca", url=orca_url)
 # ORCA's PT-Series implement the boson sampling model of quantum computation,
@@ -57,7 +55,7 @@ n_beamsplitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
 # beam splitter angles
 bs_angles = np.linspace(np.pi / 8, np.pi / 3, n_beamsplitters)
 
-# Optionally, we can also specify the phase shifter angles, if the sytems includes phase shifters
+# Optionally, we can also specify the phase shifter angles, if the system includes phase shifters
 # ps_angles = np.linspace(np.pi / 6, np.pi / 3, n_beamsplitters)
 
 # we can also set number of requested samples

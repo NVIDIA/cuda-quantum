@@ -71,7 +71,7 @@ int main() {
   linear_spaced_vector(bs_angles, M_PI / 8, M_PI / 3, n_beamsplitters);
 
   // Optionally, we can also specify the phase shifter angles (created a linear
-  // spaced vector of angles), if the sytems includes phase shifters
+  // spaced vector of angles), if the system includes phase shifters
   // std::vector<double> ps_angles(n_beamsplitters);
   // linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beamsplitters);
 
