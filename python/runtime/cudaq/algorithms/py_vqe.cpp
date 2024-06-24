@@ -171,7 +171,6 @@ pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
   auto function_call = os.str();
 
   SerializedCodeExecutionContext scCtx;
-  scCtx.imports = "import cudaq\n";
   scCtx.scoped_var_dict = std::move(scoped_vars_str);
   scCtx.source_code = std::move(function_call);
 

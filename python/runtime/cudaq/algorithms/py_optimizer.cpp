@@ -26,7 +26,6 @@ get_serialized_code(std::string &source_code) {
   SerializedCodeExecutionContext ctx;
   try {
     py::object json = py::module_::import("json");
-    ctx.imports = get_imports();
     auto var_dict = get_serializable_var_dict();
     ctx.scoped_var_dict = py::str(json.attr("dumps")(var_dict));
     ctx.source_code = source_code;

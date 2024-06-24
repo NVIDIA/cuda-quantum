@@ -21,10 +21,6 @@ py::dict get_serializable_var_dict();
 /// @brief Fetch the Python source code from a `py::function`
 std::string get_source_code(const py::function &func);
 
-/// @brief Get a Python string of currently imported modules
-/// @returns A string like `"import cudaq\nimport os\nimport numpy as np"`
-std::string get_imports();
-
 /// @brief Find the variable name for a given Python object handle. It searches
 /// locally first, walks up the call stack, and finally checks the global
 /// namespace. If not found, it returns an empty string.

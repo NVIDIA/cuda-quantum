@@ -121,26 +121,6 @@ std::string get_source_code(const py::function &func) {
   return source;
 }
 
-std::string get_imports() {
-  py::module sys = py::module::import("sys");
-  py::dict sys_modules = sys.attr("modules");
-  py::dict globals = py::globals();
-  std::string imports_str;
-
-  for (auto item : globals) {
-    if (py::isinstance<py::module>(item.second)) {
-      py::module mod = item.second.cast<py::module>();
-      std::string alias = py::str(item.first);
-      std::string name = py::str(mod.attr("__name__"));
-      if (alias == name)
-        imports_str += "import " + name + "\n";
-      else if (!alias.starts_with("@"))
-        imports_str += "import " + name + " as " + alias + "\n";
-    }
-  }
-  return imports_str;
-}
-
 std::string get_var_name_for_handle(const py::handle &h) {
   py::object inspect = py::module::import("inspect");
   // Search locals first, walking up the call stack

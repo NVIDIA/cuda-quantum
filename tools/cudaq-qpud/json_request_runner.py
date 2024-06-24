@@ -61,9 +61,13 @@ if __name__ == "__main__":
             request = json.load(fp)
 
         serialized_ctx = request['serializedCodeExecutionContext']
-        imports_code = serialized_ctx['imports']
         source_code = serialized_ctx['source_code']
-        imports_code += '\nfrom typing import List, Tuple\n'
+
+        # Limit imports for the user code to a small subset of possible imports.
+        imports_code = '\n'.join([
+            'import cudaq', 'from cudaq import spin', 'import numpy',
+            'import numpy as np', 'from typing import List, Tuple'
+        ])
 
         # Be sure to do this before running any code from `serialized_ctx`
         globals_dict = get_deserialized_dict(serialized_ctx['scoped_var_dict'])

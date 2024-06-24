@@ -21,9 +21,6 @@ namespace cudaq {
 /// how a serialized code should be executed.
 class SerializedCodeExecutionContext {
 public:
-  /// @brief Necessary Python imports required to execute \p source_code.
-  std::string imports;
-
   /// @brief All variables visible to the Python \p source_code to execute, as a
   /// JSON-like string object.
   std::string scoped_var_dict;
@@ -35,7 +32,7 @@ public:
   ~SerializedCodeExecutionContext() = default;
 
   // Serialization
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext, imports,
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext,
                                  scoped_var_dict, source_code);
 };
 } // namespace cudaq
