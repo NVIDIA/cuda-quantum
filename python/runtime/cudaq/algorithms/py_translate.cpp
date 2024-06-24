@@ -95,7 +95,7 @@ Returns:
       h(q[0])
       cx(q[0], q[1])
       mz(q)
-  print(cudaq.translate(bell_pair, format:"qir"))
+  print(cudaq.translate(bell_pair, format="qir"))
 
   # Output
   ; ModuleID = 'LLVMDialectModule'
