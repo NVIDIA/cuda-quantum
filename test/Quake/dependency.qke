@@ -1,0 +1,59 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --expand-controls-veqs %s | FileCheck %s
+
+// func.func @test() {
+//   %0 = quake.alloca !quake.veq<2>
+//   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+//   %2 = quake.unwrap %1 : (!quake.ref) -> !quake.wire {qid = 0 : index}
+//   %3 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+//   %4 = quake.unwrap %3 : (!quake.ref) -> !quake.wire {qid = 1 : index}
+//   %5 = quake.h %2 : (!quake.wire) -> !quake.wire {qid = 0 : index}
+//   %measOut, %wires = quake.mz %5 : (!quake.wire) -> (!quake.measure, !quake.wire) {qids = array<i32: -1, 0>}
+//   %6 = quake.discriminate %measOut : (!quake.measure) -> i1 {qid = 0 : index}
+//   cf.cond_br %6, ^bb1(%4, %wires : !quake.wire, !quake.wire), ^bb2(%4, %wires : !quake.wire, !quake.wire)
+// ^bb1(%7: !quake.wire, %8: !quake.wire):  // pred: ^bb0
+//   %9 = quake.h %7 : (!quake.wire) -> !quake.wire {qid = 1 : index}
+//   %10:2 = quake.x [%9] %8 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {qids = array<i32: 1, 0>}
+//   quake.wrap %10#0 to %3 : !quake.wire, !quake.ref
+//   cf.br ^bb3(%10#1 : !quake.wire)
+// ^bb2(%11: !quake.wire, %12: !quake.wire):  // pred: ^bb0
+//   %13 = quake.h %11 : (!quake.wire) -> !quake.wire {qid = 1 : index}
+//   %measOut_0, %wires_1 = quake.mz %13 : (!quake.wire) -> (!quake.measure, !quake.wire) {qids = array<i32: -1, 1>}
+//   quake.wrap %wires_1 to %3 : !quake.wire, !quake.ref {qid = 1 : index}
+//   cf.br ^bb3(%12 : !quake.wire)
+// ^bb3(%14: !quake.wire):  // 2 preds: ^bb1, ^bb2
+//   %measOut_2, %wires_3 = quake.mz %14 : (!quake.wire) -> (!quake.measure, !quake.wire) {qids = array<i32: -1, 0>}
+//   quake.wrap %wires_3 to %1 : !quake.wire, !quake.ref {qid = 0 : index}
+//   quake.dealloc %0 : !quake.veq<2>
+//   return
+// }
+
+func.func @test() {
+  %0 = quake.null_wire {qid = 0 : index}
+  %1 = quake.null_wire {qid = 1 : index}
+  %2 = quake.h %0 : (!quake.wire) -> !quake.wire {qids = array<i32: 0>}
+  %measOut, %wires = quake.mz %2 : (!quake.wire) -> (!quake.measure, !quake.wire) {qids = array<i32: -1, 0>}
+  %3 = quake.discriminate %measOut : (!quake.measure) -> i1 {qids = array<i32: 0>}
+  cf.cond_br %3, ^bb1(%1, %wires : !quake.wire, !quake.wire), ^bb2(%1, %wires : !quake.wire, !quake.wire)
+^bb1(%4: !quake.wire, %5: !quake.wire):  // pred: ^bb0
+  %6 = quake.h %4 : (!quake.wire) -> !quake.wire {qids = array<i32: 1>}
+  %7:2 = quake.x [%6] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {qids = array<i32: 1, 0>}
+  quake.sink %7#0 : !quake.wire
+  cf.br ^bb3(%7#1 : !quake.wire)
+^bb2(%8: !quake.wire, %9: !quake.wire):  // pred: ^bb0
+  %10 = quake.h %8 : (!quake.wire) -> !quake.wire {qids = array<i32: 1>}
+  %measOut_0, %wires_1 = quake.mz %10 : (!quake.wire) -> (!quake.measure, !quake.wire) {qids = array<i32: -1, 1>}
+  quake.sink %wires_1 : !quake.wire
+  cf.br ^bb3(%9 : !quake.wire)
+^bb3(%11: !quake.wire):  // 2 preds: ^bb1, ^bb2
+  %measOut_2, %wires_2 = quake.mz %11 : (!quake.wire) -> (!quake.measure, !quake.wire) {qids = array<i32: -1, 0>}
+  quake.sink %wires_2 : !quake.wire
+  return
+}

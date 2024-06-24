@@ -47,6 +47,15 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
+def DependencyAnalysis : Pass<"dep-analysis", "mlir::func::FuncOp"> {
+  let summary = "Generates qubit dependency graphs based on quake code.";
+  let description = [{
+    Work in progress.
+  }];
+
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def PySynthCallableBlockArgs : Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
   let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
   let description = [{
