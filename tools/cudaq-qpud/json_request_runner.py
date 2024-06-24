@@ -47,7 +47,7 @@ def get_deserialized_dict(scoped_dict):
 if __name__ == "__main__":
     try:
         requestStart = int(datetime.now().timestamp() * 1000)
-        
+
         watchdog_timeout = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
         if watchdog_timeout > 0:
             timer = threading.Timer(watchdog_timeout, lambda: os._exit(1))
