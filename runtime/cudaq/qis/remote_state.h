@@ -47,7 +47,7 @@ public:
     argsBuffer = cudaq::serializeArgs(std::forward<Args>(args)...);
   }
   RemoteSimulationState() = default;
-  ~RemoteSimulationState();
+  virtual ~RemoteSimulationState();
   /// @brief Triggers remote execution to resolve the state data.
   virtual void execute() const;
 
