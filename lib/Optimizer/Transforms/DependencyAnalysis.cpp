@@ -30,11 +30,11 @@ namespace cudaq::opt {
 namespace {
 class DependencyNode {
 protected:
-  SmallVector<DependencyNode*> successors;
-  SmallVector<DependencyNode*> dependencies;
+  SmallVector<DependencyNode *> successors;
+  SmallVector<DependencyNode *> dependencies;
   // TODO: should probably be a set of qids here
   size_t qindex;
-  Operation* associated;
+  Operation *associated;
 
   // Print with tab index to should depth in graph
   void printSub(int tabIndex) {
@@ -53,19 +53,20 @@ protected:
   }
 
 public:
-  DependencyNode(size_t index, Operation* op, DependencyNode* from) :
-  successors(), dependencies(), qindex(index), associated(op) {
+  DependencyNode(size_t index, Operation *op, DependencyNode *from)
+      : successors(), dependencies(), qindex(index), associated(op) {
     if (from) {
       addSuccessor(from);
     }
   };
 
-  DependencyNode(DependencyNode* from) :
-  successors({from}), dependencies(), qindex(from->qindex), associated(nullptr) {
+  DependencyNode(DependencyNode *from)
+      : successors({from}), dependencies(), qindex(from->qindex),
+        associated(nullptr) {
     addSuccessor(from);
   };
 
-  inline void addSuccessor(DependencyNode* other) {
+  inline void addSuccessor(DependencyNode *other) {
     successors.push_back(other);
     other->dependencies.push_back(this);
   }
@@ -75,27 +76,25 @@ public:
     return associated == nullptr && dependencies.size() > 0;
   }
 
-  void print() {
-    printSub(0);
-  }
+  void print() { printSub(0); }
 };
 
-inline bool isMeasureOp(Operation* op) {
-  return dyn_cast<quake::MxOp>(*op) || dyn_cast<quake::MyOp>(*op)
-          || dyn_cast<quake::MzOp>(*op);
+inline bool isMeasureOp(Operation *op) {
+  return dyn_cast<quake::MxOp>(*op) || dyn_cast<quake::MyOp>(*op) ||
+         dyn_cast<quake::MzOp>(*op);
 }
 
-inline bool isBeginOp(Operation* op) {
-  return dyn_cast<quake::UnwrapOp>(*op) || dyn_cast<quake::ExtractRefOp>(*op)
-          || dyn_cast<quake::NullWireOp>(*op);
+inline bool isBeginOp(Operation *op) {
+  return dyn_cast<quake::UnwrapOp>(*op) || dyn_cast<quake::ExtractRefOp>(*op) ||
+         dyn_cast<quake::NullWireOp>(*op);
 }
 
 class DependencyAnalysis {
 private:
-  SmallVector<DependencyNode*> perOp;
-  DenseMap<BlockArgument, DependencyNode*> map;
+  SmallVector<DependencyNode *> perOp;
+  DenseMap<BlockArgument, DependencyNode *> map;
 
-  inline DependencyNode* getDNodeId(Operation* op, int res_index) {
+  inline DependencyNode *getDNodeId(Operation *op, int res_index) {
     if (op->hasAttr("dnodeids")) {
       auto ids = op->getAttr("dnodeids").cast<DenseI32ArrayAttr>();
       if (ids[res_index] != -1) {
@@ -108,9 +107,10 @@ private:
   }
 
 public:
-  DependencyAnalysis() : perOp(), map() {};
+  DependencyAnalysis() : perOp(), map(){};
 
-  DependencyNode* handleDependencyOp(Operation* op, DependencyNode* next, int res_index) {
+  DependencyNode *handleDependencyOp(Operation *op, DependencyNode *next,
+                                     int res_index) {
     // Reached end of graph (beginning of circuit)
     if (isBeginOp(op))
       return nullptr;
@@ -124,17 +124,19 @@ public:
 
     // Lookup qid for result
     auto qid = op->getAttrOfType<DenseI32ArrayAttr>("qids")[res_index];
-  
-    // Construct new dnode
-    DependencyNode* newNode = new DependencyNode(qid, op, next);
 
-    // Dnodeid for the given result index is the current index into the dnode vector
+    // Construct new dnode
+    DependencyNode *newNode = new DependencyNode(qid, op, next);
+
+    // TODO: Only one dnodeid per op with qid sets?
+    // Dnodeid for the relevant result is the next slot of the dnode vector
     SmallVector<int32_t> ids(op->getNumResults(), -1);
     ids[res_index] = perOp.size();
-    
+
     // Add dnodeid attribute
     OpBuilder builder(op);
-    op->setAttr("dnodeids", builder.getDenseI32ArrayAttr({ids.begin(), ids.end()}));
+    op->setAttr("dnodeids",
+                builder.getDenseI32ArrayAttr({ids.begin(), ids.end()}));
     perOp.push_back(newNode);
 
     // Recursively visit children
@@ -145,7 +147,7 @@ public:
     return newNode;
   }
 
-  DependencyNode* handleDependencyArg(BlockArgument arg, DependencyNode* next) {
+  DependencyNode *handleDependencyArg(BlockArgument arg, DependencyNode *next) {
     // If we've already handled this block argument, return memoized value
     if (auto prev = map.lookup(arg)) {
       prev->addSuccessor(next);
@@ -153,7 +155,7 @@ public:
     }
 
     auto block = arg.getParentBlock();
-    DependencyNode* newNode = next;
+    DependencyNode *newNode = next;
     // TODO: better way to check for multiple predecessors?
     // TODO: get single or get unique?
     // If join point, insert join node
@@ -162,10 +164,11 @@ public:
       map.insert({arg, newNode});
     }
 
-    // Look up operands from all branch instructions pointing to the parent block
-    // and recursively visit them
+    // Look up operands from all branch instructions that can jump
+    // to the parent block and recursively visit them
     for (auto predecessor : block->getPredecessors()) {
-      if (auto branch = dyn_cast<BranchOpInterface>(predecessor->getTerminator())) {
+      if (auto branch =
+              dyn_cast<BranchOpInterface>(predecessor->getTerminator())) {
         unsigned numSuccs = branch->getNumSuccessors();
         for (unsigned i = 0; i < numSuccs; ++i) {
           if (block && branch->getSuccessor(i) != block)
@@ -174,13 +177,13 @@ public:
           auto operand = brArgs[arg.getArgNumber()];
           handleDependencyValue(operand, newNode);
         }
-      }      
+      }
     }
 
     return newNode;
   }
 
-  DependencyNode* handleDependencyValue(Value v, DependencyNode* next) {
+  DependencyNode *handleDependencyValue(Value v, DependencyNode *next) {
     // Block arguments do not have associated operations,
     // but may require inserting joins, so they are handled specially
     if (auto arg = dyn_cast<BlockArgument>(v))
@@ -215,7 +218,7 @@ struct DependencyAnalysisPass
 
     DependencyAnalysis engine;
 
-    func.walk([&](quake::MzOp mop){
+    func.walk([&](quake::MzOp mop) {
       // TODO: Making assumption wire is second measure result
       auto graph = engine.handleDependencyValue(mop.getResult(1), nullptr);
       if (graph)
