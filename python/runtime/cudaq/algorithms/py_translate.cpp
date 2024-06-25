@@ -11,7 +11,6 @@
 #include "cudaq/algorithms/draw.h" // TODO  translate.h
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-
 #include <iostream>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
