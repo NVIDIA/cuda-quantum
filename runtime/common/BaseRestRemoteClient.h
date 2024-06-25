@@ -946,21 +946,26 @@ public:
             auto rightSize = (totalWidth - strLen) - leftSize;
             std::string leftSide(leftSize, '=');
             std::string rightSide(rightSize, '=');
-            fmt::print("\n{} {} {}\n", leftSide, message, rightSide);
-            fmt::print("GPU Device Name: \"{}\"\n",
-                       info.deviceProps.deviceName);
-            fmt::print("CUDA Driver Version / Runtime Version: {}.{} / {}.{}\n",
-                       info.deviceProps.driverVersion / 1000,
-                       (info.deviceProps.driverVersion % 100) / 10,
-                       info.deviceProps.runtimeVersion / 1000,
-                       (info.deviceProps.runtimeVersion % 100) / 10);
-            fmt::print("Total global memory (GB): {:.1f}\n",
-                       (float)(info.deviceProps.totalGlobalMemMbytes) / 1024.0);
-            fmt::print("Memory Clock Rate (MHz): {:.3f}\n",
-                       info.deviceProps.memoryClockRateMhz);
-            fmt::print("GPU Clock Rate (MHz): {:.3f}\n",
-                       info.deviceProps.clockRateMhz);
-            fmt::print("{}\n", std::string(totalWidth, '='));
+            auto &platform = cudaq::get_platform();
+            std::ostream &os =
+                platform.getLogStream() ? *platform.getLogStream() : std::cout;
+            os << fmt::format("\n{} {} {}\n", leftSide, message, rightSide);
+            os << fmt::format("GPU Device Name: \"{}\"\n",
+                              info.deviceProps.deviceName);
+            os << fmt::format(
+                "CUDA Driver Version / Runtime Version: {}.{} / {}.{}\n",
+                info.deviceProps.driverVersion / 1000,
+                (info.deviceProps.driverVersion % 100) / 10,
+                info.deviceProps.runtimeVersion / 1000,
+                (info.deviceProps.runtimeVersion % 100) / 10);
+            os << fmt::format("Total global memory (GB): {:.1f}\n",
+                              (float)(info.deviceProps.totalGlobalMemMbytes) /
+                                  1024.0);
+            os << fmt::format("Memory Clock Rate (MHz): {:.3f}\n",
+                              info.deviceProps.memoryClockRateMhz);
+            os << fmt::format("GPU Clock Rate (MHz): {:.3f}\n",
+                              info.deviceProps.clockRateMhz);
+            os << fmt::format("{}\n", std::string(totalWidth, '='));
             // Only print this device info once.
             printDeviceInfoOnce = true;
           }
