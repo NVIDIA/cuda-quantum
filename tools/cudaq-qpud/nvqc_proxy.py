@@ -18,6 +18,7 @@ import subprocess
 import os
 import tempfile
 import shutil
+import pathlib
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
@@ -28,6 +29,35 @@ QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
 
 NUM_GPUS = 0
 MPI_FOUND = False
+WATCHDOG_TIMEOUT_SEC = 0
+RUN_AS_NOBODY = True
+SUDO_FOUND = False
+
+
+def build_command_list(temp_file_name: str) -> list[str]:
+    """
+    Build the command essentially from right to left, prepending wrapper
+    commands as necessary for this invocation.
+    """
+    current_script_path = os.path.abspath(__file__)
+    json_req_path = os.path.join(os.path.dirname(current_script_path),
+                                 'json_request_runner.py')
+    cmd_list = [sys.executable, json_req_path, temp_file_name]
+    if NUM_GPUS > 1 and MPI_FOUND:
+        cmd_list = ['mpiexec', '--allow-run-as-root', '-np',
+                    str(NUM_GPUS)] + cmd_list
+        cmd_list += ['--use-mpi=1']  # --use-mpi must come at the end
+    else:
+        cmd_list += ['--use-mpi=0']  # --use-mpi must come at the end
+    # The timeout must be inside the su/sudo commands in order to function.
+    if WATCHDOG_TIMEOUT_SEC > 0:
+        cmd_list = ['timeout', str(WATCHDOG_TIMEOUT_SEC)] + cmd_list
+    if RUN_AS_NOBODY:
+        cmd_list = ['su', '-s', '/bin/bash', 'nobody', '-c', ' '.join(cmd_list)]
+        if SUDO_FOUND:
+            cmd_list = ['sudo'] + cmd_list
+
+    return cmd_list
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
@@ -149,29 +179,45 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 request_json = json.loads(request_data)
 
                 if self.is_serialized_code_execution_request(request_json):
-                    with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+                    result = {'status': 'uninitialized', 'errorMessage': ''}
+                    with tempfile.NamedTemporaryFile(dir=temp_dir,
+                                                     delete=False) as temp_file:
                         temp_file.write(request_data)
                         temp_file.flush()
-                        current_script_path = os.path.abspath(__file__)
-                        json_req_path = os.path.join(
-                            os.path.dirname(current_script_path),
-                            'json_request_runner.py')
-                        cmd_list = [
-                            sys.executable, json_req_path, temp_file.name
-                        ]
-                        if NUM_GPUS > 1 and MPI_FOUND:
-                            cmd_list = [
-                                'mpiexec', '--allow-run-as-root', '-np',
-                                str(NUM_GPUS)
-                            ] + cmd_list
-                            os.environ['CUDAQ_USE_MPI'] = '1'
+
+                    # Make it world writeable so that the subprocess can write
+                    # the results to the file.
+                    os.chmod(temp_file.name, 0o666)
+
+                    # We also must get to a directory where "nobody" can see (in
+                    # order to make MPI happy)
+                    save_dir = os.getcwd()
+                    os.chdir(pathlib.Path(temp_file.name).parent)
+                    cmd_list = build_command_list(temp_file.name)
+                    cmd_result = subprocess.run(cmd_list,
+                                                capture_output=False,
+                                                text=True)
+                    if cmd_result.returncode == 0:
+                        with open(temp_file.name, 'rb') as fp:
+                            result = json.load(fp)
+                    else:
+                        result = {
+                            'status':
+                                'json_request_runner.py returned an error',
+                            'errorMessage':
+                                f'Return code: {cmd_result.returncode}\n' +
+                                f'{cmd_result.stdout}\n' +
+                                f'{cmd_result.stderr}\n'
+                        }
+
+                    # Cleanup
+                    os.chdir(save_dir)
+                    if RUN_AS_NOBODY:
+                        if SUDO_FOUND:
+                            os.system('sudo pkill -9 -u nobody')
                         else:
-                            os.environ['CUDAQ_USE_MPI'] = '0'
-                        cmd_result = subprocess.run(cmd_list,
-                                                    capture_output=True,
-                                                    text=True)
-                        last_line = cmd_result.stdout.strip().split('\n')[-1]
-                        result = json.loads(last_line)
+                            os.system('pkill -9 -u nobody')
+                    os.remove(temp_file.name)
 
                     self.send_response(HTTPStatus.OK)
                     self.send_header('Content-Type', 'application/json')
@@ -209,6 +255,15 @@ if __name__ == "__main__":
     except:
         NUM_GPUS = 0
     MPI_FOUND = (shutil.which('mpiexec') != None)
+    SUDO_FOUND = (shutil.which('sudo') != None)
+    WATCHDOG_TIMEOUT_SEC = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
+
+    temp_dir = tempfile.gettempdir()
+    if RUN_AS_NOBODY:
+        temp_dir = os.path.join(temp_dir, 'nvqc_proxy')
+        os.makedirs(temp_dir, exist_ok=True)
+        os.chmod(temp_dir, 0o777)  # Allow "nobody" to write to this directory.
+
     Handler = Server
     with ThreadedHTTPServer(("", PROXY_PORT), Handler) as httpd:
         print("Serving at port", PROXY_PORT)

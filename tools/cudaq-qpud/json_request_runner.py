@@ -6,11 +6,21 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Set MPLCONFIGDIR if running as nobody in order to prevent this message that
+# is telling the truth about extended loading times.
+# Warning message:
+#   Matplotlib created a temporary cache directory at /tmp/matplotlib-kzlo6tuj
+#   because the default path (/nonexistent/.config/matplotlib) is not a writable
+#   directory; it is highly recommended to set the MPLCONFIGDIR environment
+#   variable to a writable directory, in particular to speed up the import of
+#   Matplotlib and to better support multiprocessing.
+import os
+if 'nonexistent' in os.environ['HOME']:
+    os.environ['MPLCONFIGDIR'] = os.getcwd()
+
 import cudaq
 import sys
 import json
-import threading
-import os
 import subprocess
 import importlib
 from datetime import datetime
@@ -48,16 +58,15 @@ if __name__ == "__main__":
     try:
         requestStart = int(datetime.now().timestamp() * 1000)
 
-        if int(os.environ.get('CUDAQ_USE_MPI', 0)) > 0:
+        # Expected command-line arguments:
+        # sys.argv[0] = json_request_runner.py
+        # sys.argv[1] = <json file>
+        # sys.argv[2] = --use-mpi=<0|1>
+        if '--use-mpi=1' in sys.argv:
             cudaq.mpi.initialize()
 
-        watchdog_timeout = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
-        if watchdog_timeout > 0:
-            timer = threading.Timer(watchdog_timeout, lambda: os._exit(1))
-            timer.start()
-
         # Read request
-        if len(sys.argv) < 2:
+        if len(sys.argv) < 3:
             raise (Exception('Too few command-line arguments'))
         jsonFile = sys.argv[1]
         with open(jsonFile, 'rb') as fp:
@@ -140,11 +149,11 @@ if __name__ == "__main__":
         }
         result['executionInfo'] = executionInfo
 
-        # Only rank 0 prints the result
+        # Only rank 0 writes the result to the output file
         if not (cudaq.mpi.is_initialized()) or (cudaq.mpi.rank() == 0):
-            print('\n' + json.dumps(result))
-        if watchdog_timeout > 0:
-            timer.cancel()  # Must do this before exiting to avoid stall
+            with open(jsonFile, 'w') as fp:
+                json.dump(result, fp)
+                fp.flush()
 
         if cudaq.mpi.is_initialized():
             cudaq.mpi.finalize()
@@ -156,6 +165,6 @@ if __name__ == "__main__":
         }
         # Only rank 0 prints the result
         if not (cudaq.mpi.is_initialized()) or (cudaq.mpi.rank() == 0):
-            print('\n' + json.dumps(result))
-        if watchdog_timeout > 0:
-            timer.cancel()  # Must do this before exiting to avoid stall
+            with open(jsonFile, 'w') as fp:
+                json.dump(result, fp)
+                fp.flush()
