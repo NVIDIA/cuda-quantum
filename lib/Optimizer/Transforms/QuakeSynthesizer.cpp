@@ -23,8 +23,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
 
-#include <iostream>
-
 #define DEBUG_TYPE "quake-synthesizer"
 
 using namespace mlir;
@@ -419,9 +417,7 @@ public:
   }
 
   void runOnOperation() override final {
-    std::cout << "Module before synthesis " << std::endl;
     auto module = getModule();
-    // module.dump();
     unsigned counter = 0;
 
     if (args == nullptr || kernelName.empty()) {
@@ -680,7 +676,6 @@ public:
       }
     }
     funcOp.eraseArguments(argsToErase);
-    // std::cout << "Module after synthesis " << std::endl;
     module.dump();
   }
 };

@@ -29,31 +29,32 @@
 
 namespace cudaq::details {
 
-  /// @brief Converts angles of a uniformly controlled rotation to angles of
-  /// non-controlled rotations.
-  std::vector<double> convertAngles(const std::span<double> alphas);
+/// @brief Converts angles of a uniformly controlled rotation to angles of
+/// non-controlled rotations.
+std::vector<double> convertAngles(const std::span<double> alphas);
 
-  /// @brief Return the control indices dictated by the gray code implementation.
-  ///
-  /// Here, numBits is the number of controls.
-  std::vector<std::size_t> getControlIndices(std::size_t numBits);
+/// @brief Return the control indices dictated by the gray code implementation.
+///
+/// Here, numBits is the number of controls.
+std::vector<std::size_t> getControlIndices(std::size_t numBits);
 
-   /// @brief Return angles required to implement a uniformly controlled z-rotation
-  /// on the `kth` qubit.
-  std::vector<double> getAlphaZ(const std::span<double> data,
-                                std::size_t numQubits, std::size_t k);
+/// @brief Return angles required to implement a uniformly controlled z-rotation
+/// on the `kth` qubit.
+std::vector<double> getAlphaZ(const std::span<double> data,
+                              std::size_t numQubits, std::size_t k);
 
-  /// @brief Return angles required to implement a uniformly controlled y-rotation
-  /// on the `kth` qubit.
-  std::vector<double> getAlphaY(const std::span<double> data,
-                                std::size_t numQubits, std::size_t k);
+/// @brief Return angles required to implement a uniformly controlled y-rotation
+/// on the `kth` qubit.
+std::vector<double> getAlphaY(const std::span<double> data,
+                              std::size_t numQubits, std::size_t k);
 } // namespace cudaq::details
 
 class StateGateBuilder {
 public:
-  StateGateBuilder(mlir::OpBuilder& b, mlir::Location& l, mlir::Value& q): builder(b), loc(l), qubits(q) {}
+  StateGateBuilder(mlir::OpBuilder &b, mlir::Location &l, mlir::Value &q)
+      : builder(b), loc(l), qubits(q) {}
 
-  template<typename Op>
+  template <typename Op>
   void applyRotationOp(double theta, std::size_t target) {
     auto qubit = createQubitRef(target);
     auto thetaValue = createAngleValue(theta);
@@ -72,26 +73,30 @@ private:
       return qubitRefs[index];
     }
 
-    auto indexValue = builder.create<mlir::arith::ConstantIntOp>(loc, index, builder.getIntegerType(64));
+    auto indexValue = builder.create<mlir::arith::ConstantIntOp>(
+        loc, index, builder.getIntegerType(64));
     auto ref = builder.create<quake::ExtractRefOp>(loc, qubits, indexValue);
     qubitRefs[index] = ref;
     return ref;
   }
 
   mlir::Value createAngleValue(double angle) {
-    return builder.create<mlir::arith::ConstantFloatOp>(loc, llvm::APFloat{angle}, builder.getF64Type());
+    return builder.create<mlir::arith::ConstantFloatOp>(
+        loc, llvm::APFloat{angle}, builder.getF64Type());
   }
 
-  mlir::OpBuilder& builder;
-  mlir::Location& loc;
-  mlir::Value& qubits;
+  mlir::OpBuilder &builder;
+  mlir::Location &loc;
+  mlir::Value &qubits;
 
-  std::unordered_map<std::size_t, mlir::Value> qubitRefs = std::unordered_map<std::size_t, mlir::Value>();
+  std::unordered_map<std::size_t, mlir::Value> qubitRefs =
+      std::unordered_map<std::size_t, mlir::Value>();
 };
 
 class StateDecomposer {
 public:
-  StateDecomposer(StateGateBuilder& b, std::vector<std::complex<double>>& a): builder(b), amplitudes(a), numQubits(log2(a.size())) {}
+  StateDecomposer(StateGateBuilder &b, std::vector<std::complex<double>> &a)
+      : builder(b), amplitudes(a), numQubits(log2(a.size())) {}
 
   /// @brief Decompose the input state vector data to a set of controlled
   /// operations and rotations. This function takes as input a `OpBuilder`
@@ -112,8 +117,9 @@ public:
     }
 
     // N.B: The algorithm, as described in the paper, creates a circuit that
-    // begins with a target state and brings it to the all zero state. Hence, this
-    // implementation do the two steps described in Section III in reverse order.
+    // begins with a target state and brings it to the all zero state. Hence,
+    // this implementation do the two steps described in Section III in reverse
+    // order.
 
     // Apply uniformly controlled y-rotations, the construction in Eq. (4).
     for (std::size_t j = 1; j <= numQubits; ++j) {
@@ -142,7 +148,8 @@ public:
 private:
   /// @brief Apply a uniformly controlled rotation on the target qubit.
   template <typename Op>
-  void applyRotation(const std::span<double> alphas, std::size_t numControls, std::size_t target) {
+  void applyRotation(const std::span<double> alphas, std::size_t numControls,
+                     std::size_t target) {
     auto thetas = cudaq::details::convertAngles(alphas);
     if (numControls == 0) {
       builder.applyRotationOp<Op>(thetas[0], target);
@@ -157,7 +164,7 @@ private:
     }
   }
 
-  StateGateBuilder& builder;
+  StateGateBuilder &builder;
   std::span<std::complex<double>> amplitudes;
   std::size_t numQubits;
 };

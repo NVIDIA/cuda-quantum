@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "StateDecomposer.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -24,9 +25,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
 #include <span>
-#include "StateDecomposer.h"
-
-#include <iostream>
 
 #define DEBUG_TYPE "state-preparation"
 
@@ -38,13 +36,14 @@ using namespace mlir;
 ///   func.func @foo(%arg0 : !cc.stdvec<complex<f32>>) {
 ///     %0 = cc.stdvec_size %arg0 : (!cc.stdvec<complex<f32>>) -> i64
 ///     %1 = math.cttz %0 : i64
-///     %2 = cc.stdvec_data %arg0 : (!cc.stdvec<complex<f32>>) -> !cc.ptr<complex<f32>> 
-///     %3 = quake.alloca !quake.veq<?>[%1 : i64]
-///     %4 = quake.init_state %3, %2 : (!quake.veq<?>, !cc.ptr<complex<f32>>) -> !quake.veq<?>
-///     return
+///     %2 = cc.stdvec_data %arg0 : (!cc.stdvec<complex<f32>>) ->
+///     !cc.ptr<complex<f32>> %3 = quake.alloca !quake.veq<?>[%1 : i64] %4 =
+///     quake.init_state %3, %2 : (!quake.veq<?>, !cc.ptr<complex<f32>>) ->
+///     !quake.veq<?> return
 ///   }
 ///
-/// On a call that passes std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2} as arg0:
+/// On a call that passes std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0.,
+/// M_SQRT1_2} as arg0:
 ///
 ///   func.func @foo(%arg0 : !cc.stdvec<complex<f32>>) {
 ///     %0 = quake.alloca !quake.veq<2>
@@ -70,11 +69,11 @@ using namespace mlir;
 namespace {
 
 template <typename T>
-concept IntegralType = std::is_same<T, bool>::value 
-    || std::is_same<T, std::int8_t>::value
-    || std::is_same<T, std::int16_t>::value
-    || std::is_same<T, std::int32_t>::value
-    || std::is_same<T, std::int64_t>::value;
+concept IntegralType =
+    std::is_same<T, bool>::value || std::is_same<T, std::int8_t>::value ||
+    std::is_same<T, std::int16_t>::value ||
+    std::is_same<T, std::int32_t>::value ||
+    std::is_same<T, std::int64_t>::value;
 
 template <typename T>
 concept FloatingType = std::is_same<T, float>::value;
@@ -85,31 +84,33 @@ concept DoubleType = std::is_same<T, double>::value;
 template <typename T>
 concept ComplexDataType = FloatingType<T> || DoubleType<T> || IntegralType<T>;
 
-/// Input was complex<float>/complex<double> but we prefer
-/// complex<double>/complex<float>. Make a copy, extending or truncating the
-/// values.
+/// Input was complex<float> but we prefer
+/// complex<double>. Make a copy, extending the values.
 template <FloatingType From>
-std::vector<std::complex<double>> convertToComplex(std::complex<From> *data, std::uint64_t size) {
+std::vector<std::complex<double>> convertToComplex(std::complex<From> *data,
+                                                   std::uint64_t size) {
   auto convertData = std::vector<std::complex<double>>(size);
   for (std::size_t i = 0; i < size; ++i)
     convertData[i] = std::complex<double>{static_cast<double>(data[i].real()),
-                                      static_cast<double>(data[i].imag())};
+                                          static_cast<double>(data[i].imag())};
   return convertData;
 }
 
 template <DoubleType From>
-std::vector<std::complex<double>> convertToComplex(std::complex<From> *data, std::uint64_t size) {
-    return std::vector<std::complex<From>>(data, data+size);
+std::vector<std::complex<double>> convertToComplex(std::complex<From> *data,
+                                                   std::uint64_t size) {
+  return std::vector<std::complex<From>>(data, data + size);
 }
 
-/// Input was float/double but we prefer complex<float>/complex<double>.
+/// Input was float/double but we prefer complex<double>.
 /// Make a copy, extending or truncating the values.
 template <ComplexDataType From>
-std::vector<std::complex<double>> convertToComplex(From *data, std::uint64_t size) {
+std::vector<std::complex<double>> convertToComplex(From *data,
+                                                   std::uint64_t size) {
   auto convertData = std::vector<std::complex<double>>(size);
   for (std::size_t i = 0; i < size; ++i)
-    convertData[i] =
-        std::complex<double>{static_cast<double>(data[i]), static_cast<double>(0.0)};
+    convertData[i] = std::complex<double>{static_cast<double>(data[i]),
+                                          static_cast<double>(0.0)};
   return convertData;
 }
 
@@ -118,39 +119,15 @@ prepareStateFromVectorArgument(OpBuilder &builder, ModuleOp module,
                                unsigned &counter, BlockArgument argument,
                                std::vector<std::complex<double>> &vec) {
   auto *ctx = builder.getContext();
-  // builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
 
-  // TODO: look at quake.init_state instructions from vector data and track them
-  // to the argument vector, then replace the instruction by gates preparing the
-  // state (or a call to a kernel with gates)
-
-  ///   func.func @foo(%arg0 : !cc.stdvec<complex<f32>>) {
-  ///     %0 = cc.stdvec_size %arg0 : (!cc.stdvec<complex<f32>>) -> i64
-  ///     %2 = cc.stdvec_data %arg0 : (!cc.stdvec<complex<f32>>) ->
-  ///     !cc.ptr<complex<f32>>
-  ///
-  ///     %3 = quake.alloca !quake.veq<?>[%1 : i64]
-  ///     %4 = quake.init_state %3, %2 : (!quake.veq<?>, !cc.ptr<complex<f32>>)
-  ///     -> !quake.veq<?> return
-  ///   }
-
-  /// =>
-
-  ///     ...
-  ///     %5 = quake.alloca !quake.veq<?>[%3 : i64]
-  ///     %6 = quake.extract_ref %5[0] : (!quake.veq<?>) -> !quake.ref
-  ///     quake.h %6 : (!quake.ref) -> ()
-  ///     %7 = quake.extract_ref %5[0] : (!quake.veq<?>) -> !quake.ref
-  ///     %8 = quake.extract_ref %5[1] : (!quake.veq<?>) -> !quake.ref
-  ///     quake.x [%7] %8 : (!quake.ref, !quake.ref) -> ()
-
-  auto toErase = std::vector<mlir::Operation*>();
+  auto toErase = std::vector<mlir::Operation *>();
 
   for (auto *argUser : argument.getUsers()) {
     // Handle the `StdvecSize` and `quake.alloca` use case:
     // - Replace a `vec.size()` with the vector length.
-    // - Replace the number of qubits calculation with the vector length logarithm.
+    // - Replace the number of qubits calculation with the vector length
+    // logarithm.
     // - Replace `quake.alloca` with a constant size qvector allocation.
     if (auto stdvecSizeOp = dyn_cast<cudaq::cc::StdvecSizeOp>(argUser)) {
       builder.setInsertionPointAfter(stdvecSizeOp);
@@ -160,9 +137,10 @@ prepareStateFromVectorArgument(OpBuilder &builder, ModuleOp module,
       Value numQubits = builder.create<arith::ConstantIntOp>(
           argLoc, log2(vec.size()), stdvecSizeOp.getType());
 
-      for (auto *sizeUser: argUser->getUsers()) {
-        if (auto countZeroesOp = dyn_cast<mlir::math::CountTrailingZerosOp>(sizeUser)) {
-          for (auto *numQubitsUser: sizeUser->getUsers()) {
+      for (auto *sizeUser : argUser->getUsers()) {
+        if (auto countZeroesOp =
+                dyn_cast<mlir::math::CountTrailingZerosOp>(sizeUser)) {
+          for (auto *numQubitsUser : sizeUser->getUsers()) {
             if (auto quakeAllocaOp = dyn_cast<quake::AllocaOp>(numQubitsUser)) {
               builder.setInsertionPointAfter(quakeAllocaOp);
               auto veqTy = quake::VeqType::get(ctx, log2(vec.size()));
@@ -175,7 +153,7 @@ prepareStateFromVectorArgument(OpBuilder &builder, ModuleOp module,
           toErase.push_back(countZeroesOp);
         }
       }
-      
+
       stdvecSizeOp.replaceAllUsesWith(length);
       toErase.push_back(stdvecSizeOp);
       continue;
@@ -202,7 +180,7 @@ prepareStateFromVectorArgument(OpBuilder &builder, ModuleOp module,
     }
   }
 
-  for (auto& op: toErase) {
+  for (auto &op : toErase) {
     op->erase();
   }
 
@@ -249,9 +227,7 @@ public:
   }
 
   void runOnOperation() override final {
-    std::cout << "Module before state prep " << std::endl;
     auto module = getModule();
-    module.dump();
     unsigned counter = 0;
 
     if (args == nullptr || kernelName.empty()) {
@@ -286,13 +262,12 @@ public:
 
       // Get the argument type
       auto type = argument.getType();
-      // auto loc = argument.getLoc();
 
       if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
         if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
-          std::cout << "State pointer found, TODO: call a kernel that created "
-                       "the state"
-                    << std::endl;
+          funcOp.emitOpError(
+              "State preparation from cudaq::state is not supported.");
+          return;
         }
       }
 
@@ -301,9 +276,7 @@ public:
       if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
         auto eleTy = vecTy.getElementType();
         if (!isa<IntegerType, FloatType, ComplexType>(eleTy)) {
-          funcOp.emitOpError("synthesis: unsupported argument type");
-          signalPassFailure();
-          return;
+          continue;
         }
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto sizeFromBuffer =
@@ -328,10 +301,7 @@ public:
     char *bufferAppendix = static_cast<char *>(args) + structSize;
     for (auto [idx, eleTy, vecLength] : stdVecInfo) {
       if (!eleTy) {
-        // FIXME: Skip struct values.
         bufferAppendix += vecLength;
-        funcOp.emitOpError(
-            "argument to kernel may be a struct and was not synthesized");
         continue;
       }
       auto doVector = [&]<typename T>(T) {
@@ -385,8 +355,6 @@ public:
         continue;
       }
     }
-    std::cout << "Module after state preparation " << std::endl;
-    module.dump();
   }
 };
 
