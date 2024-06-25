@@ -46,7 +46,8 @@ public:
         // The result of the extraction will be a new control
         // The veq is not added the newControls, so it will be dropped
         for (size_t i = 0; i < veq.getSize(); ++i) {
-          auto ext = rewriter.create<quake::ExtractRefOp>(op.getLoc(), control, i);
+          auto ext =
+              rewriter.create<quake::ExtractRefOp>(op.getLoc(), control, i);
           newControls.push_back(ext);
           update = true;
         }
@@ -59,17 +60,14 @@ public:
       return failure();
 
     // Reconstruct the operation with the new controls
-    auto segmentSizes =
-      rewriter.getDenseI32ArrayAttr({static_cast<int32_t>(op.getParameters().size()),
-                                     static_cast<int32_t>(newControls.size()),
-                                     static_cast<int32_t>(op.getTargets().size())});
+    auto segmentSizes = rewriter.getDenseI32ArrayAttr(
+        {static_cast<int32_t>(op.getParameters().size()),
+         static_cast<int32_t>(newControls.size()),
+         static_cast<int32_t>(op.getTargets().size())});
 
-    auto newOp = rewriter.replaceOpWithNewOp<OP>(op,
-                                                 op.getIsAdj(),
-                                                 op.getParameters(),
-                                                 newControls,
-                                                 op.getTargets(),
-                                                 op.getNegatedQubitControlsAttr());
+    auto newOp = rewriter.replaceOpWithNewOp<OP>(
+        op, op.getIsAdj(), op.getParameters(), newControls, op.getTargets(),
+        op.getNegatedQubitControlsAttr());
 
     newOp->setAttr("operand_segment_sizes", segmentSizes);
 
