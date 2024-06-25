@@ -39,6 +39,7 @@ add_cudaq_library(OptTransforms
   ObserveAnsatz.cpp
   PruneCtrlRelations.cpp
   QuakeAddMetadata.cpp
+  StateDecomposer.cpp
   StatePreparation.cpp
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
