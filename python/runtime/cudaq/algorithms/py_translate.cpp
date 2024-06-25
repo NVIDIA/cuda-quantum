@@ -28,7 +28,7 @@ std::string getASM(const std::string &name, MlirModule module,
                    cudaq::OpaqueArguments &runtimeArgs);
 
 /// @brief Run `cudaq::translate` on the provided kernel.
-std::string pyTranslate(py::object &kernel, py::args args, std::string format) {
+std::string pyTranslate(py::object &kernel, py::args args, const std::string &format) {
 
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
