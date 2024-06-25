@@ -30,13 +30,13 @@ QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
 NUM_GPUS = 0
 MPI_FOUND = False
 WATCHDOG_TIMEOUT_SEC = 0
-RUN_AS_NOBODY = True
+RUN_AS_NOBODY = False  # Expect this to be overridden to true for NVQC deployment
 SUDO_FOUND = False
 
 
 def build_command_list(temp_file_name: str) -> list[str]:
     """
-    Build the command essentially from right to left, prepending wrapper
+    Build the command essentially from right to left, pre-pending wrapper
     commands as necessary for this invocation.
     """
     current_script_path = os.path.abspath(__file__)
@@ -46,10 +46,10 @@ def build_command_list(temp_file_name: str) -> list[str]:
     if NUM_GPUS > 1 and MPI_FOUND:
         cmd_list = ['mpiexec', '--allow-run-as-root', '-np',
                     str(NUM_GPUS)] + cmd_list
-        cmd_list += ['--use-mpi=1']  # --use-mpi must come at the end
+        cmd_list += ['--use-mpi=1']  # `--use-mpi` must come at the end
     else:
-        cmd_list += ['--use-mpi=0']  # --use-mpi must come at the end
-    # The timeout must be inside the su/sudo commands in order to function.
+        cmd_list += ['--use-mpi=0']  # `--use-mpi` must come at the end
+    # The timeout must be inside the `su`/`sudo` commands in order to function.
     if WATCHDOG_TIMEOUT_SEC > 0:
         cmd_list = ['timeout', str(WATCHDOG_TIMEOUT_SEC)] + cmd_list
     if RUN_AS_NOBODY:
@@ -185,7 +185,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
                         temp_file.write(request_data)
                         temp_file.flush()
 
-                    # Make it world writeable so that the subprocess can write
+                    # Make it world writable so that the `subprocess` can write
                     # the results to the file.
                     os.chmod(temp_file.name, 0o666)
 
@@ -257,6 +257,7 @@ if __name__ == "__main__":
     MPI_FOUND = (shutil.which('mpiexec') != None)
     SUDO_FOUND = (shutil.which('sudo') != None)
     WATCHDOG_TIMEOUT_SEC = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
+    RUN_AS_NOBODY = int(os.environ.get('RUN_AS_NOBODY', 0)) > 0
 
     temp_dir = tempfile.gettempdir()
     if RUN_AS_NOBODY:

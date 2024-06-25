@@ -6,14 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Set MPLCONFIGDIR if running as nobody in order to prevent this message that
-# is telling the truth about extended loading times.
-# Warning message:
-#   Matplotlib created a temporary cache directory at /tmp/matplotlib-kzlo6tuj
-#   because the default path (/nonexistent/.config/matplotlib) is not a writable
-#   directory; it is highly recommended to set the MPLCONFIGDIR environment
-#   variable to a writable directory, in particular to speed up the import of
-#   Matplotlib and to better support multiprocessing.
+# Set `MPLCONFIGDIR` if running as nobody in order to prevent a warning message
+# that is telling the truth about extended loading times.
 import os
 if 'nonexistent' in os.environ['HOME']:
     os.environ['MPLCONFIGDIR'] = os.getcwd()
@@ -59,9 +53,9 @@ if __name__ == "__main__":
         requestStart = int(datetime.now().timestamp() * 1000)
 
         # Expected command-line arguments:
-        # sys.argv[0] = json_request_runner.py
-        # sys.argv[1] = <json file>
-        # sys.argv[2] = --use-mpi=<0|1>
+        # `sys.argv[0] = json_request_runner.py`
+        # `sys.argv[1] = <json file>`
+        # `sys.argv[2] = --use-mpi=<0|1>`
         if '--use-mpi=1' in sys.argv:
             cudaq.mpi.initialize()
 
