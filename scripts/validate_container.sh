@@ -111,11 +111,12 @@ then
     exit 1 
 fi
 
-# Skip some tests (multi-controlled gates) for the MPS backend;
-# see https://github.com/NVIDIA/cuda-quantum/issues/884
-mps_skipped_tests=(\
-    examples/cpp/algorithms/grover.cpp \
-    examples/cpp/basics/multi_controlled_operations.cpp \
+# Long-running tests
+tensornet_backend_skipped_tests=(\
+    examples/cpp/other/builder/vqe_h2_builder.cpp \
+    examples/cpp/other/builder/qaoa_maxcut_builder.cpp \
+    examples/cpp/algorithms/vqe_h2.cpp \
+    examples/cpp/algorithms/qaoa_maxcut.cpp \
     examples/cpp/other/builder/builder.cpp \
     examples/cpp/algorithms/amplitude_estimation.cpp)
 
@@ -158,8 +159,8 @@ do
             echo "Skipping $t target."
             echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
-
-        elif [ "$t" == "tensornet-mps" ] && [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]]; then
+        # Skip long-running tests, not suitable for cutensornet-based backends.
+        elif [[ "$t" == "tensornet" || "$t" == "tensornet-mps" || "$t" == "nvidia-mqpu-mps" ]] && [[ " ${tensornet_backend_skipped_tests[*]} " =~ " $ex " ]]; then
             let "skipped+=1"
             echo "Skipping $t target."
             echo ":white_flag: $filename: Issue https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -170,7 +171,7 @@ do
             # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
             # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
             # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
-            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
+            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel"* || "$ex" == *"builder.cpp"* ]];
             then
                 let "skipped+=1"
                 echo "Skipping $t target.";
@@ -228,11 +229,20 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"oqc"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvqc"* ]] || [[ "$ex" == *"orca"* ]];
+    skip_example=false
+    explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
+    for t in $explicit_targets; do
+        if [ -z "$(echo $requested_backends | grep $t)" ]; then 
+            echo "Explicitly set target $t not available."
+            skip_example=true
+        fi
+    done
+
+    if $skip_example;
     then
         let "skipped+=1"
         echo "Skipped.";
-        echo ":white_flag: $filename: External backend. Test skipped." >> "${tmpFile}"
+        echo ":white_flag: $filename: Necessary backend(s) not available. Test skipped." >> "${tmpFile}"
     else
         python3 $ex 1> /dev/null
         status=$?

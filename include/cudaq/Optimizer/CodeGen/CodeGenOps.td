@@ -28,19 +28,22 @@ class CGQOp<string mnemonic, list<Trait> traits = []>
 def cgq_RAIIOp : CGQOp<"qmem_raii", [MemoryEffects<[MemAlloc, MemWrite]>]> {
   let summary = "Combine allocation and initialization of set of qubits.";
   let description = [{
-    Used only in QIR code generation.
+    Used only in QIR code generation. Fuse qubit allocation and initialization
+    semantics into a single macro op to facilitate lowering the pair to a
+    single QIR function call.
   }];
 
   let arguments = (ins
     cc_PointerType:$initState,
+    TypeAttr:$initElementType,
     TypeAttr:$allocType,
     Optional<AnySignlessIntegerOrIndex>:$allocSize
   );
   let results = (outs VeqType);
 
   let assemblyFormat = [{
-    $initState `(` $allocType ( `[` $allocSize^ `]` )? `)` `:`
-    functional-type(operands, results) attr-dict
+    $initState `from` $initElementType `onto` $allocType ( `[` $allocSize^ `]`
+      )? `:` functional-type(operands, results) attr-dict
   }];
 }
 

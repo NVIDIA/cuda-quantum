@@ -21,6 +21,7 @@ on:
           - oqc
           - quantinuum
           - nvqc
+          - orca
       single_test_name:
         type: string
         required: false
@@ -67,7 +68,7 @@ env:
   NGC_QUANTUM_TEAM: cuda-quantum
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
-  NGC_NVQC_DEPLOYMENT_SPEC: NVCFInternal:A100:Standard_ND96amsr_A100_v4_1x:1:1
+  NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40:gl40_1.br20_2xlarge:1:1
   # If vars below are changed, it is recommended to also update the
   # workflow_dispatch defaults above so they stay in sync.
   cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
@@ -92,7 +93,6 @@ jobs:
     name: Retrieve commit info
     runs-on: ubuntu-latest
     needs: setup
-    environment: backend-validation
     container:
       image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
@@ -136,6 +136,14 @@ jobs:
           registry: nvcr.io
           username: '$oauthtoken'
           password: ${{ secrets.NGC_CREDENTIALS }}
+
+      # Log in to GHCR (in case the base image is a local one)
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Build NVQC image
         id: docker_build
@@ -405,6 +413,51 @@ jobs:
                 fi
               ;;
             esac
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Submit to ORCA test server
+        if: (success() || failure()) && (inputs.target == 'orca' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### Submit to ORCA server" >> $GITHUB_STEP_SUMMARY
+          export ORCA_ACCESS_URL='${{ secrets.ORCA_ACCESS_URL }}'
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          cpp_tests="docs/sphinx/examples/cpp/providers/orca.cpp"
+          for filename in $cpp_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          python_tests="docs/sphinx/examples/python/providers/orca.py"
+          for filename in $python_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            python3 $filename 1> /dev/null
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+            else
+              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
           done
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then

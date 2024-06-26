@@ -8,14 +8,15 @@
 
 #pragma once
 
+#include "cudaq/host_config.h"
+
 #include <array>
 #include <complex>
+#include <math.h>
 #include <unordered_map>
 #include <vector>
 
 namespace cudaq {
-
-using complex = std::complex<double>;
 
 /// @brief A kraus_op represents a single Kraus operation,
 /// described as a complex matrix of specific size. The matrix
@@ -24,7 +25,7 @@ struct kraus_op {
 
   /// @brief Matrix data, represented as a 1d flattened
   // row major matrix.
-  std::vector<std::complex<double>> data;
+  std::vector<cudaq::complex> data;
 
   /// @brief The number of rows in the matrix
   std::size_t nRows = 0;
@@ -37,7 +38,7 @@ struct kraus_op {
   kraus_op(const kraus_op &) = default;
 
   /// @brief Constructor, initialize from vector data
-  kraus_op(std::vector<complex> d) : data(d) {
+  kraus_op(std::vector<cudaq::complex> d) : data(d) {
     auto nElements = d.size();
     auto sqrtNEl = std::sqrt(nElements);
     if (sqrtNEl * sqrtNEl != nElements)
@@ -63,11 +64,24 @@ struct kraus_op {
   }
 
   /// @brief Set this kraus_op equal to the other
-  kraus_op &operator=(const kraus_op &other);
+  kraus_op &operator=(const kraus_op &other) {
+    data = other.data;
+    return *this;
+  }
 
   /// @brief Return the adjoint of this kraus_op
-  kraus_op adjoint();
+  kraus_op adjoint() const {
+    std::size_t N = data.size();
+    std::vector<cudaq::complex> newData(N);
+    for (std::size_t i = 0; i < nRows; i++)
+      for (std::size_t j = 0; j < nCols; j++)
+        newData[i * nRows + j] = std::conj(data[j * nCols + i]);
+    return kraus_op(newData);
+  }
 };
+
+void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops);
+void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops);
 
 /// @brief A kraus_channel represents a quantum noise channel
 /// on specific qubits. The action of the noise channel is
@@ -83,7 +97,13 @@ protected:
   std::vector<kraus_op> ops;
 
   /// @brief Validate that Sum K_i^† K_i = I
-  void validateCompleteness();
+  void validateCompleteness() {
+    if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
+      validateCompletenessRelation_fp32(ops);
+      return;
+    }
+    validateCompletenessRelation_fp64(ops);
+  }
 
 public:
   ~kraus_channel() = default;
@@ -220,7 +240,20 @@ public:
 /// a single-qubit depolarization error channel.
 class depolarization_channel : public kraus_channel {
 public:
-  depolarization_channel(const double probability);
+  depolarization_channel(const real probability) : kraus_channel() {
+    auto three = static_cast<real>(3.);
+    auto negOne = static_cast<real>(-1.);
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
+                                    std::sqrt(1 - probability)},
+        k1v{0, std::sqrt(probability / three), std::sqrt(probability / three),
+            0},
+        k2v{0, cudaq::complex{0, negOne * std::sqrt(probability / three)},
+            cudaq::complex{0, std::sqrt(probability / three)}, 0},
+        k3v{std::sqrt(probability / three), 0, 0,
+            negOne * std::sqrt(probability / three)};
+    ops = {k0v, k1v, k2v, k3v};
+    validateCompleteness();
+  }
 };
 
 /// @brief amplitude_damping_channel is a kraus_channel that
@@ -228,7 +261,12 @@ public:
 /// a single-qubit amplitude damping error channel.
 class amplitude_damping_channel : public kraus_channel {
 public:
-  amplitude_damping_channel(const double probability);
+  amplitude_damping_channel(const real probability) : kraus_channel() {
+    std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
+        k1v{0, 0, std::sqrt(probability), 0};
+    ops = {k0v, k1v};
+    validateCompleteness();
+  }
 };
 
 /// @brief bit_flip_channel is a kraus_channel that
@@ -236,7 +274,13 @@ public:
 /// a single-qubit bit flipping error channel.
 class bit_flip_channel : public kraus_channel {
 public:
-  bit_flip_channel(const double probability);
+  bit_flip_channel(const real probability) : kraus_channel() {
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
+                                    std::sqrt(1 - probability)},
+        k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
+    ops = {k0v, k1v};
+    validateCompleteness();
+  }
 };
 
 /// @brief phase_flip_channel is a kraus_channel that
@@ -244,6 +288,13 @@ public:
 /// a single-qubit phase flip error channel.
 class phase_flip_channel : public kraus_channel {
 public:
-  phase_flip_channel(const double probability);
+  phase_flip_channel(const real probability) : kraus_channel() {
+    auto negOne = static_cast<real>(-1.);
+    std::vector<cudaq::complex> k0v{std::sqrt(1 - probability), 0, 0,
+                                    std::sqrt(1 - probability)},
+        k1v{std::sqrt(probability), 0, 0, negOne * std::sqrt(probability)};
+    ops = {k0v, k1v};
+    validateCompleteness();
+  }
 };
 } // namespace cudaq

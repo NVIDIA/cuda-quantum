@@ -11,9 +11,9 @@
 namespace cudaq {
 
 /// Name of the attribute attached to entry point functions.
-static constexpr char entryPointAttrName[] = "cudaq-entrypoint";
+static constexpr const char entryPointAttrName[] = "cudaq-entrypoint";
 
 /// Name of the attribute attached to cudaq kernels.
-static constexpr char kernelAttrName[] = "cudaq-kernel";
+static constexpr const char kernelAttrName[] = "cudaq-kernel";
 
 } // namespace cudaq

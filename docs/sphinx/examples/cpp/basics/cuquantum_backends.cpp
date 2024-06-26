@@ -27,7 +27,8 @@ struct ghz {
 };
 
 int main() {
-  auto counts = cudaq::sample(/*shots=*/100, ghz{}, 28);
+  auto shots_count = 1024 * 1024;
+  auto counts = cudaq::sample(shots_count, ghz{}, 28);
 
   if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
     counts.dump();

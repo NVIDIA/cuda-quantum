@@ -9,8 +9,8 @@
 #pragma once
 
 #include "common/NoiseModel.h"
+#include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
-#include "host_config.h"
 #include <string>
 #include <type_traits>
 
@@ -292,3 +292,5 @@ void finalize();
 #include "cudaq/algorithms/sample.h"
 // Users should get observe by default
 #include "cudaq/algorithms/observe.h"
+// Users should get get_state by default
+#include "cudaq/algorithms/get_state.h"

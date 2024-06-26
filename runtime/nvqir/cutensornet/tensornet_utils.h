@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <complex>
 #include <random>
+
 #define HANDLE_CUDA_ERROR(x)                                                   \
   {                                                                            \
     const auto err = x;                                                        \

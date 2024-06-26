@@ -13,7 +13,10 @@
     ],
     "ignorePatterns": [
       {
-        "pattern": "^https://www.gnu.org/prep/standards/standards.html"
+        "pattern": "^https://www.gnu.org/"
+      },
+      {
+        "pattern": "^https://gcc.gnu.org/"
       },
       {
         "pattern": "^https://epubs.siam.org/doi/10.1137/S0097539796300921"
@@ -26,6 +29,12 @@
       },
       {
         "pattern": "^https://vscode.dev/"
+      },
+      {
+        "pattern": "microsoft.com/"
+      },
+      {
+        "pattern": "visualstudio.com/"
       },
       {
         "pattern": "openapi.html"
