@@ -38,3 +38,32 @@ def test_bell_pair():
 # CHECK:         }
 # CHECK:         cc.global constant @custom_h.generator ([array<f64: 0.70710678118654746, 0.000000e+00>, array<f64: 0.70710678118654746, 0.000000e+00>, array<f64: 0.70710678118654746, 0.000000e+00>, array<f64: -0.70710678118654746, 0.000000e+00>]) : !cc.array<complex<f64> x 4>
 # CHECK:         cc.global constant @custom_x.generator ([array<f64: 0.000000e+00, 0.000000e+00>, array<f64: 1.000000e+00, 0.000000e+00>, array<f64: 1.000000e+00, 0.000000e+00>, array<f64: 0.000000e+00, 0.000000e+00>]) : !cc.array<complex<f64> x 4>
+
+
+def test_custom_adjoint():
+
+    cudaq.register_operation("custom_s", 1, 0, np.array([1, 0, 0, 1j]))
+
+    cudaq.register_operation("custom_s_adj", 1, 0, np.array([1, 0, 0, -1j]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        h(q)
+        custom_s.adj(q)
+        custom_s_adj(q)
+        h(q)
+
+    print(kernel)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.custom_op @custom_s.adj.generator %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.custom_op @custom_s_adj.generator %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           return
+# CHECK:         }
+# CHECK:         cc.global constant @custom_s.adj.generator ([array<f64: 1.000000e+00, -0.000000e+00>, array<f64: 0.000000e+00, -0.000000e+00>, array<f64: 0.000000e+00, -0.000000e+00>, array<f64: 0.000000e+00, -1.000000e+00>]) : !cc.array<complex<f64> x 4>
+# CHECK:         cc.global constant @custom_s_adj.generator ([array<f64: 1.000000e+00, 0.000000e+00>, array<f64: 0.000000e+00, 0.000000e+00>, array<f64: 0.000000e+00, 0.000000e+00>, array<f64: -0.000000e+00, -1.000000e+00>]) : !cc.array<complex<f64> x 4>

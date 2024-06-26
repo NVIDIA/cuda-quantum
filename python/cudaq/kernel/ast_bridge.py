@@ -2369,6 +2369,11 @@ class PyASTBridge(ast.NodeVisitor):
 
             # custom `ctrl` and `adj`
             if node.func.value.id in globalRegisteredOperations:
+                if not node.func.attr == 'ctrl' and not node.func.attr == 'adj':
+                    self.emitFatalError(
+                        f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
+                    )
+
                 unitary = globalRegisteredOperations[node.func.value.id]
                 numTargets = int(np.log2(np.sqrt(unitary.size)))
                 numValues = len(self.valueStack)
@@ -2376,6 +2381,11 @@ class PyASTBridge(ast.NodeVisitor):
                 targets.reverse()
 
                 globalName = f'{node.func.value.id}.generator'
+                # NOTE: An adjoint on constant unitary matrix will take the
+                # complex conjugate of the matrix and drop the 'is_adj' argument
+                if node.func.attr == 'adj':
+                    globalName = f'{node.func.value.id}.adj.generator'
+                    unitary = np.conjugate(unitary).T
                 currentST = SymbolTable(self.module.operation)
                 if not globalName in currentST:
                     with InsertionPoint(self.module.body):
@@ -2395,6 +2405,8 @@ class PyASTBridge(ast.NodeVisitor):
                                     constant=True,
                                     external=False)
 
+                negatedControlQubits = None
+                controls = []
                 if node.func.attr == 'ctrl':
                     controls = [
                         self.popValue() for _ in range(numValues - numTargets)
@@ -2408,31 +2420,16 @@ class PyASTBridge(ast.NodeVisitor):
                             negCtrlBools)
                         self.controlNegations.clear()
 
-                    self.checkControlAndTargetTypes(controls, targets)
-                    quake.CustomUnitarySymbolOp(
-                        [],
-                        generator=FlatSymbolRefAttr.get(globalName),
-                        parameters=[],
-                        controls=controls,
-                        targets=targets,
-                        is_adj=False,
-                        negated_qubit_controls=negatedControlQubits)
-                    return
-
-                if node.func.attr == 'adj':
-                    self.checkControlAndTargetTypes([], targets)
-                    quake.CustomUnitarySymbolOp(
-                        [],
-                        generator=FlatSymbolRefAttr.get(globalName),
-                        parameters=[],
-                        controls=[],
-                        targets=targets,
-                        is_adj=True)
-                    return
-
-                self.emitFatalError(
-                    f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
-                )
+                self.checkControlAndTargetTypes(controls, targets)
+                quake.CustomUnitarySymbolOp(
+                    [],
+                    generator=FlatSymbolRefAttr.get(globalName),
+                    parameters=[],
+                    controls=controls,
+                    targets=targets,
+                    is_adj=False,
+                    negated_qubit_controls=negatedControlQubits)
+                return
 
             self.emitFatalError(
                 f"Invalid function call - '{node.func.value.id}' is unknown.")

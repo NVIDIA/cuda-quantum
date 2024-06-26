@@ -138,14 +138,15 @@ def test_custom_adjoint():
 
     cudaq.register_operation("custom_s", 1, 0, np.array([1, 0, 0, 1j]))
 
+    cudaq.register_operation("custom_s_adj", 1, 0, np.array([1, 0, 0, -1j]))
+
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
         h(q)
         custom_s.adj(q)
-        s(q)
+        custom_s_adj(q)
         h(q)
-        mz(q)
 
     counts = cudaq.sample(kernel)
     counts.dump()
