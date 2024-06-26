@@ -22,10 +22,19 @@ def bell_pair():
 def kernel(numQubits: int):
     q = cudaq.qvector(numQubits)
     h(q)
-    for i in range(numQubits-1):
-       cx(q[i], q[i+1])
+    for i in range(numQubits - 1):
+        cx(q[i], q[i + 1])
     for i in range(numQubits):
-       mz(q[i])
+        mz(q[i])
+
+
+@cudaq.kernel
+def kernel_with_call():
+
+    def inner():
+        q = cudaq.qvector(2)
+
+    inner()
 
 
 def test_translate_openqasm():
@@ -52,6 +61,13 @@ def test_translate_openqasm_synth():
     assert "measure var0[3] -> var8[0]" in asm
 
 
+def test_translate_openqasm_call():
+    # error: 'cc.instantiate_callable' op unable to translate op to OpenQASM 2.0
+    with pytest.raises(RuntimeError) as e:
+        print(cudaq.translate(kernel_with_call, format="openqasm"))
+    assert 'getASM: failed to translate to OpenQasm.' in repr(e)
+
+
 def test_translate_qir():
     qir = cudaq.translate(bell_pair, format="qir")
     assert "%1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)" in qir
@@ -65,6 +81,11 @@ def test_translate_qir_ignored_args():
 def test_translate_qir_with_args():
     qir = cudaq.translate(kernel, 5, format="qir")
     assert "%2 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %0)" in qir
+
+
+def test_translate_qir_call():
+    qir = cudaq.translate(kernel_with_call, format="qir")
+    assert "%2 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)" in qir
 
 
 def test_translate_qir_base():
