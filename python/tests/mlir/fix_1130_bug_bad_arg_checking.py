@@ -40,7 +40,7 @@ def test_bad_arg_checking_fix_1130():
 # CHECK:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%arg0: !quake.ref, %arg1: !quake.ref, %arg2: f64) {
 # CHECK:     %cst = arith.constant 2.000000e+00 : f64
 # CHECK:     quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
-# CHECK:     %0 = arith.mulf %arg2, %cst : f64
+# CHECK:     %0 = arith.mulf {{%arg2, %cst|%cst, %arg2}} : f64
 # CHECK:     quake.rz (%0) %arg1 : (f64, !quake.ref) -> ()
 # CHECK:     quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
 # CHECK:     return

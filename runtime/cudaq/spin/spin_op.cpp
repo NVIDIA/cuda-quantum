@@ -274,6 +274,10 @@ std::complex<double> spin_op::get_coefficient() const {
   return terms.begin()->second;
 }
 
+std::tuple<std::vector<double>, std::size_t> spin_op::getDataTuple() const {
+  return std::tuple(getDataRepresentation(), num_qubits());
+}
+
 void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) const {
   for (auto iter = terms.begin(), e = terms.end(); iter != e; ++iter) {
     const auto &pair = *iter;
@@ -594,7 +598,7 @@ void spin_op::dump() const {
   std::cout << str;
 }
 
-spin_op::spin_op(std::vector<double> &input_vec, std::size_t nQubits) {
+spin_op::spin_op(const std::vector<double> &input_vec, std::size_t nQubits) {
   auto n_terms = (int)input_vec.back();
   if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
     throw std::runtime_error("Invalid data representation for construction "
@@ -661,7 +665,7 @@ spin_op y(const std::size_t idx) { return spin_op(pauli::Y, idx); }
 spin_op z(const std::size_t idx) { return spin_op(pauli::Z, idx); }
 } // namespace spin
 
-std::vector<double> spin_op::getDataRepresentation() {
+std::vector<double> spin_op::getDataRepresentation() const {
   std::vector<double> dataVec;
   for (auto &[term, coeff] : terms) {
     auto nq = term.size() / 2;
