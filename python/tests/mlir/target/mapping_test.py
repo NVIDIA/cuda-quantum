@@ -10,9 +10,10 @@
 
 import cudaq
 
+
 @cudaq.kernel
 def foo():
-    q0, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit() 
+    q0, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
     x(q0)
     x(q1)
     x.ctrl(q0, q1)

@@ -87,6 +87,31 @@ void bindSpinOperator(py::module &mod) {
            "`Z` on qubit `i`, followed by the real and imaginary part of the "
            "coefficient. Each set of term elements is appended to the one "
            "list. The list is ended with the total number of terms.")
+      .def(py::init<std::size_t>(), py::arg("num_qubits"),
+           "Construct the identity term on the given number of qubits.")
+      .def(
+          "to_json",
+          [](const cudaq::spin_op &p) {
+            py::object json = py::module_::import("json");
+            auto cpp_tup = p.getDataTuple();
+            py::tuple py_tup =
+                py::make_tuple(std::get<0>(cpp_tup), std::get<1>(cpp_tup));
+            return json.attr("dumps")(py_tup);
+          },
+          "Convert spin_op to JSON string: '[[d1, d2, d3, ...], numQubits]'")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
+            py::object json = py::module_::import("json");
+            auto list = py::list(json.attr("loads")(j));
+            if (py::len(list) != 2)
+              throw std::runtime_error("Invalid JSON string for spin_op");
+
+            cudaq::spin_op p(list[0].cast<std::vector<double>>(),
+                             list[1].cast<std::size_t>());
+            return p;
+          },
+          "Convert JSON string ('[[d1, d2, d3, ...], numQubits]') to spin_op")
 
       /// @brief Bind the member functions.
       .def("get_raw_data", &cudaq::spin_op::get_raw_data,

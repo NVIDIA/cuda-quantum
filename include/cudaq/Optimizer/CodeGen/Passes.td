@@ -41,7 +41,7 @@ def CCToLLVM : Pass<"cc-to-llvm", "mlir::ModuleOp"> {
   }];
 }
 
-def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
+def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{
     Converts Quake to QIR (as LLVM-IR). The add-dealloc pass should be run
@@ -52,7 +52,14 @@ def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let dependentDialects = [
     "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
   ];
-  let constructor = "cudaq::opt::createConvertToQIRPass()";
+}
+
+def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
+  let summary = "Lower Quake to CG dialect.";
+  let description = [{
+    For testing purposes only.
+  }];
+  let dependentDialects = [ "cudaq::codegen::CodeGenDialect" ];
 }
 
 def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {

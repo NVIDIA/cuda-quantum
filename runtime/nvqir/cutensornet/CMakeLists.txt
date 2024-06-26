@@ -1,3 +1,11 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
 # Find CUDA Toolkit for CUDA libs, e.g., cudart.
 find_package(CUDAToolkit REQUIRED)
 
@@ -69,12 +77,12 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
     target_include_directories(nvqir-${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/common ${CMAKE_SOURCE_DIR}/runtime/nvqir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR})
     target_link_libraries(nvqir-${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq cudaq-common ${CUTENSORNET_LIB} ${CUTENSOR_LIB} CUDA::cudart)
     install(TARGETS nvqir-${LIBRARY_NAME} DESTINATION lib)
-    file (WRITE ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config "NVQIR_SIMULATION_BACKEND=${LIBRARY_NAME}\nGPU_REQUIREMENTS=\"true\"\n")
+    file (WRITE ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config "NVQIR_SIMULATION_BACKEND=${LIBRARY_NAME}\nGPU_REQUIREMENTS=\"true\"\nPREPROCESSOR_DEFINES=\"\${PREPROCESSOR_DEFINES} -D CUDAQ_SIMULATION_SCALAR_FP64\"\n")
     install(FILES ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config DESTINATION targets)
   endmacro()
 
-  nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp )
-  nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp)
+  nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp tn_simulation_state.cpp)
+  nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp mps_simulation_state.cpp)
   add_library(tensornet-mpi-util OBJECT mpi_support.cpp)
   target_include_directories(tensornet-mpi-util PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/runtime)
   target_link_libraries(tensornet-mpi-util PRIVATE cudaq-common fmt::fmt-header-only)

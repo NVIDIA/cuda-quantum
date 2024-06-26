@@ -10,7 +10,6 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -165,7 +164,7 @@ public:
     for (auto &block : func.getRegion())
       for (auto &op : block) {
         if (auto alloc = dyn_cast_or_null<quake::AllocaOp>(&op)) {
-          if (alloc.getSize())
+          if (alloc.getSize() || alloc.hasInitializedState())
             return;
           analysis.allocations.push_back(alloc);
           auto size = allocationSize(alloc);

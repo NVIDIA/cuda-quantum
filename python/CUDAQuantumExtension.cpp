@@ -8,6 +8,7 @@
 
 #include "common/Logger.h"
 #include "cudaq.h"
+#include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
@@ -40,11 +41,6 @@
 namespace py = pybind11;
 
 static std::unique_ptr<cudaq::LinkedLibraryHolder> holder;
-
-namespace cudaq {
-const char *getVersion();
-const char *getFullRepositoryVersion();
-} // namespace cudaq
 
 PYBIND11_MODULE(_quakeDialects, m) {
   holder = std::make_unique<cudaq::LinkedLibraryHolder>();
@@ -96,7 +92,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindNoise(cudaqRuntime);
   cudaq::bindExecutionContext(cudaqRuntime);
   cudaq::bindExecutionManager(cudaqRuntime);
-  cudaq::bindPyState(cudaqRuntime);
+  cudaq::bindPyState(cudaqRuntime, *holder.get());
   cudaq::bindPyDraw(cudaqRuntime);
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);

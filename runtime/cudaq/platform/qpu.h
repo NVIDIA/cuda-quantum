@@ -21,6 +21,7 @@
 namespace cudaq {
 class gradient;
 class optimizer;
+class SerializedCodeExecutionContext;
 
 /// Expose the function that will return the current ExecutionManager
 ExecutionManager *getExecutionManager();
@@ -140,6 +141,10 @@ public:
   /// @brief Return whether this QPU has remote VQE execution support
   virtual bool supportsRemoteVQE() { return false; }
 
+  /// @brief Return whether this QPU has support for remote serialized code
+  /// execution
+  virtual bool supportsRemoteSerializedCode() { return false; }
+
   /// Base class handling of shots is do-nothing,
   /// subclasses can handle as they wish
   virtual void setShots(int _nShots) {}
@@ -170,6 +175,13 @@ public:
   /// as a struct-packed void pointer and its corresponding size.
   virtual void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                             void *args, std::uint64_t, std::uint64_t) = 0;
+
+  /// Launch serialized code for remote execution. Subtypes that support this
+  /// should override this function and the supportsRemoteSerializedCode()
+  /// function.
+  virtual void launchSerializedCodeExecution(
+      const std::string &name,
+      cudaq::SerializedCodeExecutionContext &serializeCodeExecutionObject) {}
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.

@@ -12,39 +12,31 @@
 
 namespace cudaq {
 
-kraus_op &kraus_op::operator=(const kraus_op &other) {
-  data = other.data;
-  return *this;
+template <typename ScalarType>
+bool isIdentity(const Eigen::MatrixX<ScalarType> &mat,
+                double threshold = 1e-9) {
+  Eigen::MatrixX<ScalarType> idMat =
+      Eigen::MatrixX<ScalarType>::Identity(mat.rows(), mat.cols());
+  return mat.isApprox(
+      Eigen::MatrixX<ScalarType>::Identity(mat.rows(), mat.cols()), threshold);
 }
 
-kraus_op kraus_op::adjoint() {
-  Eigen::Map<Eigen::MatrixXcd> map(data.data(), nRows, nCols);
-  Eigen::MatrixXcd adj = map.adjoint();
-  std::vector<complex> vec(adj.data(), adj.data() + adj.rows() * adj.cols());
-  return kraus_op(vec);
-}
-
-bool isIdentity(const Eigen::MatrixXcd &mat, double threshold = 1e-9) {
-  Eigen::MatrixXcd idMat = Eigen::MatrixXcd::Identity(mat.rows(), mat.cols());
-  return mat.isApprox(Eigen::MatrixXcd::Identity(mat.rows(), mat.cols()),
-                      threshold);
-}
-
-bool validateCPTP(const std::vector<Eigen::MatrixXcd> &mats,
+template <typename ScalarType>
+bool validateCPTP(const std::vector<Eigen::MatrixX<ScalarType>> &mats,
                   double threshold = 1e-9) {
   if (mats.empty()) {
     return true;
   }
 
-  Eigen::MatrixXcd cptp =
-      Eigen::MatrixXcd::Zero(mats[0].rows(), mats[0].cols());
+  Eigen::MatrixX<ScalarType> cptp =
+      Eigen::MatrixX<ScalarType>::Zero(mats[0].rows(), mats[0].cols());
   for (const auto &mat : mats) {
     cptp = cptp + mat.adjoint() * mat;
   }
   return isIdentity(cptp, threshold);
 }
 
-void kraus_channel::validateCompleteness() {
+void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops) {
   // First check that all the kraus_ops have the same size.
   auto size = ops[0].nRows;
   for (std::size_t i = 1; i < ops.size(); ++i)
@@ -52,9 +44,33 @@ void kraus_channel::validateCompleteness() {
       throw std::runtime_error(
           "Kraus ops passed to this channel do not all have the same size.");
 
-  std::vector<Eigen::MatrixXcd> matrices;
+  std::vector<Eigen::MatrixX<std::complex<float>>> matrices;
   for (auto &op : ops) {
-    Eigen::Map<Eigen::MatrixXcd> map(op.data.data(), op.nRows, op.nCols);
+    auto *nonConstPtr = const_cast<complex *>(op.data.data());
+    Eigen::Map<Eigen::MatrixX<std::complex<float>>> map(
+        reinterpret_cast<std::complex<float> *>(nonConstPtr), op.nRows,
+        op.nCols);
+    matrices.push_back(map);
+  }
+  if (!validateCPTP(matrices, 1e-4))
+    throw std::runtime_error(
+        "Provided kraus_ops are not completely positive and trace preserving.");
+}
+
+void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
+  // First check that all the kraus_ops have the same size.
+  auto size = ops[0].nRows;
+  for (std::size_t i = 1; i < ops.size(); ++i)
+    if (ops[i].nRows != size)
+      throw std::runtime_error(
+          "Kraus ops passed to this channel do not all have the same size.");
+
+  std::vector<Eigen::MatrixX<std::complex<double>>> matrices;
+  for (auto &op : ops) {
+    auto *nonConstPtr = const_cast<complex *>(op.data.data());
+    Eigen::Map<Eigen::MatrixX<std::complex<double>>> map(
+        reinterpret_cast<std::complex<double> *>(nonConstPtr), op.nRows,
+        op.nCols);
     matrices.push_back(map);
   }
   if (!validateCPTP(matrices))
@@ -62,9 +78,7 @@ void kraus_channel::validateCompleteness() {
         "Provided kraus_ops are not completely positive and trace preserving.");
 }
 
-kraus_channel::kraus_channel( // std::vector<std::size_t> &qbits,
-    std::vector<kraus_op> &_ops)
-    : ops(_ops) {
+kraus_channel::kraus_channel(std::vector<kraus_op> &_ops) : ops(_ops) {
   validateCompleteness();
 }
 
@@ -79,7 +93,6 @@ std::size_t kraus_channel::dimension() const { return ops[0].nRows; }
 kraus_op &kraus_channel::operator[](const std::size_t idx) { return ops[idx]; }
 
 kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
-  // qubits = other.qubits;
   ops = other.ops;
   return *this;
 }
@@ -136,36 +149,4 @@ noise_model::get_channels(const std::string &quantumOp,
   return iter->second;
 }
 
-depolarization_channel::depolarization_channel(const double p)
-    : kraus_channel() {
-  std::vector<complex> k0v{std::sqrt(1 - p), 0, 0, std::sqrt(1 - p)},
-      k1v{0, std::sqrt(p / 3.), std::sqrt(p / 3.), 0},
-      k2v{0, cudaq::complex{0, -1. * std::sqrt(p / 3.)},
-          cudaq::complex{0, std::sqrt(p / 3.)}, 0},
-      k3v{std::sqrt(p / 3.), 0, 0, -1. * std::sqrt(p / 3.)};
-  ops = {k0v, k1v, k2v, k3v};
-  validateCompleteness();
-}
-
-amplitude_damping_channel::amplitude_damping_channel(const double p)
-    : kraus_channel() {
-  std::vector<complex> k0v{1, 0, 0, std::sqrt(1 - p)},
-      k1v{0, 0, std::sqrt(p), 0};
-  ops = {k0v, k1v};
-  validateCompleteness();
-}
-
-bit_flip_channel::bit_flip_channel(const double p) : kraus_channel() {
-  std::vector<complex> k0v{std::sqrt(1 - p), 0, 0, std::sqrt(1 - p)},
-      k1v{0, std::sqrt(p), std::sqrt(p), 0};
-  ops = {k0v, k1v};
-  validateCompleteness();
-}
-
-phase_flip_channel::phase_flip_channel(const double p) : kraus_channel() {
-  std::vector<complex> k0v{std::sqrt(1 - p), 0, 0, std::sqrt(1 - p)},
-      k1v{std::sqrt(p), 0, 0, -1. * std::sqrt(p)};
-  ops = {k0v, k1v};
-  validateCompleteness();
-}
 } // namespace cudaq

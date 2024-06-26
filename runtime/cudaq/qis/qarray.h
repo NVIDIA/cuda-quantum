@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "cudaq/host_config.h"
 #include "cudaq/qis/qview.h"
-#include "host_config.h"
 
 namespace cudaq {
 
@@ -21,6 +21,11 @@ concept ValidQArraySize = N > 0;
 } // namespace details
 #endif
 
+/// @brief Provide a base type so we can
+/// know we are handling `qarray` types without
+/// need for the template parameter.
+class qarray_base {};
+
 /// @brief A `qarray` is an owning, compile-time sized container for qudits.
 /// The semantics of the `qarray` follows that of a `std::array` for qudits. It
 /// is templated on the number of qudits contained and the number of levels for
@@ -29,7 +34,7 @@ template <std::size_t N, std::size_t Levels = 2>
 #if CUDAQ_USE_STD20
   requires(details::ValidQArraySize<N>)
 #endif
-class qarray {
+class qarray : public qarray_base {
 public:
   /// @brief Useful typedef indicating the underlying qudit type
   using value_type = qudit<Levels>;

@@ -424,4 +424,127 @@ CUDAQ_TEST(QubitQISTester, checkU3Adj) {
   }
 }
 
+// Test someone can build a library of custom operations
+CUDAQ_REGISTER_OPERATION(
+    /* Name */ CustomHadamard, /*NumTargets*/ 1, /*NumParameters*/ 0,
+    /* Unitary Generator */ {M_SQRT1_2, M_SQRT1_2, M_SQRT1_2, -M_SQRT1_2});
+CUDAQ_REGISTER_OPERATION(CustomX, 1, 0, {0, 1, 1, 0});
+CUDAQ_REGISTER_OPERATION(CustomCNOT, 2, 0,
+                         {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0});
+CUDAQ_REGISTER_OPERATION(
+    CustomU3, 1, 3,
+    {std::cos(parameters[0] / 2.),
+     -std::exp(i *parameters[2]) * std::sin(parameters[0] / 2.),
+     std::exp(i *parameters[1]) * std::sin(parameters[0] / 2.),
+     std::exp(i *(parameters[2] + parameters[1])) *
+         std::cos(parameters[0] / 2.)})
+
+CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
+  {
+    auto kernel = []() {
+      cudaq::qubit q, r;
+      CustomHadamard(q);
+      CustomCNOT(q, r);
+    };
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    int counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+  {
+    // Can be controlled
+    auto kernel = []() {
+      cudaq::qubit q, r;
+      x(q);
+      CustomX<cudaq::ctrl>(q, r);
+    };
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    int counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+  {
+    // Can be controlled with negation
+    auto kernel = []() {
+      cudaq::qubit q, r;
+      CustomX<cudaq::ctrl>(!q, r);
+    };
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    int counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "01");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    // parameterized op, custom u3
+    auto check_x = []() {
+      cudaq::qubit q;
+      // mimic Pauli-X gate
+      CustomU3(M_PI, M_PI, M_PI_2, q);
+    };
+    auto counts = cudaq::sample(check_x);
+    counts.dump();
+    for (auto &[bits, count] : counts) {
+      EXPECT_TRUE(bits == "1");
+    }
+
+    auto bell_pair = []() {
+      cudaq::qvector qubits(2);
+      // mimic Hadamard gate
+      CustomU3(M_PI_2, 0., M_PI, qubits[0]);
+      x<cudaq::ctrl>(qubits[0], qubits[1]);
+    };
+    counts = cudaq::sample(bell_pair);
+    counts.dump();
+    for (auto &[bits, count] : counts) {
+      EXPECT_TRUE(bits == "00" || bits == "11");
+    }
+
+    // Can control
+    auto another_bell_pair = []() {
+      cudaq::qvector qubits(2);
+      CustomU3(M_PI_2, 0., M_PI, qubits[0]);
+      CustomU3<cudaq::ctrl>(M_PI, M_PI, M_PI_2, qubits[0], qubits[1]);
+    };
+    counts = cudaq::sample(another_bell_pair);
+    counts.dump();
+    for (auto &[bits, count] : counts) {
+      EXPECT_TRUE(bits == "00" || bits == "11");
+    }
+
+    // can adjoint
+    auto rotation_adjoint_test = []() {
+      cudaq::qubit q;
+      // mimic Rx gate
+      CustomU3(1.1, -M_PI_2, M_PI_2, q);
+      // rx<adj>(angle) = u3<adj>(angle, pi/2, -pi/2)
+      CustomU3<cudaq::adj>(1.1, M_PI_2, -M_PI_2, q);
+      // mimic Ry gate
+      CustomU3(1.1, 0., 0., q);
+      CustomU3<cudaq::adj>(1.1, 0., 0., q);
+    };
+
+    counts = cudaq::sample(rotation_adjoint_test);
+    counts.dump();
+    for (auto &[bits, count] : counts) {
+      EXPECT_TRUE(bits == "0");
+    }
+  }
+}
+
 #endif

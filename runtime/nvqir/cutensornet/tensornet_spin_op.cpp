@@ -41,7 +41,6 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
     std::vector<const void *> pauliTensorData = {opMat_d};
     std::vector<int32_t> stateModes(spinOp.num_qubits());
     std::iota(stateModes.begin(), stateModes.end(), 0);
-    std::reverse(stateModes.begin(), stateModes.end());
     std::vector<const int32_t *> dataStateModes = {stateModes.data()};
     HANDLE_CUTN_ERROR(cutensornetNetworkOperatorAppendProduct(
         m_cutnHandle, m_cutnNetworkOperator,

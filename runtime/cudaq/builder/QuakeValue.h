@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "host_config.h"
+#include "cudaq/host_config.h"
 #include <functional>
 #include <map>
 #include <memory>

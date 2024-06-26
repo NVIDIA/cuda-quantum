@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "cudaq/host_config.h"
 #include "cudaq/platform.h"
-#include "host_config.h"
 
 namespace cudaq {
 

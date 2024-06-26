@@ -26,6 +26,7 @@ namespace cudaq {
 class QPU;
 class gradient;
 class optimizer;
+class SerializedCodeExecutionContext;
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -122,6 +123,10 @@ public:
   /// quantum kernels.
   void set_noise(const noise_model *model);
 
+  /// @brief Return whether the QPU has support for remote serialized code
+  /// execution
+  bool supports_remote_serialized_code(const std::size_t qpuId = 0) const;
+
   /// @brief Turn off any noise models.
   void reset_noise();
 
@@ -144,6 +149,12 @@ public:
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset);
 
+  // This method is the hook for executing SerializedCodeExecutionContext
+  // objects.
+  void launchSerializedCodeExecution(
+      const std::string &name,
+      SerializedCodeExecutionContext &serializeCodeExecutionObject);
+
   /// List all available platforms
   static std::vector<std::string> list_platforms();
 
@@ -161,6 +172,16 @@ public:
   /// @brief Called by the runtime to notify that a new random seed value is
   /// set.
   virtual void onRandomSeedSet(std::size_t seed);
+
+  /// @brief Turn off any custom logging stream.
+  void resetLogStream();
+
+  /// @brief Get the stream for info logging.
+  // Returns null if no specific stream was set.
+  std::ostream *getLogStream();
+
+  /// @brief Set the info logging stream.
+  void setLogStream(std::ostream &logStream);
 
 protected:
   /// The Platform QPUs, populated by concrete subtypes
@@ -183,6 +204,11 @@ protected:
   std::optional<int> platformNumShots;
 
   ExecutionContext *executionContext = nullptr;
+
+  /// Optional logging stream for platform output.
+  // If set, the platform and its QPUs will print info log to this stream.
+  // Otherwise, default output stream (std::cout) will be used.
+  std::ostream *platformLogStream = nullptr;
 };
 
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be

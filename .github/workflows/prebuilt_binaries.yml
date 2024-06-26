@@ -349,7 +349,7 @@ jobs:
             fi
             
             ${PYTHON} -m pip install cuda_quantum*.whl
-            ${PYTHON} -m pip install pytest numpy
+            ${PYTHON} -m pip install pytest numpy psutil
             ${PYTHON} -m pytest -v /home/cudaq/python \
               --ignore /home/cudaq/python/backends \
               --ignore /home/cudaq/python/domains

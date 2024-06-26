@@ -43,6 +43,59 @@ function add_pass_to_pipeline {
 	fi
 }
 
+# Function that groups and handles all of our -f* and -fno-* flags.
+function f_option_handling {
+	case $1 in
+	-fno-device-code-loading)
+		ENABLE_DEVICE_CODE_LOADERS=false
+		;;
+	-fdevice-code-loading)
+		ENABLE_DEVICE_CODE_LOADERS=true
+		;;
+	-fno-unwind-lowering)
+		ENABLE_UNWIND_LOWERING=false
+		;;
+	-funwind-lowering)
+		ENABLE_UNWIND_LOWERING=true
+		;;
+	-fno-kernel-execution)
+		ENABLE_KERNEL_EXECUTION=false
+		;;
+	-fkernel-execution)
+		ENABLE_KERNEL_EXECUTION=true
+		;;
+	-fno-aggressive-early-inline)
+		ENABLE_AGGRESSIVE_EARLY_INLINE=false
+		;;
+	-faggressive-early-inline)
+		ENABLE_AGGRESSIVE_EARLY_INLINE=true
+		;;
+	-fno-apply-specialization)
+		ENABLE_APPLY_SPECIALIZATION=false
+		;;
+	-fapply-specialization)
+		ENABLE_APPLY_SPECIALIZATION=true
+		;;
+	-fno-lambda-lifting)
+		ENABLE_LAMBDA_LIFTING=false
+		;;
+	-flambda-lifting)
+		ENABLE_LAMBDA_LIFTING=true
+		;;
+	-fno-lower-to-cfg)
+		ENABLE_LOWER_TO_CFG=false
+		;;
+	-flower-to-cfg)
+		ENABLE_LOWER_TO_CFG=true
+		;;
+	*)
+		# Pass any unrecognized options on to the clang++ tool.
+		ARGS="${ARGS} $1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1"
+		;;
+	esac
+}
+
 function list_targets {
 	ls -I *.cpp -1 ${install_dir}/targets/ | grep ".config$" | sed -e 's/\.config$//'
 	exit 0
@@ -122,22 +175,22 @@ function show_help {
 --mapping-file <path/to/file>
 	Use the specified topology file during mapping (if mapping is needed).
 
---[no-]device-code-loading
+-f[no-]device-code-loading
 	Enable/disable device code loading pass.
 
---[no-]unwind-lowering
+-f[no-]unwind-lowering
 	Enable/disable unwind lowering pass.
 
---[no-]kernel-execution
+-f[no-]kernel-execution
 	Enable/disable kernel execution pass.
 
---[no-]aggressive-early-inline
+-f[no-]aggressive-early-inline
 	Enable/disable early inlining pass.
 
---[no-]apply-specialization
+-f[no-]apply-specialization
 	Enable/disable specialization of quake.apply ops.
 
---[no-]lambda-lifting
+-f[no-]lambda-lifting
 	Enable/disable lambda lifting pass.
 
 --opt-plugin <dynamic library file>
@@ -404,6 +457,10 @@ while [ $# -ne 0 ]; do
 		MAPPING_FILE="base64_"$(echo -n $2 | base64 --wrap=0)
 		shift
 		;;
+	--codegen-assembly-spec)
+		LLVM_QUANTUM_TARGET="$2"
+		shift
+		;;
 	--list-targets)
 		LIST_TARGETS=true
 		;;
@@ -442,41 +499,8 @@ while [ $# -ne 0 ]; do
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
 		;;
-	--no-device-code-loading)
-		ENABLE_DEVICE_CODE_LOADERS=false
-		;;
-	--device-code-loading)
-		ENABLE_DEVICE_CODE_LOADERS=true
-		;;
-	--no-unwind-lowering)
-		ENABLE_UNWIND_LOWERING=false
-		;;
-	--unwind-lowering)
-		ENABLE_UNWIND_LOWERING=true
-		;;
-	--no-kernel-execution)
-		ENABLE_KERNEL_EXECUTION=false
-		;;
-	--kernel-execution)
-		ENABLE_KERNEL_EXECUTION=true
-		;;
-	--no-aggressive-early-inline)
-		ENABLE_AGGRESSIVE_EARLY_INLINE=false
-		;;
-	--aggressive-early-inline)
-		ENABLE_AGGRESSIVE_EARLY_INLINE=true
-		;;
-	--no-apply-specialization)
-		ENABLE_APPLY_SPECIALIZATION=false
-		;;
-	--apply-specialization)
-		ENABLE_APPLY_SPECIALIZATION=true
-		;;
-	--no-lambda-lifting)
-		ENABLE_LAMBDA_LIFTING=false
-		;;
-	--lambda-lifting)
-		ENABLE_LAMBDA_LIFTING=true
+	-f*)
+		f_option_handling "$1"
 		;;
 	--opt-plugin)
 		CUDAQ_OPT_ARGS="${CUDAQ_OPT_ARGS} --load-cudaq-plugin $2"
@@ -637,7 +661,15 @@ fi
 LLC=${LLVMBIN}llc${llvm_suffix}
 
 if ${LIBRARY_MODE}; then
+	PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_LIBRARY_MODE"
 	ENABLE_KERNEL_EXECUTION=false
+fi
+if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_SIMULATION_SCALAR_"* ]]; then
+    if [[ "${NVQIR_SIMULATION_BACKEND}" == *"-fp32" ]]; then 
+	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_SIMULATION_SCALAR_FP32"   
+	else 
+	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_SIMULATION_SCALAR_FP64"
+	fi
 fi
 
 RUN_OPT=false
@@ -697,7 +729,7 @@ for i in ${SRCS}; do
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CMAKE_FALLBACK_HOST_CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
+		run ${CMAKE_FALLBACK_HOST_CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
 		OBJS="${OBJS} ${file}.o"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there
@@ -760,7 +792,10 @@ if ${DO_LINK}; then
 	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified
-	if [ ! -z "${OUTPUTFILE}" ] && ((${#OBJS[@]} == 0)); then
+	NUMBER_SRCS=$( ( set -o noglob; set -- ${SRCS[0]}; echo "$#" ) )
+	if [ ! -z "${OUTPUTFILE}" ] && (($NUMBER_SRCS == 1)); then
 		run mv ${OBJS} ${OUTPUTFILE}
+	else
+		run ${LINKER_CXX} ${LINKER_PATH} ${LINKDIRS} -r ${OBJS} -o ${OUTPUTFILE}
 	fi
 fi
