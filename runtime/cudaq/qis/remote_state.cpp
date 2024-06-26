@@ -20,11 +20,29 @@ void RemoteSimulationState::execute() const {
     // Perform the usual pattern set the context,
     // execute and then reset
     platform.set_exec_ctx(&context);
+    // Redirect remote platform log (if any)
+    // Note: due to the lazy-evaluation mechanism, the execution on the remote
+    // platform may occur during accessor API calls (e.g., amplitude, overlap).
+    // We want to defer any platform logging so that it would not interrupt
+    // potential logging of the result of the API call.
+    std::ostringstream remoteLogCout;
+    platform.setLogStream(remoteLogCout);
     platform.launchKernel(kernelName, nullptr,
                           static_cast<void *>(argsBuffer.data()),
                           argsBuffer.size(), 0);
     platform.reset_exec_ctx();
+    platform.resetLogStream();
+    // Cache the info log if any.
+    platformExecutionLog = remoteLogCout.str();
     state = std::move(context.simulationState);
+  }
+}
+
+RemoteSimulationState::~RemoteSimulationState() {
+  if (!platformExecutionLog.empty()) {
+    // Flush any info log from the remote execution
+    printf("%s\n", platformExecutionLog.c_str());
+    platformExecutionLog.clear();
   }
 }
 

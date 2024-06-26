@@ -160,10 +160,23 @@ public:
         getOptAndSetConfig("api_key");
         getOptAndSetConfig("function_id");
         getOptAndSetConfig("version_id");
-        getOptAndSetConfig("ngpus");
 
         auto numQpusStr = getOpt(description, "nqpus");
-        const int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
+        int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
+
+        if (simName.find("nvidia-mqpu") != std::string::npos && numQpus > 1) {
+          // If the backend simulator is an MQPU simulator (like nvidia-mqpu),
+          // then use "nqpus" to determine the number of GPUs to request for the
+          // backend. This allows us to seamlessly translate requests for MQPU
+          // requests to the NVQC platform.
+          configStr += fmt::format(";{};{}", "ngpus", numQpus);
+          // Now change numQpus to 1 for the downstream code, which will make a
+          // single NVQC QPU.
+          numQpus = 1;
+        } else {
+          getOptAndSetConfig("ngpus");
+        }
+
         if (numQpus < 1)
           throw std::invalid_argument("Number of QPUs must be greater than 0.");
         for (int qpuId = 0; qpuId < numQpus; ++qpuId) {

@@ -47,7 +47,7 @@ extensions = [
     'sphinx.ext.doctest',  # test example codes in docs
     'sphinx.ext.extlinks',
     'sphinx.ext.intersphinx',
-    #'sphinx.ext.mathjax',
+    'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',  # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
     'sphinx_reredirects',
