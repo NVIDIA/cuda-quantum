@@ -44,7 +44,6 @@ def test_basic():
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
     cudaq.register_operation("custom_x", 1, 0, np.array([0, 1, 1, 0]))
 
-    print(bell)
     check_bell(bell)
 
 
@@ -77,12 +76,11 @@ def test_cz_gate():
         controls = cudaq.qvector(2)
         custom_cz(qubits[1], qubits[0])
         x(qubits[2])
-        # [SKIP_TEST] : Fix 'lib/Optimizer/CodeGen/QuakeToLLVM.cpp'-->'rewriter.eraseOp(globalOp);' --> operation was already replaced
-        # custom_cz(qubits[3], qubits[2])
-        # x(controls)
+        custom_cz(qubits[3], qubits[2])
+        x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    # assert counts["0010011"] == 1000
+    assert counts["0010011"] == 1000
 
 
 def test_three_qubit_op():
