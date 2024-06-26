@@ -1361,11 +1361,6 @@ public:
             ValueRange{realPartVal, imaginaryPartVal, concatControls,
                        concatTargets});
       }
-      // FIXME Keeping the cc.global constant array results in 'error:
-      // unsupported constant value'. Despite checking the usage the following
-      // throws error when a custom op is reused in a module
-      if (globalOp.use_empty())
-        rewriter.eraseOp(globalOp);
       // FIXME need to release the arrays
       return success();
     }
