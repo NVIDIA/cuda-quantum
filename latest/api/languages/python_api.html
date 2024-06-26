@@ -120,8 +120,27 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/vqe.html">   Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
@@ -131,7 +150,6 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/tutorials.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -140,48 +158,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample">Sample</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample-Async">Sample Async</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe">Observe</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe-Async">Observe Async</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-linearity">Gate linearity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
 </ul>
@@ -239,7 +229,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/platform.html">   Multi-Processor Platforms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
 </ul>
 </li>
@@ -886,12 +875,38 @@ on the platform to target. Defaults to zero. Key-word only.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.draw">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.draw" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py function">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.draw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1:</span> <span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return a string representing the drawing of the execution path,
+in the format specified as the first argument. If the format is
+‘ascii’, the output will be a UTF-8 encoded string. If the format
+is ‘latex’, the output will be a LaTeX string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>format</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – The format of the output. Can be ‘ascii’ or ‘latex’.</p></li>
+<li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to draw.</p></li>
+<li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the kernel
+function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
+</ul>
+</dd>
+</dl>
+<ol class="arabic" start="2">
+<li><dl class="py function">
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
 <dd></dd></dl>
 
+</li>
+</ol>
 <p>Return a UTF-8 encoded string representing drawing of the execution
 path, i.e., the trace, of the provided <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>.</p>
 <dl class="field-list simple">
@@ -1926,7 +1941,7 @@ from the <code class="code docutils literal notranslate"><span class="pre">start
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3760908580</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2809097321</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
