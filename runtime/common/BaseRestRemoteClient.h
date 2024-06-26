@@ -192,10 +192,13 @@ public:
 
   cudaq::RestRequest constructJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+      cudaq::SerializedCodeExecutionContext *serializedCodeContext,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
     cudaq::RestRequest request(io_context, version());
+    if (serializedCodeContext)
+      request.serializedCodeExecutionContext = *serializedCodeContext;
     request.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;
@@ -243,7 +246,7 @@ public:
       request.entryPoint = stateIrPayload1.entryPoint;
       // Second kernel of the overlap calculation
       request.overlapKernel = stateIrPayload2;
-    } else {
+    } else if (serializedCodeContext == nullptr) {
       request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                             kernelArgs, argsSize);
     }
@@ -266,17 +269,18 @@ public:
     return request;
   }
 
-  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
-                           cudaq::ExecutionContext &io_context,
-                           const std::string &backendSimName,
-                           const std::string &kernelName,
-                           void (*kernelFunc)(void *), void *kernelArgs,
-                           std::uint64_t argsSize,
-                           std::string *optionalErrorMsg) override {
-    cudaq::RestRequest request =
-        constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
-                            kernelFunc, kernelArgs, argsSize);
-    if (request.code.empty()) {
+  virtual bool
+  sendRequest(mlir::MLIRContext &mlirContext,
+              cudaq::ExecutionContext &io_context,
+              cudaq::SerializedCodeExecutionContext *serializedCodeContext,
+              const std::string &backendSimName, const std::string &kernelName,
+              void (*kernelFunc)(void *), void *kernelArgs,
+              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    cudaq::RestRequest request = constructJobRequest(
+        mlirContext, io_context, serializedCodeContext, backendSimName,
+        kernelName, kernelFunc, kernelArgs, argsSize);
+    if (request.code.empty() && (serializedCodeContext == nullptr ||
+                                 serializedCodeContext->source_code.empty())) {
       if (optionalErrorMsg)
         *optionalErrorMsg =
             std::string(
@@ -295,6 +299,7 @@ public:
       cudaq::RestClient restClient;
       auto resultJs =
           restClient.post(m_url, "job", requestJson, headers, false);
+      cudaq::debug("Response: {}", resultJs.dump(/*indent=*/2));
 
       if (!resultJs.contains("executionContext")) {
         std::stringstream errorMsg;
@@ -670,13 +675,13 @@ public:
       }
     }
   }
-  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
-                           cudaq::ExecutionContext &io_context,
-                           const std::string &backendSimName,
-                           const std::string &kernelName,
-                           void (*kernelFunc)(void *), void *kernelArgs,
-                           std::uint64_t argsSize,
-                           std::string *optionalErrorMsg) override {
+  virtual bool
+  sendRequest(mlir::MLIRContext &mlirContext,
+              cudaq::ExecutionContext &io_context,
+              cudaq::SerializedCodeExecutionContext *serializedCodeContext,
+              const std::string &backendSimName, const std::string &kernelName,
+              void (*kernelFunc)(void *), void *kernelArgs,
+              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {"tensornet",
                                                                 "nvidia-mgpu"};
     {
@@ -699,11 +704,12 @@ public:
       }
     }
     // Construct the base `cudaq-qpud` request payload.
-    cudaq::RestRequest request =
-        constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
-                            kernelFunc, kernelArgs, argsSize);
+    cudaq::RestRequest request = constructJobRequest(
+        mlirContext, io_context, serializedCodeContext, backendSimName,
+        kernelName, kernelFunc, kernelArgs, argsSize);
 
-    if (request.code.empty()) {
+    if (request.code.empty() && (serializedCodeContext == nullptr ||
+                                 serializedCodeContext->source_code.empty())) {
       if (optionalErrorMsg)
         *optionalErrorMsg =
             std::string(
@@ -712,7 +718,8 @@ public:
       return false;
     }
 
-    if (request.format != cudaq::CodeFormat::MLIR) {
+    if (request.format != cudaq::CodeFormat::MLIR &&
+        serializedCodeContext == nullptr) {
       // The `.config` file may have been tampered with.
       std::cerr << "Internal error: unsupported kernel IR detected.\nThis may "
                    "indicate a corrupted CUDA-Q installation.";
