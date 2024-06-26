@@ -581,7 +581,7 @@ function using the Quake dialect.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">PyKernelDecorator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernelName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">PyKernelDecorator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernelName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funcSrc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator" title="Permalink to this definition">¶</a></dt>
 <dd><p>The <code class="code docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code> serves as a standard Python decorator that takes
 the decorated function as input and optionally lowers its  AST
 representation to executable code via MLIR. This decorator enables full JIT
@@ -606,6 +606,28 @@ kernel AST to MLIR will occur here if it has not already occurred.</p>
 <span class="sig-name descname"><span class="pre">compile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.compile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compile the Python function AST to MLIR. This is a no-op
 if the kernel is already compiled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jStr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a JSON string into a new PyKernelDecorator object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert <code class="code docutils literal notranslate"><span class="pre">self</span></code> to a JSON-serialized version of the kernel such that
+<code class="code docutils literal notranslate"><span class="pre">from_json</span></code> can reconstruct it elsewhere.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.type_to_str">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">type_to_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.type_to_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>This converts types to strings in a clean JSON-compatible way.
+int -&gt; ‘int’
+list[float] -&gt; ‘list[float]’
+List[float] -&gt; ‘list[float]’</p>
 </dd></dl>
 
 </dd></dl>
@@ -1862,6 +1884,17 @@ from the <code class="code docutils literal notranslate"><span class="pre">start
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SpinOperator.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert JSON string (‘[[d1, d2, d3, …], numQubits]’) to spin_op</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.SpinOperator.from_word">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_word</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.from_word" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
@@ -1941,7 +1974,7 @@ from the <code class="code docutils literal notranslate"><span class="pre">start
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1571536442</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100906371</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
@@ -1956,6 +1989,17 @@ from the <code class="code docutils literal notranslate"><span class="pre">start
 <dd></dd></dl>
 
 <p>Return a serialized representation of the <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>. Specifically, this encoding is via a vector of doubles. The encoding is as follows: for each term, a list of doubles where the ith element is a 3.0 for a Y, a 1.0 for a X, and a 2.0 for a Z on qubit i, followed by the real and imaginary part of the coefficient. Each term is appended to the array forming one large 1d array of doubles. The array is ended with the total number of terms represented as a double.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SpinOperator.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><span class="pre">object</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert spin_op to JSON string: ‘[[d1, d2, d3, …], numQubits]’</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2536,7 +2580,18 @@ for more information on this programming pattern.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">GradientDescent</span></span><a class="headerlink" href="#cudaq.optimizers.GradientDescent" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py property">
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.GradientDescent.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.optimizers.GradientDescent" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.GradientDescent"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.GradientDescent</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert JSON string to optimizer</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.GradientDescent.initial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the initial parameter values for the optimization.</p>
@@ -2565,6 +2620,28 @@ for more information on this programming pattern.</p>
 <p>Run <code class="code docutils literal notranslate"><span class="pre">cudaq.optimize()</span></code> on the provided objective function.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.requires_gradients">
+<span class="sig-name descname"><span class="pre">requires_gradients</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.GradientDescent.requires_gradients" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">requires_gradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.optimizers.GradientDescent" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.GradientDescent"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.GradientDescent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Returns whether the optimizer requires gradient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.GradientDescent.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.optimizers.GradientDescent" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.GradientDescent"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.GradientDescent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert optimizer to JSON string</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.GradientDescent.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -2576,7 +2653,18 @@ for more information on this programming pattern.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.COBYLA">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">COBYLA</span></span><a class="headerlink" href="#cudaq.optimizers.COBYLA" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py property">
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.COBYLA.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.optimizers.COBYLA" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.COBYLA"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.COBYLA</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert JSON string to optimizer</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.COBYLA.initial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the initial parameter values for the optimization.</p>
@@ -2605,6 +2693,28 @@ for more information on this programming pattern.</p>
 <p>Run <code class="code docutils literal notranslate"><span class="pre">cudaq.optimize()</span></code> on the provided objective function.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.requires_gradients">
+<span class="sig-name descname"><span class="pre">requires_gradients</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.COBYLA.requires_gradients" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">requires_gradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.optimizers.COBYLA" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.COBYLA"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.COBYLA</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Returns whether the optimizer requires gradient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.COBYLA.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.optimizers.COBYLA" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.COBYLA"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.COBYLA</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert optimizer to JSON string</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.COBYLA.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -2616,7 +2726,18 @@ for more information on this programming pattern.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.NelderMead">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">NelderMead</span></span><a class="headerlink" href="#cudaq.optimizers.NelderMead" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py property">
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.NelderMead.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.optimizers.NelderMead" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.NelderMead"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.NelderMead</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert JSON string to optimizer</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.NelderMead.initial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the initial parameter values for the optimization.</p>
@@ -2645,6 +2766,28 @@ for more information on this programming pattern.</p>
 <p>Run <code class="code docutils literal notranslate"><span class="pre">cudaq.optimize()</span></code> on the provided objective function.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.requires_gradients">
+<span class="sig-name descname"><span class="pre">requires_gradients</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.NelderMead.requires_gradients" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">requires_gradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.optimizers.NelderMead" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.NelderMead"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.NelderMead</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Returns whether the optimizer requires gradient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.NelderMead.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.optimizers.NelderMead" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.NelderMead"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.NelderMead</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert optimizer to JSON string</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.NelderMead.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -2656,7 +2799,18 @@ for more information on this programming pattern.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.LBFGS">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">LBFGS</span></span><a class="headerlink" href="#cudaq.optimizers.LBFGS" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py property">
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.LBFGS.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.LBFGS.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.optimizers.LBFGS" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.LBFGS"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.LBFGS</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert JSON string to optimizer</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.LBFGS.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.LBFGS.initial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the initial parameter values for the optimization.</p>
@@ -2683,6 +2837,28 @@ for more information on this programming pattern.</p>
 <dd></dd></dl>
 
 <p>Run <code class="code docutils literal notranslate"><span class="pre">cudaq.optimize()</span></code> on the provided objective function.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.LBFGS.requires_gradients">
+<span class="sig-name descname"><span class="pre">requires_gradients</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.LBFGS.requires_gradients" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">requires_gradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.optimizers.LBFGS" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.LBFGS"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.LBFGS</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Returns whether the optimizer requires gradient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.optimizers.LBFGS.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.LBFGS.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.optimizers.LBFGS" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.LBFGS"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.optimizers.LBFGS</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert optimizer to JSON string</p>
 </dd></dl>
 
 <dl class="py property">
@@ -2715,6 +2891,28 @@ for more information on this programming pattern.</p>
 <p>Compute the gradient of the provided <code class="code docutils literal notranslate"><span class="pre">parameter_vector</span></code> with respect to its loss function, using the <code class="code docutils literal notranslate"><span class="pre">CentralDifference</span></code> method.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.gradients.CentralDifference.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.gradients.CentralDifference.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.gradients.CentralDifference" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.CentralDifference"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.CentralDifference</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert JSON string to gradient</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.gradients.CentralDifference.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.gradients.CentralDifference.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.gradients.CentralDifference" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.CentralDifference"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.CentralDifference</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert gradient to JSON string</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -2731,6 +2929,28 @@ for more information on this programming pattern.</p>
 <p>Compute the gradient of the provided <code class="code docutils literal notranslate"><span class="pre">parameter_vector</span></code> with respect to its loss function, using the <code class="code docutils literal notranslate"><span class="pre">ForwardDifference</span></code> method.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.gradients.ForwardDifference.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.gradients.ForwardDifference.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.gradients.ForwardDifference" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.ForwardDifference"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.ForwardDifference</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert JSON string to gradient</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.gradients.ForwardDifference.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.gradients.ForwardDifference.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.gradients.ForwardDifference" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.ForwardDifference"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.ForwardDifference</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert gradient to JSON string</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -2745,6 +2965,28 @@ for more information on this programming pattern.</p>
 <dd></dd></dl>
 
 <p>Compute the gradient of the provided <code class="code docutils literal notranslate"><span class="pre">parameter_vector</span></code> with respect to its loss function, using the <code class="code docutils literal notranslate"><span class="pre">ParameterShift</span></code> method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.gradients.ParameterShift.from_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.gradients.ParameterShift.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.gradients.ParameterShift" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.ParameterShift"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.ParameterShift</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert JSON string to gradient</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.gradients.ParameterShift.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.gradients.ParameterShift.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.gradients.ParameterShift" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.ParameterShift"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.gradients.ParameterShift</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Convert gradient to JSON string</p>
 </dd></dl>
 
 </dd></dl>
