@@ -5,12 +5,12 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+ 
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/algorithms/draw.h" // TODO  translate.h
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-
 #include <iostream>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
@@ -27,7 +27,7 @@ std::string getASM(const std::string &name, MlirModule module,
                    cudaq::OpaqueArguments &runtimeArgs);
 
 /// @brief Run `cudaq::translate` on the provided kernel.
-std::string pyTranslate(py::object &kernel, py::args args, std::string format) {
+std::string pyTranslate(py::object &kernel, py::args args, const std::string &format) {
 
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
@@ -95,7 +95,7 @@ Returns:
       h(q[0])
       cx(q[0], q[1])
       mz(q)
-  print(cudaq.translate(bell_pair, format:"qir"))
+  print(cudaq.translate(bell_pair, format="qir"))
 
   # Output
   ; ModuleID = 'LLVMDialectModule'

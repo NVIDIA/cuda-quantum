@@ -552,20 +552,14 @@ std::string getASM(const std::string &name, MlirModule module,
   pm.addPass(cudaq::opt::createLambdaLiftingPass());
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
 
-  mlir::DefaultTimingManager tm;
-  tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
-  auto timingScope = tm.getRootScope(); // starts the timer
-  pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
     throw std::runtime_error("getASM: code generation failed.");
-  timingScope.stop();
   std::free(rawArgs);
 
   std::string str;
   llvm::raw_string_ostream os(str);
-  if (failed(cudaq::translateToOpenQASM(cloned, os))) {
+  if (failed(cudaq::translateToOpenQASM(cloned, os))) 
     throw std::runtime_error("getASM: failed to translate to OpenQasm.");
-  }
   return str;
 }
 
