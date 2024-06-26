@@ -171,6 +171,8 @@ Platform
 .. doxygenclass:: cudaq::quantum_platform
     :members:
 
+.. doxygenclass:: cudaq::SerializedCodeExecutionContext
+
 .. doxygentypedef:: cudaq::QuantumTask
 
 .. doxygentypedef:: cudaq::QubitConnectivity
