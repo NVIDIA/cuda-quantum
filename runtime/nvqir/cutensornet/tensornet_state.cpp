@@ -322,7 +322,7 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
   }
 
   // Check whether we need host memory workspace
-  int64_t hostWorkspaceSize{0};
+  std::int64_t hostWorkspaceSize{0};
   HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
       m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
       CUTENSORNET_MEMSPACE_HOST, CUTENSORNET_WORKSPACE_SCRATCH,
