@@ -128,7 +128,7 @@ int run_steps(int steps, int spins) {
     const auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    auto timeInSeconds =  duration.count() / 1000.0 / 1000.0;
+    auto timeInSeconds = duration.count() / 1000.0 / 1000.0;
     runtimeMs.emplace_back(timeInSeconds);
     std::cout << "Step " << i << ": time [s]: " << timeInSeconds
               << ", result: " << result << std::endl;
@@ -156,5 +156,6 @@ int main() {
   const auto stop = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "Total running time: " << duration.count() / 1000.0 / 1000.0 << "s" << std::endl;
+  std::cout << "Total running time: " << duration.count() / 1000.0 / 1000.0
+            << "s" << std::endl;
 }
