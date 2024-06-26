@@ -17,7 +17,13 @@ __qpu__ void test(std::vector<cudaq::complex> inState) {
 }
 
 void printCounts(cudaq::sample_result& result) {
+  std::vector<std::string> values{};
   for (auto &&[bits, counts] : result) {
+    values.push_back(bits);
+  }
+
+  std::sort(values.begin(), values.end());
+  for (auto &&bits : values) {
     std::cout << bits << '\n';
   }
 }
@@ -44,11 +50,9 @@ int main() {
     }
 }
 
-// CHECK: 01
 // CHECK: 00
-
-// CHECK: 10
-// CHECK: 10
-
 // CHECK: 01
+// CHECK: 10
+// CHECK: 11
 // CHECK: 00
+// CHECK: 01

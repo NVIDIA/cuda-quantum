@@ -5,10 +5,17 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+
+import os, sys
 import pytest
 
 import cudaq
 import numpy as np
+
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
@@ -18,8 +25,10 @@ skipIfNvidiaNotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason='Could not find nvidia in installation')
 
-
 # float
+
+
+@skipIfPythonLessThan39
 def test_kernel_float_params():
     cudaq.reset_target()
 
@@ -136,6 +145,7 @@ def test_kernel_float_definition_f32():
 # complex
 
 
+@skipIfPythonLessThan39
 def test_kernel_complex_params_rotate():
     cudaq.reset_target()
 
@@ -157,6 +167,7 @@ def test_kernel_complex_params_rotate():
     assert '10' in counts
 
 
+@skipIfPythonLessThan39
 def test_kernel_complex_params():
     cudaq.reset_target()
 
@@ -273,6 +284,7 @@ def test_kernel_complex_definition_f32():
 # np arrays
 
 
+@skipIfPythonLessThan39
 def test_kernel_dtype_complex_params():
     cudaq.reset_target()
 
@@ -288,6 +300,7 @@ def test_kernel_dtype_complex_params():
     assert '00' in counts
 
 
+@skipIfPythonLessThan39
 def test_kernel_dtype_complex128_params():
     cudaq.reset_target()
 
@@ -357,6 +370,7 @@ def test_kernel_simulation_dtype_complex_params_f32():
     assert '00' in counts
 
 
+@skipIfPythonLessThan39
 def test_kernel_amplitudes_complex_params():
     cudaq.reset_target()
 
@@ -372,6 +386,7 @@ def test_kernel_amplitudes_complex_params():
     assert '00' in counts
 
 
+@skipIfPythonLessThan39
 def test_kernel_amplitudes_complex_from_capture():
     cudaq.reset_target()
 
@@ -462,7 +477,8 @@ def test_kernel_simulation_dtype_np_array_capture_f32():
 # test errors
 
 
-def test_kernel_error_invalid_array_size_():
+@skipIfPythonLessThan39
+def test_kernel_error_invalid_array_size():
     cudaq.reset_target()
 
     @cudaq.kernel
@@ -475,6 +491,7 @@ def test_kernel_error_invalid_array_size_():
         e)
 
 
+@skipIfPythonLessThan39
 def test_kernel_error_invalid_list_size():
     cudaq.reset_target()
 
