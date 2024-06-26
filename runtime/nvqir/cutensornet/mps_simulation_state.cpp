@@ -253,9 +253,9 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
   if (getNumQubits() > 1) {
     TensorNetState basisTensorNetState(basisState, state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
-    std::vector<MPSTensor> basisStateTensors =
-        basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
-                                         std::numeric_limits<double>::min());
+    std::vector<MPSTensor> basisStateTensors = basisTensorNetState.factorizeMPS(
+        1, std::numeric_limits<double>::min(),
+        std::numeric_limits<double>::min(), MPSSettings().svdAlgo);
     const auto overlap = computeOverlap(m_mpsTensors, basisStateTensors);
     for (auto &mpsTensor : basisStateTensors) {
       HANDLE_CUDA_ERROR(cudaFree(mpsTensor.deviceData));
