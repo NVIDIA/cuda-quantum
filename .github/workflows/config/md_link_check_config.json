@@ -16,6 +16,9 @@
         "pattern": "^https://www.gnu.org/"
       },
       {
+        "pattern": "^https://gcc.gnu.org/"
+      },
+      {
         "pattern": "^https://epubs.siam.org/doi/10.1137/S0097539796300921"
       },
       {
