@@ -494,10 +494,10 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   return wrap(cloned);
 }
 
-std::string getQIRLL(const std::string &name, MlirModule module,
-                     cudaq::OpaqueArguments &runtimeArgs,
-                     std::string &profile) {
-  ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIRLL", name);
+std::string getQIR(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs,
+                   const std::string &profile) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
   auto [jit, rawArgs, size, returnOffset] =
@@ -517,7 +517,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
   pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
-        "getQIRLL failed to JIT compile the Quake representation.");
+        "getQIR failed to JIT compile the Quake representation.");
   timingScope.stop();
   std::free(rawArgs);
 
@@ -528,7 +528,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
       /*optLevel=*/3, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(llvmModule.get()))
-    throw std::runtime_error("getQIRLL Failed to optimize LLVM IR ");
+    throw std::runtime_error("getQIR Failed to optimize LLVM IR ");
 
   std::string str;
   {
@@ -558,7 +558,7 @@ std::string getASM(const std::string &name, MlirModule module,
 
   std::string str;
   llvm::raw_string_ostream os(str);
-  if (failed(cudaq::translateToOpenQASM(cloned, os))) 
+  if (failed(cudaq::translateToOpenQASM(cloned, os)))
     throw std::runtime_error("getASM: failed to translate to OpenQasm.");
   return str;
 }
@@ -632,7 +632,7 @@ void bindAltLaunchKernel(py::module &mod) {
         MlirModule module = kernel.attr("module").cast<MlirModule>();
         auto name = kernel.attr("name").cast<std::string>();
         cudaq::OpaqueArguments args;
-        return getQIRLL(name, module, args, profile);
+        return getQIR(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
 

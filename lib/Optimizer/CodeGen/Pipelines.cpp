@@ -41,7 +41,6 @@ void cudaq::opt::commonPipelineConvertToQIR(
 }
 
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
-  pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 }

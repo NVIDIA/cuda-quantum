@@ -22,8 +22,10 @@ def bell_pair():
 def kernel(numQubits: int):
     q = cudaq.qvector(numQubits)
     h(q)
-    cx(q[0], q[1])
-    mz(q)
+    for i in range(numQubits-1):
+       cx(q[i], q[i+1])
+    for i in range(numQubits):
+       mz(q[i])
 
 
 def test_translate_openqasm():
@@ -44,13 +46,10 @@ def test_translate_openqasm_with_args():
 
 
 def test_translate_openqasm_synth():
-    synth = cudaq.synthesize(kernel, 5)
+    synth = cudaq.synthesize(kernel, 4)
 
-    # Note: synthesized kernel above contains unsupported
-    # `cc.alloca` instructions.
-    with pytest.raises(RuntimeError) as e:
-        print(cudaq.translate(synth, format="openqasm"))
-    assert 'getASM: failed to translate to OpenQasm.' in repr(e)
+    asm = cudaq.translate(synth, format="openqasm")
+    assert "measure var0[3] -> var8[0]" in asm
 
 
 def test_translate_qir():

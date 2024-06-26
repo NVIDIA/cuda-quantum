@@ -5,7 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
- 
+
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/algorithms/draw.h" // TODO  translate.h
@@ -16,18 +16,16 @@
 #include <pybind11/stl.h>
 
 namespace cudaq {
-
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
-
-std::string getQIRLL(const std::string &name, MlirModule module,
-                     cudaq::OpaqueArguments &runtimeArgs, std::string &profile);
+std::string getQIR(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs,
+                   const std::string &profile);
 
 std::string getASM(const std::string &name, MlirModule module,
                    cudaq::OpaqueArguments &runtimeArgs);
 
 /// @brief Run `cudaq::translate` on the provided kernel.
-std::string pyTranslate(py::object &kernel, py::args args, const std::string &format) {
+std::string pyTranslate(py::object &kernel, py::args args,
+                        const std::string &format) {
 
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
@@ -41,12 +39,12 @@ std::string pyTranslate(py::object &kernel, py::args args, const std::string &fo
                 [&]() {
                   cudaq::OpaqueArguments args;
                   std::string profile = "";
-                  return getQIRLL(name, module, args, profile);
+                  return getQIR(name, module, args, profile);
                 })
           .Cases("qir-adaptive", "qir-base",
                  [&]() {
                    cudaq::OpaqueArguments args;
-                   return getQIRLL(name, module, args, format);
+                   return getQIR(name, module, args, format);
                  })
           .Case("openqasm",
                 [&]() {
@@ -67,7 +65,7 @@ std::string pyTranslate(py::object &kernel, py::args args, const std::string &fo
   return result;
 }
 
-/// @brief Bind the draw cudaq function
+/// @brief Bind the translate cudaq function
 void bindPyTranslate(py::module &mod) {
   mod.def(
       "translate", &pyTranslate, py::arg("kernel"), py::kw_only(),
@@ -110,14 +108,7 @@ Returns:
 
   define void @__nvqpp__mlirgen__function_variable_qreg._Z13variable_qregv() local_unnamed_addr {
     %1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
-    %2 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 0)
-    %3 = bitcast i8* %2 to %Qubit**
-    %4 = load %Qubit*, %Qubit** %3, align 8
-    tail call void @__quantum__qis__h(%Qubit* %4)
-    %5 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 1)
-    %6 = bitcast i8* %5 to %Qubit**
-    %7 = load %Qubit*, %Qubit** %6, align 8
-    tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %4, %Qubit* %7)
+    ...
     %8 = tail call %Result* @__quantum__qis__mz(%Qubit* %4)
     %9 = tail call %Result* @__quantum__qis__mz(%Qubit* %7)
     tail call void @__quantum__rt__qubit_release_array(%Array* %1)
