@@ -51,8 +51,8 @@ public:
         executionContextPtr ? *executionContextPtr : defaultContext;
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *mlirContext, executionContext, m_simName, name, kernelFunc,
-        wrapper->rawArgs, voidStarSize, &errorMsg);
+        *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        m_simName, name, kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
@@ -100,8 +100,8 @@ public:
         executionContextPtr ? *executionContextPtr : defaultContext;
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *mlirContext, executionContext, m_simName, name, kernelFunc,
-        wrapper->rawArgs, voidStarSize, &errorMsg);
+        *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        m_simName, name, kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }

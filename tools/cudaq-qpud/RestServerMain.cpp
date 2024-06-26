@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "common/GPUInfo.h"
 #include "common/Registry.h"
 #include "common/RemoteKernelExecutor.h"
 #include "llvm/Support/CommandLine.h"
@@ -35,6 +36,10 @@ static llvm::cl::opt<bool> printRestPayloadVersion(
     llvm::cl::desc(
         "Display the REST request payload version that this server supports."),
     llvm::cl::init(false));
+static llvm::cl::opt<bool> printCudaProperties(
+    "cuda-properties",
+    llvm::cl::desc("Display the CUDA properties of the host and exit."),
+    llvm::cl::init(false));
 
 int main(int argc, char **argv) {
   // The "fast" instruction selection compilation algorithm is actually very
@@ -52,6 +57,14 @@ int main(int argc, char **argv) {
 
   llvm::cl::ParseCommandLineOptions(argc + 1, extraArgv.data(),
                                     "CUDA-Q REST server\n");
+  if (printCudaProperties) {
+    const auto deviceProps = cudaq::getCudaProperties();
+    if (deviceProps.has_value()) {
+      nlohmann::json j(*deviceProps);
+      printf("%s\n", j.dump().c_str());
+    }
+    return 0;
+  }
   if (cudaq::mpi::available())
     cudaq::mpi::initialize();
   // Check the server type arg is valid.

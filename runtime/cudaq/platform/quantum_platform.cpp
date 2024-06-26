@@ -126,6 +126,11 @@ bool quantum_platform::supports_conditional_feedback(
   return platformQPUs[qpu_id]->supportsConditionalFeedback();
 }
 
+bool quantum_platform::supports_remote_serialized_code(
+    const std::size_t qpu_id) const {
+  return platformQPUs[qpu_id]->supportsRemoteSerializedCode();
+}
+
 void quantum_platform::launchKernel(std::string kernelName,
                                     void (*kernelFunc)(void *), void *args,
                                     std::uint64_t voidStarSize,
@@ -141,10 +146,32 @@ void quantum_platform::launchKernel(std::string kernelName,
   qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset);
 }
 
+void quantum_platform::launchSerializedCodeExecution(
+    const std::string &name,
+    cudaq::SerializedCodeExecutionContext &serializeCodeExecutionObject) {
+  std::size_t qpu_id = 0;
+
+  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+  auto iter = threadToQpuId.find(tid);
+  if (iter != threadToQpuId.end())
+    qpu_id = iter->second;
+
+  auto &qpu = platformQPUs[qpu_id];
+  qpu->launchSerializedCodeExecution(name, serializeCodeExecutionObject);
+}
+
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
   for (auto &qpu : platformQPUs)
     qpu->onRandomSeedSet(seed);
+}
+
+void quantum_platform::resetLogStream() { platformLogStream = nullptr; }
+
+std::ostream *quantum_platform::getLogStream() { return platformLogStream; }
+
+void quantum_platform::setLogStream(std::ostream &logStream) {
+  platformLogStream = &logStream;
 }
 } // namespace cudaq
 
