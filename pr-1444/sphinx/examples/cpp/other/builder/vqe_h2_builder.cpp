@@ -78,7 +78,7 @@ int main() {
   int layers = 2, n_qubits = H.num_qubits(), block_size = 2, p_counter = 0;
   int n_blocks_per_layer = 2 * (n_qubits / block_size) - 1;
   int n_params = layers * 6 * n_blocks_per_layer;
-  printf("%d qubit hamiltonian -> %d parameters\n", n_qubits, n_params);
+  printf("%d qubit Hamiltonian -> %d parameters\n", n_qubits, n_params);
 
   // Create the builder with signature void(std::vector<double>)
   auto [kernel, params] = cudaq::make_kernel<std::vector<double>>();

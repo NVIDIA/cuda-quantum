@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Executing Quantum Circuits" href="executing_circuits.html" />
-    <link rel="prev" title="Cost Minimization" href="cost_minimization.html" /> 
+    <link rel="next" title="Quantum Fourier Transform" href="quantum_fourier_transform.html" />
+    <link rel="prev" title="CUDA-Q Tutorials" href="../../../using/tutorials.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -123,8 +123,27 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/vqe.html">   Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
@@ -134,7 +153,6 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Deutschs’ Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Quantum-oracles">Quantum oracles</a></li>
@@ -143,54 +161,20 @@
 <li class="toctree-l3"><a class="reference internal" href="#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Sample">Sample</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Sample-Async">Sample Async</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Observe-Async">Observe Async</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="multiple_qubits.html">Multiple Qubits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quantum_bits.html">Quantum Bits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit">Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-linearity">Gate linearity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
 </ul>
@@ -248,7 +232,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/backends/platform.html">   Multi-Processor Platforms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
 </ul>
 </li>
@@ -517,8 +500,8 @@
             <a href="../../../_sources/examples/python/tutorials/deutschs_algorithm.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="cost_minimization.html" class="btn btn-neutral float-left" title="Cost Minimization" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="executing_circuits.html" class="btn btn-neutral float-right" title="Executing Quantum Circuits" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA-Q Tutorials" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -537,7 +520,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Treat the code snippet below like a black box, i.e you dont have access to the value of the property argument and can just query f with different inputs.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Treat the code snippet below like a black box, i.e you don&#39;t have access to the value of the property argument and can just query f with different inputs.</span>
 
 
 <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">property</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">):</span>
@@ -603,7 +586,7 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="83331c07adc04425b7c44373ffff87e6" class="no-scaled-link" src="../../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p><img alt="950b4be2abc3421d8b6f1b8677696b1e" class="no-scaled-link" src="../../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
 <p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logic gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
@@ -651,7 +634,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 <h2>Deutschs’ Algorithm:<a class="headerlink" href="#Deutschs'-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="cc24a560ac3e4bfea800bffbd23113f7" class="no-scaled-link" src="../../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="1978e9cc38eb4d5a9624da9325f56890" class="no-scaled-link" src="../../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>
@@ -789,8 +772,8 @@ f(x) is a balanced function
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="cost_minimization.html" class="btn btn-neutral float-left" title="Cost Minimization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="executing_circuits.html" class="btn btn-neutral float-right" title="Executing Quantum Circuits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA-Q Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
