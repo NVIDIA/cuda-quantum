@@ -43,3 +43,40 @@ at an example of this:
 
       nvq++ expectation_values.cpp -o exp_vals.x 
       ./exp_vals.x 
+
+
+Parallelizing across Multiple Processors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:doc:`multi-processor platforms <../backends/platform>` page.
+
+
+One typical use case of :doc:`multi-processor platforms <../backends/platform>` is to distribute the
+expectation value computations of a multi-term Hamiltonian across multiple virtual QPUs.
+
+The following shows an example using the :code:`nvidia-mqpu` platform:
+
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu.py
+        :language: python
+        :start-after: [Begin Documentation]
+
+.. tab:: C++
+
+    .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
+
+
+    One can then target the :code:`nvidia-mqpu` platform by executing the following commands:
+
+    .. code-block:: console
+
+        nvq++ observe_mqpu.cpp -target nvidia-mqpu
+        ./a.out
+
+In the above code snippets, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
+in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
+is selected, these circuits will be distributed across all available QPUs. The final expectation value result is computed from all QPU execution results.

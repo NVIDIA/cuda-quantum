@@ -1,7 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ --target orca --orca-url http://localhost:8080/sample
-// orca.cpp -o out.x && ./out.x
+// nvq++ --target orca --orca-url http://localhost:8080/sample orca.cpp -o out.x
+// && ./out.x
 // ```
 
 #include "cudaq/orca.h"
