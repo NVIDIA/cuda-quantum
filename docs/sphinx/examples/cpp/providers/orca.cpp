@@ -64,16 +64,16 @@ int main() {
       loop_lengths.begin(), loop_lengths.end(), static_cast<std::size_t>(0))};
   const std::size_t n_loops = loop_lengths.size();
   const std::size_t n_modes = input_state.size();
-  const std::size_t n_beamsplitters = n_loops * n_modes - sum_loop_lengths;
+  const std::size_t n_beam_splitters = n_loops * n_modes - sum_loop_lengths;
 
   // beam splitter angles (created a linear spaced vector of angles)
-  std::vector<double> bs_angles(n_beamsplitters);
-  linear_spaced_vector(bs_angles, M_PI / 8, M_PI / 3, n_beamsplitters);
+  std::vector<double> bs_angles(n_beam_splitters);
+  linear_spaced_vector(bs_angles, M_PI / 8, M_PI / 3, n_beam_splitters);
 
   // Optionally, we can also specify the phase shifter angles (created a linear
   // spaced vector of angles), if the system includes phase shifters
-  // std::vector<double> ps_angles(n_beamsplitters);
-  // linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beamsplitters);
+  // std::vector<double> ps_angles(n_beam_splitters);
+  // linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beam_splitters);
 
   // we can also set number of requested samples
   int n_samples{10000};
@@ -84,7 +84,7 @@ int main() {
       cudaq::orca::sample(input_state, loop_lengths, bs_angles, n_samples);
 
   // If the system includes phase shifters, the phase shifter angles can be
-  // inluded in the call
+  // included in the call
 
   // auto counts = cudaq::orca::sample(input_state, loop_lengths, bs_angles,
   //                                   ps_angles, n_samples);

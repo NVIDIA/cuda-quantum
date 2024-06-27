@@ -50,13 +50,13 @@ input_state = [1, 0, 1, 0, 1, 0, 1, 0]
 loop_lengths = [1, 1]
 
 # Calculate the number of beam splitters and phase shifters
-n_beamsplitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
+n_beam_splitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
 
 # beam splitter angles
-bs_angles = np.linspace(np.pi / 8, np.pi / 3, n_beamsplitters)
+bs_angles = np.linspace(np.pi / 8, np.pi / 3, n_beam_splitters)
 
 # Optionally, we can also specify the phase shifter angles, if the system includes phase shifters
-# ps_angles = np.linspace(np.pi / 6, np.pi / 3, n_beamsplitters)
+# ps_angles = np.linspace(np.pi / 6, np.pi / 3, n_beam_splitters)
 
 # we can also set number of requested samples
 n_samples = 10000
@@ -66,7 +66,7 @@ n_samples = 10000
 # after the job has been returned from ORCA Server.
 counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, n_samples)
 
-# If the system includes phase shifters, the phase shifter angles can be inluded in the call
+# If the system includes phase shifters, the phase shifter angles can be included in the call
 # counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, ps_angles, n_samples)
 
 # Print the results
