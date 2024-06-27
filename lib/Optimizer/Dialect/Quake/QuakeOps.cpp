@@ -769,6 +769,45 @@ LogicalResult quake::DiscriminateOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// WireSetOp
+//===----------------------------------------------------------------------===//
+
+ParseResult quake::WireSetOp::parse(OpAsmParser &parser,
+                                    OperationState &result) {
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  std::int32_t cardinality;
+  if (parser.parseLSquare() || parser.parseInteger(cardinality) ||
+      parser.parseRSquare())
+    return failure();
+  result.addAttribute(getCardinalityAttrName(result.name),
+                      parser.getBuilder().getI32IntegerAttr(cardinality));
+  Attribute sparseEle;
+  if (succeeded(parser.parseOptionalKeyword("adjacency")))
+    if (parser.parseAttribute(sparseEle, getAdjacencyAttrName(result.name),
+                              result.attributes))
+      return failure();
+  if (parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  return success();
+}
+
+void quake::WireSetOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  p.printSymbolName(getSymName());
+  p << '[' << getCardinality() << ']';
+  if (auto adj = getAdjacency()) {
+    p << " adjacency ";
+    p.printAttribute(*adj);
+  }
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(),
+      {getSymNameAttrName(), getCardinalityAttrName(), getAdjacencyAttrName()});
+}
+
+//===----------------------------------------------------------------------===//
 // Operator interface
 //===----------------------------------------------------------------------===//
 
