@@ -94,6 +94,12 @@ if [ "$1" == "install-gcc" ]; then
     GCC_VERSION=11
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
+    # Enabling the toolchain globally is only needed for debug builds
+    # to ensure that the correct assembler is picked to process debug symbols.
+    enable_script=`find / -path '*gcc*' -path '*'$GCC_VERSIONS'*' -name enable`
+    if [ -n "$enable_script" ]; then
+        . "$enable_script"
+    fi
 # [<gccInstall]
 fi
 
