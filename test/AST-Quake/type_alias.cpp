@@ -54,11 +54,11 @@ __qpu__ big kernel3(big arg) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel3._Z7kernel3e(
-// CHECK-SAME:      %[[VAL_0:.*]]: f128{{.*}}) -> f128
-// CHECK:           %[[VAL_1:.*]] = cc.alloca f128
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<f128>
+// CHECK-SAME:      %[[VAL_0:.*]]: f[[TY:[1280]+]]{{.*}}) -> f[[TY]]
+// CHECK:           %[[VAL_1:.*]] = cc.alloca f[[TY]]
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<f[[TY]]>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_1]] : !cc.ptr<f128>
-// CHECK:           return %[[VAL_3]] : f128
+// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_1]] : !cc.ptr<f[[TY]]>
+// CHECK:           return %[[VAL_3]] : f[[TY]]
 // CHECK:         }

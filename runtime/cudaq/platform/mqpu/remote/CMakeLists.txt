@@ -8,6 +8,7 @@
 
 add_library(cudaq-remote-simulator-qpu SHARED RemoteSimulatorQPU.cpp)
 target_link_libraries(cudaq-remote-simulator-qpu PUBLIC 
+                        cudaq
                         cudaq-common 
                         cudaq-mlir-runtime
                         rest-remote-platform-client

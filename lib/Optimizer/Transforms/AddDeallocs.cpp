@@ -49,7 +49,11 @@ struct DeallocationAnalysisInfo {
               deallocMap.insert(std::make_pair(&op, false));
           } else if (auto dealloc = dyn_cast<quake::DeallocOp>(op)) {
             auto val = dealloc.getReference();
-            Operation *alloc = cast<quake::AllocaOp>(val.getDefiningOp());
+            Operation *alloc = val.getDefiningOp();
+            if (!isa<quake::AllocaOp>(alloc)) {
+              auto initState = cast<quake::InitializeStateOp>(alloc);
+              alloc = initState.getTargets().getDefiningOp();
+            }
             if (deallocMap.count(alloc))
               deallocMap[alloc] = true;
             else
@@ -99,6 +103,8 @@ private:
         }
       } else if (auto dealloc = dyn_cast<quake::DeallocOp>(o)) {
         auto val = dealloc.getReference();
+        if (auto init = val.getDefiningOp<quake::InitializeStateOp>())
+          val = init.getTargets();
         if (auto alloc = val.getDefiningOp<quake::AllocaOp>()) {
           auto *op = alloc.getOperation();
           if (allocMap.count(op))
@@ -121,8 +127,16 @@ private:
 
 inline void generateDeallocsForSet(PatternRewriter &rewriter,
                                    llvm::DenseSet<Operation *> &allocSet) {
-  for (Operation *a : allocSet)
-    rewriter.create<quake::DeallocOp>(a->getLoc(), cast<quake::AllocaOp>(a));
+  for (Operation *a : allocSet) {
+    auto alloc = cast<quake::AllocaOp>(a);
+    Value v = alloc;
+    if (a->hasOneUse()) {
+      if (auto initState =
+              dyn_cast<quake::InitializeStateOp>(*a->getUsers().begin()))
+        v = initState;
+    }
+    rewriter.create<quake::DeallocOp>(a->getLoc(), v);
+  }
 }
 
 // The different rewrite cases involve the same work, but use different types.

@@ -52,6 +52,51 @@ protected:
     simulator()->allocateQubits(qudits.size());
   }
 
+  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                       const void *state,
+                       cudaq::simulation_precision precision) override {
+    // Here we have qubits in requestedAllocations
+    // want to allocate and set state
+    // There could be previous 'default' allocations whereby we just cached them
+    // in requestedAllocations.
+    // These default allocations need to be dispatched separately.
+    // FIXME: this assumes no qubit reuse, aka the qubits in targets are the
+    // last ones to be allocated. This is consistent with the Kronecker product
+    // assumption in CircuitSimulator.
+    if (!requestedAllocations.empty() &&
+        targets.size() != requestedAllocations.size()) {
+      assert(targets.size() < requestedAllocations.size());
+      const auto numDefaultAllocs =
+          requestedAllocations.size() - targets.size();
+      simulator()->allocateQubits(numDefaultAllocs);
+      // The targets will be allocated in a specific state.
+      simulator()->allocateQubits(targets.size(), state, precision);
+    } else {
+      simulator()->allocateQubits(requestedAllocations.size(), state,
+                                  precision);
+    }
+    requestedAllocations.clear();
+  }
+
+  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                       const cudaq::SimulationState *state) override {
+    // Note: a void* ptr doesn't provide enough info to the simulators, hence
+    // need a dedicated code path.
+    // TODO: simplify/combine the two code paths (raw vector and state).
+    if (!requestedAllocations.empty() &&
+        targets.size() != requestedAllocations.size()) {
+      assert(targets.size() < requestedAllocations.size());
+      const auto numDefaultAllocs =
+          requestedAllocations.size() - targets.size();
+      simulator()->allocateQubits(numDefaultAllocs);
+      // The targets will be allocated in a specific state.
+      simulator()->allocateQubits(targets.size(), state);
+    } else {
+      simulator()->allocateQubits(requestedAllocations.size(), state);
+    }
+    requestedAllocations.clear();
+  }
+
   void deallocateQudit(const cudaq::QuditInfo &q) override {
 
     // Before trying to deallocate, make sure the qudit hasn't
@@ -87,6 +132,16 @@ protected:
   }
 
   void handleExecutionContextEnded() override {
+    if (!requestedAllocations.empty()) {
+      cudaq::info("[DefaultExecutionManager] Flushing remaining {} allocations "
+                  "at handleExecutionContextEnded.",
+                  requestedAllocations.size());
+      // If there are pending allocations, flush them to the simulator.
+      // Making sure the simulator's state is consistent with the number of
+      // allocations even though the circuit might be empty.
+      simulator()->allocateQubits(requestedAllocations.size());
+      requestedAllocations.clear();
+    }
     simulator()->resetExecutionContext();
   }
 
@@ -136,6 +191,12 @@ protected:
                 simulator()->applyExpPauli(parameters[0], localC, localT, op);
               })
         .Default([&]() {
+          if (auto iter = registeredOperations.find(gateName);
+              iter != registeredOperations.end()) {
+            auto data = iter->second->unitary(parameters);
+            simulator()->applyCustomOperation(data, localC, localT, gateName);
+            return;
+          }
           throw std::runtime_error("[DefaultExecutionManager] invalid gate "
                                    "application requested " +
                                    gateName + ".");
@@ -156,59 +217,7 @@ protected:
 
   void measureSpinOp(const cudaq::spin_op &op) override {
     flushRequestedAllocations();
-    simulator()->flushGateQueue();
-
-    if (executionContext->canHandleObserve) {
-      auto result = simulator()->observe(*executionContext->spin.value());
-      executionContext->expectationValue = result.expectation();
-      executionContext->result = result.raw_data();
-      return;
-    }
-
-    assert(op.num_terms() == 1 && "Number of terms is not 1.");
-
-    cudaq::info("Measure {}", op.to_string(false));
-    std::vector<std::size_t> qubitsToMeasure;
-    std::vector<std::function<void(bool)>> basisChange;
-    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
-      if (type != cudaq::pauli::I)
-        qubitsToMeasure.push_back(qubitIdx);
-
-      if (type == cudaq::pauli::Y)
-        basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          simulator()->rx(!reverse ? M_PI_2 : -M_PI_2, qubitIdx);
-        });
-      else if (type == cudaq::pauli::X)
-        basisChange.emplace_back(
-            [&, qubitIdx](bool) { simulator()->h(qubitIdx); });
-    });
-
-    // Change basis, flush the queue
-    if (!basisChange.empty()) {
-      for (auto &basis : basisChange)
-        basis(false);
-
-      simulator()->flushGateQueue();
-    }
-
-    // Get whether this is shots-based
-    int shots = 0;
-    if (executionContext->shots > 0)
-      shots = executionContext->shots;
-
-    // Sample and give the data to the context
-    cudaq::ExecutionResult result = simulator()->sample(qubitsToMeasure, shots);
-    executionContext->expectationValue = result.expectationValue;
-    executionContext->result = cudaq::sample_result(result);
-
-    // Restore the state.
-    if (!basisChange.empty()) {
-      std::reverse(basisChange.begin(), basisChange.end());
-      for (auto &basis : basisChange)
-        basis(true);
-
-      simulator()->flushGateQueue();
-    }
+    simulator()->measureSpinOp(op);
   }
 
 public:

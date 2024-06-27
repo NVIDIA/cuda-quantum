@@ -27,35 +27,35 @@ def test_ghz():
 
     print(ghz)
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz(
-# CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
-# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_3:.*]] = cc.alloca i64
-# CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_4]] : i64]
-# CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<?>) -> !quake.ref
-# CHECK:           quake.h %[[VAL_6]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_8:.*]] = arith.subi %[[VAL_7]], %[[VAL_1]] : i64
-# CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {
-# CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_8]] : i64
-# CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
-# CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
-# CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_12]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:             %[[VAL_14:.*]] = arith.addi %[[VAL_12]], %[[VAL_1]] : i64
-# CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_14]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:             quake.x {{\[}}%[[VAL_13]]] %[[VAL_15]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_12]] : i64
-# CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
-# CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_1]] : i64
-# CHECK:             cc.continue %[[VAL_17]] : i64
-# CHECK:           } {invariant}
-# CHECK:           return
-# CHECK:         }
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz(
+    # CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
+    # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
+    # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
+    # CHECK:           %[[VAL_3:.*]] = cc.alloca i64
+    # CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>
+    # CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
+    # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_4]] : i64]
+    # CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<?>) -> !quake.ref
+    # CHECK:           quake.h %[[VAL_6]] : (!quake.ref) -> ()
+    # CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
+    # CHECK:           %[[VAL_8:.*]] = arith.subi %[[VAL_7]], %[[VAL_1]] : i64
+    # CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {
+    # CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_8]] : i64
+    # CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
+    # CHECK:           } do {
+    # CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
+    # CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_12]]] : (!quake.veq<?>, i64) -> !quake.ref
+    # CHECK:             %[[VAL_14:.*]] = arith.addi %[[VAL_12]], %[[VAL_1]] : i64
+    # CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_14]]] : (!quake.veq<?>, i64) -> !quake.ref
+    # CHECK:             quake.x {{\[}}%[[VAL_13]]] %[[VAL_15]] : (!quake.ref, !quake.ref) -> ()
+    # CHECK:             cc.continue %[[VAL_12]] : i64
+    # CHECK:           } step {
+    # CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
+    # CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_1]] : i64
+    # CHECK:             cc.continue %[[VAL_17]] : i64
+    # CHECK:           } {invariant}
+    # CHECK:           return
+    # CHECK:         }
 
     @cudaq.kernel
     def simple(numQubits: int):

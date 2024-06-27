@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "cudaq/host_config.h"
 #include "cudaq/qis/qudit.h"
-#include "host_config.h"
 #if CUDAQ_USE_STD20
 #include <ranges>
 #include <span>

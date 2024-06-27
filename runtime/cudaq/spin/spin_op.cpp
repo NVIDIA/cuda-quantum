@@ -31,6 +31,16 @@ namespace cudaq {
 
 namespace details {
 
+/// @brief Helper function to convert ordering of matrix elements
+/// to match internal simulator state ordering.
+std::size_t convertOrdering(std::size_t numQubits, std::size_t idx) {
+  std::size_t newIdx = 0;
+  for (std::size_t i = 0; i < numQubits; ++i)
+    if (idx & (1ULL << i))
+      newIdx |= (1ULL << ((numQubits - 1) - i));
+  return newIdx;
+}
+
 /// @brief Compute the action
 std::pair<std::string, std::complex<double>>
 actionOnBra(spin_op &term, const std::string &bitConfiguration) {
@@ -197,7 +207,8 @@ complex_matrix spin_op::to_matrix() const {
     for_each_term([&](spin_op &term) {
       auto [res, coeff] = details::actionOnBra(term, rowBitStr);
       auto colIdx = std::stol(res, nullptr, 2);
-      rawData[rowIdx * dim + colIdx] += coeff;
+      rawData[details::convertOrdering(n, rowIdx) * dim +
+              details::convertOrdering(n, colIdx)] += coeff;
     });
   }
   return A;
@@ -249,8 +260,8 @@ spin_op::csr_spmatrix spin_op::to_sparse_matrix() const {
   for (int k = 0; k < mat.outerSize(); ++k)
     for (SpMat::InnerIterator it(mat, k); it; ++it) {
       values.emplace_back(it.value());
-      rows.emplace_back(it.row());
-      cols.emplace_back(it.col());
+      rows.emplace_back(details::convertOrdering(n, it.row()));
+      cols.emplace_back(details::convertOrdering(n, it.col()));
     }
 
   return std::make_tuple(values, rows, cols);
@@ -261,6 +272,10 @@ std::complex<double> spin_op::get_coefficient() const {
     throw std::runtime_error(
         "spin_op::get_coefficient called on spin_op with > 1 terms.");
   return terms.begin()->second;
+}
+
+std::tuple<std::vector<double>, std::size_t> spin_op::getDataTuple() const {
+  return std::tuple(getDataRepresentation(), num_qubits());
 }
 
 void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) const {
@@ -583,7 +598,7 @@ void spin_op::dump() const {
   std::cout << str;
 }
 
-spin_op::spin_op(std::vector<double> &input_vec, std::size_t nQubits) {
+spin_op::spin_op(const std::vector<double> &input_vec, std::size_t nQubits) {
   auto n_terms = (int)input_vec.back();
   if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
     throw std::runtime_error("Invalid data representation for construction "
@@ -650,7 +665,7 @@ spin_op y(const std::size_t idx) { return spin_op(pauli::Y, idx); }
 spin_op z(const std::size_t idx) { return spin_op(pauli::Z, idx); }
 } // namespace spin
 
-std::vector<double> spin_op::getDataRepresentation() {
+std::vector<double> spin_op::getDataRepresentation() const {
   std::vector<double> dataVec;
   for (auto &[term, coeff] : terms) {
     auto nq = term.size() / 2;

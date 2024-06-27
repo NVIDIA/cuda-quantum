@@ -8,7 +8,9 @@
 
 #include "JITExecutionCache.h"
 #include "common/ArgumentWrapper.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -18,6 +20,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "utils/OpaqueArguments.h"
+#include "utils/PyTypes.h"
 
 #include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -29,15 +32,38 @@
 #include "mlir/Target/LLVMIR/Export.h"
 
 #include <fmt/core.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
 using namespace mlir;
 
 namespace cudaq {
+// TODO: unify with the definition in GenKernelExec.cpp
+static constexpr std::int32_t NoResultOffset =
+    std::numeric_limits<std::int32_t>::max();
 static std::unique_ptr<JITExecutionCache> jitCache;
 
-std::tuple<ExecutionEngine *, void *, std::size_t>
+struct PyStateVectorData {
+  void *data = nullptr;
+  simulation_precision precision = simulation_precision::fp32;
+  std::string kernelName;
+};
+using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
+
+struct PyStateData {
+  cudaq::state data;
+  std::string kernelName;
+};
+using PyStateStorage = std::map<std::string, PyStateData>;
+
+static std::unique_ptr<PyStateVectorStorage> stateStorage =
+    std::make_unique<PyStateVectorStorage>();
+
+static std::unique_ptr<PyStateStorage> cudaqStateStorage =
+    std::make_unique<PyStateStorage>();
+
+std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
                  const std::vector<std::string> &names, Type returnType) {
@@ -54,9 +80,9 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   auto hashKey = static_cast<size_t>(hash);
 
   ExecutionEngine *jit = nullptr;
-  if (jitCache->hasJITEngine(hashKey))
+  if (jitCache->hasJITEngine(hashKey)) {
     jit = jitCache->getJITEngine(hashKey);
-  else {
+  } else {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
                            "jitAndCreateArgs - execute passes", name);
 
@@ -135,6 +161,14 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             delete static_cast<long *>(ptr);
           });
         })
+        .Case([&](ComplexType type) {
+          Py_complex *ourAllocatedArg = new Py_complex();
+          ourAllocatedArg->real = 0.0;
+          ourAllocatedArg->imag = 0.0;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<Py_complex *>(ptr);
+          });
+        })
         .Case([&](Float64Type type) {
           double *ourAllocatedArg = new double();
           *ourAllocatedArg = 0.;
@@ -172,14 +206,29 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     rawArgs = nullptr;
     size = argsCreator(runtimeArgs.data(), &rawArgs);
   }
-  return std::make_tuple(jit, rawArgs, size);
+
+  std::int32_t returnOffset = 0;
+  if (runtimeArgs.size()) {
+    auto expectedPtr = jit->lookup(name + ".returnOffset");
+    if (!expectedPtr) {
+      throw std::runtime_error(
+          "cudaq::builder failed to get returnOffset function.");
+    }
+    auto returnOffsetCalculator =
+        reinterpret_cast<std::int64_t (*)()>(*expectedPtr);
+    returnOffset = (std::int32_t)returnOffsetCalculator();
+    if (returnOffset == NoResultOffset) {
+      returnOffset = 0;
+    }
+  }
+  return {jit, rawArgs, size, returnOffset};
 }
 
-std::tuple<void *, std::size_t>
+std::tuple<void *, std::size_t, std::int32_t>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                       Type returnType, cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names) {
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, names, returnType);
 
   auto mod = unwrap(module);
@@ -191,6 +240,53 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
 
   std::string properName = name;
+
+  // If we have any state vector data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, stateData] : *stateStorage) {
+    if (stateData.kernelName != name)
+      continue;
+
+    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      auto message = "python alt_launch_kernel failed to get set state "
+                     "function for kernel: " +
+                     name;
+      llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
+      throw std::runtime_error(message);
+    }
+
+    if (stateData.precision == simulation_precision::fp64) {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<double> *>(stateData.data));
+      continue;
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
+    setStateFunc(reinterpret_cast<std::complex<float> *>(stateData.data));
+  }
+
+  // If we have any cudaq state data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (stateData.kernelName != name)
+      continue;
+
+    auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      auto message = "python alt_launch_kernel failed to get set cudaq state "
+                     "function for kernel: " +
+                     name;
+      llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
+      throw std::runtime_error(message);
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(cudaq::state *)>(*setStateFPtr);
+    setStateFunc(&stateData.data);
+  }
 
   // Need to first invoke the init_func()
   auto kernelInitFunc = properName + ".init_func";
@@ -216,85 +312,154 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   if (platform.is_remote() || platform.is_emulated()) {
     auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
     cudaq::altLaunchKernel(name.c_str(), thunk,
-                           reinterpret_cast<void *>(wrapper), size, 0);
+                           reinterpret_cast<void *>(wrapper), size,
+                           (uint64_t)returnOffset);
     delete wrapper;
   } else
-    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, 0);
+    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
+                           (uint64_t)returnOffset);
 
-  return std::make_tuple(rawArgs, size);
+  return std::make_tuple(rawArgs, size, returnOffset);
+}
+
+cudaq::KernelArgsHolder
+pyCreateNativeKernel(const std::string &name, MlirModule module,
+                     cudaq::OpaqueArguments &runtimeArgs) {
+  auto [jit, rawArgs, size, returnOffset] =
+      jitAndCreateArgs(name, module, runtimeArgs, {},
+                       mlir::NoneType::get(unwrap(module).getContext()));
+
+  auto thunkName = name + ".thunk";
+  auto thunkPtr = jit->lookup(thunkName);
+  if (!thunkPtr)
+    throw std::runtime_error("Failed to get thunk function");
+  const std::string properName = name;
+  // If we have any state vector data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, svdata] : *stateStorage) {
+    if (svdata.kernelName != name)
+      continue;
+    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
+    if (!setStateFPtr)
+      throw std::runtime_error(
+          "python CreateNativeKernel failed to get set state function.");
+
+    if (svdata.precision == simulation_precision::fp64) {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
+      continue;
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
+    setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+  }
+
+  // Need to first invoke the init_func()
+  auto kernelInitFunc = properName + ".init_func";
+  auto initFuncPtr = jit->lookup(kernelInitFunc);
+  if (!initFuncPtr) {
+    throw std::runtime_error(
+        "cudaq::builder failed to get kernelReg function.");
+  }
+  auto kernelInit = reinterpret_cast<void (*)()>(*initFuncPtr);
+  kernelInit();
+
+  // Need to first invoke the kernelRegFunc()
+  auto kernelRegFunc = properName + ".kernelRegFunc";
+  auto regFuncPtr = jit->lookup(kernelRegFunc);
+  if (!regFuncPtr) {
+    throw std::runtime_error(
+        "cudaq::builder failed to get kernelReg function.");
+  }
+  auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
+  kernelReg();
+  cudaq::ArgWrapper wrapper{unwrap(module), {}, rawArgs};
+  return cudaq::KernelArgsHolder(wrapper, size, returnOffset);
 }
 
 void pyAltLaunchKernel(const std::string &name, MlirModule module,
                        cudaq::OpaqueArguments &runtimeArgs,
                        const std::vector<std::string> &names) {
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
-  auto [rawArgs, size] =
+  auto [rawArgs, size, returnOffset] =
       pyAltLaunchKernelBase(name, module, noneType, runtimeArgs, names);
   std::free(rawArgs);
+}
+
+inline unsigned int byteSize(mlir::Type ty) {
+  if (isa<ComplexType>(ty)) {
+    auto eleTy = cast<ComplexType>(ty).getElementType();
+    return 2 * cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+  }
+  return cudaq::opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
+}
+
+template <typename T>
+py::object readPyObject(mlir::Type ty, char *arg) {
+  unsigned int bytes = byteSize(ty);
+  if (sizeof(T) != bytes) {
+    ty.dump();
+    throw std::runtime_error(
+        "Error reading return value of type (reading bytes: " +
+        std::to_string(sizeof(T)) +
+        ", bytes available to read: " + std::to_string(bytes) + ")");
+  }
+  T concrete;
+  std::memcpy(&concrete, arg, bytes);
+  return py_ext::convert<T>(concrete);
 }
 
 py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
-  auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
-                                               runtimeArgs, names);
-  // We first need to compute the offset for the return value.
-  // We'll loop through all the arguments and increment the
-  // offset for the argument type. Then we'll be at our return type location.
+  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
+      name, module, unwrap(returnType), runtimeArgs, names);
+
   auto unwrapped = unwrap(returnType);
-  auto returnOffset = [&]() {
-    std::size_t offset = 0;
-    auto kernelFunc = getKernelFuncOp(module, name);
-    for (auto argType : kernelFunc.getArgumentTypes())
-      llvm::TypeSwitch<mlir::Type, void>(argType)
-          .Case([&](IntegerType ty) {
+  auto rawReturn = ((char *)rawArgs) + returnOffset;
+
+  // Extract the return value from the rawReturn pointer.
+  py::object returnValue =
+      llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
+          .Case([&](IntegerType ty) -> py::object {
             if (ty.getIntOrFloatBitWidth() == 1) {
-              offset += 1;
-              return;
+              return readPyObject<bool>(ty, rawReturn);
             }
-
-            offset += 8;
-            return;
+            return readPyObject<long>(ty, rawReturn);
           })
-          .Case([&](cc::StdvecType ty) { offset += 8; })
-          .Case([&](Float64Type ty) { offset += 8; })
-          .Case([&](Float32Type ty) { offset += 4; })
-          .Default([](Type) {});
+          .Case([&](ComplexType ty) -> py::object {
+            auto eleTy = ty.getElementType();
+            return llvm::TypeSwitch<mlir::Type, py::object>(eleTy)
+                .Case([&](Float64Type eTy) -> py::object {
+                  return readPyObject<std::complex<double>>(ty, rawReturn);
+                })
+                .Case([&](Float32Type eTy) -> py::object {
+                  return readPyObject<std::complex<float>>(ty, rawReturn);
+                })
+                .Default([](Type eTy) -> py::object {
+                  eTy.dump();
+                  throw std::runtime_error(
+                      "Invalid float element type for return "
+                      "complex type for pyAltLaunchKernel.");
+                });
+          })
+          .Case([&](Float64Type ty) -> py::object {
+            return readPyObject<double>(ty, rawReturn);
+          })
+          .Case([&](Float32Type ty) -> py::object {
+            return readPyObject<float>(ty, rawReturn);
+          })
+          .Default([](Type ty) -> py::object {
+            ty.dump();
+            throw std::runtime_error(
+                "Invalid return type for pyAltLaunchKernel.");
+          });
 
-    return offset;
-  }();
-
-  // Extract the return value from the rawArgs pointer.
-  return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
-      .Case([&](IntegerType ty) -> py::object {
-        if (ty.getIntOrFloatBitWidth() == 1) {
-          bool concrete = false;
-          std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 1);
-          std::free(rawArgs);
-          return py::bool_(concrete);
-        }
-        std::size_t concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
-        std::free(rawArgs);
-        return py::int_(concrete);
-      })
-      .Case([&](Float64Type ty) -> py::object {
-        double concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
-        std::free(rawArgs);
-        return py::float_(concrete);
-      })
-      .Case([&](Float32Type ty) -> py::object {
-        float concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 4);
-        std::free(rawArgs);
-        return py::float_(concrete);
-      })
-      .Default([](Type ty) -> py::object {
-        ty.dump();
-        throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
-      });
+  std::free(rawArgs);
+  return returnValue;
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
@@ -302,7 +467,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
@@ -329,18 +494,19 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   return wrap(cloned);
 }
 
-std::string getQIRLL(const std::string &name, MlirModule module,
-                     cudaq::OpaqueArguments &runtimeArgs,
-                     std::string &profile) {
-  ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIRLL", name);
+std::string getQIR(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs,
+                   const std::string &profile) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
 
   PassManager pm(context);
+  pm.addPass(cudaq::opt::createLambdaLiftingPass());
   if (profile.empty())
     cudaq::opt::addPipelineConvertToQIR(pm);
   else
@@ -351,7 +517,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
   pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
+        "getQIR failed to JIT compile the Quake representation.");
   timingScope.stop();
   std::free(rawArgs);
 
@@ -362,13 +528,38 @@ std::string getQIRLL(const std::string &name, MlirModule module,
       /*optLevel=*/3, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(llvmModule.get()))
-    throw std::runtime_error("Failed to optimize LLVM IR ");
+    throw std::runtime_error("getQIR Failed to optimize LLVM IR ");
 
   std::string str;
   {
     llvm::raw_string_ostream os(str);
     llvmModule->print(os, nullptr);
   }
+  return str;
+}
+
+std::string getASM(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+
+  auto [jit, rawArgs, size, returnOffset] =
+      jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
+  auto cloned = unwrap(module).clone();
+  auto context = cloned.getContext();
+
+  PassManager pm(context);
+  pm.addPass(cudaq::opt::createLambdaLiftingPass());
+  cudaq::opt::addPipelineTranslateToOpenQASM(pm);
+
+  if (failed(pm.run(cloned)))
+    throw std::runtime_error("getASM: code generation failed.");
+  std::free(rawArgs);
+
+  std::string str;
+  llvm::raw_string_ostream os(str);
+  if (failed(cudaq::translateToOpenQASM(cloned, os)))
+    throw std::runtime_error("getASM: failed to translate to OpenQasm.");
   return str;
 }
 
@@ -402,6 +593,7 @@ void bindAltLaunchKernel(py::module &mod) {
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
       py::arg("callable_names") = std::vector<std::string>{}, "DOC STRING");
+
   mod.def(
       "pyAltLaunchKernelR",
       [&](const std::string &kernelName, MlirModule module, MlirType returnType,
@@ -430,13 +622,64 @@ void bindAltLaunchKernel(py::module &mod) {
   mod.def(
       "get_qir",
       [](py::object kernel, std::string profile) {
+        PyErr_WarnEx(PyExc_DeprecationWarning,
+                     "to_qir()/get_qir() is deprecated, use translate() "
+                     "with `format=\"qir\"`.",
+                     1);
+
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
         MlirModule module = kernel.attr("module").cast<MlirModule>();
         auto name = kernel.attr("name").cast<std::string>();
         cudaq::OpaqueArguments args;
-        return getQIRLL(name, module, args, profile);
+        return getQIR(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
+
+  mod.def(
+      "storePointerToStateData",
+      [](const std::string &name, const std::string &hash, py::buffer data,
+         simulation_precision precision) {
+        auto ptr = data.request().ptr;
+        stateStorage->insert({hash, PyStateVectorData{ptr, precision, name}});
+      },
+      "Store qalloc state initialization array data.");
+
+  mod.def(
+      "deletePointersToStateData",
+      [](const std::vector<std::string> &hashes) {
+        for (auto iter = stateStorage->cbegin(); iter != stateStorage->end();) {
+          if (std::find(hashes.begin(), hashes.end(), iter->first) !=
+              hashes.end()) {
+            stateStorage->erase(iter++);
+            continue;
+          }
+          iter++;
+        }
+      },
+      "Remove our pointers to the qalloc array data.");
+
+  mod.def(
+      "storePointerToCudaqState",
+      [](const std::string &name, const std::string &hash, py::object data) {
+        auto state = data.cast<cudaq::state>();
+        cudaqStateStorage->insert({hash, PyStateData{state, name}});
+      },
+      "Store qalloc state initialization states.");
+
+  mod.def(
+      "deletePointersToCudaqState",
+      [](const std::vector<std::string> &hashes) {
+        for (auto iter = cudaqStateStorage->cbegin();
+             iter != cudaqStateStorage->end();) {
+          if (std::find(hashes.begin(), hashes.end(), iter->first) !=
+              hashes.end()) {
+            cudaqStateStorage->erase(iter++);
+            continue;
+          }
+          iter++;
+        }
+      },
+      "Remove our pointers to the cudaq states.");
 }
 } // namespace cudaq
