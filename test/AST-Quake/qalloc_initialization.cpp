@@ -117,17 +117,17 @@ struct RockyRoad {
 // CHECK-DAG:       %[[VAL_8:.*]] = arith.constant 0.000000e+00 : f64
 // CHECK-DAG:       %[[VAL_9:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_10:.*]] = call @_ZNSt[[NAME1:.*]]8literals16complex_literalsli1i[[NAME2:.*]]Ee(%[[VAL_7]]) : (f{{[1280]+}}) -> complex<f64>
+// CHECK:           %[[VAL_10:.*]] = call @_ZNSt{{.*}}8literals16complex_literalsli1i{{.*}}Ee(%[[VAL_7]]) : (f{{[1280]+}}) -> complex<f64>
 // CHECK:           %[[VAL_11:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_12:.*]] = call @_Z[[NAME3:.*]]7complexIT_[[NAME4:.*]]_(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
+// CHECK:           %[[VAL_12:.*]] = call @_Z{{.*}}7complexIT_{{.*}}_(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
 // CHECK:           %[[VAL_13:.*]] = complex.create %[[VAL_6]], %[[VAL_5]] : complex<f64>
 // CHECK:           %[[VAL_14:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_14]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_15:.*]] = call @_ZNSt[[NAME1:.*]]8literals16complex_literalsli1i[[NAME2:.*]]Ee(%[[VAL_3]]) : (f{{[1280]+}}) -> complex<f64>
+// CHECK:           %[[VAL_15:.*]] = call @_ZNSt{{.*}}8literals16complex_literalsli1i{{.*}}Ee(%[[VAL_3]]) : (f{{[1280]+}}) -> complex<f64>
 // CHECK:           %[[VAL_16:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_15]], %[[VAL_16]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_17:.*]] = call @_Z[[NAME3:.*]]7complexIT_[[NAME4:.*]]_(%[[VAL_14]], %[[VAL_16]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
+// CHECK:           %[[VAL_17:.*]] = call @_Z{{.*}}7complexIT_{{.*}}_(%[[VAL_14]], %[[VAL_16]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
 // CHECK:           %[[VAL_18:.*]] = cc.alloca !cc.array<complex<f64> x 4>
 // CHECK:           %[[VAL_24:.*]] = cc.cast %[[VAL_18]]
 // CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_18]][0] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
@@ -326,7 +326,7 @@ __qpu__ bool Peppermint() {
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__RockyRoad() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = alloca double, align 8
 // QIR:         store double 0.000000e+00, double* %[[VAL_0]], align 8
-// QIR:         %[[VAL_1:.*]] = tail call { double, double } @_ZNSt[[NAME1:.*]]8literals16complex_literalsli1i[[NAME2:.*]]Ee(
+// QIR:         %[[VAL_1:.*]] = tail call { double, double } @_ZNSt{{.*}}8literals16complex_literalsli1i{{.*}}Ee(
 // QIR:         %[[VAL_2:.*]] = alloca { double, double }, align 8
 // QIR:         %[[VAL_3:.*]] = extractvalue { double, double } %[[VAL_1]], 0
 // QIR:         %[[VAL_4:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_2]], i64 0, i32 0
@@ -334,10 +334,10 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_5:.*]] = extractvalue { double, double } %[[VAL_1]], 1
 // QIR:         %[[VAL_6:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_2]], i64 0, i32 1
 // QIR:         store double %[[VAL_5]], double* %[[VAL_6]], align 8
-// QIR:         %[[VAL_7:.*]] = call { double, double } @_Z[[NAME3:.*]]7complexIT_[[NAME4:.*]]_(double* nonnull %[[VAL_0]], { double, double }* nonnull %[[VAL_2]])
+// QIR:         %[[VAL_7:.*]] = call { double, double } @_Z{{.*}}7complexIT_{{.*}}_(double* nonnull %[[VAL_0]], { double, double }* nonnull %[[VAL_2]])
 // QIR:         %[[VAL_8:.*]] = alloca double, align 8
 // QIR:         store double 1.000000e+00, double* %[[VAL_8]], align 8
-// QIR:         %[[VAL_9:.*]] = call { double, double } @_ZNSt[[NAME1:.*]]8literals16complex_literalsli1i[[NAME2:.*]]Ee(
+// QIR:         %[[VAL_9:.*]] = call { double, double } @_ZNSt{{.*}}8literals16complex_literalsli1i{{.*}}Ee(
 // QIR:         %[[VAL_10:.*]] = alloca { double, double }, align 8
 // QIR:         %[[VAL_11:.*]] = extractvalue { double, double } %[[VAL_9]], 0
 // QIR:         %[[VAL_12:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_10]], i64 0, i32 0
@@ -345,7 +345,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_13:.*]] = extractvalue { double, double } %[[VAL_9]], 1
 // QIR:         %[[VAL_14:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_10]], i64 0, i32 1
 // QIR:         store double %[[VAL_13]], double* %[[VAL_14]], align 8
-// QIR:         %[[VAL_15:.*]] = call { double, double } @_Z[[NAME3:.*]]7complexIT_[[NAME4:.*]]_(double* nonnull %[[VAL_8]], { double, double }* nonnull %[[VAL_10]])
+// QIR:         %[[VAL_15:.*]] = call { double, double } @_Z{{.*}}7complexIT_{{.*}}_(double* nonnull %[[VAL_8]], { double, double }* nonnull %[[VAL_10]])
 // QIR:         %[[VAL_16:.*]] = alloca [4 x { double, double }], align 8
 // QIR:         %[[VAL_17:.*]] = extractvalue { double, double } %[[VAL_7]], 0
 // QIR:         %[[VAL_18:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 0, i32 0
