@@ -934,22 +934,44 @@ def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
   }];
 
   let arguments = (ins
-    AnyAggregateType:$container,
-    DenseI64ArrayAttr:$position
+    AnyAggregateType:$aggregate,
+    Variadic<AnyInteger>:$dynamicIndices,
+    DenseI32ArrayAttr:$rawConstantIndices
   );
   let results = (outs AnyType);
 
   let assemblyFormat = [{
-    $container `` $position `:` functional-type(operands, results) attr-dict
+    $aggregate `[` custom<ExtractValueIndices>($dynamicIndices,
+      $rawConstantIndices) `]` `:` functional-type(operands, results) attr-dict
   }];
+
+  let hasFolder = 1;
+  let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
-               "std::int64_t":$index), [{
-      return build($_builder, $_state, resultType, aggregate,
-                   mlir::ArrayRef<std::int64_t>{index});
-    }]>
+               "mlir::ValueRange":$indices,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs)>,
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "mlir::ArrayRef<cudaq::cc::ExtractValueArg>":$indices,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs)>,
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "std::int32_t":$index,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs)>,
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "mlir::Value":$index,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs)>
   ];
+
+  let extraClassDeclaration = [{
+    static constexpr std::int32_t kDynamicIndex =
+      std::numeric_limits<std::int32_t>::min();
+
+    static std::int32_t getDynamicIndexValue() { return kDynamicIndex; }
+
+    bool indicesAreConstant() { return getDynamicIndices().empty(); }
+  }];
 }
 
 def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
@@ -1084,37 +1106,6 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
   let results = (outs cc_ArrayType:$arrayType);
   let assemblyFormat = [{
     $constantValues `:` qualified(type($arrayType)) attr-dict
-  }];
-}
-
-def cc_GetConstantElementOp : CCOp<"get_const_element", [Pure]> {
-  let summary = "Get a constant value from a constant array.";
-  let description = [{
-    A GetConstantElementOp is used to extract a constant value from an aggregate
-    of type !cc.array<T,n>. The aggregate must be built by a `cc.const_array`
-    operation. The offset of the element must be between 0 and the length of the
-    array minus 1 (inclusive). Any other value has undefined behavior. If the
-    offset is a constant, this operation can be folded into a scalar constant
-    (or a cc.undef operation).
-
-    Example:
-
-    ```mlir
-      %arrCon = cc.get_const_element %4[%5] : (!cc.array<f64 x 2>, i32) -> f64
-    ```
-  }];
-
-  let arguments = (ins
-    cc_ArrayType:$constantArray,
-    AnySignlessInteger:$offset
-  );
-  let results = (outs AnyType);
-
-  let hasFolder = 1;
-  //let hasVerifier = 1; // FIXME: output type must match incoming const array
-
-  let assemblyFormat = [{
-    $constantArray `,` $offset `:` functional-type(operands, results) attr-dict
   }];
 }
 
