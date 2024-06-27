@@ -12,7 +12,7 @@ func.func private @g(%0 : !cc.stdvec<i32>)
 func.func @f() {
   %0 = cc.const_array [0, 1, 0] : !cc.array<i32 x 3>
   %1 = arith.constant 1 : i32
-  %2 = cc.get_const_element %0, %1 : (!cc.array<i32 x 3>, i32) -> i32
+  %2 = cc.extract_value %0[%1] : (!cc.array<i32 x 3>, i32) -> i32
   %3 = cc.alloca !cc.array<i32 x 3>
   cc.store %0, %3 : !cc.ptr<!cc.array<i32 x 3>>
   %4 = arith.constant 3 : i64
