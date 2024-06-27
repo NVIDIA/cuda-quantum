@@ -38,7 +38,6 @@ struct complexValue {
 
 template <typename ScalarType>
 complexValue<ScalarType> innerProduct(void *devicePtr, void *otherPtr,
-                                         std::size_t size,
-                                         bool createDeviceAlloc);
+                                      std::size_t size, bool createDeviceAlloc);
 
 } // namespace nvqir
