@@ -51,8 +51,8 @@ int main() {
 }
 
 // CHECK: 00
-// CHECK: 01
 // CHECK: 10
+// CHECK: 01
 // CHECK: 11
 // CHECK: 00
-// CHECK: 01
+// CHECK: 10

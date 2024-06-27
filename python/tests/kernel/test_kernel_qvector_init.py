@@ -25,6 +25,28 @@ skipIfNvidiaNotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason='Could not find nvidia in installation')
 
+# state preparation and synthesis
+
+
+@skipIfPythonLessThan39
+def test_kernel_state_preparation():
+    cudaq.reset_target()
+
+    c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        q = cudaq.qvector(vec)
+
+    synthesized = cudaq.synthesize(kernel, c)
+    assert 'quake.init_state' in kernel.__str__()
+    assert not 'quake.init_state' in synthesized.__str__()
+
+    counts = cudaq.sample(synthesized)
+    assert '00' in counts
+    assert '10' in counts
+
+
 # float
 
 

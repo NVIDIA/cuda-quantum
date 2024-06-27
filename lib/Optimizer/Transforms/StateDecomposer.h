@@ -150,17 +150,24 @@ private:
   template <typename Op>
   void applyRotation(const std::span<double> alphas, std::size_t numControls,
                      std::size_t target) {
+
+    // In our model the index 1 (i.e. |01>) in quantum state data
+    // corresponds to qubits[0]=1 and qubits[1] = 0.
+    // Revert the order of qubits as the state preparation algorithm
+    // we use assumes the opposite.
+    auto qubitIndex = [&](std::size_t i) { return numQubits - i - 1; };
+
     auto thetas = cudaq::details::convertAngles(alphas);
     if (numControls == 0) {
-      builder.applyRotationOp<Op>(thetas[0], target);
+      builder.applyRotationOp<Op>(thetas[0], qubitIndex(target));
       return;
     }
 
     auto controlIndices = cudaq::details::getControlIndices(numControls);
     assert(thetas.size() == controlIndices.size());
     for (auto [i, c] : llvm::enumerate(controlIndices)) {
-      builder.applyRotationOp<Op>(thetas[i], target);
-      builder.applyX(c, target);
+      builder.applyRotationOp<Op>(thetas[i], qubitIndex(target));
+      builder.applyX(qubitIndex(c), qubitIndex(target));
     }
   }
 
