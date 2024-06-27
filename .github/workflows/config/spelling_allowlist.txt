@@ -60,9 +60,9 @@ NGC
 NVIDIA
 NVQC
 NVQIR
+OQC
 ORCA
 ORCA's
-OQC
 OpenACC
 OpenMP
 OpenMPI
@@ -248,8 +248,8 @@ qubit
 qubits
 qudit
 qudits
-reconfigurable
 reStructuredText
+reconfigurable
 runtime
 runtimes
 rvalue

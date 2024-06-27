@@ -457,6 +457,6 @@ You can then execute a time-bin boson sampling experiment against the platform u
     bs_angles = [np.pi / 3, np.pi / 6]
     input_state = [1, 1, 1]
     loop_lengths = [1]
-    counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, n_samples)
+    counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles)
 
 To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../examples/hardware_providers>`.
