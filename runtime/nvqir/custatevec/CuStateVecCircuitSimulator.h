@@ -28,11 +28,13 @@ template <typename CudaDataType>
 void kronprod(uint32_t n_blocks, int32_t threads_per_block, size_t tsize1,
               const void *arr1, size_t tsize2, const void *arr2, void *arr0);
 
+#pragma pack(push, 4)
 template <typename ScalarType>
 struct complexValue {
   ScalarType real;
   ScalarType imaginary;
 };
+#pragma pack(pop)
 
 template <typename ScalarType>
 complexValue<ScalarType> innerProduct(void *devicePtr, void *otherPtr,
