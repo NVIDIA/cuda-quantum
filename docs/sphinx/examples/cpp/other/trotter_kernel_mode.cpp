@@ -38,8 +38,8 @@
 // This is because the CPU-only backend has difficulty handling
 // 30+ qubit simulations.
 
-int SPINS = 11; // set to around 100 for `nvidia` target
-int STEPS = 10; // set to around 25 qubits for `nvidia` target
+int SPINS = 11; // set to around 25 qubits for `nvidia` target
+int STEPS = 10; // set to around 100 for `nvidia` target
 
 // Compile and run with:
 // ```
