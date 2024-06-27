@@ -519,18 +519,23 @@ MPSSettings::MPSSettings() {
 
     cudaq::info("Setting MPS relative cutoff to {}.", relCutoff);
   }
-  static const std::unordered_map<std::string, cutensornetTensorSVDAlgo_t>
-      g_stringToAlgoEnum{{"GESVD", CUTENSORNET_TENSOR_SVD_ALGO_GESVD},
-                         {"GESVDJ", CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ},
-                         {"GESVDP", CUTENSORNET_TENSOR_SVD_ALGO_GESVDP},
-                         {"GESVDR", CUTENSORNET_TENSOR_SVD_ALGO_GESVDR}};
-
+  using namespace std::literals::string_view_literals;
+  using SvdPair = std::pair<std::string_view, cutensornetTensorSVDAlgo_t>;
+  constexpr std::array<SvdPair, 4> g_stringToAlgoEnum = {
+      SvdPair{"GESVD"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVD},
+      SvdPair{"GESVDJ"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ},
+      SvdPair{"GESVDP"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDP},
+      SvdPair{"GESVDR"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDR}};
   if (auto *svdAlgoEnvVar = std::getenv("CUDAQ_MPS_SVD_ALGO")) {
     std::string svdAlgoStr(svdAlgoEnvVar);
     std::transform(svdAlgoStr.begin(), svdAlgoStr.end(), svdAlgoStr.begin(),
                    ::toupper);
-    const auto iter = g_stringToAlgoEnum.find(svdAlgoStr);
-    if (iter == g_stringToAlgoEnum.end()) {
+    const auto iter = std::lower_bound(
+        g_stringToAlgoEnum.begin(), g_stringToAlgoEnum.end(), svdAlgoStr,
+        [](const SvdPair &pair, const std::string &key) {
+          return pair.first < key;
+        });
+    if (iter == g_stringToAlgoEnum.end() || iter->first != svdAlgoStr) {
       std::stringstream errorMsg;
       errorMsg << "Unknown CUDAQ_MPS_SVD_ALGO value ('" << svdAlgoEnvVar
                << "').\nValid values are:\n";
@@ -538,9 +543,8 @@ MPSSettings::MPSSettings() {
         errorMsg << "  - " << configStr << "\n";
       throw std::runtime_error(errorMsg.str());
     }
-
     svdAlgo = iter->second;
-    cudaq::info("Setting MPS SVD algorithm to {}.", svdAlgo);
+    cudaq::info("Setting MPS SVD algorithm to {} ({}).", svdAlgo, iter->first);
   }
 }
 
