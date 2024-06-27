@@ -21,6 +21,7 @@ dependencies = [
   'cuquantum-cu11 ~= 24.03',
   'graphlib-backport >= 1.0',
   'numpy >= 1.24',
+  'requests >= 2.31',
   'nvidia-cublas-cu11 == 11.11.3.6; platform_machine == "x86_64"',
   'nvidia-cuda-runtime-cu11 == 11.8.89; platform_machine == "x86_64"',
   'nvidia-cusolver-cu11 == 11.4.1.48; platform_machine == "x86_64"'
@@ -35,7 +36,8 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 # We must use h5py<3.11 because 3.11 doesn't include aarch64 Linux wheels.
 # https://github.com/h5py/h5py/issues/2408
 [project.optional-dependencies]
-chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11" ]
+chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
+visualization = [ "qutip<5" , "matplotlib>=3.5" ]
 
 [build-system]
 requires = ["scikit-build-core", "cmake>=3.26,<3.29", "numpy>=1.24", "pytest==8.2.0"]
@@ -54,7 +56,7 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=TRUE",
+    "-DCUDAQ_BUILD_TESTS=TRUE"
 ]
 
 [tool.setuptools_scm]

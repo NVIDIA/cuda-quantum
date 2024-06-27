@@ -33,6 +33,7 @@ using namespace mlir;
 namespace {
 struct QuakeTypeConverter : public TypeConverter {
   QuakeTypeConverter() {
+    addConversion([](Type ty) { return ty; });
     addConversion([](quake::VeqType ty) {
       return cudaq::cc::PointerType::get(
           cudaq::opt::getCudaqQubitSpanType(ty.getContext()));
@@ -44,7 +45,6 @@ struct QuakeTypeConverter : public TypeConverter {
     addConversion([](quake::MeasureType ty) {
       return IntegerType::get(ty.getContext(), 64);
     });
-    addConversion([](FloatType ty) { return ty; });
   }
 };
 
@@ -63,8 +63,6 @@ struct QuakeToCCPass : public cudaq::opt::impl::QuakeToCCBase<QuakeToCCPass> {
     target.addIllegalDialect<quake::QuakeDialect>();
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
-
-    // Preload all our intrinsics.
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "Module after:\n"; op->dump());
@@ -81,6 +79,7 @@ struct QuakeToCCPrepPass
     RewritePatternSet patterns(context);
     cudaq::opt::populateQuakeToCCPrepPatterns(patterns);
 
+    LLVM_DEBUG(llvm::dbgs() << "Module before prep:\n"; op.dump());
     // Preload all our intrinsics.
     cudaq::IRBuilder irBuilder(context);
     if (failed(irBuilder.loadIntrinsic(op, cudaq::opt::CudaqEMAllocate)) ||
@@ -97,6 +96,7 @@ struct QuakeToCCPrepPass
 
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
+    LLVM_DEBUG(llvm::dbgs() << "Module after prep:\n"; op->dump());
   }
 };
 } // namespace

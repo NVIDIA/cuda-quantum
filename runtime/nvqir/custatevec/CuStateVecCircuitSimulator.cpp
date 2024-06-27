@@ -652,9 +652,9 @@ public:
                                              extraWorkspaceSizeInBytes));
 
     // Sample!
-    custatevecIndex_t bitstrings0[shots];
+    std::vector<custatevecIndex_t> bitstrings0(shots);
     HANDLE_ERROR(custatevecSamplerSample(
-        handle, sampler, bitstrings0, measuredBits32.data(),
+        handle, sampler, bitstrings0.data(), measuredBits32.data(),
         measuredBits32.size(), randomValues_.data(), shots,
         CUSTATEVEC_SAMPLER_OUTPUT_ASCENDING_ORDER));
 
@@ -664,6 +664,7 @@ public:
     }
 
     std::vector<std::string> sequentialData;
+    sequentialData.reserve(shots);
 
     cudaq::ExecutionResult counts;
 
@@ -673,8 +674,8 @@ public:
                            .to_string()
                            .erase(0, 64 - measuredBits.size());
       std::reverse(bitstring.begin(), bitstring.end());
-      sequentialData.push_back(bitstring);
       counts.appendResult(bitstring, 1);
+      sequentialData.push_back(std::move(bitstring));
     }
 
     // Compute the expectation value from the counts

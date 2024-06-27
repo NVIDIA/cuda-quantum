@@ -10,6 +10,7 @@
 #include "GPUInfo.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
+#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/gradients.h"
 #include "cudaq/optimizers.h"
@@ -24,12 +25,12 @@ using json = nlohmann::json;
 namespace std {
 // Complex data serialization.
 template <class T>
-void to_json(json &j, const std::complex<T> &p) {
+inline void to_json(json &j, const std::complex<T> &p) {
   j = json{p.real(), p.imag()};
 }
 
 template <class T>
-void from_json(const json &j, std::complex<T> &p) {
+inline void from_json(const json &j, std::complex<T> &p) {
   p.real(j.at(0));
   p.imag(j.at(1));
 }
@@ -98,9 +99,11 @@ inline void to_json(json &j, const ExecutionContext &context) {
   }
   j["result"] = results;
 
-  if (context.expectationValue.has_value()) {
+  if (context.expectationValue.has_value())
     j["expectationValue"] = context.expectationValue.value();
-  }
+
+  if (context.optResult.has_value())
+    j["optResult"] = context.optResult.value();
 
   if (context.simulationState) {
     j["simulationData"] = json();
@@ -163,11 +166,11 @@ inline void from_json(const json &j, ExecutionContext &context) {
     context.result = sample_result(results);
   }
 
-  if (j.contains("expectationValue")) {
-    double expectationValue;
-    j["expectationValue"].get_to(expectationValue);
-    context.expectationValue = expectationValue;
-  }
+  if (j.contains("expectationValue"))
+    context.expectationValue = j["expectationValue"];
+
+  if (j.contains("optResult"))
+    context.optResult = j["optResult"];
 
   if (j.contains("spin")) {
     std::vector<double> spinData;
@@ -270,6 +273,35 @@ inline void to_json(json &j, const cudaq::optimizers::BaseEnsmallen &p) {
   TO_JSON_OPT_HELPER(step_size);
 }
 
+inline void to_json(json &j, const cudaq::optimizers::lbfgs &p) {
+  TO_JSON_OPT_HELPER(max_line_search_trials);
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void to_json(json &j, const cudaq::optimizers::spsa &p) {
+  TO_JSON_OPT_HELPER(alpha);
+  TO_JSON_OPT_HELPER(gamma);
+  TO_JSON_OPT_HELPER(eval_step_size);
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void to_json(json &j, const cudaq::optimizers::adam &p) {
+  TO_JSON_OPT_HELPER(batch_size);
+  TO_JSON_OPT_HELPER(beta1);
+  TO_JSON_OPT_HELPER(beta2);
+  TO_JSON_OPT_HELPER(eps);
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void to_json(json &j, const cudaq::optimizers::gradient_descent &p) {
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void to_json(json &j, const cudaq::optimizers::sgd &p) {
+  TO_JSON_OPT_HELPER(batch_size);
+  to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
 inline void to_json(json &j, const cudaq::optimizers::base_nlopt &p) {
   TO_JSON_OPT_HELPER(max_eval);
   TO_JSON_OPT_HELPER(initial_parameters);
@@ -279,9 +311,17 @@ inline void to_json(json &j, const cudaq::optimizers::base_nlopt &p) {
 }
 
 inline void to_json(json &j, const cudaq::optimizer &p) {
-  if (auto *base_ensmallen =
-          dynamic_cast<const cudaq::optimizers::BaseEnsmallen *>(&p))
-    j = json(*base_ensmallen);
+  if (auto *p2 = dynamic_cast<const cudaq::optimizers::lbfgs *>(&p))
+    j = json(*p2);
+  else if (auto *p2 = dynamic_cast<const cudaq::optimizers::spsa *>(&p))
+    j = json(*p2);
+  else if (auto *p2 = dynamic_cast<const cudaq::optimizers::adam *>(&p))
+    j = json(*p2);
+  else if (auto *p2 =
+               dynamic_cast<const cudaq::optimizers::gradient_descent *>(&p))
+    j = json(*p2);
+  else if (auto *p2 = dynamic_cast<const cudaq::optimizers::sgd *>(&p))
+    j = json(*p2);
   else if (auto *base_nlopt =
                dynamic_cast<const cudaq::optimizers::base_nlopt *>(&p))
     j = json(*base_nlopt);
@@ -295,6 +335,36 @@ inline void from_json(const nlohmann::json &j,
   FROM_JSON_OPT_HELPER(upper_bounds);
   FROM_JSON_OPT_HELPER(f_tol);
   FROM_JSON_OPT_HELPER(step_size);
+}
+
+inline void from_json(const nlohmann::json &j, cudaq::optimizers::lbfgs &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+  FROM_JSON_OPT_HELPER(max_line_search_trials);
+}
+
+inline void from_json(const nlohmann::json &j, cudaq::optimizers::spsa &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+  FROM_JSON_OPT_HELPER(alpha);
+  FROM_JSON_OPT_HELPER(gamma);
+  FROM_JSON_OPT_HELPER(eval_step_size);
+}
+
+inline void from_json(const nlohmann::json &j, cudaq::optimizers::adam &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+  FROM_JSON_OPT_HELPER(batch_size);
+  FROM_JSON_OPT_HELPER(beta1);
+  FROM_JSON_OPT_HELPER(beta2);
+  FROM_JSON_OPT_HELPER(eps);
+}
+
+inline void from_json(const nlohmann::json &j,
+                      cudaq::optimizers::gradient_descent &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+}
+
+inline void from_json(const nlohmann::json &j, cudaq::optimizers::sgd &p) {
+  from_json(j, dynamic_cast<cudaq::optimizers::BaseEnsmallen &>(p));
+  FROM_JSON_OPT_HELPER(batch_size);
 }
 
 inline void from_json(const nlohmann::json &j,
@@ -429,7 +499,7 @@ struct RestRequestOptFields {
   cudaq::gradient *gradient_ptr = nullptr;
 };
 
-void to_json(json &j, const RestRequestOptFields &p) {
+inline void to_json(json &j, const RestRequestOptFields &p) {
   if (p.optimizer_ptr)
     j["optimizer"] = *p.optimizer_ptr;
   if (p.gradient_ptr)
@@ -439,7 +509,7 @@ void to_json(json &j, const RestRequestOptFields &p) {
   TO_JSON_OPT_HELPER(gradient_type);
 }
 
-void from_json(const json &j, RestRequestOptFields &p) {
+inline void from_json(const json &j, RestRequestOptFields &p) {
   FROM_JSON_OPT_HELPER(optimizer_n_params);
   FROM_JSON_OPT_HELPER(optimizer_type);
   if (p.optimizer_type)
@@ -532,6 +602,10 @@ public:
   std::size_t version;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
+  // The SerializedCodeExecutionContext to compile and to execute a limited
+  // subset of Python source code. The server will execute serialized code in
+  // this context
+  std::optional<SerializedCodeExecutionContext> serializedCodeExecutionContext;
 
   friend void to_json(json &j, const RestRequest &p) {
     TO_JSON_HELPER(version);
@@ -546,6 +620,7 @@ public:
     TO_JSON_HELPER(seed);
     TO_JSON_HELPER(passes);
     TO_JSON_HELPER(clientVersion);
+    TO_JSON_OPT_HELPER(serializedCodeExecutionContext);
   }
 
   friend void from_json(const json &j, RestRequest &p) {
@@ -561,6 +636,7 @@ public:
     FROM_JSON_HELPER(seed);
     FROM_JSON_HELPER(passes);
     FROM_JSON_HELPER(clientVersion);
+    FROM_JSON_OPT_HELPER(serializedCodeExecutionContext);
   }
 };
 

@@ -35,6 +35,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
             print("Could not find a suitable cuQuantum Python package.")
         pass
 
+from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
@@ -42,6 +43,15 @@ from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import to_cupy
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
+
+try:
+    from qutip import Qobj, Bloch
+except ImportError:
+    from .visualization.bloch_visualize_err import install_qutip_request as add_to_bloch_sphere
+    from .visualization.bloch_visualize_err import install_qutip_request as show
+else:
+    from .visualization.bloch_visualize import add_to_bloch_sphere
+    from .visualization.bloch_visualize import show_bloch_sphere as show
 
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
@@ -103,6 +113,8 @@ AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult
 vqe = cudaq_runtime.vqe
 draw = cudaq_runtime.draw
+displaySVG = display_trace.displaySVG
+getSVGstring = display_trace.getSVGstring
 
 ComplexMatrix = cudaq_runtime.ComplexMatrix
 to_qir = cudaq_runtime.get_qir

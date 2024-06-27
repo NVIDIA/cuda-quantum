@@ -390,12 +390,14 @@ protected:
     // Verify MLIR conforming to the NVQIR-spec (known runtime functions and/or
     // QIR functions)
     {
-      // Collect all functions that are defined in this module Ops.
+      // Collect all functions that are defined (and have non-empty bodies) in
+      // this module Op.
       const std::vector<llvm::StringRef> allFunctionNames = [&]() {
         std::vector<llvm::StringRef> allFuncs;
         for (auto &op : *module.getBody())
           if (auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op))
-            allFuncs.emplace_back(funcOp.getName());
+            if (!funcOp.getFunctionBody().empty())
+              allFuncs.emplace_back(funcOp.getName());
         return allFuncs;
       }();
       // Note: run this verification as a standalone step to decouple IR
