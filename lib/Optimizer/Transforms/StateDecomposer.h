@@ -25,8 +25,6 @@
 #include "mlir/Transforms/RegionUtils.h"
 #include <span>
 
-#include <iostream>
-
 namespace cudaq::details {
 
 /// @brief Converts angles of a uniformly controlled rotation to angles of
@@ -152,7 +150,7 @@ private:
                      std::size_t target) {
 
     // In our model the index 1 (i.e. |01>) in quantum state data
-    // corresponds to qubits[0]=1 and qubits[1] = 0.
+    // corresponds to qubits[0] = 1 and qubits[1] = 0.
     // Revert the order of qubits as the state preparation algorithm
     // we use assumes the opposite.
     auto qubitIndex = [&](std::size_t i) { return numQubits - i - 1; };
