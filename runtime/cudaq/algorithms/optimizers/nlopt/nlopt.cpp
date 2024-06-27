@@ -11,6 +11,7 @@
 
 #include "nlopt.h"
 #include "nlopt.hpp"
+#include <string>
 
 namespace cudaq::optimizers {
 
