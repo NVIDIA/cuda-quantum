@@ -408,8 +408,7 @@ ORCA
 
 The ORCA's PT-Series implements the boson sampling model of quantum computation, in which multiple single photons are interfered with each other within a network of beam splitters, and photon detectors measure where the photons leave this network. 
 
-Programmers of CUDA-Q may access the ORCA API from either
-C++ or Python. There is an environment variable ``ORCA_ACCESS_URL`` that can be set so that the ORCA target can look for it during configuration.
+Programmers of CUDA-Q may access the ORCA API from either C++ or Python. There is an environment variable ``ORCA_ACCESS_URL`` that can be set so that the ORCA target can look for it during configuration.
 
 
 Submission from C++
@@ -446,7 +445,7 @@ To set which ORCA URL to be used, set the :code:`url` parameter.
     import os
     import cudaq
     # ...
-    orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost:8080/sample")
+    orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost/sample")
 
     cudaq.set_target("orca", url=orca_url)
 
@@ -456,9 +455,8 @@ You can then execute a time-bin boson sampling experiment against the platform u
 .. code:: python
 
     bs_angles = [np.pi / 3, np.pi / 6]
-    ps_angles = [np.pi / 4, np.pi / 5]
     input_state = [1, 1, 1]
     loop_lengths = [1]
-    counts = cudaq.orca.sample(bs_angles, ps_angles, input_state, loop_lengths)
+    counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, n_samples)
 
 To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../examples/hardware_providers>`.
