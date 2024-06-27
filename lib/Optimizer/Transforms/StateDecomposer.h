@@ -95,7 +95,7 @@ private:
 
 class StateDecomposer {
 public:
-  StateDecomposer(StateGateBuilder &b, std::vector<std::complex<double>> &a)
+  StateDecomposer(StateGateBuilder &b, std::span<std::complex<double>> a)
       : builder(b), amplitudes(a), numQubits(log2(a.size())) {}
 
   /// @brief Decompose the input state vector data to a set of controlled

@@ -9,7 +9,6 @@
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
-#include "cudaq/builder/kernels.h"
 #include <iostream>
 
 __qpu__ void test(std::vector<cudaq::complex> inState) {
