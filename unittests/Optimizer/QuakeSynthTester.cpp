@@ -52,8 +52,8 @@ std::pair<void *, std::size_t> mapToRawArgs(const std::string &kernelName,
 LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
                             OwningOpRef<mlir::ModuleOp> &module) {
   PassManager pm(module->getContext());
-  pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs));
+  pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
