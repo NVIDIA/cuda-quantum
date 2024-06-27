@@ -86,10 +86,11 @@ TEST(UtilsTester, JsonSerDesOptimizer) {
     cudaq::optimizers::lbfgs test_opt;
     test_opt.step_size = 0.99;
     test_opt.initial_parameters = {0.04, -0.05};
+    test_opt.max_line_search_trials = 12;
     json j(test_opt);
     std::cout << j.dump() << '\n';
-    EXPECT_EQ(j.dump(),
-              "{\"initial_parameters\":[0.04,-0.05],\"step_size\":0.99}");
+    EXPECT_EQ(j.dump(), "{\"initial_parameters\":[0.04,-0.05],\"max_line_"
+                        "search_trials\":12,\"step_size\":0.99}");
     EXPECT_EQ(json(cudaq::get_optimizer_type(test_opt)).dump(), "\"LBFGS\"");
 
     auto test_opt_round_trip =
