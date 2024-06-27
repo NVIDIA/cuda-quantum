@@ -178,7 +178,7 @@ def test_quantinuum_state_preparation():
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state)
-    assert '11' in counts
+    assert '00' in counts
     assert '10' in counts
     assert not '01' in counts
     assert not '11' in counts
