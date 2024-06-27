@@ -28,9 +28,12 @@ def get_deserialized_dict(scoped_dict):
     if isinstance(scoped_dict, str):
         scoped_dict = json.loads(scoped_dict)
 
+    # Do all non-cudaq kernels first (so that kernels can later capture other
+    # values)
     for key, val in scoped_dict.items():
+        isKernel = "/" in key and ".PyKernelDecorator" in key
         try:
-            if "/" in key:
+            if "/" in key and not isKernel:
                 key, val_type = key.split('/')
                 if val_type.startswith('cudaq.'):
                     module_name, type_name = val_type.rsplit('.', 1)
@@ -42,6 +45,22 @@ def get_deserialized_dict(scoped_dict):
                     raise Exception(f'Invalid val_type in key: {val_type}')
             else:
                 deserialized_dict[key] = val
+        except Exception as e:
+            raise Exception(f"Error deserializing key '{key}': {e}")
+
+    # Now do the cudaq kernels
+    for key, val in scoped_dict.items():
+        isKernel = "/" in key and ".PyKernelDecorator" in key
+        try:
+            if "/" in key and isKernel:
+                key, val_type = key.split('/')
+                if val_type.startswith('cudaq.'):
+                    module_name, type_name = val_type.rsplit('.', 1)
+                    module = importlib.import_module(module_name)
+                    type_class = getattr(module, type_name)
+                    result = type_class.from_json(json.dumps(val),
+                                                  deserialized_dict)
+                    deserialized_dict[key] = result
         except Exception as e:
             raise Exception(f"Error deserializing key '{key}': {e}")
 
