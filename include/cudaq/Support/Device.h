@@ -90,7 +90,7 @@ public:
     device.topology.createNode();
     for (unsigned i = 1u; i < numQubits; ++i) {
       device.topology.createNode();
-      device.topology.addEdge(Qubit(i - 1), Qubit(i));
+      device.topology.addWeightedEdge(Qubit(i - 1), Qubit(i));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -107,7 +107,7 @@ public:
     device.topology.createNode();
     for (unsigned i = 0u; i < numQubits; ++i) {
       device.topology.createNode();
-      device.topology.addEdge(Qubit(i), Qubit((i + 1) % numQubits));
+      device.topology.addWeightedEdge(Qubit(i), Qubit((i + 1) % numQubits));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -133,7 +133,7 @@ public:
     // Create edges
     for (unsigned i = 0u; i < numQubits; ++i)
       if (i != centerQubit)
-        device.topology.addEdge(Qubit(centerQubit), Qubit(i));
+        device.topology.addWeightedEdge(Qubit(centerQubit), Qubit(i));
 
     device.computeAllPairShortestPaths();
     return device;
@@ -156,9 +156,9 @@ public:
         unsigned base = x + (y * width);
         Qubit q0(base);
         if (x < width - 1)
-          device.topology.addEdge(q0, Qubit(base + 1));
+          device.topology.addWeightedEdge(q0, Qubit(base + 1));
         if (y < height - 1)
-          device.topology.addEdge(q0, Qubit(base + width));
+          device.topology.addWeightedEdge(q0, Qubit(base + width));
       }
     }
     device.computeAllPairShortestPaths();
@@ -171,11 +171,16 @@ public:
   unsigned getNumQubits() const { return topology.getNumNodes(); }
 
   /// Returns the distance between two qubits.
-  unsigned getDistance(Qubit src, Qubit dst) const {
+
+  unsigned getWeightedDistance(Qubit src, Qubit dst) const {
     unsigned pairID = getPairID(src.index, dst.index);
     return src == dst ? 0 : shortestPathsWeights[pairID];
   }
 
+  unsigned getDistance(Qubit src, Qubit dst) const {
+    unsigned pairID = getPairID(src.index, dst.index);
+    return src == dst ? 0 : shortestPaths[pairID].size() - 1;
+  }
   mlir::ArrayRef<Qubit> getNeighbours(Qubit src) const {
     return topology.getNeighbours(src);
   }
@@ -195,11 +200,12 @@ public:
   void dump(llvm::raw_ostream &os = llvm::errs()) const {
     os << "Graph:\n";
     topology.dump(os);
+    os << "dumping weights \n";
     os << "\nShortest Paths:\n";
     for (unsigned src = 0; src < getNumQubits(); ++src)
       for (unsigned dst = 0; dst < getNumQubits(); ++dst) {
         auto path = getShortestPath(Qubit(src), Qubit(dst));
-        os << '(' << src << ", " << dst <<", "<<getDistance(Qubit(src),Qubit(dst))<< ") : {";
+        os << '(' << src << ", " << dst <<", "<<getWeightedDistance(Qubit(src),Qubit(dst))<< ") : {";
         llvm::interleaveComma(path, os);
         os << "}\n";
       }
@@ -219,7 +225,8 @@ private:
   /// Compute the shortest path between every qubit. This assumes that there
   /// exists at least one path between every source and destination pair. I.e.
   /// the graph cannot be bipartite.
- /* void computeAllPairShortestPaths() {
+  /*
+  void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
     mlir::SmallVector<Qubit> path(numNodes);
@@ -241,9 +248,11 @@ private:
       }
     }
   }*/
+
   void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
+    shortestPathsWeights.resize(numNodes * (numNodes + 1) / 2);
     mlir::SmallVector<Qubit> path(numNodes);
     int weights=0;
     for (unsigned n = 0; n < numNodes; ++n) {
@@ -257,12 +266,11 @@ private:
         if (p==Qubit(n)){
           int check =0;
           for (auto neighbour : topology.getNeighbours(Qubit(n))){
-            if (neighbour==p){
+            if (neighbour==Qubit(m)){
               check=1;
             }
           }
           if (check==0){
-            topology.addWeightedEdge(Qubit(m),Qubit(n),INT_MAX);
             weights+=INT_MAX;
           }
           

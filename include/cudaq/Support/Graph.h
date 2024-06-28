@@ -41,6 +41,7 @@ inline mlir::SmallVector<GraphCSR::Node> getShortestPathsBFS(const GraphCSR &gra
 
 // Function that implements Dijkstra's single source
 // shortest path algorithm for a graph
+
 inline mlir::SmallVector<GraphCSR::Node> dijkstra(const GraphCSR &graph,
                                                       GraphCSR::Node src)
 {
@@ -53,7 +54,7 @@ inline mlir::SmallVector<GraphCSR::Node> dijkstra(const GraphCSR &graph,
   distance[src.index]=0;
   //std::size_t begin = 0;
   for (std::size_t i=0; i<graph.getNumNodes();i++){
-    int min=INT_MAX,min_index;
+    int min=INT_MAX,min_index=0;
     for (std::size_t v=0;v<graph.getNumNodes();v++){
       if (discovered[v]){
         continue;

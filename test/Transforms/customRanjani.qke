@@ -1,29 +1,12 @@
-#loc1 = loc("customRanjani.cpp":8:21)
 module attributes {llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu", quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clEv"}} {
   func.func @__nvqpp__mlirgen__Z4mainE3$_0() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-    %cst = arith.constant 5.769500e+00 : f64 loc(#loc2)
-    %c6_i32 = arith.constant 6 : i32 loc(#loc3)
-    %0 = quake.alloca !quake.ref loc(#loc4)
-    %1 = cc.alloca i32 loc(#loc5)
-    cc.store %c6_i32, %1 : !cc.ptr<i32> loc(#loc5)
-    %2 = cc.alloca f64 loc(#loc6)
-    cc.store %cst, %2 : !cc.ptr<f64> loc(#loc6)
-    %3 = quake.alloca !quake.ref loc(#loc7)
-    %4 = quake.alloca !quake.ref loc(#loc8)
-    quake.h %0 : (!quake.ref) -> () loc(#loc9)
-    return loc(#loc1)
-  } loc(#loc1)
-  func.func @_ZZ4mainENK3$_0clEv(%arg0: !cc.ptr<i8> loc("customRanjani.cpp":8:21)) {
-    return loc(#loc1)
-  } loc(#loc1)
-} loc(#loc)
-#loc = loc(unknown)
-#loc2 = loc("customRanjani.cpp":11:18)
-#loc3 = loc("customRanjani.cpp":10:15)
-#loc4 = loc("customRanjani.cpp":9:22)
-#loc5 = loc("customRanjani.cpp":10:9)
-#loc6 = loc("customRanjani.cpp":11:9)
-#loc7 = loc("customRanjani.cpp":14:22)
-#loc8 = loc("customRanjani.cpp":15:22)
-#loc9 = loc("customRanjani.cpp":16:9)
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    return
+  }
+  func.func @_ZZ4mainENK3$_0clEv(%arg0: !cc.ptr<i8>) {
+    return
+  }
+}
 

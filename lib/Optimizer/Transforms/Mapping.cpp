@@ -206,7 +206,6 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
   // qubits virtual qubit that are no adjacently placed.
   if (!virtOp.op->hasTrait<QuantumMeasure>() && deviceQubits.size() == 2 &&
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
-    std::cout<<"not adjacent"<<std::endl;
     return failure();
 
   // Rewire the operation.
@@ -563,11 +562,9 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
     SmallVector<std::size_t> userQubitsMeasured;
     DenseMap<std::size_t, Value> finalQubitWire;
-    int i=0;
     for (Operation &op : block.getOperations()) {
       if (auto qop = dyn_cast<quake::NullWireOp>(op)) {
         // Assign a new virtual qubit to the resulting wire.
-        i++;
         wireToVirtualQ[qop.getResult()] = Placement::VirtualQ(sources.size());
         finalQubitWire[sources.size()] = qop.getResult();
         sources.push_back(qop);
