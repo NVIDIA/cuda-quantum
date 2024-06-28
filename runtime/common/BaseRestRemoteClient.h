@@ -153,6 +153,7 @@ public:
       if (args) {
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
+        pm.addPass(cudaq::opt::createStatePreparation(name, args));
         pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");

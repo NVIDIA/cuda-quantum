@@ -42,6 +42,8 @@ add_cudaq_library(OptTransforms
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
+  StateDecomposer.cpp
+  StatePreparation.cpp
   PySynthCallableBlockArgs.cpp
 
   DEPENDS
