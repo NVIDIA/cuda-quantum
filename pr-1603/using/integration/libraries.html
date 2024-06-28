@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Building your first CUDA-Q Program &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Integrating with Third-Party Libraries &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -29,8 +29,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Running your first CUDA-Q Program" href="run_kernel.html" />
-    <link rel="prev" title="What is a CUDA-Q kernel?" href="kernel_intro.html" /> 
+    <link rel="next" title="Extending CUDA-Q" href="../extending/extending.html" />
+    <link rel="prev" title="Using CUDA and CUDA-Q in a Project" href="cuda_gpu.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -103,17 +103,17 @@
 <li class="toctree-l2"><a class="reference internal" href="../quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="basics.html">   Basics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">   Building your first CUDA-Q Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="run_kernel.html">   Running your first CUDA-Q Program</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="run_kernel.html#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="run_kernel.html#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html">   Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/troubleshooting.html">   Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 </ul>
 </li>
 </ul>
@@ -296,13 +296,13 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../integration/cmake_app.html">Downstream CMake Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../integration/libraries.html">Integrating with Third-Party Libraries</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="integration.html">   Integration</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
 </ul>
 </li>
 </ul>
@@ -497,83 +497,220 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="basics.html">CUDA-Q Basics</a></li>
-      <li class="breadcrumb-item active">Building your first CUDA-Q Program</li>
+          <li class="breadcrumb-item"><a href="integration.html">Integration with other Software Tools</a></li>
+      <li class="breadcrumb-item active">Integrating with Third-Party Libraries</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/basics/build_kernel.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/using/integration/libraries.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="kernel_intro.html" class="btn btn-neutral float-left" title="What is a CUDA-Q kernel?" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="run_kernel.html" class="btn btn-neutral float-right" title="Running your first CUDA-Q Program" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cuda_gpu.html" class="btn btn-neutral float-left" title="Using CUDA and CUDA-Q in a Project" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../extending/extending.html" class="btn btn-neutral float-right" title="Extending CUDA-Q" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="building-your-first-cuda-q-program">
-<h1>Building your first CUDA-Q Program<a class="headerlink" href="#building-your-first-cuda-q-program" title="Permalink to this heading">¶</a></h1>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<p>We can define our quantum kernel as a typical Python function, with the additional use of the
-<code class="code docutils literal notranslate"><span class="pre">&#64;cudaq.kernel</span></code> decorator. Let’s begin with a simple GHZ-state example, producing a state of
-maximal entanglement amongst an allocated set of qubits.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+  <section id="integrating-with-third-party-libraries">
+<h1>Integrating with Third-Party Libraries<a class="headerlink" href="#integrating-with-third-party-libraries" title="Permalink to this heading">¶</a></h1>
+<p>CUDA-Q enables easily integrating quantum kernels with existing state-of-the-art tools
+for classical computing and high performance computing. While quantum kernels are expressed
+in Python or C++, quantum hardware backends only support a very limited set of classical
+instructions. Correspondingly, only a select set of libraries and functions that are
+directly supported by the CUDA-Q compiler can be called from within quantum kernels.
+Code that is not marked as kernel code, on the other hand, can be used to invoke the
+defined quantum kernels as well as any classical tools and libraries. CUDA-Q provides
+a complete toolset to build complex applications running on multi-processor systems involving
+CPUs, GPUs and QPUs.</p>
+<p>In Python, integration with any third-party Python package is handled
+automatically without any need for additional configuration. For C++, the rest of this
+document outlines how to integration with libraries that are compile with a different
+compiler than <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>.</p>
+<section id="calling-a-cuda-q-library-from-c">
+<h2>Calling a CUDA-Q library from C++<a class="headerlink" href="#calling-a-cuda-q-library-from-c" title="Permalink to this heading">¶</a></h2>
+<p>The CUDA-Q compiler is a fully-featured C++ compiler able to process arbitrary C++ code outside
+of quantum kernels. In fact, the CUDA-Q installation includes and invokes a custom-built Clang
+compiler under the hood. In general, it hence is not necessary to use a different compiler to
+compile C++ host code that calls into quantum kernels; the host code is compiled along with
+the quantum kernels into a single library or executable by the CUDA-Q toolchain.</p>
+<p>If you would still like to create a library that can be included in libraries and executables
+built with a different toolchain, you can configure <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> to include and encapsulate all its
+C++ dependencies, such that the CUDA-Q library only depends on C libraries. For example,
+if you have a file <code class="code docutils literal notranslate"><span class="pre">quantum_kernel.cpp</span></code> containing</p>
+<div class="highlight-C++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;sstream&gt;</span>
 
+<span class="k">namespace</span><span class="w"> </span><span class="nn">quantum</span><span class="w"> </span><span class="p">{</span>
 
-<span class="c1"># Define our kernel.</span>
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-    <span class="c1"># Allocate our qubits.</span>
-    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-    <span class="c1"># Place the first qubit in the superposition state.</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="c1"># Loop through the allocated qubits and apply controlled-X,</span>
-    <span class="c1"># or CNOT, operations between them.</span>
-    <span class="k">for</span> <span class="n">qubit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="c1"># Measure the qubits.</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">bell</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qs</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qs</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">cnot</span><span class="p">(</span><span class="n">qs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qs</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qs</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// Usually, one would probably return something like</span>
+<span class="c1">// the most probably value in the distribution rather</span>
+<span class="c1">// than the string dump. However, the bell kernel here</span>
+<span class="c1">// has a 50/50 chance of returning 00 or 11.</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">bell_distribution</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">dist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">stringbuf</span><span class="w"> </span><span class="n">buffer</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="w"> </span><span class="nf">os</span><span class="p">(</span><span class="o">&amp;</span><span class="n">buffer</span><span class="p">);</span>
+<span class="w">  </span><span class="n">dist</span><span class="p">.</span><span class="n">dump</span><span class="p">(</span><span class="n">os</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">sample_results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">buffer</span><span class="p">.</span><span class="n">str</span><span class="p">();</span>
+
+<span class="w">  </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">ptr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">char</span><span class="p">[</span><span class="n">sample_results</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">];</span>
+<span class="w">  </span><span class="n">strcpy</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span><span class="w"> </span><span class="n">sample_results</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">ptr</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">}</span><span class="w"> </span><span class="c1">// namespace quantum</span>
 </pre></div>
 </div>
+<p>you can create such a library with the command</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>quantum_kernel.cpp<span class="w"> </span>-shared<span class="w"> </span>-static-libstdc++<span class="w"> </span>-fPIC<span class="w"> </span>-o<span class="w"> </span>libquantum_kernel.so
+</pre></div>
 </div>
-<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<p>We can define our quantum kernel as we do any other typed callable in C++, through the use of the
-<code class="code docutils literal notranslate"><span class="pre">__qpu__</span></code> annotation. For the following example, we will define a kernel for a simple GHZ-state as
-a standard free function.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
-
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// Allocate our qubits.</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">);</span>
-<span class="w">  </span><span class="c1">// Place the first qubit in the superposition state.</span>
-<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="w">  </span><span class="c1">// Loop through the allocated qubits and apply controlled-X,</span>
-<span class="w">  </span><span class="c1">// or CNOT, operations between them.</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">qubit</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="p">],</span><span class="w"> </span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="w">  </span><span class="c1">// Measure the qubits.</span>
-<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">);</span>
+<p>To use this library in a project built with an external toolchain, define a suitable
+header file <code class="code docutils literal notranslate"><span class="pre">quantum_kernel.h</span></code> containing</p>
+<div class="highlight-C++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">quantum</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">bell_distribution</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
 </div>
+<p>and include it in your project. For example, if <code class="code docutils literal notranslate"><span class="pre">external.cpp</span></code> contains</p>
+<div class="highlight-C++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;quantum_kernel.h&quot;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// some code</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">bell_dist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quantum</span><span class="o">::</span><span class="n">bell_distribution</span><span class="p">();</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">bell_dist</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="w">  </span><span class="k">delete</span><span class="p">[]</span><span class="w"> </span><span class="n">bell_dist</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// more code</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
 </div>
+<p>you can compile it with <code class="code docutils literal notranslate"><span class="pre">g++</span></code> and link it with the built <code class="code docutils literal notranslate"><span class="pre">libquantum_kernel.so</span></code> library
+using the command</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>g++<span class="w"> </span>external.cpp<span class="w"> </span>-lquantum_kernel<span class="w"> </span>-L<span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span>-Wl,-rpath<span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span>-I<span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">&quot;</span>
+</pre></div>
 </div>
-<p>This kernel function can accept any number of arguments, allowing for flexibility in the construction
-of the quantum program. In this case, the <code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code> argument allows us to dynamically control the
-number of qubits allocated to the kernel. As we will see in further <a class="reference internal" href="../examples/examples.html"><span class="doc">examples</span></a>,
-we could also use these arguments to control various parameters of the gates themselves, such as rotation
-angles.</p>
+<p>Note that the API defined in <code class="code docutils literal notranslate"><span class="pre">quantum_kernel.h</span></code> does not depend on any data types that
+rely on the specific implementation of the C++ standard library. For example, we return a
+<code class="code docutils literal notranslate"><span class="pre">const</span> <span class="pre">char*</span></code> instead of a <code class="code docutils literal notranslate"><span class="pre">std::string</span></code> value. This is important to ensure that the data
+is handled correctly regardless of which C++ standard library is used. If you include
+data types that depend on a specific C++ ABI, the linker should detect this incompatibility
+and should generate an error. See the section <a class="reference internal" href="#clike-shim"><span class="std std-ref">Interfacing between binaries compiled with a different toolchains</span></a> below to learn more about
+what to watch out for when defining an API to interface between libraries that are built
+with different compilers.</p>
+</section>
+<section id="calling-an-c-library-from-cuda-q">
+<h2>Calling an C++ library from CUDA-Q<a class="headerlink" href="#calling-an-c-library-from-cuda-q" title="Permalink to this heading">¶</a></h2>
+<p>CUDA-Q comes with a complete C++ toolchain, and is configured to use its own C++ standard
+library by default. When calling a third-party library from within a CUDA-Q application,
+the quantum kernels and the surrounding application code are compiled with the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler,
+whereas the third-party library may be compiled with a different toolchain.
+For most widely distributed libraries, this will work out of the box. The exception are
+third-party libraries that are pre-compiled (opposed to being header-only libraries)
+and dynamically depend on a different C++ standard library than CUDA-Q uses.
+This is the case for a library <code class="code docutils literal notranslate"><span class="pre">third_party_library.so</span></code> if <code class="code docutils literal notranslate"><span class="pre">libstdc++.so</span></code> is listed
+in the output of the command</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ldd<span class="w"> </span>third_party_library.so
+</pre></div>
+</div>
+<p>To use such a library with CUDA-Q, you have to install the static version of the
+library. The <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler can be configured to link a static library
+<code class="code docutils literal notranslate"><span class="pre">libexternal_library.a</span></code> instead of the shared one with the same flags as GCC/Clang:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>my_code.cpp<span class="w"> </span>-Wl,-Bstatic<span class="w"> </span>-lexternal_library<span class="w"> </span>-Wl,-Bdynamic<span class="w"> </span>...
+</pre></div>
+</div>
+<p>If the compilation fails due to undefined symbols during linking, then <code class="code docutils literal notranslate"><span class="pre">libexternal_library.a</span></code>
+does not include the C++ standard library components it depends on. In this case, you can create a
+suitable static library that contains the external library as well as its <code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code> dependencies
+by combining <code class="code docutils literal notranslate"><span class="pre">libexternal_library.a</span></code> and <code class="code docutils literal notranslate"><span class="pre">libstdc++.a</span></code> into a single flattened archive.
+For example, if the external library is built with GCC and located in <code class="code docutils literal notranslate"><span class="pre">/usr/lib</span></code>,
+the following commands create a suitable archive using the GNU archiver:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ar<span class="w"> </span>cruT<span class="w"> </span>libexternal_library_complete.a<span class="w"> </span>/usr/lib/libexternal_library.a<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>g++<span class="w"> </span>-print-file-name<span class="o">=</span>libstdc++.a<span class="k">)</span><span class="s2">&quot;</span>
+<span class="nb">echo</span><span class="w"> </span>-e<span class="w"> </span><span class="s1">&#39;create libexternal_library_complete.a\naddlib libexternal_library_complete.a\nsave\nend&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>ar<span class="w"> </span>-M
+</pre></div>
+</div>
+<p>The above commands create a new static library <code class="code docutils literal notranslate"><span class="pre">libexternal_library_complete.a</span></code> in the current directory.
+To use it, adjust the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command accordingly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>my_code.cpp<span class="w"> </span>-L.<span class="w"> </span>-Wl,-Bstatic<span class="w"> </span>-lexternal_library_complete<span class="w"> </span>-Wl,-Bdynamic<span class="w"> </span>...
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the third-party library functions you are calling from your CUDA-Q code
+consume or produce data types that explicitly depend on the C++ standard library implementation,
+a small shim is needed to properly encapsulate these dependencies, as described in
+<a class="reference internal" href="#clike-shim"><span class="std std-ref">Interfacing between binaries compiled with a different toolchains</span></a>.</p>
+</div>
+</section>
+<section id="interfacing-between-binaries-compiled-with-a-different-toolchains">
+<span id="clike-shim"></span><h2>Interfacing between binaries compiled with a different toolchains<a class="headerlink" href="#interfacing-between-binaries-compiled-with-a-different-toolchains" title="Permalink to this heading">¶</a></h2>
+<p>To avoid incompatibilities between different C++ implementations,
+two binaries built using a different C++ compiler should be careful when passing data types between them
+that rely on a specific C++ implementation. While primitive data types can be passed without
+issues, attempting to pass a string, for example, will result in a linking failure; a <code class="code docutils literal notranslate"><span class="pre">char*</span></code> must
+be passed instead of a string.</p>
+<p>Most other data types, including templated types, can be passed as long as their alignment matches.
+While different compilers generally align data differently, it is possible to force a particular
+alignment when defining the data type or value. For example, if we define a struct</p>
+<div class="highlight-C++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#pragma pack(push, 4)</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">ScalarType</span><span class="o">&gt;</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">Entry</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">is_integral</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ScalarType</span><span class="w"> </span><span class="n">value</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="cp">#pragma pack(pop)</span>
+</pre></div>
+</div>
+<p>the <code class="code docutils literal notranslate"><span class="pre">pragma</span></code> directives ensure that each item will be 4-byte aligned, regardless of the
+default setting that can differ between compilers.</p>
+<p>Even function pointers can usually be passed, as long as their argument and return types can be passed.
+When using templated functions and data types, the header file should only include their declaration as well
+as explicit instantiation for all valid template arguments. For example,</p>
+<div class="highlight-C++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">CudaDataType</span><span class="o">&gt;</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">initializeDeviceStateVector</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">n_blocks</span><span class="p">,</span>
+<span class="w">                                </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">threads_per_block</span><span class="p">,</span>
+<span class="w">                                </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">deviceStateVector</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">stateDimension</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaInitializeDeviceStateVector</span><span class="o">&lt;&lt;&lt;</span><span class="n">n_blocks</span><span class="p">,</span><span class="w"> </span><span class="n">threads_per_block</span><span class="o">&gt;&gt;&gt;</span><span class="p">(</span>
+<span class="w">    </span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">CudaDataType</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="n">deviceStateVector</span><span class="p">),</span><span class="w"> </span><span class="n">stateDimension</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">template</span><span class="w"> </span><span class="kt">void</span>
+<span class="n">initializeDeviceStateVector</span><span class="o">&lt;</span><span class="n">cuFloatComplex</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">n_blocks</span><span class="p">,</span>
+<span class="w">                                </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">threads_per_block</span><span class="p">,</span>
+<span class="w">                                </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">deviceStateVector</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">stateDimension</span><span class="p">);</span>
+
+<span class="k">template</span><span class="w"> </span><span class="kt">void</span>
+<span class="n">initializeDeviceStateVector</span><span class="o">&lt;</span><span class="n">cuDoubleComplex</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">n_blocks</span><span class="p">,</span>
+<span class="w">                                </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">threads_per_block</span><span class="p">,</span>
+<span class="w">                                </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">deviceStateVector</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">stateDimension</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>The most cumbersome aspect when libraries built with different toolchains are combined into a single executable
+is exception handling. Since the handling relies on a specific ABI, an thrown exception is not necessarily
+recognized as such in a library that uses a different ABI implementation. While matching the exception type
+may not work as expected, a catch-all will reliably catch any thrown exception.</p>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="kernel_intro.html" class="btn btn-neutral float-left" title="What is a CUDA-Q kernel?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="run_kernel.html" class="btn btn-neutral float-right" title="Running your first CUDA-Q Program" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cuda_gpu.html" class="btn btn-neutral float-left" title="Using CUDA and CUDA-Q in a Project" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../extending/extending.html" class="btn btn-neutral float-right" title="Extending CUDA-Q" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

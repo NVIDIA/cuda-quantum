@@ -29,8 +29,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA-Q and CMake" href="cmake_app.html" />
-    <link rel="prev" title="Integration with other Software Tools" href="integration.html" /> 
+    <link rel="next" title="Integrating with Third-Party Libraries" href="libraries.html" />
+    <link rel="prev" title="CUDA-Q and CMake" href="cmake_app.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -297,8 +297,14 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="integration.html">   Integration</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
@@ -497,8 +503,8 @@
             <a href="../../_sources/using/integration/cuda_gpu.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="integration.html" class="btn btn-neutral float-left" title="Integration with other Software Tools" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cmake_app.html" class="btn btn-neutral float-right" title="CUDA-Q and CMake" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cmake_app.html" class="btn btn-neutral float-left" title="CUDA-Q and CMake" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="libraries.html" class="btn btn-neutral float-right" title="Integrating with Third-Party Libraries" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -525,10 +531,10 @@ example, let’s assume that we’ve written quantum kernels and saved
 them in the file <code class="code docutils literal notranslate"><span class="pre">my_proj_quantum.cpp</span></code>.</p>
 <p>By default, CUDA-Q uses C++ 20 and builds source code against the
 LLVM C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libc++</span></code>). To create a CUDA library that
-can link against CUDA-Q code, make sure to define a C-like API, that
-is an API that does not rely on C++ specific data structures, for all
-functions intended to be called from CUDA-Q. For example, if you
-define a CUDA kernel in <code class="code docutils literal notranslate"><span class="pre">my_proj.cu</span></code></p>
+can link against CUDA-Q code, make sure to define an API that does
+not rely on C++ data structures that rely on a specific C++ toolchain
+for all functions intended to be called from CUDA-Q (see also
+<a class="reference internal" href="libraries.html#clike-shim"><span class="std std-ref">Interfacing between binaries compiled with a different toolchains</span></a>). For example, if you define a CUDA kernel in <code class="code docutils literal notranslate"><span class="pre">my_proj.cu</span></code></p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">CudaDataType</span><span class="o">&gt;</span>
 <span class="n">__global__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">cudaSetFirstNElements</span><span class="p">(</span><span class="n">CudaDataType</span><span class="w"> </span><span class="o">*</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">CudaDataType</span><span class="w"> </span><span class="o">*</span><span class="n">__restrict__</span><span class="w"> </span><span class="n">sv2</span><span class="p">,</span><span class="w"> </span><span class="kt">int64_t</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="kt">int64_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int64_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
@@ -610,8 +616,8 @@ The CUDA runtime is explicitly added to this command.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="integration.html" class="btn btn-neutral float-left" title="Integration with other Software Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cmake_app.html" class="btn btn-neutral float-right" title="CUDA-Q and CMake" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cmake_app.html" class="btn btn-neutral float-left" title="CUDA-Q and CMake" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="libraries.html" class="btn btn-neutral float-right" title="Integrating with Third-Party Libraries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
