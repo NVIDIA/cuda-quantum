@@ -78,7 +78,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -164,7 +164,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
         mpi: [openmpi, mpich]
         exclude:
           - toolchain: llvm
@@ -194,9 +194,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc12', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
 
   python_wheels:
     name: Create Python wheels

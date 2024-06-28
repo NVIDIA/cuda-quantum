@@ -26,7 +26,7 @@ FROM ${base_image}
 ARG distro=rhel8
 ARG llvm_commit
 ARG pybind11_commit
-ARG toolchain=gcc12
+ARG toolchain=gcc11
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 

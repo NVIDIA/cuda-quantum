@@ -18,7 +18,7 @@
 # The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with. 
 # The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
 # CUDA-Q. This image sets the CC and CXX environment variables to use that toolchain. 
-# Currently, llvm (default), clang16, clang15, gcc12, and gcc11 are supported. To use a different 
+# Currently, clang16, clang15, gcc12, and gcc11 are supported. To use a different 
 # toolchain, add support for it to the install_toolchain.sh script. If the toolchain is set to llvm, 
 # then the toolchain will be built from source.
 
@@ -28,7 +28,7 @@ ARG base_image=ubuntu:22.04
 # [CUDA-Q Dependencies]
 FROM ${base_image} as prereqs
 SHELL ["/bin/bash", "-c"]
-ARG toolchain=gcc12
+ARG toolchain=gcc11
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 

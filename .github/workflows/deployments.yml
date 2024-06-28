@@ -169,7 +169,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
-        toolchain: [clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -303,7 +303,7 @@ jobs:
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      devdeps_toolchain: gcc12
+      devdeps_toolchain: gcc11
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.2

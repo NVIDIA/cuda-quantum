@@ -87,7 +87,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
