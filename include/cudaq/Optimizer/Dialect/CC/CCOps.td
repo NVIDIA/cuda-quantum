@@ -1020,10 +1020,10 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
     Example:
 
     ```mlir
-      %p = cc.compute_ptr %struct, 1 : (!cc.ptr<!cc.struct<{i32, f32}>>) ->
-                                       !cc.ptr<f32>
-      %q = cc.compute_ptr %array, %i : (!cc.ptr<!cc.array<i32 x 100>>, i64) ->
-                                       !cc.ptr<i32>
+      %p = cc.compute_ptr %struct[1] : (!cc.ptr<!cc.struct<{i32, f32}>>) ->
+                                        !cc.ptr<f32>
+      %q = cc.compute_ptr %array[%i] : (!cc.ptr<!cc.array<i32 x 100>>, i64) ->
+                                        !cc.ptr<i32>
     ```
   }];
 
@@ -1058,6 +1058,8 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
     static std::int32_t getDynamicIndexValue() { return kDynamicIndex; }
 
     bool llvmNormalForm();
+
+    std::optional<std::int32_t> getConstantIndex(std::size_t arg);
   }];
 }
 
