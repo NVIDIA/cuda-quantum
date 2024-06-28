@@ -28,9 +28,8 @@ def get_deserialized_dict(scoped_dict):
     if isinstance(scoped_dict, str):
         scoped_dict = json.loads(scoped_dict)
 
-    # Do two passes. Save the deserialization of cudaq.kernels for the second
-    # pass so that they can see and utilize global variables deserialized in the
-    # first pass.
+    # Do two passes. Save the unpacking of cudaq.kernels for the second pass so
+    # that they can see and utilize global variables unpacked in the first pass.
     for p in range(2):
         isFirstPass = (p == 0)
         for key, val in scoped_dict.items():
