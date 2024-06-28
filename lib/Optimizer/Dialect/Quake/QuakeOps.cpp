@@ -778,7 +778,7 @@ ParseResult quake::WireSetOp::parse(OpAsmParser &parser,
   if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
                              result.attributes))
     return failure();
-  std::int32_t cardinality;
+  std::int32_t cardinality = 0;
   if (parser.parseLSquare() || parser.parseInteger(cardinality) ||
       parser.parseRSquare())
     return failure();
