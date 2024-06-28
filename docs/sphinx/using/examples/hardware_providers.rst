@@ -1,7 +1,7 @@
 Using Quantum Hardware Providers
 -----------------------------------
 
-CUDA-Q contains support for using a set of hardware providers (IonQ, IQM, OQC, Quantinuum and ORCA). 
+CUDA-Q contains support for using a set of hardware providers (IonQ, IQM, OQC, Quantinuum and ORCA Computing). 
 For more information about executing quantum kernels on different hardware backends, please take a look
 at :doc:`hardware <../backends/hardware>`.
 
@@ -49,10 +49,10 @@ The following code illustrates how to run kernels on Quantinuum's backends.
       :language: cpp
 
 The following image shows the schematic of a Time Bin Interferometer (TBI) boson sampling experiment 
-that runs on ORCA's backends. A TBI uses optical delay lines with reconfigurable coupling parameters. 
-A TBI can be represented by a circuit diagram, like the one below, where this illustration example 
-corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit composed of two 
-delay lines in series. 
+that runs on ORCA Computing's backends. A TBI uses optical delay lines with reconfigurable coupling 
+parameters. A TBI can be represented by a circuit diagram, like the one below, where this 
+illustration example corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit 
+composed of two delay lines in series. 
 
 .. image:: ./images/orca_tbi.png
    :width: 400px

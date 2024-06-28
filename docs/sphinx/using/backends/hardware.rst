@@ -401,20 +401,33 @@ You can then execute a kernel against the platform using the OQC Lucy device
     str(cudaq.sample(kernel=kernel, shots_count=1000))
 
 
-ORCA
+ORCA Computing
 ==================================
 
 .. _orca-backend:
 
-The ORCA's PT-Series implements the boson sampling model of quantum computation, in which multiple single photons are interfered with each other within a network of beam splitters, and photon detectors measure where the photons leave this network. 
+ORCA's PT Series implement the boson sampling model of quantum computation, in which multiple single 
+photons are interfered with each other within a network of beam splitters, and photon detectors 
+measure where the photons leave this network.
+A TBI can be represented by a circuit diagram, like the one below, where this illustration example 
+corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit composed of two 
+delay lines in series.
 
-Programmers of CUDA-Q may access the ORCA API from either C++ or Python. There is an environment variable ``ORCA_ACCESS_URL`` that can be set so that the ORCA target can look for it during configuration.
+.. image:: ../examples/images/orca_tbi.png
+   :width: 400px
+   :align: center
+
+Programmers of CUDA-Q may access the ORCA API from either C++ or Python. There is an environment 
+variable ``ORCA_ACCESS_URL`` that can be set so that the ORCA target can look for it during 
+configuration.
 
 
 Submission from C++
 `````````````````````````
 
-To execute a time bin interferometer experiment on the ORCA platform, provide the flag ``--target orca`` to the ``nvq++`` compiler. You should then pass the ``--orca-url`` flag set with the previously set environment variable ``$ORCA_ACCESS_URL`` or an :code:`url`.
+To execute a time bin interferometer experiment on the ORCA platform, provide the flag 
+``--target orca`` to the ``nvq++`` compiler. You should then pass the ``--orca-url`` flag set with 
+the previously set environment variable ``$ORCA_ACCESS_URL`` or an :code:`url`.
 
 .. code:: bash
 

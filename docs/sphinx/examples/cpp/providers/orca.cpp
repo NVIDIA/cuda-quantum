@@ -1,10 +1,29 @@
+// ORCA Computing's PT Series implement the boson sampling model of quantum
+// computation, in which multiple photons are interfered with each other within
+// a network of beam splitters, and photon detectors measure where the photons
+// leave this network.
+
+// The parameters needed to define the time bin interferometer are the
+// the input state, the loop lengths, beam splitter angles, and optionally the
+// phase shifter angles, and the number of samples.
+
+// The input state is the initial state of the photons in the time bin
+// interferometer, the left-most entry corresponds to the first mode entering
+// the loop.
+
+// The loop lengths are the the lengths of the different loops in the time bin
+// interferometer.
+
+// The beam splitter angles and the phase shifter angles are controllable
+// parameters of the time bin interferometer.
+
 // Compile and run with:
 // ```
 // nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x
 // && ./out.x
 // ```
-// To use the ORCA target you will need to set the ORCA_ACCESS_URL environment
-// variable or pass the url to the --orca-url flag.
+// To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL
+// environment variable or pass the url to the --orca-url flag.
 
 #include "cudaq/orca.h"
 #include "cudaq.h"
@@ -19,25 +38,6 @@ void linear_spaced_vector(std::vector<T> &xs, T min, T max, std::size_t N) {
     *x = val;
   }
 }
-
-// ORCA's PT-Series implement the boson sampling model of quantum computation,
-// in which multiple photons are interfered with each other within a network of
-// beam splitters, and photon detectors measure where the photons leave this
-// network.
-
-// The parameters needed to define the time bin interferometer are the
-// the input state, the loop lengths, beam splitter angles, and optionally the
-// phase shifter angles, and the number of samples.
-
-// The input state is the initial state of the photons in
-//  the time bin interferometer, the left-most entry corresponds to the first
-//  mode entering the loop.
-
-// The loop lengths are the the lengths of the different loops in the time bin
-// interferometer.
-
-// The beam splitter angles and the phase shifter angles are controllable
-// parameters of the time bin interferometer.
 
 int main() {
 
