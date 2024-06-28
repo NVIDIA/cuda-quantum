@@ -25,10 +25,10 @@ them in the file `my_proj_quantum.cpp`.
 
 By default, CUDA-Q uses C++ 20 and builds source code against the 
 LLVM C++ standard library (`libc++`). To create a CUDA library that 
-can link against CUDA-Q code, make sure to define a C-like API, that
-is an API that does not rely on C++ specific data structures, for all
-functions intended to be called from CUDA-Q. For example, if you 
-define a CUDA kernel in `my_proj.cu`
+can link against CUDA-Q code, make sure to define an API that does 
+not rely on C++ data structures that rely on a specific C++ toolchain
+for all functions intended to be called from CUDA-Q (see also 
+:ref:`clike-shim`). For example, if you define a CUDA kernel in `my_proj.cu`
 
 .. code-block:: cpp
 
