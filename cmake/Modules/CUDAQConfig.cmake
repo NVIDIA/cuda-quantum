@@ -78,7 +78,5 @@ set_target_properties(cudaq::cudaq-builder PROPERTIES
   IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libcudaq-builder${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_SONAME "libcudaq-builder${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
-target_link_libraries(cudaq::cudaq INTERFACE cudaq::cudaq-builder)
-
 set(CUDAQ_TARGET "nvidia" CACHE STRING "The CUDA Quantum target to compile for and execute on. Defaults to `nvidia`")
 cudaq_set_target(${CUDAQ_TARGET})
