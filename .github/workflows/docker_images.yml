@@ -311,7 +311,7 @@ jobs:
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
-            install="CMAKE_BUILD_TYPE=Debug CUDAFLAGS=-allow-unsupported-compiler"
+            install="CMAKE_BUILD_TYPE=Debug"
             git_source_sha=${{ github.sha }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -515,7 +515,7 @@ jobs:
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
-            install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }} CUDAFLAGS=-allow-unsupported-compiler"
+            install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
             git_source_sha=${{ github.sha }}
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
