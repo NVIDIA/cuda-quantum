@@ -117,11 +117,14 @@ def test_optimizer():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
+    # Verify that variables can be captured by kernels
+    testVar = 0
+
     @cudaq.kernel
     def kernel(angles: list[float]):
         qvector = cudaq.qvector(2)
         x(qvector[0])
-        ry(angles[0], qvector[1])
+        ry(angles[0] + testVar, qvector[1])
         x.ctrl(qvector[1], qvector[0])
 
     optimizer = cudaq.optimizers.Adam()
