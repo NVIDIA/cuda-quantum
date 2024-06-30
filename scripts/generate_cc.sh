@@ -21,7 +21,10 @@
 #
 # Note:
 # The script should be run in the cuda-quantum-devdeps container environment.
-# Currently, Python code cannot display the coverage of kernel functions.
+# current tested image: ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
+# Don't enable GPU
+# C/C++ coverage is located in the ./build/ccoverage directory
+# Python coverage is located in the ./build/pycoverage directory
 
 if [ $# -lt 1 ]; then
   echo "Please provide at least one parameter"
@@ -66,6 +69,12 @@ if [ $? -ne 0 ]; then
     echo "Build cudaq failure: $?" >&2
     exit 1
 fi
+
+# Function to run the llvm-cov command
+run_llvm_cov() {
+  llvm-cov show -format=html ${objects} -instr-profile=${repo_root}/build/coverage.profdata --ignore-filename-regex="./tpls/*" \
+    --ignore-filename-regex="${repo_root}/build/*" --ignore-filename-regex="${repo_root}/unittests/*" -o ${repo_root}/build/ccoverage 2>&1
+}
 
 if $gen_cpp_coverage; then
   # Detect toolchain
@@ -116,12 +125,46 @@ if $gen_cpp_coverage; then
       -e '/Linking CXX executable/s/^.*Linking CXX executable //p' ${repo_root}/build/logs/ninja_output.txt))
     objects=""
     for item in "${binarys[@]}"; do
-      if [ "$item" != "lib/libCUDAQuantumMLIRCAPI.a" ] && [ "$item" != "lib/libOptTransforms.a" ]; then
         objects+="-object ${repo_root}/build/$item "
+    done
+
+    # The purpose of adding this code is to avoid the llvm-cov show command
+    # from being unable to generate a report due to a malformed format error of an object.
+    # This is mainly an error caused by a static library, but it has little impact on the coverage rate.
+    # Loop until the command succeeds
+    while true; do
+      output=$(run_llvm_cov ${objects})
+      status=$?
+    
+      # Check if the command failed due to malformed coverage data
+      if [ $status -ne 0 ]; then
+        echo "Error detected. Attempting to remove problematic object and retry."
+        echo "$output"
+    
+        # Extract the problematic object from the error message
+        problematic_object=$(echo "$output" | grep -oP "error: Failed to load coverage: '\K[^']+")
+        echo $problematic_object
+    
+        if [ -n "$problematic_object" ]; then
+          # Remove the problematic object from the objects variable
+          objects=$(echo $objects | sed "s|-object $problematic_object||")
+    
+          # Check if the problematic object was successfully removed
+          if [[ $objects != *"-object $problematic_object"* ]]; then
+            echo "Problematic object '$problematic_object' removed. Retrying..."
+          else
+            echo "Failed to remove problematic object '$problematic_object'. Exiting..."
+            exit 1
+          fi
+        else
+          echo "No problematic object found in the error message. Exiting..."
+          exit 1
+        fi
+      else
+        echo "Command succeeded."
+        break
       fi
     done
-    llvm-cov show -format=html ${objects} -instr-profile=${repo_root}/build/coverage.profdata --ignore-filename-regex="${repo_root}/tpls/*" \
-      --ignore-filename-regex="${repo_root}/build/*" --ignore-filename-regex="${repo_root}/unittests/*" -o ${repo_root}/build/ccoverage
   else
     # Use gcov
     echo "Currently not supported, running tests using llvm-lit fails"
@@ -132,10 +175,11 @@ fi
 if $gen_py_coverage; then
   pip install pytest-cov
   pip install iqm_client==16.1 --user -vvv
+  rm -rf ${repo_root}/_skbuild
   pip install . --user -vvv
-  python3 -m pytest -v python/tests/ --ignore python/tests/backends --cov=./python --cov-report=html:${repo_root}/build/pycoverage --cov-append
+  python3 -m pytest -v python/tests/ --ignore python/tests/backends --cov=/home/.local/lib/python3.10/site-packages/cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
   for backendTest in python/tests/backends/*.py; do
-    python3 -m pytest -v $backendTest --cov=./python --cov-report=html:${repo_root}/build/pycoverage --cov-append
+    python3 -m pytest -v $backendTest --cov=/home/.local/lib/python3.10/site-packages/cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
     pytest_status=$?
     if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
       echo "::error $backendTest tests failed with status $pytest_status."
