@@ -28,22 +28,32 @@ def get_deserialized_dict(scoped_dict):
     if isinstance(scoped_dict, str):
         scoped_dict = json.loads(scoped_dict)
 
-    for key, val in scoped_dict.items():
-        try:
-            if "/" in key:
-                key, val_type = key.split('/')
-                if val_type.startswith('cudaq.'):
-                    module_name, type_name = val_type.rsplit('.', 1)
-                    module = importlib.import_module(module_name)
-                    type_class = getattr(module, type_name)
-                    result = type_class.from_json(json.dumps(val))
-                    deserialized_dict[key] = result
-                else:
-                    raise Exception(f'Invalid val_type in key: {val_type}')
-            else:
-                deserialized_dict[key] = val
-        except Exception as e:
-            raise Exception(f"Error deserializing key '{key}': {e}")
+    # Do two passes. Save the unpacking of cudaq.kernels for the second pass so
+    # that they can see and utilize global variables unpacked in the first pass.
+    for p in range(2):
+        isFirstPass = (p == 0)
+        for key, val in scoped_dict.items():
+            isKernel = "/" in key and ".PyKernelDecorator" in key
+            try:
+                if "/" in key and ((isFirstPass and not isKernel) or
+                                   (not isFirstPass is isKernel)):
+                    key, val_type = key.split('/')
+                    if val_type.startswith('cudaq.'):
+                        module_name, type_name = val_type.rsplit('.', 1)
+                        module = importlib.import_module(module_name)
+                        type_class = getattr(module, type_name)
+                        if isFirstPass:
+                            result = type_class.from_json(json.dumps(val))
+                        else:
+                            result = type_class.from_json(
+                                json.dumps(val), deserialized_dict)
+                        deserialized_dict[key] = result
+                    else:
+                        raise Exception(f'Invalid val_type in key: {val_type}')
+                elif isFirstPass:
+                    deserialized_dict[key] = val
+            except Exception as e:
+                raise Exception(f"Error deserializing key '{key}': {e}")
 
     return deserialized_dict
 
