@@ -266,11 +266,6 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
     excludes+=" --exclude-regex ctest-nvqpp|ctest-targettests" && \
-    # FIXME: To support custom unitary operations, we need to properly convert 
-    # the unitary when passing it directly to an external library (the simulator)
-    # that is compiled with a different compiler/C++ standard libary. 
-    # Tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
-    excludes+="|tensornet_CustomUnitaryTester.checkSimple|tensornet_mps_CustomUnitaryTester.checkSimple" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
@@ -301,12 +296,11 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
 
-# Removing the CUDA compiler and libstdc++ with it,
-# and installing the CUDA runtime dependencies only.
-RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
-        source /cuda-quantum/scripts/configure_build.sh install-cudart && \
-        dnf remove -y \
-            cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
-            cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) && \
-        dnf clean all; \
-    fi
+# Installing a minimal set of CUDA development dependencies.
+RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
+    . /cuda-quantum/scripts/configure_build.sh install-cudart && \
+    dnf install -y --nobest --setopt=install_weak_deps=False \
+        cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
+        cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -)
+
