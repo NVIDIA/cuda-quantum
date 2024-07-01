@@ -104,8 +104,8 @@ void noise_model::add_channel(const std::string &quantumOp,
                               const std::vector<std::size_t> &qubits,
                               const kraus_channel &channel) {
 
-  if (std::find(availableOps.begin(), availableOps.end(), quantumOp) ==
-      availableOps.end())
+  if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
+      std::end(availableOps))
     throw std::runtime_error(
         "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
 

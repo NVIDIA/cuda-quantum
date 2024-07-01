@@ -179,7 +179,7 @@ protected:
   using NoiseModelOpMap =
       std::unordered_map<KeyT, std::vector<kraus_channel>, KeyTHash>;
 
-  static const constexpr std::array<const char *, 11> availableOps{
+  static constexpr const char *availableOps[] = {
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
 
   // The noise model is a mapping of quantum operation
