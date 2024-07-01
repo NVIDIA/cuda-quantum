@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MD5.h"
@@ -372,6 +373,42 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
   return parseSourceString(
       iter->code, module.getBody(),
       ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
+}
+
+template <typename A>
+cc::GlobalOp
+buildVectorOfComplexConstant(Location loc, ModuleOp module, StringRef name,
+                             const std::vector<std::complex<A>> &values,
+                             IRBuilder &builder, Type ty) {
+  if (auto glob = module.lookupSymbol<cc::GlobalOp>(name))
+    return glob;
+  auto *ctx = builder.getContext();
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToEnd(module.getBody());
+  auto complexTy = ComplexType::get(ty);
+  auto globalTy = cc::ArrayType::get(ctx, complexTy, values.size());
+  SmallVector<std::complex<APFloat>> newValues;
+  for (auto c : values)
+    newValues.emplace_back(APFloat{c.real()}, APFloat{c.imag()});
+  auto tensorTy = RankedTensorType::get(values.size(), complexTy);
+  auto denseEleAttr = DenseElementsAttr::get(tensorTy, newValues);
+  return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, denseEleAttr,
+                                             /*constant=*/true,
+                                             /*external=*/false);
+}
+
+cc::GlobalOp IRBuilder::genVectorOfComplexConstant(
+    Location loc, ModuleOp module, StringRef name,
+    const std::vector<std::complex<double>> &values) {
+  return buildVectorOfComplexConstant(loc, module, name, values, *this,
+                                      getF64Type());
+}
+
+cc::GlobalOp IRBuilder::genVectorOfComplexConstant(
+    Location loc, ModuleOp module, StringRef name,
+    const std::vector<std::complex<float>> &values) {
+  return buildVectorOfComplexConstant(loc, module, name, values, *this,
+                                      getF32Type());
 }
 
 } // namespace cudaq
