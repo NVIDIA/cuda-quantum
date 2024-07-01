@@ -332,6 +332,11 @@ def mlirTypeToPyType(argType):
                 ComplexType(eleTy).element_type) else np.complex64
             return getListType(ty)
 
+    if cc.PointerType.isinstance(argType):
+        valueTy = cc.PointerType.getElementType(argType)
+        if cc.StateType.isinstance(valueTy):
+            return State
+    
     emitFatalError(
         f"Cannot infer CUDA-Q type from provided Python type ({argType})")
 
