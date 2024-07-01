@@ -424,4 +424,3 @@ def test_invalid_arg_error_msg():
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(kernel, c)
     assert 'Invalid runtime argument type.' in repr(e)
-    
