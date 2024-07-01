@@ -341,9 +341,10 @@ void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
 // Invoke a typed callable (functions) with a std::vec<double> + serialized
 // `args`.
 template <typename CallableT, typename... InvokeArgTs>
-void invokeCallableWithSerializedArgs(const std::vector<double> &vec_parms,
-                                      const char *argData, std::size_t argSize,
-                                      CallableT &&func) {
+void invokeCallableWithSerializedArgs_vec(const std::vector<double> &vec_parms,
+                                          const char *argData,
+                                          std::size_t argSize,
+                                          CallableT &&func) {
   WrapperFunctionHandlerHelper<
       std::remove_reference_t<CallableT>,
       InvokeArgTs...>::invoke(std::forward<CallableT>(func), vec_parms, argData,

@@ -90,8 +90,8 @@ public:
     // ansatz_functor invocation.
     serializedArgs = serializeArgs(std::forward<Args>(args)...);
     ansatz_functor = [&](std::vector<double> x) {
-      cudaq::invokeCallableWithSerializedArgs<QuantumKernel,
-                                              std::decay_t<Args>...>(
+      cudaq::invokeCallableWithSerializedArgs_vec<QuantumKernel,
+                                                  std::decay_t<Args>...>(
           x, serializedArgs.data(), serializedArgs.size(),
           std::forward<QuantumKernel>(kernel));
     };
