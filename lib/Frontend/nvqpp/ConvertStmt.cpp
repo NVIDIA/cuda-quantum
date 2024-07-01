@@ -341,7 +341,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
           TODO_x(toLocation(x), x, mangler, "unhandled complex element type");
           return false;
         }
-        std::size_t byteWidth = (eleTy.getIntOrFloatBitWidth() + 3) / 4;
+        std::size_t byteWidth = ((eleTy.getIntOrFloatBitWidth() + 7) / 8) * 2;
         result = createVectorInit(
             builder.create<arith::ConstantIntOp>(loc, byteWidth, 64));
       } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
