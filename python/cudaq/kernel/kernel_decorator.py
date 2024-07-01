@@ -46,7 +46,8 @@ class PyKernelDecorator(object):
                  kernelName=None,
                  funcSrc=None,
                  signature=None,
-                 location=None):
+                 location=None,
+                 overrideGlobalScopedVars=None):
 
         is_deserializing = isinstance(function, str)
 
@@ -77,10 +78,15 @@ class PyKernelDecorator(object):
         # We filter only types we accept: integers and floats.
         # Note here we assume that the parent scope is 2 stack frames up
         self.parentFrame = inspect.stack()[2].frame
-        self.globalScopedVars = {
-            k: v for k, v in dict(inspect.getmembers(self.parentFrame))
-            ['f_locals'].items()
-        }
+        if overrideGlobalScopedVars:
+            self.globalScopedVars = {
+                k: v for k, v in overrideGlobalScopedVars.items()
+            }
+        else:
+            self.globalScopedVars = {
+                k: v for k, v in dict(inspect.getmembers(self.parentFrame))
+                ['f_locals'].items()
+            }
 
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
@@ -308,7 +314,7 @@ class PyKernelDecorator(object):
         return json.dumps(obj)
 
     @staticmethod
-    def from_json(jStr):
+    def from_json(jStr, overrideDict=None):
         """
         Convert a JSON string into a new PyKernelDecorator object.
         """
@@ -320,7 +326,8 @@ class PyKernelDecorator(object):
             kernelName=j['name'],
             funcSrc=j['funcSrc'],
             signature=j['signature'],
-            location=j['location'])
+            location=j['location'],
+            overrideGlobalScopedVars=overrideDict)
 
     def __call__(self, *args):
         """

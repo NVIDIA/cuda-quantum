@@ -489,16 +489,14 @@ auto u3_matrix = [](double theta, double phi, double lambda) {
 
 void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q) {
   auto qI = qubitToSizeT(q);
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
-      u3_matrix(theta, phi, lambda), {}, {qI});
+  nvqir::getCircuitSimulatorInternal()->u3(theta, phi, lambda, {}, qI);
 }
 
 void __quantum__qis__u3__ctl(double theta, double phi, double lambda,
                              Array *ctrls, Qubit *q) {
   auto ctrlIdxs = arrayToVectorSizeT(ctrls);
   auto qI = qubitToSizeT(q);
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
-      u3_matrix(theta, phi, lambda), ctrlIdxs, {qI});
+  nvqir::getCircuitSimulatorInternal()->u3(theta, phi, lambda, ctrlIdxs, qI);
 }
 
 // ASKME: Do we need `__quantum__qis__u3__body(...)`?
