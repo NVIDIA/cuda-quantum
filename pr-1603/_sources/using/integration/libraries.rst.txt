@@ -182,13 +182,13 @@ alignment when defining the data type or value. For example, if we define a stru
 
 .. code:: C++
 
-  #pragma pack(push, 4)
-  template <typename ScalarType>
-  struct Entry {
-    bool is_integral;
-    ScalarType value;
-  };
-  #pragma pack(pop)
+    #pragma pack(push, 4)
+    template <typename ScalarType>
+    struct Entry {
+      bool is_integral;
+      ScalarType value;
+    };
+    #pragma pack(pop)
 
 the `pragma` directives ensure that each item will be 4-byte aligned, regardless of the 
 default setting that can differ between compilers.
@@ -199,29 +199,28 @@ as explicit instantiation for all valid template arguments. For example,
 
 .. code:: C++
 
-  template <typename CudaDataType>
-  void initializeDeviceStateVector(uint32_t n_blocks, 
-                                  int32_t threads_per_block, 
-                                  void *deviceStateVector,
-                                  std::size_t stateDimension) {
-    cudaInitializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
-      reinterpret_cast<CudaDataType *>(deviceStateVector), stateDimension);
-  }
+    template <typename CudaDataType>
+    void initializeDeviceStateVector(uint32_t n_blocks, 
+                                    int32_t threads_per_block, 
+                                    void *deviceStateVector,
+                                    std::size_t stateDimension) {
+      cudaInitializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
+        reinterpret_cast<CudaDataType *>(deviceStateVector), stateDimension);
+    }
 
-  template void
-  initializeDeviceStateVector<cuFloatComplex>(uint32_t n_blocks, 
-                                  int32_t threads_per_block, 
-                                  void *deviceStateVector,
-                                  std::size_t stateDimension);
+    template void
+    initializeDeviceStateVector<cuFloatComplex>(uint32_t n_blocks, 
+                                    int32_t threads_per_block, 
+                                    void *deviceStateVector,
+                                    std::size_t stateDimension);
 
-  template void
-  initializeDeviceStateVector<cuDoubleComplex>(uint32_t n_blocks, 
-                                  int32_t threads_per_block, 
-                                  void *deviceStateVector,
-                                  std::size_t stateDimension);
+    template void
+    initializeDeviceStateVector<cuDoubleComplex>(uint32_t n_blocks, 
+                                    int32_t threads_per_block, 
+                                    void *deviceStateVector,
+                                    std::size_t stateDimension);
 
 The most cumbersome aspect when libraries built with different toolchains are combined into a single executable
 is exception handling. Since the handling relies on a specific ABI, an thrown exception is not necessarily 
 recognized as such in a library that uses a different ABI implementation. While matching the exception type 
 may not work as expected, a catch-all will reliably catch any thrown exception. 
-
