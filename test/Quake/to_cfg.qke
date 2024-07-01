@@ -224,4 +224,80 @@ func.func @python_loop() -> i64 {
 // CHECK:           return %[[VAL_11]] : i64
 // CHECK:         }
 
+func.func @scope_with_cf() {
+  cc.scope {
+    %0 = arith.constant 0 : i64
+    func.call @f1() : () -> ()
+    cf.br ^bb2
+   ^bb1:
+    %1 = arith.constant 1 : i64
+    func.call @f1() : () -> ()
+    cc.continue
+   ^bb2:
+    %2 = arith.constant 2 : i64
+    func.call @f1() : () -> ()
+    cf.br ^bb1
+  }
+  call @f2() : () -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @scope_with_cf() {
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           call @f1() : () -> ()
+// CHECK:           cf.br ^bb3
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK:           call @f1() : () -> ()
+// CHECK:           cf.br ^bb4
+// CHECK:         ^bb3:
+// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
+// CHECK:           call @f1() : () -> ()
+// CHECK:           cf.br ^bb2
+// CHECK:         ^bb4:
+// CHECK:           call @f2() : () -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @scope_with_cf2() {
+  cc.scope -> (i32) {
+    %0 = arith.constant 0 : i64
+    func.call @f1() : () -> ()
+    cf.br ^bb2
+   ^bb1:
+    %1 = arith.constant 1 : i32
+    func.call @f1() : () -> ()
+    cc.continue %1 : i32
+   ^bb2:
+    %2 = arith.constant 2 : i64
+    func.call @f1() : () -> ()
+    cf.br ^bb1
+  }
+  call @f2() : () -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @scope_with_cf2() {
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           call @f1() : () -> ()
+// CHECK:           cf.br ^bb3
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           call @f1() : () -> ()
+// CHECK:           cf.br ^bb4(%[[VAL_1]] : i32)
+// CHECK:         ^bb3:
+// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
+// CHECK:           call @f1() : () -> ()
+// CHECK:           cf.br ^bb2
+// CHECK:         ^bb4(%[[VAL_3:.*]]: i32):
+// CHECK:           cf.br ^bb5
+// CHECK:         ^bb5:
+// CHECK:           call @f2() : () -> ()
+// CHECK:           return
+// CHECK:         }
+
 }
