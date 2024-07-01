@@ -49,7 +49,7 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
       getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
 
   if (!isa_and_nonnull<func::FuncOp, GlobalOp, LLVM::GlobalOp>(op))
-    return emitOpError("must reference a global defined by 'func.func'");
+    return emitOpError("must reference a global");
   return success();
 }
 

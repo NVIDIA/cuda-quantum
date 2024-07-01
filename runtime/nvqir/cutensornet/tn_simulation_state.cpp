@@ -21,8 +21,10 @@ std::size_t TensorNetSimulationState::getNumQubits() const {
 }
 
 TensorNetSimulationState::TensorNetSimulationState(
-    std::unique_ptr<TensorNetState> inState, cutensornetHandle_t cutnHandle)
-    : m_state(std::move(inState)), m_cutnHandle(cutnHandle) {}
+    std::unique_ptr<TensorNetState> inState, ScratchDeviceMem &inScratchPad,
+    cutensornetHandle_t cutnHandle)
+    : m_state(std::move(inState)), scratchPad(inScratchPad),
+      m_cutnHandle(cutnHandle) {}
 
 TensorNetSimulationState::~TensorNetSimulationState() {}
 
@@ -116,17 +118,17 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
   HANDLE_CUTN_ERROR(cutensornetAccessorPrepare(
-      cutnHandle, accessor, m_scratchPad.scratchSize, workDesc, 0));
+      cutnHandle, accessor, scratchPad.scratchSize, workDesc, 0));
 
   // Attach the workspace buffer
   int64_t worksize = 0;
   HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
       cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
       CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH, &worksize));
-  if (worksize <= static_cast<int64_t>(m_scratchPad.scratchSize)) {
+  if (worksize <= static_cast<int64_t>(scratchPad.scratchSize)) {
     HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
         cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
-        CUTENSORNET_WORKSPACE_SCRATCH, m_scratchPad.d_scratch, worksize));
+        CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch, worksize));
   } else {
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
@@ -234,10 +236,10 @@ TensorNetSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
       reinterpret_cast<std::complex<double> *>(ptr),
       reinterpret_cast<std::complex<double> *>(ptr) + size);
   auto tensorNetState =
-      TensorNetState::createFromStateVector(vec, m_cutnHandle);
+      TensorNetState::createFromStateVector(vec, scratchPad, m_cutnHandle);
 
   return std::make_unique<TensorNetSimulationState>(std::move(tensorNetState),
-                                                    m_cutnHandle);
+                                                    scratchPad, m_cutnHandle);
 }
 
 void TensorNetSimulationState::destroyState() {

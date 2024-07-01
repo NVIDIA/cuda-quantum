@@ -33,7 +33,7 @@ from typing import List
 # This is because the CPU-only backend has difficulty handling
 # 30+ qubit simulations.
 
-spins = 5  # set to around 25 qubits for `nvidia` target
+spins = 11  # set to around 25 qubits for `nvidia` target
 steps = 10  # set to around 100 for `nvidia` target
 # ```
 # cudaq.set_target("nvidia")
@@ -108,12 +108,19 @@ def run_steps(steps: int, spins: int):
         words = termWords(ham)
         magnetization_exp_val = cudaq.observe(trotter, average_magnetization,
                                               state, coefficients, words, dt)
-        results.append(magnetization_exp_val.expectation())
+        result = magnetization_exp_val.expectation()
+        results.append(result)
         state = cudaq.get_state(trotter, state, coefficients, words, dt)
-        times.append(time.time() - start_time)
+        stepTime = time.time() - start_time
+        times.append(stepTime)
+        print(f"Step {i}: time [s]: {stepTime}, result: {result}")
 
+    print("")
+    # Print all the times and results (useful for plotting).
     print(f"Step times: {times}")
     print(f"Results: {results}")
+
+    print("")
 
 
 start_time = time.time()

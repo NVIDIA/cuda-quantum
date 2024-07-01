@@ -89,6 +89,9 @@ matrix:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
+      # Ignore position denotations, e.g. "0th", "1st"
+      - open: '(^|\s)[0-9]+(st|nd|rd|th)'
+        close: '(?=.)'
 
 - name: html
   sources:

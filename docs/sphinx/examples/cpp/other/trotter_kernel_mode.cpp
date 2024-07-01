@@ -38,8 +38,9 @@
 // This is because the CPU-only backend has difficulty handling
 // 30+ qubit simulations.
 
-int STEPS = 10; // set to around 25 qubits for `nvidia` target
-int SPINS = 11; // set to around 100 for `nvidia` target
+int SPINS = 11; // set to around 25 qubits for `nvidia` target
+int STEPS = 10; // set to around 100 for `nvidia` target
+
 // Compile and run with:
 // ```
 // nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x -target nvidia &&
@@ -121,23 +122,31 @@ int run_steps(int steps, int spins) {
     auto words = term_words(ham);
     auto magnetization_exp_val = cudaq::observe(
         trotter{}, average_magnetization, &state, coefficients, words, dt);
-    expResults.emplace_back(magnetization_exp_val.expectation());
+    auto result = magnetization_exp_val.expectation();
+    expResults.emplace_back(result);
     state = cudaq::get_state(trotter{}, &state, coefficients, words, dt);
     const auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    runtimeMs.emplace_back(duration.count() / 1000.0);
+    auto timeInSeconds = duration.count() / 1000.0 / 1000.0;
+    runtimeMs.emplace_back(timeInSeconds);
+    std::cout << "Step " << i << ": time [s]: " << timeInSeconds
+              << ", result: " << result << std::endl;
   }
+  std::cout << std::endl;
 
-  std::cout << "Runtime [ms]: [";
+  // Print runtimes and results (useful for plotting).
+  std::cout << "Step times [s]: [";
   for (const auto &x : runtimeMs)
     std::cout << x << ", ";
-  std::cout << "]\n" << std::endl;
+  std::cout << "]" << std::endl;
 
   std::cout << "Results: [";
   for (const auto &x : expResults)
     std::cout << x << ", ";
-  std::cout << "]\n" << std::endl;
+  std::cout << "]" << std::endl;
+
+  std::cout << std::endl;
   return 0;
 }
 
@@ -147,6 +156,6 @@ int main() {
   const auto stop = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "Total running time:" << duration.count() / 1000.0 / 1000.0
+  std::cout << "Total running time: " << duration.count() / 1000.0 / 1000.0
             << "s" << std::endl;
 }

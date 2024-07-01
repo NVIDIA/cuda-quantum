@@ -8,15 +8,54 @@
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
-#include "py_optimizer.h"
-
+#include "common/JsonConvert.h"
+#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
+#include "py_optimizer.h"
+#include "py_utils.h"
 
 namespace cudaq {
+
+/// Form the SerializedCodeExecutionContext
+static SerializedCodeExecutionContext
+get_serialized_code(std::string &source_code) {
+  SerializedCodeExecutionContext ctx;
+  try {
+    py::object json = py::module_::import("json");
+    auto var_dict = get_serializable_var_dict();
+    ctx.scoped_var_dict = py::str(json.attr("dumps")(var_dict));
+    ctx.source_code = source_code;
+  } catch (py::error_already_set &e) {
+    throw std::runtime_error("Failed to serialized data: " +
+                             std::string(e.what()));
+  }
+  return ctx;
+}
+
+static std::string
+get_required_raw_source_code(const int dim, const py::function &func,
+                             const std::string &optimizer_var_name) {
+  // Get source code and remove the leading whitespace
+  std::string source_code = get_source_code(func);
+
+  // Form the Python call to optimizer.optimize
+  std::ostringstream os;
+  auto obj_func_name = func.attr("__name__").cast<std::string>();
+  os << "energy, params_at_energy = " << optimizer_var_name << ".optimize("
+     << dim << ", " << obj_func_name << ")\n";
+  // The _json_request_result dictionary is a special dictionary where outputs
+  // are saved. Must be serializable to JSON using the JSON structures.
+  os << "_json_request_result['executionContext']['optResult'] = [energy, "
+        "params_at_energy]\n";
+  auto function_call = os.str();
+
+  // Return the combined code
+  return source_code + "\n" + function_call;
+}
 
 /// @brief Bind the `cudaq::optimization_result` typedef.
 void bindOptimizationResult(py::module &mod) {
@@ -36,6 +75,18 @@ void bindGradientStrategies(py::module &mod) {
                                                       "CentralDifference")
       .def(py::init<>())
       .def(
+          "to_json",
+          [](const gradients::central_difference &p) { return json(p).dump(); },
+          "Convert gradient to JSON string")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
+            gradients::central_difference p;
+            from_json(json::parse(j), p);
+            return p;
+          },
+          "Convert JSON string to gradient")
+      .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
              py::function &func, double funcAtX) {
@@ -51,6 +102,18 @@ void bindGradientStrategies(py::module &mod) {
                                                       "ForwardDifference")
       .def(py::init<>())
       .def(
+          "to_json",
+          [](const gradients::forward_difference &p) { return json(p).dump(); },
+          "Convert gradient to JSON string")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
+            gradients::forward_difference p;
+            from_json(json::parse(j), p);
+            return p;
+          },
+          "Convert JSON string to gradient")
+      .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
              py::function &func, double funcAtX) {
@@ -65,6 +128,18 @@ void bindGradientStrategies(py::module &mod) {
   py::class_<gradients::parameter_shift, gradient>(gradients_submodule,
                                                    "ParameterShift")
       .def(py::init<>())
+      .def(
+          "to_json",
+          [](const gradients::parameter_shift &p) { return json(p).dump(); },
+          "Convert gradient to JSON string")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
+            gradients::parameter_shift p;
+            from_json(json::parse(j), p);
+            return p;
+          },
+          "Convert JSON string to gradient")
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -87,6 +162,17 @@ template <typename OptimizerT>
 py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
   return py::class_<OptimizerT, optimizer>(mod, name.c_str())
       .def(py::init<>())
+      .def(
+          "to_json", [](const OptimizerT &p) { return json(p).dump(); },
+          "Convert optimizer to JSON string")
+      .def_static(
+          "from_json",
+          [](const std::string &j) {
+            OptimizerT p;
+            from_json(json::parse(j), p);
+            return p;
+          },
+          "Convert JSON string to optimizer")
       .def_readwrite("max_iterations", &OptimizerT::max_eval,
                      "Set the maximum number of optimizer iterations.")
       .def_readwrite("initial_parameters", &OptimizerT::initial_parameters,
@@ -97,9 +183,41 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
       .def_readwrite(
           "upper_bounds", &OptimizerT::upper_bounds,
           "Set the upper value bound for the optimization parameters.")
+      .def("requires_gradients", &OptimizerT::requiresGradients,
+           "Returns whether the optimizer requires gradient.")
       .def(
           "optimize",
           [](OptimizerT &opt, const int dim, py::function &func) {
+            auto &platform = cudaq::get_platform();
+            if (platform.supports_remote_serialized_code() &&
+                platform.num_qpus() == 1) {
+              std::string optimizer_var_name =
+                  cudaq::get_var_name_for_handle(py::cast(&opt));
+              if (optimizer_var_name.empty())
+                throw std::runtime_error(
+                    "Unable to find desired optimizer object in any "
+                    "namespace. Aborting.");
+
+              auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", 0);
+              platform.set_exec_ctx(ctx.get());
+
+              std::string combined_code =
+                  get_required_raw_source_code(dim, func, optimizer_var_name);
+
+              SerializedCodeExecutionContext serialized_code_execution_object =
+                  get_serialized_code(combined_code);
+
+              platform.launchSerializedCodeExecution(
+                  func.attr("__name__").cast<std::string>(),
+                  serialized_code_execution_object);
+
+              platform.reset_exec_ctx();
+              auto result = cudaq::optimization_result{};
+              if (ctx->optResult)
+                result = std::move(*ctx->optResult);
+              return result;
+            }
+
             return opt.optimize(dim, [&](std::vector<double> x,
                                          std::vector<double> &grad) {
               // Call the function.
@@ -110,7 +228,7 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               // and return.
               if (!opt.requiresGradients() && isTupleReturn)
                 return ret.cast<py::tuple>()[0].cast<double>();
-              // If we dont need gradients and it doesn't return tuple, then
+              // If we don't need gradients and it doesn't return tuple, then
               // just pass what we got.
               if (!opt.requiresGradients() && !isTupleReturn)
                 return ret.cast<double>();
