@@ -11,6 +11,9 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 
 namespace cudaq {
+namespace cc {
+class GlobalOp;
+}
 
 /// This is the name of a dummy builtin to identify a std::move() call. These
 /// calls will be erased before code gen.
@@ -78,6 +81,15 @@ public:
     buffer += '\0';
     return genCStringLiteral(loc, module, buffer);
   }
+
+  cc::GlobalOp
+  genVectorOfComplexConstant(mlir::Location loc, mlir::ModuleOp module,
+                             mlir::StringRef name,
+                             const std::vector<std::complex<double>> &values);
+  cc::GlobalOp
+  genVectorOfComplexConstant(mlir::Location loc, mlir::ModuleOp module,
+                             mlir::StringRef name,
+                             const std::vector<std::complex<float>> &values);
 
   /// Load an intrinsic into \p module. The intrinsic to load has name \p name.
   /// This will automatically load any intrinsics that \p name depends upon.
