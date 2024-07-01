@@ -17,7 +17,7 @@ import numpy as np
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli
+from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli, globalRegisteredOperations
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
 from .captured_data import CapturedDataStorage
@@ -184,6 +184,55 @@ def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
     if ToType.isinstance(eleTy) and FromType.isinstance(argEleTy):
         return [PyType(i) for i in arg]
     return None
+
+
+def __generalCustomOperation(self, opName, *args):
+    """
+    Utility function for adding a generic quantum operation to the MLIR representation for the PyKernel.
+    """
+
+    global globalRegisteredOperations
+    unitary = globalRegisteredOperations[opName]
+
+    numTargets = int(np.log2(np.sqrt(unitary.size)))
+
+    targets = []
+    with self.insertPoint, self.loc:
+        for arg in args:
+            if isinstance(arg, QuakeValue):
+                targets.append(arg.mlirValue)
+            else:
+                emitFatalError(f"invalid argument type passed to {opName}.")
+
+        assert (numTargets == len(targets))
+
+        globalName = f'{opName}.generator'
+        currentST = SymbolTable(self.module.operation)
+        if not globalName in currentST:
+            with InsertionPoint(self.module.body):
+                arrayAttrList = []
+                for el in unitary:
+                    arrayAttrList.append(
+                        DenseF64ArrayAttr.get([np.real(el),
+                                               np.imag(el)]))
+
+                complexType = ComplexType.get(self.getFloatType())
+                globalTy = cc.ArrayType.get(self.ctx, complexType,
+                                            len(arrayAttrList))
+
+                cc.GlobalOp(TypeAttr.get(globalTy),
+                            globalName,
+                            value=ArrayAttr.get(arrayAttrList),
+                            constant=True,
+                            external=False)
+
+        quake.CustomUnitarySymbolOp([],
+                                    generator=FlatSymbolRefAttr.get(globalName),
+                                    parameters=[],
+                                    controls=[],
+                                    targets=targets,
+                                    is_adj=False)
+        return
 
 
 class PyKernel(object):
