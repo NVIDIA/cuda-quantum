@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
@@ -93,6 +94,7 @@ public:
     // declarations are just thrown away when the code is JIT compiled.
     SmallVector<Operation *> declarations;
     for (auto &op : *module.getBody()) {
+      llvm::errs() << "**ADDING OP ***: " << op;
       if (auto funcOp = dyn_cast<func::FuncOp>(op)) {
         if (funcOp.empty()) {
           LLVM_DEBUG(llvm::dbgs() << "adding declaration: " << op);
@@ -103,6 +105,11 @@ public:
           LLVM_DEBUG(llvm::dbgs() << "adding declaration: " << op);
           declarations.push_back(&op);
         }
+      }       
+      // cc.global constant @__nvqpp__rodata_init_0 (dense<[1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00]> : tensor<4xf64>) : !cc.array<f64 x 4>
+      else if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
+        LLVM_DEBUG(llvm::dbgs() << "adding global: " << op);
+        declarations.push_back(&op);
       }
     }
 

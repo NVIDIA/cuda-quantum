@@ -36,6 +36,8 @@ protected:
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);
+    std::cout << "extractQuakeCodeAndContext" << quakeCode << std::endl;
+
     auto m_module = parseSourceString<ModuleOp>(quakeCode, &context);
     if (!m_module)
       throw std::runtime_error("module cannot be parsed");

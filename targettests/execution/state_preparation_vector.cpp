@@ -11,9 +11,13 @@
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void test(std::vector<cudaq::complex> inState) {
-  cudaq::qvector q1 = inState;
+__qpu__ void f() {
+   cudaq::qvector v = {1.0, 2.0, 3.0, 4.0};
 }
+
+// __qpu__ void test(std::vector<cudaq::complex> inState) {
+//   cudaq::qvector q1 = inState;
+// }
 
 void printCounts(cudaq::sample_result& result) {
   std::vector<std::string> values{};
@@ -28,25 +32,28 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
-    std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
-    std::vector<cudaq::complex> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
-    {
-        // Passing state data as argument (kernel mode)
-        auto counts = cudaq::sample(test, vec);
-        printCounts(counts);
+    auto counts = cudaq::sample(f);
+    printCounts(counts);
 
-        counts = cudaq::sample(test, vec1);
-        printCounts(counts);
-    }
+    // std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
+    // std::vector<cudaq::complex> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
+    // {
+    //     // Passing state data as argument (kernel mode)
+    //     auto counts = cudaq::sample(test, vec);
+    //     printCounts(counts);
 
-    {
-        // Passing state data as argument (builder mode)
-        auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::complex>>();
-        auto qubits = kernel.qalloc(v);
+    //     counts = cudaq::sample(test, vec1);
+    //     printCounts(counts);
+    // }
+
+    // {
+    //     // Passing state data as argument (builder mode)
+    //     auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::complex>>();
+    //     auto qubits = kernel.qalloc(v);
     
-        auto counts = cudaq::sample(kernel, vec);
-        printCounts(counts);
-    }
+    //     auto counts = cudaq::sample(kernel, vec);
+    //     printCounts(counts);
+    // }
 }
 
 // CHECK: 00

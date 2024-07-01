@@ -15,6 +15,8 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 
+#include <iostream>
+
 #define DEBUG_TYPE "lower-ast-expr"
 
 using namespace mlir;
@@ -2569,12 +2571,28 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         }
       }
       return false;
-    }();
+    }(); 
     if (isVectorOfQubitRefs)
       return true;
     if (ctorName == "complex") {
       Value imag = popValue();
       Value real = popValue();
+
+      std::cout << "Real and Imag values" << std::endl;
+      real.dump();
+      imag.dump();
+      if (auto realOp = real.getDefiningOp<arith::ConstantFloatOp>()) {
+        if (auto imagOp = imag.getDefiningOp<arith::ConstantFloatOp>()) {
+          std::cout << "Creating const complex" << std::endl;
+          auto realConst = realOp.value().convertToDouble();
+          auto imagConst = imagOp.value().convertToDouble();
+          auto attr = (real.getType() == builder.getF64Type())?
+            builder.getF64ArrayAttr({realConst, imagConst}):
+            builder.getF32ArrayAttr({static_cast<float>(realConst), static_cast<float>(imagConst)});
+          return pushValue(builder.create<complex::ConstantOp>(loc, ComplexType::get(real.getType()), attr));
+        }
+      }
+      std::cout << "Creating non-const complex" << std::endl;
       return pushValue(builder.create<complex::CreateOp>(
           loc, ComplexType::get(real.getType()), real, imag));
     }

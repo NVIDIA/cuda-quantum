@@ -18,6 +18,8 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/DialectConversion.h"
 
+#include <iostream>
+
 using namespace mlir;
 
 //===----------------------------------------------------------------------===//
@@ -103,6 +105,10 @@ struct BasisConversion
 
   void runOnOperation() override {
     auto module = getOperation();
+
+    std::cout << "Before BasisConversion" << std::endl;
+    getOperation().dump();
+
     if (basis.empty()) {
       module.emitError("Basis conversion requires a target basis");
       signalPassFailure();
@@ -161,8 +167,14 @@ struct BasisConversion
           return applyFullConversion(op, target, patterns);
         });
 
-    if (failed(rewriteResult))
+    if (failed(rewriteResult)) {
       signalPassFailure();
+      std::cout << "Failed BasisConversion" << std::endl;
+      getOperation().dump();
+    } else {
+      std::cout << "Succeeded BasisConversion" << std::endl;
+      getOperation().dump();
+    }
   }
 };
 

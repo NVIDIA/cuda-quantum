@@ -18,6 +18,7 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
@@ -378,6 +379,18 @@ public:
     auto moduleOp = builder.create<mlir::ModuleOp>();
     moduleOp.push_back(func.clone());
     moduleOp->setAttrs(m_module->getAttrDictionary());
+    for (auto &op: m_module.getOps()) {
+      // Add globals referenced in the func.
+      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
+        //for (auto *use: globalOp->getUsers()) {
+        //  auto parent = use->getParentOfType<mlir::func::FuncOp>();
+        //  std::cout << "Global " << globalOp.getName().str() << " is used in " << parent.getName().str() <<std::endl;
+        //  if (parent.getName() == func.getName()) {
+            moduleOp.push_back(globalOp.clone());
+        //  }
+        //}
+      }
+    }
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
@@ -398,10 +411,13 @@ public:
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
 
+    std::cout << "Module before synthesis" << std::endl;
+    moduleOp.dump();
+
     if (updatedArgs) {
       cudaq::info("Run Quake Synth.\n");
       mlir::PassManager pm(&context);
-      pm.addPass(cudaq::opt::createStatePreparation(kernelName, updatedArgs));
+      //pm.addPass(cudaq::opt::createStatePreparation(kernelName, updatedArgs));
       pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
@@ -411,9 +427,42 @@ public:
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
 
+    std::cout << "Module after synthesis" << std::endl;
+    moduleOp.dump();
+    // runPassPipeline("canonicalize,cse", moduleOp);
+    // std::cout << "Module after synthesis and cse" << std::endl;
+    // moduleOp.dump();
+
     // Run the config-specified pass pipeline
+    //runPassPipeline(passPipelineConfig, moduleOp);
+    //runPassPipeline("cc-loop-unroll{allow-early-exit=1},canonicalize,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),quantinuum-gate-set-mapping", moduleOp);
+    //if (updatedArgs) {
+      cudaq::info("Run State Prep.\n");
+      mlir::PassManager pm(&context);
+      pm.addPass(cudaq::opt::createStatePreparation2(kernelName, updatedArgs));
+      if (disableMLIRthreading || enablePrintMLIREachPass)
+        moduleOp.getContext()->disableMultithreading();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
+      if (failed(pm.run(moduleOp)))
+        throw std::runtime_error("Could not successfully apply state prep.");
+    //}
+
+    std::cout << "Module after state prep" << std::endl;
+    moduleOp.dump();
+
+    runPassPipeline("canonicalize,cse", moduleOp);
+    std::cout << "Module after state prep and cse" << std::endl;
+    moduleOp.dump();
+
+    // Run the config-specified pass pipeline
+    //runPassPipeline("cc-loop-unroll{allow-early-exit=1},canonicalize,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition)", moduleOp);
+    // runPassPipeline("cc-loop-unroll{allow-early-exit=1},canonicalize,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),quantinuum-gate-set-mapping", moduleOp);
     runPassPipeline(passPipelineConfig, moduleOp);
 
+    std::cout << "Module after state prep and pipeline" << std::endl;
+    moduleOp.dump();
+    
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
         std::string("__nvqpp__mlirgen__") + kernelName);
     std::vector<std::size_t> mapping_reorder_idx;
@@ -479,6 +528,8 @@ public:
       // and use that for execution
       for (auto &[name, module] : modules) {
         auto clonedModule = module.clone();
+        std::cout << "Module after everything" << std::endl;
+        clonedModule.dump();
         jitEngines.emplace_back(
             cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
       }

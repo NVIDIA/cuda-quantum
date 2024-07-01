@@ -36,6 +36,8 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
+#include <iostream>
+
 #define DEBUG_TYPE "convert-to-qir"
 
 namespace cudaq::opt {
@@ -95,6 +97,7 @@ public:
   // buffer of constants.
   LogicalResult eraseConstantArrayOps() {
     bool ok = true;
+
     SmallVector<Operation *> cleanUps;
     getOperation().walk([&](cudaq::cc::ConstantArrayOp carr) {
       // If there is a constant array, then we expect that it is involved in
@@ -169,6 +172,9 @@ public:
   /// ops. This step makes converting a DAG of nodes in the conversion step
   /// simpler.
   void runOnOperation() override final {
+    std::cout << "Before ConvertToQIR" << std::endl;
+    getOperation().dump();
+
     auto *context = &getContext();
     if (failed(fuseSubgraphPatterns(context, getOperation()))) {
       signalPassFailure();
@@ -204,11 +210,17 @@ public:
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
 
+
     if (failed(
             applyFullConversion(getOperation(), target, std::move(patterns)))) {
       LLVM_DEBUG(getOperation().dump());
+      std::cout << "Filed ConvertToQIR" << std::endl;
+      getOperation().dump();
       signalPassFailure();
     }
+
+    std::cout << "Succeded ConvertToQIR" << std::endl;
+    getOperation().dump();
   }
 };
 

@@ -523,6 +523,17 @@ def PrepareState : Pass<"state-prep", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createStatePreparation()";
 }
 
+def PrepareState2 : Pass<"state-prep2", "mlir::ModuleOp"> {
+  let summary =
+    "Convert state vector data into gates";
+  let description = [{
+    Convert quake representation that includes qubit initialization
+    from data into qubit initialization using gates.
+  }];
+
+  let constructor = "cudaq::opt::createStatePreparation2()";
+}
+
 def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
   let summary =
     "Synthesize concrete quantum program from Quake code plus runtime values.";

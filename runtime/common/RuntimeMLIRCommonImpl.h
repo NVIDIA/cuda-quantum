@@ -40,6 +40,8 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
 
+#include <iostream>
+
 namespace cudaq {
 
 bool setupTargetTriple(llvm::Module *llvmModule) {
@@ -369,6 +371,11 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   mlir::PassManager pm(context);
   if (printIntermediateMLIR)
     pm.enableIRPrinting();
+
+  std::cout << "qirProfileTranslationFunction" << std::endl;
+  pm.enableIRPrinting();
+  context->disableMultithreading();
+
   std::string errMsg;
   llvm::raw_string_ostream errOs(errMsg);
   cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
@@ -575,6 +582,9 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
+    std::cout << "Common IR" << std::endl;
+    context->disableMultithreading();
+    pm.enableIRPrinting();
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
