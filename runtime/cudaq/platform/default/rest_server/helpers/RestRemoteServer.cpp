@@ -643,6 +643,7 @@ protected:
       const auto reqId = g_requestCounter++;
       m_codeTransform[reqId] =
           CodeTransformInfo(request.format, request.passes);
+      json resultJson;
       std::vector<char> decodedCodeIr;
       auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
       if (errorCode) {
@@ -660,12 +661,7 @@ protected:
             reqId, request.executionContext, request.simulator, codeStr,
             request.opt->gradient.get(), *request.opt->optimizer,
             *request.opt->optimizer_n_params, request.entryPoint, request.seed);
-      } else
-        handleRequest(reqId, request.executionContext, request.simulator,
-                      codeStr, request.entryPoint, request.args.data(),
-                      request.args.size(), request.seed);
-      json resultJson;
-      if (request.executionContext.name == "state-overlap") {
+      } else if (request.executionContext.name == "state-overlap") {
         if (!request.overlapKernel.has_value())
           throw std::runtime_error("Missing overlap kernel data.");
         std::vector<char> decodedCodeIr1, decodedCodeIr2;
