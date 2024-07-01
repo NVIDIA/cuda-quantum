@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Compile and run with: `nvq++ first_sample.cpp && ./a.out`
+// [Begin Documentation]
 #include <cudaq.h>
 #include <iostream>
 
@@ -23,6 +23,7 @@ __qpu__ void kernel(int qubit_count) {
   // Measure the qubits.
   mz(qvector);
 }
+// [End Documentation]
 
 // [Begin Sample1]
 int main() {
