@@ -25,9 +25,10 @@ std::size_t MPSSimulationState::getNumQubits() const {
 
 MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                                        const std::vector<MPSTensor> &mpsTensors,
+                                       ScratchDeviceMem &inScratchPad,
                                        cutensornetHandle_t cutnHandle)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
-      m_mpsTensors(mpsTensors) {}
+      m_mpsTensors(mpsTensors), scratchPad(inScratchPad) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -141,6 +142,7 @@ std::complex<double> MPSSimulationState::computeOverlap(
       computeType, &m_tnDescr));
 
   cutensornetContractionOptimizerConfig_t m_tnConfig;
+
   // Determine the tensor network contraction path and create the contraction
   // plan
   HANDLE_CUTN_ERROR(
@@ -149,9 +151,9 @@ std::complex<double> MPSSimulationState::computeOverlap(
   cutensornetContractionOptimizerInfo_t m_tnPath;
   HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(
       cutnHandle, m_tnDescr, &m_tnPath));
-  assert(m_scratchPad.scratchSize > 0);
+  assert(scratchPad.scratchSize > 0);
   HANDLE_CUTN_ERROR(cutensornetContractionOptimize(
-      cutnHandle, m_tnDescr, m_tnConfig, m_scratchPad.scratchSize, m_tnPath));
+      cutnHandle, m_tnDescr, m_tnConfig, scratchPad.scratchSize, m_tnPath));
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
@@ -164,10 +166,10 @@ std::complex<double> MPSSimulationState::computeOverlap(
       &requiredWorkspaceSize));
   assert(requiredWorkspaceSize > 0);
   assert(static_cast<std::size_t>(requiredWorkspaceSize) <=
-         m_scratchPad.scratchSize);
+         scratchPad.scratchSize);
   HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
       cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
-      CUTENSORNET_WORKSPACE_SCRATCH, m_scratchPad.d_scratch,
+      CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch,
       requiredWorkspaceSize));
   cutensornetContractionPlan_t m_tnPlan;
   HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
@@ -251,7 +253,8 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
   }
 
   if (getNumQubits() > 1) {
-    TensorNetState basisTensorNetState(basisState, state->getInternalContext());
+    TensorNetState basisTensorNetState(basisState, scratchPad,
+                                       state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors =
         basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
@@ -351,10 +354,9 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
   return reshapeMatrix(A);
 }
 
-MPSSimulationState::MpsStateData
-MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
-                                       std::size_t size,
-                                       std::complex<double> *ptr, int bondDim) {
+MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
+    cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
+    std::size_t size, std::complex<double> *ptr, int bondDim) {
   const std::size_t numQubits = std::log2(size);
   // Reverse the qubit order to match cutensornet convention
   auto newStateVec = TensorNetState::reverseQubitOrder(
@@ -371,8 +373,8 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
-    auto state =
-        TensorNetState::createFromMpsTensors({stateTensor}, cutnHandle);
+    auto state = TensorNetState::createFromMpsTensors({stateTensor},
+                                                      inScratchPad, cutnHandle);
     return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
 
@@ -444,7 +446,8 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
   stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
-  auto state = TensorNetState::createFromMpsTensors(mpsTensors, cutnHandle);
+  auto state = TensorNetState::createFromMpsTensors(mpsTensors, inScratchPad,
+                                                    cutnHandle);
   return {std::move(state), mpsTensors};
 }
 
@@ -470,15 +473,16 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
       MPSTensor stateTensor{d_tensor, mpsExtents};
       mpsTensors.emplace_back(stateTensor);
     }
-    auto state = TensorNetState::createFromMpsTensors(mpsTensors, m_cutnHandle);
+    auto state = TensorNetState::createFromMpsTensors(mpsTensors, scratchPad,
+                                                      m_cutnHandle);
     return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
-                                                m_cutnHandle);
+                                                scratchPad, m_cutnHandle);
   }
   auto [state, mpsTensors] = createFromStateVec(
-      m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr),
-      MPSSettings().maxBond);
+      m_cutnHandle, scratchPad, size,
+      reinterpret_cast<std::complex<double> *>(ptr), MPSSettings().maxBond);
   return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
-                                              m_cutnHandle);
+                                              scratchPad, m_cutnHandle);
 }
 
 MPSSettings::MPSSettings() {
