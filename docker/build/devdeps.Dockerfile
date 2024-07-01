@@ -48,6 +48,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
     && cd /llvm-project && git checkout $llvm_commit \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
+# Apply customization for https://github.com/NVIDIA/cuda-quantum/issues/1421
+ADD ./tpls/customizations/llvm/llvm_pr71968_mod.diff /
+RUN cd /llvm-project && git apply /llvm_pr71968_mod.diff && rm /llvm_pr71968_mod.diff
+
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q;
 # The safest option to avoid any compatibility issues is to build an application using these libraries 
 # with the same compiler toolchain that the libraries were compiled with.
