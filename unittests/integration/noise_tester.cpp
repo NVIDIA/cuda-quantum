@@ -70,7 +70,7 @@ CUDAQ_TEST(NoiseTest, checkSimple) {
 CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
-                                        {0., 0.0, 0.5, 0.}};
+                                        {0., 0.5, 0.0, 0.}};
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, amplitudeDamping);
   cudaq::set_noise(noise);
@@ -163,7 +163,7 @@ CUDAQ_TEST(NoiseTest, checkCNOT) {
 CUDAQ_TEST(NoiseTest, checkExceptions) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
-                                        {0., 0.0, 0.5, 0.}};
+                                        {0., 0.5, 0.0, 0.}};
   cudaq::noise_model noise;
   EXPECT_ANY_THROW({
     noise.add_channel<cudaq::types::x>({0, 1}, amplitudeDamping);
