@@ -38,7 +38,7 @@ public:
   MPSSimulationState(const MPSSimulationState &) = delete;
   MPSSimulationState &operator=(const MPSSimulationState &) = delete;
   MPSSimulationState(MPSSimulationState &&) noexcept = default;
-  MPSSimulationState &operator=(MPSSimulationState &&) noexcept = default;
+  MPSSimulationState &operator=(MPSSimulationState &&) noexcept = delete;
 
   virtual ~MPSSimulationState();
 
