@@ -336,7 +336,7 @@ def mlirTypeToPyType(argType):
         valueTy = cc.PointerType.getElementType(argType)
         if cc.StateType.isinstance(valueTy):
             return State
-    
+
     emitFatalError(
         f"Cannot infer CUDA-Q type from provided Python type ({argType})")
 
