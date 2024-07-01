@@ -78,8 +78,8 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
     platform.set_exec_ctx(ctx.get());
     auto serializedArgsBuffer = serializeArgs(args...);
     platform.launchVQE(cudaq::getKernelName(kernel),
-                       /*kernelArgs=*/nullptr, /*gradient=*/nullptr, H, optimizer,
-                       n_params,
+                       /*kernelArgs=*/nullptr, /*gradient=*/nullptr, H,
+                       optimizer, n_params,
                        /*shots=*/0);
     platform.reset_exec_ctx();
     return ctx->optResult.value_or(optimization_result{});
@@ -233,8 +233,8 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
     platform.set_exec_ctx(ctx.get());
     auto serializedArgsBuffer = serializeArgs(args...);
     platform.launchVQE(cudaq::getKernelName(kernel),
-                       /*kernelArgs=*/serializedArgsBuffer.data(),
-                       &gradient, H, optimizer, n_params,
+                       /*kernelArgs=*/serializedArgsBuffer.data(), &gradient, H,
+                       optimizer, n_params,
                        /*shots=*/0);
     platform.reset_exec_ctx();
     return ctx->optResult.value_or(optimization_result{});

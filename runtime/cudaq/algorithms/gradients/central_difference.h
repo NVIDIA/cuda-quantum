@@ -41,7 +41,8 @@ public:
       // return value back to x_i
       tmpX[i] += step;
       dx[i] = (px - mx) / (2. * step);
-      // printf("compute: tmp[%lu]=%.16f dx[%lu]=%.16f step=%.16f px=%.16f mx=%.16f "
+      // printf("compute: tmp[%lu]=%.16f dx[%lu]=%.16f step=%.16f px=%.16f
+      // mx=%.16f "
       //        "savepx=%.16f savemx=%.16f\n",
       //        i, tmpX[i], i, dx[i], step, px, mx, savepx, savemx);
     }

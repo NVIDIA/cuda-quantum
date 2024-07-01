@@ -53,8 +53,8 @@ class state;
 /// BlockArgument with it.
 template <typename ConcreteType>
 void synthesizeRuntimeArgument(
-    OpBuilder &builder, BlockArgument argument, const void *args, std::size_t offset,
-    std::size_t typeSize,
+    OpBuilder &builder, BlockArgument argument, const void *args,
+    std::size_t offset, std::size_t typeSize,
     std::function<Value(OpBuilder &, ConcreteType *)> &&opGenerator) {
 
   // Create an instance of the concrete type
@@ -565,7 +565,8 @@ public:
           signalPassFailure();
           return;
         }
-        const char *ptrToSizeInBuffer = static_cast<const char *>(args) + offset;
+        const char *ptrToSizeInBuffer =
+            static_cast<const char *>(args) + offset;
         auto sizeFromBuffer =
             *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         unsigned bytesInType = [&eleTy]() {
@@ -592,8 +593,10 @@ public:
           // TODO: for now we can ignore empty struct types.
           continue;
         }
-        const char *ptrToSizeInBuffer = static_cast<const char *>(args) + offset;
-        auto rawSize = *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
+        const char *ptrToSizeInBuffer =
+            static_cast<const char *>(args) + offset;
+        auto rawSize =
+            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
         continue;
       }

@@ -146,7 +146,7 @@ public:
   compute(const std::vector<double> &x,
           const std::function<double(std::vector<double>)> &func,
           double funcAtX) = 0;
-  
+
   /// Clone the object. Must be implemented by derived classes.
   virtual std::unique_ptr<cudaq::gradient> clone() = 0;
 

@@ -17,7 +17,8 @@ public:
   static constexpr double default_shiftScalar = 0.5;
   double shiftScalar = default_shiftScalar;
 
-  parameter_shift(double s = default_shiftScalar) : gradient(), shiftScalar(s) {}
+  parameter_shift(double s = default_shiftScalar)
+      : gradient(), shiftScalar(s) {}
 
   virtual std::unique_ptr<cudaq::gradient> clone() override {
     auto newGrad = std::make_unique<parameter_shift>(*this);
