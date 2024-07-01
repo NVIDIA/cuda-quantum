@@ -151,10 +151,10 @@ namespace {
 class QPUCodeFinder : public clang::RecursiveASTVisitor<QPUCodeFinder> {
 public:
   using Base = clang::RecursiveASTVisitor<QPUCodeFinder>;
-  explicit QPUCodeFinder(cudaq::EmittedFunctionsCollection &funcsToEmit,
-                         clang::CallGraph &cgb,
-                         clang::ItaniumMangleContext *mangler,
-                         SmallVector<StringRef> &customOperations)
+  explicit QPUCodeFinder(
+      cudaq::EmittedFunctionsCollection &funcsToEmit, clang::CallGraph &cgb,
+      clang::ItaniumMangleContext *mangler,
+      std::unordered_map<std::string, std::string> &customOperations)
       : functionsToEmit(funcsToEmit), callGraphBuilder(cgb), mangler(mangler),
         customOperationNames(customOperations) {}
 
@@ -227,7 +227,16 @@ public:
     if (func) {
       if (auto attr = func->getAttr<clang::AnnotateAttr>())
         if (attr->getAnnotation().str() == "user_custom_quantum_operation") {
-          customOperationNames.push_back(func->getName());
+          customOperationNames[func->getName().str()] =
+              cudaq::details::getTagNameOfFunctionDecl(func, mangler);
+          quantumTypesNotAllowed = false;
+          // Run semantics checks on the kernel class.
+          if (isa<clang::CXXMethodDecl>(func)) {
+            auto *cxxClass = cast<clang::CXXRecordDecl>(func->getParent());
+            check(cxxClass);
+          }
+          processQpu(cudaq::details::getTagNameOfFunctionDecl(func, mangler),
+                     func);
           return true;
         }
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func)) {
@@ -318,7 +327,7 @@ private:
   cudaq::EmittedFunctionsCollection &functionsToEmit;
   clang::CallGraph &callGraphBuilder;
   clang::ItaniumMangleContext *mangler;
-  SmallVector<StringRef> &customOperationNames;
+  std::unordered_map<std::string, std::string> &customOperationNames;
   // A class that is being visited. Need to run semantics checks on it if and
   // only if it has a quantum kernel.
   const clang::CXXRecordDecl *checkedClass = nullptr;

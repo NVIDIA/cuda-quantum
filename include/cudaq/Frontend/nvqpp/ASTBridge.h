@@ -151,7 +151,7 @@ public:
       llvm::ArrayRef<clang::Decl *> reachableFuncs,
       MangledKernelNamesMap &namesMap, clang::CompilerInstance &ci,
       clang::ItaniumMangleContext *mangler,
-      llvm::SmallVector<llvm::StringRef> &customOperations)
+      std::unordered_map<std::string, std::string> &customOperations)
       : astContext(astCtx), mlirContext(mlirCtx), builder(bldr), module(module),
         symbolTable(symTab), functionsToEmit(funcsToEmit),
         reachableFunctions(reachableFuncs), namesMap(namesMap),
@@ -598,7 +598,7 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
-  llvm::SmallVector<mlir::StringRef> &customOperationNames;
+  std::unordered_map<std::string, std::string> &customOperationNames;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -686,7 +686,7 @@ public:
     clang::ItaniumMangleContext *mangler;
 
     // Keep track of user custom operation names.
-    llvm::SmallVector<llvm::StringRef> customOperationNames;
+    std::unordered_map<std::string, std::string> customOperationNames;
 
     /// Add a placeholder definition to the module in \p visitor for the
     /// function, \p funcDecl. This is used for adding the host-side function

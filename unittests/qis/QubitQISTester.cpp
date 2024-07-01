@@ -424,6 +424,8 @@ CUDAQ_TEST(QubitQISTester, checkU3Adj) {
   }
 }
 
+using namespace std::complex_literals;
+
 // Test someone can build a library of custom operations
 CUDAQ_REGISTER_OPERATION(
     /* Name */ CustomHadamard, /*NumTargets*/ 1, /*NumParameters*/ 0,
@@ -434,9 +436,9 @@ CUDAQ_REGISTER_OPERATION(CustomCNOT, 2, 0,
 CUDAQ_REGISTER_OPERATION(
     CustomU3, 1, 3,
     {std::cos(parameters[0] / 2.),
-     -std::exp(i *parameters[2]) * std::sin(parameters[0] / 2.),
-     std::exp(i *parameters[1]) * std::sin(parameters[0] / 2.),
-     std::exp(i *(parameters[2] + parameters[1])) *
+     -std::exp(1i * parameters[2]) * std::sin(parameters[0] / 2.),
+     std::exp(1i * parameters[1]) * std::sin(parameters[0] / 2.),
+     std::exp(1i * (parameters[2] + parameters[1])) *
          std::cos(parameters[0] / 2.)})
 CUDAQ_REGISTER_OPERATION(CustomSwap, 2, 0,
                          {1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1})
