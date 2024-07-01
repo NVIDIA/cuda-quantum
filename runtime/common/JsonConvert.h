@@ -172,9 +172,6 @@ inline void from_json(const json &j, ExecutionContext &context) {
   if (j.contains("optResult"))
     context.optResult = j["optResult"];
 
-  if (j.contains("optResult"))
-    context.optResult = j["optResult"];
-
   if (j.contains("spin")) {
     std::vector<double> spinData;
     j["spin"]["data"].get_to(spinData);

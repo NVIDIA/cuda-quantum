@@ -198,6 +198,7 @@ public:
       cudaq::optimizer &optimizer, const int n_params) {
     cudaq::RestRequest request(io_context, version());
 
+    request.opt = RestRequestOptFields();
     request.opt->optimizer_n_params = n_params;
     request.opt->optimizer_type = get_optimizer_type(optimizer);
     request.opt->optimizer_ptr = &optimizer;
