@@ -351,8 +351,8 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
           result = createVectorInit(
               builder.create<arith::ConstantIntOp>(loc, byteWidth, 64));
         } else {
-          TODO_x(toLocation(x), x, mangler, "unhandled struct type");
-          return false;
+          result = createVectorInit(
+              builder.create<cc::SizeOfOp>(loc, builder.getI64Type(), strTy));
         }
       } else {
         TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
