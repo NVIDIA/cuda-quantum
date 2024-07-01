@@ -17,7 +17,7 @@ namespace cudaq {
 
 /// @brief Extract the array data from a buffer_info into our
 /// own allocated data pointer.
-// This supports 2-d array in either row or column major.
+/// This supports 2-d array in either row or column major.
 void extractKrausData(py::buffer_info &info, complex *data) {
   if (info.format != py::format_descriptor<complex>::format())
     throw std::runtime_error(
