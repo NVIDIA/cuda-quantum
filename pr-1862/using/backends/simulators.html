@@ -150,7 +150,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
@@ -738,6 +738,7 @@ The <code class="code docutils literal notranslate"><span class="pre">tensornet-
 <li><p><strong>`CUDAQ_MPS_MAX_BOND=X`</strong>: The maximum number of singular values to keep (fixed extent truncation). Default: 64.</p></li>
 <li><p><strong>`CUDAQ_MPS_ABS_CUTOFF=X`</strong>: The cutoff for the largest singular value during truncation. Eigenvalues that are smaller will be trimmed out. Default: 1e-5.</p></li>
 <li><p><strong>`CUDAQ_MPS_RELATIVE_CUTOFF=X`</strong>: The cutoff for the maximal singular value relative to the largest eigenvalue. Eigenvalues that are smaller than this fraction of the largest singular value will be trimmed out. Default: 1e-5</p></li>
+<li><p><strong>`CUDAQ_MPS_SVD_ALGO=X`</strong>: The SVD algorithm to use. Valid values are: <code class="code docutils literal notranslate"><span class="pre">GESVD</span></code> (QR algorithm), <code class="code docutils literal notranslate"><span class="pre">GESVDJ</span></code> (Jacobi method), <code class="code docutils literal notranslate"><span class="pre">GESVDP</span></code> (<a class="reference external" href="https://epubs.siam.org/doi/10.1137/090774999">polar decomposition</a>), <code class="code docutils literal notranslate"><span class="pre">GESVDR</span></code> (<a class="reference external" href="https://epubs.siam.org/doi/10.1137/090771806">randomized methods</a>). Default: <code class="code docutils literal notranslate"><span class="pre">GESVDJ</span></code>.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -748,6 +749,11 @@ See the section <a class="reference internal" href="../install/local_installatio
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Setting random seed, via <code class="code docutils literal notranslate"><span class="pre">cudaq::set_random_seed</span></code>, is not supported for this backend due to a limitation of the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This will be fixed in future release once this feature becomes available.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The parallelism of Jacobi method (the default <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting) gives GPU better performance on small and medium size matrices.
+If you expect the a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
 </div>
 </section>
 </section>
