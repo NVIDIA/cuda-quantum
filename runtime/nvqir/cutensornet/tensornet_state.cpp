@@ -468,6 +468,11 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
   void *hostWork = nullptr;
   if (hostWorkspaceSize > 0) {
     hostWork = malloc(hostWorkspaceSize);
+    if (!hostWork) {
+      throw std::runtime_error("Unable to allocate " +
+                               std::to_string(hostWorkspaceSize) +
+                               " bytes for cuTensorNet host workspace.");
+    }
   }
 
   HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
