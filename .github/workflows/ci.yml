@@ -123,6 +123,13 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_major_version: [11, 12]
+        cuda_minor_version: [8, 0]
+        exclude:
+          - cuda_major_version: 11
+            cuda_minor_version: 0
+          - cuda_major_version: 12
+            cuda_minor_version: 8
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -135,10 +142,11 @@ jobs:
       toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
+        cuda_version=${{ matrix.cuda_major_version }}.${{ matrix.cuda_minor_version }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-installer
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_major_version }}-installer
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -223,6 +231,13 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_major_version: [11, 12]
+        cuda_minor_version: [8, 0]
+        exclude:
+          - cuda_major_version: 11
+            cuda_minor_version: 0
+          - cuda_major_version: 12
+            cuda_minor_version: 8
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
@@ -231,8 +246,10 @@ jobs:
     with:
       platform: linux/${{ matrix.platform }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
-      build_cache:  ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
+      build_cache:  ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_major_version)] }}
       toolchain: llvm
+      cuda_major: ${{ matrix.cuda_major_version }}
+      cuda_minor: ${{ matrix.cuda_minor_version }}
 
   clean_up:
     name: Prepare cache clean-up

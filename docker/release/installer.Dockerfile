@@ -14,7 +14,7 @@
 # Must be built from the repo root with:
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/installer.Dockerfile . --output out
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-llvm-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-cu11-llvm-main
 ARG additional_components=none
 
 FROM $base_image as additional_components_none

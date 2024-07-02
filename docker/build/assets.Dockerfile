@@ -12,12 +12,14 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-assets:latest -f docker/build/assets.Dockerfile .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-assets:amd64-cu11-llvm-main -f docker/build/assets.Dockerfile .
 
 # [Operating System]
 ARG base_image=amd64/almalinux:8
 FROM ${base_image} as prereqs
 SHELL ["/bin/bash", "-c"]
+ARG cuda_version
+ENV CUDA_VERSION=${cuda_version}
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
