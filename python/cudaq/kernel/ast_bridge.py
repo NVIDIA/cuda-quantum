@@ -2826,8 +2826,8 @@ class PyASTBridge(ast.NodeVisitor):
                     for i, ty in enumerate(types):
                         ret.append(
                             cc.ExtractValueOp(
-                                ty, loaded,
-                                DenseI64ArrayAttr.get([i],
+                                ty, loaded, [],
+                                DenseI32ArrayAttr.get([i],
                                                       context=self.ctx)).result)
                     return ret
 
