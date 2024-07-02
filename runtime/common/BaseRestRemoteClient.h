@@ -99,8 +99,10 @@ public:
 
   std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
                                      const std::string &name,
-                                     void (*kernelFunc)(void *), void *args,
-                                     std::uint64_t voidStarSize) {
+                                     void (*kernelFunc)(void *),
+                                     const void *args,
+                                     std::uint64_t voidStarSize,
+                                     std::size_t startingArgIdx) {
     if (cudaq::__internal__::isLibraryMode(name)) {
       // Library mode: retrieve the embedded bitcode in the executable.
       const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
@@ -153,7 +155,8 @@ public:
       if (args) {
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
+        pm.addPass(
+            cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx));
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
@@ -187,6 +190,46 @@ public:
       moduleOp.print(outStr, opf);
       return llvm::encodeBase64(mlirCode);
     }
+  }
+  cudaq::RestRequest constructVQEJobRequest(
+      mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+      const std::string &backendSimName, const std::string &kernelName,
+      const void *kernelArgs, cudaq::gradient *gradient,
+      cudaq::optimizer &optimizer, const int n_params) {
+    cudaq::RestRequest request(io_context, version());
+
+    request.opt = RestRequestOptFields();
+    request.opt->optimizer_n_params = n_params;
+    request.opt->optimizer_type = get_optimizer_type(optimizer);
+    request.opt->optimizer_ptr = &optimizer;
+    request.opt->gradient_ptr = gradient;
+    if (gradient)
+      request.opt->gradient_type = get_gradient_type(*gradient);
+
+    request.entryPoint = kernelName;
+    request.passes = serverPasses;
+    request.format = cudaq::CodeFormat::MLIR;
+    request.code =
+        constructKernelPayload(mlirContext, kernelName, /*kernelFunc=*/nullptr,
+                               /*kernelArgs=*/kernelArgs,
+                               /*argsSize=*/0, /*startingArgIdx=*/1);
+    request.simulator = backendSimName;
+    // Remote server seed
+    // Note: unlike local executions whereby a static instance of the simulator
+    // is seeded once when `cudaq::set_random_seed` is called, thus not being
+    // re-seeded between executions. For remote executions, we use the runtime
+    // level seed value to seed a random number generator to seed the server.
+    // i.e., consecutive remote executions on the server from the same client
+    // session (where `cudaq::set_random_seed` is called), get new random seeds
+    // for each execution. The sequence is still deterministic based on the
+    // runtime-level seed value.
+    request.seed = [&]() {
+      std::uniform_int_distribution<std::size_t> seedGen(
+          std::numeric_limits<std::size_t>::min(),
+          std::numeric_limits<std::size_t>::max());
+      return seedGen(randEngine);
+    }();
+    return request;
   }
 
   cudaq::RestRequest constructJobRequest(
@@ -235,19 +278,22 @@ public:
       cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
 
       stateIrPayload1.entryPoint = kernelName1;
-      stateIrPayload1.ir = constructKernelPayload(mlirContext, kernelName1,
-                                                  nullptr, args1, argsSize1);
+      stateIrPayload1.ir =
+          constructKernelPayload(mlirContext, kernelName1, nullptr, args1,
+                                 argsSize1, /*startingArgIdx=*/0);
       stateIrPayload2.entryPoint = kernelName2;
-      stateIrPayload2.ir = constructKernelPayload(mlirContext, kernelName2,
-                                                  nullptr, args2, argsSize2);
+      stateIrPayload2.ir =
+          constructKernelPayload(mlirContext, kernelName2, nullptr, args2,
+                                 argsSize2, /*startingArgIdx=*/0);
       // First kernel of the overlap calculation
       request.code = stateIrPayload1.ir;
       request.entryPoint = stateIrPayload1.entryPoint;
       // Second kernel of the overlap calculation
       request.overlapKernel = stateIrPayload2;
     } else if (serializedCodeContext == nullptr) {
-      request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                            kernelArgs, argsSize);
+      request.code =
+          constructKernelPayload(mlirContext, kernelName, kernelFunc,
+                                 kernelArgs, argsSize, /*startingArgIdx=*/0);
     }
     request.simulator = backendSimName;
     // Remote server seed
@@ -266,6 +312,66 @@ public:
       return seedGen(randEngine);
     }();
     return request;
+  }
+
+  virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
+                              cudaq::ExecutionContext &io_context,
+                              const std::string &backendSimName,
+                              const std::string &kernelName,
+                              const void *kernelArgs, cudaq::gradient *gradient,
+                              cudaq::optimizer &optimizer, const int n_params,
+                              std::string *optionalErrorMsg) override {
+    // Todo
+    cudaq::RestRequest request = constructVQEJobRequest(
+        mlirContext, io_context, backendSimName, kernelName, kernelArgs,
+        gradient, optimizer, n_params);
+    if (request.code.empty()) {
+      if (optionalErrorMsg)
+        *optionalErrorMsg =
+            std::string(
+                "Failed to construct/retrieve kernel IR for kernel named ") +
+            kernelName;
+      return false;
+    }
+
+    // Don't let curl adding "Expect: 100-continue" header, which is not
+    // suitable for large requests, e.g., bitcode in the JSON request.
+    //  Ref: https://gms.tf/when-curl-sends-100-continue.html
+    std::map<std::string, std::string> headers{
+        {"Expect:", ""}, {"Content-type", "application/json"}};
+    json requestJson = request;
+
+    cudaq::info("request is {}", requestJson.dump(/*indent=*/2));
+
+    try {
+      cudaq::RestClient restClient;
+      auto resultJs =
+          restClient.post(m_url, "job", requestJson, headers, false);
+
+      if (!resultJs.contains("executionContext")) {
+        std::stringstream errorMsg;
+        if (resultJs.contains("status")) {
+          errorMsg << "Failed to execute the kernel on the remote server: "
+                   << resultJs["status"] << "\n";
+          if (resultJs.contains("errorMessage")) {
+            errorMsg << "Error message: " << resultJs["errorMessage"] << "\n";
+          }
+        } else {
+          errorMsg << "Failed to execute the kernel on the remote server.\n";
+          errorMsg << "Unexpected response from the REST server. Missing the "
+                      "required field 'executionContext'.";
+        }
+        if (optionalErrorMsg)
+          *optionalErrorMsg = errorMsg.str();
+        return false;
+      }
+      resultJs["executionContext"].get_to(io_context);
+      return true;
+    } catch (std::exception &e) {
+      if (optionalErrorMsg)
+        *optionalErrorMsg = e.what();
+      return false;
+    }
   }
 
   virtual bool

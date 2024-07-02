@@ -19,6 +19,8 @@
 #include <optional>
 
 namespace cudaq {
+class gradient;
+class optimizer;
 class SerializedCodeExecutionContext;
 
 /// Expose the function that will return the current ExecutionManager
@@ -136,6 +138,9 @@ public:
   /// @brief Return whether this QPU has conditional feedback support
   virtual bool supportsConditionalFeedback() { return false; }
 
+  /// @brief Return whether this QPU has remote VQE execution support
+  virtual bool supportsRemoteVQE() { return false; }
+
   /// @brief Return whether this QPU has support for remote serialized code
   /// execution
   virtual bool supportsRemoteSerializedCode() { return false; }
@@ -159,6 +164,11 @@ public:
   /// Reset the execution context, meant for subtype specification
   virtual void resetExecutionContext() = 0;
   virtual void setTargetBackend(const std::string &backend) {}
+
+  virtual void launchVQE(const std::string &name, const void *kernelArgs,
+                         cudaq::gradient *gradient, cudaq::spin_op H,
+                         cudaq::optimizer &optimizer, const int n_params,
+                         const std::size_t shots) {}
 
   /// Launch the kernel with given name (to extract its Quake representation).
   /// The raw function pointer is also provided, as are the runtime arguments,

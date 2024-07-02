@@ -14,6 +14,8 @@
 #include "common/RuntimeMLIR.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
+#include "cudaq/algorithms/gradient.h"
+#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <fstream>
@@ -57,6 +59,10 @@ public:
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
 
+  // VQE is executed fully on the server without the need to go back and forth
+  // in between observe calls
+  virtual bool supportsRemoteVQE() override { return true; }
+
   // Remote serializable code is executed fully on the server without the need
   // to go back and forth in between observe calls (see
   // launchSerializedCodeExecution).
@@ -78,6 +84,36 @@ public:
   void enqueue(cudaq::QuantumTask &task) override {
     cudaq::info("BaseRemoteSimulatorQPU: Enqueue Task on QPU {}", qpu_id);
     execution_queue->enqueue(task);
+  }
+
+  void launchVQE(const std::string &name, const void *kernelArgs,
+                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::optimizer &optimizer, const int n_params,
+                 const std::size_t shots) override {
+    cudaq::ExecutionContext *executionContextPtr =
+        [&]() -> cudaq::ExecutionContext * {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      const auto iter = m_contexts.find(std::this_thread::get_id());
+      if (iter == m_contexts.end())
+        return nullptr;
+      return iter->second;
+    }();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer")
+      return;
+
+    auto ctx = std::make_unique<ExecutionContext>("observe", shots);
+    ctx->kernelName = name;
+    ctx->spin = &H;
+    if (shots > 0)
+      ctx->shots = shots;
+
+    std::string errorMsg;
+    const bool requestOkay = m_client->sendVQERequest(
+        *m_mlirContext, *executionContextPtr, m_simName, name, kernelArgs,
+        gradient, optimizer, n_params, &errorMsg);
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),

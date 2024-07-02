@@ -24,6 +24,8 @@ class MLIRContext;
 }
 namespace cudaq {
 class ExecutionContext;
+class gradient;
+class optimizer;
 class SerializedCodeExecutionContext;
 
 /// Base interface encapsulating a CUDA-Q runtime server capable of
@@ -49,7 +51,14 @@ public:
                              std::string_view ir, std::string_view kernelName,
                              void *kernelArgs, std::uint64_t argsSize,
                              std::size_t seed) = 0;
-
+  // Handle incoming VQE requests
+  virtual void handleVQERequest(std::size_t reqId,
+                                cudaq::ExecutionContext &io_context,
+                                const std::string &backendSimName,
+                                std::string_view ir, cudaq::gradient *gradient,
+                                cudaq::optimizer &optimizer, const int n_params,
+                                std::string_view kernelName,
+                                std::size_t seed) = 0;
   // Destructor
   virtual ~RemoteRuntimeServer() = default;
 };
@@ -71,6 +80,14 @@ public:
   // Reset the random seed sequence using for remote execution.
   // This is triggered by a random seed value being set in CUDA-Q runtime.
   virtual void resetRemoteRandomSeed(std::size_t seed) = 0;
+
+  virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
+                              ExecutionContext &io_context,
+                              const std::string &backendSimName,
+                              const std::string &kernelName,
+                              const void *kernelArgs, cudaq::gradient *gradient,
+                              cudaq::optimizer &optimizer, const int n_params,
+                              std::string *optionalErrorMsg = nullptr) = 0;
 
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and
