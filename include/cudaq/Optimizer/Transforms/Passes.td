@@ -47,6 +47,24 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
+def AssignIDs : Pass<"assign-ids", "mlir::func::FuncOp"> {
+  let summary = "Generate and assign unique identifiers for qubits.";
+  let description = [{
+   Work in progress: Attachs unique ID attributes to qubit allocations.
+  }];
+
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
+def DependencyAnalysis : Pass<"dep-analysis", "mlir::func::FuncOp"> {
+  let summary = "Generates qubit dependency graphs based on quake code.";
+  let description = [{
+    Work in progress.
+  }];
+
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def PySynthCallableBlockArgs : Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
   let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
   let description = [{
