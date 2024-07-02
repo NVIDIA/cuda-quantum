@@ -21,6 +21,7 @@ CUDA-Q Backends
 * :ref:`nvidia-mqpu-fp64 <nvidia-mgpu-backend>`
 * :doc:`nvqc <nvqc>`
 * :ref:`oqc <oqc-backend>`
+* :ref:`orca <orca-backend>`
 * :ref:`qpp-cpu <qpp-cpu-backend>`
 * :ref:`quantinuum <quantinuum-backend>`
 * :ref:`remote-mqpu <mqpu-platform>`

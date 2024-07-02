@@ -61,6 +61,8 @@ NVIDIA
 NVQC
 NVQIR
 OQC
+ORCA
+ORCA's
 OpenACC
 OpenMP
 OpenMPI
@@ -95,6 +97,7 @@ SLES
 SLURM
 SVD
 Superpositions
+TBI
 TCP
 TableGen
 Toffoli
@@ -121,7 +124,9 @@ bitcode
 bitstring
 bitstrings
 boolean
+boson
 broadcasted
+bs
 buildable
 callable
 callables
@@ -187,6 +192,7 @@ fermionic
 frontend
 frontends
 homogenous
+https
 iff
 increment
 incrementing
@@ -196,6 +202,7 @@ inlined
 inlining
 instantiation
 instantiations
+interferometer
 interoperational
 intrinsics
 iterable
@@ -203,6 +210,7 @@ iteratively
 kets
 linker
 linkers
+linspace
 logarithmically
 lookup
 lookups
@@ -216,9 +224,11 @@ namespace
 namespaces
 natively
 normalization
+np
 nullary
 optimizer
 optimizers
+orca
 parallelization
 parallelize
 parallelizing
@@ -231,6 +241,7 @@ prepend
 preprocessor
 probability
 programmatically
+ps
 pybind
 quantize
 quantized
@@ -239,12 +250,17 @@ qubits
 qudit
 qudits
 reStructuredText
+reconfigurable
 runtime
 runtimes
 rvalue
 scalability
 scalable
 sexualized
+shifter
+shifters
+splitter
+splitters
 statevector
 struct
 structs
@@ -282,6 +298,7 @@ unitarity
 unitary
 unoptimized
 upvote
+url
 variadic
 variational
 verifier
