@@ -211,7 +211,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
           if (index == cudaq::cc::ComputePtrOp::kDynamicIndex) {
             OpBuilder::InsertionGuard guard(builder);
             builder.setInsertionPoint(elePtrOp);
-            Value getEle = builder.create<cudaq::cc::GetConstantElementOp>(
+            Value getEle = builder.create<cudaq::cc::ExtractValueOp>(
                 elePtrOp.getLoc(), eleTy, conArray,
                 elePtrOp.getDynamicIndices()[0]);
             if (failed(replaceLoads(elePtrOp, getEle))) {
