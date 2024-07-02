@@ -9,6 +9,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
+#include "common/ArgumentWrapper.h"
 #include "common/JsonConvert.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
@@ -25,6 +26,11 @@ namespace cudaq {
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
+
+void *pyGetKernelArgs(const std::string &name, MlirModule module,
+                      cudaq::OpaqueArguments &runtimeArgs,
+                      const std::vector<std::string> &names,
+                      std::size_t startingArgIdx);
 
 /// @brief Return the quantum kernel `FuncOp` from the given `ModuleOp`.
 mlir::func::FuncOp getKernelFuncOp(mlir::ModuleOp &mod,
@@ -96,6 +102,56 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
              },
              spin_operator, platform, shots, kernelName)
       .value();
+}
+
+/// @brief Perform VQE on a remote platform using the C++ capabilities. This
+/// function is used for many of the pyVQE variants below, so some of the
+/// parameters may be nullptr.
+static optimization_result
+pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
+                 spin_op &hamiltonian, cudaq::optimizer &optimizer,
+                 cudaq::gradient *gradient, py::function *argumentMapper,
+                 const int n_params, const int shots) {
+
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
+  ctx->kernelName = kernelName;
+  ctx->spin = &hamiltonian;
+  platform.set_exec_ctx(ctx.get());
+
+  void *kernelArgs = nullptr;
+  if (argumentMapper) {
+    std::vector<double> myArg(n_params);
+    py::list py_list = py::cast(myArg);
+    py::tuple result = (*argumentMapper)(py_list);
+    py::args runtimeArgs = result;
+
+    // Serialize arguments (all concrete parameters except for the first one)
+    // into kernelArgs buffer space.
+    auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
+    cudaq::OpaqueArguments args;
+    cudaq::packArgs(
+        args, runtimeArgs, kernelFunc,
+        [](OpaqueArguments &, py::object &) { return false; },
+        /*startingArgIdx=*/1);
+    kernelArgs = pyGetKernelArgs(kernelName, kernelMod, args, /*names=*/{},
+                                 /*startingArgIdx=*/1);
+  }
+
+  // Need to form cudaq::ArgWrapper and pass that into launchVQE.
+  std::vector<std::string> names;
+  auto *wrapper = new cudaq::ArgWrapper{unwrap(kernelMod), names, kernelArgs};
+
+  platform.launchVQE(kernelName, wrapper, gradient, hamiltonian, optimizer,
+                     n_params, shots);
+  platform.reset_exec_ctx();
+  delete wrapper;
+  if (kernelArgs)
+    std::free(kernelArgs);
+  return ctx->optResult.value_or(optimization_result{});
 }
 
 /// @brief Perform VQE on a remote platform. This function is used for many of
@@ -190,6 +246,10 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           const int shots = -1) {
   auto &platform = cudaq::get_platform();
+  if (platform.supports_remote_vqe())
+    return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
+                            /*gradient=*/nullptr, /*argumentMapper=*/nullptr,
+                            n_params, shots);
   if (platform.supports_remote_serialized_code())
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer,
                         /*gradient=*/nullptr, /*argumentMapper=*/nullptr,
@@ -209,6 +269,10 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           py::function &argumentMapper, const int shots = -1) {
   auto &platform = cudaq::get_platform();
+  if (platform.supports_remote_vqe())
+    return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
+                            /*gradient=*/nullptr, &argumentMapper, n_params,
+                            shots);
   if (platform.supports_remote_serialized_code())
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer,
                         /*gradient=*/nullptr, &argumentMapper, n_params, shots);
@@ -235,6 +299,9 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
   // to allow for the calculation of the gradient vector with the
   // provided gradient strategy.
   auto &platform = cudaq::get_platform();
+  if (platform.supports_remote_vqe())
+    return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer, &gradient,
+                            /*argumentMapper=*/nullptr, n_params, shots);
   if (platform.supports_remote_serialized_code())
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer, &gradient,
                         /*argumentMapper=*/nullptr, n_params, shots);
@@ -267,6 +334,10 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
   // to allow for the calculation of the gradient vector with the
   // provided gradient strategy.
   auto &platform = cudaq::get_platform();
+  if (platform.supports_remote_vqe())
+    return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer, &gradient,
+                            &argumentMapper, n_params, shots);
+
   if (platform.supports_remote_serialized_code())
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer, &gradient,
                         &argumentMapper, n_params, shots);

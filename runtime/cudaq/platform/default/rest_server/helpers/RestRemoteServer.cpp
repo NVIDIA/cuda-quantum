@@ -661,6 +661,7 @@ protected:
             reqId, request.executionContext, request.simulator, codeStr,
             request.opt->gradient.get(), *request.opt->optimizer,
             *request.opt->optimizer_n_params, request.entryPoint, request.seed);
+        resultJson["executionContext"] = request.executionContext;
       } else if (request.executionContext.name == "state-overlap") {
         if (!request.overlapKernel.has_value())
           throw std::runtime_error("Missing overlap kernel data.");

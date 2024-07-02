@@ -22,6 +22,40 @@ public:
 
   virtual bool isEmulated() override { return true; }
 
+  void launchVQE(const std::string &name, const void *kernelArgs,
+                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::optimizer &optimizer, const int n_params,
+                 const std::size_t shots) override {
+    cudaq::ExecutionContext *executionContextPtr =
+        [&]() -> cudaq::ExecutionContext * {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      const auto iter = m_contexts.find(std::this_thread::get_id());
+      if (iter == m_contexts.end())
+        return nullptr;
+      return iter->second;
+    }();
+
+    auto *wrapper = reinterpret_cast<const cudaq::ArgWrapper *>(kernelArgs);
+    auto m_module = wrapper->mod;
+    auto *mlirContext = m_module->getContext();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer")
+      return;
+
+    auto ctx = std::make_unique<cudaq::ExecutionContext>("observe", shots);
+    ctx->kernelName = name;
+    ctx->spin = &H;
+    if (shots > 0)
+      ctx->shots = shots;
+
+    std::string errorMsg;
+    const bool requestOkay = m_client->sendVQERequest(
+        *mlirContext, *executionContextPtr, m_simName, name, wrapper->rawArgs,
+        gradient, optimizer, n_params, &errorMsg);
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
+  }
+
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset) override {

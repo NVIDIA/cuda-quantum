@@ -347,7 +347,7 @@ public:
     builder.setInsertionPointToStart(entry);
 
     // Get the original function args
-    auto kernelArgTypes = devKernelTy.getInputs();
+    auto kernelArgTypes = devKernelTy.getInputs().drop_front(startingArgIdx);
 
     // Init the struct
     Value stVal = builder.create<cudaq::cc::UndefOp>(loc, msgStructTy);
@@ -1502,8 +1502,23 @@ public:
                                     funcTy, funcOp);
 
       // Generate the argsCreator function used by synthesis.
-      auto argsCreatorFunc = genKernelArgsCreatorFunction(
-          loc, builder, funcTy, structTy, classNameStr, hostFuncTy, hasThisPtr);
+      mlir::func::FuncOp argsCreatorFunc;
+      if (startingArgIdx == 0) {
+        argsCreatorFunc =
+            genKernelArgsCreatorFunction(loc, builder, funcTy, structTy,
+                                         classNameStr, hostFuncTy, hasThisPtr);
+      } else {
+        // We are operating in a very special case where we want the argsCreator
+        // function to ignore the first `startingArgIdx` arguments. In this
+        // situation, the argsCreator function will not be compatible with the
+        // other helper functions created in this pass, so it is assumed that
+        // the caller is OK with that.
+        auto structTy_argsCreator =
+            cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
+        argsCreatorFunc = genKernelArgsCreatorFunction(
+            loc, builder, funcTy, structTy_argsCreator, classNameStr,
+            hostFuncTy, hasThisPtr);
+      }
 
       // Generate a new mangled function on the host side to call the
       // callback function.

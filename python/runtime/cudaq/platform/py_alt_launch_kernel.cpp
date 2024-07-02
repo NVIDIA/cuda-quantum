@@ -66,11 +66,18 @@ static std::unique_ptr<PyStateStorage> cudaqStateStorage =
 std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
-                 const std::vector<std::string> &names, Type returnType) {
+                 const std::vector<std::string> &names, Type returnType,
+                 std::size_t startingArgIdx = 0) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
+
+  // Do not cache the JIT if we are running with startingArgIdx > 0 because a)
+  // we won't be executing right after JIT-ing, and b) we might get called later
+  // this with startingArgIdx == 0, and we need that JIT to be performed and
+  // cached.
+  const bool allowCache = startingArgIdx == 0;
 
   // Have we JIT compiled this before?
   auto hash = llvm::hash_code{0};
@@ -80,7 +87,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   auto hashKey = static_cast<size_t>(hash);
 
   ExecutionEngine *jit = nullptr;
-  if (jitCache->hasJITEngine(hashKey)) {
+  if (allowCache && jitCache->hasJITEngine(hashKey)) {
     jit = jitCache->getJITEngine(hashKey);
   } else {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
@@ -90,7 +97,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addNestedPass<func::FuncOp>(
         cudaq::opt::createPySynthCallableBlockArgs(names));
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
-    pm.addPass(cudaq::opt::createGenerateKernelExecution());
+    pm.addPass(cudaq::opt::createGenerateKernelExecution(
+        {.startingArgIdx = startingArgIdx}));
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
     cudaq::opt::addPipelineConvertToQIR(pm);
 
@@ -137,7 +145,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
 
     auto uniqueJit = std::move(jitOrError.get());
     jit = uniqueJit.release();
-    jitCache->cache(hashKey, jit);
+    if (allowCache)
+      jitCache->cache(hashKey, jit);
   }
 
   // We need to append the return type to the OpaqueArguments here
@@ -227,9 +236,14 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
 std::tuple<void *, std::size_t, std::int32_t>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                       Type returnType, cudaq::OpaqueArguments &runtimeArgs,
-                      const std::vector<std::string> &names) {
-  auto [jit, rawArgs, size, returnOffset] =
-      jitAndCreateArgs(name, module, runtimeArgs, names, returnType);
+                      const std::vector<std::string> &names,
+                      std::size_t startingArgIdx = 0) {
+  // Do not allow kernel execution if we are running with startingArgIdx > 0.
+  // This is used in remote VQE execution.
+  const bool launch = startingArgIdx == 0;
+
+  auto [jit, rawArgs, size, returnOffset] = jitAndCreateArgs(
+      name, module, runtimeArgs, names, returnType, startingArgIdx);
 
   auto mod = unwrap(module);
   auto thunkName = name + ".thunk";
@@ -308,16 +322,18 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
   kernelReg();
 
-  auto &platform = cudaq::get_platform();
-  if (platform.is_remote() || platform.is_emulated()) {
-    auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
-    cudaq::altLaunchKernel(name.c_str(), thunk,
-                           reinterpret_cast<void *>(wrapper), size,
-                           (uint64_t)returnOffset);
-    delete wrapper;
-  } else
-    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
-                           (uint64_t)returnOffset);
+  if (launch) {
+    auto &platform = cudaq::get_platform();
+    if (platform.is_remote() || platform.is_emulated()) {
+      auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
+      cudaq::altLaunchKernel(name.c_str(), thunk,
+                             reinterpret_cast<void *>(wrapper), size,
+                             (uint64_t)returnOffset);
+      delete wrapper;
+    } else
+      cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
+                             (uint64_t)returnOffset);
+  }
 
   return std::make_tuple(rawArgs, size, returnOffset);
 }
@@ -386,6 +402,21 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   auto [rawArgs, size, returnOffset] =
       pyAltLaunchKernelBase(name, module, noneType, runtimeArgs, names);
   std::free(rawArgs);
+}
+
+/// @brief Serialize \p runtimeArgs into a flat buffer starting at
+/// \p startingArgIdx (0-based). This does not execute the kernel. This is
+/// useful for VQE applications when you want to serialize the constant
+/// parameters that are not being optimized. The caller is responsible for
+/// executing `std::free()` on the return value.
+void *pyGetKernelArgs(const std::string &name, MlirModule module,
+                      cudaq::OpaqueArguments &runtimeArgs,
+                      const std::vector<std::string> &names,
+                      std::size_t startingArgIdx) {
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
+      name, module, noneType, runtimeArgs, names, startingArgIdx);
+  return rawArgs;
 }
 
 inline unsigned int byteSize(mlir::Type ty) {

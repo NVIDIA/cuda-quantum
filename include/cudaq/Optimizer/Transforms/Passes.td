@@ -233,6 +233,8 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
   let options = [
     Option<"outputFilename", "output-filename", "std::string",
       /*default=*/"\"-\"", "Name of output file.">,
+    Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
+      "The starting argument index for the argsCreator.">,
   ];
 }
 
