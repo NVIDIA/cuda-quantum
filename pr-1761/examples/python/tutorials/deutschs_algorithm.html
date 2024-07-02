@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Deutschs’ Algorithm &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Deutsch’s Algorithm &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -153,7 +153,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Phase-oracle">Phase oracle</a></li>
@@ -495,7 +495,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Deutschs’ Algorithm</li>
+      <li class="breadcrumb-item active">Deutsch’s Algorithm</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../../_sources/examples/python/tutorials/deutschs_algorithm.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -508,11 +508,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Deutschs'-Algorithm">
-<h1>Deutschs’ Algorithm<a class="headerlink" href="#Deutschs'-Algorithm" title="Permalink to this heading">¶</a></h1>
+  <section id="Deutsch's-Algorithm">
+<h1>Deutsch’s Algorithm<a class="headerlink" href="#Deutsch's-Algorithm" title="Permalink to this heading">¶</a></h1>
 <p>We have a function which takes in a bit and outputs a bit. This can be represented as <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span>.</p>
 <p>The function <span class="math notranslate nohighlight">\(f\)</span> has a property; either it is constant or balanced.</p>
-<p>If constant, the outputs are the same regardless of the inputs i.e. <span class="math notranslate nohighlight">\(f(0) = f(1) = 0\)</span> or <span class="math notranslate nohighlight">\(f(0) = f(1) = 1\)</span>.</p>
+<p>If constant, the outputs are the same regardless of the inputs, i.e., <span class="math notranslate nohighlight">\(f(0) = f(1) = 0\)</span> or <span class="math notranslate nohighlight">\(f(0) = f(1) = 1\)</span>.</p>
 <p>If balanced, the ouputs are balanced across their possibilities, i.e, if <span class="math notranslate nohighlight">\(f(0) = 0\)</span> then <span class="math notranslate nohighlight">\(f(1) = 1\)</span> or if <span class="math notranslate nohighlight">\(f(0) = 1\)</span> then <span class="math notranslate nohighlight">\(f(1) = 0\)</span>.</p>
 <p>The question we would like to answer is if the function is constant or balanced.</p>
 <p>Classically, if we are given a function <span class="math notranslate nohighlight">\(f\)</span>, we can solve to find its property via the code below:</p>
@@ -520,14 +520,14 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Treat the code snippet below like a black box, i.e you don&#39;t have access to the value of the property argument and can just query f with different inputs.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Treat the code snippet below like a black box, i.e., you don&#39;t have access to the value of the property argument and can just query f with different inputs.</span>
 
 
 <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">property</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">):</span>
 
     <span class="k">if</span> <span class="nb">property</span> <span class="o">==</span> <span class="s1">&#39;constant&#39;</span><span class="p">:</span>
 
-        <span class="c1"># The output is a 1 regardless of the input, we can also make the output to be 0.</span>
+        <span class="c1"># The output is a 1 regardless of the input; we can also make the output to be 0.</span>
 
         <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">1</span>
@@ -572,8 +572,8 @@
 The function is constant
 </pre></div></div>
 </div>
-<p>If you step through the if statements above, one can see that we require 2 calls to the function to determine its property. That is we have to query <span class="math notranslate nohighlight">\(f\)</span> twice.</p>
-<p>The claim is that Deutschs’ algorithm can solve for this property with 1 function evalulation demonstrating quantum advantage.</p>
+<p>If you step through the <code class="docutils literal notranslate"><span class="pre">if</span></code> statements above, one can see that we require 2 calls to the function to determine its property. That is, we have to query <span class="math notranslate nohighlight">\(f\)</span> twice.</p>
+<p>The claim is that Deutsch’s algorithm can solve for this property with 1 function evalulation, demonstrating quantum advantage.</p>
 <p>Below we first go through the math and then the implementation in CUDA Quantum.</p>
 <section id="XOR-\oplus">
 <h2>XOR <span class="math notranslate nohighlight">\(\oplus\)</span><a class="headerlink" href="#XOR-\oplus" title="Permalink to this heading">¶</a></h2>
@@ -586,7 +586,7 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="48184a03e03945a5a239067731faab52" class="no-scaled-link" src="../../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p><img alt="6bad8e1908d74d689cbc5d3a520d33fe" class="no-scaled-link" src="../../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
 <p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logic gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
@@ -594,12 +594,12 @@ The function is constant
 U_f\ket{x}\ket{y}  =  \ket{x}\ket{y \oplus f(x)}
 \end{aligned}\]</div>
 <p>If <span class="math notranslate nohighlight">\(y = 0\)</span>, then <span class="math notranslate nohighlight">\(U_f\ket{x}\ket{y} = U_f\ket{x}\ket{0} = \ket{x}\ket{0 \oplus f(x)} = \ket{x}\ket{f(x)}\)</span> since <span class="math notranslate nohighlight">\(f(x)\)</span> can either be <span class="math notranslate nohighlight">\(0/1\)</span> and <span class="math notranslate nohighlight">\(0 \oplus 0 = 0\)</span> and <span class="math notranslate nohighlight">\(0 \oplus 1 = 1\)</span>.</p>
-<p>This is remarkable as by setting <span class="math notranslate nohighlight">\(\ket{y} = \ket{0}\)</span>, we can extract the value of <span class="math notranslate nohighlight">\(f(x)\)</span> by measuring the value of the second qubit.</p>
+<p>This is remarkable because by setting <span class="math notranslate nohighlight">\(\ket{y} = \ket{0}\)</span>, we can extract the value of <span class="math notranslate nohighlight">\(f(x)\)</span> by measuring the value of the second qubit.</p>
 </section>
 <section id="Phase-oracle">
 <h2>Phase oracle<a class="headerlink" href="#Phase-oracle" title="Permalink to this heading">¶</a></h2>
-<p>Since <span class="math notranslate nohighlight">\(f(x)\)</span> can be either <span class="math notranslate nohighlight">\(0/1\)</span>, <span class="math notranslate nohighlight">\(0 \oplus f(x) = 0 \oplus 0/1 = 0/1 = f(x)\)</span>.</p>
-<p>Similarly, <span class="math notranslate nohighlight">\(1 \oplus f(x) = 1 \oplus 0/1 = 1/0 = \overline{f(x)}\)</span> where the bar on top of <span class="math notranslate nohighlight">\(f(x)\)</span> denotes ‘not <span class="math notranslate nohighlight">\(f(x)\)</span>’.</p>
+<p>Since <span class="math notranslate nohighlight">\(f(x)\)</span> can be either <span class="math notranslate nohighlight">\(0\)</span> or <span class="math notranslate nohighlight">\(1\)</span>, we have that <span class="math notranslate nohighlight">\(0 \oplus f(x) = 0 \oplus 0 = 0 = f(x)\)</span> or <span class="math notranslate nohighlight">\(0 \oplus f(x) = 0 \oplus 1 = 1 = f(x)\)</span>.</p>
+<p>Similarly, <span class="math notranslate nohighlight">\(1 \oplus f(x) = 1 \oplus 0 = 1 = \overline{f(x)}\)</span> or <span class="math notranslate nohighlight">\(1 \oplus f(x) = 1 \oplus 1 = 0 = \overline{f(x)}\)</span> where the bar on top of <span class="math notranslate nohighlight">\(f(x)\)</span> denotes ‘not <span class="math notranslate nohighlight">\(f(x)\)</span>’.</p>
 <p>Let us now prove a result which we shall use later:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{aligned}
@@ -614,7 +614,7 @@ U_f\ket{x}\ket{-}  &amp;=   U_f \ket{x} \tfrac{1}{\sqrt{2}}(\ket{0} - \ket{1}) \
 \end{cases} \\
 &amp;= (-1)^{f(x)}\ket{x}\ket{-}
 \end{aligned}\end{split}\]</div>
-<p>In summary, <span class="math notranslate nohighlight">\(U_f\ket{x}\ket{-} = (-1)^{f(x)}\ket{x}\ket{-}\)</span> where the <span class="math notranslate nohighlight">\(\ket{-}\)</span> qubit was left unchanged and a phase was applied to <span class="math notranslate nohighlight">\(\ket{x}\)</span></p>
+<p>In summary, <span class="math notranslate nohighlight">\(U_f\ket{x}\ket{-} = (-1)^{f(x)}\ket{x}\ket{-}\)</span> where the <span class="math notranslate nohighlight">\(\ket{-}\)</span> qubit was left unchanged and a phase was applied to <span class="math notranslate nohighlight">\(\ket{x}\)</span>.</p>
 </section>
 <section id="Quantum-parallelism">
 <h2>Quantum parallelism<a class="headerlink" href="#Quantum-parallelism" title="Permalink to this heading">¶</a></h2>
@@ -634,7 +634,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 <h2>Deutschs’ Algorithm:<a class="headerlink" href="#Deutschs'-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="57f8dd6efcd843dea8b56049ec4b37d9" class="no-scaled-link" src="../../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="18ea05631a7641d8a274a7ff0bd8b148" class="no-scaled-link" src="../../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>
@@ -677,8 +677,8 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
       \pm H\ket{-}  = \pm \ket{1}  &amp;   f(x)  \text{ is balanced} \\
 \end{cases}
 \end{aligned}\end{split}\]</div>
-<p>We can now measure the first qubit to yield either a <span class="math notranslate nohighlight">\(0/1\)</span> to determine if <span class="math notranslate nohighlight">\(f(x)\)</span> is constant or balanced.</p>
-<p>Deutschs’ algorithm may not be practically useful but does demonstrate quantum advantage since it uses one function call to determine the property of <span class="math notranslate nohighlight">\(f\)</span> in comparison to two for classical methods.</p>
+<p>We can now measure the first qubit to yield either a <span class="math notranslate nohighlight">\(0\)</span> or a <span class="math notranslate nohighlight">\(1\)</span> to determine if <span class="math notranslate nohighlight">\(f(x)\)</span> is constant or balanced.</p>
+<p>Deutsch’s algorithm may not be practically useful but does demonstrate quantum advantage since it uses one function call to determine the property of <span class="math notranslate nohighlight">\(f\)</span> in comparison to two for classical methods.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
