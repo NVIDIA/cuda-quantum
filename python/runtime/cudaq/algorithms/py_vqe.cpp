@@ -122,6 +122,8 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
   ctx->spin = &hamiltonian;
   platform.set_exec_ctx(ctx.get());
 
+  constexpr std::size_t startingArgIdx = 1;
+  cudaq::OpaqueArguments args;
   void *kernelArgs = nullptr;
   if (argumentMapper) {
     std::vector<double> myArg(n_params);
@@ -132,14 +134,12 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
     // Serialize arguments (all concrete parameters except for the first one)
     // into kernelArgs buffer space.
     auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
-    cudaq::OpaqueArguments args;
     cudaq::packArgs(
         args, runtimeArgs, kernelFunc,
-        [](OpaqueArguments &, py::object &) { return false; },
-        /*startingArgIdx=*/1);
-    kernelArgs = pyGetKernelArgs(kernelName, kernelMod, args, /*names=*/{},
-                                 /*startingArgIdx=*/1);
+        [](OpaqueArguments &, py::object &) { return false; }, startingArgIdx);
   }
+  kernelArgs = pyGetKernelArgs(kernelName, kernelMod, args, /*names=*/{},
+                               startingArgIdx);
 
   // Need to form cudaq::ArgWrapper and pass that into launchVQE.
   std::vector<std::string> names;
