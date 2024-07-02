@@ -32,6 +32,7 @@ void cudaq::opt::commonPipelineConvertToQIR(
   pm.addPass(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createAssignIDs());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   if (convertTo && convertTo->equals("qir-base"))
