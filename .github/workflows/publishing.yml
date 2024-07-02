@@ -219,8 +219,7 @@ jobs:
             if [[ "$staging_branch" =~ ^bot\/.*$ ]]; then
               git push origin --delete $staging_branch
             else
-              echo "Unexpected staging branch."
-              exit 1
+              echo "::error::Unexpected staging branch." && exit 1
             fi
           }
           
@@ -752,7 +751,7 @@ jobs:
         if: startsWith(matrix.os_image, 'ubuntu')
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
-            wget ca-certificates libstdc++-11-dev libopenmpi-dev
+            wget ca-certificates libc6-dev libopenmpi-dev
           distro=`echo ${{ matrix.os_image }} | tr -d . | tr -d :`
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
@@ -764,9 +763,7 @@ jobs:
         if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
-            'dnf-command(config-manager)' gcc-toolset-12 openssh-clients
-          enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
-          . "$enable_script"
+            'dnf-command(config-manager)' glibc-devel openssh-clients
           . scripts/configure_build.sh install-cudart
 
           # We need to install an MPI implementation, otherwise nothing
@@ -800,7 +797,34 @@ jobs:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
           tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
           if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "Missing tests for nvidia-mgpu backend." && exit 1
+            echo "::error::Missing tests for nvidia-mgpu backend." && exit 1
+          fi
+
+      - name: Side-by-side installation of Python wheels
+        shell: bash
+        env:
+          BASH_ENV: ~/.bashrc
+        run: |
+          PYTHON="python3.$(ls /tmp/install/cuda_quantum*.whl | grep -o cp3[0-9]* | cut -c 4- | head -1)"
+          if [ -x "$(command -v apt-get)" ]; then
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends $PYTHON $PYTHON-venv
+            $PYTHON -m venv "$HOME/.venv" && PATH="$HOME/.venv/bin:$PATH"
+          elif [ -x "$(command -v dnf)" ]; then
+            sudo dnf install -y --nobest --setopt=install_weak_deps=False $(echo $PYTHON | tr -d .)
+            $PYTHON -m ensurepip --upgrade
+          elif [ -x "$(command -v zypper)" ]; then
+            sudo zypper --non-interactive up --no-recommends
+            sudo zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
+            $PYTHON -m ensurepip --upgrade            
+          fi
+
+          ${PYTHON} -m pip install /tmp/install/cuda_quantum*.whl
+          ${PYTHON} -m pip install pytest numpy psutil
+          ${PYTHON} -m pytest -v /home/cudaq/python \
+            --ignore /home/cudaq/python/backends \
+            --ignore /home/cudaq/python/domains
+          if [ ! $? -eq 0 ]; then
+            echo "::error::Sanity tests failed for side-by-side Python support." && exit 1
           fi
 
   wheel_validation:
@@ -844,8 +868,7 @@ jobs:
           source validate_wheel.sh -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
-            echo "Error running validation script"
-            exit $status_sum
+            echo "::error::Error running validation script" && exit $status_sum
           fi
   
   wheel_validation_x86_simple:
@@ -895,8 +918,7 @@ jobs:
           done
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
-            echo "Error running validation script"
-            exit $status_sum
+            echo "::error::Error running validation script" && exit $status_sum
           fi
   
   image_validation:
@@ -951,7 +973,7 @@ jobs:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
           tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
           if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "Missing tests for nvidia-mgpu backend." && exit 1
+            echo "::error::Missing tests for nvidia-mgpu backend." && exit 1
           fi
 
       - name: MPI validation 

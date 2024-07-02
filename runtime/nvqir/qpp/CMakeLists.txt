@@ -11,14 +11,18 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILE})
-
   set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
-  set (EXTRA_LIBS "")
-  if(OpenMP_CXX_FOUND)
-    set(EXTRA_LIBS OpenMP::OpenMP_CXX)
-    target_compile_definitions(${LIBRARY_NAME} PRIVATE EIGEN_HAS_OPENMP)
-    target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_OPENMP)
+  set (QPP_DEPENDENCIES "")
+  list(APPEND QPP_DEPENDENCIES fmt::fmt-header-only cudaq-common)
+  if (NOT CUDAQ_DISABLE_OPENMP)
+    find_package(OpenMP)
+    if(OpenMP_CXX_FOUND)
+      message(STATUS "OpenMP Found. Adding build flags to qpp library: ${OpenMP_CXX_FLAGS}.")
+      list(APPEND QPP_DEPENDENCIES OpenMP::OpenMP_CXX)
+      target_compile_definitions(${LIBRARY_NAME} PRIVATE EIGEN_HAS_OPENMP)
+      target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_OPENMP)
+    endif()
   endif()
 
   target_include_directories(${LIBRARY_NAME}
@@ -30,7 +34,7 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC libqpp
-    PRIVATE fmt::fmt-header-only cudaq-common ${EXTRA_LIBS})
+    PRIVATE ${QPP_DEPENDENCIES})
 
   set_target_properties(${LIBRARY_NAME}
       PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")

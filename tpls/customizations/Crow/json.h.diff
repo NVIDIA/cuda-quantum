@@ -1,0 +1,22 @@
+diff --git a/include/crow/json.h b/include/crow/json.h
+index 3359a9cc..1f551444 100644
+--- a/include/crow/json.h
++++ b/include/crow/json.h
+@@ -1656,7 +1656,7 @@ namespace crow
+                 }
+                 else
+                 {
+-#if defined(__APPLE__) || defined(__MACH__) || defined(__FreeBSD__) || defined(__ANDROID__)
++#if defined(__APPLE__) || defined(__MACH__) || defined(__FreeBSD__) || defined(__ANDROID__) || defined(_LIBCPP_VERSION)
+                     o = std::unique_ptr<object>(new object(initializer_list));
+ #else
+                     (*o) = initializer_list;
+@@ -1675,7 +1675,7 @@ namespace crow
+                 }
+                 else
+                 {
+-#if defined(__APPLE__) || defined(__MACH__) || defined(__FreeBSD__)
++#if defined(__APPLE__) || defined(__MACH__) || defined(__FreeBSD__) || defined(_LIBCPP_VERSION)
+                     o = std::unique_ptr<object>(new object(value));
+ #else
+                     (*o) = value;

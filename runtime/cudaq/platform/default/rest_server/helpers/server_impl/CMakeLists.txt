@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME rest_server_impl)
-
 add_library(${LIBRARY_NAME} OBJECT RestServer.cpp)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE Crow::Crow)

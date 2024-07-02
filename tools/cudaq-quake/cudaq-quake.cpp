@@ -93,8 +93,8 @@ static cl::opt<bool> dumpToStderr("llvm-to-stderr",
                                   cl::init(false));
 
 static cl::opt<std::string>
-    resourceDir("resource-dir", cl::desc("Specify output filename"),
-                cl::init(LLVM_ROOT "/lib/clang/" CUDAQ_LLVM_VERSION));
+    resourceDir("resource-dir",
+                cl::desc("Specify the clang resource directory"), cl::init(""));
 
 static cl::list<std::string>
     macroDefines("D", cl::desc("Define preprocessor macro."));
@@ -288,14 +288,22 @@ int main(int argc, char **argv) {
 
   // Default to the internal resource-dir in the absence of
   // the one in the LLVM_BINARY_DIR
+  std::filesystem::path llvmInstallPath{LLVM_ROOT};
   std::filesystem::path resourceDirPath{resourceDir.getValue()};
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
   if (!std::filesystem::exists(resourceDirPath))
-    resourceDirPath = cudaqInstallPath / "lib" / "clang" / CUDAQ_LLVM_VERSION;
-
+    resourceDirPath =
+        llvmInstallPath / "lib" / "clang" / STR(LLVM_VERSION_MAJOR);
+  if (!std::filesystem::exists(resourceDirPath))
+    resourceDirPath =
+        cudaqInstallPath / "lib" / "clang" / STR(LLVM_VERSION_MAJOR);
   if (!std::filesystem::exists(resourceDirPath)) {
     llvm::errs() << "Could not find a valid clang resource-dir.\n";
     return 1;
   }
+#undef STR
+#undef STR_HELPER
 
   // Process the command-line options, including reading in a file.
   [[maybe_unused]] llvm::InitLLVM unused(argc, argv);
@@ -366,9 +374,14 @@ int main(int argc, char **argv) {
   // I have not found a way to change the builtin search paths for a particular
   // tool.  So the workaround involves checking whether
   // `${LLVM_ROOT}/include/c++/v1` exists, and forcing the tool to use it:
-  if (std::filesystem::exists(LLVM_LIBCXX_INCLUDE_DIR)) {
-    clArgs.push_back("-stdlib++-isystem");
-    clArgs.push_back(LLVM_LIBCXX_INCLUDE_DIR);
+  auto libcxxIncludePath = llvmInstallPath / "include" / "c++" / "v1";
+  auto libcxxTargetIncludePath =
+      llvmInstallPath / "include" / LLVM_TARGET_TRIPLE / "c++" / "v1";
+  if (std::filesystem::exists(libcxxIncludePath)) {
+    clArgs.push_back("-isystem");
+    clArgs.push_back(libcxxIncludePath);
+    clArgs.push_back("-isystem");
+    clArgs.push_back(libcxxTargetIncludePath);
   }
 
   // If the cudaq.h does not exist in the installation directory, fallback onto

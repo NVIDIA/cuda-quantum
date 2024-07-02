@@ -36,19 +36,6 @@
   };
 
 namespace cudaq {
-template <typename T>
-using ThrustComplex = thrust::complex<T>;
-
-/// @brief Custom functor for the thrust inner product.
-template <typename T>
-struct AdotConjB
-    : public thrust::binary_function<ThrustComplex<T>, ThrustComplex<T>,
-                                     ThrustComplex<T>> {
-  __host__ __device__ ThrustComplex<T> operator()(ThrustComplex<T> a,
-                                                  ThrustComplex<T> b) {
-    return thrust::abs(a * thrust::conj(b));
-  };
-};
 
 /// @brief CusvState provides an implementation of `SimulationState` that
 /// encapsulates the state data for the Custatevec Circuit Simulator. It
@@ -118,68 +105,6 @@ private:
     return reinterpret_cast<void *>(ptr);
   };
 
-  /// @brief Internal utility method for computing overlap from
-  /// validated pointer. This method combines common code from
-  /// the `overlap(T*,size_t)` overloads.
-  template <typename T>
-  std::complex<double>
-  internalOverlapVectorImpl(const std::vector<std::complex<T>> &other) {
-    // Cast our data pointer to be compatible with Thrust.
-    auto *castedDevicePtr = reinterpret_cast<ThrustComplex<T> *>(devicePtr);
-    thrust::device_ptr<ThrustComplex<T>> thrustDevPtrABegin(castedDevicePtr);
-    thrust::device_ptr<ThrustComplex<T>> thrustDevPtrAEnd(castedDevicePtr +
-                                                          size);
-
-    // Here we explicitly copy the data to the GPU
-    thrust::device_vector<ThrustComplex<T>> otherDevPtr(other);
-    return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                 otherDevPtr.begin(), ThrustComplex<T>(0.0),
-                                 thrust::plus<ThrustComplex<T>>(),
-                                 AdotConjB<T>())
-        .real();
-  }
-
-  /// @brief Internal utility method for computing overlap from
-  /// validated pointer. This method combines common code from
-  std::complex<double> internalOverlapPointerImpl(void *other) {
-    // Cast the data to a Thrust compatible type
-    auto *castedOther = reinterpret_cast<ThrustComplex<ScalarType> *>(other);
-    auto *castedDevicePtr =
-        reinterpret_cast<ThrustComplex<ScalarType> *>(devicePtr);
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrABegin(
-        castedDevicePtr);
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrAEnd(
-        castedDevicePtr + size);
-
-    // Check that the other pointer is on GPU device
-    if (!isDevicePointer(other)) {
-      // here we have to copy the data
-      thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(
-          castedOther, castedOther + size);
-      return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                   otherDevPtr.begin(),
-                                   ThrustComplex<ScalarType>(0.0),
-                                   thrust::plus<ThrustComplex<ScalarType>>(),
-                                   AdotConjB<ScalarType>())
-          .real();
-    }
-
-    // We have two device pointers, make sure they are on the same CUDA device
-    if (deviceFromPointer(devicePtr) != deviceFromPointer(other))
-      throw std::runtime_error("[custatevec-state] overlap requested for "
-                               "device pointers on separate GPU devices.");
-
-    // Compute the overlap
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrBBegin(
-        castedOther);
-    return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                 &thrustDevPtrBBegin[0],
-                                 ThrustComplex<ScalarType>(0.0),
-                                 thrust::plus<ThrustComplex<ScalarType>>(),
-                                 AdotConjB<ScalarType>())
-        .real();
-  }
-
 public:
   CusvState(std::size_t s, void *ptr) : size(s), devicePtr(ptr) {}
   CusvState(std::size_t s, void *ptr, bool owns)
@@ -201,14 +126,6 @@ public:
           "[custatevec-state] overlap error - precision mismatch.");
     }
 
-    // Cast our data pointer to be compatible with Thrust.
-    auto *castedDevicePtr =
-        reinterpret_cast<ThrustComplex<ScalarType> *>(devicePtr);
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrABegin(
-        castedDevicePtr);
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrAEnd(
-        castedDevicePtr + size);
-
     // It could be that the current set Device is not
     // where the data resides.
     int currentDev;
@@ -224,33 +141,19 @@ public:
         throw std::runtime_error(
             "overlap requested for device pointers on separate GPU devices.");
 
-      // other is a device pointer
-      thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrBBegin(
-          reinterpret_cast<ThrustComplex<ScalarType> *>(
-              other.getTensor().data));
-      auto thrustCmplx = thrust::inner_product(
-          thrustDevPtrABegin, thrustDevPtrAEnd, thrustDevPtrBBegin,
-          ThrustComplex<ScalarType>(0.0),
-          thrust::plus<ThrustComplex<ScalarType>>(), AdotConjB<ScalarType>());
-      return {thrustCmplx.real(), thrustCmplx.imag()};
+      auto cmplx = nvqir::innerProduct<ScalarType>(
+          devicePtr, other.getTensor().data, size, false);
+      return std::complex<ScalarType>(cmplx.real, cmplx.imaginary);
+    } else {
+      // If we reach here, then we have to copy the data from host.
+      cudaq::info("[custatevec-state] overlap computation requested with a "
+                  "state that is "
+                  "in host memory. Host data will be copied to GPU.");
+
+      auto cmplx = nvqir::innerProduct<ScalarType>(
+          devicePtr, other.getTensor().data, size, true);
+      return std::complex<ScalarType>(cmplx.real, cmplx.imaginary);
     }
-
-    // If we reach here, then we have to copy the data from host.
-    cudaq::info(
-        "[custatevec-state] overlap computation requested with a state that is "
-        "in host memory. Host data will be copied to GPU.");
-
-    // Cast the other pointer to be compatible with Thrust.
-    auto *castedOtherPtr =
-        reinterpret_cast<std::complex<ScalarType> *>(other.getTensor().data);
-    std::vector<std::complex<ScalarType>> dataAsVec(castedOtherPtr,
-                                                    castedOtherPtr + size);
-    thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(dataAsVec);
-    auto thrustCmplx = thrust::inner_product(
-        thrustDevPtrABegin, thrustDevPtrAEnd, otherDevPtr.begin(),
-        ThrustComplex<ScalarType>(0.0),
-        thrust::plus<ThrustComplex<ScalarType>>(), AdotConjB<ScalarType>());
-    return {thrustCmplx.real(), thrustCmplx.imag()};
   }
 
   std::complex<double>

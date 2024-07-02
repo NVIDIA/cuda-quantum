@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "RestServer.h"
+#include <cxxabi.h>
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -66,6 +67,18 @@ invokeRouteHandler(const cudaq::RestServer::RouteHandler &handler,
     const std::string errorMsg =
         std::string("Unhandled exception encountered: ") + e.what();
     return crow::response(500, errorMsg);
+  } catch (...) {
+    std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
+    auto demangledPtr =
+        __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
+    if (demangledPtr) {
+      std::string demangledName(demangledPtr);
+      const std::string errorMsg =
+          "Unhandled exception of type " + demangledName;
+      return crow::response(500, errorMsg);
+    } else {
+      return crow::response(500, "Unhandled exception of unknown type");
+    }
   }
 }
 
