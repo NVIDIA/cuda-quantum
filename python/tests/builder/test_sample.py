@@ -612,6 +612,29 @@ def test_index_out_of_range():
         result = cudaq.sample(kernel)
 
 
+def test_issue_1218():
+
+    def ghz(n):
+
+        kernel = cudaq.make_kernel()
+        qubits = kernel.qalloc(n)
+        kernel.h(qubits[0])
+
+        for i in range(n):
+            if i + 1 == n:
+                break
+            else:
+                kernel.cx(qubits[i], qubits[i + 1])
+
+        kernel.mz(qubits)
+        return kernel
+
+    counts = cudaq.sample_async(ghz(4), qpu_id=0).get()
+    assert len(counts) == 2
+    assert "0000" in counts
+    assert "1111" in counts
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

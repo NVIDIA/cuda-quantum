@@ -778,6 +778,31 @@ def test_batched_observe_results():
                             tolerance=1e-6)
 
 
+def test_observe():
+    """ Check if the bug reported in  https://github.com/NVIDIA/cuda-quantum/issues/1218 affects 'observe_async'"""
+
+    def kernel_maker(n):
+        kernel, theta = cudaq.make_kernel(float)
+        qreg = kernel.qalloc(n)
+        kernel.x(qreg[0])
+        kernel.ry(theta, qreg[1])
+        kernel.cx(qreg[1], qreg[0])
+
+        return kernel
+
+    # Define its spin Hamiltonian.
+    hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
+                   2.1433 * spin.y(0) * spin.y(1) + 0.21829 * spin.z(0) -
+                   6.125 * spin.z(1))
+
+    expected_energy = -1.748794
+    energy_tol = 0.01
+    future = cudaq.observe_async(kernel_maker(2), hamiltonian, 0.59)
+    res = future.get()
+    print("Energy =", res.expectation())
+    assert abs(res.expectation() - expected_energy) < energy_tol
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

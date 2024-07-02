@@ -48,8 +48,9 @@ for more information on this programming pattern.)#")
 
   mod.def(
       "sample_async",
-      [&](py::object &kernel, py::args args, std::size_t shots,
+      [&](py::object kernel, py::args args, std::size_t shots,
           std::size_t qpu_id) {
+        kernel.inc_ref();
         auto &platform = cudaq::get_platform();
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
@@ -78,8 +79,8 @@ for more information on this programming pattern.)#")
         // Should only have C++ going on here, safe to release the GIL
         py::gil_scoped_release release;
         return cudaq::details::runSamplingAsync(
-            [argData, kernelName, kernelMod, shots,
-             hasQubitMeasurementFeedback]() mutable {
+            [argData, kernelName, kernelMod, shots, hasQubitMeasurementFeedback,
+             &kernel]() mutable {
               static std::size_t localShots = 0;
               pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
               // delete the raw arg data pointer.
@@ -87,6 +88,7 @@ for more information on this programming pattern.)#")
                 if (localShots == shots - 1)
                   delete argData;
                 localShots++;
+                kernel.dec_ref();
               }
             },
             platform, kernelName, shots, qpu_id);
