@@ -6,27 +6,25 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# [Begin Documentation]
+#[Begin Docs]
 import cudaq
 
-qubit_count = 2
 
-
-# Define our kernel.
 @cudaq.kernel
-def kernel(qubit_count: int):
-    # Allocate our qubits.
-    qvector = cudaq.qvector(qubit_count)
-    # Place the first qubit in the superposition state.
-    h(qvector[0])
-    # Loop through the allocated qubits and apply controlled-X,
-    # or CNOT, operations between them.
-    for qubit in range(qubit_count - 1):
-        x.ctrl(qvector[qubit], qvector[qubit + 1])
-    # Measure the qubits.
-    mz(qvector)
-    # [End Documentation]
+def kernel():
+    # A single qubit initialized to the ground/ zero state.
+    qubit = cudaq.qubit()
+
+    # Apply Hadamard gate to single qubit to put it in equal superposition.
+    h(qubit)
+
+    # Measurement operator.
+    mz(qubit)
 
 
-# Just for CI testing:
-test_result = cudaq.sample(kernel, qubit_count, shots_count=1)
+result = cudaq.sample(kernel)
+print("Measured |0> with probability " +
+      str(result["0"] / sum(result.values())))
+print("Measured |1> with probability " +
+      str(result["1"] / sum(result.values())))
+#[End Docs]
