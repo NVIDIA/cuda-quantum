@@ -321,9 +321,17 @@ public:
   LogicalResult
   matchAndRewrite(cudaq::cc::ExtractValueOp extract, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto toTy = getTypeConverter()->convertType(extract.getType());
-    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
-        extract, toTy, adaptor.getContainer(), adaptor.getPosition());
+    if (extract.indicesAreConstant()) {
+      auto toTy = getTypeConverter()->convertType(extract.getType());
+      SmallVector<std::int64_t> position{
+          adaptor.getRawConstantIndices().begin(),
+          adaptor.getRawConstantIndices().end()};
+      rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
+          extract, toTy, adaptor.getAggregate(), position);
+    } else {
+      extract.emitOpError(
+          "nyi: conversion of extract_value with dynamic indices");
+    }
     return success();
   }
 };
