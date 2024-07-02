@@ -8,7 +8,6 @@
 
 #include <cxxabi.h>
 #include <optional>
-
 #include "nlopt.h"
 #include "nlopt.hpp"
 #include <string>
@@ -25,10 +24,10 @@ double nlopt_wrapper_call(const std::vector<double> &x,
   return e->f(x, grad);
 }
 
-// If an exception is thrown by the objective function,
-// then the catches above won't necessarily catch it.
-// In that case, it should be possible to catch it in the
-// user code, so let's simply rethrow it with its original type.
+// If an exception is thrown by the objective function, then the catches 
+// above won't necessarily catch it. In that case, it should be possible 
+// to catch it in the user code, so let's simply rethrow it with its 
+// original type.
 #define CUDAQ_NLOPT_ALGORITHM_IMPL(CLASSNAME, ALGORITHM_NAME)                  \
   CLASSNAME::CLASSNAME() {}                                                    \
   CLASSNAME::~CLASSNAME() {}                                                   \

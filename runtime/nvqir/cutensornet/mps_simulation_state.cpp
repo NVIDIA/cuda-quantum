@@ -489,7 +489,7 @@ MPSSettings::MPSSettings() {
   if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
     const std::string maxBondStr(maxBondEnvVar);
     const char *nptr = maxBondStr.data();
-    char *endptr = NULL;
+    char *endptr = nullptr;
     errno = 0; // reset errno to 0 before call
     maxBond = strtol(nptr, &endptr, 10);
 
@@ -504,7 +504,7 @@ MPSSettings::MPSSettings() {
   if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
     const std::string absCutoffStr(absCutoffEnvVar);
     const char *nptr = absCutoffStr.data();
-    char *endptr = NULL;
+    char *endptr = nullptr;
     errno = 0; // reset errno to 0 before call
     absCutoff = strtod(nptr, &endptr);
 
@@ -518,7 +518,7 @@ MPSSettings::MPSSettings() {
   if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
     const std::string relCutoffStr(relCutoffEnvVar);
     const char *nptr = relCutoffStr.data();
-    char *endptr = NULL;
+    char *endptr = nullptr;
     errno = 0; // reset errno to 0 before call
     relCutoff = strtod(nptr, &endptr);
 
