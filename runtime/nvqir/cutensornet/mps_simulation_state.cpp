@@ -256,9 +256,9 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
     TensorNetState basisTensorNetState(basisState, scratchPad,
                                        state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
-    std::vector<MPSTensor> basisStateTensors =
-        basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
-                                         std::numeric_limits<double>::min());
+    std::vector<MPSTensor> basisStateTensors = basisTensorNetState.factorizeMPS(
+        1, std::numeric_limits<double>::min(),
+        std::numeric_limits<double>::min(), MPSSettings().svdAlgo);
     const auto overlap = computeOverlap(m_mpsTensors, basisStateTensors);
     for (auto &mpsTensor : basisStateTensors) {
       HANDLE_CUDA_ERROR(cudaFree(mpsTensor.deviceData));
@@ -522,6 +522,33 @@ MPSSettings::MPSSettings() {
           relCutoffStr);
 
     cudaq::info("Setting MPS relative cutoff to {}.", relCutoff);
+  }
+  using namespace std::literals::string_view_literals;
+  using SvdPair = std::pair<std::string_view, cutensornetTensorSVDAlgo_t>;
+  constexpr std::array<SvdPair, 4> g_stringToAlgoEnum = {
+      SvdPair{"GESVD"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVD},
+      SvdPair{"GESVDJ"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ},
+      SvdPair{"GESVDP"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDP},
+      SvdPair{"GESVDR"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDR}};
+  if (auto *svdAlgoEnvVar = std::getenv("CUDAQ_MPS_SVD_ALGO")) {
+    std::string svdAlgoStr(svdAlgoEnvVar);
+    std::transform(svdAlgoStr.begin(), svdAlgoStr.end(), svdAlgoStr.begin(),
+                   ::toupper);
+    const auto iter = std::lower_bound(
+        g_stringToAlgoEnum.begin(), g_stringToAlgoEnum.end(), svdAlgoStr,
+        [](const SvdPair &pair, const std::string &key) {
+          return pair.first < key;
+        });
+    if (iter == g_stringToAlgoEnum.end() || iter->first != svdAlgoStr) {
+      std::stringstream errorMsg;
+      errorMsg << "Unknown CUDAQ_MPS_SVD_ALGO value ('" << svdAlgoEnvVar
+               << "').\nValid values are:\n";
+      for (const auto &[configStr, _] : g_stringToAlgoEnum)
+        errorMsg << "  - " << configStr << "\n";
+      throw std::runtime_error(errorMsg.str());
+    }
+    svdAlgo = iter->second;
+    cudaq::info("Setting MPS SVD algorithm to {} ({}).", svdAlgo, iter->first);
   }
 }
 
