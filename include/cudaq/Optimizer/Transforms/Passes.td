@@ -251,6 +251,46 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createLambdaLiftingPass()";
 }
 
+def LiftArrayAlloc : Pass<"lift-to-array-value", "mlir::func::FuncOp"> {
+  let summary = "Convert constant arrays built on the stack to array values";
+  let description = [{
+    The bridge or other passes may generate inline code to build an array of
+    arithmetic types. This construction can involve quite a few CC dialect
+    operations and can "hide" what is really being done in the volume of that
+    code. This pass folds and lifts those memory operations into a constant
+    array value operation.
+
+    Example:
+    ```mlir
+      %cst = arith.constant 5.000000e+00 : f64
+      %cst_0 = arith.constant 6.000000e+00 : f64
+      %cst_1 = arith.constant 7.000000e+00 : f64
+      %cst_2 = arith.constant 8.000000e+00 : f64
+      %0 = cc.alloca !cc.array<f64 x 4>
+      %1 = cc.compute_ptr %0[0] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+      cc.store %cst, %1 : !cc.ptr<f64>
+      %2 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+      cc.store %cst_0, %2 : !cc.ptr<f64>
+      %3 = cc.compute_ptr %0[2] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+      cc.store %cst_1, %3 : !cc.ptr<f64>
+      %4 = cc.compute_ptr %0[3] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+      cc.store %cst_2, %4 : !cc.ptr<f64>
+    ```
+
+    would be converted to
+
+    ```mlir
+      %0 = cc.const_array [5.0, 6.0, 7.0, 8.0] : !cc.array<f64 x 4>
+    ```
+
+    This converts a value in memory SSA form to an SSA value, so additional
+    uses must also be considered. For example, if the array is subsequently
+    updated or escapes the function, it cannot be replaced by a value. If
+    it is elements are accessed in a read-only way, it is a legal transform
+    and will enable further constant folding in other passes.
+  }];
+}
+
 def LinearCtrlRelations : Pass<"linear-ctrl-form", "mlir::func::FuncOp"> {
   let summary = "Removes control type values between quantum ops.";
   let description = [{

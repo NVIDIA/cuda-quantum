@@ -154,7 +154,9 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
       builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
     }
-    Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrEleTy, buffer);
+    auto ptrArrEleTy =
+        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
+    Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrArrEleTy, buffer);
     arrayInMemory = res;
     return res;
   };
@@ -209,7 +211,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
           if (index == cudaq::cc::ComputePtrOp::kDynamicIndex) {
             OpBuilder::InsertionGuard guard(builder);
             builder.setInsertionPoint(elePtrOp);
-            Value getEle = builder.create<cudaq::cc::GetConstantElementOp>(
+            Value getEle = builder.create<cudaq::cc::ExtractValueOp>(
                 elePtrOp.getLoc(), eleTy, conArray,
                 elePtrOp.getDynamicIndices()[0]);
             if (failed(replaceLoads(elePtrOp, getEle))) {

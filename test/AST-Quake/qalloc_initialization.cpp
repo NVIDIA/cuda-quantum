@@ -53,7 +53,7 @@ struct Cherry {
 // CHECK:           %[[VAL_9:.*]] = complex.create %[[VAL_6]], %[[VAL_5]] : complex<f64>
 // CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.array<complex<f64> x 4>
 // CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_10]]
-// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]][0] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_7]], %[[VAL_11]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_10]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_12]] : !cc.ptr<complex<f64>>
@@ -86,7 +86,7 @@ struct MooseTracks {
 // CHECK:           %[[VAL_9:.*]] = complex.create %[[VAL_6]], %[[VAL_5]] : complex<f64>
 // CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.array<complex<f64> x 4>
 // CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_10]]
-// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]][0] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_7]], %[[VAL_11]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_10]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_12]] : !cc.ptr<complex<f64>>
@@ -130,7 +130,7 @@ struct RockyRoad {
 // CHECK:           %[[VAL_17:.*]] = call @_ZStplIdESt7complexIT_ERKS1_RKS2_(%[[VAL_14]], %[[VAL_16]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
 // CHECK:           %[[VAL_18:.*]] = cc.alloca !cc.array<complex<f64> x 4>
 // CHECK:           %[[VAL_24:.*]] = cc.cast %[[VAL_18]]
-// CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_18]][0] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_12]], %[[VAL_19]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_18]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_13]], %[[VAL_20]] : !cc.ptr<complex<f64>>
@@ -229,7 +229,7 @@ __qpu__ auto Strawberry() {
 // CHECK:           %[[VAL_3:.*]] = complex.create %[[VAL_0]], %[[VAL_1]] : complex<f64>
 // CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<complex<f64> x 2>
 // CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_4]]
-// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]][0] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<complex<f64>>
@@ -263,7 +263,7 @@ __qpu__ bool Peppermint() {
 // CHECK:           %[[VAL_3:.*]] = complex.create %[[VAL_0]], %[[VAL_1]] : complex<f64>
 // CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<complex<f64> x 2>
 // CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_4]] :
-// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]][0] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<complex<f64>>

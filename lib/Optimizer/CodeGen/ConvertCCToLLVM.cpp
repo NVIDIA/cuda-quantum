@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CodeGenDialect.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -53,7 +54,8 @@ void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
       return factory::getPointerType(type.getContext());
     eleTy = converter->convertType(eleTy);
     if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
-      // If array has a static size, it becomes an LLVMArrayType.
+      // If array has a static size, it becomes an LLVMArrayType. Otherwise, we
+      // end up here.
       assert(arrTy.isUnknownSize());
       return factory::getPointerType(
           converter->convertType(arrTy.getElementType()));

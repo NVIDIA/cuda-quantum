@@ -22,24 +22,31 @@
 #include "mlir/Interfaces/LoopLikeInterface.h"
 
 namespace cudaq::cc {
-constexpr int kComputePtrConstantBitWidth = 29;
-using ComputePtrConstantIndex =
-    llvm::PointerEmbeddedInt<std::int32_t, kComputePtrConstantBitWidth>;
+constexpr int kInterleavedArgumentConstantBitWidth = 29;
+using InterleavedArgumentConstantIndex =
+    llvm::PointerEmbeddedInt<std::int32_t,
+                             kInterleavedArgumentConstantBitWidth>;
 
 enum class CastOpMode { Signed, Unsigned };
 
 // Allow a mix of values and constants to be passed as arguments to
 // ComputePtrOp's builder.
-class ComputePtrArg
-    : public llvm::PointerUnion<mlir::Value, ComputePtrConstantIndex> {
-  using BaseT = llvm::PointerUnion<mlir::Value, ComputePtrConstantIndex>;
+class InterleavedArgument
+    : public llvm::PointerUnion<mlir::Value, InterleavedArgumentConstantIndex> {
+
+  using BaseT =
+      llvm::PointerUnion<mlir::Value, InterleavedArgumentConstantIndex>;
 
 public:
-  ComputePtrArg(std::int32_t integer) : BaseT(integer) {}
-  ComputePtrArg(mlir::Value value) : BaseT(value) {}
+  InterleavedArgument(std::int32_t integer) : BaseT(integer) {}
+  InterleavedArgument(mlir::Value value) : BaseT(value) {}
 
   using BaseT::operator=;
 };
+
+using ComputePtrArg = InterleavedArgument;
+using ExtractValueArg = InterleavedArgument;
+
 } // namespace cudaq::cc
 
 //===----------------------------------------------------------------------===//
@@ -53,6 +60,9 @@ namespace cudaq::cc {
 
 template <typename A>
 using ComputePtrIndicesAdaptor = mlir::LLVM::GEPIndicesAdaptor<A>;
+
+template <typename A>
+using ExtractValueIndicesAdaptor = mlir::LLVM::GEPIndicesAdaptor<A>;
 
 class RegionBuilderGuard : mlir::OpBuilder::InsertionGuard {
   using Base = mlir::OpBuilder::InsertionGuard;

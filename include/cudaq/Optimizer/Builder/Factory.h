@@ -249,6 +249,12 @@ bool isAArch64(mlir::ModuleOp);
 bool structUsesTwoArguments(mlir::Type ty);
 
 std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
+
+/// Create a `cc.cast` operation, if it is needed.
+mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
+                       mlir::Type toType, mlir::Value fromValue,
+                       bool signExtend = false, bool zeroExtend = false);
+
 } // namespace factory
 } // namespace opt
 } // namespace cudaq

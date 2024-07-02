@@ -53,14 +53,14 @@ public:
 
     // 2. Create the buffer.
     auto i1Ty = rewriter.getI1Type();
+    auto i8Ty = rewriter.getI8Type();
     Value buff =
-        rewriter.template create<cudaq::cc::AllocaOp>(loc, i1Ty, totalToRead);
+        rewriter.template create<cudaq::cc::AllocaOp>(loc, i8Ty, totalToRead);
 
     // 3. Measure each individual qubit and insert the result, in order, into
     // the buffer. For registers/vectors, loop over the entire set of qubits.
     Value buffOff = rewriter.template create<arith::ConstantIntOp>(loc, 0, 64);
     Value one = rewriter.template create<arith::ConstantIntOp>(loc, 1, 64);
-    auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
     auto measTy = quake::MeasureType::get(rewriter.getContext());
     for (auto v : measureOp.getTargets()) {
       if (isa<quake::RefType>(v.getType())) {
@@ -68,8 +68,10 @@ public:
         auto bit =
             rewriter.template create<quake::DiscriminateOp>(loc, i1Ty, meas);
         Value addr = rewriter.template create<cudaq::cc::ComputePtrOp>(
-            loc, i1PtrTy, buff, buffOff);
-        rewriter.template create<cudaq::cc::StoreOp>(loc, bit, addr);
+            loc, cudaq::cc::PointerType::get(i8Ty), buff, buffOff);
+        auto bitByte = rewriter.template create<cudaq::cc::CastOp>(
+            loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
+        rewriter.template create<cudaq::cc::StoreOp>(loc, bitByte, addr);
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
         assert(isa<quake::VeqType>(v.getType()));
@@ -88,8 +90,10 @@ public:
               Value offset =
                   builder.template create<arith::AddIOp>(loc, iv, buffOff);
               auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
-                  loc, i1PtrTy, buff, offset);
-              builder.template create<cudaq::cc::StoreOp>(loc, bit, addr);
+                  loc, cudaq::cc::PointerType::get(i8Ty), buff, offset);
+              auto bitByte = rewriter.template create<cudaq::cc::CastOp>(
+                  loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
+              builder.template create<cudaq::cc::StoreOp>(loc, bitByte, addr);
             });
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, vecSz);
       }
@@ -99,9 +103,14 @@ public:
     // std::vec<bool> value.
     auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), i1Ty);
     for (auto *out : measureOp.getMeasOut().getUsers())
-      if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out))
+      if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
+        auto ptrArrI1Ty =
+            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
+        auto buffCast =
+            rewriter.template create<cudaq::cc::CastOp>(loc, ptrArrI1Ty, buff);
         rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-            disc, stdvecTy, buff, totalToRead);
+            disc, stdvecTy, buffCast, totalToRead);
+      }
 
     rewriter.eraseOp(measureOp);
     return success();
