@@ -17,14 +17,7 @@ namespace cudaq::gradients {
 class forward_difference : public gradient {
 public:
   using gradient::gradient;
-  static constexpr double default_step = 1e-4;
-  double step = default_step;
-
-  forward_difference(double s = default_step) : gradient(), step(s) {}
-
-  virtual std::unique_ptr<cudaq::gradient> clone() override {
-    return std::make_unique<forward_difference>(step);
-  }
+  double step = 1e-4;
 
   /// @brief Compute the `forward_difference` gradient
   void compute(const std::vector<double> &x, std::vector<double> &dx,

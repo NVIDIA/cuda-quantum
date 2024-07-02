@@ -241,17 +241,11 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
   }
 
   auto requires_grad = optimizer.requiresGradients();
-  std::unique_ptr<cudaq::gradient> newGrad;
-  if (requires_grad) {
-    newGrad = gradient.clone();
-    if constexpr (sizeof...(args) > 0)
-      newGrad->setArgs(kernel, args...);
-  }
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     double e = cudaq::observe(kernel, H, x, args...);
     if (requires_grad) {
-      newGrad->compute(x, grad_vec, H, e);
+      gradient.compute(x, grad_vec, H, e);
     }
     return e;
   });

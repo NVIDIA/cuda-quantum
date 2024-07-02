@@ -47,12 +47,6 @@ protected:
     return cudaq::observe(ansatz_functor, h, x);
   }
 
-  /// Copy constructor. Derived classes should implement the clone() method.
-  gradient(const gradient &o) {
-    ansatz_functor = o.ansatz_functor;
-    serializedArgs = o.serializedArgs;
-  }
-
 public:
   /// Constructor, takes the quantum kernel with prescribed signature
   gradient(std::function<void(std::vector<double>)> &&kernel)
@@ -146,9 +140,6 @@ public:
   compute(const std::vector<double> &x,
           const std::function<double(std::vector<double>)> &func,
           double funcAtX) = 0;
-
-  /// Clone the object. Must be implemented by derived classes.
-  virtual std::unique_ptr<cudaq::gradient> clone() = 0;
 
   virtual ~gradient() = default;
 };
