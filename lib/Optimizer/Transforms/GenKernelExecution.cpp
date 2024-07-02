@@ -1353,11 +1353,22 @@ public:
                                     rewriteEntryBlock->getArguments().front(),
                                     dataPtr, vecLen);
         } else {
-          auto size = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
-          Value tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
-          genStdvecTFromInitList(loc, builder,
-                                 rewriteEntryBlock->getArguments().front(),
-                                 dataPtr, tSize, vecLen);
+          if (isa<IntegerType, FloatType>(eleTy)) {
+            auto size = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
+            Value tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+            genStdvecTFromInitList(loc, builder,
+                                   rewriteEntryBlock->getArguments().front(),
+                                   dataPtr, tSize, vecLen);
+          } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+            eleTy = complexTy.getElementType();
+            if (isa<IntegerType, FloatType>(eleTy)) {
+              auto size = ((eleTy.getIntOrFloatBitWidth() + 7) / 8) * 2;
+              Value tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+              genStdvecTFromInitList(loc, builder,
+                                     rewriteEntryBlock->getArguments().front(),
+                                     dataPtr, tSize, vecLen);
+            }
+          }
         }
         offset++;
       } else {
