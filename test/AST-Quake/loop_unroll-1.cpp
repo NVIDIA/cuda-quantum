@@ -23,16 +23,18 @@ struct C {
 // CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
 // CHECK-DAG:       %[[VAL_10:.*]] = quake.alloca !quake.ref
 // CHECK-DAG:       %[[VAL_11:.*]] = quake.mz %[[VAL_10]] name "singleQubit" : (!quake.ref) -> !quake.measure
-// CHECK-DAG:       %[[VAL_4:.*]] = cc.alloca !cc.array<i1 x 2>
+// CHECK-DAG:       %[[VAL_4:.*]] = cc.alloca !cc.array<i8 x 2>
 // CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] name "myRegister%0" : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_10:.*]] = quake.discriminate %[[VAL_6]] :
-// CHECK:           cc.store %[[VAL_10]], %{{.*}} : !cc.ptr<i1>
+// CHECK:           %[[VAL_10:.*]] = quake.discriminate %[[VAL_6]] : {{.*}} -> i1
+// CHECK:           %[[VAL_14:.*]] = cc.cast unsigned %[[VAL_10]]
+// CHECK:           cc.store %[[VAL_14]], %{{.*}} : !cc.ptr<i8>
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_7]] name "myRegister%1" : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[VAL_8]] :
-// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<i1 x 2>>) -> !cc.ptr<i1>
-// CHECK:           cc.store %[[VAL_11]], %[[VAL_9]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_13:.*]] = cc.cast unsigned %[[VAL_11]]
+// CHECK:           cc.store %[[VAL_13]], %[[VAL_9]] : !cc.ptr<i8>
 // CHECK:           return
 // CHECK:         }
 

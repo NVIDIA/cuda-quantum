@@ -547,4 +547,19 @@ bool factory::isStdVecArg(Type type) {
   return true;
 }
 
+Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
+                          Value fromValue, bool signExtend, bool zeroExtend) {
+  if (signExtend && zeroExtend) {
+    emitError(loc, "cannot both sign and zero extend in a cast");
+    return fromValue;
+  }
+  if (fromValue.getType() == toType)
+    return fromValue;
+  auto unit = UnitAttr::get(builder.getContext());
+  UnitAttr none;
+  return builder.create<cudaq::cc::CastOp>(loc, toType, fromValue,
+                                           signExtend ? unit : none,
+                                           zeroExtend ? unit : none);
+}
+
 } // namespace cudaq::opt
