@@ -33,7 +33,7 @@ __qpu__ void g() {
 // CHECK:           %[[VAL_3:.*]] = arith.constant 5.000000e+00 : f64
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<1>
 // CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][0] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_7]] : !cc.ptr<f64>

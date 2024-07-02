@@ -14,8 +14,13 @@ include "mlir/Pass/PassBase.td"
 def QuakeToCC : Pass<"quake-to-cc", "mlir::ModuleOp"> {
   let summary = "Lower Quake to CC.";
   let description = [{
-    Converts Quake to CC. The add-dealloc pass should be run before this pass
+    Converts Quake to CC. The `add-dealloc` pass should be run before this pass
     in order to properly generate deallocations for allocated qubits.
+
+    This is the second of 2 passes to lower quake code to cc code. The
+    `quake-to-cc-prep` pass must be run first. After these passes the code will
+    be in the CC dialect, with calls back to the runtime, specifically the
+    execution manager.
   }];
 
   let dependentDialects = [
@@ -26,7 +31,8 @@ def QuakeToCC : Pass<"quake-to-cc", "mlir::ModuleOp"> {
 def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
   let summary = "Prepare for lowering Quake to CC.";
   let description = [{
-    Do the preparation work on the module.
+    Do the preparation work on the module. This pass must be run before the
+    `quake-to-cc` pass is run.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect"];
@@ -39,6 +45,10 @@ def CCToLLVM : Pass<"cc-to-llvm", "mlir::ModuleOp"> {
     This is the final step before generating LLVM code. It would typically be
     used after `-quake-to-cc` when a simulator is the target.
   }];
+
+  let dependentDialects = [
+    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
+  ];
 }
 
 def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
