@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
+#include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -262,25 +263,38 @@ class ComputePtrOpPattern
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
-  // Convert each cc::ComputePtrOp to an LLVM::GEPOp.
   LogicalResult
-  matchAndRewrite(cudaq::cc::ComputePtrOp cp, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::cc::ComputePtrOp cpOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto operands = adaptor.getOperands();
-    bool dropFirst = false;
-    auto toTy = getTypeConverter()->convertType(cp.getType());
+    auto toTy = getTypeConverter()->convertType(cpOp.getType());
+    // The first operand is the base pointer.
     Value base = operands[0];
-    if (auto ptrTy = dyn_cast<LLVM::LLVMPointerType>(base.getType()))
-      if (auto arrTy = dyn_cast<LLVM::LLVMArrayType>(ptrTy.getElementType())) {
-        // Eliminate intermediate array type. Not needed in LLVM. (NB: for some
-        // element types, the executable will crash.)
-        auto ty = cudaq::opt::factory::getPointerType(arrTy.getElementType());
-        base = rewriter.create<LLVM::BitcastOp>(cp.getLoc(), ty, base);
-      }
-    auto gepOpnds = interleaveConstantsAndOperands(
-        operands.drop_front(),
-        cp.getRawConstantIndices().drop_front(dropFirst ? 1 : 0));
-    rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cp, toTy, base, gepOpnds);
+    if (cpOp.llvmNormalForm()) {
+      // In this case, the `cc.compute_ptr` has already been converted such that
+      // it corresponds 1:1 with the C-like semantics of LLVM's getelementptr
+      // operation. Specifically, a pointer to a scalar type is overloaded to
+      // possibly be the same as a pointer to an array with unknown bound.
+      // All operands except the first are indices.
+      auto newOpnds = interleaveConstantsAndOperands(
+          operands.drop_front(), cpOp.getRawConstantIndices());
+      // Rewrite the ComputePtrOp as a LLVM::GEPOp.
+      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cpOp, toTy, base, newOpnds);
+    } else {
+      // If the `cc.compute_ptr` operation has a base argument that is not in
+      // LLVM normal form, we implicitly assume that pointer's element type
+      // should have been an `cc.array<T x ?>` instead of `T`. We therefore add
+      // an explicit `0` as the first index. This converts the strong semantics
+      // of `cc.compute_ptr` (which does not allow indexing out of bounds in
+      // objects) to the weaker semantics of C/LLVM, which do implicitly allow
+      // freely indexing out of bounds.
+      SmallVector<std::int32_t> constIndices = {0};
+      constIndices.append(cpOp.getRawConstantIndices().begin(),
+                          cpOp.getRawConstantIndices().end());
+      auto newOpnds =
+          interleaveConstantsAndOperands(operands.drop_front(), constIndices);
+      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cpOp, toTy, base, newOpnds);
+    }
     return success();
   }
 
@@ -307,9 +321,17 @@ public:
   LogicalResult
   matchAndRewrite(cudaq::cc::ExtractValueOp extract, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto toTy = getTypeConverter()->convertType(extract.getType());
-    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
-        extract, toTy, adaptor.getContainer(), adaptor.getPosition());
+    if (extract.indicesAreConstant()) {
+      auto toTy = getTypeConverter()->convertType(extract.getType());
+      SmallVector<std::int64_t> position{
+          adaptor.getRawConstantIndices().begin(),
+          adaptor.getRawConstantIndices().end()};
+      rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
+          extract, toTy, adaptor.getAggregate(), position);
+    } else {
+      extract.emitOpError(
+          "nyi: conversion of extract_value with dynamic indices");
+    }
     return success();
   }
 };
@@ -463,7 +485,8 @@ public:
     // TODO: replace this with some target-specific memory layout computation
     // when we upgrade to a newer MLIR.
     auto zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto ptrTy = cudaq::cc::PointerType::get(inputTy);
+    auto ptrTy =
+        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(inputTy));
     auto nullCast = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
     Value nextPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
         loc, ptrTy, nullCast, ArrayRef<cudaq::cc::ComputePtrArg>{1});

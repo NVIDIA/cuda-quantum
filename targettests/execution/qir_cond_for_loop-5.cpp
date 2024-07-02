@@ -9,9 +9,6 @@
 // clang-format off
 // RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
-// XFAIL: *
-// ^^^^^ This probably needs an issue posted. It's not setting qubitMeasurementFeedback.
-//       It passes on H1-1E but not --emulate
 // clang-format on
 
 #include <cudaq.h>

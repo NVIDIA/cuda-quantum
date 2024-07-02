@@ -8,6 +8,7 @@
 
 #include "CodeGenOps.h"
 #include "PassDetails.h"
+#include "QuakeToCodegen.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -46,39 +47,15 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-namespace {
-//===----------------------------------------------------------------------===//
-// Code generation: converts the Quake IR to Codegen IR.
-//===----------------------------------------------------------------------===//
-
-class CodeGenRAIIPattern : public OpRewritePattern<quake::InitializeStateOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(quake::InitializeStateOp init,
-                                PatternRewriter &rewriter) const override {
-    Value mem = init.getTargets();
-    auto alloc = mem.getDefiningOp<quake::AllocaOp>();
-    if (!alloc)
-      return init.emitOpError("init_state must have alloca as input");
-    rewriter.replaceOpWithNewOp<cudaq::codegen::RAIIOp>(
-        init, init.getType(), init.getState(),
-        cast<cudaq::cc::PointerType>(init.getState().getType())
-            .getElementType(),
-        alloc.getType(), alloc.getSize());
-    rewriter.eraseOp(alloc);
-    return success();
-  }
-};
-} // namespace
-
 /// Greedy pass to match subgraphs in the IR and replace them with codegen ops.
 /// This step makes converting a DAG of nodes in the conversion step simpler.
 static LogicalResult fuseSubgraphPatterns(MLIRContext *ctx, ModuleOp module) {
   RewritePatternSet patterns(ctx);
-  patterns.insert<CodeGenRAIIPattern>(ctx);
+  cudaq::codegen::populateQuakeToCodegenPatterns(patterns);
+  LLVM_DEBUG(llvm::dbgs() << "Before codegen dialect:\n"; module.dump());
   if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
     return failure();
+  LLVM_DEBUG(llvm::dbgs() << "After codegen dialect:\n"; module.dump());
   return success();
 }
 
@@ -204,11 +181,13 @@ public:
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
 
-    if (failed(
-            applyFullConversion(getOperation(), target, std::move(patterns)))) {
+    auto op = getOperation();
+    LLVM_DEBUG(llvm::dbgs() << "Before conversion to QIR:\n"; op.dump());
+    if (failed(applyFullConversion(op, target, std::move(patterns)))) {
       LLVM_DEBUG(getOperation().dump());
       signalPassFailure();
     }
+    LLVM_DEBUG(llvm::dbgs() << "After conversion to QIR:\n"; op.dump());
   }
 };
 
