@@ -505,8 +505,8 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   registerLLVMDialectTranslation(*context);
 
   PassManager pm(context);
-  pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs));
+  pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
