@@ -49,7 +49,7 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
       getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
 
   if (!isa_and_nonnull<func::FuncOp, GlobalOp, LLVM::GlobalOp>(op))
-    return emitOpError("must reference a global defined by 'func.func'");
+    return emitOpError("must reference a global");
   return success();
 }
 
@@ -228,17 +228,18 @@ void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
-// ComputePtrOp
+// Support for operations with interleaved indices.
 //===----------------------------------------------------------------------===//
 
-static ParseResult
-parseComputePtrIndices(OpAsmParser &parser,
-                       SmallVectorImpl<OpAsmParser::UnresolvedOperand> &indices,
-                       DenseI32ArrayAttr &rawConstantIndices) {
-  SmallVector<int32_t> constantIndices;
+template <typename A>
+ParseResult parseInterleavedIndices(
+    OpAsmParser &parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &indices,
+    DenseI32ArrayAttr &rawConstantIndices) {
+  SmallVector<std::int32_t> constantIndices;
 
   auto idxParser = [&]() -> ParseResult {
-    int32_t constantIndex;
+    std::int32_t constantIndex;
     OptionalParseResult parsedInteger =
         parser.parseOptionalInteger(constantIndex);
     if (parsedInteger.has_value()) {
@@ -248,7 +249,7 @@ parseComputePtrIndices(OpAsmParser &parser,
       return success();
     }
 
-    constantIndices.push_back(LLVM::GEPOp::kDynamicIndex);
+    constantIndices.push_back(A::kDynamicIndex);
     return parser.parseOperand(indices.emplace_back());
   };
   if (parser.parseCommaSeparatedList(idxParser))
@@ -259,18 +260,77 @@ parseComputePtrIndices(OpAsmParser &parser,
   return success();
 }
 
-static void printComputePtrIndices(OpAsmPrinter &printer,
-                                   cudaq::cc::ComputePtrOp computePtrOp,
-                                   OperandRange indices,
-                                   DenseI32ArrayAttr rawConstantIndices) {
-  llvm::interleaveComma(cudaq::cc::ComputePtrIndicesAdaptor<OperandRange>(
-                            rawConstantIndices, indices),
-                        printer, [&](PointerUnion<IntegerAttr, Value> cst) {
+template <typename Adaptor, typename B>
+void printInterleavedIndices(OpAsmPrinter &printer, B computePtrOp,
+                             OperandRange indices,
+                             DenseI32ArrayAttr rawConstantIndices) {
+  llvm::interleaveComma(Adaptor{rawConstantIndices, indices}, printer,
+                        [&](PointerUnion<IntegerAttr, Value> cst) {
                           if (Value val = cst.dyn_cast<Value>())
                             printer.printOperand(val);
                           else
                             printer << cst.get<IntegerAttr>().getInt();
                         });
+}
+
+//===----------------------------------------------------------------------===//
+// ComputePtrOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::ComputePtrOp::verify() {
+  auto basePtrTy = cast<cc::PointerType>(getBase().getType());
+  Type eleTy = basePtrTy.getElementType();
+  auto resultTy = cast<cc::PointerType>(getResult().getType());
+  for (std::int32_t i : getRawConstantIndices()) {
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
+      if (i != kDynamicIndex && !arrTy.isUnknownSize() && i > arrTy.getSize()) {
+        // Note: allow indexing of last element + 1 so we can compute a
+        // pointer to `end()` of a stdvec buffer. Consider adding a flag
+        // to cc.compute_ptr explicitly for this or using casts.
+        return emitOpError("array cannot index out of bounds elements");
+      }
+      eleTy = arrTy.getElementType();
+    } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
+      if (i == kDynamicIndex)
+        return emitOpError("struct cannot have non-constant index");
+      if (static_cast<std::size_t>(i) >= strTy.getMembers().size())
+        return emitOpError("struct cannot index out of bounds members");
+      eleTy = strTy.getMember(i);
+    } else {
+      return emitOpError("too many indices (" +
+                         std::to_string(getRawConstantIndices().size()) +
+                         ") for the source pointer");
+    }
+  }
+  if (eleTy != resultTy.getElementType())
+    return emitOpError("result type does not match input");
+  return success();
+}
+
+// Is this `cc.compute_ptr` in LLVM normal form?
+// To be in LLVM normal form, the base object must have a type of
+// `!cc.ptr<!cc.array<T x ?>>`, which corresponds 1:1 with LLVM's GEP semantics.
+bool cudaq::cc::ComputePtrOp::llvmNormalForm() {
+  if (auto ptrTy = dyn_cast<PointerType>(getBase().getType()))
+    if (auto arrTy = dyn_cast<ArrayType>(ptrTy.getElementType()))
+      return arrTy.isUnknownSize();
+  return false;
+}
+
+static ParseResult
+parseComputePtrIndices(OpAsmParser &parser,
+                       SmallVectorImpl<OpAsmParser::UnresolvedOperand> &indices,
+                       DenseI32ArrayAttr &rawConstantIndices) {
+  return parseInterleavedIndices<cudaq::cc::ComputePtrOp>(parser, indices,
+                                                          rawConstantIndices);
+}
+
+static void printComputePtrIndices(OpAsmPrinter &printer,
+                                   cudaq::cc::ComputePtrOp computePtrOp,
+                                   OperandRange indices,
+                                   DenseI32ArrayAttr rawConstantIndices) {
+  printInterleavedIndices<cudaq::cc::ComputePtrIndicesAdaptor<OperandRange>>(
+      printer, computePtrOp, indices, rawConstantIndices);
 }
 
 void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
@@ -281,17 +341,17 @@ void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
         SmallVector<ComputePtrArg>(indices), attrs);
 }
 
-static void
-destructureIndices(Type currType, ArrayRef<cudaq::cc::ComputePtrArg> indices,
-                   SmallVectorImpl<std::int32_t> &rawConstantIndices,
-                   SmallVectorImpl<Value> &dynamicIndices) {
-  for (const cudaq::cc::ComputePtrArg &iter : indices) {
-    if (Value val = iter.dyn_cast<Value>()) {
-      rawConstantIndices.push_back(cudaq::cc::ComputePtrOp::kDynamicIndex);
+template <typename A, typename B>
+void destructureIndices(Type currType, ArrayRef<B> indices,
+                        SmallVectorImpl<std::int32_t> &rawConstantIndices,
+                        SmallVectorImpl<Value> &dynamicIndices) {
+  for (const B &iter : indices) {
+    if (Value val = iter.template dyn_cast<Value>()) {
+      rawConstantIndices.push_back(A::kDynamicIndex);
       dynamicIndices.push_back(val);
     } else {
       rawConstantIndices.push_back(
-          iter.get<cudaq::cc::ComputePtrConstantIndex>());
+          iter.template get<cudaq::cc::InterleavedArgumentConstantIndex>());
     }
 
     currType =
@@ -300,7 +360,7 @@ destructureIndices(Type currType, ArrayRef<cudaq::cc::ComputePtrArg> indices,
               return containerType.getElementType();
             })
             .Case([&](cudaq::cc::StructType structType) -> Type {
-              int64_t memberIndex = rawConstantIndices.back();
+              auto memberIndex = rawConstantIndices.back();
               if (memberIndex >= 0 && static_cast<std::size_t>(memberIndex) <
                                           structType.getMembers().size())
                 return structType.getMembers()[memberIndex];
@@ -314,10 +374,11 @@ void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
                                     Type resultType, Value basePtr,
                                     ArrayRef<ComputePtrArg> cpArgs,
                                     ArrayRef<NamedAttribute> attrs) {
-  SmallVector<int32_t> rawConstantIndices;
+  SmallVector<std::int32_t> rawConstantIndices;
   SmallVector<Value> dynamicIndices;
   Type elementType = cast<cc::PointerType>(basePtr.getType()).getElementType();
-  destructureIndices(elementType, cpArgs, rawConstantIndices, dynamicIndices);
+  destructureIndices<cudaq::cc::ComputePtrOp>(
+      elementType, cpArgs, rawConstantIndices, dynamicIndices);
 
   result.addTypes(resultType);
   result.addAttributes(attrs);
@@ -330,30 +391,37 @@ void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
 OpFoldResult cudaq::cc::ComputePtrOp::fold(FoldAdaptor adaptor) {
   if (getDynamicIndices().empty())
     return nullptr;
-  SmallVector<std::tuple<Attribute, std::int32_t>> pairs;
-  auto params = adaptor.getOperands();
-  for (auto p : llvm::zip(params.drop_front(), getRawConstantIndices()))
-    pairs.push_back(p);
-  auto dynIter = getDynamicIndices().begin();
-  SmallVector<int32_t> newConstantIndices;
+  // Params is a list of possible substitutions (Attributes) the length of the
+  // SSA arguments. Skip the first one, which is the base pointer argument.
+  auto paramIter = adaptor.getOperands().begin();
+  ++paramIter;
+
+  auto dynamicIndexIter = getDynamicIndices().begin();
+  SmallVector<std::int32_t> newConstantIndices;
   SmallVector<Value> newIndices;
   bool changed = false;
-  for (auto [paramAttr, index] : pairs) {
-    if (index == kDynamicIndex) {
-      std::int32_t newVal;
-      if (paramAttr) {
-        newVal = cast<IntegerAttr>(paramAttr).getInt();
-        changed = true;
-      } else {
-        newVal = index;
-        newIndices.push_back(*dynIter);
-      }
-      newConstantIndices.push_back(newVal);
-      dynIter++;
-    } else {
+
+  // Build lists of raw constants and SSA values with the SSA values that have
+  // substituions omitted and properly interleaved in as constants in the first
+  // list.
+  for (auto index : getRawConstantIndices()) {
+    if (index != kDynamicIndex) {
       newConstantIndices.push_back(index);
+      continue;
     }
+    if (auto newVal = dyn_cast_if_present<IntegerAttr>(*paramIter)) {
+      newConstantIndices.push_back(newVal.getInt());
+      changed = true;
+    } else {
+      newConstantIndices.push_back(kDynamicIndex);
+      newIndices.push_back(*dynamicIndexIter);
+    }
+    ++dynamicIndexIter;
+    ++paramIter;
   }
+
+  // If any new constants were found, update the cc.compute_ptr in place, adding
+  // the new constants and dropping any unneeded SSA arguments on the floor.
   if (changed) {
     assert(newConstantIndices.size() == getRawConstantIndices().size());
     assert(newIndices.size() < getDynamicIndices().size());
@@ -365,7 +433,8 @@ OpFoldResult cudaq::cc::ComputePtrOp::fold(FoldAdaptor adaptor) {
 }
 
 namespace {
-// Address arithmetic for pointers to arrays is additive.
+/// If two (or more) `cc.compute_ptr` are chained then they can be fused into a
+/// single `cc.compute_ptr`.
 struct FuseAddressArithmetic
     : public OpRewritePattern<cudaq::cc::ComputePtrOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -373,75 +442,108 @@ struct FuseAddressArithmetic
   LogicalResult matchAndRewrite(cudaq::cc::ComputePtrOp ptrOp,
                                 PatternRewriter &rewriter) const override {
     auto base = ptrOp.getBase();
-    auto checkIsPtrToArr = [&](Type ty) -> bool {
-      auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty);
-      if (!ptrTy)
-        return false;
-      return true; // isa<cudaq::cc::ArrayType>(ptrTy.getElementType());
-    };
-    if (!checkIsPtrToArr(base.getType()))
+    if (auto prev = base.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+      // %prev = cc.compute_ptr %pb[<pargs>] : (!ptr<U>, Ts) -> !ptr<V>
+      // %this = cc.compute_ptr %prev[<targs>] : (!ptr<V>, Ss) -> !ptr<W>
+      // ────────────────────────────────────────────────────────────────
+      // %prev = <left as is>
+      // %this' = cc.compute_ptr %pb[<pargs>, <targs>] :
+      //                                      (!ptr<U>, Ts Ss) -> !ptr<W>
+      auto newBase = prev.getBase();
+      SmallVector<Value> newDynamics = prev.getDynamicIndices();
+      newDynamics.append(ptrOp.getDynamicIndices().begin(),
+                         ptrOp.getDynamicIndices().end());
+      SmallVector<std::int32_t> newConstants{
+          prev.getRawConstantIndices().begin(),
+          prev.getRawConstantIndices().end()};
+      newConstants.append(ptrOp.getRawConstantIndices().begin(),
+                          ptrOp.getRawConstantIndices().end());
+      rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+          ptrOp, ptrOp.getType(), newBase, newDynamics, newConstants);
       return success();
-    if (auto origPtr =
-            ptrOp.getBase().getDefiningOp<cudaq::cc::ComputePtrOp>()) {
-      if (!checkIsPtrToArr(origPtr.getBase().getType()))
-        return success();
-      if (ptrOp.getRawConstantIndices().size() != 1 ||
-          origPtr.getRawConstantIndices().size() != 1)
-        return success();
-      auto myOffset = ptrOp.getRawConstantIndices()[0];
-      auto inOffset = origPtr.getRawConstantIndices()[0];
-      auto extractConstant = [&](cudaq::cc::ComputePtrOp thisOp,
-                                 std::int64_t othOffset) -> Value {
-        auto v1 = thisOp.getDynamicIndices()[0];
-        auto v1Ty = v1.getType();
-        auto offAttr = IntegerAttr::get(v1Ty, othOffset);
-        auto loc = thisOp.getLoc();
-        auto newOff = rewriter.create<arith::ConstantOp>(loc, offAttr, v1Ty);
-        return rewriter.create<arith::AddIOp>(loc, newOff, v1);
-      };
-      if (myOffset == cudaq::cc::ComputePtrOp::kDynamicIndex) {
-        if (inOffset == cudaq::cc::ComputePtrOp::kDynamicIndex) {
-          Value sum = rewriter.create<arith::AddIOp>(
-              ptrOp.getLoc(), ptrOp.getDynamicIndices()[0],
-              origPtr.getDynamicIndices()[0]);
+    }
+
+    // We always favor the more restricted array type over an open array type.
+    // Consider tagged the compute_ptr so a less restrictive correctness check
+    // might be made.
+    if (auto cast = base.getDefiningOp<cudaq::cc::CastOp>()) {
+      // %cast = cc.cast %p : (!ptr<array<U x n>>) -> !ptr<array<U x ?>>
+      // %this = cc.compute_ptr %cast[<targs>] : (!ptr<U x ?>, Ts) -> !ptr<V>
+      // ────────────────────────────────────────────────────────────────────
+      // %cast = <left as is>
+      // %this' = cc.compute_ptr %p[<targs>] : (!ptr<U x n>, Ts) -> !ptr<V>
+      auto fromTy = dyn_cast<cudaq::cc::PointerType>(cast.getValue().getType());
+      auto toTy = dyn_cast<cudaq::cc::PointerType>(cast.getType());
+      if (fromTy && toTy) {
+        auto fromArrTy =
+            dyn_cast<cudaq::cc::ArrayType>(fromTy.getElementType());
+        auto toArrTy = dyn_cast<cudaq::cc::ArrayType>(toTy.getElementType());
+        if (fromArrTy && toArrTy &&
+            fromArrTy.getElementType() == toArrTy.getElementType() &&
+            !fromArrTy.isUnknownSize() && toArrTy.isUnknownSize()) {
           rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
-              ptrOp, ptrOp.getType(), origPtr.getBase(),
-              ArrayRef<cudaq::cc::ComputePtrArg>{sum});
+              ptrOp, ptrOp.getType(), cast.getValue(),
+              ptrOp.getDynamicIndices(), ptrOp.getRawConstantIndices());
           return success();
         }
-        auto sum = extractConstant(ptrOp, inOffset);
-        rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
-            ptrOp, ptrOp.getType(), origPtr.getBase(),
-            ArrayRef<cudaq::cc::ComputePtrArg>{sum});
+      }
+    }
+
+    if (ptrOp.getRawConstantIndices().empty()) {
+      // This is a degenerate form and really a cast.
+      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(ptrOp, ptrOp.getType(),
+                                                     ptrOp.getBase());
+      return success();
+    }
+
+    if (ptrOp.getDynamicIndices().empty()) {
+      bool allZeros = true;
+      for (std::int32_t i : ptrOp.getRawConstantIndices())
+        if (i != 0) {
+          allZeros = false;
+          break;
+        }
+      if (allZeros) {
+        // This is really a cast. Replace it with a cast.
+        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(ptrOp, ptrOp.getType(),
+                                                       ptrOp.getBase());
         return success();
       }
-      if (inOffset == cudaq::cc::ComputePtrOp::kDynamicIndex) {
-        auto sum = extractConstant(origPtr, myOffset);
-        rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
-            ptrOp, ptrOp.getType(), origPtr.getBase(),
-            ArrayRef<cudaq::cc::ComputePtrArg>{sum});
-        return success();
-      }
-      rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
-          ptrOp, ptrOp.getType(), origPtr.getBase(),
-          ArrayRef<cudaq::cc::ComputePtrArg>{myOffset + inOffset});
-    } else if (auto castOp =
-                   ptrOp.getBase().getDefiningOp<cudaq::cc::CastOp>()) {
-      if (auto castFromPtrTy =
-              dyn_cast<cudaq::cc::PointerType>(castOp.getValue().getType()))
-        if (auto castFromArrTy =
-                dyn_cast<cudaq::cc::ArrayType>(castFromPtrTy.getElementType()))
-          if (auto castToPtrTy =
-                  dyn_cast<cudaq::cc::PointerType>(castOp.getType()))
-            if (auto castToArrTy = dyn_cast<cudaq::cc::ArrayType>(
-                    castToPtrTy.getElementType()))
-              if (!castFromArrTy.isUnknownSize() &&
-                  castToArrTy.isUnknownSize()) {
-                rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
-                    ptrOp, ptrOp.getType(), castOp.getValue(),
-                    ptrOp.getDynamicIndices(), ptrOp.getRawConstantIndices());
-                return success();
-              }
+    }
+
+    if (ptrOp.llvmNormalForm() && ptrOp.getRawConstantIndices()[0] == 0) {
+      // This is in LLVM normal form. Simplify it using the following rule.
+      //
+      // %8 = cc.compute_ptr %7[0, ...] :
+      //                    (!cc.ptr<!cc.array<T x ?>, ...) -> !cc.ptr<U>
+      // ────────────────────────────────────────────────────────────────
+      // %new = cc.cast %7 : (!cc.ptr<!cc.array<T x ?>) -> !cc.ptr<T>
+      // %8 = cc.compute_ptr %new[...] : (!cc.ptr<T>, ...) -> !cc.ptr<U>
+
+      // We want to avoid expanding the code and adding more casts.
+      if (auto castOp = ptrOp.getBase().getDefiningOp<cudaq::cc::CastOp>())
+        if (isa<cudaq::cc::PointerType>(castOp.getValue().getType())) {
+          auto ptrTy = cast<cudaq::cc::PointerType>(ptrOp.getBase().getType());
+          auto eleTy = cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
+          auto subTy = eleTy.getElementType();
+          auto simpleTy = cudaq::cc::PointerType::get(subTy);
+          auto simple = rewriter.create<cudaq::cc::CastOp>(
+              ptrOp.getLoc(), simpleTy, ptrOp.getBase());
+
+          // Collect indices.
+          auto iter = ptrOp.getDynamicIndices().begin();
+          SmallVector<cudaq::cc::ComputePtrArg> indices;
+          for (auto i : ptrOp.getRawConstantIndices().drop_front(1)) {
+            if (i == cudaq::cc::ComputePtrOp::getDynamicIndexValue())
+              indices.push_back(*iter++);
+            else
+              indices.push_back(i);
+          }
+
+          rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+              ptrOp, ptrOp.getType(), simple, indices);
+          return success();
+        }
     }
     return success();
   }
@@ -454,44 +556,192 @@ void cudaq::cc::ComputePtrOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// GetConstantElementOp
+// ExtractValueOp
 //===----------------------------------------------------------------------===//
 
-// If this operation has a constant offset, then the value can be looked up in
-// the constant array and used as a scalar value directly.
-OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
-  auto params = adaptor.getOperands();
-  if (params.size() < 2)
-    return nullptr;
-  auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1]);
-  if (!intAttr)
-    return nullptr;
-  auto offset = intAttr.getInt();
-  auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
-  if (!conArr)
-    return nullptr;
-  cc::ArrayType arrTy = conArr.getType();
-  if (arrTy.isUnknownSize())
-    return nullptr;
-  auto eleTy = arrTy.getElementType();
-  auto arrSize = arrTy.getSize();
-  OpBuilder builder(getContext());
-  builder.setInsertionPoint(getOperation());
-  auto loc = getLoc();
-  if (offset < arrSize) {
-    if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
-      auto floatConstVal =
-          cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
-      return builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy)
-          .getResult();
-    }
-    auto intConstVal =
-        cast<IntegerAttr>(conArr.getConstantValues()[offset]).getInt();
-    auto intTy = cast<IntegerType>(eleTy);
-    return builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy)
-        .getResult();
+// Recursively determine if \p ty1 and \p ty2 are compatible. Ordinarily we can
+// use type equality, but for StructType we may have a named and unnamed struct
+// that are equivalent structurally.
+static bool isCompatible(Type ty1, Type ty2) {
+  if (ty1 == ty2)
+    return true;
+  auto sty1 = dyn_cast<cudaq::cc::StructType>(ty1);
+  auto sty2 = dyn_cast<cudaq::cc::StructType>(ty2);
+  if (sty1 && sty2) {
+    if (sty1.getMembers().size() != sty2.getMembers().size() ||
+        sty1.getPacked() != sty2.getPacked())
+      return false;
+    for (auto [a, b] : llvm::zip(sty1.getMembers(), sty2.getMembers()))
+      if (!isCompatible(a, b))
+        return false;
+    return true;
   }
-  return builder.create<cc::PoisonOp>(loc, eleTy).getResult();
+  return false;
+}
+
+LogicalResult cudaq::cc::ExtractValueOp::verify() {
+  Type eleTy = getAggregate().getType();
+  auto resultTy = getResult().getType();
+  for (std::int32_t i : getRawConstantIndices()) {
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
+      if (arrTy.isUnknownSize())
+        return emitOpError("array must have constant size");
+      if (i != kDynamicIndex && i >= arrTy.getSize())
+        return emitOpError("array cannot index out of bounds elements");
+      eleTy = arrTy.getElementType();
+    } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
+      if (i == kDynamicIndex)
+        return emitOpError("struct cannot have non-constant index");
+      if (static_cast<std::size_t>(i) >= strTy.getMembers().size())
+        return emitOpError("struct cannot index out of bounds members");
+      eleTy = strTy.getMember(i);
+    } else {
+      return emitOpError("too many indices (" +
+                         std::to_string(getRawConstantIndices().size()) +
+                         ") for the source pointer");
+    }
+  }
+  if (!isCompatible(eleTy, resultTy))
+    return emitOpError("result type does not match input");
+  return success();
+}
+
+OpFoldResult cudaq::cc::ExtractValueOp::fold(FoldAdaptor adaptor) {
+  if (indicesAreConstant())
+    return nullptr;
+
+  // Params is a list of possible substitutions (Attributes) the length of the
+  // SSA arguments. Skip the first one, which is the base pointer argument.
+  auto paramIter = adaptor.getOperands().begin();
+  ++paramIter;
+
+  auto dynamicIndexIter = getDynamicIndices().begin();
+  SmallVector<std::int32_t> newConstantIndices;
+  SmallVector<Value> newIndices;
+  bool changed = false;
+
+  // Build lists of raw constants and SSA values with the SSA values that have
+  // substituions omitted and properly interleaved in as constants in the first
+  // list.
+  for (auto index : getRawConstantIndices()) {
+    if (index != kDynamicIndex) {
+      newConstantIndices.push_back(index);
+      continue;
+    }
+    if (auto newVal = dyn_cast_if_present<IntegerAttr>(*paramIter)) {
+      newConstantIndices.push_back(newVal.getInt());
+      changed = true;
+    } else {
+      newConstantIndices.push_back(kDynamicIndex);
+      newIndices.push_back(*dynamicIndexIter);
+    }
+    ++dynamicIndexIter;
+    ++paramIter;
+  }
+
+  // If any new constants were found, update the cc.compute_ptr in place, adding
+  // the new constants and dropping any unneeded SSA arguments on the floor.
+  if (changed) {
+    assert(newConstantIndices.size() == getRawConstantIndices().size());
+    assert(newIndices.size() < getDynamicIndices().size());
+    getDynamicIndicesMutable().assign(newIndices);
+    setRawConstantIndices(newConstantIndices);
+    return Value{*this};
+  }
+  return nullptr;
+}
+
+static ParseResult parseExtractValueIndices(
+    OpAsmParser &parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &indices,
+    DenseI32ArrayAttr &rawConstantIndices) {
+  return parseInterleavedIndices<cudaq::cc::ExtractValueOp>(parser, indices,
+                                                            rawConstantIndices);
+}
+
+static void printExtractValueIndices(OpAsmPrinter &printer,
+                                     cudaq::cc::ExtractValueOp extractValueOp,
+                                     OperandRange indices,
+                                     DenseI32ArrayAttr rawConstantIndices) {
+  printInterleavedIndices<cudaq::cc::ExtractValueIndicesAdaptor<OperandRange>>(
+      printer, extractValueOp, indices, rawConstantIndices);
+}
+
+void cudaq::cc::ExtractValueOp::build(OpBuilder &builder,
+                                      OperationState &result, Type resultType,
+                                      Value aggregate,
+                                      ArrayRef<ExtractValueArg> indices,
+                                      ArrayRef<NamedAttribute> attrs) {
+  SmallVector<std::int32_t> rawConstantIndices;
+  SmallVector<Value> dynamicIndices;
+  Type elementType = aggregate.getType();
+  destructureIndices<cudaq::cc::ExtractValueOp>(
+      elementType, indices, rawConstantIndices, dynamicIndices);
+
+  result.addTypes(resultType);
+  result.addAttributes(attrs);
+  result.addAttribute(getRawConstantIndicesAttrName(result.name),
+                      builder.getDenseI32ArrayAttr(rawConstantIndices));
+  result.addOperands(aggregate);
+  result.addOperands(dynamicIndices);
+}
+void cudaq::cc::ExtractValueOp::build(OpBuilder &builder,
+                                      OperationState &result, Type resultType,
+                                      Value aggregate, ValueRange indices,
+                                      ArrayRef<NamedAttribute> attrs) {
+  SmallVector<ExtractValueArg> args{indices.begin(), indices.end()};
+  build(builder, result, resultType, aggregate, args, attrs);
+}
+void cudaq::cc::ExtractValueOp::build(OpBuilder &builder,
+                                      OperationState &result, Type resultType,
+                                      Value aggregate, std::int32_t index,
+                                      ArrayRef<NamedAttribute> attrs) {
+  build(builder, result, resultType, aggregate,
+        ArrayRef<ExtractValueArg>{index}, attrs);
+}
+void cudaq::cc::ExtractValueOp::build(OpBuilder &builder,
+                                      OperationState &result, Type resultType,
+                                      Value aggregate, Value index,
+                                      ArrayRef<NamedAttribute> attrs) {
+  build(builder, result, resultType, aggregate, ValueRange{index}, attrs);
+}
+
+namespace {
+struct FuseWithConstantArray
+    : public OpRewritePattern<cudaq::cc::ExtractValueOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::ExtractValueOp extval,
+                                PatternRewriter &rewriter) const override {
+    if (auto conarr =
+            extval.getAggregate().getDefiningOp<cudaq::cc::ConstantArrayOp>())
+      if (extval.indicesAreConstant() &&
+          extval.getRawConstantIndices().size() == 1) {
+        if (auto intTy = dyn_cast<IntegerType>(extval.getType())) {
+          std::int32_t i = extval.getRawConstantIndices()[0];
+          auto cval = cast<IntegerAttr>(conarr.getConstantValues()[i]).getInt();
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(extval, cval,
+                                                            intTy);
+
+          return success();
+        }
+        if (auto fltTy = dyn_cast<FloatType>(extval.getType())) {
+          std::int32_t i = extval.getRawConstantIndices()[0];
+          auto cval = cast<FloatAttr>(conarr.getConstantValues()[i]).getValue();
+          rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(extval, cval,
+                                                              fltTy);
+
+          return success();
+        }
+      }
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::ExtractValueOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FuseWithConstantArray>(context);
 }
 
 //===----------------------------------------------------------------------===//

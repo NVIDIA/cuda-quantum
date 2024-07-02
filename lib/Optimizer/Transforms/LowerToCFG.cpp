@@ -48,22 +48,29 @@ public:
     auto *initBlock = rewriter.getInsertionBlock();
     auto initPos = rewriter.getInsertionPoint();
     auto *endBlock = rewriter.splitBlock(initBlock, initPos);
-    auto *scopeBlock = &scopeOp.getInitRegion().front();
-    auto contOp = cast<cudaq::cc::ContinueOp>(scopeBlock->getTerminator());
+    ValueRange scopeResults;
     if (scopeOp.getNumResults() != 0) {
       Block *continueBlock = rewriter.createBlock(
           endBlock, scopeOp.getResultTypes(),
           SmallVector<Location>(scopeOp.getNumResults(), loc));
+      scopeResults = continueBlock->getArguments();
       rewriter.create<cf::BranchOp>(loc, endBlock);
       endBlock = continueBlock;
     }
+
+    for (auto &block : scopeOp.getInitRegion())
+      if (auto contOp =
+              dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+        rewriter.setInsertionPointToEnd(&block);
+        rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, endBlock,
+                                                  contOp.getOperands());
+      }
+
+    auto *entryBlock = &scopeOp.getInitRegion().front();
     rewriter.setInsertionPointToEnd(initBlock);
-    rewriter.create<cf::BranchOp>(loc, scopeBlock, ValueRange{});
-    rewriter.setInsertionPointToEnd(scopeBlock);
-    rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, endBlock,
-                                              contOp.getOperands());
+    rewriter.create<cf::BranchOp>(loc, entryBlock, ValueRange{});
     rewriter.inlineRegionBefore(scopeOp.getInitRegion(), endBlock);
-    rewriter.replaceOp(scopeOp, contOp.getOperands());
+    rewriter.replaceOp(scopeOp, scopeResults);
     return success();
   }
 };
