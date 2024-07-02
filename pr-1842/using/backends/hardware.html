@@ -150,7 +150,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
@@ -218,8 +218,9 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#orca-computing">ORCA Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id10">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id11">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id12">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -816,19 +817,26 @@ To set which OQC machine, set the <code class="code docutils literal notranslate
 </section>
 <section id="orca-computing">
 <h2>ORCA Computing<a class="headerlink" href="#orca-computing" title="Permalink to this heading">¶</a></h2>
-<p id="orca-backend">ORCA’s PT Series implement the boson sampling model of quantum computation, in which multiple single
-photons are interfered with each other within a network of beam splitters, and photon detectors
-measure where the photons leave this network.
-A TBI can be represented by a circuit diagram, like the one below, where this illustration example
-corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit composed of two
-delay lines in series.</p>
+<p id="orca-backend">ORCA Computing’s PT Series implement the boson sampling model of quantum computation, in which
+multiple single photons are interfered with each other within a network of beam splitters, and
+photon detectors measure where the photons leave this network. This process is implemented within
+a time-bin interferometer (TBI) architecture where photons are created in different time-bins
+and interfered within a network of delay lines. This can be represented by a circuit diagram,
+like the one below, where this illustration example corresponds to 4 photons in 8 modes sent into
+alternating time-bins in a circuit composed of two delay lines in series.</p>
 <a class="reference internal image-reference" href="../../_images/orca_tbi.png"><img alt="../../_images/orca_tbi.png" class="align-center" src="../../_images/orca_tbi.png" style="width: 400px;" /></a>
+<section id="id10">
+<h3>Setting Credentials<a class="headerlink" href="#id10" title="Permalink to this heading">¶</a></h3>
 <p>Programmers of CUDA-Q may access the ORCA API from either C++ or Python. There is an environment
 variable <code class="docutils literal notranslate"><span class="pre">ORCA_ACCESS_URL</span></code> that can be set so that the ORCA target can look for it during
 configuration.</p>
-<section id="id10">
-<h3>Submission from C++<a class="headerlink" href="#id10" title="Permalink to this heading">¶</a></h3>
-<p>To execute a time bin interferometer experiment on the ORCA platform, provide the flag
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_ACCESS_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;ORCA API Server&gt;&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="id11">
+<h3>Submission from C++<a class="headerlink" href="#id11" title="Permalink to this heading">¶</a></h3>
+<p>To execute a boson sampling experiment on the ORCA platform, provide the flag
 <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">orca</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. You should then pass the <code class="docutils literal notranslate"><span class="pre">--orca-url</span></code> flag set with
 the previously set environment variable <code class="docutils literal notranslate"><span class="pre">$ORCA_ACCESS_URL</span></code> or an <code class="code docutils literal notranslate"><span class="pre">url</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>orca<span class="w"> </span>--orca-url<span class="w"> </span><span class="nv">$ORCA_ACCESS_URL</span><span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
@@ -844,8 +852,8 @@ the previously set environment variable <code class="docutils literal notranslat
 </div>
 <p>To see a complete example for using ORCA server backends, take a look at our <a class="reference internal" href="../examples/hardware_providers.html"><span class="doc">C++ examples</span></a>.</p>
 </section>
-<section id="id11">
-<h3>Submission from Python<a class="headerlink" href="#id11" title="Permalink to this heading">¶</a></h3>
+<section id="id12">
+<h3>Submission from Python<a class="headerlink" href="#id12" title="Permalink to this heading">¶</a></h3>
 <p>To set which ORCA URL to be used, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">cudaq</span>

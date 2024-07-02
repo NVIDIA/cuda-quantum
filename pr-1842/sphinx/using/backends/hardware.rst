@@ -406,26 +406,34 @@ ORCA Computing
 
 .. _orca-backend:
 
-ORCA's PT Series implement the boson sampling model of quantum computation, in which multiple single 
-photons are interfered with each other within a network of beam splitters, and photon detectors 
-measure where the photons leave this network.
-A TBI can be represented by a circuit diagram, like the one below, where this illustration example 
-corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit composed of two 
-delay lines in series.
+ORCA Computing's PT Series implement the boson sampling model of quantum computation, in which 
+multiple single photons are interfered with each other within a network of beam splitters, and 
+photon detectors measure where the photons leave this network. This process is implemented within 
+a time-bin interferometer (TBI) architecture where photons are created in different time-bins 
+and interfered within a network of delay lines. This can be represented by a circuit diagram, 
+like the one below, where this illustration example corresponds to 4 photons in 8 modes sent into 
+alternating time-bins in a circuit composed of two delay lines in series.
 
 .. image:: ../examples/images/orca_tbi.png
    :width: 400px
    :align: center
 
+
+Setting Credentials
+```````````````````
+
 Programmers of CUDA-Q may access the ORCA API from either C++ or Python. There is an environment 
 variable ``ORCA_ACCESS_URL`` that can be set so that the ORCA target can look for it during 
 configuration.
 
+.. code:: bash
+
+  export ORCA_ACCESS_URL="https://<ORCA API Server>"
 
 Submission from C++
 `````````````````````````
 
-To execute a time bin interferometer experiment on the ORCA platform, provide the flag 
+To execute a boson sampling experiment on the ORCA platform, provide the flag 
 ``--target orca`` to the ``nvq++`` compiler. You should then pass the ``--orca-url`` flag set with 
 the previously set environment variable ``$ORCA_ACCESS_URL`` or an :code:`url`.
 
