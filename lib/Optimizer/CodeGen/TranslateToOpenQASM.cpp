@@ -218,9 +218,6 @@ static LogicalResult emitOperation(Emitter &emitter, func::FuncOp op) {
       parameters.push_back(arg);
   }
 
-  if (targets.empty())
-    return op.emitError("cannot translated classical functions");
-
   Emitter::Scope scope(emitter);
   emitter.os << "gate " << formatFunctionName(op.getName());
   if (!parameters.empty()) {

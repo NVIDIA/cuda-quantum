@@ -46,7 +46,7 @@ public:
           "[SimulatorMPS simulator] Incompatible state input");
     if (!m_state) {
       m_state = TensorNetState::createFromMpsTensors(casted->getMpsTensors(),
-                                                     m_cutnHandle);
+                                                     scratchPad, m_cutnHandle);
     } else {
       // Expand an existing state: Append MPS tensors
       // Factor the existing state
@@ -74,7 +74,8 @@ public:
                                      tensorSizeBytes, cudaMemcpyDefault));
         tensors.emplace_back(MPSTensor(mpsTensor, extents));
       }
-      m_state = TensorNetState::createFromMpsTensors(tensors, m_cutnHandle);
+      m_state = TensorNetState::createFromMpsTensors(tensors, scratchPad,
+                                                     m_cutnHandle);
     }
   }
 
@@ -161,10 +162,11 @@ public:
     LOG_API_TIME();
     if (!m_state) {
       if (!ptr) {
-        m_state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
+        m_state = std::make_unique<TensorNetState>(numQubits, scratchPad,
+                                                   m_cutnHandle);
       } else {
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
-            m_cutnHandle, 1ULL << numQubits,
+            m_cutnHandle, scratchPad, 1ULL << numQubits,
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
             m_settings.maxBond);
         m_state = std::move(state);
@@ -190,11 +192,12 @@ public:
                                        cudaMemcpyHostToDevice));
           tensors.emplace_back(MPSTensor(mpsTensor, extents));
         }
-        m_state = TensorNetState::createFromMpsTensors(tensors, m_cutnHandle);
+        m_state = TensorNetState::createFromMpsTensors(tensors, scratchPad,
+                                                       m_cutnHandle);
       } else {
         // Non-zero state needs to be factorized and appended.
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
-            m_cutnHandle, 1ULL << numQubits,
+            m_cutnHandle, scratchPad, 1ULL << numQubits,
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
             m_settings.maxBond);
         auto tensors =
@@ -209,7 +212,8 @@ public:
         mpsTensors.front().extents = extents;
         // Combine the list
         tensors.insert(tensors.end(), mpsTensors.begin(), mpsTensors.end());
-        m_state = TensorNetState::createFromMpsTensors(tensors, m_cutnHandle);
+        m_state = TensorNetState::createFromMpsTensors(tensors, scratchPad,
+                                                       m_cutnHandle);
       }
     }
   }
@@ -218,15 +222,16 @@ public:
     LOG_API_TIME();
 
     if (!m_state || m_state->getNumQubits() == 0)
-      return std::make_unique<MPSSimulationState>(
-          std::move(m_state), std::vector<MPSTensor>{}, m_cutnHandle);
+      return std::make_unique<MPSSimulationState>(std::move(m_state),
+                                                  std::vector<MPSTensor>{},
+                                                  scratchPad, m_cutnHandle);
 
     if (m_state->getNumQubits() > 1) {
       std::vector<MPSTensor> tensors =
           m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
                                 m_settings.relCutoff, m_settings.svdAlgo);
       return std::make_unique<MPSSimulationState>(std::move(m_state), tensors,
-                                                  m_cutnHandle);
+                                                  scratchPad, m_cutnHandle);
     }
 
     auto [d_tensor, numElements] = m_state->contractStateVectorInternal({});
@@ -236,7 +241,8 @@ public:
     stateTensor.extents = {static_cast<int64_t>(numElements)};
 
     return std::make_unique<MPSSimulationState>(
-        std::move(m_state), std::vector<MPSTensor>{stateTensor}, m_cutnHandle);
+        std::move(m_state), std::vector<MPSTensor>{stateTensor}, scratchPad,
+        m_cutnHandle);
   }
 
   virtual ~SimulatorMPS() noexcept {

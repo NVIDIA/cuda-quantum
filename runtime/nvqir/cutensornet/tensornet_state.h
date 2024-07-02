@@ -51,28 +51,30 @@ protected:
   std::vector<void *> m_tempDevicePtrs;
   // Tensor ops that have been applied to the state.
   std::vector<AppliedTensorOp> m_tensorOps;
+  ScratchDeviceMem &scratchPad;
 
 public:
   /// @brief Constructor
-  TensorNetState(std::size_t numQubits, cutensornetHandle_t handle);
+  TensorNetState(std::size_t numQubits, ScratchDeviceMem &inScratchPad,
+                 cutensornetHandle_t handle);
 
   /// @brief Constructor (specific basis state)
   TensorNetState(const std::vector<int> &basisState,
-                 cutensornetHandle_t handle);
+                 ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle);
 
   std::unique_ptr<TensorNetState> clone() const;
 
   /// Reconstruct/initialize a state from MPS tensors
   static std::unique_ptr<TensorNetState>
   createFromMpsTensors(const std::vector<MPSTensor> &mpsTensors,
+                       ScratchDeviceMem &inScratchPad,
                        cutensornetHandle_t handle);
 
   /// Reconstruct/initialize a tensor network state from a list of tensor
   /// operators.
-  static std::unique_ptr<TensorNetState>
-  createFromOpTensors(std::size_t numQubits,
-                      const std::vector<AppliedTensorOp> &opTensors,
-                      cutensornetHandle_t handle);
+  static std::unique_ptr<TensorNetState> createFromOpTensors(
+      std::size_t numQubits, const std::vector<AppliedTensorOp> &opTensors,
+      ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle);
 
   // Create a tensor network state from the input state vector.
   // Note: this is not the most efficient mode of initialization. However, this
@@ -80,6 +82,7 @@ public:
   // tensor network simulator with.
   static std::unique_ptr<TensorNetState>
   createFromStateVector(std::span<std::complex<double>> stateVec,
+                        ScratchDeviceMem &inScratchPad,
                         cutensornetHandle_t handle);
 
   /// @brief Apply a unitary gate
