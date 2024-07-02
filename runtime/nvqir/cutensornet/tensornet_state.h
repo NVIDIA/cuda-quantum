@@ -134,9 +134,9 @@ public:
   /// Returns MPS tensors in GPU device memory.
   /// Note: the caller assumes the ownership of these pointers, thus needs to
   /// clean them up properly (with cudaFree).
-  std::vector<MPSTensor> factorizeMPS(
-      int64_t maxExtent, double absCutoff, double relCutoff,
-      cutensornetTensorSVDAlgo_t algo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ);
+  std::vector<MPSTensor> factorizeMPS(int64_t maxExtent, double absCutoff,
+                                      double relCutoff,
+                                      cutensornetTensorSVDAlgo_t algo);
 
   /// @brief  Compute the expectation value w.r.t. a
   /// `cutensornetNetworkOperator_t`
