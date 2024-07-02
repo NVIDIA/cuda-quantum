@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -27,7 +28,8 @@ using namespace mlir;
 // Determine if \p alloc is a legit candidate for promotion to a constant array
 // value.
 static bool isGoodCandidate(cudaq::cc::AllocaOp alloc,
-                            SmallVectorImpl<Operation *> &scoreboard) {
+                            SmallVectorImpl<Operation *> &scoreboard,
+                            DominanceInfo &dom) {
   LLVM_DEBUG(llvm::dbgs() << "checking candidate\n");
   if (alloc.getSeqSize())
     return false;
@@ -49,7 +51,10 @@ static bool isGoodCandidate(cudaq::cc::AllocaOp alloc,
   for (int i = 0; i < size; i++)
     scoreboard[i] = nullptr;
 
-  auto getWriteOp = [](auto op) -> Operation * {
+  SmallVector<quake::InitializeStateOp> initStates;
+  SmallVector<SmallPtrSet<Operation *, 2>> loadSets(size);
+
+  auto getWriteOp = [&](auto op, std::int32_t index) -> Operation * {
     Operation *theStore = nullptr;
     for (auto &use : op->getUses()) {
       Operation *u = use.getOwner();
@@ -70,6 +75,10 @@ static bool isGoodCandidate(cudaq::cc::AllocaOp alloc,
       }
       if (!isa<cudaq::cc::LoadOp, quake::InitializeStateOp>(u))
         return nullptr;
+      if (auto init = dyn_cast<quake::InitializeStateOp>(u))
+        initStates.push_back(init);
+      else
+        loadSets[index].insert(u);
     }
     return theStore;
   };
@@ -85,22 +94,26 @@ static bool isGoodCandidate(cudaq::cc::AllocaOp alloc,
     }
     if (auto cptr = dyn_cast<cudaq::cc::ComputePtrOp>(op)) {
       if (auto index = cptr.getConstantIndex(0)) {
-        if (auto w = getWriteOp(cptr)) {
+        if (auto w = getWriteOp(cptr, *index)) {
           if (!scoreboard[*index]) {
             scoreboard[*index] = w;
           } else {
             return false;
           }
+        } else {
+          return false;
         }
       }
     } else if (auto cast = dyn_cast<cudaq::cc::CastOp>(op)) {
       if (cast.getType() == ptrArrEleTy) {
-        if (auto w = getWriteOp(cast)) {
+        if (auto w = getWriteOp(cast, 0)) {
           if (!scoreboard[0]) {
             scoreboard[0] = w;
           } else {
             return false;
           }
+        } else {
+          return false;
         }
       } else {
         LLVM_DEBUG(llvm::dbgs() << "unexpected cast\n");
@@ -115,18 +128,37 @@ static bool isGoodCandidate(cudaq::cc::AllocaOp alloc,
   bool ok = std::all_of(scoreboard.begin(), scoreboard.end(),
                         [](bool b) { return b; });
   LLVM_DEBUG(llvm::dbgs() << "all elements of array are set: " << ok << '\n');
+  if (ok) {
+    // Verify dominance relations.
+
+    // For all stores, the store of an element $e$ must dominate all loads of
+    // $e$.
+    for (int i = 0; i < size; ++i) {
+      for (auto *load : loadSets[i])
+        if (!dom.dominates(scoreboard[i], load))
+          return false;
+    }
+
+    // For all init_state, all of the stores must dominate the init_state.
+    for (auto init : initStates) {
+      for (auto *store : scoreboard)
+        if (!dom.dominates(store, init.getOperation()))
+          return false;
+    }
+  }
   return ok;
 }
 
 namespace {
 class AllocaPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  explicit AllocaPattern(MLIRContext *ctx, DominanceInfo &di)
+      : OpRewritePattern(ctx), dom(di) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
     SmallVector<Operation *> stores;
-    if (!isGoodCandidate(alloc, stores))
+    if (!isGoodCandidate(alloc, stores, dom))
       return failure();
 
     auto arrTy = cast<cudaq::cc::ArrayType>(alloc.getElementType());
@@ -181,6 +213,8 @@ public:
     rewriter.eraseOp(alloc);
     return success();
   }
+
+  DominanceInfo &dom;
 };
 
 class LiftArrayAllocPass
@@ -191,8 +225,9 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto func = getOperation();
+    DominanceInfo domInfo(func);
     RewritePatternSet patterns(ctx);
-    patterns.insert<AllocaPattern>(ctx);
+    patterns.insert<AllocaPattern>(ctx, domInfo);
 
     LLVM_DEBUG(llvm::dbgs()
                << "Before lifting constant array: " << func << '\n');
