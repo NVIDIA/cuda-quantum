@@ -1,22 +1,3 @@
-// ORCA Computing's PT Series implement the boson sampling model of quantum
-// computation, in which multiple photons are interfered with each other within
-// a network of beam splitters, and photon detectors measure where the photons
-// leave this network.
-
-// The parameters needed to define the time bin interferometer are the
-// the input state, the loop lengths, beam splitter angles, and optionally the
-// phase shifter angles, and the number of samples.
-
-// The input state is the initial state of the photons in the time bin
-// interferometer, the left-most entry corresponds to the first mode entering
-// the loop.
-
-// The loop lengths are the the lengths of the different loops in the time bin
-// interferometer.
-
-// The beam splitter angles and the phase shifter angles are controllable
-// parameters of the time bin interferometer.
-
 // Compile and run with:
 // ```
 // nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x
@@ -28,7 +9,7 @@
 #include "cudaq/orca.h"
 #include "cudaq.h"
 
-// define helper function to generate a linear spaced vectors
+// define helper function to generate linear spaced vectors
 template <typename T>
 void linear_spaced_vector(std::vector<T> &xs, T min, T max, std::size_t N) {
   T h = (max - min) / static_cast<T>(N - 1);
@@ -44,11 +25,11 @@ int main() {
   // A time-bin boson sampling experiment: An input state of 4 indistinguishable
   // photons mixed with 4 vacuum states across 8 time bins (modes) enter the
   // time bin interferometer (TBI). The interferometer is composed of two loops
-  // each with a beam splitter (and optionally with a correspondent phase
+  // each with a beam splitter (and optionally with a corresponding phase
   // shifter). Each photon can either be stored in a loop to interfere with the
-  // next photon or exit the loop to be measured. Since there are 8 time time
-  // bins and 2 loops, there are a total of 14 beam splitters (and optionally 14
-  // phase shifters in the interferometer), which is the number of controllable
+  // next photon or exit the loop to be measured. Since there are 8 time bins
+  // and 2 loops, there is a total of 14 beam splitters (and optionally 14 phase
+  // shifters) in the interferometer, which is the number of controllable
   // parameters.
 
   // half of 8 time bins is filled with a single photon and the other half is
@@ -66,12 +47,12 @@ int main() {
   const std::size_t n_modes = input_state.size();
   const std::size_t n_beam_splitters = n_loops * n_modes - sum_loop_lengths;
 
-  // beam splitter angles (created a linear spaced vector of angles)
+  // beam splitter angles (created as a linear spaced vector of angles)
   std::vector<double> bs_angles(n_beam_splitters);
   linear_spaced_vector(bs_angles, M_PI / 8, M_PI / 3, n_beam_splitters);
 
-  // Optionally, we can also specify the phase shifter angles (created a linear
-  // spaced vector of angles), if the system includes phase shifters
+  // Optionally, we can also specify the phase shifter angles (created as a
+  // linear spaced vector of angles), if the system includes phase shifters
   // std::vector<double> ps_angles(n_beam_splitters);
   // linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beam_splitters);
 
