@@ -410,3 +410,17 @@ def test_inner_kernels_state():
     assert '1100' in counts
     assert '0011' in counts
     assert '0000' in counts
+
+def test_invalid_arg_error_msg():
+    cudaq.reset_target()
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=complex)
+
+    @cudaq.kernel
+    def kernel(vec: cudaq.State):
+        q = cudaq.qvector(vec)
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, c)
+    assert 'Invalid runtime argument type.' in repr(e)
