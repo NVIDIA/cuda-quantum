@@ -21,9 +21,7 @@ public:
   central_difference(double s = default_step) : gradient(), step(s) {}
 
   virtual std::unique_ptr<cudaq::gradient> clone() override {
-    auto newGrad = std::make_unique<central_difference>(*this);
-    newGrad->step = this->step;
-    return newGrad;
+    return std::make_unique<central_difference>(step);
   }
 
   void compute(const std::vector<double> &x, std::vector<double> &dx,

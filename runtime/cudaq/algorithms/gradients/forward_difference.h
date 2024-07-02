@@ -23,9 +23,7 @@ public:
   forward_difference(double s = default_step) : gradient(), step(s) {}
 
   virtual std::unique_ptr<cudaq::gradient> clone() override {
-    auto newGrad = std::make_unique<forward_difference>(*this);
-    newGrad->step = this->step;
-    return newGrad;
+    return std::make_unique<forward_difference>(step);
   }
 
   /// @brief Compute the `forward_difference` gradient

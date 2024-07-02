@@ -1,13 +1,10 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
-// FIXME - nvcc doesn't like something with the gradients.h files
-#if 0
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
@@ -90,5 +87,3 @@ CUDAQ_TEST(GetStateTester, checkTensors) {
   EXPECT_EQ(1, state.get_tensor().get_rank());
   EXPECT_EQ(4, state.get_tensor().get_num_elements());
 }
-
-#endif

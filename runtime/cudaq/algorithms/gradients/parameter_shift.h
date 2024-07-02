@@ -21,9 +21,7 @@ public:
       : gradient(), shiftScalar(s) {}
 
   virtual std::unique_ptr<cudaq::gradient> clone() override {
-    auto newGrad = std::make_unique<parameter_shift>(*this);
-    newGrad->shiftScalar = this->shiftScalar;
-    return newGrad;
+    return std::make_unique<parameter_shift>(shiftScalar);
   }
 
   void compute(const std::vector<double> &x, std::vector<double> &dx,
