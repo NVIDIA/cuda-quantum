@@ -734,3 +734,29 @@ func.func @ssi_if(%arg0: i1) {
 // CHECK:           quake.sink %[[VAL_10]]#0 : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+quake.wire_set @phys [8]
+
+quake.wire_set @phys_ed [4] adjacency
+  sparse<[[0, 1], [1, 2], [2, 3]], true> : tensor<4x4xi1>
+
+func.func @phys_hoops() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = quake.borrow_wire @phys_ed[3] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %2#0 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:  quake.wire_set @phys[8]
+// CHECK-LABEL:  quake.wire_set @phys_ed[4] adjacency sparse<
+// CHECK-SAME:    {{\[}}[0, 1], [1, 2], [2, 3]], true> : tensor<4x4xi1>
+// CHECK-LABEL:  func.func @phys_hoops() {
+// CHECK:    %[[VAL_0:.*]] = quake.borrow_wire @phys[0] : !quake.wire
+// CHECK:    %[[VAL_1:.*]] = quake.borrow_wire @phys_ed[3] : !quake.wire
+// CHECK:    %[[VAL_2:.*]]:2 = quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:    quake.return_wire %[[VAL_2]]#0 : !quake.wire
+// CHECK:    quake.return_wire %[[VAL_2]]#1 : !quake.wire
+// CHECK:    return
+// CHECK:  }

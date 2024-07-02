@@ -238,7 +238,7 @@ parseComputePtrIndices(OpAsmParser &parser,
   SmallVector<int32_t> constantIndices;
 
   auto idxParser = [&]() -> ParseResult {
-    int32_t constantIndex;
+    std::int32_t constantIndex;
     OptionalParseResult parsedInteger =
         parser.parseOptionalInteger(constantIndex);
     if (parsedInteger.has_value()) {

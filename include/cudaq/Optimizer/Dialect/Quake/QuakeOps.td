@@ -547,6 +547,89 @@ def quake_SinkOp : QuakeOp<"sink"> {
 }
 
 //===----------------------------------------------------------------------===//
+// Qubit assignment
+//===----------------------------------------------------------------------===//
+
+def quake_WireSetOp : QuakeOp<"wire_set", [IsolatedFromAbove, Symbol]> {
+  let summary = "Define a set of wires with a constant cardinality.";
+  let description = [{
+    At some point during a compilation, we may wish to refine our quantum
+    circuits from using an unlimited set of virtual references/wires to using
+    a finite set of qubits/wires.
+
+    A wire set is a top-level object in the module that defines the properties
+    of the target that we wish to reason about.
+
+    Example:
+    ```mlir
+      quake.wire_set @phys[8]
+    ```
+  }];
+
+  let arguments = (ins
+    StrAttr:$sym_name,
+    I32Attr:$cardinality,
+    OptionalAttr<ElementsAttr>:$adjacency
+  );
+
+  let hasCustomAssemblyFormat = 1;
+}
+
+def quake_BorrowWireOp : QuakeOp<"borrow_wire", [Pure]> {
+  let summary = "Borrow a specific wire from a wire set.";
+  let description = [{
+    To obtain a specific wire from a wire set, the wire must be borrowed. Once
+    it is borrowed, it is undefined for any other operation to attempt to
+    borrow the same wire (as determined by the identity value).
+
+    It is an error to specify an identity that is outside the interval
+    `[0 .. n)` where `n` is the cardinality of the wire set. (This will raise
+    a verification error.)
+
+    A borrowed wire must be returned to the wire set when the circuit is no
+    longer using it. See `return_wire`.
+
+    Example:
+    ```mlir
+      quake.wire_set @phys[8]
+
+      func.func @qernel() {
+        ...
+        %6 = quake.borrow_wire @phys[4] : !wire
+        ...
+        quake.return_wire %6 : !wire
+        ...
+      }
+    ```
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$set_name,
+    I32Attr:$identity
+  );
+  let results = (outs WireType);
+  
+  //let hasVerifier = 1;
+  let assemblyFormat = [{
+    $set_name `[` $identity `]` `:` type(results) attr-dict
+  }];
+}
+
+def quake_ReturnWireOp : QuakeOp<"return_wire"> {
+  let summary = "Return a borrowed wire to a wire set.";
+  let description = [{
+    When a wire is no longer needed for further use it must be returned to the
+    wire set from which it was borrowed. The `return_wire` operation returns
+    the wire.
+  }];
+
+  let arguments = (ins
+    Arg<WireType,"wire to return",[MemRead, MemWrite]>:$target
+  );
+  let assemblyFormat = "$target `:` type(operands) attr-dict";
+}
+
+//===----------------------------------------------------------------------===//
 // ToControl, FromControl pair
 //===----------------------------------------------------------------------===//
 
