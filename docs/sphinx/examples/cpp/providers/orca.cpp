@@ -1,7 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x
-// && ./out.x
+// nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x && ./out.x
 // ```
 // To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL
 // environment variable or pass the url to the --orca-url flag.
@@ -53,8 +52,10 @@ int main() {
 
   // Optionally, we can also specify the phase shifter angles (created as a
   // linear spaced vector of angles), if the system includes phase shifters
+  // ```
   // std::vector<double> ps_angles(n_beam_splitters);
   // linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beam_splitters);
+  // ```
 
   // we can also set number of requested samples
   int n_samples{10000};
@@ -67,8 +68,10 @@ int main() {
   // If the system includes phase shifters, the phase shifter angles can be
   // included in the call
 
+  // ```
   // auto counts = cudaq::orca::sample(input_state, loop_lengths, bs_angles,
   //                                   ps_angles, n_samples);
+  // ```
 
   // Print the results
   counts.dump();
