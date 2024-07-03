@@ -6,21 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-if (NOT CUDAQ_DISABLE_TOOLS)
-  add_subdirectory(cudaq-opt)
-  add_subdirectory(cudaq-translate)
+set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 
-  if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
-    add_subdirectory(cudaq-lsp-server)
-    add_subdirectory(cudaq-quake)
-    add_subdirectory(fixup-linkage)
-    add_subdirectory(nvqpp)
-    add_subdirectory(cudaq-target-conf)
-  endif()
-endif()
-
-if (CUDAQ_ENABLE_REMOTE_SIM)
-  # Add cudaq-qpud executable/tool (including Python wheels)
-  add_subdirectory(cudaq-qpud)
-endif()
-
+set(EXE_NAME cudaq-target-conf)
+add_llvm_executable(${EXE_NAME} cudaq-target-conf.cpp)
+install(TARGETS ${EXE_NAME} DESTINATION bin)
