@@ -1353,8 +1353,29 @@ public:
                                     rewriteEntryBlock->getArguments().front(),
                                     dataPtr, vecLen);
         } else {
-          auto size = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
-          Value tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+          Value tSize;
+          if (isa<IntegerType, FloatType>(eleTy)) {
+            auto size = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
+            tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+          } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+            eleTy = complexTy.getElementType();
+            if (isa<IntegerType, FloatType>(eleTy)) {
+              auto size = ((eleTy.getIntOrFloatBitWidth() + 7) / 8) * 2;
+              tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+            }
+          } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(eleTy)) {
+            if (std::size_t bitWidth = strTy.getBitSize()) {
+              assert(bitWidth % 8 == 0 && "struct ought to be in bytes");
+              std::size_t byteWidth = bitWidth / 8;
+              tSize = builder.create<arith::ConstantIntOp>(loc, byteWidth, 64);
+            } else {
+              tSize = builder.create<cudaq::cc::SizeOfOp>(
+                  loc, builder.getI64Type(), strTy);
+            }
+          } else {
+            TODO_loc(loc, "unhandled vector element type");
+            return;
+          }
           genStdvecTFromInitList(loc, builder,
                                  rewriteEntryBlock->getArguments().front(),
                                  dataPtr, tSize, vecLen);
