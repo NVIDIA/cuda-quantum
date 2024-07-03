@@ -47,7 +47,7 @@ protected:
     return cudaq::observe(ansatz_functor, h, x);
   }
 
-  /// Copy constructor. Derived classes should implement the clone() method.
+  // Copy constructor. Derived classes should implement the clone() method.
   gradient(const gradient &o) {
     ansatz_functor = o.ansatz_functor;
     serializedArgs = o.serializedArgs;
@@ -97,6 +97,9 @@ public:
     };
   }
 
+  /// Set the kernel after the gradient has been constructed. Use of this
+  /// function requires that the kernel ONLY accept the variational parameters.
+  /// It cannot have any non-variational parameters.
   template <typename QuantumKernel>
   void setKernel(QuantumKernel &kernel) {
     static_assert(std::is_invocable_v<QuantumKernel, std::vector<double>>,
