@@ -109,7 +109,8 @@ public:
 
   /// Constructor, takes a callable that must have the
   /// prescribed call signature (void(std::vector<double>))
-  template <typename KernelT>
+  template <typename KernelT, typename = std::enable_if_t<std::is_invocable_v<
+                                  KernelT, std::vector<double>>>>
   gradient(KernelT &kernel) {
     if constexpr (has_name<KernelT>::value)
       if (kernel.getNumParams() != 1)
