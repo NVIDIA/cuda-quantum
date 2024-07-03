@@ -35,7 +35,7 @@ MPSSimulationState::~MPSSimulationState() { deallocate(); }
 std::complex<double> MPSSimulationState::computeOverlap(
     const std::vector<MPSTensor> &m_mpsTensors,
     const std::vector<MPSTensor> &mpsOtherTensors) {
-
+  LOG_API_TIME();
   auto dataDevice = deviceFromPointer(m_mpsTensors[0].deviceData);
   auto otherDevice = deviceFromPointer(mpsOtherTensors[0].deviceData);
 
@@ -145,15 +145,23 @@ std::complex<double> MPSSimulationState::computeOverlap(
 
   // Determine the tensor network contraction path and create the contraction
   // plan
-  HANDLE_CUTN_ERROR(
-      cutensornetCreateContractionOptimizerConfig(cutnHandle, &m_tnConfig));
-
+  {
+    ScopedTraceWithContext("cutensornetCreateContractionOptimizerConfig");
+    HANDLE_CUTN_ERROR(
+        cutensornetCreateContractionOptimizerConfig(cutnHandle, &m_tnConfig));
+  }
   cutensornetContractionOptimizerInfo_t m_tnPath;
-  HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(
-      cutnHandle, m_tnDescr, &m_tnPath));
+  {
+    ScopedTraceWithContext("cutensornetCreateContractionOptimizerInfo");
+    HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(
+        cutnHandle, m_tnDescr, &m_tnPath));
+  }
   assert(scratchPad.scratchSize > 0);
-  HANDLE_CUTN_ERROR(cutensornetContractionOptimize(
-      cutnHandle, m_tnDescr, m_tnConfig, scratchPad.scratchSize, m_tnPath));
+  {
+    ScopedTraceWithContext("cutensornetContractionOptimize");
+    HANDLE_CUTN_ERROR(cutensornetContractionOptimize(
+        cutnHandle, m_tnDescr, m_tnConfig, scratchPad.scratchSize, m_tnPath));
+  }
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
@@ -172,9 +180,11 @@ std::complex<double> MPSSimulationState::computeOverlap(
       CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch,
       requiredWorkspaceSize));
   cutensornetContractionPlan_t m_tnPlan;
-  HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
-      cutnHandle, m_tnDescr, m_tnPath, workDesc, &m_tnPlan));
-
+  {
+    ScopedTraceWithContext("cutensornetCreateContractionPlan");
+    HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
+        cutnHandle, m_tnDescr, m_tnPath, workDesc, &m_tnPlan));
+  }
   // Compute the unnormalized overlap
   std::vector<const void *> rawDataIn(numTensors);
   for (int i = 0; i < mpsNumTensors; ++i) {
@@ -183,9 +193,12 @@ std::complex<double> MPSSimulationState::computeOverlap(
   }
   void *m_dOverlap{nullptr};
   HANDLE_CUDA_ERROR(cudaMalloc(&m_dOverlap, overlapSize));
-  HANDLE_CUTN_ERROR(cutensornetContractSlices(cutnHandle, m_tnPlan,
-                                              rawDataIn.data(), m_dOverlap, 0,
-                                              workDesc, NULL, 0x0));
+  {
+    ScopedTraceWithContext("cutensornetContractSlices");
+    HANDLE_CUTN_ERROR(cutensornetContractSlices(cutnHandle, m_tnPlan,
+                                                rawDataIn.data(), m_dOverlap, 0,
+                                                workDesc, NULL, 0x0));
+  }
   // Get the overlap value back to Host
   std::complex<double> overlap = 0.0;
   if (prec == precision::fp32) {
