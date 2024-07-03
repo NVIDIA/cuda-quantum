@@ -59,6 +59,9 @@ class IRBuilder : public mlir::OpBuilder {
 public:
   using OpBuilder::OpBuilder;
 
+  /// Create IRBuilder such that it has the same insertion point as \p builder.
+  IRBuilder(mlir::OpBuilder builder);
+
   mlir::LLVM::ConstantOp genLlvmI32Constant(mlir::Location loc,
                                             std::int32_t val) {
     return opt::factory::genLlvmI32Constant(loc, *this, val);
@@ -98,6 +101,10 @@ public:
                                     llvm::StringRef name);
 
   std::string hashStringByContent(llvm::StringRef sref);
+
+  /// Generates code that yields the size of any type that can be reified in
+  /// memory. Otherwise returns a `nullptr` Value.
+  mlir::Value getByteSizeOfType(mlir::Location loc, mlir::Type ty);
 
   static IRBuilder atBlockEnd(mlir::Block *block) {
     return IRBuilder(block, block->end(), nullptr);
