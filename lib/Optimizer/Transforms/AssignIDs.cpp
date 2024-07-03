@@ -98,8 +98,10 @@ std::optional<uint> findQid(Value v) {
     return std::optional<uint>(qid);
   }
 
-  if (isMeasureOp(defop))
+  // Special case where result # != operand #
+  if (isMeasureOp(defop)) {
     return findQid(defop->getOperand(0));
+  }
 
   // Figure out matching operand
   size_t i = 0;
@@ -119,10 +121,7 @@ public:
 
   LogicalResult matchAndRewrite(quake::SinkOp release,
                                 PatternRewriter &rewriter) const override {
-    if (release->hasAttr("qid"))
-      return failure();
-
-    std::optional<uint> qid = findQid(release.getOperand());
+    auto qid = findQid(release.getOperand());
 
     rewriter.startRootUpdate(release);
     release->setAttr("qid", rewriter.getUI32IntegerAttr(qid.value()));
