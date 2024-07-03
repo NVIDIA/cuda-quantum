@@ -22,9 +22,8 @@
 
 namespace cudaq {
 
-// TODO - Remove this once the public NVQC deployment supports this capability.
-static inline bool serializedCodeExecOverride() {
-  if (auto envVal = std::getenv("CUDAQ_SER_CODE_EXEC")) {
+static inline bool getEnvVarBool(const char *envVarName) {
+  if (auto envVal = std::getenv(envVarName)) {
     std::string tmp(envVal);
     std::transform(tmp.begin(), tmp.end(), tmp.begin(),
                    [](unsigned char c) { return std::tolower(c); });
@@ -32,6 +31,16 @@ static inline bool serializedCodeExecOverride() {
       return true;
   }
   return false;
+}
+
+// TODO - Remove this once the public NVQC deployment supports this capability.
+static inline bool remoteVQEExecOverride() {
+  return getEnvVarBool("CUDAQ_REMOTE_VQE");
+}
+
+// TODO - Remove this once the public NVQC deployment supports this capability.
+static inline bool serializedCodeExecOverride() {
+  return getEnvVarBool("CUDAQ_SER_CODE_EXEC");
 }
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
@@ -274,6 +283,13 @@ public:
       clientConfigs.emplace("ngpus", ngpus);
 
     m_client->setConfig(clientConfigs);
+  }
+
+  // VQE is executed fully on the server without the need to go back and forth
+  // in between observe calls (see launchVQE).
+  // TODO - set this to true when NVQC supports this.
+  virtual bool supportsRemoteVQE() override {
+    return remoteVQEExecOverride();
   }
 
   // Remote serializable code is executed fully on the server without the need
