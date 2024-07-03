@@ -17,6 +17,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 
 // Our hook into configuring the NVQIR backend.
 extern "C" {
@@ -86,9 +87,19 @@ void findAvailableTargets(
     std::unordered_map<std::string, RuntimeTarget> &targets,
     std::unordered_map<std::string, RuntimeTarget> &simulationTargets) {
 
+  // directory_iterator ordering is unspecified, so sort it to make it
+  // repeatable and consistent.
+  std::vector<std::filesystem::directory_entry> targetEntries;
+  for (const auto &entry : std::filesystem::directory_iterator{targetPath})
+    targetEntries.push_back(entry);
+  std::sort(targetEntries.begin(), targetEntries.end(),
+            [](const std::filesystem::directory_entry &a,
+               const std::filesystem::directory_entry &b) {
+              return a.path().filename() < b.path().filename();
+            });
+
   // Loop over all target files
-  for (const auto &configFile :
-       std::filesystem::directory_iterator{targetPath}) {
+  for (const auto &configFile : targetEntries) {
     auto path = configFile.path();
     // They must have a .config suffix
     if (path.extension().string() == ".config") {
@@ -202,9 +213,19 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
     libHandles.emplace(p.string(),
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 
+  // directory_iterator ordering is unspecified, so sort it to make it
+  // repeatable and consistent.
+  std::vector<std::filesystem::directory_entry> entries;
+  for (const auto &entry : std::filesystem::directory_iterator{cudaqLibPath})
+    entries.push_back(entry);
+  std::sort(entries.begin(), entries.end(),
+            [](const std::filesystem::directory_entry &a,
+               const std::filesystem::directory_entry &b) {
+              return a.path().filename() < b.path().filename();
+            });
+
   // Search for all simulators and create / store them
-  for (const auto &library :
-       std::filesystem::directory_iterator{cudaqLibPath}) {
+  for (const auto &library : entries) {
     auto path = library.path();
     auto fileName = path.filename().string();
     if (fileName.find("nvqir-") != std::string::npos) {

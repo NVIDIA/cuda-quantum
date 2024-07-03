@@ -99,7 +99,7 @@ done
 
 # Run core tests
 echo "Running core tests."
-python3 -m pip install pytest numpy
+python3 -m pip install pytest numpy psutil
 python3 -m pytest -v "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
     --ignore "$root_folder/tests/parallel" \

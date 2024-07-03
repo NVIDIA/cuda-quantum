@@ -33,7 +33,7 @@ class QuakeOp<string mnemonic, list<Trait> traits = []> :
     Op<QuakeDialect, mnemonic, traits>;
 
 //===----------------------------------------------------------------------===//
-// AllocaOp
+// Alloca, Dealloc: allocation of quantum references
 //===----------------------------------------------------------------------===//
 
 def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
@@ -108,101 +108,31 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
   }];
 }
 
-def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
-  let summary = "Construct a veq from a list of other ref/veq values.";
+def quake_InitializeStateOp : QuakeOp<"init_state",
+    [MemoryEffects<[MemAlloc, MemWrite]>]> {
+  let summary = "Initialize the quantum state to a specific complex vector.";
   let description = [{
-    The `concat` operation allows one to concatenate a list of SSA-values of
-    either type Ref or Veq into a new Veq vector.
-
-    Example:
-    ```mlir
-      %veq = quake.concat %r1, %v1, %r2 : (!quake.ref, !quake.veq<?>,
-                                           !quake.ref) -> !quake.veq<?>
-    ```
-  }];
-
-  let arguments = (ins Variadic<AnyRefType>:$qbits);
-  let results = (outs VeqType);
-
-  let assemblyFormat = [{
-    $qbits attr-dict `:` functional-type(operands, results)
-  }];
-
-  let hasCanonicalizer = 1;
-}
-
-// A ComputeActionOp will be transformed into a series of CallOps.
-def quake_ComputeActionOp : QuakeOp<"compute_action"> {
-  let summary = "Captures the compute/action/uncompute high-level idiom.";
-  let description = [{
-    CUDA-Q supports the high-level compute, action, uncompute idiom by
-    providing a custom template function (class) that takes pure kernels (a
-    callable like a λ) as arguments. This operation captures uses of the idiom
-    and can be systematically expanded into a quantum circuit via successive
-    transformations.
-
-    The `is_dagger` attribute can be used to "reverse" this idiom to one of
-    uncompute, action, compute.
-
-    The uncompute step is generated automatically by generating the adjoint of
-    the compute kernel.
+    Given a !cc.ptr pointing to a complex data array of size 2**N, where N is
+    the number of qubits in the targets operand, initialize the state of those
+    target qubits to the provided state vector. This operation returns a new
+    quake.veq instance. There should be no other uses of the input veq value,
+    \em{targets}, that was allocated. This supports a RAII (resource allocation
+    is initialization) semantics on the qubits in the vector.
   }];
 
   let arguments = (ins
-    UnitAttr:$is_dagger,
-    cc_CallableType:$compute,
-    cc_CallableType:$action
+    VeqType:$targets,
+    AnyStateInitType:$state
   );
-
+  let results = (outs VeqType);
+  
   let assemblyFormat = [{
-    (`<` `dag` $is_dagger^ `>`)? $compute `,` $action `:`
-      qualified(type(operands)) attr-dict
-  }];
-}
-
-def quake_ToControlOp : QuakeOp<"to_ctrl", [Pure]> {
-  let summary = "Convert a wire value to a control value.";
-  let description = [{
-    This operation makes the conversion of a wire value to a control value
-    explicit in the quake IR. These values have different semantics in the IR.
-    This op ensures these semantics via the type system.
-
-    A value of type control is (nearly) an SSA-value. Once defined, via the
-    `to_ctrl` operation, it can be used as an argument to other operations.
-    These uses are qualified. They must be in control argument positions and
-    these operations must dominate a `from_ctrl` operation that returns the
-    control qubit back to a wire. The operand value and result value of a
-    `to_ctrl` may NOT be used as arguments to the same operation.
+    $targets `,` $state `:` functional-type(operands, results) attr-dict
   }];
 
-  let arguments = (ins WireType:$qubit);
-  let results = (outs ControlType);
-
-  let assemblyFormat = [{
-    $qubit `:` functional-type(operands, results) attr-dict
-  }];
-}
-
-def quake_FromControlOp : QuakeOp<"from_ctrl", [Pure]> {
-  let summary = "Convert a control value to a wire value.";
-  let description = [{
-    This operation makes the conversion of a control value to a wire value
-    explicit in the quake IR. These values have different semantics in the IR.
-    This op ensures these semantics via the type system.
-  }];
-
-  let arguments = (ins ControlType:$ctrlbit);
-  let results = (outs WireType);
+  let hasCanonicalizer = 1;
   let hasVerifier = 1;
-
-  let assemblyFormat = [{
-    $ctrlbit `:` functional-type(operands, results) attr-dict
-  }];
 }
-
-//===----------------------------------------------------------------------===//
-// DeallocOp
-//===----------------------------------------------------------------------===//
 
 def quake_DeallocOp : QuakeOp<"dealloc"> {
   let summary = "Deallocates a collection of qubits.";
@@ -235,8 +165,31 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
 }
 
 //===----------------------------------------------------------------------===//
-// Veq, Ref manipulation
+// Veq reference manipulation primitives
 //===----------------------------------------------------------------------===//
+
+def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
+  let summary = "Construct a veq from a list of other ref/veq values.";
+  let description = [{
+    The `concat` operation allows one to concatenate a list of SSA-values of
+    either type Ref or Veq into a new Veq vector.
+
+    Example:
+    ```mlir
+      %veq = quake.concat %r1, %v1, %r2 : (!quake.ref, !quake.veq<?>,
+                                           !quake.ref) -> !quake.veq<?>
+    ```
+  }];
+
+  let arguments = (ins Variadic<AnyRefType>:$qbits);
+  let results = (outs VeqType);
+
+  let assemblyFormat = [{
+    $qbits attr-dict `:` functional-type(operands, results)
+  }];
+
+  let hasCanonicalizer = 1;
+}
 
 def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
   let summary = "Extract a quantum reference from a quantum vector.";
@@ -293,32 +246,6 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
     bool hasConstantIndex() { return !getIndex(); }
     std::size_t getConstantIndex() { return getRawIndex(); }
   }];
-}
-
-def quake_InitializeStateOp : QuakeOp<"init_state",
-    [MemoryEffects<[MemAlloc, MemWrite]>]> {
-  let summary = "Initialize the quantum state to a specific complex vector.";
-  let description = [{
-    Given a !cc.ptr pointing to a complex data array of size 2**N, where N is
-    the number of qubits in the targets operand, initialize the state of those
-    target qubits to the provided state vector. This operation returns a new
-    quake.veq instance. There should be no other uses of the input veq value,
-    \em{targets}, that was allocated. This supports a RAII (resource allocation
-    is initialization) semantics on the qubits in the vector.
-  }];
-
-  let arguments = (ins
-    VeqType:$targets,
-    AnyStateInitType:$state
-  );
-  let results = (outs VeqType);
-  
-  let assemblyFormat = [{
-    $targets `,` $state `:` functional-type(operands, results) attr-dict
-  }];
-
-  let hasCanonicalizer = 1;
-  let hasVerifier = 1;
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
@@ -383,10 +310,6 @@ def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
-//===----------------------------------------------------------------------===//
-// VeqSizeOp
-//===----------------------------------------------------------------------===//
-
 def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
   let summary = "Return the size of a veq.";
   let description = [{
@@ -417,7 +340,7 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
-// Application
+// Application, ComputeAction(Uncompute)
 //===----------------------------------------------------------------------===//
 
 def quake_ApplyOp : QuakeOp<"apply",
@@ -499,6 +422,35 @@ def quake_ApplyOp : QuakeOp<"apply",
   }];
 }
 
+// A ComputeActionOp will be transformed into a series of CallOps.
+def quake_ComputeActionOp : QuakeOp<"compute_action"> {
+  let summary = "Captures the compute/action/uncompute high-level idiom.";
+  let description = [{
+    CUDA-Q supports the high-level compute, action, uncompute idiom by
+    providing a custom template function (class) that takes pure kernels (a
+    callable like a λ) as arguments. This operation captures uses of the idiom
+    and can be systematically expanded into a quantum circuit via successive
+    transformations.
+
+    The `is_dagger` attribute can be used to "reverse" this idiom to one of
+    uncompute, action, compute.
+
+    The uncompute step is generated automatically by generating the adjoint of
+    the compute kernel.
+  }];
+
+  let arguments = (ins
+    UnitAttr:$is_dagger,
+    cc_CallableType:$compute,
+    cc_CallableType:$action
+  );
+
+  let assemblyFormat = [{
+    (`<` `dag` $is_dagger^ `>`)? $compute `,` $action `:`
+      qualified(type(operands)) attr-dict
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // Memory and register conversion instructions: These operations are useful for
 // intermediate conversions between memory-SSA and value-SSA semantics and vice
@@ -554,6 +506,10 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
+//===----------------------------------------------------------------------===//
+// NullWire, Sink pair
+//===----------------------------------------------------------------------===//
+
 def quake_NullWireOp : QuakeOp<"null_wire"> {
   let summary = "Initial state of a wire.";
   let description = [{
@@ -564,6 +520,74 @@ def quake_NullWireOp : QuakeOp<"null_wire"> {
   let results = (outs WireType);
   let hasVerifier = 1;
   let assemblyFormat = "attr-dict";
+}
+
+def quake_SinkOp : QuakeOp<"sink"> {
+  let summary = "Sink for a qubit that is used but not measured.";
+  let description = [{
+    The `quake.sink` operation is used to mark a particular wire in the value
+    semantics as used at the end of a circuit. Typically a wire is measured, but
+    in some cases the wire needs to be marked as if it were measured even though
+    a measurement is not desired.
+
+    This op is similar to the dealloc op in the reference semantics.
+
+    Example:
+    ```mlir
+      quake.sink %0 : !quake.wire
+    ```
+  }];
+
+  let arguments = (ins 
+    Arg<WireType,"wire to sink",[MemRead, MemWrite]>:$target
+  );
+  let assemblyFormat = [{
+     $target `:` qualified(type(operands)) attr-dict
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// ToControl, FromControl pair
+//===----------------------------------------------------------------------===//
+
+def quake_ToControlOp : QuakeOp<"to_ctrl", [Pure]> {
+  let summary = "Convert a wire value to a control value.";
+  let description = [{
+    This operation makes the conversion of a wire value to a control value
+    explicit in the quake IR. These values have different semantics in the IR.
+    This op ensures these semantics via the type system.
+
+    A value of type control is (nearly) an SSA-value. Once defined, via the
+    `to_ctrl` operation, it can be used as an argument to other operations.
+    These uses are qualified. They must be in control argument positions and
+    these operations must dominate a `from_ctrl` operation that returns the
+    control qubit back to a wire. The operand value and result value of a
+    `to_ctrl` may NOT be used as arguments to the same operation.
+  }];
+
+  let arguments = (ins WireType:$qubit);
+  let results = (outs ControlType);
+
+  let assemblyFormat = [{
+    $qubit `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def quake_FromControlOp : QuakeOp<"from_ctrl", [Pure]> {
+  let summary = "Convert a control value to a wire value.";
+  let description = [{
+    This operation makes the conversion of a control value to a wire value
+    explicit in the quake IR. These values have different semantics in the IR.
+    This op ensures these semantics via the type system.
+  }];
+
+  let arguments = (ins ControlType:$ctrlbit);
+  let results = (outs WireType);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $ctrlbit `:` functional-type(operands, results) attr-dict
+  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -606,35 +630,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
 }
 
 //===----------------------------------------------------------------------===//
-// Sink
-//===----------------------------------------------------------------------===//
-
-def quake_SinkOp : QuakeOp<"sink"> {
-  let summary = "Sink for a qubit that is used but not measured.";
-  let description = [{
-    The `quake.sink` operation is used to mark a particular wire in the value
-    semantics as used at the end of a circuit. Typically a wire is measured, but
-    in some cases the wire needs to be marked as if it were measured even though
-    a measurement is not desired.
-
-    This op is similar to the dealloc op in the reference semantics.
-
-    Example:
-    ```mlir
-      quake.sink %0 : !quake.wire
-    ```
-  }];
-
-  let arguments = (ins 
-    Arg<WireType,"wire to sink",[MemRead, MemWrite]>:$target
-  );
-  let assemblyFormat = [{
-     $target `:` qualified(type(operands)) attr-dict
-  }];
-}
-
-//===----------------------------------------------------------------------===//
-// Measurements
+// Measurements, Discriminate
 //===----------------------------------------------------------------------===//
 
 class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,

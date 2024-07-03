@@ -96,7 +96,7 @@ int main() {
   int n_layers = 2, n_qubits = H.num_qubits(), block_size = 2, p_counter = 0;
   int n_blocks_per_layer = 2 * (n_qubits / block_size) - 1;
   int n_params = n_layers * 6 * n_blocks_per_layer;
-  printf("%d qubit hamiltonian -> %d parameters\n", n_qubits, n_params);
+  printf("%d qubit Hamiltonian -> %d parameters\n", n_qubits, n_params);
 
   // Define the initial parameters and ansatz.
   auto init_params =

@@ -90,9 +90,8 @@ class CapturedDataStorage(object):
                 zero = self.getConstantInt(0)
                 address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
                                          FlatSymbolRefAttr.get(globalName))
-                ptr = cc.ComputePtrOp(
-                    cc.PointerType.get(self.ctx, statePtrTy), address, [zero],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
+                ptr = cc.CastOp(cc.PointerType.get(self.ctx, statePtrTy),
+                                address)
 
                 cc.StoreOp(entry.arguments[0], ptr)
                 func.ReturnOp([])
@@ -108,9 +107,8 @@ class CapturedDataStorage(object):
         zero = self.getConstantInt(0)
         address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
                                  FlatSymbolRefAttr.get(globalName)).result
-        ptr = cc.ComputePtrOp(
-            cc.PointerType.get(self.ctx, statePtrTy), address, [zero],
-            DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)).result
+        ptr = cc.CastOp(cc.PointerType.get(self.ctx, statePtrTy),
+                        address).result
         statePtr = cc.LoadOp(ptr).result
         return statePtr
 
@@ -143,11 +141,8 @@ class CapturedDataStorage(object):
                 zero = self.getConstantInt(0)
                 address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
                                          FlatSymbolRefAttr.get(globalName))
-                ptr = cc.ComputePtrOp(
-                    cc.PointerType.get(self.ctx, ptrComplex), address,
-                    [zero, zero],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex, kDynamicPtrIndex],
-                                          context=self.ctx))
+                ptr = cc.CastOp(cc.PointerType.get(self.ctx, ptrComplex),
+                                address)
                 cc.StoreOp(entry.arguments[0], ptr)
                 func.ReturnOp([])
 
@@ -155,10 +150,7 @@ class CapturedDataStorage(object):
 
         address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
                                  FlatSymbolRefAttr.get(globalName))
-        ptr = cc.ComputePtrOp(
-            cc.PointerType.get(self.ctx, ptrComplex), address, [zero, zero],
-            DenseI32ArrayAttr.get([kDynamicPtrIndex, kDynamicPtrIndex],
-                                  context=self.ctx))
+        ptr = cc.CastOp(cc.PointerType.get(self.ctx, ptrComplex), address)
 
         # Record the unique hash value
         if arrayId not in self.arrayIDs:

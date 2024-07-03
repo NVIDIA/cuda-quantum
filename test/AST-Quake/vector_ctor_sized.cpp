@@ -28,18 +28,14 @@ __qpu__ void test() {
 // CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<f64 x 2>
-// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]][0] : (!cc.ptr<f64>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_6]][1] : (!cc.ptr<f64>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_7]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_8]][0] : (!cc.ptr<f64>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           quake.ry (%[[VAL_10]]) %[[VAL_2]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][1] : (!cc.ptr<f64>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_13:.*]] = cc.load %[[VAL_12]] : !cc.ptr<f64>
 // CHECK:           quake.ry (%[[VAL_13]]) %[[VAL_2]] : (f64, !quake.ref) -> ()
 // CHECK:           return

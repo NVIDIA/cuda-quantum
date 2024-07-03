@@ -79,7 +79,7 @@ def test_slice():
 # CHECK:           quake.z %[[VAL_16]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_17:.*]] = cc.alloca !cc.array<i64 x 5>
 # CHECK:           %[[VAL_172:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<!cc.array<i64 x ?>>
-# CHECK:           %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_17]][0] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
+# CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
 # CHECK:           cc.store %[[VAL_3]], %[[VAL_18]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_17]][1] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
 # CHECK:           cc.store %[[VAL_2]], %[[VAL_19]] : !cc.ptr<i64>
@@ -93,8 +93,8 @@ def test_slice():
 # CHECK:           %[[VAL_24:.*]] = cc.alloca !cc.stdvec<i64>
 # CHECK:           cc.store %[[VAL_23]], %[[VAL_24]] : !cc.ptr<!cc.stdvec<i64>>
 # CHECK:           %[[VAL_25:.*]] = cc.load %[[VAL_24]] : !cc.ptr<!cc.stdvec<i64>>
-# CHECK:           %[[VAL_26:.*]] = cc.stdvec_data %[[VAL_25]] : (!cc.stdvec<i64>) -> !cc.ptr<i64>
-# CHECK:           %[[VAL_27:.*]] = cc.compute_ptr %[[VAL_26]][2] : (!cc.ptr<i64>) -> !cc.ptr<i64>
+# CHECK:           %[[VAL_26:.*]] = cc.stdvec_data %[[VAL_25]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+# CHECK:           %[[VAL_27:.*]] = cc.compute_ptr %[[VAL_26]][2] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i64>
 # CHECK:           %[[VAL_28:.*]] = cc.stdvec_init %[[VAL_27]], %[[VAL_2]] : (!cc.ptr<i64>, i64) -> !cc.stdvec<i64>
 # CHECK:           %[[VAL_29:.*]] = cc.alloca !cc.stdvec<i64>
 # CHECK:           cc.store %[[VAL_28]], %[[VAL_29]] : !cc.ptr<!cc.stdvec<i64>>
@@ -107,8 +107,8 @@ def test_slice():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_36:.*]]: i64):
 # CHECK:             %[[VAL_37:.*]] = cc.undef !cc.struct<{i64, i64}>
-# CHECK:             %[[VAL_38:.*]] = cc.stdvec_data %[[VAL_30]] : (!cc.stdvec<i64>) -> !cc.ptr<i64>
-# CHECK:             %[[VAL_39:.*]] = cc.compute_ptr %[[VAL_38]]{{\[}}%[[VAL_36]]] : (!cc.ptr<i64>, i64) -> !cc.ptr<i64>
+# CHECK:             %[[VAL_38:.*]] = cc.stdvec_data %[[VAL_30]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+# CHECK:             %[[VAL_39:.*]] = cc.compute_ptr %[[VAL_38]][%[[VAL_36]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_40:.*]] = cc.load %[[VAL_39]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_41:.*]] = cc.compute_ptr %[[VAL_32]]{{\[}}%[[VAL_36]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, i64}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, i64}>>
 # CHECK:             %[[VAL_42:.*]] = cc.insert_value %[[VAL_36]], %[[VAL_37]][0] : (!cc.struct<{i64, i64}>, i64) -> !cc.struct<{i64, i64}>

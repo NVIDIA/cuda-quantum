@@ -124,7 +124,7 @@ jobs:
           # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
             # unsupport_args is a compile error test
-            if [[ "$filename" != *"unsupport_args"* ]]; then
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"state_overlap"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs

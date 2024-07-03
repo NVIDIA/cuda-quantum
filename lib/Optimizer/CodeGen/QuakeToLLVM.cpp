@@ -82,8 +82,8 @@ public:
   }
 };
 
-// Lower quake.init_state to a QIR function to allocate the
-// qubits with the provided state vector.
+// Lower codegen.qmem_raii to a QIR function to allocate the qubits with the
+// provided state vector.
 class QmemRAIIOpRewrite
     : public ConvertOpToLLVMPattern<cudaq::codegen::RAIIOp> {
 public:
