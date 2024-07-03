@@ -425,57 +425,7 @@ cc::GlobalOp IRBuilder::genVectorOfComplexConstant(
 }
 
 Value IRBuilder::getByteSizeOfType(Location loc, Type ty) {
-  auto createInt = [&](std::int32_t byteWidth) -> Value {
-    return create<arith::ConstantIntOp>(loc, byteWidth, 64);
-  };
-
-  // Handle primitive types with constant sizes.
-  auto primSize = [](auto ty) -> unsigned {
-    return (ty.getIntOrFloatBitWidth() + 7) / 8;
-  };
-  auto rawSize =
-      TypeSwitch<Type, std::optional<std::int32_t>>(ty)
-          .Case([&](IntegerType intTy) -> std::optional<std::int32_t> {
-            return {primSize(intTy)};
-          })
-          .Case([&](FloatType fltTy) -> std::optional<std::int32_t> {
-            return {primSize(fltTy)};
-          })
-          .Case([&](ComplexType complexTy) -> std::optional<std::int32_t> {
-            auto eleTy = complexTy.getElementType();
-            if (isa<IntegerType, FloatType>(eleTy))
-              return {2 * primSize(eleTy)};
-            return {};
-          })
-          .Case(
-              [](cudaq::cc::PointerType ptrTy) -> std::optional<std::int32_t> {
-                // TODO: get this from the target specification. For now
-                // we're assuming pointers are 64 bits.
-                return {8};
-              })
-          .Default({});
-
-  if (rawSize)
-    return createInt(*rawSize);
-
-  // Handle aggregate types.
-  return TypeSwitch<Type, Value>(ty)
-      .Case([&](cudaq::cc::StructType strTy) -> Value {
-        if (std::size_t bitWidth = strTy.getBitSize()) {
-          assert(bitWidth % 8 == 0 && "struct ought to be in bytes");
-          std::size_t byteWidth = bitWidth / 8;
-          return createInt(byteWidth);
-        }
-        return create<cudaq::cc::SizeOfOp>(loc, getI64Type(), strTy);
-      })
-      .Case([&](cudaq::cc::ArrayType arrTy) -> Value {
-        if (arrTy.isUnknownSize())
-          return {};
-        auto v = getByteSizeOfType(loc, arrTy.getElementType());
-        auto scale = createInt(arrTy.getSize());
-        return create<arith::MulIOp>(loc, getI64Type(), v, scale);
-      })
-      .Default({});
+  return cc::getByteSizeOfType(*this, loc, ty, /*useSizeOf=*/true);
 }
 
 } // namespace cudaq
