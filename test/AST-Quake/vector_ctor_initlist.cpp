@@ -26,22 +26,19 @@ __qpu__ void testDouble() {
 // CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<f64 x 3>
-// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]][0] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_6]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_4]][2] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_7]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_8]][0] : (!cc.ptr<f64>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           quake.ry (%[[VAL_10]]) %[[VAL_3]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][1] : (!cc.ptr<f64>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_13:.*]] = cc.load %[[VAL_12]] : !cc.ptr<f64>
 // CHECK:           quake.ry (%[[VAL_13]]) %[[VAL_3]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_14]][2] : (!cc.ptr<f64>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_4]][2] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_16:.*]] = cc.load %[[VAL_15]] : !cc.ptr<f64>
 // CHECK:           quake.ry (%[[VAL_16]]) %[[VAL_3]] : (f64, !quake.ref) -> ()
 // CHECK:           return

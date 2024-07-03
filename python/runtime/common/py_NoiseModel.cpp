@@ -5,20 +5,19 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include <pybind11/complex.h>
-#include <pybind11/stl.h>
-
 #include "py_NoiseModel.h"
-
+#include "common/EigenDense.h"
 #include "common/NoiseModel.h"
 #include "cudaq.h"
-
 #include <iostream>
+#include <pybind11/complex.h>
+#include <pybind11/stl.h>
 
 namespace cudaq {
 
 /// @brief Extract the array data from a buffer_info into our
 /// own allocated data pointer.
+/// This supports 2-d array in either row or column major.
 void extractKrausData(py::buffer_info &info, complex *data) {
   if (info.format != py::format_descriptor<complex>::format())
     throw std::runtime_error(
@@ -27,7 +26,21 @@ void extractKrausData(py::buffer_info &info, complex *data) {
   if (info.ndim != 2)
     throw std::runtime_error("Incompatible buffer shape.");
 
-  memcpy(data, info.ptr, sizeof(complex) * (info.shape[0] * info.shape[1]));
+  constexpr bool rowMajor = true;
+  typedef Eigen::MatrixXcd::Scalar Scalar;
+  typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic,
+                        Eigen::RowMajor>
+      RowMajorMat;
+  auto strides = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(
+      info.strides[rowMajor ? 0 : 1] / (py::ssize_t)sizeof(Scalar),
+      info.strides[rowMajor ? 1 : 0] / (py::ssize_t)sizeof(Scalar));
+  auto map =
+      Eigen::Map<RowMajorMat, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>(
+          static_cast<Scalar *>(info.ptr), info.shape[0], info.shape[1],
+          strides);
+  RowMajorMat eigenMat(map);
+  memcpy(data, eigenMat.data(),
+         sizeof(complex) * (info.shape[0] * info.shape[1]));
 }
 
 /// @brief Bind the cudaq::noise_model, kraus_op, and kraus_channel.
