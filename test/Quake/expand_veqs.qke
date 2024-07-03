@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --expand-controls-veqs %s | FileCheck %s
+// RUN: cudaq-opt --expand-control-veqs %s | FileCheck %s
 
 func.func @size1() {
   %c0 = arith.constant 0 : i32
