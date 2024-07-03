@@ -12,12 +12,13 @@
 #include <iostream>
 
 __qpu__ void f() {
-   cudaq::qvector v = {1.0, 2.0, 3.0, 4.0};
+  cudaq::qvector v = { static_cast<cudaq::complex>(1.0), static_cast<cudaq::complex>(2.0), static_cast<cudaq::complex>(3.0), static_cast<cudaq::complex>(4.0)};
+  // cudaq::qvector v = { 1.0, 2.0, 3.0, 4.0};
 }
 
-// __qpu__ void test(std::vector<cudaq::complex> inState) {
-//   cudaq::qvector q1 = inState;
-// }
+__qpu__ void test(std::vector<cudaq::complex> inState) {
+  cudaq::qvector q1 = inState;
+}
 
 void printCounts(cudaq::sample_result& result) {
   std::vector<std::string> values{};

@@ -2417,6 +2417,18 @@ static Type getEleTyFromVectorCtor(Type ctorTy) {
   return ctorTy;
 }
 
+mlir::Operation* constProp(OpBuilder &builder, Location &loc, Operation* op) {
+  if (auto &constOp = dyn_cast<arith::ConstantFloatOp>(op)) {
+    return op;
+  }
+  if (auto &truncOp = dyn_cast<arith::TruncFOp>(op)) {
+    auto truncated = truncOp->getOperand(0);
+    auto fTy = op->getType();
+    builder.create<arith::ConstantFloatOp>(loc, cast<FloatAttr>(val).getValue(), fTy);
+  }
+
+}
+
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   auto loc = toLocation(x);
   auto *ctor = x->getConstructor();
@@ -2579,6 +2591,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       Value real = popValue();
 
       std::cout << "Real and Imag values" << std::endl;
+      real = constProp(builder, loc, real);
+      imag = constProp(builder, loc, imag);
       real.dump();
       imag.dump();
       if (auto realOp = real.getDefiningOp<arith::ConstantFloatOp>()) {
