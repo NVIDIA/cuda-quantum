@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/FmtCore.h"
@@ -42,6 +43,7 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include "mlir/Transforms/Passes.h"
 #include <fstream>
 #include <iostream>
 #include <netinet/in.h>
@@ -419,6 +421,7 @@ public:
       mlir::PassManager pm(&context);
       //pm.addPass(cudaq::opt::createStatePreparation(kernelName, updatedArgs));
       pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
+      pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)

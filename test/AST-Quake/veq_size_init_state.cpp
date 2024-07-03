@@ -27,7 +27,7 @@ struct kernel {
 // CHECK:           %[[VAL_4:.*]] = complex.create %[[VAL_1]], %[[VAL_1]] : complex<f64>
 // CHECK:           %[[VAL_5:.*]] = complex.create %[[VAL_1]], %[[VAL_1]] : complex<f64>
 // CHECK:           %[[VAL_6:.*]] = cc.alloca !cc.array<complex<f64> x 4>
-// CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_6]][0] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_7]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_6]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_8]] : !cc.ptr<complex<f64>>

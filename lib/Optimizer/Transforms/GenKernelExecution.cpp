@@ -29,7 +29,7 @@ namespace cudaq::opt {
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "quake-kernel-exec"
+#define DEBUG_TYPE "kernel-execution"
 
 using namespace mlir;
 
@@ -103,7 +103,7 @@ public:
       // This is a string, so just read the length out.
       auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
       auto lenPtr = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, ptrI64Ty, arg, SmallVector<cudaq::cc::ComputePtrArg>{0, 1});
+          loc, ptrI64Ty, arg, SmallVector<cudaq::cc::ComputePtrArg>{1});
       return builder.create<cudaq::cc::LoadOp>(loc, lenPtr);
     }
 
@@ -112,11 +112,11 @@ public:
 
     // Get the pointer to the pointer of the end of the array
     Value endPtr = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrTtype, arg, SmallVector<cudaq::cc::ComputePtrArg>{0, 1});
+        loc, ptrTtype, arg, SmallVector<cudaq::cc::ComputePtrArg>{1});
 
     // Get the pointer to the pointer of the beginning of the array
     Value beginPtr = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrTtype, arg, SmallVector<cudaq::cc::ComputePtrArg>{0, 0});
+        loc, ptrTtype, arg, SmallVector<cudaq::cc::ComputePtrArg>{0});
 
     // Load to a T*
     endPtr = builder.create<cudaq::cc::LoadOp>(loc, endPtr);
@@ -202,7 +202,7 @@ public:
           cast<cudaq::cc::StructType>(argTy.getElementType()).getMember(off);
       auto structMemPtrTy = cudaq::cc::PointerType::get(structMemTy);
       auto memPtrVal = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, structMemPtrTy, arg, ArrayRef<cudaq::cc::ComputePtrArg>{0, off});
+          loc, structMemPtrTy, arg, ArrayRef<cudaq::cc::ComputePtrArg>{off});
       if (cudaq::cc::isDynamicType(memTy)) {
         if (auto sTy = dyn_cast<cudaq::cc::StructType>(memTy)) {
           auto gTy = cast<cudaq::cc::StructType>(structMemTy);
@@ -241,16 +241,20 @@ public:
         cast<cudaq::cc::PointerType>(hostArg.getType()).getElementType());
     auto beginPtr = builder.create<cudaq::cc::ComputePtrOp>(
         loc, cudaq::cc::PointerType::get(inStructTy.getMember(0)), hostArg,
-        SmallVector<cudaq::cc::ComputePtrArg>{0, 0});
+        SmallVector<cudaq::cc::ComputePtrArg>{0});
     auto fromBuff = builder.create<cudaq::cc::LoadOp>(loc, beginPtr);
-    auto vecFromBuff = builder.create<cudaq::cc::CastOp>(
-        loc, cudaq::cc::PointerType::get(builder.getI8Type()), fromBuff);
+    auto i8Ty = builder.getI8Type();
+    auto vecFromBuff = cudaq::opt::factory::createCast(
+        builder, loc, cudaq::cc::PointerType::get(i8Ty), fromBuff);
     builder.create<func::CallOp>(
         loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
         SmallVector<Value>{outputBuffer, vecFromBuff, bytes, notVolatile});
+    auto i8ArrTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i8Ty));
+    auto buf1 =
+        cudaq::opt::factory::createCast(builder, loc, i8ArrTy, outputBuffer);
     // Increment outputBuffer by size bytes.
     return builder.create<cudaq::cc::ComputePtrOp>(
-        loc, outputBuffer.getType(), outputBuffer, SmallVector<Value>{bytes});
+        loc, outputBuffer.getType(), buf1, SmallVector<Value>{bytes});
   }
 
   /// Given that \p arg is a SpanLikeType value, compute its extent size (the
@@ -282,7 +286,7 @@ public:
     auto resTy = cudaq::cc::PointerType::get(members[numKernelArgs]);
     auto gep = builder.create<cudaq::cc::ComputePtrOp>(
         loc, resTy, nullSt,
-        SmallVector<cudaq::cc::ComputePtrArg>{0, numKernelArgs});
+        SmallVector<cudaq::cc::ComputePtrArg>{numKernelArgs});
     return builder.create<cudaq::cc::CastOp>(loc, i64Ty, gep);
   }
 
@@ -328,7 +332,8 @@ public:
                                             FunctionType hostFuncTy,
                                             bool hasThisPtr) {
     auto *ctx = builder.getContext();
-    Type ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
+    Type i8Ty = builder.getI8Type();
+    Type ptrI8Ty = cudaq::cc::PointerType::get(i8Ty);
     auto ptrPtrType = cudaq::cc::PointerType::get(ptrI8Ty);
     Type i64Ty = builder.getI64Type();
     auto structPtrTy = cudaq::cc::PointerType::get(msgStructTy);
@@ -353,7 +358,9 @@ public:
     Value stVal = builder.create<cudaq::cc::UndefOp>(loc, msgStructTy);
 
     // Get the variadic void* args
-    auto variadicArgs = entry->getArgument(0);
+    auto variadicArgs = builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(ptrI8Ty)),
+        entry->getArgument(0));
 
     // Initialize the counter for extra size.
     Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
@@ -474,8 +481,11 @@ public:
     Value casted = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, buff);
     builder.create<cudaq::cc::StoreOp>(loc, stVal, casted);
     if (hasTrailingData) {
+      auto arrTy = cudaq::cc::ArrayType::get(i8Ty);
+      auto ptrArrTy = cudaq::cc::PointerType::get(arrTy);
+      auto cast1 = builder.create<cudaq::cc::CastOp>(loc, ptrArrTy, buff);
       Value vecToBuffer = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, ptrI8Ty, buff, SmallVector<Value>{structSize});
+          loc, ptrI8Ty, cast1, SmallVector<Value>{structSize});
       for (auto iter : llvm::enumerate(msgStructTy.getMembers())) {
         std::int32_t idx = iter.index();
         if (idx == static_cast<std::int32_t>(kernelArgTypes.size()))
@@ -501,7 +511,7 @@ public:
             auto arg = replacementArgs[idx];
             auto heapPtr = builder.create<cudaq::cc::ComputePtrOp>(
                 loc, cudaq::cc::PointerType::get(ptrI1Ty), arg,
-                ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
+                ArrayRef<cudaq::cc::ComputePtrArg>{0});
             auto loadHeapPtr = builder.create<cudaq::cc::LoadOp>(loc, heapPtr);
             auto i8Ty = builder.getI8Type();
             Value heapCast = builder.create<cudaq::cc::CastOp>(
@@ -563,7 +573,7 @@ public:
         for (int i = 0, end = funcOp.getNumResults(); i != end; ++i) {
           auto mem = builder.create<cudaq::cc::ComputePtrOp>(
               loc, cudaq::cc::PointerType::get(funcTy.getResult(i)), cast,
-              SmallVector<cudaq::cc::ComputePtrArg>{0, i});
+              SmallVector<cudaq::cc::ComputePtrArg>{i});
           builder.create<cudaq::cc::StoreOp>(loc, retOp.getOperands()[i], mem);
         }
       } else if (auto stdvecTy =
@@ -578,18 +588,21 @@ public:
               return builder.getI8Type();
           return stdvecTy.getElementType();
         }();
+        auto i8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
         auto ptrTy = cudaq::cc::PointerType::get(eleTy);
         auto data = builder.create<cudaq::cc::StdvecDataOp>(loc, ptrTy, stdvec);
         auto mem0 = builder.create<cudaq::cc::ComputePtrOp>(
-            loc, cudaq::cc::PointerType::get(ptrTy), cast,
-            SmallVector<cudaq::cc::ComputePtrArg>{0, 0});
-        builder.create<cudaq::cc::StoreOp>(loc, data, mem0);
+            loc, cudaq::cc::PointerType::get(i8Ty), cast,
+            SmallVector<cudaq::cc::ComputePtrArg>{0});
+        auto mem1 = builder.create<cudaq::cc::CastOp>(
+            loc, cudaq::cc::PointerType::get(ptrTy), mem0);
+        builder.create<cudaq::cc::StoreOp>(loc, data, mem1);
         auto i64Ty = builder.getI64Type();
         auto size = builder.create<cudaq::cc::StdvecSizeOp>(loc, i64Ty, stdvec);
-        auto mem1 = builder.create<cudaq::cc::ComputePtrOp>(
+        auto mem2 = builder.create<cudaq::cc::ComputePtrOp>(
             loc, cudaq::cc::PointerType::get(i64Ty), cast,
-            SmallVector<cudaq::cc::ComputePtrArg>{0, 1});
-        builder.create<cudaq::cc::StoreOp>(loc, size, mem1);
+            SmallVector<cudaq::cc::ComputePtrArg>{1});
+        builder.create<cudaq::cc::StoreOp>(loc, size, mem2);
       } else {
         builder.create<cudaq::cc::StoreOp>(loc, retOp.getOperands()[0], cast);
       }
@@ -634,7 +647,10 @@ public:
     // Convert the pointer-free std::vector<T> to a span structure to be
     // passed. A span structure is a pointer and a size (in element
     // units). Note that this structure may be recursive.
-    auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
+    auto i8Ty = builder.getI8Type();
+    auto arrI8Ty = cudaq::cc::ArrayType::get(i8Ty);
+    auto ptrI8Ty = cudaq::cc::PointerType::get(i8Ty);
+    auto bytesTy = cudaq::cc::PointerType::get(arrI8Ty);
     Type eleTy = stdvecTy.getElementType();
     auto innerStdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(eleTy);
     std::size_t eleSize =
@@ -642,18 +658,11 @@ public:
     auto eleSizeVal = [&]() -> Value {
       if (eleSize)
         return builder.create<arith::ConstantIntOp>(loc, eleSize, 64);
-      // FIXME: should also handle ArrayType here.
-      assert(isa<cudaq::cc::StructType>(eleTy) && "handle non-StructType");
-      auto strTy = cast<cudaq::cc::StructType>(eleTy);
-      auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-      auto arrTy = cudaq::cc::ArrayType::get(strTy);
-      auto ptrTy = cudaq::cc::PointerType::get(strTy);
-      auto ptrArrTy = cudaq::cc::PointerType::get(arrTy);
-      Value nullVal = builder.create<cudaq::cc::CastOp>(loc, ptrArrTy, zero);
-      Value sizePtr = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, ptrTy, nullVal, SmallVector<cudaq::cc::ComputePtrArg>{0, 1});
+      assert(isa<cudaq::cc::StructType>(eleTy) ||
+             (isa<cudaq::cc::ArrayType>(eleTy) &&
+              !cast<cudaq::cc::ArrayType>(eleTy).isUnknownSize()));
       auto i64Ty = builder.getI64Type();
-      return builder.create<cudaq::cc::CastOp>(loc, i64Ty, sizePtr);
+      return builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, eleTy);
     }();
     auto vecLength = builder.create<arith::DivSIOp>(loc, vecSize, eleSizeVal);
     if (innerStdvecTy) {
@@ -665,11 +674,14 @@ public:
       auto vecTmp = builder.create<cudaq::cc::AllocaOp>(loc, eleTy, vecLength);
       auto currentEnd = builder.create<cudaq::cc::AllocaOp>(loc, ptrI8Ty);
       auto i64Ty = builder.getI64Type();
-      auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
+      auto arrI64Ty = cudaq::cc::ArrayType::get(i64Ty);
+      auto arrTy = cudaq::cc::PointerType::get(arrI64Ty);
       auto innerVec =
-          builder.create<cudaq::cc::CastOp>(loc, ptrI64Ty, trailingData);
+          builder.create<cudaq::cc::CastOp>(loc, arrTy, trailingData);
+      auto trailingBytes =
+          builder.create<cudaq::cc::CastOp>(loc, bytesTy, trailingData);
       trailingData = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, ptrI8Ty, trailingData, vecSize);
+          loc, ptrI8Ty, trailingBytes, vecSize);
       builder.create<cudaq::cc::StoreOp>(loc, trailingData, currentEnd);
       // Loop over each subvector in the vector and recursively unpack it into
       // the vecTmp variable. Leaf vectors do not need a fresh variable. This
@@ -712,8 +724,10 @@ public:
         loc, cudaq::cc::PointerType::get(eleTy), trailingData);
     Value stdVecResult = builder.create<cudaq::cc::StdvecInitOp>(
         loc, stdvecTy, castData, vecLength);
-    trailingData = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrI8Ty, trailingData, vecSize);
+    auto arrTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i8Ty));
+    Value casted = builder.create<cudaq::cc::CastOp>(loc, arrTy, trailingData);
+    trailingData =
+        builder.create<cudaq::cc::ComputePtrOp>(loc, ptrI8Ty, casted, vecSize);
     return {stdVecResult, trailingData};
   }
 
@@ -821,7 +835,7 @@ public:
       auto eleTy = structTy.getMember(offset);
       auto mem = builder.create<cudaq::cc::ComputePtrOp>(
           loc, cudaq::cc::PointerType::get(eleTy), castOp,
-          SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
+          SmallVector<cudaq::cc::ComputePtrArg>{offset});
       auto sretPtrTy = cudaq::cc::PointerType::get(
           cudaq::opt::factory::getSRetElementType(funcTy));
       auto sretMem = builder.create<cudaq::cc::CastOp>(loc, sretPtrTy, mem);
@@ -845,7 +859,7 @@ public:
       auto eleTy = structTy.getMember(offset);
       auto mem = builder.create<cudaq::cc::ComputePtrOp>(
           loc, cudaq::cc::PointerType::get(eleTy), castOp,
-          SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
+          SmallVector<cudaq::cc::ComputePtrArg>{offset});
       builder.create<cudaq::cc::StoreOp>(loc, call.getResult(0), mem);
     }
 
@@ -867,7 +881,7 @@ public:
       int offset = funcTy.getNumInputs();
       auto gepRes = builder.create<cudaq::cc::ComputePtrOp>(
           loc, cudaq::cc::PointerType::get(structTy.getMember(offset)), castOp,
-          SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
+          SmallVector<cudaq::cc::ComputePtrArg>{offset});
       auto gepRes2 = builder.create<cudaq::cc::CastOp>(
           loc, cudaq::cc::PointerType::get(thunkTy.getResults()[0]), gepRes);
       // createDynamicResult packs the input values and the dynamic results
@@ -915,7 +929,7 @@ public:
     auto castSret = builder.create<cudaq::cc::CastOp>(loc, stlVectorTy, sret);
     auto ptrPtrTy = cudaq::cc::PointerType::get(ptrTy);
     auto sret0 = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrPtrTy, castSret, SmallVector<cudaq::cc::ComputePtrArg>{0, 0});
+        loc, ptrPtrTy, castSret, SmallVector<cudaq::cc::ComputePtrArg>{0});
     Value vecPtr = builder.create<cudaq::cc::LoadOp>(loc, ptrTy, sret0);
     builder.create<func::CallOp>(loc, std::nullopt, "free", ValueRange{vecPtr});
     auto arrI8Ty = cudaq::cc::ArrayType::get(i8Ty);
@@ -923,14 +937,14 @@ public:
     auto buffPtr0 = builder.create<cudaq::cc::CastOp>(loc, ptrTy, data);
     builder.create<cudaq::cc::StoreOp>(loc, buffPtr0, sret0);
     auto sret1 = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrPtrTy, castSret, SmallVector<cudaq::cc::ComputePtrArg>{0, 1});
+        loc, ptrPtrTy, castSret, SmallVector<cudaq::cc::ComputePtrArg>{1});
     Value byteLen = builder.create<arith::MulIOp>(loc, tSize, vecSize);
     auto buffPtr = builder.create<cudaq::cc::CastOp>(loc, ptrArrTy, data);
     auto endPtr = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrTy, buffPtr, SmallVector<cudaq::cc::ComputePtrArg>{0, byteLen});
+        loc, ptrTy, buffPtr, SmallVector<cudaq::cc::ComputePtrArg>{byteLen});
     builder.create<cudaq::cc::StoreOp>(loc, endPtr, sret1);
     auto sret2 = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrPtrTy, castSret, SmallVector<cudaq::cc::ComputePtrArg>{0, 2});
+        loc, ptrPtrTy, castSret, SmallVector<cudaq::cc::ComputePtrArg>{2});
     builder.create<cudaq::cc::StoreOp>(loc, endPtr, sret2);
   }
 
@@ -965,7 +979,7 @@ public:
     auto inpStructTy = cast<cudaq::cc::StructType>(hostVecTy.getElementType());
     auto ptrTtype = cudaq::cc::PointerType::get(inpStructTy.getMember(0));
     auto beginPtr = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrTtype, hostArg, SmallVector<cudaq::cc::ComputePtrArg>{0, 0});
+        loc, ptrTtype, hostArg, SmallVector<cudaq::cc::ComputePtrArg>{0});
     auto ptrArrSTy = cudaq::opt::factory::getIndexedObjectType(inpStructTy);
     auto vecPtr = builder.create<cudaq::cc::CastOp>(
         loc, cudaq::cc::PointerType::get(ptrArrSTy), beginPtr);
@@ -982,24 +996,32 @@ public:
     auto vecLenIndex = builder.create<cudaq::cc::CastOp>(
         loc, builder.getI64Type(), vecLogicalLen,
         cudaq::cc::CastOpMode::Unsigned);
-    auto buffPtrTy = buffPtr.getType();
+    auto buffPtrTy = cast<cudaq::cc::PointerType>(buffPtr.getType());
     auto tmp = builder.create<cudaq::cc::AllocaOp>(loc, buffPtrTy);
+    auto buffArrTy = cudaq::cc::ArrayType::get(buffPtrTy.getElementType());
+    auto castPtr = builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(buffArrTy), buffPtr);
     auto newEnd = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, buffPtrTy, buffPtr, SmallVector<cudaq::cc::ComputePtrArg>{vecLen});
+        loc, buffPtrTy, castPtr, SmallVector<cudaq::cc::ComputePtrArg>{vecLen});
     builder.create<cudaq::cc::StoreOp>(loc, newEnd, tmp);
     auto i64Ty = builder.getI64Type();
+    auto arrI64Ty = cudaq::cc::ArrayType::get(i64Ty);
     auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
-    auto vecBasePtr = builder.create<cudaq::cc::CastOp>(loc, ptrI64Ty, buffPtr);
+    auto ptrArrTy = cudaq::cc::PointerType::get(arrI64Ty);
+    auto vecBasePtr = builder.create<cudaq::cc::CastOp>(loc, ptrArrTy, buffPtr);
     auto nestedArr = builder.create<cudaq::cc::CastOp>(loc, hostVecTy, nested);
+    auto hostArrVecTy = cudaq::cc::PointerType::get(
+        cudaq::cc::ArrayType::get(hostVecTy.getElementType()));
     cudaq::opt::factory::createInvariantLoop(
         builder, loc, vecLenIndex,
         [&](OpBuilder &builder, Location loc, Region &, Block &block) {
           Value i = block.getArgument(0);
           auto currBuffPtr = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, ptrI64Ty, vecBasePtr,
-              SmallVector<cudaq::cc::ComputePtrArg>{i});
+              loc, ptrI64Ty, vecBasePtr, ArrayRef<cudaq::cc::ComputePtrArg>{i});
+          auto upCast =
+              builder.create<cudaq::cc::CastOp>(loc, hostArrVecTy, nestedArr);
           auto hostSubVec = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, hostVecTy, nestedArr, i);
+              loc, hostVecTy, upCast, ArrayRef<cudaq::cc::ComputePtrArg>{i});
           Value buff = builder.create<cudaq::cc::LoadOp>(loc, tmp);
           // Compute and save the byte size.
           auto vecSz = computeHostVectorLengthInBytes(
@@ -1049,7 +1071,7 @@ public:
         auto size = builder.create<cudaq::cc::LoadOp>(loc, sizeAddr);
         auto vecAddr = builder.create<cudaq::cc::ComputePtrOp>(
             loc, ptrHostTy, hostArg,
-            ArrayRef<cudaq::cc::ComputePtrArg>{0, offset});
+            ArrayRef<cudaq::cc::ComputePtrArg>{offset});
         bufferAddendum = encodeVectorData(loc, builder, size, vecTy, vecAddr,
                                           bufferAddendum, ptrHostTy);
       } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(memTy)) {
@@ -1058,7 +1080,7 @@ public:
           std::int32_t idx = iter.index();
           auto strAddr = builder.create<cudaq::cc::ComputePtrOp>(
               loc, ptrStrTy, bufferArg,
-              ArrayRef<cudaq::cc::ComputePtrArg>{0, idx});
+              ArrayRef<cudaq::cc::ComputePtrArg>{idx});
           bufferAddendum = encodeDynamicStructData(loc, builder, strTy, strAddr,
                                                    bufferArg, bufferAddendum);
         }
@@ -1169,8 +1191,9 @@ public:
           if (cudaq::opt::factory::isX86_64(module)) {
             builder.create<cudaq::cc::StoreOp>(loc, arg, cast);
             if (cudaq::opt::factory::structUsesTwoArguments(quakeTy)) {
+              auto arrTy = cudaq::cc::ArrayType::get(builder.getI8Type());
               auto cast = builder.create<cudaq::cc::CastOp>(
-                  loc, cudaq::cc::PointerType::get(builder.getI8Type()), tmp);
+                  loc, cudaq::cc::PointerType::get(arrTy), tmp);
               auto hiPtr = builder.create<cudaq::cc::ComputePtrOp>(
                   loc, cudaq::cc::PointerType::get(builder.getI8Type()), cast,
                   cudaq::cc::ComputePtrArg{8});
@@ -1268,7 +1291,7 @@ public:
             auto ptrI1Ty = cudaq::cc::PointerType::get(builder.getI1Type());
             auto heapPtr = builder.create<cudaq::cc::ComputePtrOp>(
                 loc, cudaq::cc::PointerType::get(ptrI1Ty), arg,
-                ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
+                ArrayRef<cudaq::cc::ComputePtrArg>{0});
             auto loadHeapPtr = builder.create<cudaq::cc::LoadOp>(loc, heapPtr);
             Value heapCast = builder.create<cudaq::cc::CastOp>(
                 loc, cudaq::cc::PointerType::get(i8Ty), loadHeapPtr);
@@ -1329,17 +1352,40 @@ public:
                                     rewriteEntryBlock->getArguments().front(),
                                     dataPtr, vecLen);
         } else {
-          auto size = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
-          Value tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+          Value tSize;
+          if (isa<IntegerType, FloatType>(eleTy)) {
+            auto size = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
+            tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+          } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+            eleTy = complexTy.getElementType();
+            if (isa<IntegerType, FloatType>(eleTy)) {
+              auto size = ((eleTy.getIntOrFloatBitWidth() + 7) / 8) * 2;
+              tSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+            }
+          } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(eleTy)) {
+            if (std::size_t bitWidth = strTy.getBitSize()) {
+              assert(bitWidth % 8 == 0 && "struct ought to be in bytes");
+              std::size_t byteWidth = bitWidth / 8;
+              tSize = builder.create<arith::ConstantIntOp>(loc, byteWidth, 64);
+            } else {
+              tSize = builder.create<cudaq::cc::SizeOfOp>(
+                  loc, builder.getI64Type(), strTy);
+            }
+          } else {
+            TODO_loc(loc, "unhandled vector element type");
+            return;
+          }
           genStdvecTFromInitList(loc, builder,
                                  rewriteEntryBlock->getArguments().front(),
                                  dataPtr, tSize, vecLen);
         }
         offset++;
       } else {
-        auto gep = builder.create<cudaq::cc::ComputePtrOp>(
-            loc, cudaq::cc::PointerType::get(res.value()), temp,
+        auto gep0 = builder.create<cudaq::cc::ComputePtrOp>(
+            loc, cudaq::cc::PointerType::get(structTy.getMember(off)), temp,
             SmallVector<cudaq::cc::ComputePtrArg>{0, off});
+        auto gep = cudaq::opt::factory::createCast(
+            builder, loc, cudaq::cc::PointerType::get(res.value()), gep0);
         Value loadVal = builder.create<cudaq::cc::LoadOp>(loc, gep);
         if (hiddenSRet) {
           auto sretPtr = [&]() -> Value {
@@ -1347,7 +1393,7 @@ public:
               return builder.create<cudaq::cc::ComputePtrOp>(
                   loc, cudaq::cc::PointerType::get(res.value()),
                   rewriteEntryBlock->getArguments().front(),
-                  SmallVector<cudaq::cc::ComputePtrArg>{0, off});
+                  SmallVector<cudaq::cc::ComputePtrArg>{off});
             return builder.create<cudaq::cc::CastOp>(
                 loc, cudaq::cc::PointerType::get(res.value()),
                 rewriteEntryBlock->getArguments().front());
