@@ -268,8 +268,6 @@ public:
         auto newOp = builder.create<quake::SinkOp>(
             builder.getUnknownLoc(), associated->getResult(edge.result_idx));
         newOp->setAttrs(successor->associated->getAttrs());
-        successor->associated->erase();
-        successor->associated = newOp;
       }
     }
   }
