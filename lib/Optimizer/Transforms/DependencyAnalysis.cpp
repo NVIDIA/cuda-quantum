@@ -562,6 +562,7 @@ struct DependencyAnalysisPass
     builder.setInsertionPointToStart(newBlock);
     codeGen(graphs, builder);
     builder.create<func::ReturnOp>(builder.getUnknownLoc());
+    oldBlock->erase();
   }
 };
 
