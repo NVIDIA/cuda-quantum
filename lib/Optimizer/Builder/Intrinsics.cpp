@@ -11,7 +11,6 @@
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MD5.h"
 #include "mlir/Parser/Parser.h"
