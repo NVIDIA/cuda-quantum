@@ -15,8 +15,6 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 
-#include <iostream>
-
 #define DEBUG_TYPE "lower-ast-expr"
 
 using namespace mlir;
@@ -280,8 +278,10 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
         auto eleTy =
             cast<cudaq::cc::SpanLikeType>(bitVec.getType()).getElementType();
         auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
+        auto eleArrTy =
+            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
         auto vecPtr =
-            builder.create<cudaq::cc::StdvecDataOp>(loc, elePtrTy, bitVec);
+            builder.create<cudaq::cc::StdvecDataOp>(loc, eleArrTy, bitVec);
         auto eleAddr = builder.create<cudaq::cc::ComputePtrOp>(
             loc, elePtrTy, vecPtr, ValueRange{kIter});
         Value bitElement = builder.create<cudaq::cc::LoadOp>(loc, eleAddr);
@@ -700,7 +700,7 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
       assert(result && "integer conversion failed");
       return result;
     }
-    TODO_loc(loc, "unhandled user defined implicit conversion");
+    TODO_loc(loc, "unhandled user-defined implicit conversion");
   }
   case clang::CastKind::CK_ConstructorConversion: {
     // Enable implicit conversion of surface types, which both map to VeqType.
@@ -1109,11 +1109,16 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
   if (auto *field = dyn_cast<clang::FieldDecl>(x->getMemberDecl())) {
     auto loc = toLocation(x->getSourceRange());
     auto object = popValue(); // DeclRefExpr
+    auto eleTy = cast<cc::PointerType>(object.getType()).getElementType();
+    SmallVector<cc::ComputePtrArg> offsets;
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+      if (arrTy.isUnknownSize())
+        offsets.push_back(0);
     std::int32_t offset = field->getFieldIndex();
+    offsets.push_back(offset);
     auto ty = popType();
     return pushValue(builder.create<cc::ComputePtrOp>(
-        loc, cc::PointerType::get(ty), object,
-        SmallVector<cc::ComputePtrArg>{0, offset}));
+        loc, cc::PointerType::get(ty), object, offsets));
   }
   return true;
 }
@@ -1214,10 +1219,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           assert(isa<FunctionType>(calleeTy));
           auto negativeOneIndex = getConstantInt(builder, loc, -1, 64);
           auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
+          auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
           auto elePtrTy = cc::PointerType::get(eleTy);
           auto *ctx = eleTy.getContext();
           auto i64Ty = mlir::IntegerType::get(ctx, 64);
-          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec);
           auto vecLen = builder.create<cc::StdvecSizeOp>(loc, i64Ty, svec);
           Value vecLenMinusOne =
               builder.create<arith::AddIOp>(loc, vecLen, negativeOneIndex);
@@ -1231,9 +1237,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           assert(isa<FunctionType>(calleeTy));
           auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
+          auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
           auto *ctx = eleTy.getContext();
           auto i64Ty = mlir::IntegerType::get(ctx, 64);
-          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec);
           Value vecLen = builder.create<cc::StdvecSizeOp>(loc, i64Ty, svec);
           return pushValue(builder.create<cc::ComputePtrOp>(
               loc, elePtrTy, vecPtr, ValueRange{vecLen}));
@@ -1247,7 +1254,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
               builder.create<arith::ConstantIntOp>(loc, -1, 64);
           auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
-          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+          auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec);
           return pushValue(builder.create<cc::ComputePtrOp>(
               loc, elePtrTy, vecPtr, ValueRange{negativeOneIndex}));
         }
@@ -1890,7 +1898,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         offset = builder.create<arith::MulIOp>(loc, scale, args[1]);
       } else {
         ptrTy = cc::PointerType::get(eleTy);
-        vecPtr = builder.create<cc::StdvecDataOp>(loc, ptrTy, args[0]);
+        auto arrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+        vecPtr = builder.create<cc::StdvecDataOp>(loc, arrTy, args[0]);
       }
       auto ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, vecPtr,
                                                   ArrayRef<Value>{offset});
@@ -1950,7 +1959,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       auto loInt = builder.create<cc::CastOp>(loc, i64Ty, args[0]);
       auto ptrTy = cast<cc::PointerType>(args[0].getType());
       auto eleTy = ptrTy.getElementType();
-      auto arrTy = cc::ArrayType::get(eleTy);
+      auto arrTy = dyn_cast<cc::ArrayType>(eleTy);
+      if (arrTy) {
+        eleTy = arrTy.getElementType();
+        ptrTy = cc::PointerType::get(eleTy);
+      } else {
+        arrTy = cc::ArrayType::get(eleTy);
+      }
       auto eleSize = eleTy.getIntOrFloatBitWidth();
       auto adjust = getConstantInt(builder, loc, eleSize / 4, i64Ty);
       auto dist = builder.create<arith::SubIOp>(loc, hiInt, loInt);
@@ -1988,9 +2003,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       if (specArgs[0].getKind() == clang::TemplateArgument::ArgKind::Integral) {
         auto ptr = builder.create<cc::ComputePtrOp>(
             loc, resultTy, args[0],
-            ArrayRef<cc::ComputePtrArg>{
-                0, static_cast<std::int32_t>(
-                       specArgs[0].getAsIntegral().getExtValue())});
+            ArrayRef<cc::ComputePtrArg>{static_cast<std::int32_t>(
+                specArgs[0].getAsIntegral().getExtValue())});
         return pushValue(builder.create<cc::LoadOp>(loc, ptr));
       }
       auto *selectTy = specArgs[0].getAsType().getTypePtr();
@@ -1999,7 +2013,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       for (auto &templateArg : specArgs[1].pack_elements()) {
         if (templateArg.getAsType().getTypePtr() == selectTy) {
           auto ptr = builder.create<cc::ComputePtrOp>(
-              loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{0, i});
+              loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{i});
           return pushValue(builder.create<cc::LoadOp>(loc, ptr));
         }
         ++i;
@@ -2112,7 +2126,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       }
       auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
       auto elePtrTy = cc::PointerType::get(eleTy);
-      auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+      auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+      auto vecPtr = builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec);
       auto eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
                                                       ValueRange{indexVar});
       return replaceTOSValue(eleAddr);
@@ -2124,8 +2139,10 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto indexVar = popValue();
       auto svec = popValue();
       assert(svec.getType().isa<cc::StdvecType>());
-      auto elePtrTy = cc::PointerType::get(builder.getI8Type());
-      auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+      auto i8Ty = builder.getI8Type();
+      auto elePtrTy = cc::PointerType::get(i8Ty);
+      auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(i8Ty));
+      auto vecPtr = builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec);
       auto eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
                                                       ValueRange{indexVar});
       auto i1PtrTy = cc::PointerType::get(builder.getI1Type());
@@ -2353,13 +2370,21 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
             ArrayRef<cc::ComputePtrArg>{i / structMems, i % structMems});
       } else {
         auto ptrTy = cc::PointerType::get(structTy.getMembers()[i]);
-        ptr = builder.create<cc::ComputePtrOp>(
-            loc, ptrTy, alloca, ArrayRef<cc::ComputePtrArg>{0, i});
+        ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, alloca,
+                                               ArrayRef<cc::ComputePtrArg>{i});
       }
     } else {
-      auto ptrTy = cc::PointerType::get(eleTy);
-      ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, alloca,
-                                             ArrayRef<cc::ComputePtrArg>{i});
+      if (numEles > 1) {
+        auto ptrTy = cc::PointerType::get(eleTy);
+        ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, alloca,
+                                               ArrayRef<cc::ComputePtrArg>{i});
+      } else {
+        auto arrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+        auto cast = builder.create<cc::CastOp>(loc, arrTy, alloca);
+        auto ptrTy = cc::PointerType::get(eleTy);
+        ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, cast,
+                                               ArrayRef<cc::ComputePtrArg>{i});
+      }
     }
     assert(ptr &&
            (v.getType() ==
@@ -2415,18 +2440,6 @@ static Type getEleTyFromVectorCtor(Type ctorTy) {
   if (auto stdvecTy = dyn_cast<cc::StdvecType>(ctorTy))
     return stdvecTy.getElementType();
   return ctorTy;
-}
-
-mlir::Operation* constProp(OpBuilder &builder, Location &loc, Operation* op) {
-  if (auto &constOp = dyn_cast<arith::ConstantFloatOp>(op)) {
-    return op;
-  }
-  if (auto &truncOp = dyn_cast<arith::TruncFOp>(op)) {
-    auto truncated = truncOp->getOperand(0);
-    auto fTy = op->getType();
-    builder.create<arith::ConstantFloatOp>(loc, cast<FloatAttr>(val).getValue(), fTy);
-  }
-
 }
 
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
@@ -2583,30 +2596,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         }
       }
       return false;
-    }(); 
+    }();
     if (isVectorOfQubitRefs)
       return true;
     if (ctorName == "complex") {
       Value imag = popValue();
       Value real = popValue();
-
-      std::cout << "Real and Imag values" << std::endl;
-      real = constProp(builder, loc, real);
-      imag = constProp(builder, loc, imag);
-      real.dump();
-      imag.dump();
-      if (auto realOp = real.getDefiningOp<arith::ConstantFloatOp>()) {
-        if (auto imagOp = imag.getDefiningOp<arith::ConstantFloatOp>()) {
-          std::cout << "Creating const complex" << std::endl;
-          auto realConst = realOp.value().convertToDouble();
-          auto imagConst = imagOp.value().convertToDouble();
-          auto attr = (real.getType() == builder.getF64Type())?
-            builder.getF64ArrayAttr({realConst, imagConst}):
-            builder.getF32ArrayAttr({static_cast<float>(realConst), static_cast<float>(imagConst)});
-          return pushValue(builder.create<complex::ConstantOp>(loc, ComplexType::get(real.getType()), attr));
-        }
-      }
-      std::cout << "Creating non-const complex" << std::endl;
       return pushValue(builder.create<complex::CreateOp>(
           loc, ComplexType::get(real.getType()), real, imag));
     }
