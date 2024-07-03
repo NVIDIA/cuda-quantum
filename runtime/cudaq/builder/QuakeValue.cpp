@@ -128,8 +128,8 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 
   auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
   Value vecPtr = opBuilder.create<cc::StdvecDataOp>(arrPtrTy, vectorValue);
-  Type elePtrTy = cc::PointerType::get(eleTy);
   std::int32_t idx32 = static_cast<std::int32_t>(idx);
+  auto elePtrTy = cc::PointerType::get(eleTy);
   Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
       elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{idx32});
   Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
@@ -163,9 +163,9 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   canValidateVectorNumElements = false;
 
   Type eleTy = vectorValue.getType().cast<cc::StdvecType>().getElementType();
-
-  Type elePtrTy = cc::PointerType::get(eleTy);
-  Value vecPtr = opBuilder.create<cc::StdvecDataOp>(elePtrTy, vectorValue);
+  auto arrEleTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+  Value vecPtr = opBuilder.create<cc::StdvecDataOp>(arrEleTy, vectorValue);
+  auto elePtrTy = cc::PointerType::get(eleTy);
   Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
       elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{indexVar});
   Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
@@ -227,14 +227,13 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
   auto svecTy = dyn_cast<cc::StdvecType>(vectorValue.getType());
   auto eleTy = svecTy.getElementType();
   assert(!isa<cc::ArrayType>(eleTy));
-  Type ptrTy;
   Value vecPtr;
   Value offset;
   if (eleTy == opBuilder.getI1Type()) {
     // This is a workaround for when we go to LLVM. This workaround should
     // actually appear in CodeGen when lowering this to the LLVM-IR dialect.
-    auto newEleTy = cc::ArrayType::get(opBuilder.getI8Type());
-    ptrTy = cc::PointerType::get(newEleTy);
+    eleTy = opBuilder.getI8Type();
+    auto ptrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
     vecPtr = opBuilder.create<cc::StdvecDataOp>(ptrTy, vectorValue);
     auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
     assert(bits > 0);
@@ -242,12 +241,13 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
         (bits + 7) / 8, startIdxValue.getType());
     offset = opBuilder.create<arith::MulIOp>(scale, startIdxValue);
   } else {
-    ptrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+    auto ptrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
     vecPtr = opBuilder.create<cc::StdvecDataOp>(ptrTy, vectorValue);
     offset = startIdxValue;
   }
   auto ptr = opBuilder.create<cc::ComputePtrOp>(
-      ptrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{offset});
+      cudaq::cc::PointerType::get(eleTy), vecPtr,
+      ArrayRef<cc::ComputePtrArg>{offset});
   Value subVeqInit = opBuilder.create<cc::StdvecInitOp>(vectorValue.getType(),
                                                         ptr, countValue);
 
