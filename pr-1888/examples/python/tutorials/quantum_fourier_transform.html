@@ -149,7 +149,14 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/cuquantum.html">   Simulations with cuQuantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/noisy_simulation.html">   Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#ionq">IonQ</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#iqm">IQM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#oqc">OQC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
@@ -161,7 +168,10 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Fourier Transform</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Fourier Transform</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
@@ -196,28 +206,34 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/backends/hardware.html">   Quantum Hardware</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#ionq">IonQ</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#submission-from-c">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id1">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id2">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#oqc">OQC</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id4">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id6">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id7">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id9">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id11">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id12">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -654,6 +670,101 @@ q2 : ┤ x ├──────────────────────
 <p>Why are we not using QFT for real life applications then? The problem lies in quantum measurement. The quantum-Fourier-transformed amplitudes cannot be accessed by quantum measurement. However there are other quantum algorithms that do make use of QFT such as Shor’s algorithm.</p>
 <p>One can also invert the QFT where the circuit is executed in reverse with the inverse of each gate. The figure below shows the general <span class="math notranslate nohighlight">\(n\)</span>-qubit inverse QFT. Why don’t you try implementing this in CUDA-Q?</p>
 <p><img alt="qft" class="no-scaled-link" src="../../../_images/inverse_qft.png" style="width: 600px;" /></p>
+<section id="Quantum-Fourier-Transform-revisited">
+<h2>Quantum Fourier Transform revisited<a class="headerlink" href="#Quantum-Fourier-Transform-revisited" title="Permalink to this heading">¶</a></h2>
+<p>We provided one implementation of the Quantum Fourier Transform above. To demonstrate some of the other features of CUDA-Q, let’s define a new kernel for the Quantum Fourier Transform, which we’ll call <code class="docutils literal notranslate"><span class="pre">quantum_fourier_transform2</span></code>. Pay attention to how the kernel definition differs from the example above.</p>
+<p>Since the Quantum Fourier Transform is a unitary operator, its inverse is its adjoint. Therefore, once we have implemented the Quantum Fourier Transform as a kernel in CUDA-Q, we can use the built-in <code class="docutils literal notranslate"><span class="pre">adjoint</span></code> operation to create the Inverse Quantum Fourier Transform.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernels for the Quantum Fourier Transform and the Inverse Quantum Fourier Transform</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">quantum_fourier_transform2</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
+<span class="sd">    qubits (cudaq.qview): specifies the quantum register to which apply the QFT.&#39;&#39;&#39;</span>
+    <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+    <span class="c1"># Apply Hadamard gates and controlled rotation gates.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
+        <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
+            <span class="n">angle</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">cr1</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="p">[</span><span class="n">qubits</span><span class="p">[</span><span class="n">j</span><span class="p">]],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
+<span class="sd">    qubits (cudaq.qview): specifies the quantum register to which apply the inverse QFT.&#39;&#39;&#39;</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">adjoint</span><span class="p">(</span><span class="n">quantum_fourier_transform2</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Let’s see that this approach gives us the same results as the section above.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">verification_example</span><span class="p">(</span><span class="n">input_state</span> <span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
+<span class="sd">    input_state (list[int]): specifies the input state to be transformed with QFT and the inverse QFT.  &#39;&#39;&#39;</span>
+    <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_state</span><span class="p">)</span>
+    <span class="c1"># Initialize qubits.</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+
+    <span class="c1"># Initialize the quantum circuit to the initial state.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">input_state</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># Apply the quantum Fourier Transform</span>
+    <span class="n">quantum_fourier_transform2</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+    <span class="c1"># Apply the inverse quantum Fourier Transform</span>
+    <span class="n">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+<span class="c1"># The state to which the QFT operation is applied to. The zeroth element in the list is the zeroth qubit.</span>
+<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+
+<span class="c1"># Number of decimal points to round up the statevector to.</span>
+<span class="n">precision</span> <span class="o">=</span> <span class="mi">2</span>
+
+
+<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
+
+<span class="c1"># Print the statevector to the specified precision</span>
+<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">statevector</span><span class="p">,</span> <span class="n">precision</span><span class="p">))</span> <span class="c1"># The result should be the input state</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+     ╭───╮╭───╮╭─────────╮╭──────────╮                                      »
+q0 : ┤ x ├┤ h ├┤ r1(1.5) ├┤ r1(0.75) ├──────────────────────────────────────»
+     ╰───╯╰───╯╰────┬────╯╰────┬─────╯╭───╮╭─────────╮          ╭──────────╮»
+q1 : ───────────────●──────────┼──────┤ h ├┤ r1(1.5) ├──────────┤ r1(-1.5) ├»
+     ╭───╮                     │      ╰───╯╰────┬────╯╭───╮╭───╮╰────┬─────╯»
+q2 : ┤ x ├─────────────────────●────────────────●─────┤ h ├┤ h ├─────●──────»
+     ╰───╯                                            ╰───╯╰───╯            »
+
+################################################################################
+
+     ╭───────────╮╭──────────╮╭───╮
+─────┤ r1(-0.75) ├┤ r1(-1.5) ├┤ h ├
+╭───╮╰─────┬─────╯╰────┬─────╯╰───╯
+┤ h ├──────┼───────────●───────────
+╰───╯      │
+───────────●───────────────────────
+
+
+[0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 1.-0.j 0.-0.j 0.+0.j]
+</pre></div></div>
+</div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
@@ -670,6 +781,7 @@ q2 : ┤ x ├──────────────────────
 CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408cbf595ce6fe5f33dcd8b4c)
 </pre></div></div>
 </div>
+</section>
 </section>
 
 
