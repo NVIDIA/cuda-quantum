@@ -62,7 +62,6 @@ NVQC
 NVQIR
 OQC
 ORCA
-ORCA's
 OpenACC
 OpenMP
 OpenMPI
@@ -126,7 +125,6 @@ bitstrings
 boolean
 boson
 broadcasted
-bs
 buildable
 callable
 callables
@@ -224,7 +222,6 @@ namespace
 namespaces
 natively
 normalization
-np
 nullary
 optimizer
 optimizers
@@ -241,7 +238,6 @@ prepend
 preprocessor
 probability
 programmatically
-ps
 pybind
 quantize
 quantized
