@@ -290,6 +290,24 @@ ParseResult quake::ApplyOp::parse(OpAsmParser &parser, OperationState &result) {
 }
 
 //===----------------------------------------------------------------------===//
+// BorrowWire
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::BorrowWireOp::verify() {
+  std::int32_t id = getIdentity();
+  if (id < 0)
+    return emitOpError("id cannot be negative");
+  ModuleOp module = getOperation()->getParentOfType<ModuleOp>();
+  auto wires = module.lookupSymbol<quake::WireSetOp>(getSetName());
+  if (!wires)
+    return emitOpError("wire set could not be found");
+  std::int32_t setCardinality = wires.getCardinality();
+  if (id >= setCardinality)
+    return emitOpError("id is out of bounds for wire set");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // Concat
 //===----------------------------------------------------------------------===//
 
@@ -766,6 +784,45 @@ LogicalResult quake::DiscriminateOp::verify() {
           "must return integral type when discriminating exactly one qubit");
   }
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// WireSetOp
+//===----------------------------------------------------------------------===//
+
+ParseResult quake::WireSetOp::parse(OpAsmParser &parser,
+                                    OperationState &result) {
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  std::int32_t cardinality = 0;
+  if (parser.parseLSquare() || parser.parseInteger(cardinality) ||
+      parser.parseRSquare())
+    return failure();
+  result.addAttribute(getCardinalityAttrName(result.name),
+                      parser.getBuilder().getI32IntegerAttr(cardinality));
+  Attribute sparseEle;
+  if (succeeded(parser.parseOptionalKeyword("adjacency")))
+    if (parser.parseAttribute(sparseEle, getAdjacencyAttrName(result.name),
+                              result.attributes))
+      return failure();
+  if (parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  return success();
+}
+
+void quake::WireSetOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  p.printSymbolName(getSymName());
+  p << '[' << getCardinality() << ']';
+  if (auto adj = getAdjacency()) {
+    p << " adjacency ";
+    p.printAttribute(*adj);
+  }
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(),
+      {getSymNameAttrName(), getCardinalityAttrName(), getAdjacencyAttrName()});
 }
 
 //===----------------------------------------------------------------------===//
