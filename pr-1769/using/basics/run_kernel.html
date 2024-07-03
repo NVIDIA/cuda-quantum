@@ -26,6 +26,8 @@
         <script src="../../_static/clipboard.min.js"></script>
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -120,8 +122,27 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/vqe.html">   Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
@@ -131,8 +152,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
@@ -140,48 +160,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample">Sample</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample-Async">Sample Async</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe">Observe</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe-Async">Observe Async</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-linearity">Gate linearity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
 </ul>
@@ -239,7 +231,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../backends/platform.html">   Multi-Processor Platforms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
 </ul>
 </li>
@@ -421,8 +412,10 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -516,50 +509,36 @@
              
   <section id="running-your-first-cuda-q-program">
 <h1>Running your first CUDA-Q Program<a class="headerlink" href="#running-your-first-cuda-q-program" title="Permalink to this heading">¶</a></h1>
-<p>Now that you have defined your first quantum kernel, let’s look at different options for how to execute it.</p>
+<p>Now that you have defined your first quantum kernel, let’s look at different options for how to execute it.
+In CUDA-Q, quantum circuits are stored as quantum kernels. For estimating the probability distribution of
+a measured quantum state in a circuit, we use the <code class="docutils literal notranslate"><span class="pre">sample</span></code> function call, and for computing the
+expectation value of a quantum state with a given observable, we use the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function call.</p>
 <section id="sample">
 <h2>Sample<a class="headerlink" href="#sample" title="Permalink to this heading">¶</a></h2>
+<p>Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA-Q <code class="code docutils literal notranslate"><span class="pre">sample</span></code> call enables this.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<p>The <a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample" title="cudaq.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.sample()</span></code></a> method takes a kernel and its arguments as inputs, and returns a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SampleResult</span></code></a>.
-This result dictionary contains the distribution of measured states for the system.
-Continuing with the GHZ kernel defined in <a class="reference internal" href="build_kernel.html"><span class="doc">Building Your First CUDA-Q Program</span></a>,
-we will set the concrete value of our <code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code> to be two. The following will assume this code exists in
-a file named <code class="code docutils literal notranslate"><span class="pre">sample.py</span></code>.</p>
+<p>The <a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample" title="cudaq.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.sample()</span></code></a> method takes a kernel and its arguments as inputs, and returns a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SampleResult</span></code></a>.</p>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<p>The <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code> method takes a kernel and its arguments as inputs, and returns a <code class="code docutils literal notranslate"><span class="pre">cudaq::SampleResult</span></code>.</p>
+</div>
+</div>
+<p>This result dictionary contains the distribution of measured states for the system.</p>
+<p>Continuing with the GHZ kernel defined in <a class="reference internal" href="build_kernel.html"><span class="doc">Building Your First CUDA-Q Program</span></a>,
+we will set the concrete value of our <code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code> to be two.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">))</span>
 <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
 <span class="c1"># Should see a roughly 50/50 distribution between the |00&gt; and</span>
 <span class="c1"># |11&gt; states. Example: {00: 505  11: 495}</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement distribution:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>By default, <code class="code docutils literal notranslate"><span class="pre">sample</span></code> produces an ensemble of 1000 shots. This can be changed by specifying an integer argument
-for the <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># With an increased shots count, we will still see the same 50/50 distribution,</span>
-<span class="c1"># but now with 10,000 total measurements instead of the default 1000.</span>
-<span class="c1"># Example: {00: 5005  11: 4995}</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-</pre></div>
 </div>
-<p>A variety of methods can be used to extract useful information from a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SampleResult</span></code></a>. For example,
-to return the most probable measurement and its respective probability:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">most_probable</span><span class="p">())</span>  <span class="c1"># prints: `00`</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">probability</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()))</span>  <span class="c1"># prints: `0.5005`</span>
-</pre></div>
-</div>
-<p>We can execute this program as we do any Python file.</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 sample.py</span>
-</pre></div>
-</div>
-<p>See the <a class="reference internal" href="../../api/languages/python_api.html"><span class="doc">API specification</span></a> for further information.</p>
-</div>
-<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<p>The <a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample" title="cudaq.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.sample()</span></code></a> method takes a kernel and its arguments as inputs, and returns a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SampleResult</span></code></a>.
-This result dictionary contains the distribution of measured states for the system.
-Continuing with the GHZ kernel defined in <a class="reference internal" href="build_kernel.html"><span class="doc">Building Your First CUDA-Q Program</span></a>,
-we will set the concrete value of our <code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code> to be two. The following will assume this code exists in
-a file named <code class="code docutils literal notranslate"><span class="pre">sample.cpp</span></code>.</p>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
@@ -569,8 +548,37 @@ a file named <code class="code docutils literal notranslate"><span class="pre">s
 <span class="w">  </span><span class="n">result_0</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 </pre></div>
 </div>
+</div>
+</div>
+<p>The code above can be run like any other program:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<p>Assuming the program is saved in the file <code class="code docutils literal notranslate"><span class="pre">sample.py</span></code>, we can execute is with the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 sample.py</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<p>Assuming the program is saved in the file <code class="code docutils literal notranslate"><span class="pre">sample.cpp</span></code>, we can now compile this file with the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> toolchain, and then run the compiled executable.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ sample.cpp</span>
+<span class="go">./a.out</span>
+</pre></div>
+</div>
+</div>
+</div>
 <p>By default, <code class="code docutils literal notranslate"><span class="pre">sample</span></code> produces an ensemble of 1000 shots. This can be changed by specifying an integer argument
 for the <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># With an increased shots count, we will still see the same 50/50 distribution,</span>
+<span class="c1"># but now with 10,000 total measurements instead of the default 1000.</span>
+<span class="c1"># Example: {00: 5005  11: 4995}</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement distribution:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// With an increased shots count, we will still see the same 50/50</span>
 <span class="w">  </span><span class="c1">// distribution, but now with 10,000 total measurements instead of the default</span>
 <span class="w">  </span><span class="c1">// 1000. Example: {00: 5005  11: 4995}</span>
@@ -579,37 +587,106 @@ for the <code class="code docutils literal notranslate"><span class="pre">shots_
 <span class="w">  </span><span class="n">result_1</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 </pre></div>
 </div>
-<p>A variety of methods can be used to extract useful information from a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SampleResult</span></code></a>. For example,
+</div>
+</div>
+<p>Note that there is a subtle difference between how sample is executed with the target device set to a simulator or with the target device set to a QPU. When run on a simulator, the quantum state is built once and then sampled repeatedly, where the number of samples is defined by <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>. When executed on quantum hardware, the quantum state collapses upon measurement and hence needs to be rebuilt every time to collect a sample.</p>
+<p>A variety of methods can be used to extract useful information from a <code class="code docutils literal notranslate"><span class="pre">SampleResult</span></code>. For example,
 to return the most probable measurement and its respective probability:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">most_probable_result</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span>
+<span class="n">probability</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">probability</span><span class="p">(</span><span class="n">most_probable_result</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Most probably result: &quot;</span> <span class="o">+</span> <span class="n">most_probable_result</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measured with probability &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">probability</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>See the <a class="reference internal" href="../../api/languages/python_api.html"><span class="doc">API specification</span></a> for further information.</p>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">result_1</span><span class="p">.</span><span class="n">most_probable</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="c1">// prints: `00`</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">result_1</span><span class="p">.</span><span class="n">probability</span><span class="p">(</span><span class="n">result_1</span><span class="p">.</span><span class="n">most_probable</span><span class="p">())</span>
 <span class="w">            </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="c1">// prints: `0.5005`</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>We can now compile this file with the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> toolchain, and run it as we do any other
-C++ executable.</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ sample.cpp</span>
-<span class="go">./a.out</span>
-</pre></div>
-</div>
 <p>See the <a class="reference internal" href="../../api/languages/cpp_api.html"><span class="doc">API specification</span></a> for further information.</p>
 </div>
 </div>
+<p>Sampling a distribution can be a time intensive task. An asynchronous version of sample exists and can be useful to parallelize your application. Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result.</p>
+<p>Asynchronous execution allows to easily parallelize execution of multiple kernels on a multi-processor platform. Such a platform
+is available, for example, by choosing the target <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code>:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel2</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="c1"># Allocate our qubits.</span>
+    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+    <span class="c1"># Place all qubits in a uniform superposition.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+    <span class="c1"># Measure the qubits.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+
+
+<span class="n">num_gpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">num_gpus</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="c1"># Set the target to include multiple virtual QPUs.</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+    <span class="c1"># Asynchronous execution on multiple virtual QPUs, each simulated by an NVIDIA GPU.</span>
+    <span class="n">result_1</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                                  <span class="n">qubit_count</span><span class="p">,</span>
+                                  <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                                  <span class="n">qpu_id</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">result_2</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel2</span><span class="p">,</span>
+                                  <span class="n">qubit_count</span><span class="p">,</span>
+                                  <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                                  <span class="n">qpu_id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Schedule for execution on the same virtual QPU.</span>
+    <span class="n">result_1</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                                  <span class="n">qubit_count</span><span class="p">,</span>
+                                  <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                                  <span class="n">qpu_id</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">result_2</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel2</span><span class="p">,</span>
+                                  <span class="n">qubit_count</span><span class="p">,</span>
+                                  <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                                  <span class="n">qpu_id</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement distribution for kernel:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">result_1</span><span class="o">.</span><span class="n">get</span><span class="p">()))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement distribution for kernel2:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">result_2</span><span class="o">.</span><span class="n">get</span><span class="p">()))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This kind of parallelization is most effective
+if you actually have multiple QPU or CPU available. Otherwise, the
+sampling will still have to execute sequentially due to resource constraints.</p>
+</div>
+<p>More information about parallelizing execution can be found at <a class="reference internal" href="../backends/platform.html"><span class="doc">Multi-Processor Platforms</span></a> page.</p>
 </section>
 <section id="observe">
 <h2>Observe<a class="headerlink" href="#observe" title="Permalink to this heading">¶</a></h2>
+<p>The observe function allows us to calculate expectation values for a defined quantum operator, that is the value of <span class="math notranslate nohighlight">\(\bra{\psi}H\ket{\psi}\)</span>, where <span class="math notranslate nohighlight">\(H\)</span> is the desired operator and <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> is the quantum state after executing a given kernel.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
-<p>The <a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.observe()</span></code></a> method takes a kernel and its arguments as inputs, along with a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SpinOperator</span></code></a>.
-As opposed to <a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample" title="cudaq.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.sample()</span></code></a>, <code class="code docutils literal notranslate"><span class="pre">observe</span></code> is primarily used to produce expectation values of a kernel with respect
-to a provider operator.</p>
+<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
+<p>The <a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.observe()</span></code></a> method takes a kernel and its arguments as inputs, along with a <a class="reference internal" href="../../api/languages/python_api.html#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.SpinOperator</span></code></a>.</p>
 <p>Using the <code class="code docutils literal notranslate"><span class="pre">cudaq.spin</span></code> module, operators may be defined as a linear combination of Pauli strings. Functions, such
 as <a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.i" title="cudaq.spin.i"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.spin.i()</span></code></a>, <a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.x" title="cudaq.spin.x"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.spin.x()</span></code></a>, <a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y" title="cudaq.spin.y"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.spin.y()</span></code></a>, <a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z" title="cudaq.spin.z"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.spin.z()</span></code></a> may be used to construct more
 complex spin Hamiltonians on multiple qubits.</p>
-<p>Below is an example of a spin operator object consisting of a <code class="code docutils literal notranslate"><span class="pre">Z(0)</span></code> operator, or a Pauli Z-operator on the zeroth qubit.
+</div>
+<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
+<p>The <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> method takes a kernel and its arguments as inputs, along with a <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code>.</p>
+<p>Within the <code class="code docutils literal notranslate"><span class="pre">cudaq::spin</span></code> namespace, operators may be defined as a linear combination of Pauli strings. Functions, such
+as <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::i</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::x</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::y</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::z</span></code> may be used to construct more
+complex spin Hamiltonians on multiple qubits.</p>
+</div>
+</div>
+<p>Below is an example of a spin operator object consisting of a <code class="code docutils literal notranslate"><span class="pre">Z(0)</span></code> operator, or a Pauli Z-operator on the qubit zero.
 This is followed by the construction of a kernel with a single qubit in an equal superposition.
 The Hamiltonian is printed to confirm it has been constructed properly.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--7-input--1" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
@@ -623,35 +700,8 @@ The Hamiltonian is printed to confirm it has been constructed properly.</p>
     <span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> takes a kernel, any kernel arguments, and a spin operator as inputs and produces an <code class="code docutils literal notranslate"><span class="pre">ObserveResult</span></code> object.
-The expectation value can be printed using the <code class="code docutils literal notranslate"><span class="pre">expectation</span></code> method.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>It is important to exclude a measurement in the kernel, otherwise the expectation value will be determined from a collapsed
-classical state. For this example, the expected result of 0.0 is produced.</p>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">operator</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span>  <span class="c1"># prints: 0.0</span>
-</pre></div>
-</div>
-<p>Unlike <code class="code docutils literal notranslate"><span class="pre">sample</span></code>, the default <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> for <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> is 1. This result is deterministic and equivalent to the
-expectation value in the limit of infinite shots.  To produce an approximate expectation value from sampling, <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> can
-be specified to any integer.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">operator</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span>  <span class="c1"># prints non-zero value</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
-<p>The <a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.observe()</span></code></a> method takes a kernel and its arguments as inputs, along with a <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code>.
-As opposed to <a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample" title="cudaq.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.sample()</span></code></a>, <code class="code docutils literal notranslate"><span class="pre">observe</span></code> is primarily used to produce expectation values of a kernel with respect
-to a provider operator.</p>
-<p>Within the <code class="code docutils literal notranslate"><span class="pre">cudaq::spin</span></code> namespace, operators may be defined as a linear combination of Pauli strings. Functions, such
-as <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::i</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::x</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::y</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::z</span></code> may be used to construct more
-complex spin Hamiltonians on multiple qubits.</p>
-<p>Below is an example of a spin operator object consisting of a <code class="code docutils literal notranslate"><span class="pre">Z(0)</span></code> operator, or a Pauli Z-operator on the zeroth qubit.
-This is followed by the construction of a kernel with a single qubit in an equal superposition.
-The Hamiltonian is printed to confirm it has been constructed properly.</p>
+<input class="tab-input" id="tab-set--7-input--2" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithm.h&gt;</span>
 
@@ -670,13 +720,23 @@ The Hamiltonian is printed to confirm it has been constructed properly.</p>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">spin_operator</span><span class="p">.</span><span class="n">to_string</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
 </pre></div>
 </div>
-<p><code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> takes a kernel, any kernel arguments, and a spin operator as inputs and produces an <code class="code docutils literal notranslate"><span class="pre">ObserveResult</span></code> object.
+</div>
+</div>
+<p>The <code class="code docutils literal notranslate"><span class="pre">observe</span></code> function takes a kernel, any kernel arguments, and a spin operator as inputs and produces an <code class="code docutils literal notranslate"><span class="pre">ObserveResult</span></code> object.
 The expectation value can be printed using the <code class="code docutils literal notranslate"><span class="pre">expectation</span></code> method.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>It is important to exclude a measurement in the kernel, otherwise the expectation value will be determined from a collapsed
 classical state. For this example, the expected result of 0.0 is produced.</p>
 </div>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">operator</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span>  <span class="c1"># prints: 0.0</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--8-input--2" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result_0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">spin_operator</span><span class="p">);</span>
 <span class="w">  </span><span class="c1">// Expectation value of kernel with respect to single `Z` term</span>
 <span class="w">  </span><span class="c1">// should print: 0.0</span>
@@ -684,9 +744,19 @@ classical state. For this example, the expected result of 0.0 is produced.</p>
 <span class="w">            </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
 </pre></div>
 </div>
-<p>Unlike <code class="code docutils literal notranslate"><span class="pre">sample</span></code>, the default <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> for <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> is 1. This result is deterministic and equivalent to the
+</div>
+</div>
+<p>Unlike <code class="code docutils literal notranslate"><span class="pre">sample</span></code>, the default <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> for <code class="code docutils literal notranslate"><span class="pre">observe</span></code> is 1. This result is deterministic and equivalent to the
 expectation value in the limit of infinite shots.  To produce an approximate expectation value from sampling, <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> can
 be specified to any integer.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--9-input--1" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">operator</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span>  <span class="c1"># prints non-zero value</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--9-input--2" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">spin_operator</span><span class="p">);</span>
 <span class="w">  </span><span class="c1">// Expectation value of kernel with respect to single `Z` term,</span>
 <span class="w">  </span><span class="c1">// but instead of a single deterministic execution of the kernel,</span>
@@ -700,18 +770,28 @@ be specified to any integer.</p>
 </div>
 </div>
 </div>
+<p>Similar to <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code> above, observe also supports asynchronous execution.
+More information about parallelizing execution can be found at
+<a class="reference internal" href="../backends/platform.html"><span class="doc">Multi-Processor Platforms</span></a> page.</p>
 </section>
 <section id="running-on-a-gpu">
 <h2>Running on a GPU<a class="headerlink" href="#running-on-a-gpu" title="Permalink to this heading">¶</a></h2>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--10-input--1" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--1">Python</label><div class="tab-content docutils">
 <p>Using <a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_target" title="cudaq.set_target"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code></a>, different targets can be specified for kernel execution.</p>
+</div>
+<input class="tab-input" id="tab-set--10-input--2" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--2">C++</label><div class="tab-content docutils">
+<p>Using the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>, different targets can be specified for kernel execution.</p>
+</div>
+</div>
 <p>If a local GPU is detected, the target will default to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. Otherwise, the CPU-based simulation
 target, <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code>,  will be selected.</p>
 <p>We will demonstrate the benefits of using a GPU by sampling our GHZ kernel with 25 qubits and a
 <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> of 1 million. Using a GPU accelerates this task by more than 35x. To learn about
 all of the available targets and ways to accelerate kernel execution, visit the
 <a class="reference internal" href="../backends/backends.html"><span class="doc">Backends</span></a> page.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--11-input--1" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">timeit</span>
 
@@ -732,16 +812,9 @@ all of the available targets and ways to accelerate kernel execution, visit the
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
-<p>Using the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>, different targets can be specified for kernel execution.</p>
-<p>If a local GPU is detected, the target will default to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. Otherwise, the CPU-based simulation
-target, <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code>,  will be selected.</p>
-<p>We will demonstrate the benefits of using a GPU by sampling our GHZ kernel with 25 qubits and a
-<code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> of 1 million. Using a GPU accelerates this task by more than 35x. To learn about
-all of the available targets and ways to accelerate kernel execution, visit the
-<a class="reference internal" href="../backends/backends.html"><span class="doc">Backends</span></a> page.</p>
+<input class="tab-input" id="tab-set--11-input--2" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--2">C++</label><div class="tab-content docutils">
 <p>To compare the performance, we can create a simple timing script that isolates just the call
-to <a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample" title="cudaq.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.sample()</span></code></a>. We are still using the same GHZ kernel as earlier, but the following
+to <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code>. We are still using the same GHZ kernel as earlier, but the following
 modification made to the main function:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">argc</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">25</span><span class="p">;</span>

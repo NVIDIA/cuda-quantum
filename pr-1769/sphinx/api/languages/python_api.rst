@@ -87,11 +87,16 @@ Backend Configuration
 Data Types
 =============================
 
+.. autoclass:: cudaq::SimulationPrecision
+    :members:
+    
 .. autoclass:: cudaq::Target
     :members:
 
 .. autoclass:: cudaq::State
     :members:
+
+.. autoclass:: cudaq::Tensor
 
 .. autoclass:: cudaq::QuakeValue
 

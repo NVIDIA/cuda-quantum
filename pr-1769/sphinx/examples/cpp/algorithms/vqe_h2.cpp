@@ -96,7 +96,7 @@ int main() {
   int n_layers = 2, n_qubits = H.num_qubits(), block_size = 2, p_counter = 0;
   int n_blocks_per_layer = 2 * (n_qubits / block_size) - 1;
   int n_params = n_layers * 6 * n_blocks_per_layer;
-  printf("%d qubit hamiltonian -> %d parameters\n", n_qubits, n_params);
+  printf("%d qubit Hamiltonian -> %d parameters\n", n_qubits, n_params);
 
   // Define the initial parameters and ansatz.
   auto init_params =
@@ -113,9 +113,20 @@ int main() {
   optimizer.initial_parameters = init_params;
   optimizer.max_eval = 20;
   optimizer.max_line_search_trials = 10;
-  cudaq::gradients::central_difference gradient(ansatz, argMapper);
-  auto [opt_val, opt_params] =
-      cudaq::vqe(ansatz, gradient, H, optimizer, n_params, argMapper);
+
+  // Both of these options produce the same answers right now.
+  // (at least locally). FIXME - add test, cleanup later.
+  // cudaq::gradients::central_difference gradient(ansatz, argMapper);
+  // cudaq::gradients::central_difference gradient(ansatz, n_qubits, n_layers);
+
+  // auto [opt_val, opt_params] =
+  //     cudaq::vqe(ansatz, gradient, H, optimizer, n_params, argMapper);
+  // auto [opt_val, opt_params] =
+  //     cudaq::vqe(ansatz, gradient, H, optimizer, n_params, n_qubits,
+  //     n_layers);
+  cudaq::gradients::central_difference cd_gradient;
+  auto [opt_val, opt_params] = cudaq::vqe(ansatz, cd_gradient, H, optimizer,
+                                          n_params, n_qubits, n_layers);
 
   printf("Optimal value = %.16lf\n", opt_val);
 }

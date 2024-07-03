@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Variational Quantum Eigensolver" href="vqe.html" />
-    <link rel="prev" title="Quantum Bits" href="quantum_bits.html" /> 
+    <link rel="next" title="Cost Minimization" href="cost_minimization.html" />
+    <link rel="prev" title="Deutsch’s Algorithm" href="deutschs_algorithm.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -123,8 +123,27 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/vqe.html">   Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
@@ -134,8 +153,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
@@ -143,48 +161,20 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Sample">Sample</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Sample-Async">Sample Async</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Observe-Async">Observe Async</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="multiple_qubits.html">Multiple Qubits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quantum_bits.html">Quantum Bits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit">Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-linearity">Gate linearity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
-</ul>
-</li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Fourier Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
 </ul>
@@ -242,7 +232,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/backends/platform.html">   Multi-Processor Platforms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
 </ul>
 </li>
@@ -424,8 +413,10 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -509,8 +500,8 @@
             <a href="../../../_sources/examples/python/tutorials/quantum_fourier_transform.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="quantum_bits.html" class="btn btn-neutral float-left" title="Quantum Bits" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="vqe.html" class="btn btn-neutral float-right" title="Variational Quantum Eigensolver" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="deutschs_algorithm.html" class="btn btn-neutral float-left" title="Deutsch’s Algorithm" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -519,7 +510,7 @@
              
   <section id="Quantum-Fourier-Transform">
 <h1>Quantum Fourier Transform<a class="headerlink" href="#Quantum-Fourier-Transform" title="Permalink to this heading">¶</a></h1>
-<p>Classical fourier transforms aid many areas such as signal processing and data compression. Below, we quantize it to enable Quantum Fourier Transforms (QFT) in CUDA-Q.</p>
+<p>Classical Fourier transforms aid many areas such as signal processing and data compression. Below, we quantize it to enable Quantum Fourier Transforms (QFT) in CUDA-Q.</p>
 <p>QFT is a key ingredient in Shor’s algorithm which is exponentially faster at factoring prime numbers and also plays a vital role in many other interesting quantum algorithms.</p>
 <p>The idea with classical Fourier transforms is to take the problem from the frequency domain, to the time domain where it is easier to solve. This is the same analogy we draw with QFT, where we take the basis state from the computational basis to the Fourier basis.</p>
 <p>The Quantum Fourier Transform is defined to be the linear operation which takes a basis state, <span class="math notranslate nohighlight">\(\ket{x}\)</span>,</p>
@@ -553,7 +544,7 @@
 \end{equation}\end{split}\]</div>
 <p>To summarize, <span class="math notranslate nohighlight">\(\text{QFT}|0\rangle = \ket{+}\)</span> and <span class="math notranslate nohighlight">\(\text{QFT}|1\rangle = \ket{-}\)</span> which can be achieved by applying Hadamard gates.</p>
 <p>Let us now extend this and see how we can apply this to <span class="math notranslate nohighlight">\(n=3\)</span> qubits.</p>
-<p>For <span class="math notranslate nohighlight">\(n=3, N = 2^3 = 8\)</span> and we would like to perform <span class="math notranslate nohighlight">\(\text{QFT}|101\rangle\)</span> which in binary is $2^2 <span class="math">\times 1</span> + 2^1 <span class="math">\times 0</span> + 2^0 <span class="math">\times 1</span> = 5 $:</p>
+<p>For <span class="math notranslate nohighlight">\(n=3, N = 2^3 = 8\)</span> and we would like to perform <span class="math notranslate nohighlight">\(\text{QFT}|101\rangle\)</span> which in binary is <span class="math notranslate nohighlight">\(2^2 \times 1 + 2^1 \times 0 + 2^0 \times 1 = 5\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{equation}
 \begin{aligned}
@@ -564,7 +555,7 @@
 \end{aligned}
 \tag{4}
 \end{equation}\end{split}\]</div>
-<p>where we have used the fact that <span class="math notranslate nohighlight">\(e^{i\theta} = cos(\theta) + isin(\theta).\)</span></p>
+<p>where we have used the fact that <span class="math notranslate nohighlight">\(e^{i\theta} = \cos(\theta) + i\sin(\theta).\)</span></p>
 <p>Here, we see how in addition to the Hadamard gates, we need some phase gates to apply the appropriate phases to the basis states. It turns out that the gate we need is the controlled <span class="math notranslate nohighlight">\(R_k\)</span> rotation where the <span class="math notranslate nohighlight">\(R_k\)</span> gate is denoted by:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{equation}
@@ -574,7 +565,7 @@ R_k = \begin{bmatrix}
 \end{bmatrix}
 \tag{5}
 \end{equation}\end{split}\]</div>
-<p>Here is a generalized ciruit for a <span class="math notranslate nohighlight">\(n\)</span> qubit quantum fourier transform:</p>
+<p>Here is a generalized ciruit for a <span class="math notranslate nohighlight">\(n\)</span>-qubit quantum Fourier transform:</p>
 <p><img alt="qft" class="no-scaled-link" src="../../../_images/qft.png" style="width: 600px;" /></p>
 <p>Below we show the code for a QFT implementation in CUDA-Q based on the circuit diagram above:</p>
 <div class="nbinput nblast docutils container">
@@ -589,7 +580,7 @@ R_k = \begin{bmatrix}
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">quantum_fourier_transform</span><span class="p">(</span><span class="n">input_state</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
-<span class="sd">    input_state (list[int]): specifies the input state to be fourier transformed.  &#39;&#39;&#39;</span>
+<span class="sd">    input_state (list[int]): specifies the input state to be Fourier transformed.  &#39;&#39;&#39;</span>
 
     <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_state</span><span class="p">)</span>
 
@@ -658,10 +649,10 @@ q2 : ┤ x ├──────────────────────
 \end{aligned}
 \tag{6}
 \end{equation}\end{split}\]</div>
-<p>Barring the gates used in the state preparation step, the circuit starts off by implementing a Hadamard gate and then <span class="math notranslate nohighlight">\(n-1\)</span> rotations on the zeroth qubit - a total of <span class="math notranslate nohighlight">\(n\)</span> gates. This is followed by a Hadamard and <span class="math notranslate nohighlight">\(n-2\)</span> conditional rotations on the first qubit which totals to <span class="math notranslate nohighlight">\(n -1\)</span> gates. If we continue the series, we get <span class="math notranslate nohighlight">\(n + (n-1) + (n-2)... = n(n+1)/2\)</span>. Hence, this circuit provides an algorithm with <span class="math notranslate nohighlight">\(O(n^2)\)</span> gates for computing the QFT.</p>
-<p>The best classical algorithms for computing fast fourier transforms on <span class="math notranslate nohighlight">\(2^{n}\)</span> elements require <span class="math notranslate nohighlight">\(O(n2^{n})\)</span> gates. This means that it requires exponentially more operations to compute the fast fourier transform on a classical computer than it does to implement the QFT on a quantum computer.</p>
-<p>Why are we not using QFT for real life applications then? The problem lies in quantum measurement. The quantum fourier transformed amplitudes cannot be accessed by quantum measurement. However there are other quantum algorithms that do make use of QFT such as Shors’ algorithm.</p>
-<p>One can also invert the QFT where the circuit is executed in reverse with the inverse of each gate. The figure below shows the general <span class="math notranslate nohighlight">\(n\)</span> qubit inverse QFT. Why dont you try implementing this in CUDA-Q?</p>
+<p>Barring the gates used in the state preparation step, the circuit starts off by implementing a Hadamard gate and then <span class="math notranslate nohighlight">\(n-1\)</span> rotations on the zeroth qubit - a total of <span class="math notranslate nohighlight">\(n\)</span> gates. This is followed by a Hadamard and <span class="math notranslate nohighlight">\(n-2\)</span> conditional rotations on the first qubit which totals to <span class="math notranslate nohighlight">\(n -1\)</span> gates. If we continue the series, we get <span class="math notranslate nohighlight">\(n + (n-1) + (n-2)... = n(n+1)/2\)</span> gates. Hence, this circuit provides an algorithm with <span class="math notranslate nohighlight">\(O(n^2)\)</span> gates for computing the QFT.</p>
+<p>The best classical algorithms for computing fast Fourier transforms on <span class="math notranslate nohighlight">\(2^{n}\)</span> elements require <span class="math notranslate nohighlight">\(O(n2^{n})\)</span> gates. This means that it requires exponentially more operations to compute the fast Fourier transform on a classical computer than it does to implement the QFT on a quantum computer.</p>
+<p>Why are we not using QFT for real life applications then? The problem lies in quantum measurement. The quantum-Fourier-transformed amplitudes cannot be accessed by quantum measurement. However there are other quantum algorithms that do make use of QFT such as Shor’s algorithm.</p>
+<p>One can also invert the QFT where the circuit is executed in reverse with the inverse of each gate. The figure below shows the general <span class="math notranslate nohighlight">\(n\)</span>-qubit inverse QFT. Why don’t you try implementing this in CUDA-Q?</p>
 <p><img alt="qft" class="no-scaled-link" src="../../../_images/inverse_qft.png" style="width: 600px;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
@@ -685,8 +676,8 @@ CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quantum_bits.html" class="btn btn-neutral float-left" title="Quantum Bits" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="vqe.html" class="btn btn-neutral float-right" title="Variational Quantum Eigensolver" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="deutschs_algorithm.html" class="btn btn-neutral float-left" title="Deutsch’s Algorithm" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
