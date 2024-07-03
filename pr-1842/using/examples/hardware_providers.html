@@ -146,7 +146,14 @@
 <li class="toctree-l2"><a class="reference internal" href="qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cuquantum.html">   Simulations with cuQuantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulation.html">   Noisy Simulation</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">   Using Quantum Hardware Providers</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Using Quantum Hardware Providers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ionq">IonQ</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iqm">IQM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#oqc">OQC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantinuum">Quantinuum</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
@@ -193,32 +200,32 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../backends/hardware.html">   Quantum Hardware</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#ionq">IonQ</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#submission-from-c">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#ionq-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id1">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id2">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#oqc">OQC</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id4">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id6">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#orca-computing">ORCA Computing</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id7">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id9">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#orca-computing">ORCA Computing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id10">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id11">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id12">Submission from Python</a></li>
 </ul>
@@ -513,9 +520,11 @@
              
   <section id="using-quantum-hardware-providers">
 <h1>Using Quantum Hardware Providers<a class="headerlink" href="#using-quantum-hardware-providers" title="Permalink to this heading">¶</a></h1>
-<p>CUDA-Q contains support for using a set of hardware providers (IonQ, IQM, OQC, Quantinuum and ORCA Computing).
+<p>CUDA-Q contains support for using a set of hardware providers (IonQ, IQM, OQC, ORCA Computing and Quantinuum).
 For more information about executing quantum kernels on different hardware backends, please take a look
 at <a class="reference internal" href="../backends/hardware.html"><span class="doc">hardware</span></a>.</p>
+<section id="ionq">
+<h2>IonQ<a class="headerlink" href="#ionq" title="Permalink to this heading">¶</a></h2>
 <p>The following code illustrates how to run kernels on IonQ’s backends.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
@@ -642,6 +651,9 @@ at <a class="reference internal" href="../backends/hardware.html"><span class="d
 </div>
 </div>
 </div>
+</section>
+<section id="iqm">
+<h2>IQM<a class="headerlink" href="#iqm" title="Permalink to this heading">¶</a></h2>
 <p>The following code illustrates how to run kernels on IQM’s backends.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
@@ -777,6 +789,9 @@ at <a class="reference internal" href="../backends/hardware.html"><span class="d
 </div>
 </div>
 </div>
+</section>
+<section id="oqc">
+<h2>OQC<a class="headerlink" href="#oqc" title="Permalink to this heading">¶</a></h2>
 <p>The following code illustrates how to run kernels on OQC’s backends.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
@@ -842,9 +857,184 @@ at <a class="reference internal" href="../backends/hardware.html"><span class="d
 </div>
 </div>
 </div>
-<p>The following code illustrates how to run kernels on Quantinuum’s backends.</p>
+</section>
+<section id="orca-computing">
+<h2>ORCA Computing<a class="headerlink" href="#orca-computing" title="Permalink to this heading">¶</a></h2>
+<p>The following code illustrates how to run kernels on ORCA Computing’s backends.</p>
+<p>ORCA Computing’s PT Series implement the boson sampling model of quantum computation, in which
+multiple photons are interfered with each other within a network of beam splitters, and photon
+detectors measure where the photons leave this network.</p>
+<p>The following image shows the schematic of a Time Bin Interferometer (TBI) boson sampling experiment
+that runs on ORCA Computing’s backends. A TBI uses optical delay lines with reconfigurable coupling
+parameters. A TBI can be represented by a circuit diagram, like the one below, where this
+illustration example corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit
+composed of two delay lines in series.</p>
+<a class="reference internal image-reference" href="../../_images/orca_tbi.png"><img alt="../../_images/orca_tbi.png" class="align-center" src="../../_images/orca_tbi.png" style="width: 400px;" /></a>
+<p>The parameters needed to define the time bin interferometer are the the input state, the loop
+lengths, beam splitter angles, and optionally the phase shifter angles, and the number of samples.
+The <em>input state</em> is the initial state of the photons in the time bin interferometer,
+the left-most entry corresponds to the first mode entering the loop.
+The <em>loop lengths</em> are the lengths of the different loops in the time bin interferometer.
+The <em>beam splitter angles</em> and the phase shifter angles are controllable
+parameters of the time bin interferometer.</p>
+<p>This experiment is performed on ORCA’s backends by the code below.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="c1"># You only have to set the target once! No need to redefine it</span>
+<span class="c1"># for every execution call on your kernel.</span>
+<span class="c1"># To use different targets in the same file, you must update</span>
+<span class="c1"># it via another call to `cudaq.set_target()`</span>
+
+<span class="c1"># To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL</span>
+<span class="c1"># environment variable or pass a url.</span>
+<span class="n">orca_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ORCA_ACCESS_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;http://localhost/sample&quot;</span><span class="p">)</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">orca_url</span><span class="p">)</span>
+
+<span class="c1"># A time-bin boson sampling experiment: An input state of 4 indistinguishable</span>
+<span class="c1"># photons mixed with 4 vacuum states across 8 time bins (modes) enter the</span>
+<span class="c1"># time bin interferometer (TBI). The interferometer is composed of two loops</span>
+<span class="c1"># each with a beam splitter (and optionally with a corresponding phase</span>
+<span class="c1"># shifter). Each photon can either be stored in a loop to interfere with the</span>
+<span class="c1"># next photon or exit the loop to be measured. Since there are 8 time bins</span>
+<span class="c1"># and 2 loops, there is a total of 14 beam splitters (and optionally 14 phase</span>
+<span class="c1"># shifters) in the interferometer, which is the number of controllable</span>
+<span class="c1"># parameters.</span>
+
+<span class="c1"># half of 8 time bins is filled with a single photon and the other half is</span>
+<span class="c1"># filled with the vacuum state (empty)</span>
+<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+<span class="c1"># The time bin interferometer in this example has two loops, each of length 1</span>
+<span class="n">loop_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+<span class="c1"># Calculate the number of beam splitters and phase shifters</span>
+<span class="n">n_beam_splitters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loop_lengths</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_state</span><span class="p">)</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">loop_lengths</span><span class="p">)</span>
+
+<span class="c1"># beam splitter angles</span>
+<span class="n">bs_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n_beam_splitters</span><span class="p">)</span>
+
+<span class="c1"># Optionally, we can also specify the phase shifter angles, if the system</span>
+<span class="c1"># includes phase shifters</span>
+<span class="c1"># ```</span>
+<span class="c1"># ps_angles = np.linspace(np.pi / 6, np.pi / 3, n_beam_splitters)</span>
+<span class="c1"># ```</span>
+
+<span class="c1"># we can also set number of requested samples</span>
+<span class="n">n_samples</span> <span class="o">=</span> <span class="mi">10000</span>
+
+<span class="c1"># By using the synchronous `cudaq.orca.sample`, the execution of</span>
+<span class="c1"># any remaining classical code in the file will occur only</span>
+<span class="c1"># after the job has been returned from ORCA Server.</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
+
+<span class="c1"># If the system includes phase shifters, the phase shifter angles can be</span>
+<span class="c1"># included in the call</span>
+<span class="c1"># ```</span>
+<span class="c1"># counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, ps_angles,</span>
+<span class="c1">#                            n_samples)</span>
+<span class="c1"># ```</span>
+
+<span class="c1"># Print the results</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x &amp;&amp; ./out.x</span>
+<span class="c1">// ```</span>
+<span class="c1">// To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL</span>
+<span class="c1">// environment variable or pass the url to the --orca-url flag.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/orca.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>
+
+<span class="c1">// define helper function to generate linear spaced vectors</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">linear_spaced_vector</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">xs</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">max</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">min</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">  </span><span class="k">typename</span><span class="w"> </span><span class="nc">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">iterator</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
+<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">val</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xs</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">min</span><span class="p">;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">xs</span><span class="p">.</span><span class="n">end</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">val</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="c1">// A time-bin boson sampling experiment: An input state of 4 indistinguishable</span>
+<span class="w">  </span><span class="c1">// photons mixed with 4 vacuum states across 8 time bins (modes) enter the</span>
+<span class="w">  </span><span class="c1">// time bin interferometer (TBI). The interferometer is composed of two loops</span>
+<span class="w">  </span><span class="c1">// each with a beam splitter (and optionally with a corresponding phase</span>
+<span class="w">  </span><span class="c1">// shifter). Each photon can either be stored in a loop to interfere with the</span>
+<span class="w">  </span><span class="c1">// next photon or exit the loop to be measured. Since there are 8 time bins</span>
+<span class="w">  </span><span class="c1">// and 2 loops, there is a total of 14 beam splitters (and optionally 14 phase</span>
+<span class="w">  </span><span class="c1">// shifters) in the interferometer, which is the number of controllable</span>
+<span class="w">  </span><span class="c1">// parameters.</span>
+
+<span class="w">  </span><span class="c1">// half of 8 time bins is filled with a single photon and the other half is</span>
+<span class="w">  </span><span class="c1">// filled with the vacuum state (empty)</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">input_state</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// The time bin interferometer in this example has two loops, each of length 1</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// helper variables to calculate the number of beam splitters and phase</span>
+<span class="w">  </span><span class="c1">// shifters needed in the TBI</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">sum_loop_lengths</span><span class="p">{</span><span class="n">std</span><span class="o">::</span><span class="n">accumulate</span><span class="p">(</span>
+<span class="w">      </span><span class="n">loop_lengths</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">0</span><span class="p">))};</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n_loops</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n_modes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input_state</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n_beam_splitters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n_loops</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n_modes</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">sum_loop_lengths</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// beam splitter angles (created as a linear spaced vector of angles)</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bs_angles</span><span class="p">(</span><span class="n">n_beam_splitters</span><span class="p">);</span>
+<span class="w">  </span><span class="n">linear_spaced_vector</span><span class="p">(</span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">n_beam_splitters</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Optionally, we can also specify the phase shifter angles (created as a</span>
+<span class="w">  </span><span class="c1">// linear spaced vector of angles), if the system includes phase shifters</span>
+<span class="w">  </span><span class="c1">// ```</span>
+<span class="w">  </span><span class="c1">// std::vector&lt;double&gt; ps_angles(n_beam_splitters);</span>
+<span class="w">  </span><span class="c1">// linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beam_splitters);</span>
+<span class="w">  </span><span class="c1">// ```</span>
+
+<span class="w">  </span><span class="c1">// we can also set number of requested samples</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">n_samples</span><span class="p">{</span><span class="mi">10000</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Submit to ORCA synchronously (e.g., wait for the job result to be returned</span>
+<span class="w">  </span><span class="c1">// before proceeding with the rest of the execution).</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">orca</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">n_samples</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// If the system includes phase shifters, the phase shifter angles can be</span>
+<span class="w">  </span><span class="c1">// included in the call</span>
+
+<span class="w">  </span><span class="c1">// ```</span>
+<span class="w">  </span><span class="c1">// auto counts = cudaq::orca::sample(input_state, loop_lengths, bs_angles,</span>
+<span class="w">  </span><span class="c1">//                                   ps_angles, n_samples);</span>
+<span class="w">  </span><span class="c1">// ```</span>
+
+<span class="w">  </span><span class="c1">// Print the results</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="quantinuum">
+<h2>Quantinuum<a class="headerlink" href="#quantinuum" title="Permalink to this heading">¶</a></h2>
+<p>The following code illustrates how to run kernels on Quantinuum’s backends.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 <span class="c1"># You only have to set the target once! No need to redefine it</span>
@@ -907,7 +1097,7 @@ at <a class="reference internal" href="../backends/hardware.html"><span class="d
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target quantinuum --quantinuum-machine H1-2E quantinuum.cpp -o out.x</span>
@@ -963,168 +1153,7 @@ at <a class="reference internal" href="../backends/hardware.html"><span class="d
 </div>
 </div>
 </div>
-<p>The following code illustrates how to run kernels on ORCA Computing’s backends.</p>
-<p>ORCA Computing’s PT Series implement the boson sampling model of quantum computation, in which
-multiple photons are interfered with each other within a network of beam splitters, and photon
-detectors measure where the photons leave this network.</p>
-<p>The following image shows the schematic of a Time Bin Interferometer (TBI) boson sampling experiment
-that runs on ORCA Computing’s backends. A TBI uses optical delay lines with reconfigurable coupling
-parameters. A TBI can be represented by a circuit diagram, like the one below, where this
-illustration example corresponds to 4 photons in 8 modes sent into alternating time-bins in a circuit
-composed of two delay lines in series.</p>
-<a class="reference internal image-reference" href="../../_images/orca_tbi.png"><img alt="../../_images/orca_tbi.png" class="align-center" src="../../_images/orca_tbi.png" style="width: 400px;" /></a>
-<p>The parameters needed to define the time bin interferometer are the the input state, the loop
-lengths, beam splitter angles, and optionally the phase shifter angles, and the number of samples.
-The <em>input state</em> is the initial state of the photons in the time bin interferometer,
-the left-most entry corresponds to the first mode entering the loop.
-The <em>loop lengths</em> are the lengths of the different loops in the time bin interferometer.
-The <em>beam splitter angles</em> and the phase shifter angles are controllable
-parameters of the time bin interferometer.</p>
-<p>This experiment is performed on ORCA’s backends by the code below.</p>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="c1"># You only have to set the target once! No need to redefine it</span>
-<span class="c1"># for every execution call on your kernel.</span>
-<span class="c1"># To use different targets in the same file, you must update</span>
-<span class="c1"># it via another call to `cudaq.set_target()`</span>
-
-<span class="c1"># To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL </span>
-<span class="c1"># environment variable or pass a url.</span>
-<span class="n">orca_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ORCA_ACCESS_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;http://localhost/sample&quot;</span><span class="p">)</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">orca_url</span><span class="p">)</span>
-
-<span class="c1"># A time-bin boson sampling experiment: An input state of 4 indistinguishable</span>
-<span class="c1"># photons mixed with 4 vacuum states across 8 time bins (modes) enter the</span>
-<span class="c1"># time bin interferometer (TBI). The interferometer is composed of two loops</span>
-<span class="c1"># each with a beam splitter (and optionally with a corresponding phase</span>
-<span class="c1"># shifter). Each photon can either be stored in a loop to interfere with the</span>
-<span class="c1"># next photon or exit the loop to be measured. Since there are 8 time bins</span>
-<span class="c1"># and 2 loops, there is a total of 14 beam splitters (and optionally 14 phase</span>
-<span class="c1"># shifters) in the interferometer, which is the number of controllable</span>
-<span class="c1"># parameters.</span>
-
-<span class="c1"># half of 8 time bins is filled with a single photon and the other half is</span>
-<span class="c1"># filled with the vacuum state (empty)</span>
-<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-
-<span class="c1"># The time bin interferometer in this example has two loops, each of length 1</span>
-<span class="n">loop_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-
-<span class="c1"># Calculate the number of beam splitters and phase shifters</span>
-<span class="n">n_beam_splitters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loop_lengths</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_state</span><span class="p">)</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">loop_lengths</span><span class="p">)</span>
-
-<span class="c1"># beam splitter angles</span>
-<span class="n">bs_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n_beam_splitters</span><span class="p">)</span>
-
-<span class="c1"># Optionally, we can also specify the phase shifter angles, if the system </span>
-<span class="c1"># includes phase shifters</span>
-<span class="c1"># ps_angles = np.linspace(np.pi / 6, np.pi / 3, n_beam_splitters)</span>
-
-<span class="c1"># we can also set number of requested samples</span>
-<span class="n">n_samples</span> <span class="o">=</span> <span class="mi">10000</span>
-
-<span class="c1"># By using the synchronous `cudaq.orca.sample`, the execution of</span>
-<span class="c1"># any remaining classical code in the file will occur only</span>
-<span class="c1"># after the job has been returned from ORCA Server.</span>
-<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
-
-<span class="c1"># If the system includes phase shifters, the phase shifter angles can be </span>
-<span class="c1"># included in the call</span>
-<span class="c1"># counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, ps_angles, </span>
-<span class="c1">#                            n_samples)</span>
-
-<span class="c1"># Print the results</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
-<span class="c1">// ```</span>
-<span class="c1">// nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x</span>
-<span class="c1">// &amp;&amp; ./out.x</span>
-<span class="c1">// ```</span>
-<span class="c1">// To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL</span>
-<span class="c1">// environment variable or pass the url to the --orca-url flag.</span>
-
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/orca.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>
-
-<span class="c1">// define helper function to generate linear spaced vectors</span>
-<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
-<span class="kt">void</span><span class="w"> </span><span class="n">linear_spaced_vector</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">xs</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">max</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">min</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
-<span class="w">  </span><span class="k">typename</span><span class="w"> </span><span class="nc">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">iterator</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
-<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">val</span><span class="p">;</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xs</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">min</span><span class="p">;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">xs</span><span class="p">.</span><span class="n">end</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="o">*</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">val</span><span class="p">;</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-
-<span class="w">  </span><span class="c1">// A time-bin boson sampling experiment: An input state of 4 indistinguishable</span>
-<span class="w">  </span><span class="c1">// photons mixed with 4 vacuum states across 8 time bins (modes) enter the</span>
-<span class="w">  </span><span class="c1">// time bin interferometer (TBI). The interferometer is composed of two loops</span>
-<span class="w">  </span><span class="c1">// each with a beam splitter (and optionally with a corresponding phase</span>
-<span class="w">  </span><span class="c1">// shifter). Each photon can either be stored in a loop to interfere with the</span>
-<span class="w">  </span><span class="c1">// next photon or exit the loop to be measured. Since there are 8 time bins</span>
-<span class="w">  </span><span class="c1">// and 2 loops, there is a total of 14 beam splitters (and optionally 14 phase</span>
-<span class="w">  </span><span class="c1">// shifters) in the interferometer, which is the number of controllable</span>
-<span class="w">  </span><span class="c1">// parameters.</span>
-
-<span class="w">  </span><span class="c1">// half of 8 time bins is filled with a single photon and the other half is</span>
-<span class="w">  </span><span class="c1">// filled with the vacuum state (empty)</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">input_state</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
-
-<span class="w">  </span><span class="c1">// The time bin interferometer in this example has two loops, each of length 1</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">};</span>
-
-<span class="w">  </span><span class="c1">// helper variables to calculate the number of beam splitters and phase</span>
-<span class="w">  </span><span class="c1">// shifters needed in the TBI</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">sum_loop_lengths</span><span class="p">{</span><span class="n">std</span><span class="o">::</span><span class="n">accumulate</span><span class="p">(</span>
-<span class="w">      </span><span class="n">loop_lengths</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">0</span><span class="p">))};</span>
-<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n_loops</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
-<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n_modes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input_state</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
-<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n_beam_splitters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n_loops</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n_modes</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">sum_loop_lengths</span><span class="p">;</span>
-
-<span class="w">  </span><span class="c1">// beam splitter angles (created as a linear spaced vector of angles)</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bs_angles</span><span class="p">(</span><span class="n">n_beam_splitters</span><span class="p">);</span>
-<span class="w">  </span><span class="n">linear_spaced_vector</span><span class="p">(</span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">n_beam_splitters</span><span class="p">);</span>
-
-<span class="w">  </span><span class="c1">// Optionally, we can also specify the phase shifter angles (created as a</span>
-<span class="w">  </span><span class="c1">// linear spaced vector of angles), if the system includes phase shifters</span>
-<span class="w">  </span><span class="c1">// std::vector&lt;double&gt; ps_angles(n_beam_splitters);</span>
-<span class="w">  </span><span class="c1">// linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beam_splitters);</span>
-
-<span class="w">  </span><span class="c1">// we can also set number of requested samples</span>
-<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">n_samples</span><span class="p">{</span><span class="mi">10000</span><span class="p">};</span>
-
-<span class="w">  </span><span class="c1">// Submit to ORCA synchronously (e.g., wait for the job result to be returned</span>
-<span class="w">  </span><span class="c1">// before proceeding with the rest of the execution).</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span>
-<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">orca</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">n_samples</span><span class="p">);</span>
-
-<span class="w">  </span><span class="c1">// If the system includes phase shifters, the phase shifter angles can be</span>
-<span class="w">  </span><span class="c1">// included in the call</span>
-
-<span class="w">  </span><span class="c1">// auto counts = cudaq::orca::sample(input_state, loop_lengths, bs_angles,</span>
-<span class="w">  </span><span class="c1">//                                   ps_angles, n_samples);</span>
-
-<span class="w">  </span><span class="c1">// Print the results</span>
-<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
-
-<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</div>
-</div>
+</section>
 </section>
 
 

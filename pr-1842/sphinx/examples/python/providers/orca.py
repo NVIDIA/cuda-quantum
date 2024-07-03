@@ -7,7 +7,7 @@ import os
 # To use different targets in the same file, you must update
 # it via another call to `cudaq.set_target()`
 
-# To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL 
+# To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL
 # environment variable or pass a url.
 orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost/sample")
 
@@ -36,9 +36,11 @@ n_beam_splitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
 # beam splitter angles
 bs_angles = np.linspace(np.pi / 8, np.pi / 3, n_beam_splitters)
 
-# Optionally, we can also specify the phase shifter angles, if the system 
+# Optionally, we can also specify the phase shifter angles, if the system
 # includes phase shifters
+# ```
 # ps_angles = np.linspace(np.pi / 6, np.pi / 3, n_beam_splitters)
+# ```
 
 # we can also set number of requested samples
 n_samples = 10000
@@ -48,10 +50,12 @@ n_samples = 10000
 # after the job has been returned from ORCA Server.
 counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, n_samples)
 
-# If the system includes phase shifters, the phase shifter angles can be 
+# If the system includes phase shifters, the phase shifter angles can be
 # included in the call
-# counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, ps_angles, 
+# ```
+# counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, ps_angles,
 #                            n_samples)
+# ```
 
 # Print the results
 print(counts)
