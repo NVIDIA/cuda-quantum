@@ -60,7 +60,7 @@ public:
   using OpBuilder::OpBuilder;
 
   /// Create IRBuilder such that it has the same insertion point as \p builder.
-  IRBuilder(mlir::OpBuilder builder);
+  IRBuilder(const mlir::OpBuilder &builder);
 
   mlir::LLVM::ConstantOp genLlvmI32Constant(mlir::Location loc,
                                             std::int32_t val) {

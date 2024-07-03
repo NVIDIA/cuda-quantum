@@ -320,7 +320,8 @@ inline bool intrinsicTableIsSorted() {
 
 namespace cudaq {
 
-IRBuilder::IRBuilder(OpBuilder builder) : OpBuilder{builder.getContext()} {
+IRBuilder::IRBuilder(const OpBuilder &builder)
+    : OpBuilder{builder.getContext()} {
   // Sets the insertion point to be the same as \p builder. New operations will
   // be inserted immediately before this insertion point and the insertion
   // points will remain the identical, upto and unless one of the builders
