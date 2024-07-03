@@ -163,10 +163,11 @@ protected:
   /// Recursively find nodes scheduled at a given cycle
   SetVector<DependencyNode *> getNodesAtCycle(uint _cycle) {
     SetVector<DependencyNode *> nodes;
-    if (cycle == _cycle) {
-      nodes.insert(this);
+
+    if (isScheduled() && cycle < _cycle)
       return nodes;
-    }
+    else if (cycle == _cycle)
+      nodes.insert(this);
 
     for (auto dependency : dependencies)
       nodes.set_union(dependency->getNodesAtCycle(_cycle));
@@ -175,22 +176,20 @@ protected:
   }
 
   /// Generates a new operation for this node in the dependency graph
-  /// Using the dependencies of the node as operands
+  /// using the dependencies of the node as operands.
   void codeGen(OpBuilder &builder) {
-    SmallVector<mlir::Value> operands(associated->getNumOperands());
+    auto oldOp = associated;
+    SmallVector<mlir::Value> operands(oldOp->getNumOperands());
     for (auto dependency : dependencies) {
       auto edge = getEdgeInfo(dependency);
       operands[edge.operand_idx] =
           dependency->associated->getResult(edge.result_idx);
     }
 
-    auto newOp = Operation::create(associated->getLoc(), associated->getName(),
-                                   associated->getResultTypes(), operands,
-                                   associated->getAttrs());
-    builder.insert(newOp);
-    associated->dropAllUses();
-    associated->erase();
-    associated = newOp;
+    associated = Operation::create(oldOp->getLoc(), oldOp->getName(),
+                                   oldOp->getResultTypes(), operands,
+                                   oldOp->getAttrs());
+    builder.insert(associated);
   }
 
   /// Replaces the null_wire op for \p qid with \p init
@@ -199,10 +198,7 @@ protected:
       return;
 
     if (isBeginOp(associated)) {
-      auto leftover = associated;
       associated = init;
-      leftover->dropAllUses();
-      leftover->erase();
       return;
     }
 
@@ -306,10 +302,8 @@ private:
     seen.insert(next);
     qids.set_union(next->qids);
 
-    if (isBeginOp(next->associated)) {
+    if (isBeginOp(next->associated))
       firstUses.insert({next->qids.front(), next->successors.front()});
-      firstUses[next->qids.front()]->printNode();
-    }
 
     for (auto successor : next->successors)
       if (successor)
@@ -394,10 +388,7 @@ public:
   }
 
   void initializeWire(size_t qid, DependencyNode *init) {
-    auto leftover = init->successors[0];
-    leftover->associated->erase();
     getLastUseOf(qid)->initializeWire(qid, init->associated);
-    delete leftover;
   }
 
   void print() {
@@ -559,9 +550,6 @@ struct DependencyAnalysisPass
         roots.insert(root);
     });
 
-    for (auto root : roots)
-      root->print();
-
     // Construct graphs from roots
     SmallVector<DependencyGraph> graphs;
     while (!roots.empty()) {
@@ -571,8 +559,11 @@ struct DependencyAnalysisPass
     }
 
     OpBuilder builder(func.getOperation());
-    builder.setInsertionPoint(&func.back().back());
+    Block *oldBlock = &func.front();
+    Block *newBlock = builder.createBlock(&func.getRegion());
+    builder.setInsertionPointToStart(newBlock);
     codeGen(graphs, builder);
+    builder.create<func::ReturnOp>(builder.getUnknownLoc());
   }
 };
 
