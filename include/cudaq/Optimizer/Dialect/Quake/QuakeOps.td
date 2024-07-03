@@ -609,7 +609,7 @@ def quake_BorrowWireOp : QuakeOp<"borrow_wire", [Pure]> {
   );
   let results = (outs WireType);
   
-  //let hasVerifier = 1;
+  let hasVerifier = 1;
   let assemblyFormat = [{
     $set_name `[` $identity `]` `:` type(results) attr-dict
   }];

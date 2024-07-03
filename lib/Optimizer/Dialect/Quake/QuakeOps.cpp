@@ -290,6 +290,24 @@ ParseResult quake::ApplyOp::parse(OpAsmParser &parser, OperationState &result) {
 }
 
 //===----------------------------------------------------------------------===//
+// BorrowWire
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::BorrowWireOp::verify() {
+  std::int32_t id = getIdentity();
+  if (id < 0)
+    return emitOpError("id cannot be negative");
+  ModuleOp module = getOperation()->getParentOfType<ModuleOp>();
+  auto wires = module.lookupSymbol<quake::WireSetOp>(getSetName());
+  if (!wires)
+    return emitOpError("wire set could not be found");
+  std::int32_t setCardinality = wires.getCardinality();
+  if (id >= setCardinality)
+    return emitOpError("id is out of bounds for wire set");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // Concat
 //===----------------------------------------------------------------------===//
 
