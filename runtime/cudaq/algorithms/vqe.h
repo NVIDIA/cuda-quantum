@@ -241,6 +241,9 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
   }
 
   auto requires_grad = optimizer.requiresGradients();
+  // If there are additional arguments, we need to clone the gradient and
+  // provide it the concrete arguments. Otherwise we can simply use the provided
+  // gradient object.
   std::unique_ptr<cudaq::gradient> newGrad;
   if (requires_grad) {
     newGrad = gradient.clone();
@@ -251,7 +254,10 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                                           std::vector<double> &grad_vec) {
     double e = cudaq::observe(kernel, H, x, args...);
     if (requires_grad) {
-      newGrad->compute(x, grad_vec, H, e);
+      if constexpr (sizeof...(args) > 0)
+        newGrad->compute(x, grad_vec, H, e);
+      else
+        gradient.compute(x, grad_vec, H, e);
     }
     return e;
   });
