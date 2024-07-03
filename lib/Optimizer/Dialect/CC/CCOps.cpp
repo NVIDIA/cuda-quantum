@@ -555,6 +555,16 @@ void cudaq::cc::ComputePtrOp::getCanonicalizationPatterns(
   patterns.add<FuseAddressArithmetic>(context);
 }
 
+std::optional<std::int32_t>
+cudaq::cc::ComputePtrOp::getConstantIndex(std::size_t arg) {
+  if (arg >= getRawConstantIndices().size())
+    return {};
+  std::int32_t result = getRawConstantIndices()[arg];
+  if (result == getDynamicIndexValue())
+    return {};
+  return {result};
+}
+
 //===----------------------------------------------------------------------===//
 // ExtractValueOp
 //===----------------------------------------------------------------------===//
