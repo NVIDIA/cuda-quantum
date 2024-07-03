@@ -60,6 +60,28 @@ struct VerifyNVQIRCallOpsPass
           return WalkResult::interrupt();
         }
         return WalkResult::advance();
+      } else if (isa<LLVM::InlineAsmOp, LLVM::InvokeOp, LLVM::ResumeOp>(op)) {
+        op->emitOpError("unexpected op in NVQIR");
+        passFailed = true;
+        return WalkResult::interrupt();
+      } else if (!isa<LLVM::AddressOfOp, LLVM::AllocaOp, LLVM::BitcastOp,
+                      LLVM::ExtractValueOp, LLVM::GEPOp, LLVM::LoadOp,
+                      LLVM::StoreOp>(op)) {
+        // No pointers allowed except for the above operations.
+        for (auto oper : op->getOperands()) {
+          if (isa<LLVM::LLVMPointerType>(oper.getType())) {
+            op->emitOpError("unexpected operand in NVQIR");
+            passFailed = true;
+            return WalkResult::interrupt();
+          }
+        }
+        for (auto oper : op->getResults()) {
+          if (isa<LLVM::LLVMPointerType>(oper.getType())) {
+            op->emitOpError("unexpected op result in NVQIR");
+            passFailed = true;
+            return WalkResult::interrupt();
+          }
+        }
       }
       return WalkResult::advance();
     });
