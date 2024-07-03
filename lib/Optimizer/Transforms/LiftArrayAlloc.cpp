@@ -31,8 +31,8 @@ namespace {
 class AllocaPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
   explicit AllocaPattern(MLIRContext *ctx, DominanceInfo &di,
-                         const std::string &fn)
-      : OpRewritePattern(ctx), dom(di), funcName(fn) {}
+                         const std::string &fn, ModuleOp m)
+      : OpRewritePattern(ctx), dom(di), funcName(fn), module(m) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
@@ -71,7 +71,6 @@ public:
       std::string name = funcName + ".rodata_" + std::to_string(counter++);
       {
         OpBuilder::InsertionGuard guard(rewriter);
-        auto module = alloc->getParentOfType<ModuleOp>();
         if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
           // Transforming complex vectors is a bit more labor intensive. Use the
           // IRBuilder to create the object since we have to thread the needle
@@ -105,7 +104,6 @@ public:
           }
         } else {
           OpBuilder::InsertionGuard guard(rewriter);
-          auto module = alloc->getParentOfType<ModuleOp>();
           rewriter.setInsertionPointToEnd(module.getBody());
           rewriter.create<cudaq::cc::GlobalOp>(loc, arrTy, name, valuesAttr,
                                                /*isConstant=*/true,
@@ -297,6 +295,7 @@ public:
 
   DominanceInfo &dom;
   const std::string &funcName;
+  mutable ModuleOp module;
 };
 
 // Fold complex.create ops if the arguments are constants.
@@ -329,22 +328,27 @@ public:
 
   void runOnOperation() override {
     auto *ctx = &getContext();
-    auto func = getOperation();
-    DominanceInfo domInfo(func);
-    RewritePatternSet patterns(ctx);
-    std::string funcName = func.getName().str();
-    patterns.insert<AllocaPattern>(ctx, domInfo, funcName);
-    patterns.insert<ComplexCreatePattern>(ctx);
+    auto module = getOperation();
+    for (Operation &op : *module.getBody()) {
+      auto func = dyn_cast<func::FuncOp>(op);
+      if (!func)
+        continue;
+      DominanceInfo domInfo(func);
+      std::string funcName = func.getName().str();
+      RewritePatternSet patterns(ctx);
+      patterns.insert<AllocaPattern>(ctx, domInfo, funcName, module);
+      patterns.insert<ComplexCreatePattern>(ctx);
 
-    LLVM_DEBUG(llvm::dbgs()
-               << "Before lifting constant array: " << func << '\n');
+      LLVM_DEBUG(llvm::dbgs()
+                 << "Before lifting constant array: " << func << '\n');
 
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                            std::move(patterns))))
-      signalPassFailure();
+      if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+                                              std::move(patterns))))
+        signalPassFailure();
 
-    LLVM_DEBUG(llvm::dbgs()
-               << "After lifting constant array: " << func << '\n');
+      LLVM_DEBUG(llvm::dbgs()
+                 << "After lifting constant array: " << func << '\n');
+    }
   }
 };
 } // namespace

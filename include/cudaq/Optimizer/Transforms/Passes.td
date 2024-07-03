@@ -251,7 +251,7 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createLambdaLiftingPass()";
 }
 
-def LiftArrayAlloc : Pass<"lift-array-value", "mlir::func::FuncOp"> {
+def LiftArrayAlloc : Pass<"lift-array-value", "mlir::ModuleOp"> {
   let summary = "Convert constant arrays built on the stack to array values";
   let description = [{
     The bridge or other passes may generate inline code to build an array of
