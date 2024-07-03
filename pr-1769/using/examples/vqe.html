@@ -682,20 +682,9 @@ Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA
 <span class="w">  </span><span class="n">optimizer</span><span class="p">.</span><span class="n">initial_parameters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">init_params</span><span class="p">;</span>
 <span class="w">  </span><span class="n">optimizer</span><span class="p">.</span><span class="n">max_eval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span>
 <span class="w">  </span><span class="n">optimizer</span><span class="p">.</span><span class="n">max_line_search_trials</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
-
-<span class="w">  </span><span class="c1">// Both of these options produce the same answers right now.</span>
-<span class="w">  </span><span class="c1">// (at least locally). FIXME - add test, cleanup later.</span>
-<span class="w">  </span><span class="c1">// cudaq::gradients::central_difference gradient(ansatz, argMapper);</span>
-<span class="w">  </span><span class="c1">// cudaq::gradients::central_difference gradient(ansatz, n_qubits, n_layers);</span>
-
-<span class="w">  </span><span class="c1">// auto [opt_val, opt_params] =</span>
-<span class="w">  </span><span class="c1">//     cudaq::vqe(ansatz, gradient, H, optimizer, n_params, argMapper);</span>
-<span class="w">  </span><span class="c1">// auto [opt_val, opt_params] =</span>
-<span class="w">  </span><span class="c1">//     cudaq::vqe(ansatz, gradient, H, optimizer, n_params, n_qubits,</span>
-<span class="w">  </span><span class="c1">//     n_layers);</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">gradients</span><span class="o">::</span><span class="n">central_difference</span><span class="w"> </span><span class="n">cd_gradient</span><span class="p">;</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">opt_val</span><span class="p">,</span><span class="w"> </span><span class="n">opt_params</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">vqe</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">cd_gradient</span><span class="p">,</span><span class="w"> </span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="n">optimizer</span><span class="p">,</span>
-<span class="w">                                          </span><span class="n">n_params</span><span class="p">,</span><span class="w"> </span><span class="n">n_qubits</span><span class="p">,</span><span class="w"> </span><span class="n">n_layers</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">gradients</span><span class="o">::</span><span class="n">central_difference</span><span class="w"> </span><span class="n">gradient</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">argMapper</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">opt_val</span><span class="p">,</span><span class="w"> </span><span class="n">opt_params</span><span class="p">]</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">vqe</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">gradient</span><span class="p">,</span><span class="w"> </span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="n">optimizer</span><span class="p">,</span><span class="w"> </span><span class="n">n_params</span><span class="p">,</span><span class="w"> </span><span class="n">argMapper</span><span class="p">);</span>
 
 <span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Optimal value = %.16lf</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">opt_val</span><span class="p">);</span>
 <span class="p">}</span>
