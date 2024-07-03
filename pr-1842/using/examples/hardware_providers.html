@@ -890,7 +890,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1"># it via another call to `cudaq.set_target()`</span>
 
 <span class="c1"># To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL</span>
-<span class="c1"># environment variable or pass a url.</span>
+<span class="c1"># environment variable or pass a URL.</span>
 <span class="n">orca_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ORCA_ACCESS_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;http://localhost/sample&quot;</span><span class="p">)</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">orca_url</span><span class="p">)</span>
@@ -950,7 +950,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL</span>
-<span class="c1">// environment variable or pass the url to the --orca-url flag.</span>
+<span class="c1">// environment variable or pass the URL to the `--orca-url` flag.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/orca.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>

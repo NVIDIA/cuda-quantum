@@ -3,7 +3,7 @@
 // nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x && ./out.x
 // ```
 // To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL
-// environment variable or pass the url to the --orca-url flag.
+// environment variable or pass the URL to the `--orca-url` flag.
 
 #include "cudaq/orca.h"
 #include "cudaq.h"
