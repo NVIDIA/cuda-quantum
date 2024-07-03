@@ -251,7 +251,7 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createLambdaLiftingPass()";
 }
 
-def LiftArrayAlloc : Pass<"lift-to-array-value", "mlir::func::FuncOp"> {
+def LiftArrayAlloc : Pass<"lift-array-value", "mlir::func::FuncOp"> {
   let summary = "Convert constant arrays built on the stack to array values";
   let description = [{
     The bridge or other passes may generate inline code to build an array of
@@ -289,6 +289,8 @@ def LiftArrayAlloc : Pass<"lift-to-array-value", "mlir::func::FuncOp"> {
     it is elements are accessed in a read-only way, it is a legal transform
     and will enable further constant folding in other passes.
   }];
+
+  let dependentDialects = ["mlir::complex::ComplexDialect"];
 }
 
 def LinearCtrlRelations : Pass<"linear-ctrl-form", "mlir::func::FuncOp"> {
