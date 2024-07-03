@@ -8,7 +8,7 @@ import os
 # it via another call to `cudaq.set_target()`
 
 # To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL
-# environment variable or pass a url.
+# environment variable or pass a URL.
 orca_url = os.getenv("ORCA_ACCESS_URL", "http://localhost/sample")
 
 cudaq.set_target("orca", url=orca_url)

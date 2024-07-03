@@ -190,7 +190,6 @@ fermionic
 frontend
 frontends
 homogenous
-https
 iff
 increment
 incrementing
@@ -208,7 +207,6 @@ iteratively
 kets
 linker
 linkers
-linspace
 logarithmically
 lookup
 lookups
@@ -225,7 +223,6 @@ normalization
 nullary
 optimizer
 optimizers
-orca
 parallelization
 parallelize
 parallelizing
@@ -294,7 +291,6 @@ unitarity
 unitary
 unoptimized
 upvote
-url
 variadic
 variational
 verifier
