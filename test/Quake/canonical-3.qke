@@ -59,7 +59,7 @@ func.func @__nvqpp__mlirgen__super() attributes {"cudaq-entrypoint", "cudaq-kern
 // CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i1 x 4>
 // CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_5]][0] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
 // CHECK:           %[[VAL_107:.*]] = quake.discriminate %[[VAL_7]] :
 // CHECK:           cc.store %[[VAL_107]], %[[VAL_8]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<4>) -> !quake.ref
