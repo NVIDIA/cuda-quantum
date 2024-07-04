@@ -57,7 +57,35 @@ static void checkErrorCode(const std::error_code &ec) {
   }
 }
 
-enum ArgumentType { String, Int, UUID, Flag };
+enum TargetFeatureFlag : unsigned {
+  flagsFP32 = 1,
+  flagsFP64 = 2,
+  flagsMgpu = 4,
+  flagsMqpu = 8,
+};
+
+static std::unordered_map<std::string, TargetFeatureFlag> stringToFeatureFlag{
+    {"fp32", flagsFP32},
+    {"fp64", flagsFP64},
+    {"mgpu", flagsMgpu},
+    {"mqpu", flagsMqpu}};
+
+namespace llvm {
+namespace yaml {
+template <>
+struct ScalarEnumerationTraits<TargetFeatureFlag> {
+  static void enumeration(IO &io, TargetFeatureFlag &value) {
+    io.enumCase(value, "fp32", flagsFP32);
+    io.enumCase(value, "fp64", flagsFP64);
+    io.enumCase(value, "mgpu", flagsMgpu);
+    io.enumCase(value, "mqpu", flagsMqpu);
+  }
+};
+} // namespace yaml
+} // namespace llvm
+LLVM_YAML_IS_SEQUENCE_VECTOR(TargetFeatureFlag)
+
+enum ArgumentType { String, Int, UUID, FeatureFlag };
 namespace llvm {
 namespace yaml {
 template <>
@@ -66,7 +94,7 @@ struct ScalarEnumerationTraits<ArgumentType> {
     io.enumCase(value, "string", String);
     io.enumCase(value, "integer", Int);
     io.enumCase(value, "uuid", UUID);
-    io.enumCase(value, "flag", Flag);
+    io.enumCase(value, "feature-flags", FeatureFlag);
   }
 };
 } // namespace yaml
@@ -100,29 +128,42 @@ struct MappingTraits<TargetArgument> {
 } // namespace llvm
 LLVM_YAML_IS_SEQUENCE_VECTOR(TargetArgument)
 
-enum TargetFeatureFlag {
-  flagsFP32 = 1,
-  flagsFP64 = 2,
-  flagsMgpu = 4,
-  flagsMqpu = 8,
+struct SimulationBackendSetting {
+  std::vector<std::string> values;
 };
+
 namespace llvm {
 namespace yaml {
 template <>
-struct ScalarEnumerationTraits<TargetFeatureFlag> {
-  static void enumeration(IO &io, TargetFeatureFlag &value) {
-    io.enumCase(value, "fp32", flagsFP32);
-    io.enumCase(value, "fp64", flagsFP64);
-    io.enumCase(value, "mgpu", flagsMgpu);
-    io.enumCase(value, "mqpu", flagsMqpu);
+struct BlockScalarTraits<SimulationBackendSetting> {
+  static void output(const SimulationBackendSetting &Value, void *Ctxt,
+                     llvm::raw_ostream &OS) {
+    std::size_t idx = 0;
+    for (const auto &val : Value.values) {
+      OS << val;
+      if (idx != Value.values.size() - 1) {
+        OS << ", ";
+      }
+      ++idx;
+    }
+  }
+
+  static StringRef input(StringRef Scalar, void *Ctxt,
+                         SimulationBackendSetting &Value) {
+    llvm::SmallVector<llvm::StringRef> values;
+    Scalar.split(values, ',', -1, false);
+    for (const auto &val : values) {
+      Value.values.emplace_back(val.trim().str());
+    }
+    return StringRef();
   }
 };
 } // namespace yaml
 } // namespace llvm
 
 struct BackendEndConfigEntry {
-  bool GenTargetBackend = false;
-  bool LibraryMode = true;
+  std::optional<bool> GenTargetBackend;
+  std::optional<bool> LibraryMode;
   std::string PlatformLoweringConfig;
   std::string CodegenEmission;
   std::string PostCodeGenPasses;
@@ -132,7 +173,7 @@ struct BackendEndConfigEntry {
   std::vector<std::string> CompilerFlags;
   std::vector<std::string> LinkLibs;
   std::vector<std::string> LinkerFlags;
-  std::string SimulationBackend;
+  SimulationBackendSetting SimulationBackend;
   std::string ConfigBashCommands;
 };
 
@@ -141,7 +182,7 @@ namespace yaml {
 template <>
 struct MappingTraits<BackendEndConfigEntry> {
   static void mapping(IO &io, BackendEndConfigEntry &info) {
-    io.mapRequired("gen-target-backend", info.GenTargetBackend);
+    io.mapOptional("gen-target-backend", info.GenTargetBackend);
     io.mapOptional("library-mode", info.LibraryMode);
     io.mapOptional("platform-lowering-config", info.PlatformLoweringConfig);
     io.mapOptional("codegen-emission", info.CodegenEmission);
@@ -152,7 +193,7 @@ struct MappingTraits<BackendEndConfigEntry> {
     io.mapOptional("compiler-flags", info.CompilerFlags);
     io.mapOptional("link-libs", info.LinkLibs);
     io.mapOptional("linker-flags", info.LinkerFlags);
-    io.mapOptional("simulation-backend", info.SimulationBackend);
+    io.mapOptional("nvqir-simulation-backend", info.SimulationBackend);
     io.mapOptional("bash", info.ConfigBashCommands);
   }
 };
@@ -162,8 +203,24 @@ struct MappingTraits<BackendEndConfigEntry> {
 struct BackendFeatureMap {
   std::string Name;
   std::vector<TargetFeatureFlag> Flags;
+  std::optional<bool> Default;
   BackendEndConfigEntry Config;
 };
+
+namespace llvm {
+namespace yaml {
+template <>
+struct MappingTraits<BackendFeatureMap> {
+  static void mapping(IO &io, BackendFeatureMap &info) {
+    io.mapRequired("name", info.Name);
+    io.mapRequired("feature-flags", info.Flags);
+    io.mapOptional("default", info.Default);
+    io.mapRequired("config", info.Config);
+  }
+};
+} // namespace yaml
+} // namespace llvm
+LLVM_YAML_IS_SEQUENCE_VECTOR(BackendFeatureMap)
 
 struct TargetConfig {
   std::string Name;
@@ -185,80 +242,92 @@ struct MappingTraits<TargetConfig> {
     io.mapOptional("target-arguments", info.TargetArguments);
     io.mapOptional("gpu-requirements", info.GpuRequired);
     io.mapOptional("config", info.BackendConfig);
+    io.mapOptional("configuration-matrix", info.ConfigMap);
   }
 };
 } // namespace yaml
 } // namespace llvm
 
+std::string processSimBackendConfig(const BackendEndConfigEntry &configValue) {
+  std::stringstream output;
+  if (configValue.GenTargetBackend.has_value()) {
+    output << "GEN_TARGET_BACKEND="
+           << (configValue.GenTargetBackend.value() ? "true" : "false") << "\n";
+  }
+
+  if (configValue.LibraryMode.has_value()) {
+    output << "LIBRARY_MODE="
+           << (configValue.LibraryMode.value() ? "true" : "false") << "\n";
+  }
+
+  if (!configValue.PlatformLoweringConfig.empty()) {
+    output << "PLATFORM_LOWERING_CONFIG=" << configValue.PlatformLoweringConfig
+           << "\n";
+  }
+  if (!configValue.CodegenEmission.empty()) {
+    output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
+  }
+  if (!configValue.PostCodeGenPasses.empty()) {
+    output << "POST_CODEGEN_PASSES=" << configValue.PostCodeGenPasses << "\n";
+  }
+  if (!configValue.PlatformLibrary.empty()) {
+    output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";
+  }
+  if (!configValue.PlatformQpu.empty()) {
+    output << "PLATFORM_QPU=" << configValue.PlatformQpu << "\n";
+  }
+
+  if (!configValue.PreprocessorDefines.empty()) {
+    output << "PREPROCESSOR_DEFINES=\"${PREPROCESSOR_DEFINES}";
+    for (const auto &def : configValue.PreprocessorDefines) {
+      output << " " << def;
+    }
+    output << "\"\n";
+  }
+
+  if (!configValue.CompilerFlags.empty()) {
+    output << "COMPILER_FLAGS=\"${COMPILER_FLAGS}";
+    for (const auto &def : configValue.CompilerFlags) {
+      output << " " << def;
+    }
+    output << "\"\n";
+  }
+
+  if (!configValue.LinkLibs.empty()) {
+    output << "LINKLIBS=\"${LINKLIBS}";
+    for (const auto &lib : configValue.LinkLibs) {
+      output << " " << lib;
+    }
+    output << "\"\n";
+  }
+
+  if (!configValue.LinkerFlags.empty()) {
+    output << "LINKER_FLAGS=\"${LINKER_FLAGS}";
+    for (const auto &def : configValue.LinkerFlags) {
+      output << " " << def;
+    }
+    output << "\"\n";
+  }
+
+  if (!configValue.SimulationBackend.values.empty()) {
+    output << "NVQIR_SIMULATION_BACKEND="
+           << configValue.SimulationBackend.values.front() << "\n";
+  }
+
+  if (!configValue.ConfigBashCommands.empty()) {
+    output << configValue.ConfigBashCommands << "\n";
+  }
+  return output.str();
+}
+
 std::string processRuntimeArgs(const TargetConfig &config,
                                const std::vector<std::string> &targetArgv) {
   std::stringstream output;
   if (config.BackendConfig.has_value()) {
-    auto configValue = config.BackendConfig.value();
-    output << "GEN_TARGET_BACKEND="
-           << (configValue.GenTargetBackend ? "true" : "false") << "\n";
-    output << "LIBRARY_MODE=" << (configValue.LibraryMode ? "true" : "false")
-           << "\n";
-
-    if (!configValue.PlatformLoweringConfig.empty()) {
-      output << "PLATFORM_LOWERING_CONFIG="
-             << configValue.PlatformLoweringConfig << "\n";
-    }
-    if (!configValue.CodegenEmission.empty()) {
-      output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
-    }
-    if (!configValue.PostCodeGenPasses.empty()) {
-      output << "POST_CODEGEN_PASSES=" << configValue.PostCodeGenPasses << "\n";
-    }
-    if (!configValue.PlatformLibrary.empty()) {
-      output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";
-    }
-    if (!configValue.PlatformQpu.empty()) {
-      output << "PLATFORM_QPU=" << configValue.PlatformQpu << "\n";
-    }
-
-    if (!configValue.PreprocessorDefines.empty()) {
-      output << "PREPROCESSOR_DEFINES=\"${PREPROCESSOR_DEFINES}";
-      for (const auto &def : configValue.PreprocessorDefines) {
-        output << " " << def;
-      }
-      output << "\"\n";
-    }
-
-    if (!configValue.CompilerFlags.empty()) {
-      output << "COMPILER_FLAGS=\"${COMPILER_FLAGS}";
-      for (const auto &def : configValue.CompilerFlags) {
-        output << " " << def;
-      }
-      output << "\"\n";
-    }
-
-    if (!configValue.LinkLibs.empty()) {
-      output << "LINKLIBS=\"${LINKLIBS}";
-      for (const auto &lib : configValue.LinkLibs) {
-        output << " " << lib;
-      }
-      output << "\"\n";
-    }
-
-    if (!configValue.LinkerFlags.empty()) {
-      output << "LINKER_FLAGS=\"${LINKER_FLAGS}";
-      for (const auto &def : configValue.LinkerFlags) {
-        output << " " << def;
-      }
-      output << "\"\n";
-    }
-
-    if (!configValue.SimulationBackend.empty()) {
-      output << "NVQIR_SIMULATION_BACKEND=" << configValue.SimulationBackend
-             << "\n";
-    }
-
-    if (!configValue.ConfigBashCommands.empty()) {
-      output << configValue.ConfigBashCommands << "\n";
-    }
+    output << processSimBackendConfig(config.BackendConfig.value());
   }
 
+  unsigned featureFlag = 0;
   std::stringstream platformExtraArgs;
   for (std::size_t idx = 0; idx < targetArgv.size();) {
     const auto argsStr = targetArgv[idx];
@@ -283,7 +352,7 @@ std::string processRuntimeArgs(const TargetConfig &config,
       }
       abort();
     } else {
-      if (iter->Type != ArgumentType::Flag) {
+      if (iter->Type != ArgumentType::FeatureFlag) {
         if (!iter->PlatformArgKey.empty()) {
           platformExtraArgs << ";" << iter->PlatformArgKey << ";"
                             << targetArgv[idx + 1];
@@ -292,9 +361,52 @@ std::string processRuntimeArgs(const TargetConfig &config,
         idx += 2;
 
       } else {
-        idx += 1;
+        const auto featureFlags = targetArgv[idx + 1];
+        llvm::SmallVector<llvm::StringRef> flagStrs;
+        llvm::StringRef(featureFlags).split(flagStrs, ',', -1, false);
+        for (const auto &flag : flagStrs) {
+          const auto iter = stringToFeatureFlag.find(flag.str());
+          if (iter == stringToFeatureFlag.end()) {
+            llvm::errs() << "Unknown  feature flag '" << flag << "'\n";
+            abort();
+          }
+          featureFlag += iter->second;
+        }
+
+        idx += 2;
       }
     }
+  }
+
+  if (!config.ConfigMap.empty()) {
+    const auto iter = [&]() {
+      // If the command line set the feature flag, find it in the config map.
+      // Otherwise, find the default.
+      return featureFlag > 0
+                 ? std::find_if(config.ConfigMap.begin(),
+                                config.ConfigMap.end(),
+                                [&](const BackendFeatureMap &entry) {
+                                  unsigned selectorFlag = 0;
+                                  for (const auto &flag : entry.Flags) {
+                                    selectorFlag += flag;
+                                  }
+                                  return selectorFlag == featureFlag;
+                                })
+                 : std::find_if(config.ConfigMap.begin(),
+                                config.ConfigMap.end(),
+                                [&](const BackendFeatureMap &entry) {
+                                  return entry.Default.has_value() &&
+                                         entry.Default.value();
+                                });
+    }();
+    if (iter == config.ConfigMap.end()) {
+      llvm::errs() << "Unable to find a config entry for feature flag value "
+                   << featureFlag << ".\n";
+      llvm::errs() << "This indicates the requested combination of features "
+                      "is not supported.\n";
+      abort();
+    }
+    output << processSimBackendConfig(iter->Config);
   }
   const auto platformExtraArgsStr = platformExtraArgs.str();
   if (!platformExtraArgsStr.empty()) {
