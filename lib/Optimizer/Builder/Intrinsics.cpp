@@ -319,6 +319,17 @@ inline bool intrinsicTableIsSorted() {
 
 namespace cudaq {
 
+IRBuilder::IRBuilder(const OpBuilder &builder)
+    : OpBuilder{builder.getContext()} {
+  // Sets the insertion point to be the same as \p builder. New operations will
+  // be inserted immediately before this insertion point and the insertion
+  // points will remain the identical, upto and unless one of the builders
+  // changes its insertion pointer.
+  auto *block = builder.getBlock();
+  auto point = builder.getInsertionPoint();
+  setInsertionPoint(block, point);
+}
+
 LLVM::GlobalOp IRBuilder::genCStringLiteral(Location loc, ModuleOp module,
                                             llvm::StringRef cstring) {
   auto *ctx = getContext();
@@ -410,6 +421,10 @@ cc::GlobalOp IRBuilder::genVectorOfComplexConstant(
     const std::vector<std::complex<float>> &values) {
   return buildVectorOfComplexConstant(loc, module, name, values, *this,
                                       getF32Type());
+}
+
+Value IRBuilder::getByteSizeOfType(Location loc, Type ty) {
+  return cc::getByteSizeOfType(*this, loc, ty, /*useSizeOf=*/true);
 }
 
 } // namespace cudaq

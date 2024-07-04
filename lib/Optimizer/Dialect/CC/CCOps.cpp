@@ -39,6 +39,68 @@ std::optional<std::int64_t> cudaq::opt::factory::getIntIfConstant(Value value) {
   return {};
 }
 
+Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
+                                   bool useSizeOf) {
+  auto createInt = [&](std::int32_t byteWidth) -> Value {
+    return builder.create<arith::ConstantIntOp>(loc, byteWidth, 64);
+  };
+
+  // Handle primitive types with constant sizes.
+  auto primSize = [](auto ty) -> unsigned {
+    return (ty.getIntOrFloatBitWidth() + 7) / 8;
+  };
+  auto rawSize =
+      TypeSwitch<Type, std::optional<std::int32_t>>(ty)
+          .Case([&](IntegerType intTy) -> std::optional<std::int32_t> {
+            return {primSize(intTy)};
+          })
+          .Case([&](FloatType fltTy) -> std::optional<std::int32_t> {
+            return {primSize(fltTy)};
+          })
+          .Case([&](ComplexType complexTy) -> std::optional<std::int32_t> {
+            auto eleTy = complexTy.getElementType();
+            if (isa<IntegerType, FloatType>(eleTy))
+              return {2 * primSize(eleTy)};
+            return {};
+          })
+          .Case(
+              [](cudaq::cc::PointerType ptrTy) -> std::optional<std::int32_t> {
+                // TODO: get this from the target specification. For now
+                // we're assuming pointers are 64 bits.
+                return {8};
+              })
+          .Default({});
+
+  if (rawSize)
+    return createInt(*rawSize);
+
+  // Handle aggregate types.
+  return TypeSwitch<Type, Value>(ty)
+      .Case([&](cudaq::cc::StructType strTy) -> Value {
+        if (std::size_t bitWidth = strTy.getBitSize()) {
+          assert(bitWidth % 8 == 0 && "struct ought to be in bytes");
+          std::size_t byteWidth = bitWidth / 8;
+          return createInt(byteWidth);
+        }
+        if (useSizeOf)
+          return builder.create<cudaq::cc::SizeOfOp>(loc, builder.getI64Type(),
+                                                     strTy);
+        return {};
+      })
+      .Case([&](cudaq::cc::ArrayType arrTy) -> Value {
+        if (arrTy.isUnknownSize())
+          return {};
+        auto v =
+            getByteSizeOfType(builder, loc, arrTy.getElementType(), useSizeOf);
+        if (!v)
+          return {};
+        auto scale = createInt(arrTy.getSize());
+        return builder.create<arith::MulIOp>(loc, builder.getI64Type(), v,
+                                             scale);
+      })
+      .Default({});
+}
+
 //===----------------------------------------------------------------------===//
 // AddressOfOp
 //===----------------------------------------------------------------------===//
@@ -1783,7 +1845,7 @@ void cudaq::cc::ReturnOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// SizeOp
+// SizeOfOp
 //===----------------------------------------------------------------------===//
 
 namespace {
@@ -1795,18 +1857,12 @@ struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
                                 PatternRewriter &rewriter) const override {
     // TODO: Add handling of more types.
     auto inpTy = sizeOp.getInputType();
-    std::optional<unsigned> bitsize;
-    if (isa<IntegerType, FloatType>(inpTy)) {
-      bitsize = inpTy.getIntOrFloatBitWidth();
-    } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(inpTy)) {
-      if (auto bits = strTy.getBitSize())
-        bitsize = bits;
+    if (Value v = cudaq::cc::getByteSizeOfType(rewriter, sizeOp.getLoc(), inpTy,
+                                               /*useSizeOf=*/false)) {
+      rewriter.replaceOp(sizeOp, v);
+      return success();
     }
-    if (!bitsize)
-      return failure();
-    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
-        sizeOp, cudaq::opt::convertBitsToBytes(*bitsize), sizeOp.getType());
-    return success();
+    return failure();
   }
 };
 } // namespace
