@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "llvm/Support/Allocator.h"
+#include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorOr.h"
@@ -35,6 +36,10 @@ static llvm::cl::opt<std::string>
 static llvm::cl::opt<std::string>
     outputFilename("o", llvm::cl::desc("Specify output filename"),
                    llvm::cl::value_desc("filename"), llvm::cl::init("-"));
+
+static llvm::cl::opt<std::string>
+    targetArgs("arg", llvm::cl::desc("Specify target CLI arguments"),
+               llvm::cl::value_desc("string"), llvm::cl::init("-"));
 
 static constexpr const char BOLD[] = "\033[1m";
 static constexpr const char RED[] = "\033[91m";
@@ -70,7 +75,7 @@ struct ScalarEnumerationTraits<ArgumentType> {
 struct TargetArgument {
   std::string KeyName;
   bool IsRequired = false;
-  bool IsPlatformConfigArg = false;
+  std::string PlatformArgKey;
   std::string HelpString;
   ArgumentType Type = ArgumentType::String;
   std::string DefaultValue;
@@ -84,7 +89,7 @@ struct MappingTraits<TargetArgument> {
   static void mapping(IO &io, TargetArgument &info) {
     io.mapRequired("key", info.KeyName);
     io.mapOptional("required", info.IsRequired);
-    io.mapOptional("platform-arg", info.IsPlatformConfigArg);
+    io.mapOptional("platform-arg", info.PlatformArgKey);
     io.mapOptional("help-string", info.HelpString);
     io.mapOptional("type", info.Type);
     io.mapOptional("default", info.DefaultValue);
@@ -120,11 +125,15 @@ struct BackendEndConfigEntry {
   bool LibraryMode = true;
   std::string PlatformLoweringConfig;
   std::string CodegenEmission;
+  std::string PostCodeGenPasses;
   std::string PlatformLibrary;
   std::string PlatformQpu;
   std::vector<std::string> PreprocessorDefines;
+  std::vector<std::string> CompilerFlags;
   std::vector<std::string> LinkLibs;
+  std::vector<std::string> LinkerFlags;
   std::string SimulationBackend;
+  std::string ConfigBashCommands;
 };
 
 namespace llvm {
@@ -136,11 +145,15 @@ struct MappingTraits<BackendEndConfigEntry> {
     io.mapOptional("library-mode", info.LibraryMode);
     io.mapOptional("platform-lowering-config", info.PlatformLoweringConfig);
     io.mapOptional("codegen-emission", info.CodegenEmission);
+    io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
     io.mapOptional("platform-library", info.PlatformLibrary);
     io.mapOptional("platform-qpu", info.PlatformQpu);
     io.mapOptional("preprocessor-defines", info.PreprocessorDefines);
+    io.mapOptional("compiler-flags", info.CompilerFlags);
     io.mapOptional("link-libs", info.LinkLibs);
+    io.mapOptional("linker-flags", info.LinkerFlags);
     io.mapOptional("simulation-backend", info.SimulationBackend);
+    io.mapOptional("bash", info.ConfigBashCommands);
   }
 };
 } // namespace yaml
@@ -153,6 +166,7 @@ struct BackendFeatureMap {
 };
 
 struct TargetConfig {
+  std::string Name;
   std::string Description;
   std::vector<TargetArgument> TargetArguments;
   bool GpuRequired = false;
@@ -166,6 +180,7 @@ namespace yaml {
 template <>
 struct MappingTraits<TargetConfig> {
   static void mapping(IO &io, TargetConfig &info) {
+    io.mapRequired("name", info.Name);
     io.mapRequired("description", info.Description);
     io.mapOptional("target-arguments", info.TargetArguments);
     io.mapOptional("gpu-requirements", info.GpuRequired);
@@ -175,8 +190,119 @@ struct MappingTraits<TargetConfig> {
 } // namespace yaml
 } // namespace llvm
 
-std::optional<std::string> processRuntimeArgs(TargetConfig config, int argc,
-                                              char **argv) {}
+std::string processRuntimeArgs(const TargetConfig &config,
+                               const std::vector<std::string> &targetArgv) {
+  std::stringstream output;
+  if (config.BackendConfig.has_value()) {
+    auto configValue = config.BackendConfig.value();
+    output << "GEN_TARGET_BACKEND="
+           << (configValue.GenTargetBackend ? "true" : "false") << "\n";
+    output << "LIBRARY_MODE=" << (configValue.LibraryMode ? "true" : "false")
+           << "\n";
+
+    if (!configValue.PlatformLoweringConfig.empty()) {
+      output << "PLATFORM_LOWERING_CONFIG="
+             << configValue.PlatformLoweringConfig << "\n";
+    }
+    if (!configValue.CodegenEmission.empty()) {
+      output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
+    }
+    if (!configValue.PostCodeGenPasses.empty()) {
+      output << "POST_CODEGEN_PASSES=" << configValue.PostCodeGenPasses << "\n";
+    }
+    if (!configValue.PlatformLibrary.empty()) {
+      output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";
+    }
+    if (!configValue.PlatformQpu.empty()) {
+      output << "PLATFORM_QPU=" << configValue.PlatformQpu << "\n";
+    }
+
+    if (!configValue.PreprocessorDefines.empty()) {
+      output << "PREPROCESSOR_DEFINES=\"${PREPROCESSOR_DEFINES}";
+      for (const auto &def : configValue.PreprocessorDefines) {
+        output << " " << def;
+      }
+      output << "\"\n";
+    }
+
+    if (!configValue.CompilerFlags.empty()) {
+      output << "COMPILER_FLAGS=\"${COMPILER_FLAGS}";
+      for (const auto &def : configValue.CompilerFlags) {
+        output << " " << def;
+      }
+      output << "\"\n";
+    }
+
+    if (!configValue.LinkLibs.empty()) {
+      output << "LINKLIBS=\"${LINKLIBS}";
+      for (const auto &lib : configValue.LinkLibs) {
+        output << " " << lib;
+      }
+      output << "\"\n";
+    }
+
+    if (!configValue.LinkerFlags.empty()) {
+      output << "LINKER_FLAGS=\"${LINKER_FLAGS}";
+      for (const auto &def : configValue.LinkerFlags) {
+        output << " " << def;
+      }
+      output << "\"\n";
+    }
+
+    if (!configValue.SimulationBackend.empty()) {
+      output << "NVQIR_SIMULATION_BACKEND=" << configValue.SimulationBackend
+             << "\n";
+    }
+
+    if (!configValue.ConfigBashCommands.empty()) {
+      output << configValue.ConfigBashCommands << "\n";
+    }
+  }
+
+  std::stringstream platformExtraArgs;
+  for (std::size_t idx = 0; idx < targetArgv.size();) {
+    const auto argsStr = targetArgv[idx];
+    const auto iter = std::find_if(
+        config.TargetArguments.begin(), config.TargetArguments.end(),
+        [&](const TargetArgument &argConfig) {
+          const std::string argKey =
+              "--" + config.Name + "-" + argConfig.KeyName;
+          return (argKey == argsStr);
+        });
+    if (iter == config.TargetArguments.end()) {
+      llvm::errs() << "Unknown target argument '" << argsStr << "'\n";
+      llvm::errs() << "Supported arguments for target '" << config.Name
+                   << "' are: " << "\n";
+      for (const auto &argConfig : config.TargetArguments) {
+        llvm::errs() << "  " << "--" + config.Name + "-" + argConfig.KeyName;
+        if (!argConfig.HelpString.empty()) {
+          llvm::errs() << " (" << argConfig.HelpString << ")";
+        }
+
+        llvm::errs() << "\n";
+      }
+      abort();
+    } else {
+      if (iter->Type != ArgumentType::Flag) {
+        if (!iter->PlatformArgKey.empty()) {
+          platformExtraArgs << ";" << iter->PlatformArgKey << ";"
+                            << targetArgv[idx + 1];
+        }
+
+        idx += 2;
+
+      } else {
+        idx += 1;
+      }
+    }
+  }
+  const auto platformExtraArgsStr = platformExtraArgs.str();
+  if (!platformExtraArgsStr.empty()) {
+    output << "PLATFORM_EXTRA_ARGS=\"${PLATFORM_EXTRA_ARGS}"
+           << platformExtraArgsStr << "\"\n";
+  }
+  return output.str();
+}
 
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(
@@ -191,5 +317,52 @@ int main(int argc, char **argv) {
   TargetConfig config;
   llvm::yaml::Input Input(*(fileOrErr.get()));
   Input >> config;
+  llvm::SmallVector<llvm::StringRef> args;
+  std::string targetArgsString = targetArgs;
+  if (targetArgsString.starts_with("base64_")) {
+    if (targetArgsString.size() > 7) {
+      auto targetArgsStr = targetArgsString.substr(7);
+      std::vector<char> decodedStr;
+      if (auto err = llvm::decodeBase64(targetArgsStr, decodedStr)) {
+        llvm::errs() << "DecodeBase64 error for '" << targetArgsStr
+                     << "' string.";
+        abort();
+      }
+      std::string decoded(decodedStr.data(), decodedStr.size());
+      targetArgsString = decoded;
+    } else {
+      targetArgsString = "";
+    }
+  }
+  llvm::StringRef(targetArgsString).split(args, ' ', -1, false);
+  std::vector<std::string> targetArgv;
+  for (const auto &arg : args) {
+    std::string targetArgsStr = arg.str();
+    if (targetArgsStr.starts_with("base64_")) {
+      targetArgsStr.erase(0, 7); // erase "base64_"
+      std::vector<char> decodedStr;
+      if (auto err = llvm::decodeBase64(targetArgsStr, decodedStr)) {
+        llvm::errs() << "DecodeBase64 error for '" << targetArgsStr
+                     << "' string.";
+        abort();
+      }
+      std::string decoded(decodedStr.data(), decodedStr.size());
+      LLVM_DEBUG(llvm::dbgs() << "Decoded '" << decoded << "' from '"
+                              << targetArgsStr << "\n");
+      targetArgsStr = decoded;
+    }
+    targetArgv.emplace_back(targetArgsStr);
+  }
+
+  const auto nvqppConfigs = processRuntimeArgs(config, targetArgv);
+  // Success! Dump the config (bash variable setters)
+  std::error_code ec;
+  ToolOutputFile out(outputFilename, ec, sys::fs::OF_None);
+  if (ec) {
+    errs() << "Failed to open output file '" << outputFilename << "'\n";
+    return ec.value();
+  }
+  out.os() << nvqppConfigs;
+  out.keep();
   return 0;
 }

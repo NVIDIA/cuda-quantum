@@ -1,0 +1,48 @@
+name: remote-mqpu
+description:
+  "The remote-mqpu target is..."
+
+config:
+  gen-target-backend: true
+  platform-library: mqpu
+  platform-qpu: RemoteSimulatorQPU
+  preprocessor-defines: ["-D CUDAQ_REMOTE_SIM"]
+  link-libs: ["-lcudaq-remote-simulator-qpu"]
+  # Ability to inject bash commands to be executed by the nvq++ main driver script
+  bash: |
+    if ${LIBRARY_MODE}; then
+      # In library mode, we enforce that no custom fallback host compiler has been set via `cmake-host-compiler` option.
+      # Note: even if another Clang-based compiler is set, we cannot guarantee that it is compatible with the LLVM version
+      # that the CUDA-Q runtime is compiled against. Hence, we don't support custom host compiler for this platform.
+      if [[ "$CMAKE_FALLBACK_HOST_CXX" != "$CXX" ]]; then 
+        error_exit "Using remote simulation target in library mode with a custom cmake-host-compiler is unsupported. Please use the default nvq++ host compiler or enable MLIR mode."
+      fi 
+      
+      COMPILER_FLAGS="$COMPILER_FLAGS -fembed-bitcode=all"
+      # Clang made "out of line atomics" the default on arm64 targets (https://reviews.llvm.org/D93585);
+      # requiring to link against `libclang_rt.builtins` on the server side when JIT'ing. 
+      # Hence, disable it when using the remote platform. 
+      if [ "$(uname -m)" == "aarch64" ]; then
+        COMPILER_FLAGS="$COMPILER_FLAGS -mno-outline-atomics"
+      fi
+      LINKER_FLAGS="$LINKER_FLAGS -rdynamic"
+    fi
+
+target-arguments:
+  - key: backend
+    required: false
+    type: string
+    platform-arg: backend 
+    help-string: "Specify the remote simulator backend."
+  - key: url
+    required: false
+    type: string
+    platform-arg: url 
+    help-string: "Specify the URL of the server."
+  - key: auto-launch
+    required: false
+    type: integer
+    platform-arg: auto_launch 
+    help-string: "Specify the number of server instances to be launched and shut down automatically."
+
+

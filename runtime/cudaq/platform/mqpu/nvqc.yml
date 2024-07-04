@@ -1,3 +1,4 @@
+name: nvqc
 description:
   "The NVQC Target provides access to simulated QPU services hosted on the NVIDIA Quantum Cloud."
 
@@ -5,32 +6,32 @@ target-arguments:
   - key: backend
     required: false
     type: string
-    platform-arg: true 
+    platform-arg: backend 
     help-string: "Specify the remote simulator backend."
   - key: nqpus
     required: false
     type: integer
-    platform-arg: true 
+    platform-arg: nqpus 
     help-string: "Specify the number of virtual NVQC QPUs."
   - key: ngpus
     required: false
     type: integer
-    platform-arg: true 
+    platform-arg: ngpus 
     help-string: "Specify the number of GPUs required."
   - key: function-id
     required: false
     type: uuid
-    platform-arg: true 
+    platform-arg: function_id 
     help-string: "Specify the NVQC function Id."
   - key: function-version-id
     required: false
     type: uuid
-    platform-arg: true 
+    platform-arg: version_id 
     help-string: "Specify the NVQC function version Id."
   - key: api-key
     required: false
     type: string
-    platform-arg: true 
+    platform-arg: api_key 
     help-string: "Specify NVQC API key."
 
 # Can have top-level configuration as well

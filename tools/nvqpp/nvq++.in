@@ -628,27 +628,33 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			error_exit "Cannot use nvqc target from non-x86_64 client at this time"
 		fi
 	fi
+	TARGET_CONFIG_YML_FILE="${install_dir}/targets/${TARGET_CONFIG}.yml"
 	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
-	if [ -f "${TARGET_CONFIG_FILE}" ]; then
+	if [ -f "${TARGET_CONFIG_YML_FILE}" ]; then
+		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
+		run ${TOOLBIN}cudaq-target-conf --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} ${TARGET_CONFIG_YML_FILE}
+		# Load the generated config variables
+		. "${OUT_CONFIG_FILENAME}"
+		TMPFILES="${TMPFILES} ${OUT_CONFIG_FILENAME}"
+	elif [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
 		. "${TARGET_CONFIG_FILE}" "${TARGET_ARGS[@]}"
-
-		if ${GEN_TARGET_BACKEND}; then
-			# Add a function that will run before main and set the target
-			# backend on the quantum_platform
-			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
-			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
-			if [ -n "${MAPPING_FILE}" ]; then
-				TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
-			fi
-			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
-			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-			run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
-			OBJS_TO_MERGE="${OUTFILENAME}"
-			TMPFILES="${TMPFILES} ${OUTFILENAME}"
-		fi
 	else
 		error_exit "Invalid Target: ($TARGET_CONFIG)"
+	fi
+	if ${GEN_TARGET_BACKEND}; then
+		# Add a function that will run before main and set the target
+		# backend on the quantum_platform
+		TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
+		TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
+		if [ -n "${MAPPING_FILE}" ]; then
+			TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
+		fi
+		TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
+		OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
+		run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
+		OBJS_TO_MERGE="${OUTFILENAME}"
+		TMPFILES="${TMPFILES} ${OUTFILENAME}"
 	fi
 fi
 

@@ -47,3 +47,7 @@ install(TARGETS ${LIBRARY_NAME}
   EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
 add_target_config(remote-mqpu)
 add_target_config(nvqc)
+install(FILES nvqc.yml DESTINATION targets)
+configure_file(nvqc.yml ${CMAKE_BINARY_DIR}/targets/nvqc.yml COPYONLY)
+install(FILES remote-mqpu.yml DESTINATION targets)
+configure_file(remote-mqpu.yml ${CMAKE_BINARY_DIR}/targets/remote-mqpu.yml COPYONLY)
