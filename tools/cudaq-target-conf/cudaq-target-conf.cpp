@@ -35,11 +35,11 @@ static llvm::cl::opt<std::string>
 
 static llvm::cl::opt<std::string>
     outputFilename("o", llvm::cl::desc("Specify output filename"),
-                   llvm::cl::value_desc("filename"), llvm::cl::init("-"));
+                   llvm::cl::value_desc("filename"));
 
 static llvm::cl::opt<std::string>
     targetArgs("arg", llvm::cl::desc("Specify target CLI arguments"),
-               llvm::cl::value_desc("string"), llvm::cl::init("-"));
+               llvm::cl::value_desc("string"));
 
 static constexpr const char BOLD[] = "\033[1m";
 static constexpr const char RED[] = "\033[91m";
@@ -269,7 +269,7 @@ std::string processSimBackendConfig(const BackendEndConfigEntry &configValue) {
            << configValue.PlatformLoweringConfig << "\"\n";
   }
   if (!configValue.CodegenEmission.empty()) {
-    output << "CODEGEN_EMISSION=\"" << configValue.CodegenEmission << "\"\n";
+    output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
   }
   if (!configValue.PostCodeGenPasses.empty()) {
     output << "POST_CODEGEN_PASSES=\"" << configValue.PostCodeGenPasses << "\"\n";
@@ -317,8 +317,8 @@ std::string processSimBackendConfig(const BackendEndConfigEntry &configValue) {
   }
 
   if (!configValue.SimulationBackend.values.empty()) {
-    output << "NVQIR_SIMULATION_BACKEND="
-           << configValue.SimulationBackend.values.front() << "\n";
+    output << "NVQIR_SIMULATION_BACKEND=\""
+           << configValue.SimulationBackend.values.front() << "\"\n";
   }
 
   if (!configValue.ConfigBashCommands.empty()) {
