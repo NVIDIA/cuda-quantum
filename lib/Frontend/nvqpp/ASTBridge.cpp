@@ -224,22 +224,22 @@ public:
     if (ignoreTemplate)
       return true;
     func = func->getDefinition();
+
     if (func) {
+      bool runChecks = false;
+
       if (auto attr = func->getAttr<clang::AnnotateAttr>())
         if (attr->getAnnotation().str() == "user_custom_quantum_operation") {
           customOperationNames[func->getName().str()] =
               cudaq::details::getTagNameOfFunctionDecl(func, mangler);
-          quantumTypesNotAllowed = false;
-          // Run semantics checks on the kernel class.
-          if (isa<clang::CXXMethodDecl>(func)) {
-            auto *cxxClass = cast<clang::CXXRecordDecl>(func->getParent());
-            check(cxxClass);
-          }
-          processQpu(cudaq::details::getTagNameOfFunctionDecl(func, mangler),
-                     func);
-          return true;
+          runChecks = true;
         }
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func)) {
+        runChecks = true;
+      } else {
+        quantumTypesNotAllowed = true;
+      }
+      if (runChecks) {
         quantumTypesNotAllowed = false;
         // Run semantics checks on the kernel class.
         if (isa<clang::CXXMethodDecl>(func)) {
@@ -248,8 +248,6 @@ public:
         }
         processQpu(cudaq::details::getTagNameOfFunctionDecl(func, mangler),
                    func);
-      } else {
-        quantumTypesNotAllowed = true;
       }
     }
     return true;

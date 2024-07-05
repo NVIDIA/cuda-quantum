@@ -1619,10 +1619,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     size_t targetCount = 0;
     std::string genFuncName;
     for (auto name : customOperationNames) {
-      genFuncName = getCudaqKernelName(name.second);
       if (name.first.find(maybeUnitaryGenerator) != std::string::npos) {
         targetCount =
             std::stoi(name.first.substr(maybeUnitaryGenerator.length()));
+        genFuncName = getCudaqKernelName(name.second);
         break;
       }
     }

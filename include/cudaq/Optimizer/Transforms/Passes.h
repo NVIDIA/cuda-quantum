@@ -36,6 +36,7 @@ createApplyOpSpecializationPass(bool computeActionOpt);
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
+std::unique_ptr<mlir::Pass> createLiftArrayAllocPass();
 std::unique_ptr<mlir::Pass> createLowerToCFGPass();
 std::unique_ptr<mlir::Pass> createObserveAnsatzPass(std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();

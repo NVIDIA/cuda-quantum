@@ -1270,6 +1270,50 @@ public:
     Value concatTargets = rewriter.create<quake::ConcatOp>(
         loc, quake::VeqType::getUnsized(context), targets);
 
+    auto arrType = cudaq::opt::getArrayType(context);
+    StringRef qirArrayConcatName = cudaq::opt::QIRArrayConcatArray;
+    FlatSymbolRefAttr concatFunc =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            qirArrayConcatName, arrType, {arrType, arrType}, parentModule);
+
+    auto qirArrayTy = cudaq::opt::getArrayType(context);
+    auto i8PtrTy = cudaq::opt::factory::getPointerType(context);
+    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::opt::QIRArrayCreateArray, qirArrayTy,
+        {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
+    FlatSymbolRefAttr getSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            cudaq::opt::QIRArrayGetElementPtr1d, i8PtrTy,
+            {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
+    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+    // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
+    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
+    // Function to convert a QIR Qubit value to an Array value.
+    auto wrapQubitInArray = [&](Value v) -> Value {
+      if (v.getType() != cudaq::opt::getQubitType(context))
+        return v;
+      auto createCall = rewriter.create<LLVM::CallOp>(
+          loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
+      auto result = createCall.getResult();
+      auto call = rewriter.create<LLVM::CallOp>(loc, i8PtrTy, getSymbolRef,
+                                                ArrayRef<Value>{result, zero});
+      Value pointer = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(i8PtrTy), call.getResult());
+      auto cast = rewriter.create<LLVM::BitcastOp>(loc, i8PtrTy, v);
+      rewriter.create<LLVM::StoreOp>(loc, cast, pointer);
+      return result;
+    };
+    // Loop over all the arguments to the concat operator and glue them
+    // together, converting Qubit values to Array values as needed.
+    auto frontArr = wrapQubitInArray(adaptor.getTargets().front());
+    for (auto oper : adaptor.getTargets().drop_front(1)) {
+      auto backArr = wrapQubitInArray(oper);
+      auto glue = rewriter.create<LLVM::CallOp>(
+          loc, qirArrayTy, concatFunc, ArrayRef<Value>{frontArr, backArr});
+      frontArr = glue.getResult();
+    }
+
     // concatenate controls
     auto controls = op.getControls();
     Value concatControls;
@@ -1305,6 +1349,9 @@ public:
           SmallVector<LLVM::GEPArg>{static_cast<int32_t>(i)});
       rewriter.create<LLVM::StoreOp>(loc, op->getOperand(i), ptr);
     }
+    auto complex64Ty =
+        typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
+    auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
 
     // Fetch the unitary matrix for this custom operation
     auto sref = op->getAttrOfType<SymbolRefAttr>("generator");
@@ -1314,61 +1361,75 @@ public:
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
 
     if ((numParameters == 0) && (globalOp)) {
-      auto unitary = dyn_cast<ArrayAttr>(
-          dyn_cast<mlir::Attribute>(globalOp.getValue().value()));
 
-      SmallVector<double> realPart(matrixSize), imagPart(matrixSize);
-      for (std::size_t i = 0; auto &element : unitary) {
-        auto values = dyn_cast<DenseF64ArrayAttr>(element).asArrayRef();
-        realPart[i] = values[0];
-        imagPart[i] = values[1];
-        i++;
-      }
+      Type type = getTypeConverter()->convertType(globalOp.getType());
+      auto addrOp =
+          rewriter.create<LLVM::AddressOfOp>(loc, type, generatorName);
+      auto unitaryData =
+          rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
 
-      std::string matrixReal = generatorName.str() + "_real";
-      std::string matrixImag = generatorName.str() + "_imag";
+      FlatSymbolRefAttr customSymbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              "__quantum__qis__custom_unitary",
+              LLVM::LLVMVoidType::get(context),
+              {complex64PtrTy, cudaq::opt::getArrayType(context),
+               cudaq::opt::getArrayType(context)},
+              parentModule);
 
-      Value realPartVal = mapConstMatrixToLLVMPointer(
-          loc, rewriter, parentModule, matrixSize, matrixReal, realPart);
-      if (!realPartVal)
-        return op->emitOpError("could not translate unitary data to llvm.");
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+          op, TypeRange{}, customSymbolRef,
+          ValueRange{unitaryData, concatControls, frontArr});
 
-      Value imaginaryPartVal = mapConstMatrixToLLVMPointer(
-          loc, rewriter, parentModule, matrixSize, matrixImag, imagPart);
-      if (!imaginaryPartVal)
-        return op->emitOpError("could not translate unitary data to llvm.");
+      // SmallVector<double> realPart(matrixSize), imagPart(matrixSize);
+      // for (std::size_t i = 0; auto &element : unitary) {
+      //   auto values = dyn_cast<DenseF64ArrayAttr>(element).asArrayRef();
+      //   realPart[i] = values[0];
+      //   imagPart[i] = values[1];
+      //   i++;
+      // }
 
-      if (!parentModule.lookupSymbol("__quantum__qis__constant_unitary")) {
-        auto ip = rewriter.saveInsertionPoint();
-        rewriter.setInsertionPointToStart(parentModule.getBody());
-        auto ftype = FunctionType::get(context,
-                                       {realPartVal.getType(),
-                                        imaginaryPartVal.getType(),
-                                        cudaq::opt::getArrayType(context),
-                                        cudaq::opt::getArrayType(context)},
-                                       {});
-        auto func = rewriter.create<func::FuncOp>(
-            loc, "__quantum__qis__constant_unitary", ftype);
-        rewriter.restoreInsertionPoint(ip);
+      // std::string matrixReal = generatorName.str() + "_real";
+      // std::string matrixImag = generatorName.str() + "_imag";
 
-        rewriter.replaceOpWithNewOp<func::CallOp>(
-            op, func,
-            ValueRange{realPartVal, imaginaryPartVal, concatControls,
-                       concatTargets});
-      } else {
-        rewriter.replaceOpWithNewOp<func::CallOp>(
-            op, "__quantum__qis__constant_unitary", TypeRange{},
-            ValueRange{realPartVal, imaginaryPartVal, concatControls,
-                       concatTargets});
-      }
-      // FIXME need to release the arrays
+      // Value realPartVal = mapConstMatrixToLLVMPointer(
+      //     loc, rewriter, parentModule, matrixSize, matrixReal, realPart);
+      // if (!realPartVal)
+      //   return op->emitOpError("could not translate unitary data to llvm.");
+
+      // Value imaginaryPartVal = mapConstMatrixToLLVMPointer(
+      //     loc, rewriter, parentModule, matrixSize, matrixImag, imagPart);
+      // if (!imaginaryPartVal)
+      //   return op->emitOpError("could not translate unitary data to llvm.");
+
+      // if (!parentModule.lookupSymbol("__quantum__qis__constant_unitary")) {
+      //   auto ip = rewriter.saveInsertionPoint();
+      //   rewriter.setInsertionPointToStart(parentModule.getBody());
+      //   auto ftype = FunctionType::get(context,
+      //                                  {realPartVal.getType(),
+      //                                   imaginaryPartVal.getType(),
+      //                                   cudaq::opt::getArrayType(context),
+      //                                   cudaq::opt::getArrayType(context)},
+      //                                  {});
+      //   auto func = rewriter.create<func::FuncOp>(
+      //       loc, "__quantum__qis__constant_unitary", ftype);
+      //   rewriter.restoreInsertionPoint(ip);
+
+      //   rewriter.replaceOpWithNewOp<func::CallOp>(
+      //       op, func,
+      //       ValueRange{realPartVal, imaginaryPartVal, concatControls,
+      //                  concatTargets});
+      // } else {
+      //   rewriter.replaceOpWithNewOp<func::CallOp>(
+      //       op, "__quantum__qis__constant_unitary", TypeRange{},
+      //       ValueRange{realPartVal, imaginaryPartVal, concatControls,
+      //                  concatTargets});
+      // }
+      // // FIXME need to release the arrays
       return success();
     }
 
     // Create output pointer
-    auto complex64Ty =
-        typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
-    auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
+
     Value numElementsVal =
         rewriter.create<arith::ConstantIntOp>(loc, matrixSize, 64);
     auto unitaryData =

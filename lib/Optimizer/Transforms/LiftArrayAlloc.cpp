@@ -65,10 +65,10 @@ public:
     Value conArr;
     Value conGlobal;
     if (toGlobal) {
-      static unsigned counter = 0;
+      // static unsigned counter = 0;
       auto ptrTy = cudaq::cc::PointerType::get(arrTy);
       // Build a new name based on the kernel name.
-      std::string name = funcName + ".rodata_" + std::to_string(counter++);
+      std::string name = funcName + ".rodata"; //_" + std::to_string(counter++);
       {
         OpBuilder::InsertionGuard guard(rewriter);
         if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
@@ -321,6 +321,30 @@ public:
   }
 };
 
+class CustomUnitaryPattern
+    : public OpRewritePattern<quake::CustomUnitarySymbolOp> {
+
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::CustomUnitarySymbolOp customOp,
+                                PatternRewriter &rewriter) const override {
+    auto sref = customOp.getGenerator();
+    StringRef generatorName = sref.getRootReference();
+    auto parentModule = customOp->getParentOfType<ModuleOp>();
+
+    auto ccGlobalOp = parentModule.lookupSymbol<cudaq::cc::GlobalOp>(
+        generatorName.str() + ".rodata");
+
+    if (ccGlobalOp) {
+      /// ASKME: Is this okay or should we create a new operation?
+      customOp.setGeneratorAttr(FlatSymbolRefAttr::get(ccGlobalOp));
+      return success();
+    }
+    return failure();
+  }
+};
+
 class LiftArrayAllocPass
     : public cudaq::opt::impl::LiftArrayAllocBase<LiftArrayAllocPass> {
 public:
@@ -338,6 +362,7 @@ public:
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPattern>(ctx, domInfo, funcName, module);
       patterns.insert<ComplexCreatePattern>(ctx);
+      patterns.insert<CustomUnitaryPattern>(ctx);
 
       LLVM_DEBUG(llvm::dbgs()
                  << "Before lifting constant array: " << func << '\n');
@@ -352,3 +377,7 @@ public:
   }
 };
 } // namespace
+
+std::unique_ptr<mlir::Pass> cudaq::opt::createLiftArrayAllocPass() {
+  return std::make_unique<LiftArrayAllocPass>();
+}

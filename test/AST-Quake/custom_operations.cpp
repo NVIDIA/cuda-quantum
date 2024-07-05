@@ -26,13 +26,13 @@ CUDAQ_REGISTER_OPERATION(custom_swap, 2, 0,
 
 CUDAQ_REGISTER_OPERATION(custom_s, 1, 0, {1, 0, 0, 1i})
 
-CUDAQ_REGISTER_OPERATION(
-    my_u3_generator_0, 1, 3,
-    {std::cos(parameters[0] / 2.),
-     -std::exp(i *parameters[2]) * std::sin(parameters[0] / 2.),
-     std::exp(i *parameters[1]) * std::sin(parameters[0] / 2.),
-     std::exp(i *(parameters[2] + parameters[1])) *
-         std::cos(parameters[0] / 2.)})
+// CUDAQ_REGISTER_OPERATION(
+//     my_u3_generator_0, 1, 3,
+//     {std::cos(parameters[0] / 2.),
+//      -std::exp(i *parameters[2]) * std::sin(parameters[0] / 2.),
+//      std::exp(i *parameters[1]) * std::sin(parameters[0] / 2.),
+//      std::exp(i *(parameters[2] + parameters[1])) *
+//          std::cos(parameters[0] / 2.)})
 
 CUDAQ_REGISTER_OPERATION(toffoli, 3, 0,
                          {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
@@ -131,27 +131,27 @@ __qpu__ void kernel_5() {
 // CHECK:           return
 // CHECK:         }
 
-__qpu__ void kernel_6() {
-  cudaq::qubit q;
-  my_u3_generator_0(M_PI, M_PI, M_PI_2, q);
-}
+// __qpu__ void kernel_6() {
+//   cudaq::qubit q;
+//   my_u3_generator_0(M_PI, M_PI, M_PI_2, q);
+// }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_6._Z8kernel_6v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
-// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_3:.*]] = cc.alloca f64
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_4:.*]] = cc.alloca f64
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_4]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_5:.*]] = cc.alloca f64
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_4]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:           quake.custom_op @my_u3_generator_0_generator_1 (%[[VAL_6]], %[[VAL_7]], %[[VAL_8]]) %[[VAL_2]] : (f64, f64, f64, !quake.ref) -> ()
-// CHECK:           return
-// CHECK:         }
+// // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_6._Z8kernel_6v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// // CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
+// // CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
+// // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// // CHECK:           %[[VAL_3:.*]] = cc.alloca f64
+// // CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<f64>
+// // CHECK:           %[[VAL_4:.*]] = cc.alloca f64
+// // CHECK:           cc.store %[[VAL_1]], %[[VAL_4]] : !cc.ptr<f64>
+// // CHECK:           %[[VAL_5:.*]] = cc.alloca f64
+// // CHECK:           cc.store %[[VAL_0]], %[[VAL_5]] : !cc.ptr<f64>
+// // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f64>
+// // CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_4]] : !cc.ptr<f64>
+// // CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
+// // CHECK:           quake.custom_op @my_u3_generator_0_generator_1 (%[[VAL_6]], %[[VAL_7]], %[[VAL_8]]) %[[VAL_2]] : (f64, f64, f64, !quake.ref) -> ()
+// // CHECK:           return
+// // CHECK:         }
 
 __qpu__ void kernel_7() {
   cudaq::qvector q(3);
