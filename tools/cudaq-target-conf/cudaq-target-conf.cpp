@@ -189,7 +189,8 @@ struct MappingTraits<BackendEndConfigEntry> {
     io.mapOptional("codegen-emission", info.CodegenEmission);
     io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
     io.mapOptional("platform-library", info.PlatformLibrary);
-    io.mapOptional("library-mode-execution-manager", info.LibraryModeExecutionManager);
+    io.mapOptional("library-mode-execution-manager",
+                   info.LibraryModeExecutionManager);
     io.mapOptional("platform-qpu", info.PlatformQpu);
     io.mapOptional("preprocessor-defines", info.PreprocessorDefines);
     io.mapOptional("compiler-flags", info.CompilerFlags);
@@ -252,7 +253,8 @@ struct MappingTraits<TargetConfig> {
 } // namespace yaml
 } // namespace llvm
 
-std::string processSimBackendConfig(const BackendEndConfigEntry &configValue) {
+std::string processSimBackendConfig(const std::string &targetName,
+                                    const BackendEndConfigEntry &configValue) {
   std::stringstream output;
   if (configValue.GenTargetBackend.has_value()) {
     output << "GEN_TARGET_BACKEND="
@@ -272,13 +274,15 @@ std::string processSimBackendConfig(const BackendEndConfigEntry &configValue) {
     output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
   }
   if (!configValue.PostCodeGenPasses.empty()) {
-    output << "POST_CODEGEN_PASSES=\"" << configValue.PostCodeGenPasses << "\"\n";
+    output << "POST_CODEGEN_PASSES=\"" << configValue.PostCodeGenPasses
+           << "\"\n";
   }
   if (!configValue.PlatformLibrary.empty()) {
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";
   }
   if (!configValue.LibraryModeExecutionManager.empty()) {
-    output << "LIBRARY_MODE_EXECUTION_MANAGER=" << configValue.LibraryModeExecutionManager << "\n";
+    output << "LIBRARY_MODE_EXECUTION_MANAGER="
+           << configValue.LibraryModeExecutionManager << "\n";
   }
   if (!configValue.PlatformQpu.empty()) {
     output << "PLATFORM_QPU=" << configValue.PlatformQpu << "\n";
@@ -317,8 +321,22 @@ std::string processSimBackendConfig(const BackendEndConfigEntry &configValue) {
   }
 
   if (!configValue.SimulationBackend.values.empty()) {
-    output << "NVQIR_SIMULATION_BACKEND=\""
+    output << "if [ -f \"${install_dir}/lib/libnvqir-"
+           << configValue.SimulationBackend.values.front() << ".so\" ]; then\n";
+    output << "  NVQIR_SIMULATION_BACKEND=\""
            << configValue.SimulationBackend.values.front() << "\"\n";
+
+    for (std::size_t i = 1; i < configValue.SimulationBackend.values.size();
+         ++i) {
+      output << "elif [ -f \"${install_dir}/lib/libnvqir-"
+             << configValue.SimulationBackend.values[i] << ".so\" ]; then\n";
+      output << "  NVQIR_SIMULATION_BACKEND=\""
+             << configValue.SimulationBackend.values[i] << "\"\n";
+    }
+    output << "else\n";
+    output << "  error_exit=\"Unable to find NVQIR simulator lib for target "
+           << targetName << ". Please check your installation.\"\n";
+    output << "fi";
   }
 
   if (!configValue.ConfigBashCommands.empty()) {
@@ -331,7 +349,8 @@ std::string processRuntimeArgs(const TargetConfig &config,
                                const std::vector<std::string> &targetArgv) {
   std::stringstream output;
   if (config.BackendConfig.has_value()) {
-    output << processSimBackendConfig(config.BackendConfig.value());
+    output << processSimBackendConfig(config.Name,
+                                      config.BackendConfig.value());
   }
 
   unsigned featureFlag = 0;
@@ -348,9 +367,11 @@ std::string processRuntimeArgs(const TargetConfig &config,
     if (iter == config.TargetArguments.end()) {
       llvm::errs() << "Unknown target argument '" << argsStr << "'\n";
       llvm::errs() << "Supported arguments for target '" << config.Name
-                   << "' are: " << "\n";
+                   << "' are: "
+                   << "\n";
       for (const auto &argConfig : config.TargetArguments) {
-        llvm::errs() << "  " << "--" + config.Name + "-" + argConfig.KeyName;
+        llvm::errs() << "  "
+                     << "--" + config.Name + "-" + argConfig.KeyName;
         if (!argConfig.HelpString.empty()) {
           llvm::errs() << " (" << argConfig.HelpString << ")";
         }
@@ -413,7 +434,7 @@ std::string processRuntimeArgs(const TargetConfig &config,
                       "is not supported.\n";
       abort();
     }
-    output << processSimBackendConfig(iter->Config);
+    output << processSimBackendConfig(config.Name, iter->Config);
   }
   const auto platformExtraArgsStr = platformExtraArgs.str();
   if (!platformExtraArgsStr.empty()) {
