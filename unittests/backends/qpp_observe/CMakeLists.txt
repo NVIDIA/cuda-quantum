@@ -9,14 +9,7 @@
 add_library(nvqir-qpp-observe-test SHARED QPPObserveBackend.cpp)
 set (QPP_TEST_DEPENDENCIES "")
 list(APPEND QPP_TEST_DEPENDENCIES fmt::fmt-header-only cudaq-common cudaq-spin)
-if (NOT CUDAQ_DISABLE_OPENMP)
-  find_package(OpenMP)
-  if(OpenMP_CXX_FOUND)
-    message(STATUS "OpenMP Found. Adding build flags to QPP backend test: ${OpenMP_CXX_FLAGS}.")
-    list(APPEND QPP_TEST_DEPENDENCIES OpenMP::OpenMP_CXX)
-    target_compile_definitions(nvqir-qpp-observe-test PRIVATE -DHAS_OPENMP=1)
-  endif()
-endif()
+add_openmp_configurations(nvqir-qpp-observe-test QPP_TEST_DEPENDENCIES)
 
 target_include_directories(nvqir-qpp-observe-test
   PUBLIC . ${CMAKE_SOURCE_DIR}/runtime 

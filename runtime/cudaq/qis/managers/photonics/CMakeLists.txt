@@ -18,15 +18,7 @@ target_include_directories(${LIBRARY_NAME}
 
 set (PHOTONICS_DEPENDENCIES "")
 list(APPEND PHOTONICS_DEPENDENCIES cudaq-common libqpp fmt::fmt-header-only)
-
-if (NOT CUDAQ_DISABLE_OPENMP)
-  find_package(OpenMP)
-  if (OpenMP_CXX_FOUND)
-    message(STATUS "OpenMP Found. Adding build flags to photonics library: ${OpenMP_CXX_FLAGS}.")
-    list(APPEND PHOTONICS_DEPENDENCIES OpenMP::OpenMP_CXX)
-    target_compile_definitions(${LIBRARY_NAME} PRIVATE -DHAS_OPENMP=1)
-  endif()
-endif()
+add_openmp_configurations(${LIBRARY_NAME} PHOTONICS_DEPENDENCIES)
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC cudaq-spin

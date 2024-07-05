@@ -370,6 +370,7 @@ set(CUDAQ_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
 include(AddCUDAQ)
+include(BuildHelpers)
 
 # Add CUDA Quantum files to the include path
 include_directories(BEFORE
@@ -615,7 +616,6 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
 endif()
 
 if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
-  include(WheelBuildHelpers)
   while(CUDAQ_EXTERNAL_NVQIR_SIMS)
     list(POP_FRONT CUDAQ_EXTERNAL_NVQIR_SIMS LIB_SO_OR_CONFIG_FILE)
     add_target_libs_to_wheel(${LIB_SO_OR_CONFIG_FILE})

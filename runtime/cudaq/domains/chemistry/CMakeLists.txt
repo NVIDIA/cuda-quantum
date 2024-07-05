@@ -10,14 +10,7 @@ add_library(cudaq-chemistry SHARED molecule.cpp)
 
 set (CHEMISTRY_DEPENDENCIES "")
 list(APPEND CHEMISTRY_DEPENDENCIES cudaq-spin)
-if (NOT CUDAQ_DISABLE_OPENMP)
-  find_package(OpenMP)
-  if(OpenMP_CXX_FOUND)
-    message(STATUS "OpenMP Found. Adding build flags to chemistry library: ${OpenMP_CXX_FLAGS}.")
-    list(APPEND CHEMISTRY_DEPENDENCIES OpenMP::OpenMP_CXX)
-    target_compile_definitions(cudaq-chemistry PRIVATE -DHAS_OPENMP=1)
-  endif()
-endif()
+add_openmp_configurations(cudaq-chemistry CHEMISTRY_DEPENDENCIES)
 
 target_link_libraries(cudaq-chemistry PRIVATE ${CHEMISTRY_DEPENDENCIES})
 target_include_directories(cudaq-chemistry SYSTEM

@@ -8,6 +8,22 @@
 
 include_guard()
 
+# If OpenMP is enabled and found, adds the necessary compile definitions to the
+# given target, and the necessary dependencies to the given list of dependencies.
+function(add_openmp_configurations TARGET_NAME DEPENDENCIES)
+    if (NOT CUDAQ_DISABLE_OPENMP)
+        find_package(OpenMP)
+        if(OpenMP_CXX_FOUND)
+            message(STATUS "OpenMP Found. Adding build flags to target ${TARGET_NAME}: ${OpenMP_CXX_FLAGS}.")
+            list(APPEND ${DEPENDENCIES} OpenMP::OpenMP_CXX)
+            set(${DEPENDENCIES} "${${DEPENDENCIES}}" PARENT_SCOPE) 
+            target_compile_definitions(${TARGET_NAME} PRIVATE HAS_OPENMP=1)
+            target_compile_definitions(${TARGET_NAME} PRIVATE CUDAQ_HAS_OPENMP)
+            target_compile_definitions(${TARGET_NAME} PRIVATE EIGEN_HAS_OPENMP)
+        endif()
+    endif()
+endfunction()
+
 # Making a NVQIR backend lib or config file available inside wheel 
 function(add_target_libs_to_wheel nvqir_backend_lib_or_config)
     if (NOT EXISTS "${nvqir_backend_lib_or_config}")

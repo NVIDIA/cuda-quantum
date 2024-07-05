@@ -15,15 +15,7 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
 
   set (QPP_DEPENDENCIES "")
   list(APPEND QPP_DEPENDENCIES fmt::fmt-header-only cudaq-common)
-  if (NOT CUDAQ_DISABLE_OPENMP)
-    find_package(OpenMP)
-    if(OpenMP_CXX_FOUND)
-      message(STATUS "OpenMP Found. Adding build flags to qpp library: ${OpenMP_CXX_FLAGS}.")
-      list(APPEND QPP_DEPENDENCIES OpenMP::OpenMP_CXX)
-      target_compile_definitions(${LIBRARY_NAME} PRIVATE EIGEN_HAS_OPENMP)
-      target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_OPENMP)
-    endif()
-  endif()
+  add_openmp_configurations(${LIBRARY_NAME} QPP_DEPENDENCIES)
 
   target_include_directories(${LIBRARY_NAME}
       PUBLIC
