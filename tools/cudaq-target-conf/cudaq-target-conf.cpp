@@ -168,6 +168,7 @@ struct BackendEndConfigEntry {
   std::string CodegenEmission;
   std::string PostCodeGenPasses;
   std::string PlatformLibrary;
+  std::string LibraryModeExecutionManager;
   std::string PlatformQpu;
   std::vector<std::string> PreprocessorDefines;
   std::vector<std::string> CompilerFlags;
@@ -188,6 +189,7 @@ struct MappingTraits<BackendEndConfigEntry> {
     io.mapOptional("codegen-emission", info.CodegenEmission);
     io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
     io.mapOptional("platform-library", info.PlatformLibrary);
+    io.mapOptional("library-mode-execution-manager", info.LibraryModeExecutionManager);
     io.mapOptional("platform-qpu", info.PlatformQpu);
     io.mapOptional("preprocessor-defines", info.PreprocessorDefines);
     io.mapOptional("compiler-flags", info.CompilerFlags);
@@ -225,6 +227,7 @@ LLVM_YAML_IS_SEQUENCE_VECTOR(BackendFeatureMap)
 struct TargetConfig {
   std::string Name;
   std::string Description;
+  std::string WarningMsg;
   std::vector<TargetArgument> TargetArguments;
   bool GpuRequired = false;
 
@@ -239,6 +242,7 @@ struct MappingTraits<TargetConfig> {
   static void mapping(IO &io, TargetConfig &info) {
     io.mapRequired("name", info.Name);
     io.mapRequired("description", info.Description);
+    io.mapOptional("warning", info.WarningMsg);
     io.mapOptional("target-arguments", info.TargetArguments);
     io.mapOptional("gpu-requirements", info.GpuRequired);
     io.mapOptional("config", info.BackendConfig);
@@ -261,17 +265,20 @@ std::string processSimBackendConfig(const BackendEndConfigEntry &configValue) {
   }
 
   if (!configValue.PlatformLoweringConfig.empty()) {
-    output << "PLATFORM_LOWERING_CONFIG=" << configValue.PlatformLoweringConfig
-           << "\n";
+    output << "PLATFORM_LOWERING_CONFIG=\""
+           << configValue.PlatformLoweringConfig << "\"\n";
   }
   if (!configValue.CodegenEmission.empty()) {
-    output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
+    output << "CODEGEN_EMISSION=\"" << configValue.CodegenEmission << "\"\n";
   }
   if (!configValue.PostCodeGenPasses.empty()) {
-    output << "POST_CODEGEN_PASSES=" << configValue.PostCodeGenPasses << "\n";
+    output << "POST_CODEGEN_PASSES=\"" << configValue.PostCodeGenPasses << "\"\n";
   }
   if (!configValue.PlatformLibrary.empty()) {
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";
+  }
+  if (!configValue.LibraryModeExecutionManager.empty()) {
+    output << "LIBRARY_MODE_EXECUTION_MANAGER=" << configValue.LibraryModeExecutionManager << "\n";
   }
   if (!configValue.PlatformQpu.empty()) {
     output << "PLATFORM_QPU=" << configValue.PlatformQpu << "\n";
@@ -429,6 +436,10 @@ int main(int argc, char **argv) {
   TargetConfig config;
   llvm::yaml::Input Input(*(fileOrErr.get()));
   Input >> config;
+  if (!config.WarningMsg.empty())
+    llvm::outs() << BOLD << RED << "Warning: " << CLEAR << config.WarningMsg
+                 << "\n";
+
   llvm::SmallVector<llvm::StringRef> args;
   std::string targetArgsString = targetArgs;
   if (targetArgsString.starts_with("base64_")) {

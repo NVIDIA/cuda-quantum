@@ -6,19 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/oqc.yml
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/oqc.yml)
+name: nvidia-fp64
+description: "The NVIDIA FP64 Target provides a simulated QPU via single-GPU cuStateVec integration on FP64 types."
+warning: "This target is deprecating..."
+gpu-requirements: true
 
-target_sources(cudaq-rest-qpu PRIVATE OQCServerHelp.cpp)
-add_target_config(oqc)
+config:
+  nvqir-simulation-backend: custatevec-fp64
+  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
 
-add_library(cudaq-serverhelper-oqc SHARED OQCServerHelp.cpp )
-target_link_libraries(cudaq-serverhelper-oqc
-  PUBLIC 
-    cudaq-common 
-    fmt::fmt-header-only 
-)
-install(TARGETS cudaq-serverhelper-oqc DESTINATION lib)
-
-add_target_mapping_arch(oqc lucy.txt)
-add_target_mapping_arch(oqc toshiko.txt)

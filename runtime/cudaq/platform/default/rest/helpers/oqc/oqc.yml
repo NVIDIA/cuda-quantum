@@ -1,0 +1,34 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: oqc
+description: "Oxford Quantum Circuits"
+config:
+  platform-qpu: remote_rest
+  gen-target-backend: true
+  link-libs: ["-lcudaq-rest-qpu"]
+  platform-lowering-config: "expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg,qubit-mapping{device=file(%QPU_ARCH%)},regtomem)"
+  codegen-emission: qir-base
+  library-mode: false
+
+target-arguments:
+  - key: email
+    required: false
+    type: string
+    platform-arg: email 
+    help-string: "Specify user's email address."
+  - key: url
+    required: false
+    type: string
+    platform-arg: url 
+    help-string: "Specify the URL."
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine 
+    help-string: "Specify QPU."

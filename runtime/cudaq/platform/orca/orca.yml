@@ -6,19 +6,22 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/oqc.yml
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/oqc.yml)
+name: orca
+description: "Orca"
+config:
+  platform-qpu: orca
+  gen-target-backend: true
+  link-libs: ["-lcudaq-orca-qpu"]
+  library-mode: false
 
-target_sources(cudaq-rest-qpu PRIVATE OQCServerHelp.cpp)
-add_target_config(oqc)
-
-add_library(cudaq-serverhelper-oqc SHARED OQCServerHelp.cpp )
-target_link_libraries(cudaq-serverhelper-oqc
-  PUBLIC 
-    cudaq-common 
-    fmt::fmt-header-only 
-)
-install(TARGETS cudaq-serverhelper-oqc DESTINATION lib)
-
-add_target_mapping_arch(oqc lucy.txt)
-add_target_mapping_arch(oqc toshiko.txt)
+target-arguments:
+  - key: url
+    required: false
+    type: string
+    platform-arg: url 
+    help-string: "Specify URL."
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: "Specify the Orca QPU."

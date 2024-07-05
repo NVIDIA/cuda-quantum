@@ -6,19 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/oqc.yml
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/oqc.yml)
+name: nvidia-mqpu-mps
+description: "The NVIDIA MQPU Target provides a simulated QPU for every available CUDA GPU on the underlying system. Each QPU is simulated via cuTensorNet MPS. This target enables asynchronous parallel execution of quantum kernel tasks."
+gpu-requirements: true
 
-target_sources(cudaq-rest-qpu PRIVATE OQCServerHelp.cpp)
-add_target_config(oqc)
+config:
+  nvqir-simulation-backend: tensornet-mps
+  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+  platform-library: mqpu
 
-add_library(cudaq-serverhelper-oqc SHARED OQCServerHelp.cpp )
-target_link_libraries(cudaq-serverhelper-oqc
-  PUBLIC 
-    cudaq-common 
-    fmt::fmt-header-only 
-)
-install(TARGETS cudaq-serverhelper-oqc DESTINATION lib)
-
-add_target_mapping_arch(oqc lucy.txt)
-add_target_mapping_arch(oqc toshiko.txt)
