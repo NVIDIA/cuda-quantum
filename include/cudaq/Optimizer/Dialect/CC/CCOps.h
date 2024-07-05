@@ -47,6 +47,9 @@ public:
 using ComputePtrArg = InterleavedArgument;
 using ExtractValueArg = InterleavedArgument;
 
+mlir::Value getByteSizeOfType(mlir::OpBuilder &builder, mlir::Location loc,
+                              mlir::Type ty, bool useSizeOf);
+
 } // namespace cudaq::cc
 
 //===----------------------------------------------------------------------===//
