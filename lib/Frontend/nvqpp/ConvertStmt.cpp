@@ -330,34 +330,13 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
         return builder.create<cc::StdvecInitOp>(loc, resTy,
                                                 ValueRange{heapCopy, dynSize});
       };
-
-      if (isa<IntegerType, FloatType>(eleTy)) {
-        std::size_t byteWidth = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
-        result = createVectorInit(
-            builder.create<arith::ConstantIntOp>(loc, byteWidth, 64));
-      } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
-        eleTy = complexTy.getElementType();
-        if (!isa<IntegerType, FloatType>(eleTy)) {
-          TODO_x(toLocation(x), x, mangler, "unhandled complex element type");
-          return false;
-        }
-        std::size_t byteWidth = ((eleTy.getIntOrFloatBitWidth() + 7) / 8) * 2;
-        result = createVectorInit(
-            builder.create<arith::ConstantIntOp>(loc, byteWidth, 64));
-      } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
-        if (std::size_t bitWidth = strTy.getBitSize()) {
-          assert(bitWidth % 8 == 0 && "struct ought to be in bytes");
-          std::size_t byteWidth = bitWidth / 8;
-          result = createVectorInit(
-              builder.create<arith::ConstantIntOp>(loc, byteWidth, 64));
-        } else {
-          result = createVectorInit(
-              builder.create<cc::SizeOfOp>(loc, builder.getI64Type(), strTy));
-        }
-      } else {
+      IRBuilder irb(builder);
+      Value tySize = irb.getByteSizeOfType(loc, eleTy);
+      if (!tySize) {
         TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
         return false;
       }
+      result = createVectorInit(tySize);
     }
     if (isFuncScope)
       builder.create<cc::ReturnOp>(loc, result);

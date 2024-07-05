@@ -507,7 +507,7 @@ def quake_WrapOp : QuakeOp<"wrap"> {
 }
 
 //===----------------------------------------------------------------------===//
-// NullWire, Sink pair
+// Qubit value semantics: NullWire, Sink
 //===----------------------------------------------------------------------===//
 
 def quake_NullWireOp : QuakeOp<"null_wire"> {
@@ -515,22 +515,32 @@ def quake_NullWireOp : QuakeOp<"null_wire"> {
   let description = [{
     |0> - the initial state of a wire when first constructed. A wire is assumed
     to be defined in the |0> state as its initial state.
+
+    There is an unlimited number of virtual null wires. See `quake.borrow_wire`
+    when constraining the number of qubits to a finite set.
   }];
 
-  let results = (outs WireType);
+  // This op has no dependence on classical memory and should not need to be
+  // ordered using memory constraints. They are used as a workaround to prevent
+  // MLIR from mistakenly reordering operations when the IR is a mix of quantum
+  // value and quantum reference semantics. This workaround is applied to sink,
+  // borrow_wire, and return_wire as well.
+  let results = (outs
+    Arg<WireType, "wire created", [MemRead, MemWrite]>
+  );
   let hasVerifier = 1;
   let assemblyFormat = "attr-dict";
 }
 
 def quake_SinkOp : QuakeOp<"sink"> {
-  let summary = "Sink for a qubit that is used but not measured.";
+  let summary = "Sink for a qubit that will no longer be used in the circuit.";
   let description = [{
     The `quake.sink` operation is used to mark a particular wire in the value
-    semantics as used at the end of a circuit. Typically a wire is measured, but
-    in some cases the wire needs to be marked as if it were measured even though
-    a measurement is not desired.
+    semantics as "free" at the end of a circuit. `quake.sink` is specifically
+    used to free (virtual) wires obtained via `quake.null_wire`.
 
-    This op is similar to the dealloc op in the reference semantics.
+    This op is similar to the dealloc op in the reference semantics. It is also
+    similar to `quake.return_wire` when using wire sets.
 
     Example:
     ```mlir
@@ -538,12 +548,97 @@ def quake_SinkOp : QuakeOp<"sink"> {
     ```
   }];
 
-  let arguments = (ins 
-    Arg<WireType,"wire to sink",[MemRead, MemWrite]>:$target
+  let arguments = (ins
+    Arg<WireType, "wire to sink", [MemRead, MemWrite]>:$target
   );
   let assemblyFormat = [{
      $target `:` qualified(type(operands)) attr-dict
   }];
+}
+
+//===----------------------------------------------------------------------===//
+// Qubit assignment: WireSet, BorrowWire, ReturnWire
+//===----------------------------------------------------------------------===//
+
+def quake_WireSetOp : QuakeOp<"wire_set", [IsolatedFromAbove, Symbol]> {
+  let summary = "Define a set of wires with a constant cardinality.";
+  let description = [{
+    At some point during a compilation, we may wish to refine our quantum
+    circuits from using an unlimited set of virtual references/wires to using
+    a finite set of qubits/wires.
+
+    A wire set is a top-level object in the module that defines the properties
+    of the target that we wish to reason about.
+
+    Example:
+    ```mlir
+      quake.wire_set @phys[8]
+    ```
+  }];
+
+  let arguments = (ins
+    StrAttr:$sym_name,
+    I32Attr:$cardinality,
+    OptionalAttr<ElementsAttr>:$adjacency
+  );
+
+  let hasCustomAssemblyFormat = 1;
+}
+
+def quake_BorrowWireOp : QuakeOp<"borrow_wire"> {
+  let summary = "Borrow a specific wire from a wire set.";
+  let description = [{
+    To obtain a specific wire from a wire set, the wire must be borrowed. Once
+    it is borrowed, it is undefined for any other operation to attempt to
+    borrow the same wire (as determined by the identity value).
+
+    It is an error to specify an identity that is outside the interval
+    `[0 .. n)` where `n` is the cardinality of the wire set. (This will raise
+    a verification error.)
+
+    A borrowed wire must be returned to the wire set when the circuit is no
+    longer using it. See `return_wire`.
+
+    Example:
+    ```mlir
+      quake.wire_set @phys[8]
+
+      func.func @qernel() {
+        ...
+        %6 = quake.borrow_wire @phys[4] : !wire
+        ...
+        quake.return_wire %6 : !wire
+        ...
+      }
+    ```
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$set_name,
+    I32Attr:$identity
+  );
+  let results = (outs
+    Arg<WireType, "wire borrowed", [MemRead, MemWrite]>
+  );
+  
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $set_name `[` $identity `]` `:` type(results) attr-dict
+  }];
+}
+
+def quake_ReturnWireOp : QuakeOp<"return_wire"> {
+  let summary = "Return a borrowed wire to a wire set.";
+  let description = [{
+    When a wire is no longer needed for further use it must be returned to the
+    wire set from which it was borrowed. The `return_wire` operation returns
+    the wire.
+  }];
+
+  let arguments = (ins
+    Arg<WireType, "wire to return", [MemRead, MemWrite]>:$target
+  );
+  let assemblyFormat = "$target `:` type(operands) attr-dict";
 }
 
 //===----------------------------------------------------------------------===//
