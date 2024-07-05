@@ -62,6 +62,7 @@ NVIDIA
 NVQC
 NVQIR
 OQC
+ORCA
 OpenACC
 OpenMP
 OpenMPI
@@ -96,6 +97,7 @@ SLES
 SLURM
 SVD
 Superpositions
+TBI
 TCP
 TableGen
 Toffoli
@@ -123,6 +125,7 @@ bitcode
 bitstring
 bitstrings
 boolean
+boson
 broadcasted
 buildable
 callable
@@ -198,6 +201,7 @@ inlined
 inlining
 instantiation
 instantiations
+interferometer
 interoperational
 intrinsics
 iterable
@@ -241,12 +245,17 @@ qubits
 qudit
 qudits
 reStructuredText
+reconfigurable
 runtime
 runtimes
 rvalue
 scalability
 scalable
 sexualized
+shifter
+shifters
+splitter
+splitters
 statevector
 struct
 structs

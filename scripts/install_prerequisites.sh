@@ -245,13 +245,13 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
       fi
     fi
 
-    wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
-    tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
+    wget https://www.openssl.org/source/openssl-3.3.1.tar.gz
+    tar -xf openssl-3.3.1.tar.gz && cd openssl-3.3.1
     CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" AR="${AR:-ar}" \
     "$HOME/.perl5/bin/perl" Configure no-shared \
       --prefix="$OPENSSL_INSTALL_PREFIX" zlib --with-zlib-lib="$ZLIB_INSTALL_PREFIX"
     make CC="$CC" CXX="$CXX" && make install
-    cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 "$HOME/.perl5"
+    cd .. && rm -rf openssl-3.3.1.tar.gz openssl-3.3.1 "$HOME/.perl5"
     remove_temp_installs
   else
     echo "OpenSSL already installed in $OPENSSL_INSTALL_PREFIX."

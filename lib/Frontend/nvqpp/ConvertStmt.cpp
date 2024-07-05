@@ -291,8 +291,8 @@ bool QuakeBridgeVisitor::TraverseSwitchStmt(clang::SwitchStmt *x,
   return false;
 }
 
-bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
-  auto loc = toLocation(stmt->getSourceRange());
+bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
+  auto loc = toLocation(x->getSourceRange());
   bool isFuncScope = [&]() {
     if (auto *block = builder.getBlock())
       if (auto *region = block->getParent())
@@ -300,8 +300,8 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
           return isa<func::FuncOp, cc::CreateLambdaOp>(op);
     return false;
   }();
-  LLVM_DEBUG(llvm::dbgs() << "%% "; stmt->dump());
-  if (stmt->getRetValue()) {
+  LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
+  if (x->getRetValue()) {
     auto result = popValue();
     auto resTy = result.getType();
     if (isa<cc::PointerType>(resTy)) {
@@ -317,19 +317,26 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
       if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")))
         module.emitError("failed to load intrinsic");
       auto eleTy = vecTy.getElementType();
-      auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-      Value resBuff = builder.create<cc::StdvecDataOp>(loc, ptrTy, result);
-      std::size_t byteWidth = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
-      Value dynSize =
-          builder.create<cc::StdvecSizeOp>(loc, builder.getI64Type(), result);
-      auto eleSize = builder.create<arith::ConstantIntOp>(loc, byteWidth, 64);
-      Value heapCopy =
-          builder
-              .create<func::CallOp>(loc, ptrTy, "__nvqpp_vectorCopyCtor",
-                                    ValueRange{resBuff, dynSize, eleSize})
-              .getResult(0);
-      result = builder.create<cc::StdvecInitOp>(loc, resTy,
+      auto createVectorInit = [&](Value eleSize) {
+        auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
+        Value resBuff = builder.create<cc::StdvecDataOp>(loc, ptrTy, result);
+        Value dynSize =
+            builder.create<cc::StdvecSizeOp>(loc, builder.getI64Type(), result);
+        Value heapCopy =
+            builder
+                .create<func::CallOp>(loc, ptrTy, "__nvqpp_vectorCopyCtor",
+                                      ValueRange{resBuff, dynSize, eleSize})
+                .getResult(0);
+        return builder.create<cc::StdvecInitOp>(loc, resTy,
                                                 ValueRange{heapCopy, dynSize});
+      };
+      IRBuilder irb(builder);
+      Value tySize = irb.getByteSizeOfType(loc, eleTy);
+      if (!tySize) {
+        TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
+        return false;
+      }
+      result = createVectorInit(tySize);
     }
     if (isFuncScope)
       builder.create<cc::ReturnOp>(loc, result);

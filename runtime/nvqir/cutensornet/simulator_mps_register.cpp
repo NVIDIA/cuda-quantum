@@ -29,8 +29,9 @@ public:
     m_mpsTensors_d.clear();
     // Factorize the state:
     if (m_state->getNumQubits() > 1)
-      m_mpsTensors_d = m_state->factorizeMPS(
-          m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+      m_mpsTensors_d =
+          m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
+                                m_settings.relCutoff, m_settings.svdAlgo);
   }
 
   virtual std::size_t calculateStateDim(const std::size_t numQubits) override {
@@ -51,8 +52,9 @@ public:
     } else {
       // Expand an existing state: Append MPS tensors
       // Factor the existing state
-      auto tensors = m_state->factorizeMPS(
-          m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+      auto tensors =
+          m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
+                                m_settings.relCutoff, m_settings.svdAlgo);
       // The right most MPS tensor needs to have one more extra leg (no longer
       // the boundary tensor).
       tensors.back().extents.emplace_back(1);
@@ -172,10 +174,10 @@ public:
         m_state = std::move(state);
       }
     } else {
-      // FIXME: expand the MPS tensors to the max extent
       if (!ptr) {
-        auto tensors = m_state->factorizeMPS(
-            m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+        auto tensors =
+            m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
+                                  m_settings.relCutoff, m_settings.svdAlgo);
         // The right most MPS tensor needs to have one more extra leg (no longer
         // the boundary tensor).
         tensors.back().extents.emplace_back(1);
@@ -200,8 +202,9 @@ public:
             m_cutnHandle, scratchPad, 1ULL << numQubits,
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
             m_settings.maxBond);
-        auto tensors = m_state->factorizeMPS(
-            m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+        auto tensors =
+            m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
+                                  m_settings.relCutoff, m_settings.svdAlgo);
         // Adjust the extents of the last tensor in the original state
         tensors.back().extents.emplace_back(1);
 
@@ -226,8 +229,9 @@ public:
                                                   scratchPad, m_cutnHandle);
 
     if (m_state->getNumQubits() > 1) {
-      std::vector<MPSTensor> tensors = m_state->factorizeMPS(
-          m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+      std::vector<MPSTensor> tensors =
+          m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
+                                m_settings.relCutoff, m_settings.svdAlgo);
       return std::make_unique<MPSSimulationState>(std::move(m_state), tensors,
                                                   scratchPad, m_cutnHandle);
     }
