@@ -49,9 +49,10 @@ public:
       ctx->shots = shots;
 
     std::string errorMsg;
-    const bool requestOkay = m_client->sendVQERequest(
-        *mlirContext, *executionContextPtr, m_simName, name, wrapper->rawArgs,
-        gradient, optimizer, n_params, &errorMsg);
+    const bool requestOkay = m_client->sendRequest(
+        *mlirContext, *executionContextPtr, /*serializedCodeContext=*/nullptr,
+        gradient, &optimizer, n_params, m_simName, name, /*kernelFunc=*/nullptr,
+        wrapper->rawArgs, /*argSize=*/0, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
@@ -86,6 +87,7 @@ public:
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
@@ -135,6 +137,7 @@ public:
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);

@@ -118,9 +118,10 @@ public:
       ctx->shots = shots;
 
     std::string errorMsg;
-    const bool requestOkay = m_client->sendVQERequest(
-        *m_mlirContext, *executionContextPtr, m_simName, name, kernelArgs,
-        gradient, optimizer, n_params, &errorMsg);
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, *executionContextPtr, /*serializedCodeContext=*/nullptr,
+        gradient, &optimizer, n_params, m_simName, name, /*kernelFunc=*/nullptr,
+        kernelArgs, /*argSize=*/0, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
@@ -154,10 +155,10 @@ public:
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
     std::string errorMsg;
-    const bool requestOkay =
-        m_client->sendRequest(*m_mlirContext, executionContext,
-                              /*serializedCodeContext=*/nullptr, m_simName,
-                              name, kernelFunc, args, voidStarSize, &errorMsg);
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
+        m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
@@ -195,6 +196,7 @@ public:
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, &serializeCodeExecutionObject,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, /*kernelFunc=*/nullptr, /*args=*/nullptr,
         /*voidStarSize=*/0, &errorMsg);
     if (!requestOkay)

@@ -81,14 +81,6 @@ public:
   // This is triggered by a random seed value being set in CUDA-Q runtime.
   virtual void resetRemoteRandomSeed(std::size_t seed) = 0;
 
-  virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
-                              ExecutionContext &io_context,
-                              const std::string &backendSimName,
-                              const std::string &kernelName,
-                              const void *kernelArgs, cudaq::gradient *gradient,
-                              cudaq::optimizer &optimizer, const int n_params,
-                              std::string *optionalErrorMsg = nullptr) = 0;
-
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and
   // communication protocols. The `ExecutionContext` will be updated in-place as
@@ -96,9 +88,10 @@ public:
   virtual bool
   sendRequest(mlir::MLIRContext &mlirContext, ExecutionContext &io_context,
               SerializedCodeExecutionContext *serializedCodeContext,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize,
+              cudaq::gradient *vqe_gradient, cudaq::optimizer *vqe_optimizer,
+              const int vqe_n_params, const std::string &backendSimName,
+              const std::string &kernelName, void (*kernelFunc)(void *),
+              const void *kernelArgs, std::uint64_t argsSize,
               std::string *optionalErrorMsg = nullptr) = 0;
   // Destructor
   virtual ~RemoteRuntimeClient() = default;

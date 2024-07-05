@@ -237,7 +237,8 @@ public:
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       cudaq::SerializedCodeExecutionContext *serializedCodeContext,
       const std::string &backendSimName, const std::string &kernelName,
-      void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
+      void (*kernelFunc)(void *), const void *kernelArgs,
+      std::uint64_t argsSize) {
 
     cudaq::RestRequest request(io_context, version());
     if (serializedCodeContext)
@@ -315,76 +316,25 @@ public:
     return request;
   }
 
-  virtual bool sendVQERequest(mlir::MLIRContext &mlirContext,
-                              cudaq::ExecutionContext &io_context,
-                              const std::string &backendSimName,
-                              const std::string &kernelName,
-                              const void *kernelArgs, cudaq::gradient *gradient,
-                              cudaq::optimizer &optimizer, const int n_params,
-                              std::string *optionalErrorMsg) override {
-    // Todo
-    cudaq::RestRequest request = constructVQEJobRequest(
-        mlirContext, io_context, backendSimName, kernelName, kernelArgs,
-        gradient, optimizer, n_params);
-    if (request.code.empty()) {
-      if (optionalErrorMsg)
-        *optionalErrorMsg =
-            std::string(
-                "Failed to construct/retrieve kernel IR for kernel named ") +
-            kernelName;
-      return false;
-    }
-
-    // Don't let curl adding "Expect: 100-continue" header, which is not
-    // suitable for large requests, e.g., bitcode in the JSON request.
-    //  Ref: https://gms.tf/when-curl-sends-100-continue.html
-    std::map<std::string, std::string> headers{
-        {"Expect:", ""}, {"Content-type", "application/json"}};
-    json requestJson = request;
-
-    cudaq::info("request is {}", requestJson.dump(/*indent=*/2));
-
-    try {
-      cudaq::RestClient restClient;
-      auto resultJs =
-          restClient.post(m_url, "job", requestJson, headers, false);
-
-      if (!resultJs.contains("executionContext")) {
-        std::stringstream errorMsg;
-        if (resultJs.contains("status")) {
-          errorMsg << "Failed to execute the kernel on the remote server: "
-                   << resultJs["status"] << "\n";
-          if (resultJs.contains("errorMessage")) {
-            errorMsg << "Error message: " << resultJs["errorMessage"] << "\n";
-          }
-        } else {
-          errorMsg << "Failed to execute the kernel on the remote server.\n";
-          errorMsg << "Unexpected response from the REST server. Missing the "
-                      "required field 'executionContext'.";
-        }
-        if (optionalErrorMsg)
-          *optionalErrorMsg = errorMsg.str();
-        return false;
-      }
-      resultJs["executionContext"].get_to(io_context);
-      return true;
-    } catch (std::exception &e) {
-      if (optionalErrorMsg)
-        *optionalErrorMsg = e.what();
-      return false;
-    }
-  }
-
   virtual bool
   sendRequest(mlir::MLIRContext &mlirContext,
               cudaq::ExecutionContext &io_context,
               cudaq::SerializedCodeExecutionContext *serializedCodeContext,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
-    cudaq::RestRequest request = constructJobRequest(
-        mlirContext, io_context, serializedCodeContext, backendSimName,
-        kernelName, kernelFunc, kernelArgs, argsSize);
+              cudaq::gradient *vqe_gradient, cudaq::optimizer *vqe_optimizer,
+              const int vqe_n_params, const std::string &backendSimName,
+              const std::string &kernelName, void (*kernelFunc)(void *),
+              const void *kernelArgs, std::uint64_t argsSize,
+              std::string *optionalErrorMsg) override {
+    cudaq::RestRequest request = [&]() {
+      if (vqe_n_params > 0)
+        return constructVQEJobRequest(mlirContext, io_context, backendSimName,
+                                      kernelName, kernelArgs, vqe_gradient,
+                                      *vqe_optimizer, vqe_n_params);
+      return constructJobRequest(mlirContext, io_context, serializedCodeContext,
+                                 backendSimName, kernelName, kernelFunc,
+                                 kernelArgs, argsSize);
+    }();
+
     if (request.code.empty() && (serializedCodeContext == nullptr ||
                                  serializedCodeContext->source_code.empty())) {
       if (optionalErrorMsg)
@@ -785,9 +735,11 @@ public:
   sendRequest(mlir::MLIRContext &mlirContext,
               cudaq::ExecutionContext &io_context,
               cudaq::SerializedCodeExecutionContext *serializedCodeContext,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+              cudaq::gradient *vqe_gradient, cudaq::optimizer *vqe_optimizer,
+              const int vqe_n_params, const std::string &backendSimName,
+              const std::string &kernelName, void (*kernelFunc)(void *),
+              const void *kernelArgs, std::uint64_t argsSize,
+              std::string *optionalErrorMsg) override {
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {
         "tensornet", "nvidia-mgpu", "nvidia-mqpu"};
     {
@@ -810,9 +762,15 @@ public:
       }
     }
     // Construct the base `cudaq-qpud` request payload.
-    cudaq::RestRequest request = constructJobRequest(
-        mlirContext, io_context, serializedCodeContext, backendSimName,
-        kernelName, kernelFunc, kernelArgs, argsSize);
+    cudaq::RestRequest request = [&]() {
+      if (vqe_n_params > 0)
+        return constructVQEJobRequest(mlirContext, io_context, backendSimName,
+                                      kernelName, kernelArgs, vqe_gradient,
+                                      *vqe_optimizer, vqe_n_params);
+      return constructJobRequest(mlirContext, io_context, serializedCodeContext,
+                                 backendSimName, kernelName, kernelFunc,
+                                 kernelArgs, argsSize);
+    }();
 
     if (request.code.empty() && (serializedCodeContext == nullptr ||
                                  serializedCodeContext->source_code.empty())) {
