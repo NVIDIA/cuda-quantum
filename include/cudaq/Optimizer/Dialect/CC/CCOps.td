@@ -90,6 +90,8 @@ def cc_ScopeOp : CCOp<"scope",
   let extraClassDeclaration = [{
     using BodyBuilderFn =
         llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
+
+    bool hasAllocation(bool quantumAllocs = true);
   }];
 }
 

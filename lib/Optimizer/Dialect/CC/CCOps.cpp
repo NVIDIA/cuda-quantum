@@ -9,7 +9,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -1428,6 +1428,28 @@ void cudaq::cc::ScopeOp::getSuccessorRegions(
   regions.push_back(RegionSuccessor(getResults()));
 }
 
+// If quantumAllocs, then just look for any allocate memory effect. Otherwise,
+// look for any allocate memory other than from the quake dialect.
+template <bool quantumAllocs>
+bool hasAllocation(Region &region) {
+  for (auto &block : region)
+    for (auto &op : block) {
+      if (auto mem = dyn_cast<MemoryEffectOpInterface>(op))
+        if (mem.hasEffect<MemoryEffects::Allocate>())
+          return quantumAllocs || !isa<quake::AllocaOp>(op);
+      for (auto &opReg : op.getRegions())
+        if (hasAllocation<quantumAllocs>(opReg))
+          return true;
+    }
+  return false;
+}
+
+bool cudaq::cc::ScopeOp::hasAllocation(bool quantumAllocs) {
+  if (quantumAllocs)
+    return ::hasAllocation</*quantumAllocs=*/true>(getRegion());
+  return ::hasAllocation</*quantumAllocs=*/false>(getRegion());
+}
+
 namespace {
 // If there are no allocations in the scope, then the scope is not needed as
 // there is nothing to deallocate. This transformation does the following
@@ -1455,9 +1477,8 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
 
   LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
                                 PatternRewriter &rewriter) const override {
-    for (auto &reg : scope->getRegions())
-      if (hasAllocation(reg))
-        return success();
+    if (scope.hasAllocation())
+      return success();
 
     // scope does not allocate, so the region can be inlined into the parent.
     auto loc = scope.getLoc();
@@ -1491,19 +1512,6 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
     rewriter.create<cf::BranchOp>(loc, initBlock, ValueRange{});
     rewriter.replaceOp(scope, succBlock->getArguments());
     return success();
-  }
-
-  static bool hasAllocation(Region &region) {
-    for (auto &block : region)
-      for (auto &op : block) {
-        if (auto mem = dyn_cast<MemoryEffectOpInterface>(op))
-          if (mem.hasEffect<MemoryEffects::Allocate>())
-            return true;
-        for (auto &opReg : op.getRegions())
-          if (hasAllocation(opReg))
-            return true;
-      }
-    return false;
   }
 };
 } // namespace
