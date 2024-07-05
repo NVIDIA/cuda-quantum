@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <optional>
 #include "cudaq/algorithms/optimizer.h"
 
 namespace cudaq::optimizers {
