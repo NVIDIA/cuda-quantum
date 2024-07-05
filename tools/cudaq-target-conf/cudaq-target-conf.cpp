@@ -366,9 +366,11 @@ std::string processRuntimeArgs(const TargetConfig &config,
     if (iter == config.TargetArguments.end()) {
       llvm::errs() << "Unknown target argument '" << argsStr << "'\n";
       llvm::errs() << "Supported arguments for target '" << config.Name
-                   << "' are: " << "\n";
+                   << "' are: "
+                   << "\n";
       for (const auto &argConfig : config.TargetArguments) {
-        llvm::errs() << "  " << "--" + config.Name + "-" + argConfig.KeyName;
+        llvm::errs() << "  "
+                     << "--" + config.Name + "-" + argConfig.KeyName;
         if (!argConfig.HelpString.empty()) {
           llvm::errs() << " (" << argConfig.HelpString << ")";
         }
