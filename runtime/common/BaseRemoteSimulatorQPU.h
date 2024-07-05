@@ -288,9 +288,7 @@ public:
   // VQE is executed fully on the server without the need to go back and forth
   // in between observe calls (see launchVQE).
   // TODO - set this to true when NVQC supports this.
-  virtual bool supportsRemoteVQE() override {
-    return remoteVQEExecOverride();
-  }
+  virtual bool supportsRemoteVQE() override { return remoteVQEExecOverride(); }
 
   // Remote serializable code is executed fully on the server without the need
   // to go back and forth in between observe calls (see
