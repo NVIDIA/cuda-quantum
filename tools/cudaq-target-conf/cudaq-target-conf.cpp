@@ -21,6 +21,7 @@
 #include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/Support/YAMLTraits.h"
 #include "llvm/Support/raw_ostream.h"
+#include <fstream>
 
 #define DEBUG_TYPE "target-config"
 
@@ -367,11 +368,9 @@ std::string processRuntimeArgs(const TargetConfig &config,
     if (iter == config.TargetArguments.end()) {
       llvm::errs() << "Unknown target argument '" << argsStr << "'\n";
       llvm::errs() << "Supported arguments for target '" << config.Name
-                   << "' are: "
-                   << "\n";
+                   << "' are: " << "\n";
       for (const auto &argConfig : config.TargetArguments) {
-        llvm::errs() << "  "
-                     << "--" + config.Name + "-" + argConfig.KeyName;
+        llvm::errs() << "  " << "--" + config.Name + "-" + argConfig.KeyName;
         if (!argConfig.HelpString.empty()) {
           llvm::errs() << " (" << argConfig.HelpString << ")";
         }
@@ -444,6 +443,39 @@ std::string processRuntimeArgs(const TargetConfig &config,
   return output.str();
 }
 
+/// @brief A utility function to check availability of Nvidia GPUs and return
+/// their count.
+int countGPUs() {
+  int retCode = std::system("nvidia-smi >/dev/null 2>&1");
+  if (0 != retCode) {
+    LLVM_DEBUG(llvm::dbgs() << "nvidia-smi: command not found\n");
+    return -1;
+  }
+
+  char tmpFile[] = "/tmp/.cmd.capture.XXXXXX";
+  int fileDescriptor = mkstemp(tmpFile);
+  if (-1 == fileDescriptor) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "Failed to create a temporary file to capture output\n");
+    return -1;
+  }
+
+  std::string command = "nvidia-smi -L 2>/dev/null | wc -l >> ";
+  command.append(tmpFile);
+  retCode = std::system(command.c_str());
+  if (0 != retCode) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "Encountered error while invoking 'nvidia-smi'\n");
+    return -1;
+  }
+
+  std::stringstream buffer;
+  buffer << std::ifstream(tmpFile).rdbuf();
+  close(fileDescriptor);
+  unlink(tmpFile);
+  return std::stoi(buffer.str());
+}
+
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(
       argc, argv, "CUDA-Q Target Build Configuration Generator\n");
@@ -457,6 +489,14 @@ int main(int argc, char **argv) {
   TargetConfig config;
   llvm::yaml::Input Input(*(fileOrErr.get()));
   Input >> config;
+
+  // Verify GPU requirement
+  if (config.GpuRequired && countGPUs() <= 0) {
+    llvm::errs() << "Target '" << config.Name
+                 << "' requires NVIDIA GPUs but none can be detected.";
+    abort();
+  }
+
   if (!config.WarningMsg.empty())
     llvm::outs() << BOLD << RED << "Warning: " << CLEAR << config.WarningMsg
                  << "\n";
