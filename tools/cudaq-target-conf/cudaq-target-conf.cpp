@@ -59,10 +59,10 @@ static void checkErrorCode(const std::error_code &ec) {
 }
 
 enum TargetFeatureFlag : unsigned {
-  flagsFP32 = 1,
-  flagsFP64 = 2,
-  flagsMgpu = 4,
-  flagsMqpu = 8,
+  flagsFP32 = 0x0001,
+  flagsFP64 = 0x0002,
+  flagsMgpu = 0x0004,
+  flagsMqpu = 0x0008,
 };
 
 static std::unordered_map<std::string, TargetFeatureFlag> stringToFeatureFlag{
@@ -74,12 +74,10 @@ static std::unordered_map<std::string, TargetFeatureFlag> stringToFeatureFlag{
 namespace llvm {
 namespace yaml {
 template <>
-struct ScalarEnumerationTraits<TargetFeatureFlag> {
-  static void enumeration(IO &io, TargetFeatureFlag &value) {
-    io.enumCase(value, "fp32", flagsFP32);
-    io.enumCase(value, "fp64", flagsFP64);
-    io.enumCase(value, "mgpu", flagsMgpu);
-    io.enumCase(value, "mqpu", flagsMqpu);
+struct ScalarBitSetTraits<TargetFeatureFlag> {
+  static void bitset(IO &io, TargetFeatureFlag &value) {
+    for (const auto &[k, v] : stringToFeatureFlag)
+      io.bitSetCase(value, k.c_str(), v);
   }
 };
 } // namespace yaml
@@ -206,7 +204,7 @@ struct MappingTraits<BackendEndConfigEntry> {
 
 struct BackendFeatureMap {
   std::string Name;
-  std::vector<TargetFeatureFlag> Flags;
+  TargetFeatureFlag Flags;
   std::optional<bool> Default;
   BackendEndConfigEntry Config;
 };
@@ -406,19 +404,26 @@ std::string processRuntimeArgs(const TargetConfig &config,
   }
 
   if (!config.ConfigMap.empty()) {
+    const auto defaultFeatureIter = std::find_if(
+        config.ConfigMap.begin(), config.ConfigMap.end(),
+        [&](const BackendFeatureMap &entry) {
+          return entry.Default.has_value() && entry.Default.value();
+        });
+
+    const uint64_t defaultFlag = (defaultFeatureIter != config.ConfigMap.end())
+                                     ? defaultFeatureIter->Flags
+                                     : 0;
+
     const auto iter = [&]() {
       // If the command line set the feature flag, find it in the config map.
       // Otherwise, find the default.
       return featureFlag > 0
-                 ? std::find_if(config.ConfigMap.begin(),
-                                config.ConfigMap.end(),
-                                [&](const BackendFeatureMap &entry) {
-                                  unsigned selectorFlag = 0;
-                                  for (const auto &flag : entry.Flags) {
-                                    selectorFlag += flag;
-                                  }
-                                  return selectorFlag == featureFlag;
-                                })
+                 ? std::find_if(
+                       config.ConfigMap.begin(), config.ConfigMap.end(),
+                       [&](const BackendFeatureMap &entry) {
+                         return featureFlag == entry.Flags ||
+                                (featureFlag | defaultFlag) == entry.Flags;
+                       })
                  : std::find_if(config.ConfigMap.begin(),
                                 config.ConfigMap.end(),
                                 [&](const BackendFeatureMap &entry) {
