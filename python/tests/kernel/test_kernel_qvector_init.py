@@ -169,7 +169,6 @@ def test_kernel_complex_capture():
     assert '00' in counts
 
 
-
 @skipIfPythonLessThan39
 def test_kernel_complex_np_array_from_capture():
     cudaq.reset_target()
@@ -184,7 +183,6 @@ def test_kernel_complex_np_array_from_capture():
     print(counts)
     assert '11' in counts
     assert '00' in counts
-
 
 
 @skipIfPythonLessThan39
@@ -260,7 +258,7 @@ def test_kernel_dtype_complex64_params_f32():
 def test_kernel_simulation_dtype_complex_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
-    
+
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
@@ -326,7 +324,7 @@ def test_kernel_amplitudes_complex_from_capture():
 def test_kernel_simulation_dtype_np_array_from_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
-    
+
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
