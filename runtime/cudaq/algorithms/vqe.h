@@ -26,6 +26,8 @@ namespace cudaq {
 ///        gradients.
 /// \param n_params The number of variational parameters in the ansatz quantum
 ///        kernel callable.
+/// \param args Non-variational arguments to \p kernel that will be passed to
+///        \p kernel on each invocation during VQE.
 /// \returns The optimal value and corresponding parameters as a
 ///        cudaq::optimization_result (std::tuple<double,std::vector<double>>)
 ///
@@ -104,6 +106,8 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 ///        gradients.
 /// \param n_params The number of variational parameters in the ansatz quantum
 ///        kernel callable.
+/// \param args Non-variational arguments to \p kernel that will be passed to
+///        \p kernel on each invocation during VQE.
 /// \returns The optimal value and corresponding parameters as a
 ///        cudaq::optimization_result (std::tuple<double,std::vector<double>>)
 ///
@@ -184,6 +188,8 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 ///        the minimal eigenvalue of \p H.
 /// \param n_params The number of variational parameters in the ansatz quantum
 ///        kernel callable.
+/// \param args Non-variational arguments to \p kernel that will be passed to
+///        \p kernel on each invocation during VQE.
 /// \returns The optimal value and corresponding parameters as a
 ///        cudaq::optimization_result (std::tuple<double,std::vector<double>>)
 ///
