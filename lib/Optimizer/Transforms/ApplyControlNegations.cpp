@@ -16,7 +16,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
-#include <iostream>
 namespace cudaq::opt {
 #define GEN_PASS_DEF_APPLYCONTROLNEGATIONS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
@@ -68,9 +67,6 @@ struct ApplyControlNegationsPass
 
   void runOnOperation() override {
     auto funcOp = getOperation();
-    std::cout << " >>>> ApplyControlNegations *** " << std::endl;
-    funcOp.dump();
-    std::cout << " <<< ApplyControlNegations *** " << std::endl;
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<

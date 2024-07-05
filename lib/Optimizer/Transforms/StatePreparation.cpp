@@ -33,17 +33,17 @@ using namespace mlir;
 /// Replace a qubit initialization from vectors with quantum gates.
 /// For example:
 ///
-///   func.func @foo(%arg0 : !cc.stdvec<complex<f32>>) {
-///     %0 = cc.stdvec_size %arg0 : (!cc.stdvec<complex<f32>>) -> i64
-///     %1 = math.cttz %0 : i64
-///     %2 = cc.stdvec_data %arg0 : (!cc.stdvec<complex<f32>>) ->
-///     !cc.ptr<complex<f32>> %3 = quake.alloca !quake.veq<?>[%1 : i64] %4 =
-///     quake.init_state %3, %2 : (!quake.veq<?>, !cc.ptr<complex<f32>>) ->
-///     !quake.veq<?> return
-///   }
+/// func.func
+/// @__nvqpp__mlirgen__function_test._Z4testSt6vectorISt7complexIfESaIS1_EE()
+/// attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+///   %0 = cc.address_of @__nvqpp_rodata_init_state.0 :
+///   !cc.ptr<!cc.array<complex<f32> x 4>> %1 = cc.cast %0 :
+///   (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>> %2 =
+///   quake.alloca !quake.veq<2> %3 = quake.init_state %2, %1 : (!quake.veq<2>,
+///   !cc.ptr<complex<f32>>) -> !quake.veq<2> return
+/// }
 ///
-/// On a call that passes std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0.,
-/// M_SQRT1_2} as arg0:
+/// is converted to:
 ///
 ///   func.func @foo(%arg0 : !cc.stdvec<complex<f32>>) {
 ///     %0 = quake.alloca !quake.veq<2>
@@ -61,127 +61,114 @@ using namespace mlir;
 ///     quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
 ///     return
 ///   }
-///
-/// Note: the following synthesis and const prop passes will replace
-/// the argument by a constant and propagate the values and vector size
-/// through other instructions.
 
 namespace {
 
-template <typename T>
-concept IntegralType =
-    std::is_same<T, bool>::value || std::is_same<T, std::int8_t>::value ||
-    std::is_same<T, std::int16_t>::value ||
-    std::is_same<T, std::int32_t>::value ||
-    std::is_same<T, std::int64_t>::value;
+std::vector<std::complex<double>>
+readConstantArray(mlir::OpBuilder &builder, cudaq::cc::GlobalOp &global) {
+  std::vector<std::complex<double>> result{};
 
-template <typename T>
-concept FloatingType = std::is_same<T, float>::value;
+  auto attr = global.getValue();
+  auto type = global.getType().getElementType();
 
-template <typename T>
-concept DoubleType = std::is_same<T, double>::value;
+  if (auto arrayTy = dyn_cast<cudaq::cc::ArrayType>(type)) {
+    auto eleTy = arrayTy.getElementType();
 
-template <typename T>
-concept ComplexDataType = FloatingType<T> || DoubleType<T> || IntegralType<T>;
-
-/// Input was complex<float> but we prefer
-/// complex<double>. Make a copy, extending the values.
-template <FloatingType From>
-std::vector<std::complex<double>> convertToComplex(std::complex<From> *data,
-                                                   std::uint64_t size) {
-  auto convertData = std::vector<std::complex<double>>(size);
-  for (std::size_t i = 0; i < size; ++i)
-    convertData[i] = std::complex<double>{static_cast<double>(data[i].real()),
-                                          static_cast<double>(data[i].imag())};
-  return convertData;
-}
-
-template <DoubleType From>
-std::vector<std::complex<double>> convertToComplex(std::complex<From> *data,
-                                                   std::uint64_t size) {
-  return std::vector<std::complex<From>>(data, data + size);
-}
-
-/// Input was float/double but we prefer complex<double>.
-/// Make a copy, extending or truncating the values.
-template <ComplexDataType From>
-std::vector<std::complex<double>> convertToComplex(From *data,
-                                                   std::uint64_t size) {
-  auto convertData = std::vector<std::complex<double>>(size);
-  for (std::size_t i = 0; i < size; ++i)
-    convertData[i] = std::complex<double>{static_cast<double>(data[i]),
-                                          static_cast<double>(0.0)};
-  return convertData;
-}
-
-LogicalResult
-prepareStateFromVectorArgument(OpBuilder &builder, ModuleOp module,
-                               unsigned &counter, BlockArgument argument,
-                               std::vector<std::complex<double>> &vec) {
-  auto *ctx = builder.getContext();
-  auto argLoc = argument.getLoc();
-
-  auto toErase = std::vector<mlir::Operation *>();
-
-  for (auto *argUser : argument.getUsers()) {
-    // Handle the `StdvecSize` and `quake.alloca` use case:
-    // - Replace a `vec.size()` with the vector length.
-    // - Replace the number of qubits calculation with the vector length
-    // logarithm.
-    // - Replace `quake.alloca` with a constant size qvector allocation.
-    if (auto stdvecSizeOp = dyn_cast<cudaq::cc::StdvecSizeOp>(argUser)) {
-      builder.setInsertionPointAfter(stdvecSizeOp);
-      Value length = builder.create<arith::ConstantIntOp>(
-          argLoc, vec.size(), stdvecSizeOp.getType());
-
-      Value numQubits = builder.create<arith::ConstantIntOp>(
-          argLoc, log2(vec.size()), stdvecSizeOp.getType());
-
-      for (auto *sizeUser : argUser->getUsers()) {
-        if (auto countZeroesOp =
-                dyn_cast<mlir::math::CountTrailingZerosOp>(sizeUser)) {
-          for (auto *numQubitsUser : sizeUser->getUsers()) {
-            if (auto quakeAllocaOp = dyn_cast<quake::AllocaOp>(numQubitsUser)) {
-              builder.setInsertionPointAfter(quakeAllocaOp);
-              auto veqTy = quake::VeqType::get(ctx, log2(vec.size()));
-              Value newAlloc = builder.create<quake::AllocaOp>(argLoc, veqTy);
-              quakeAllocaOp.replaceAllUsesWith(newAlloc);
-              toErase.push_back(quakeAllocaOp);
-            }
+    if (attr.has_value()) {
+      if (auto elementsAttr = dyn_cast<mlir::ElementsAttr>(attr.value())) {
+        auto eleTy = elementsAttr.getElementType();
+        if (isa<ComplexType>(eleTy)) {
+          auto values = elementsAttr.getValues<mlir::ArrayAttr>();
+          for (auto it = values.begin(); it != values.end(); ++it) {
+            auto valueAttr = *it;
+            auto real =
+                cast<FloatAttr>(valueAttr[0]).getValue().convertToDouble();
+            auto imag =
+                cast<FloatAttr>(valueAttr[1]).getValue().convertToDouble();
+            result.push_back({real, imag});
           }
-          countZeroesOp.replaceAllUsesWith(numQubits);
-          toErase.push_back(countZeroesOp);
+        } else {
+          auto values = elementsAttr.getValues<double>();
+          for (auto it = values.begin(); it != values.end(); ++it) {
+            result.push_back({*it, 0.0});
+          }
         }
-      }
+      } else if (auto values = dyn_cast<mlir::ArrayAttr>(attr.value())) {
+        for (auto it = values.begin(); it != values.end(); ++it) {
+          auto real = *it;
+          // for (std::size_t idx = 0; idx < numConstants; idx += isComplex ? 2
+          // : 1) {
+          auto v = [&]() -> std::complex<double> {
+            if (isa<FloatType>(eleTy))
+              return {cast<FloatAttr>(real).getValue().convertToDouble(),
+                      static_cast<double>(0.0)};
+            if (isa<IntegerType>(eleTy))
+              return {static_cast<double>(cast<IntegerAttr>(real).getInt()),
+                      static_cast<double>(0.0)};
+            assert(isa<ComplexType>(eleTy));
+            it++;
+            auto imag = *it;
+            return {cast<FloatAttr>(real).getValue().convertToDouble(),
+                    cast<FloatAttr>(imag).getValue().convertToDouble()};
+          }();
 
-      stdvecSizeOp.replaceAllUsesWith(length);
-      toErase.push_back(stdvecSizeOp);
-      continue;
-    }
-
-    // Handle the `StdvecDataOp` and `quake.init_state` use case:
-    // - Replace a `quake.init_state` with gates preparing the state.
-    if (auto stdvecDataOp = dyn_cast<cudaq::cc::StdvecDataOp>(argUser)) {
-      for (auto *dataUser : stdvecDataOp->getUsers()) {
-        if (auto initOp = dyn_cast<quake::InitializeStateOp>(dataUser)) {
-          builder.setInsertionPointAfter(initOp);
-          // Find the qvector alloc instruction
-          auto qubits = initOp.getOperand(0);
-
-          // Prepare state from vector data.
-          auto gateBuilder = StateGateBuilder(builder, argLoc, qubits);
-          auto decomposer = StateDecomposer(gateBuilder, vec);
-          decomposer.decompose();
-
-          initOp.replaceAllUsesWith(qubits);
-          toErase.push_back(initOp);
+          result.push_back(v);
         }
       }
     }
   }
 
+  return result;
+}
+
+LogicalResult transform(OpBuilder &builder, ModuleOp module) {
+  auto toErase = std::vector<mlir::Operation *>();
+  module->walk([&](Operation *op) {
+    if (auto initOp = dyn_cast<quake::InitializeStateOp>(op)) {
+      toErase.push_back(initOp);
+      auto loc = op->getLoc();
+      builder.setInsertionPointAfter(initOp);
+      // Find the qvector alloc.
+      auto qubits = initOp.getOperand(0);
+      if (auto alloc = dyn_cast<quake::AllocaOp>(qubits.getDefiningOp())) {
+
+        // Find vector data.
+        auto data = initOp.getOperand(1);
+        if (auto cast = dyn_cast<cudaq::cc::CastOp>(data.getDefiningOp())) {
+          data = cast.getOperand();
+          toErase.push_back(cast);
+        }
+        if (auto addr =
+                dyn_cast<cudaq::cc::AddressOfOp>(data.getDefiningOp())) {
+
+          auto globalName = addr.getGlobalName();
+          auto symbol = module.lookupSymbol(globalName);
+          if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
+            // Read state initialization data from the global array.
+            auto vec = readConstantArray(builder, global);
+
+            // Prepare state from vector data.
+            auto gateBuilder = StateGateBuilder(builder, loc, qubits);
+            auto decomposer = StateDecomposer(gateBuilder, vec);
+            decomposer.decompose();
+
+            initOp.replaceAllUsesWith(qubits);
+            toErase.push_back(addr);
+            toErase.push_back(global);
+          }
+        }
+      }
+    }
+  });
+
   for (auto &op : toErase) {
-    op->erase();
+    if (op->getUses().empty()) {
+      op->erase();
+    } else {
+      module.emitOpError("StatePreparation failed to remove quake.init_state "
+                         "or its dependencies.");
+      return failure();
+    }
   }
 
   return success();
@@ -192,52 +179,14 @@ protected:
   // The name of the kernel to be synthesized
   std::string kernelName;
 
-  // The raw pointer to the runtime arguments.
-  void *args;
-
 public:
   StatePreparation() = default;
-  StatePreparation(std::string_view kernel, void *a)
-      : kernelName(kernel), args(a) {}
+  StatePreparation(std::string_view kernel) : kernelName(kernel) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
-  std::pair<std::size_t, std::vector<std::size_t>>
-  getTargetLayout(FunctionType funcTy) {
-    auto bufferTy = cudaq::opt::factory::buildInvokeStructType(funcTy);
-    StringRef dataLayoutSpec = "";
-    if (auto attr =
-            getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
-      dataLayoutSpec = cast<StringAttr>(attr);
-    auto dataLayout = llvm::DataLayout(dataLayoutSpec);
-    // Convert bufferTy to llvm.
-    llvm::LLVMContext context;
-    LLVMTypeConverter converter(funcTy.getContext());
-    cudaq::opt::initializeTypeConversions(converter);
-    auto llvmDialectTy = converter.convertType(bufferTy);
-    LLVM::TypeToLLVMIRTranslator translator(context);
-    auto *llvmStructTy =
-        cast<llvm::StructType>(translator.translateType(llvmDialectTy));
-    auto *layout = dataLayout.getStructLayout(llvmStructTy);
-    auto strSize = layout->getSizeInBytes();
-    std::vector<std::size_t> fieldOffsets;
-    for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
-      fieldOffsets.emplace_back(layout->getElementOffset(i));
-    return {strSize, fieldOffsets};
-  }
-
   void runOnOperation() override final {
     auto module = getModule();
-    unsigned counter = 0;
-
-    if (args == nullptr || kernelName.empty()) {
-      module.emitOpError(
-          "State preparation requires a kernel and the values of the "
-          "arguments passed when it is called.");
-      signalPassFailure();
-      return;
-    }
-
     auto kernelNameInQuake = cudaq::runtime::cudaqGenPrefixName + kernelName;
     // Get the function we care about (the one with kernelName)
     auto funcOp = module.lookupSymbol<func::FuncOp>(kernelNameInQuake);
@@ -248,112 +197,12 @@ public:
       return;
     }
 
-    // Create the builder.
     auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
-    auto arguments = funcOp.getArguments();
-    auto structLayout = getTargetLayout(funcOp.getFunctionType());
-    // Keep track of the stdVec sizes.
-    std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
-
-    for (auto iter : llvm::enumerate(arguments)) {
-      auto argNum = iter.index();
-      auto argument = iter.value();
-      std::size_t offset = structLayout.second[argNum];
-
-      // Get the argument type
-      auto type = argument.getType();
-
-      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
-        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
-          funcOp.emitOpError(
-              "State preparation from cudaq::state is not supported.");
-          return;
-        }
-      }
-
-      // If std::vector<arithmetic> type, add it to the list of vector info.
-      // These will be processed when we reach the buffer's appendix.
-      if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
-        auto eleTy = vecTy.getElementType();
-        if (!isa<IntegerType, FloatType, ComplexType>(eleTy)) {
-          continue;
-        }
-        char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
-        auto sizeFromBuffer =
-            *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        unsigned bytesInType = [&eleTy]() {
-          if (auto complexTy = dyn_cast<ComplexType>(eleTy))
-            return 2 * cudaq::opt::convertBitsToBytes(
-                           complexTy.getElementType().getIntOrFloatBitWidth());
-          return cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
-        }();
-        assert(bytesInType > 0 && "element must have a size");
-        auto vectorSize = sizeFromBuffer / bytesInType;
-        stdVecInfo.emplace_back(argNum, eleTy, vectorSize);
-        continue;
-      }
-    }
-
-    // For any `std::vector` arguments, we now know the sizes so let's replace
-    // the block arg with the actual vector element data. First get the pointer
-    // to the start of the buffer's appendix.
-    auto structSize = structLayout.first;
-    char *bufferAppendix = static_cast<char *>(args) + structSize;
-    for (auto [idx, eleTy, vecLength] : stdVecInfo) {
-      if (!eleTy) {
-        bufferAppendix += vecLength;
-        continue;
-      }
-      auto doVector = [&]<typename T>(T) {
-        auto *ptr = reinterpret_cast<T *>(bufferAppendix);
-        auto v = convertToComplex(ptr, vecLength);
-        if (failed(prepareStateFromVectorArgument(builder, module, counter,
-                                                  arguments[idx], v)))
-          funcOp.emitOpError("state preparation failed for vector<T>");
-        bufferAppendix += vecLength * sizeof(T);
-      };
-      if (auto ty = dyn_cast<IntegerType>(eleTy)) {
-        switch (ty.getIntOrFloatBitWidth()) {
-        case 1:
-          doVector(false);
-          break;
-        case 8:
-          doVector(std::int8_t{});
-          break;
-        case 16:
-          doVector(std::int16_t{});
-          break;
-        case 32:
-          doVector(std::int32_t{});
-          break;
-        case 64:
-          doVector(std::int64_t{});
-          break;
-        default:
-          bufferAppendix += vecLength * cudaq::opt::convertBitsToBytes(
-                                            ty.getIntOrFloatBitWidth());
-          funcOp.emitOpError(
-              "state preparation failed for vector<integral-type>.");
-          break;
-        }
-        continue;
-      }
-      if (eleTy == builder.getF32Type()) {
-        doVector(float{});
-        continue;
-      }
-      if (eleTy == builder.getF64Type()) {
-        doVector(double{});
-        continue;
-      }
-      if (eleTy == ComplexType::get(builder.getF32Type())) {
-        doVector(std::complex<float>{});
-        continue;
-      }
-      if (eleTy == ComplexType::get(builder.getF64Type())) {
-        doVector(std::complex<double>{});
-        continue;
-      }
+    auto result = transform(builder, module);
+    if (result.failed()) {
+      module.emitOpError("Failed to prepare state for '" + kernelName);
+      signalPassFailure();
+      return;
     }
   }
 };
@@ -365,6 +214,6 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createStatePreparation() {
 }
 
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createStatePreparation(std::string_view kernelName, void *a) {
-  return std::make_unique<StatePreparation>(kernelName, a);
+cudaq::opt::createStatePreparation(std::string_view kernelName) {
+  return std::make_unique<StatePreparation>(kernelName);
 }

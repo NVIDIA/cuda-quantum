@@ -66,10 +66,9 @@ def test_kernel_float_params():
     assert '00' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
-def test_kernel_float_capture_f64():
+@skipIfPythonLessThan39
+def test_kernel_float_capture():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
 
     f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
@@ -83,27 +82,9 @@ def test_kernel_float_capture_f64():
     assert '00' in counts
 
 
-@skipIfNvidiaNotInstalled
-def test_kernel_float_capture_f32():
+@skipIfPythonLessThan39
+def test_kernel_float_np_array_from_capture():
     cudaq.reset_target()
-    cudaq.set_target('nvidia')
-
-    f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(f)
-
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-
-@skipIfNvidiaFP64NotInstalled
-def test_kernel_float_np_array_from_capture_f64():
-    cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
 
     f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
@@ -117,42 +98,9 @@ def test_kernel_float_np_array_from_capture_f64():
     assert '00' in counts
 
 
-@skipIfNvidiaNotInstalled
-def test_kernel_float_np_array_from_capture_f32():
+@skipIfPythonLessThan39
+def test_kernel_float_definition():
     cudaq.reset_target()
-    cudaq.set_target('nvidia')
-
-    f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(np.array(f))
-
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-
-@skipIfNvidiaFP64NotInstalled
-def test_kernel_float_definition_f64():
-    cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
-
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-
-@skipIfNvidiaNotInstalled
-def test_kernel_float_definition_f32():
-    cudaq.reset_target()
-    cudaq.set_target('nvidia')
 
     @cudaq.kernel
     def kernel():
@@ -205,10 +153,9 @@ def test_kernel_complex_params():
     assert '00' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
-def test_kernel_complex_capture_f64():
+@skipIfPythonLessThan39
+def test_kernel_complex_capture():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
@@ -222,27 +169,10 @@ def test_kernel_complex_capture_f64():
     assert '00' in counts
 
 
-@skipIfNvidiaNotInstalled
-def test_kernel_complex_capture_f32():
+
+@skipIfPythonLessThan39
+def test_kernel_complex_np_array_from_capture():
     cudaq.reset_target()
-    cudaq.set_target('nvidia')
-
-    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(c)
-
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-
-@skipIfNvidiaFP64NotInstalled
-def test_kernel_complex_np_array_from_capture_f64():
-    cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
@@ -256,42 +186,10 @@ def test_kernel_complex_np_array_from_capture_f64():
     assert '00' in counts
 
 
-@skipIfNvidiaNotInstalled
-def test_kernel_complex_np_array_from_capture_f32():
+
+@skipIfPythonLessThan39
+def test_kernel_complex_definition():
     cudaq.reset_target()
-    cudaq.set_target('nvidia')
-
-    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(np.array(c))
-
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-
-@skipIfNvidiaFP64NotInstalled
-def test_kernel_complex_definition_f64():
-    cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)])
-
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-
-@skipIfNvidiaNotInstalled
-def test_kernel_complex_definition_f32():
-    cudaq.reset_target()
-    cudaq.set_target('nvidia')
 
     @cudaq.kernel
     def kernel():
@@ -362,7 +260,7 @@ def test_kernel_dtype_complex64_params_f32():
 def test_kernel_simulation_dtype_complex_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
-
+    
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
@@ -428,7 +326,7 @@ def test_kernel_amplitudes_complex_from_capture():
 def test_kernel_simulation_dtype_np_array_from_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
-
+    
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
@@ -458,29 +356,9 @@ def test_kernel_simulation_dtype_np_array_from_capture_f32():
     assert '00' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfPythonLessThan39
 def test_kernel_simulation_dtype_np_array_capture_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
-
-    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
-
-    state = np.array(c, dtype=cudaq.complex())
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(state)
-
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-
-@skipIfNvidiaNotInstalled
-def test_kernel_simulation_dtype_np_array_capture_f32():
-    cudaq.reset_target()
-    cudaq.set_target('nvidia')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 

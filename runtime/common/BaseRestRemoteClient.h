@@ -153,11 +153,22 @@ public:
       if (args) {
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
-        pm.addPass(cudaq::opt::createStatePreparation(name, args));
         pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
         pm.addPass(mlir::createCanonicalizerPass());
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
+      }
+
+      {
+        cudaq::info("Run State Prep.\n");
+        mlir::PassManager pm(&mlirContext);
+        pm.addPass(mlir::createCanonicalizerPass());
+        pm.addPass(mlir::createCSEPass());
+        pm.addPass(cudaq::opt::createLiftArrayAllocPass());
+        pm.addPass(cudaq::opt::createStatePreparation(name));
+        pm.addPass(mlir::createCanonicalizerPass());
+        if (failed(pm.run(moduleOp)))
+          throw std::runtime_error("Could not successfully apply state-prep.");
       }
 
       // Run client-side passes. `clientPasses` is empty right now, but the code

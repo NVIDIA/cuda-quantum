@@ -1243,6 +1243,7 @@ public:
         }
         continue;
       }
+
       stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
                                                        stVal, arg, idx);
     }

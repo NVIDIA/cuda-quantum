@@ -539,18 +539,18 @@ class PyASTBridge(ast.NodeVisitor):
         if (sourceEleType == targetEleType):
             return sourcePtr
 
-        sourceArrEleTy = cc.ArrayType.get(self.ctx, sourceEleType)
+        sourceArrTy = cc.ArrayType.get(self.ctx, sourceEleType)
         sourceElePtrTy = cc.PointerType.get(self.ctx, sourceEleType)
-        sourceArrElePtrTy = cc.PointerType.get(self.ctx, sourceArrType)
+        sourceArrPtrTy = cc.PointerType.get(self.ctx, sourceArrTy)
         sourceValue = self.ifPointerThenLoad(sourcePtr)
-        sourceDataPtr = cc.StdvecDataOp(sourceArrElePtrTy, sourceValue).result
+        sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, sourceValue).result
         sourceSize = cc.StdvecSizeOp(self.getIntegerType(), sourceValue).result
 
         targetElePtrType = cc.PointerType.get(self.ctx, targetEleType)
         targetTy = cc.ArrayType.get(self.ctx, targetEleType)
-        targetArrElePtrTy = cc.PointerType.get(self.ctx, targetTy)
+        targetArrPtrTy = cc.PointerType.get(self.ctx, targetTy)
         targetVecTy = cc.StdvecType.get(self.ctx, targetEleType)
-        targetPtr = cc.AllocaOp(targetArrElePtr,
+        targetPtr = cc.AllocaOp(targetArrPtrTy,
                                 TypeAttr.get(targetEleType),
                                 seqSize=sourceSize).result
 

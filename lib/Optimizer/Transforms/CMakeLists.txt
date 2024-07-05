@@ -45,7 +45,6 @@ add_cudaq_library(OptTransforms
   RegToMem.cpp
   StateDecomposer.cpp
   StatePreparation.cpp
-  StatePreparation2.cpp
   PySynthCallableBlockArgs.cpp
 
   DEPENDS

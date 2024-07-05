@@ -142,7 +142,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       // Stick global at end of Module.
       builder.setInsertionPointToEnd(module.getBody());
       std::string symbol =
-          "__nvqpp_rodata_init_state_qs." + std::to_string(counter++);
+          "__nvqpp_rodata_init_state." + std::to_string(counter++);
       builder.create<cudaq::cc::GlobalOp>(argLoc, arrTy, symbol, arrayAttr,
                                           /*isConstant=*/true,
                                           /*isExternal=*/false);
