@@ -632,6 +632,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 		fi
 	fi
 	TARGET_CONFIG_YML_FILE="${install_dir}/targets/${TARGET_CONFIG}.yml"
+	GEN_TARGET_BACKEND=false
 	if [ -f "${TARGET_CONFIG_YML_FILE}" ]; then
 		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
 		run ${TOOLBIN}cudaq-target-conf --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} ${TARGET_CONFIG_YML_FILE}
