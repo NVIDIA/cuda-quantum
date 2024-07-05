@@ -19,6 +19,7 @@ func.func @test1(%arg1: i32) {
   quake.dealloc %5 : !quake.veq<?>
   return
 }
+
 // CHECK-LABEL:   func.func @test1(
 // CHECK-SAME:        %[[VAL_0:.*]]: i32) {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant false
@@ -32,11 +33,10 @@ func.func @test1(%arg1: i32) {
 // CHECK:           %[[VAL_8:.*]] = cc.alloca i64{{\[}}%[[VAL_6]] : i64]
 // CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_7]], %[[VAL_8]], %[[VAL_6]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
 // CHECK:           call @__nvqpp__cudaq_em_allocate_veq(%[[VAL_7]], %[[VAL_6]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, i64) -> ()
-// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_7]][0, 0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
-// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]][0] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.array<i64 x ?>>
 // CHECK:           %[[VAL_12:.*]] = cc.alloca !cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>
-// CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_12]], %[[VAL_11]], %[[VAL_2]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
+// CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_12]], %[[VAL_10]], %[[VAL_2]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
 // CHECK:           %[[VAL_13:.*]] = cc.address_of @cstr.7800 : !cc.ptr<!llvm.array<2 x i8>>
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!llvm.array<2 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!cc.array<f64 x ?>>
