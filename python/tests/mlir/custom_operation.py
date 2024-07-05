@@ -15,9 +15,9 @@ import cudaq
 
 def test_bell_pair():
 
-    cudaq.register_operation("custom_h", 1, 0,
+    cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
-    cudaq.register_operation("custom_x", 1, 0, np.array([0, 1, 1, 0]))
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     @cudaq.kernel
     def bell():
@@ -42,9 +42,9 @@ def test_bell_pair():
 
 def test_custom_adjoint():
 
-    cudaq.register_operation("custom_s", 1, 0, np.array([1, 0, 0, 1j]))
+    cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
 
-    cudaq.register_operation("custom_s_adj", 1, 0, np.array([1, 0, 0, -1j]))
+    cudaq.register_operation("custom_s_adj", np.array([1, 0, 0, -1j]))
 
     @cudaq.kernel
     def kernel():

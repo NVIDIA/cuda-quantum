@@ -402,9 +402,9 @@ def test_math_exp():
 
 
 def test_arbitrary_unitary_synthesis():
-    cudaq.register_operation("custom_h", 1, 0,
+    cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
-    cudaq.register_operation("custom_x", 1, 0, np.array([0, 1, 1, 0]))
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     @cudaq.kernel
     def bell():

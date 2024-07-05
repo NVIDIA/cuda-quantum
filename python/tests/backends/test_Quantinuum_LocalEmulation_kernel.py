@@ -140,7 +140,7 @@ def test_u3_ctrl_emulation():
 
 def test_arbitrary_unitary_synthesis():
     import numpy as np
-    cudaq.register_operation("custom_h", 1, 0,
+    cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
 
     @cudaq.kernel

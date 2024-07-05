@@ -210,19 +210,13 @@ def __generalCustomOperation(self, opName, *args):
         currentST = SymbolTable(self.module.operation)
         if not globalName in currentST:
             with InsertionPoint(self.module.body):
-                arrayAttrList = []
-                for el in unitary:
-                    arrayAttrList.append(
-                        DenseF64ArrayAttr.get([np.real(el),
-                                               np.imag(el)]))
 
                 complexType = ComplexType.get(self.getFloatType())
-                globalTy = cc.ArrayType.get(self.ctx, complexType,
-                                            len(arrayAttrList))
+                globalTy = cc.ArrayType.get(self.ctx, complexType, len(unitary))
 
                 cc.GlobalOp(TypeAttr.get(globalTy),
                             globalName,
-                            value=ArrayAttr.get(arrayAttrList),
+                            value=DenseElementsAttr.get(unitary),
                             constant=True,
                             external=False)
 

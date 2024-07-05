@@ -359,18 +359,12 @@ public:
   // Replace the cc.global with an llvm.global, updating the types, etc.
   LogicalResult
   matchAndRewrite(cudaq::cc::GlobalOp global, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto name = global.getSymName();
-    // FIXME Keeping the cc.global constant array from custom operation results
-    // in 'error: unsupported constant value'.
-    if (name.ends_with(".generator")) {
-      rewriter.eraseOp(global);
-      return success();
-    }
+                  ConversionPatternRewriter &rewriter) const override {    
     auto loc = global.getLoc();
     auto ptrTy = cast<cudaq::cc::PointerType>(global.getType());
     auto eleTy = ptrTy.getElementType();
     Type type = getTypeConverter()->convertType(eleTy);
+    auto name = global.getSymName();
     bool isReadOnly = global.getConstant();
     Attribute initializer = global.getValue().value_or(Attribute{});
     rewriter.create<mlir::LLVM::GlobalOp>(loc, type, isReadOnly,

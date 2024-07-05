@@ -14,15 +14,13 @@ from .utils import globalRegisteredOperations
 from .kernel_builder import PyKernel, __generalCustomOperation
 
 
-def register_operation(operation_name: str, num_targets: int, num_params: int,
-                       unitary):
+def register_operation(operation_name: str, unitary):
     global globalRegisteredOperations
     """
-    Register a new quantum operation at runtime. Users must 
-    provide the unitary matrix as a 2D NumPy array. The operation 
-    name is inferred from the name of the assigned variable. 
+    Register a new quantum operation at runtime. Users must provide the unitary
+    matrix as a 1D NumPy array in row-major format with MSB qubit ordering. 
     ```python
-        cudaq.register_operation(myOp, 1, 0, unitary)
+        cudaq.register_operation("myOp", unitary)
         @cudaq.kernel
         def kernel():
             ...
@@ -32,15 +30,6 @@ def register_operation(operation_name: str, num_targets: int, num_params: int,
     """
     if operation_name == None:
         raise RuntimeError("custom operation name not provided.")
-
-    if num_targets < 1:
-        raise RuntimeError("at least one target required.")
-
-    if num_targets > 8:
-        raise RuntimeError("custom operations on upto 8 qubits supported.")
-
-    if num_params > 0:
-        raise RuntimeError("parameterized custom operations not yet supported.")
 
     if isinstance(unitary, Callable):
         raise RuntimeError("parameterized custom operations not yet supported.")
@@ -58,9 +47,6 @@ def register_operation(operation_name: str, num_targets: int, num_params: int,
 
     # TODO: Flatten the matrix if not flattened
     assert (matrix.ndim == len(matrix.shape))
-
-    # Check size of matrix
-    assert (num_targets == np.log2(np.sqrt(matrix.size)))
 
     # Register the operation name so JIT AST can get it.
     globalRegisteredOperations[operation_name] = matrix

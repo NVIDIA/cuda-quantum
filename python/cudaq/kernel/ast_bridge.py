@@ -1656,23 +1656,18 @@ class PyASTBridge(ast.NodeVisitor):
                 targets.reverse()
                 self.checkControlAndTargetTypes([], targets)
 
-                globalName = f'{node.func.id}.generator'
+                globalName = f'{nvqppPrefix}{node.func.id}.generator'
                 currentST = SymbolTable(self.module.operation)
                 if not globalName in currentST:
                     with InsertionPoint(self.module.body):
-                        arrayAttrList = []
-                        for el in unitary:
-                            arrayAttrList.append(
-                                DenseF64ArrayAttr.get(
-                                    [np.real(el), np.imag(el)]))
 
                         complexType = ComplexType.get(self.getFloatType())
                         globalTy = cc.ArrayType.get(self.ctx, complexType,
-                                                    len(arrayAttrList))
+                                                    len(unitary))
 
                         cc.GlobalOp(TypeAttr.get(globalTy),
                                     globalName,
-                                    value=ArrayAttr.get(arrayAttrList),
+                                    value=DenseElementsAttr.get(unitary),
                                     constant=True,
                                     external=False)
 
@@ -2380,28 +2375,23 @@ class PyASTBridge(ast.NodeVisitor):
                 targets = [self.popValue() for _ in range(numTargets)]
                 targets.reverse()
 
-                globalName = f'{node.func.value.id}.generator'
+                globalName = f'{nvqppPrefix}{node.func.value.id}.generator'
                 # NOTE: An adjoint on constant unitary matrix will take the
                 # complex conjugate of the matrix and drop the 'is_adj' argument
                 if node.func.attr == 'adj':
-                    globalName = f'{node.func.value.id}.adj.generator'
+                    globalName = f'{nvqppPrefix}{node.func.value.id}.adj.generator'
                     unitary = np.conjugate(unitary).T
                 currentST = SymbolTable(self.module.operation)
                 if not globalName in currentST:
                     with InsertionPoint(self.module.body):
-                        arrayAttrList = []
-                        for el in unitary:
-                            arrayAttrList.append(
-                                DenseF64ArrayAttr.get(
-                                    [np.real(el), np.imag(el)]))
 
                         complexType = ComplexType.get(self.getFloatType())
                         globalTy = cc.ArrayType.get(self.ctx, complexType,
-                                                    len(arrayAttrList))
+                                                    len(unitary))
 
                         cc.GlobalOp(TypeAttr.get(globalTy),
                                     globalName,
-                                    value=ArrayAttr.get(arrayAttrList),
+                                    value=DenseElementsAttr.get(unitary),
                                     constant=True,
                                     external=False)
 
