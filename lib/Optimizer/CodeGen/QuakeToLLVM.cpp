@@ -1220,62 +1220,11 @@ class CustomUnitaryOpRewrite
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
-  Value mapConstMatrixToLLVMPointer(Location &loc,
-                                    ConversionPatternRewriter &rewriter,
-                                    ModuleOp parentModule,
-                                    std::int64_t numUnitaryElements,
-                                    StringRef matrixIdentifier,
-                                    ArrayRef<double> data) const {
-    auto f64Ty = rewriter.getF64Type();
-    SmallVector<std::int64_t> shape{numUnitaryElements};
-    auto vectorTy = VectorType::get(shape, f64Ty);
-    auto insertPoint = rewriter.saveInsertionPoint();
-    rewriter.setInsertionPointToStart(parentModule.getBody());
-
-    LLVM::GlobalOp llvmGlobalOp;
-    if (auto existingArr =
-            parentModule.lookupSymbol<LLVM::GlobalOp>(matrixIdentifier))
-      llvmGlobalOp = existingArr;
-    else
-      llvmGlobalOp = rewriter.create<LLVM::GlobalOp>(
-          loc, vectorTy, /*isConstant=*/true, LLVM::Linkage::Internal,
-          matrixIdentifier, DenseFPElementsAttr::get(vectorTy, data),
-          /*alignment=*/0);
-
-    rewriter.restoreInsertionPoint(insertPoint);
-
-    Value addrOp = rewriter.create<LLVM::AddressOfOp>(
-        loc, cudaq::opt::factory::getPointerType(llvmGlobalOp.getType()),
-        llvmGlobalOp.getSymName());
-    Value zero =
-        rewriter.create<LLVM::ConstantOp>(loc, rewriter.getIntegerType(64), 0);
-    return rewriter.create<LLVM::GEPOp>(loc, LLVM::LLVMPointerType::get(f64Ty),
-                                        addrOp, ValueRange{zero, zero});
-  }
-
-  LogicalResult
-  matchAndRewrite(quake::CustomUnitarySymbolOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto loc = op.getLoc();
-    auto parentModule = op->getParentOfType<ModuleOp>();
-    auto context = op->getContext();
-    auto typeConverter = this->getTypeConverter();
-
-    auto numParameters = op.getParameters().size();
-    auto numTargets = op.getTargets().size();
-    auto powTwo = (1UL << numTargets);
-    auto matrixSize = powTwo * powTwo;
-
-    auto targets = op.getTargets();
-    Value concatTargets = rewriter.create<quake::ConcatOp>(
-        loc, quake::VeqType::getUnsized(context), targets);
-
-    auto arrType = cudaq::opt::getArrayType(context);
-    StringRef qirArrayConcatName = cudaq::opt::QIRArrayConcatArray;
-    FlatSymbolRefAttr concatFunc =
-        cudaq::opt::factory::createLLVMFunctionSymbol(
-            qirArrayConcatName, arrType, {arrType, arrType}, parentModule);
-
+  /// Function to convert a QIR Qubit value to an Array value.
+  /// TODO: Refactor to reuse code from 'ConcatOpRewrite' (line#247)
+  Value wrapQubitInArray(Location &loc, ConversionPatternRewriter &rewriter,
+                         ModuleOp parentModule, Value v) const {
+    auto context = rewriter.getContext();
     auto qirArrayTy = cudaq::opt::getArrayType(context);
     auto i8PtrTy = cudaq::opt::factory::getPointerType(context);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -1289,79 +1238,86 @@ public:
     Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
     Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
-    // Function to convert a QIR Qubit value to an Array value.
-    auto wrapQubitInArray = [&](Value v) -> Value {
-      if (v.getType() != cudaq::opt::getQubitType(context))
-        return v;
-      auto createCall = rewriter.create<LLVM::CallOp>(
-          loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
-      auto result = createCall.getResult();
-      auto call = rewriter.create<LLVM::CallOp>(loc, i8PtrTy, getSymbolRef,
-                                                ArrayRef<Value>{result, zero});
-      Value pointer = rewriter.create<LLVM::BitcastOp>(
-          loc, cudaq::opt::factory::getPointerType(i8PtrTy), call.getResult());
-      auto cast = rewriter.create<LLVM::BitcastOp>(loc, i8PtrTy, v);
-      rewriter.create<LLVM::StoreOp>(loc, cast, pointer);
-      return result;
-    };
-    // Loop over all the arguments to the concat operator and glue them
-    // together, converting Qubit values to Array values as needed.
-    auto frontArr = wrapQubitInArray(adaptor.getTargets().front());
-    for (auto oper : adaptor.getTargets().drop_front(1)) {
-      auto backArr = wrapQubitInArray(oper);
-      auto glue = rewriter.create<LLVM::CallOp>(
-          loc, qirArrayTy, concatFunc, ArrayRef<Value>{frontArr, backArr});
-      frontArr = glue.getResult();
+    if (v.getType() != cudaq::opt::getQubitType(context))
+      return v;
+    auto createCall = rewriter.create<LLVM::CallOp>(
+        loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
+    auto result = createCall.getResult();
+    auto call = rewriter.create<LLVM::CallOp>(loc, i8PtrTy, getSymbolRef,
+                                              ArrayRef<Value>{result, zero});
+    Value pointer = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(i8PtrTy), call.getResult());
+    auto cast = rewriter.create<LLVM::BitcastOp>(loc, i8PtrTy, v);
+    rewriter.create<LLVM::StoreOp>(loc, cast, pointer);
+    return result;
+  }
+
+  LogicalResult
+  matchAndRewrite(quake::CustomUnitarySymbolOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto parentModule = op->getParentOfType<ModuleOp>();
+    auto context = op->getContext();
+    auto typeConverter = this->getTypeConverter();
+
+    auto numParameters = op.getParameters().size();
+    if (numParameters != 0) {
+      op.emitOpError("Parameterized custom operations not yet supported.");
     }
 
-    // concatenate controls
+    auto arrType = cudaq::opt::getArrayType(context);
+    auto qirArrayTy = cudaq::opt::getArrayType(context);
+    FlatSymbolRefAttr concatFunc =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            cudaq::opt::QIRArrayConcatArray, arrType, {arrType, arrType},
+            parentModule);
+
+    // targets
+    auto targetArr = wrapQubitInArray(loc, rewriter, parentModule,
+                                      adaptor.getTargets().front());
+    for (auto oper : adaptor.getTargets().drop_front(1)) {
+      auto backArr = wrapQubitInArray(loc, rewriter, parentModule, oper);
+      auto glue = rewriter.create<LLVM::CallOp>(
+          loc, qirArrayTy, concatFunc, ArrayRef<Value>{targetArr, backArr});
+      targetArr = glue.getResult();
+    }
+
+    // controls
     auto controls = op.getControls();
-    Value concatControls;
+    Value controlArr;
     if (controls.empty()) {
       // make an empty array
       Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
       Value zero32 = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
-
       FlatSymbolRefAttr symbolRef =
           cudaq::opt::factory::createLLVMFunctionSymbol(
               cudaq::opt::QIRArrayCreateArray,
               cudaq::opt::getArrayType(context),
               {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
-      concatControls =
-          rewriter
-              .create<LLVM::CallOp>(
-                  loc, TypeRange{cudaq::opt::getArrayType(context)}, symbolRef,
-                  ValueRange{zero32, zero})
-              .getResult();
-    } else
-      concatControls = rewriter.create<quake::ConcatOp>(
-          loc, quake::VeqType::getUnsized(context), controls);
-
-    Value numParametersVal =
-        rewriter.create<arith::ConstantIntOp>(loc, numParameters, 64);
-    auto paramsPtr = rewriter.create<LLVM::AllocaOp>(
-        loc, LLVM::LLVMPointerType::get(rewriter.getF64Type()),
-        numParametersVal);
-    auto f64PtrTy = LLVM::LLVMPointerType::get(rewriter.getF64Type());
-    for (std::size_t i = 0; i < numParameters; i++) {
-      auto ptr = rewriter.create<LLVM::GEPOp>(
-          loc, f64PtrTy, paramsPtr,
-          SmallVector<LLVM::GEPArg>{static_cast<int32_t>(i)});
-      rewriter.create<LLVM::StoreOp>(loc, op->getOperand(i), ptr);
+      controlArr = rewriter
+                       .create<LLVM::CallOp>(
+                           loc, TypeRange{cudaq::opt::getArrayType(context)},
+                           symbolRef, ValueRange{zero32, zero})
+                       .getResult();
+    } else {
+      controlArr = wrapQubitInArray(loc, rewriter, parentModule,
+                                    adaptor.getControls().front());
+      for (auto oper : adaptor.getControls().drop_front(1)) {
+        auto backArr = wrapQubitInArray(loc, rewriter, parentModule, oper);
+        auto glue = rewriter.create<LLVM::CallOp>(
+            loc, qirArrayTy, concatFunc, ArrayRef<Value>{controlArr, backArr});
+        controlArr = glue.getResult();
+      }
     }
-    auto complex64Ty =
-        typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
-    auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
-
-    // Fetch the unitary matrix for this custom operation
-    auto sref = op->getAttrOfType<SymbolRefAttr>("generator");
+    // Fetch the unitary matrix generator for this custom operation
+    auto sref = op.getGenerator();
     StringRef generatorName = sref.getRootReference();
-
     auto globalOp =
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
-
-    if ((numParameters == 0) && (globalOp)) {
-
+    if (globalOp) {
+      auto complex64Ty =
+          typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
+      auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
       Type type = getTypeConverter()->convertType(globalOp.getType());
       auto addrOp =
           rewriter.create<LLVM::AddressOfOp>(loc, type, generatorName);
@@ -1378,97 +1334,11 @@ public:
 
       rewriter.replaceOpWithNewOp<LLVM::CallOp>(
           op, TypeRange{}, customSymbolRef,
-          ValueRange{unitaryData, concatControls, frontArr});
+          ValueRange{unitaryData, controlArr, targetArr});
 
-      // SmallVector<double> realPart(matrixSize), imagPart(matrixSize);
-      // for (std::size_t i = 0; auto &element : unitary) {
-      //   auto values = dyn_cast<DenseF64ArrayAttr>(element).asArrayRef();
-      //   realPart[i] = values[0];
-      //   imagPart[i] = values[1];
-      //   i++;
-      // }
-
-      // std::string matrixReal = generatorName.str() + "_real";
-      // std::string matrixImag = generatorName.str() + "_imag";
-
-      // Value realPartVal = mapConstMatrixToLLVMPointer(
-      //     loc, rewriter, parentModule, matrixSize, matrixReal, realPart);
-      // if (!realPartVal)
-      //   return op->emitOpError("could not translate unitary data to llvm.");
-
-      // Value imaginaryPartVal = mapConstMatrixToLLVMPointer(
-      //     loc, rewriter, parentModule, matrixSize, matrixImag, imagPart);
-      // if (!imaginaryPartVal)
-      //   return op->emitOpError("could not translate unitary data to llvm.");
-
-      // if (!parentModule.lookupSymbol("__quantum__qis__constant_unitary")) {
-      //   auto ip = rewriter.saveInsertionPoint();
-      //   rewriter.setInsertionPointToStart(parentModule.getBody());
-      //   auto ftype = FunctionType::get(context,
-      //                                  {realPartVal.getType(),
-      //                                   imaginaryPartVal.getType(),
-      //                                   cudaq::opt::getArrayType(context),
-      //                                   cudaq::opt::getArrayType(context)},
-      //                                  {});
-      //   auto func = rewriter.create<func::FuncOp>(
-      //       loc, "__quantum__qis__constant_unitary", ftype);
-      //   rewriter.restoreInsertionPoint(ip);
-
-      //   rewriter.replaceOpWithNewOp<func::CallOp>(
-      //       op, func,
-      //       ValueRange{realPartVal, imaginaryPartVal, concatControls,
-      //                  concatTargets});
-      // } else {
-      //   rewriter.replaceOpWithNewOp<func::CallOp>(
-      //       op, "__quantum__qis__constant_unitary", TypeRange{},
-      //       ValueRange{realPartVal, imaginaryPartVal, concatControls,
-      //                  concatTargets});
-      // }
-      // // FIXME need to release the arrays
       return success();
     }
-
-    // Create output pointer
-
-    Value numElementsVal =
-        rewriter.create<arith::ConstantIntOp>(loc, matrixSize, 64);
-    auto unitaryData =
-        rewriter.create<LLVM::AllocaOp>(loc, complex64PtrTy, numElementsVal);
-    if (!parentModule.lookupSymbol(generatorName)) {
-      auto ip = rewriter.saveInsertionPoint();
-      rewriter.setInsertionPointToStart(parentModule.getBody());
-      auto ftype = FunctionType::get(
-          context, {f64PtrTy, rewriter.getI64Type(), complex64PtrTy}, {});
-      auto func = rewriter.create<func::FuncOp>(loc, generatorName, ftype);
-      rewriter.restoreInsertionPoint(ip);
-      rewriter.create<func::CallOp>(
-          loc, func, ValueRange{paramsPtr, numParametersVal, unitaryData});
-    } else {
-      rewriter.create<func::CallOp>(
-          loc, generatorName, TypeRange{},
-          ValueRange{paramsPtr, numParametersVal, unitaryData});
-    }
-
-    if (!parentModule.lookupSymbol("__quantum__qis__custom_unitary")) {
-      auto ip = rewriter.saveInsertionPoint();
-      rewriter.setInsertionPointToStart(parentModule.getBody());
-      auto ftype =
-          FunctionType::get(context,
-                            {complex64PtrTy, cudaq::opt::getArrayType(context),
-                             cudaq::opt::getArrayType(context)},
-                            {});
-      auto func = rewriter.create<func::FuncOp>(
-          loc, "__quantum__qis__custom_unitary", ftype);
-      rewriter.restoreInsertionPoint(ip);
-
-      rewriter.replaceOpWithNewOp<func::CallOp>(
-          op, func, ValueRange{unitaryData, concatControls, concatTargets});
-    } else {
-      rewriter.replaceOpWithNewOp<func::CallOp>(
-          op, "__quantum__qis__custom_unitary", TypeRange{},
-          ValueRange{unitaryData, concatControls, concatTargets});
-    }
-    return success();
+    return failure();
   }
 };
 } // namespace

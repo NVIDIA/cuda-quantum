@@ -1207,13 +1207,8 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
                                                 std::forward<Args>(args)...);  \
   }                                                                            \
   }                                                                            \
-  __qop__ std::vector<std::complex<double>> CONCAT(                            \
-      NAME, CONCAT(_generator_, NUMT))() {                                     \
+  __qop__ std::vector<std::complex<double>> CONCAT(NAME,                       \
+                                                   CONCAT(_generator_, NUMT))( \
+      const std::vector<double> &parameters = std::vector<double>()) {         \
     return __VA_ARGS__;                                                        \
   }
-  // __qop__ std::vector<std::complex<double>> CONCAT(NAME, \
-  //                                                  CONCAT(_generator_,
-  //                                                  NUMT))( \
-  //     const std::vector<double> &parameters = std::vector<double>()) { \
-  //   return __VA_ARGS__; \
-  // }

@@ -10,12 +10,14 @@
 
 #include <cudaq.h>
 
+using namespace std::complex_literals;
+
 CUDAQ_REGISTER_OPERATION(
     my_u3, 1, 3,
     {std::cos(parameters[0] / 2.),
-     -std::exp(i *parameters[2]) * std::sin(parameters[0] / 2.),
-     std::exp(i *parameters[1]) * std::sin(parameters[0] / 2.),
-     std::exp(i *(parameters[2] + parameters[1])) *
+     -std::exp(1i *parameters[2]) * std::sin(parameters[0] / 2.),
+     std::exp(1i *parameters[1]) * std::sin(parameters[0] / 2.),
+     std::exp(1i *(parameters[2] + parameters[1])) *
          std::cos(parameters[0] / 2.)})
 
 __qpu__ void bell_pair() {
