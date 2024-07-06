@@ -359,7 +359,7 @@ public:
   // Replace the cc.global with an llvm.global, updating the types, etc.
   LogicalResult
   matchAndRewrite(cudaq::cc::GlobalOp global, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {    
+                  ConversionPatternRewriter &rewriter) const override {
     auto loc = global.getLoc();
     auto ptrTy = cast<cudaq::cc::PointerType>(global.getType());
     auto eleTy = ptrTy.getElementType();

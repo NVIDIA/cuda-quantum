@@ -582,18 +582,6 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
                                                              ctrlsVec, tgtsVec);
 }
 
-void __quantum__qis__constant_unitary(double *realPart, double *imagPart,
-                                      Array *controls, Array *targets) {
-  auto targetIds = arrayToVectorSizeT(targets);
-  auto numElements = (1ULL << targetIds.size()) * (1ULL << targetIds.size());
-  std::vector<std::complex<double>> matrix(numElements);
-  for (std::size_t i = 0; i < numElements; i++)
-    matrix[i] = {realPart[i], imagPart[i]};
-  auto controlIds = arrayToVectorSizeT(controls);
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, controlIds,
-                                                             targetIds);
-}
-
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.
 /// @param paulis
 /// @return

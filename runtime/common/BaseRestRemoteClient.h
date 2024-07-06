@@ -152,7 +152,7 @@ public:
         // Add any global symbols associated with custom operations
         else {
           auto ccGlobalOp = dyn_cast<cudaq::cc::GlobalOp>(op);
-          if (ccGlobalOp && ccGlobalOp.getSymName().endswith(".generator")) {
+          if (ccGlobalOp && ccGlobalOp.getSymName().endswith(".rodata")) {
             moduleOp.push_back(ccGlobalOp.clone());
           }
         }

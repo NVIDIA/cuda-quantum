@@ -206,17 +206,23 @@ def __generalCustomOperation(self, opName, *args):
 
         assert (numTargets == len(targets))
 
-        globalName = f'{opName}.generator'
+        globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
         currentST = SymbolTable(self.module.operation)
         if not globalName in currentST:
             with InsertionPoint(self.module.body):
+                arrayAttrList = []
+                for el in unitary:
+                    arrayAttrList.append(
+                        DenseF64ArrayAttr.get([np.real(el),
+                                               np.imag(el)]))
 
                 complexType = ComplexType.get(self.getFloatType())
-                globalTy = cc.ArrayType.get(self.ctx, complexType, len(unitary))
+                globalTy = cc.ArrayType.get(self.ctx, complexType,
+                                            len(arrayAttrList))
 
                 cc.GlobalOp(TypeAttr.get(globalTy),
                             globalName,
-                            value=DenseElementsAttr.get(unitary),
+                            value=ArrayAttr.get(arrayAttrList),
                             constant=True,
                             external=False)
 

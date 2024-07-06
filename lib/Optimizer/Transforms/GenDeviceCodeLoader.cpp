@@ -106,9 +106,8 @@ public:
           declarations.push_back(&op);
         }
       } else if (auto ccGlobalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
-        if (ccGlobalOp.getSymName().endswith(".generator")) {
-          LLVM_DEBUG(llvm::dbgs()
-                     << "adding custom operation's constant generator: " << op);
+        if (ccGlobalOp.getSymName().endswith(".rodata")) {
+          LLVM_DEBUG(llvm::dbgs() << "adding global constants: " << op);
           declarations.push_back(&op);
         }
       }

@@ -1656,18 +1656,24 @@ class PyASTBridge(ast.NodeVisitor):
                 targets.reverse()
                 self.checkControlAndTargetTypes([], targets)
 
-                globalName = f'{nvqppPrefix}{node.func.id}.generator'
+                globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
+
                 currentST = SymbolTable(self.module.operation)
                 if not globalName in currentST:
                     with InsertionPoint(self.module.body):
+                        arrayAttrList = []
+                        for el in unitary:
+                            arrayAttrList.append(
+                                DenseF64ArrayAttr.get(
+                                    [np.real(el), np.imag(el)]))
 
                         complexType = ComplexType.get(self.getFloatType())
                         globalTy = cc.ArrayType.get(self.ctx, complexType,
-                                                    len(unitary))
+                                                    len(arrayAttrList))
 
                         cc.GlobalOp(TypeAttr.get(globalTy),
                                     globalName,
-                                    value=DenseElementsAttr.get(unitary),
+                                    value=ArrayAttr.get(arrayAttrList),
                                     constant=True,
                                     external=False)
 
@@ -2375,28 +2381,31 @@ class PyASTBridge(ast.NodeVisitor):
                 targets = [self.popValue() for _ in range(numTargets)]
                 targets.reverse()
 
-                globalName = f'{nvqppPrefix}{node.func.value.id}.generator'
-                # NOTE: An adjoint on constant unitary matrix will take the
-                # complex conjugate of the matrix and drop the 'is_adj' argument
-                if node.func.attr == 'adj':
-                    globalName = f'{nvqppPrefix}{node.func.value.id}.adj.generator'
-                    unitary = np.conjugate(unitary).T
+                globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
+
                 currentST = SymbolTable(self.module.operation)
                 if not globalName in currentST:
                     with InsertionPoint(self.module.body):
+                        arrayAttrList = []
+                        for el in unitary:
+                            arrayAttrList.append(
+                                DenseF64ArrayAttr.get(
+                                    [np.real(el), np.imag(el)]))
 
                         complexType = ComplexType.get(self.getFloatType())
                         globalTy = cc.ArrayType.get(self.ctx, complexType,
-                                                    len(unitary))
+                                                    len(arrayAttrList))
 
                         cc.GlobalOp(TypeAttr.get(globalTy),
                                     globalName,
-                                    value=DenseElementsAttr.get(unitary),
+                                    value=ArrayAttr.get(arrayAttrList),
                                     constant=True,
                                     external=False)
 
                 negatedControlQubits = None
                 controls = []
+                is_adj = False
+
                 if node.func.attr == 'ctrl':
                     controls = [
                         self.popValue() for _ in range(numValues - numTargets)
@@ -2409,6 +2418,8 @@ class PyASTBridge(ast.NodeVisitor):
                         negatedControlQubits = DenseBoolArrayAttr.get(
                             negCtrlBools)
                         self.controlNegations.clear()
+                if node.func.attr == 'adj':
+                    is_adj = True
 
                 self.checkControlAndTargetTypes(controls, targets)
                 quake.CustomUnitarySymbolOp(
@@ -2417,7 +2428,7 @@ class PyASTBridge(ast.NodeVisitor):
                     parameters=[],
                     controls=controls,
                     targets=targets,
-                    is_adj=False,
+                    is_adj=is_adj,
                     negated_qubit_controls=negatedControlQubits)
                 return
 
