@@ -169,7 +169,8 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
-    double e = cudaq::observe(shots, kernel, H, x, args...);
+    observe_options options{static_cast<int>(shots)};
+    double e = cudaq::observe(options, kernel, H, x, args...);
     return e;
   });
 }

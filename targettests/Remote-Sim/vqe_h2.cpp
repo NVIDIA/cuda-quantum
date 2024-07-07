@@ -31,21 +31,21 @@ __qpu__ void so4(cudaq::qubit &q, cudaq::qubit &r,
   ry(thetas[1], r);
 
   h(r);
-  x<cudaq::ctrl>(q, r);
+  cx(q, r);
   h(r);
 
   ry(thetas[2], q);
   ry(thetas[3], r);
 
   h(r);
-  x<cudaq::ctrl>(q, r);
+  cx(q, r);
   h(r);
 
   ry(thetas[4], q);
   ry(thetas[5], r);
 
   h(r);
-  x<cudaq::ctrl>(q, r);
+  cx(q, r);
   h(r);
 }
 
