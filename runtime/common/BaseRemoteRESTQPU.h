@@ -19,6 +19,7 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
@@ -380,6 +381,16 @@ public:
     auto moduleOp = builder.create<mlir::ModuleOp>();
     moduleOp.push_back(func.clone());
     moduleOp->setAttrs(m_module->getAttrDictionary());
+
+    // Add any global symbols associated with custom operations (available after
+    // `-lift-array-value` pass)
+    for (auto &op : m_module.getOps()) {
+      if (auto ccGlobalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
+        if (ccGlobalOp.getSymName().endswith(".rodata")) {
+          moduleOp.push_back(ccGlobalOp.clone());
+        }
+      }
+    }
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
