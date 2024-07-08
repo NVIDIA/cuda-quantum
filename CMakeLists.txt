@@ -406,12 +406,8 @@ configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
 
 # Check optional dependencies
 # ==============================================================================
-if (NOT CUDAQ_DISABLE_OPENMP)
-  find_package(OpenMP REQUIRED)
-endif()
 
 find_package(OpenSSL)
-
 if (NOT CUDAQ_SKIP_MPI)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
@@ -476,9 +472,7 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   set_target_properties(libqpp
     PROPERTIES
       INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
-  if (OpenMP_CXX_FOUND)
-    target_compile_definitions(libqpp INTERFACE HAS_OPENMP)
-  endif()
+  add_openmp_interface_definitions(libqpp)
 endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
