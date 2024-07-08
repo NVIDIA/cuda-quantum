@@ -8,7 +8,6 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import pytest
 import numpy as np
 import cudaq
 
@@ -31,13 +30,13 @@ def test_bell_pair():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__bell() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           quake.custom_op @custom_h.generator %[[VAL_1]] : (!quake.ref) -> ()
+# CHECK:           quake.custom_op @__nvqpp__mlirgen__custom_h_generator_1.rodata %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           quake.custom_op @custom_x.generator {{\[}}%[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.custom_op @__nvqpp__mlirgen__custom_x_generator_1.rodata {{\[}}%[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
-# CHECK:         cc.global constant @custom_h.generator ([array<f64: 0.70710678118654746, 0.000000e+00>, array<f64: 0.70710678118654746, 0.000000e+00>, array<f64: 0.70710678118654746, 0.000000e+00>, array<f64: -0.70710678118654746, 0.000000e+00>]) : !cc.array<complex<f64> x 4>
-# CHECK:         cc.global constant @custom_x.generator ([array<f64: 0.000000e+00, 0.000000e+00>, array<f64: 1.000000e+00, 0.000000e+00>, array<f64: 1.000000e+00, 0.000000e+00>, array<f64: 0.000000e+00, 0.000000e+00>]) : !cc.array<complex<f64> x 4>
+# CHECK:         cc.global constant @__nvqpp__mlirgen__custom_h_generator_1.rodata (dense<[(0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (0.70710678118654746,0.000000e+00), (-0.70710678118654746,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK:         cc.global constant @__nvqpp__mlirgen__custom_x_generator_1.rodata (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
 
 
 def test_custom_adjoint():
@@ -60,10 +59,10 @@ def test_custom_adjoint():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           quake.custom_op @custom_s.adj.generator %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           quake.custom_op @custom_s_adj.generator %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.custom_op @__nvqpp__mlirgen__custom_s_generator_1.rodata<adj> %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.custom_op @__nvqpp__mlirgen__custom_s_adj_generator_1.rodata %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
-# CHECK:         cc.global constant @custom_s.adj.generator ([array<f64: 1.000000e+00, -0.000000e+00>, array<f64: 0.000000e+00, -0.000000e+00>, array<f64: 0.000000e+00, -0.000000e+00>, array<f64: 0.000000e+00, -1.000000e+00>]) : !cc.array<complex<f64> x 4>
-# CHECK:         cc.global constant @custom_s_adj.generator ([array<f64: 1.000000e+00, 0.000000e+00>, array<f64: 0.000000e+00, 0.000000e+00>, array<f64: 0.000000e+00, 0.000000e+00>, array<f64: -0.000000e+00, -1.000000e+00>]) : !cc.array<complex<f64> x 4>
+# CHECK:         cc.global constant @__nvqpp__mlirgen__custom_s_generator_1.rodata (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK:         cc.global constant @__nvqpp__mlirgen__custom_s_adj_generator_1.rodata (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (-0.000000e+00,-1.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>

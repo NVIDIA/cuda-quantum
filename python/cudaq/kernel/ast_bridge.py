@@ -18,7 +18,7 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
 from .captured_data import CapturedDataStorage
 
 State = cudaq_runtime.State
@@ -1661,22 +1661,9 @@ class PyASTBridge(ast.NodeVisitor):
                 currentST = SymbolTable(self.module.operation)
                 if not globalName in currentST:
                     with InsertionPoint(self.module.body):
-                        arrayAttrList = []
-                        for el in unitary:
-                            arrayAttrList.append(
-                                DenseF64ArrayAttr.get(
-                                    [np.real(el), np.imag(el)]))
-
-                        complexType = ComplexType.get(self.getFloatType())
-                        globalTy = cc.ArrayType.get(self.ctx, complexType,
-                                                    len(arrayAttrList))
-
-                        cc.GlobalOp(TypeAttr.get(globalTy),
-                                    globalName,
-                                    value=ArrayAttr.get(arrayAttrList),
-                                    constant=True,
-                                    external=False)
-
+                        gen_vector_of_complex_constant(self.loc, self.module,
+                                                       globalName,
+                                                       unitary.tolist())
                 quake.CustomUnitarySymbolOp(
                     [],
                     generator=FlatSymbolRefAttr.get(globalName),
@@ -2386,21 +2373,9 @@ class PyASTBridge(ast.NodeVisitor):
                 currentST = SymbolTable(self.module.operation)
                 if not globalName in currentST:
                     with InsertionPoint(self.module.body):
-                        arrayAttrList = []
-                        for el in unitary:
-                            arrayAttrList.append(
-                                DenseF64ArrayAttr.get(
-                                    [np.real(el), np.imag(el)]))
-
-                        complexType = ComplexType.get(self.getFloatType())
-                        globalTy = cc.ArrayType.get(self.ctx, complexType,
-                                                    len(arrayAttrList))
-
-                        cc.GlobalOp(TypeAttr.get(globalTy),
-                                    globalName,
-                                    value=ArrayAttr.get(arrayAttrList),
-                                    constant=True,
-                                    external=False)
+                        gen_vector_of_complex_constant(self.loc, self.module,
+                                                       globalName,
+                                                       unitary.tolist())
 
                 negatedControlQubits = None
                 controls = []

@@ -44,7 +44,6 @@ def test_basic():
         custom_h(qubits[0])
         custom_x.ctrl(qubits[0], qubits[1])
 
-    print(bell)
     check_bell(bell)
 
 
@@ -106,11 +105,9 @@ def test_three_qubit_op():
     assert counts["110"] == 1000
 
 
-# NOTE / [SKIP_TEST]: Following doesn't work on Ubuntu, RedHat and OpenSuse for
-# 'tensornet' and 'tensornet-mps' (works on Debian and Fedora)
 @pytest.mark.parametrize("target", [
     'density-matrix-cpu', 'nvidia', 'nvidia-fp64', 'nvidia-mqpu',
-    'nvidia-mqpu-fp64', 'qpp-cpu'
+    'nvidia-mqpu-fp64', 'qpp-cpu', 'tensornet', 'tensornet-mps'
 ])
 def test_simulators(target):
     """Test simulation of custom operation on all available simulation targets."""
@@ -126,7 +123,8 @@ def test_simulators(target):
     if can_set_target(target):
         test_basic()
         test_cnot_gate()
-        test_three_qubit_op()
+        if not target == 'tensornet-mps':
+            test_three_qubit_op()
         cudaq.reset_target()
     else:
         pytest.skip("target not available")

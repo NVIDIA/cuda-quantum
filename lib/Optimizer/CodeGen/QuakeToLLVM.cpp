@@ -1324,10 +1324,14 @@ public:
       auto unitaryData =
           rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
 
+      auto qirFunctionName = "__quantum__qis__custom_unitary";
+      if (op.isAdj()) {
+        qirFunctionName = "__quantum__qis__custom_unitary__adj";
+      }
+
       FlatSymbolRefAttr customSymbolRef =
           cudaq::opt::factory::createLLVMFunctionSymbol(
-              "__quantum__qis__custom_unitary",
-              LLVM::LLVMVoidType::get(context),
+              qirFunctionName, LLVM::LLVMVoidType::get(context),
               {complex64PtrTy, cudaq::opt::getArrayType(context),
                cudaq::opt::getArrayType(context)},
               parentModule);

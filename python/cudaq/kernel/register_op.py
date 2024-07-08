@@ -48,6 +48,10 @@ def register_operation(operation_name: str, unitary):
     # TODO: Flatten the matrix if not flattened
     assert (matrix.ndim == len(matrix.shape))
 
+    # Size must be a power of 2
+    assert (matrix.size != 0)
+    assert (matrix.size & (matrix.size - 1) == 0)
+
     # Register the operation name so JIT AST can get it.
     globalRegisteredOperations[operation_name] = matrix
 
