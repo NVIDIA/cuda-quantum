@@ -345,7 +345,8 @@ LogicalResult cudaq::cc::ComputePtrOp::verify() {
   auto resultTy = cast<cc::PointerType>(getResult().getType());
   for (std::int32_t i : getRawConstantIndices()) {
     if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
-      if (i != kDynamicIndex && !arrTy.isUnknownSize() && i > arrTy.getSize()) {
+      if (i != kDynamicIndex && !arrTy.isUnknownSize() &&
+          (i < 0 || i > arrTy.getSize())) {
         // Note: allow indexing of last element + 1 so we can compute a
         // pointer to `end()` of a stdvec buffer. Consider adding a flag
         // to cc.compute_ptr explicitly for this or using casts.
@@ -355,9 +356,13 @@ LogicalResult cudaq::cc::ComputePtrOp::verify() {
     } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
       if (i == kDynamicIndex)
         return emitOpError("struct cannot have non-constant index");
-      if (static_cast<std::size_t>(i) >= strTy.getMembers().size())
+      if (i < 0 || static_cast<std::size_t>(i) >= strTy.getMembers().size())
         return emitOpError("struct cannot index out of bounds members");
       eleTy = strTy.getMember(i);
+    } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+      if (!(i == 0 || i == 1 || i == kDynamicIndex))
+        return emitOpError("complex index is out of bounds");
+      eleTy = complexTy.getElementType();
     } else {
       return emitOpError("too many indices (" +
                          std::to_string(getRawConstantIndices().size()) +
@@ -658,15 +663,19 @@ LogicalResult cudaq::cc::ExtractValueOp::verify() {
     if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
       if (arrTy.isUnknownSize())
         return emitOpError("array must have constant size");
-      if (i != kDynamicIndex && i >= arrTy.getSize())
+      if (i != kDynamicIndex && (i < 0 || i >= arrTy.getSize()))
         return emitOpError("array cannot index out of bounds elements");
       eleTy = arrTy.getElementType();
     } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
       if (i == kDynamicIndex)
         return emitOpError("struct cannot have non-constant index");
-      if (static_cast<std::size_t>(i) >= strTy.getMembers().size())
+      if (i < 0 || static_cast<std::size_t>(i) >= strTy.getMembers().size())
         return emitOpError("struct cannot index out of bounds members");
       eleTy = strTy.getMember(i);
+    } else if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
+      if (!(i == 0 || i == 1))
+        return emitOpError("complex index is out of bounds");
+      eleTy = complexTy.getElementType();
     } else {
       return emitOpError("too many indices (" +
                          std::to_string(getRawConstantIndices().size()) +
@@ -1786,6 +1795,72 @@ LogicalResult cudaq::cc::ConditionOp::verify() {
 MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
     std::optional<unsigned> index) {
   return getResultsMutable();
+}
+
+//===----------------------------------------------------------------------===//
+// OffsetOfOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::OffsetOfOp::verify() {
+  Type ty = getInputType();
+  for (std::int32_t i : getConstantIndices()) {
+    if (auto strTy = dyn_cast<cc::StructType>(ty)) {
+      if (i < 0 || static_cast<std::size_t>(i) >= strTy.getMembers().size())
+        return emitOpError("out of bounds for struct");
+      ty = strTy.getMembers()[i];
+      continue;
+    }
+    if (auto arrTy = dyn_cast<cc::ArrayType>(ty)) {
+      if (arrTy.isUnknownSize())
+        return emitOpError("array must have bounds");
+      if (i < 0 || i >= arrTy.getSize())
+        return emitOpError("out of bounds for array");
+      ty = arrTy.getElementType();
+      continue;
+    }
+    if (auto complexTy = dyn_cast<ComplexType>(ty)) {
+      if (i < 0 || i > 1)
+        return emitOpError("out of bounds for complex");
+      ty = complexTy.getElementType();
+      continue;
+    }
+    // Walking off the end of the type.
+    return failure();
+  }
+  return success();
+}
+
+namespace {
+struct FoldTrivialOffsetOf : public OpRewritePattern<cudaq::cc::OffsetOfOp> {
+  using Base = OpRewritePattern<cudaq::cc::OffsetOfOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::OffsetOfOp offOp,
+                                PatternRewriter &rewriter) const override {
+    // If there are no offsets, the offset is 0.
+    if (offOp.getConstantIndices().empty()) {
+      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(offOp, 0,
+                                                        offOp.getType());
+      return success();
+    }
+
+    // If all indices are 0, then the offset is necessarily 0.
+    if (std::all_of(offOp.getConstantIndices().begin(),
+                    offOp.getConstantIndices().end(),
+                    [](std::int32_t i) { return i == 0; })) {
+      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(offOp, 0,
+                                                        offOp.getType());
+      return success();
+    }
+
+    return failure();
+  }
+};
+} // namespace
+
+void cudaq::cc::OffsetOfOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FoldTrivialOffsetOf>(context);
 }
 
 //===----------------------------------------------------------------------===//
