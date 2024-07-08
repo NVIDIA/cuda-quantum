@@ -107,6 +107,8 @@ if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; t
         if [ ! 0 -eq $? ]; then
           echo "Applying patch $patch failed. Please update patch."
           (return 0 2>/dev/null) && return 1 || exit 1
+        else
+          echo "Applied patch $patch."
         fi
       fi
     done
