@@ -546,7 +546,7 @@ class PyASTBridge(ast.NodeVisitor):
         sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, sourceValue).result
         sourceSize = cc.StdvecSizeOp(self.getIntegerType(), sourceValue).result
 
-        targetElePtrType = cc.PointerType.get(self.ctx, targetEleType)
+        targetElePtrTy = cc.PointerType.get(self.ctx, targetEleType)
         targetTy = cc.ArrayType.get(self.ctx, targetEleType)
         targetArrPtrTy = cc.PointerType.get(self.ctx, targetTy)
         targetVecTy = cc.StdvecType.get(self.ctx, targetEleType)
@@ -561,7 +561,7 @@ class PyASTBridge(ast.NodeVisitor):
                                       rawIndex).result
             loadedEle = cc.LoadOp(eleAddr).result
             castedEle = self.promoteOperandType(targetEleType, loadedEle)
-            targetEleAddr = cc.ComputePtrOp(targetElePtrType, targetPtr,
+            targetEleAddr = cc.ComputePtrOp(targetElePtrTy, targetPtr,
                                             [iterVar], rawIndex).result
             cc.StoreOp(castedEle, targetEleAddr)
 
