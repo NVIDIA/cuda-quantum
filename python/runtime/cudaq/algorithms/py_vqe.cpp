@@ -104,6 +104,26 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
       .value();
 }
 
+/// @brief Return whether or not \p kernel is compatible with the remote VQE
+/// implementation that requires the variation parameters to be the first
+/// argument in the kernel.
+static bool firstArgIsCompatibleWithRemoteVQE(py::object &kernel) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
+  if (kernelFunc.getNumArguments() < 1)
+    return false;
+  auto firstKernelArgTy = kernelFunc.getArgument(0).getType();
+  if (auto stdVec = dyn_cast<cudaq::cc::StdvecType>(firstKernelArgTy)) {
+    auto eleTy = stdVec.getElementType();
+    return isa<mlir::Float32Type, mlir::Float64Type>(eleTy);
+  } else {
+    return false;
+  }
+}
+
 /// @brief Perform VQE on a remote platform using the C++ capabilities. This
 /// function is used for many of the pyVQE variants below, so some of the
 /// parameters may be nullptr.
@@ -241,15 +261,28 @@ pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
   return result;
 }
 
+/// @brief Throw an exception instructing the user how to achieve optimal
+/// performance
+static void throwPerformanceError() {
+  throw std::runtime_error(
+      "ERROR: Achieving optimal VQE kernel on this platform requires the first "
+      "parameter in the kernel to be the variational parameter (list of "
+      "floats). Please update your VQE kernel to have list[float] as a its "
+      "first parameter\n");
+}
+
 /// @brief Run `cudaq.vqe()` without a gradient strategy.
 optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           const int shots = -1) {
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe())
-    return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
-                            /*gradient=*/nullptr, /*argumentMapper=*/nullptr,
-                            n_params, shots);
+  if (platform.supports_remote_vqe()) {
+    if (firstArgIsCompatibleWithRemoteVQE(kernel))
+      return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
+                              /*gradient=*/nullptr, /*argumentMapper=*/nullptr,
+                              n_params, shots);
+    throwPerformanceError();
+  }
   if (platform.supports_remote_serialized_code())
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer,
                         /*gradient=*/nullptr, /*argumentMapper=*/nullptr,
@@ -269,10 +302,13 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           py::function &argumentMapper, const int shots = -1) {
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe())
-    return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
-                            /*gradient=*/nullptr, &argumentMapper, n_params,
-                            shots);
+  if (platform.supports_remote_vqe()) {
+    if (firstArgIsCompatibleWithRemoteVQE(kernel))
+      return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
+                              /*gradient=*/nullptr, &argumentMapper, n_params,
+                              shots);
+    throwPerformanceError();
+  }
   if (platform.supports_remote_serialized_code())
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer,
                         /*gradient=*/nullptr, &argumentMapper, n_params, shots);
@@ -299,9 +335,13 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
   // to allow for the calculation of the gradient vector with the
   // provided gradient strategy.
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe())
-    return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer, &gradient,
-                            /*argumentMapper=*/nullptr, n_params, shots);
+  if (platform.supports_remote_vqe()) {
+    if (firstArgIsCompatibleWithRemoteVQE(kernel))
+      return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
+                              &gradient,
+                              /*argumentMapper=*/nullptr, n_params, shots);
+    throwPerformanceError();
+  }
   if (platform.supports_remote_serialized_code())
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer, &gradient,
                         /*argumentMapper=*/nullptr, n_params, shots);
@@ -334,10 +374,12 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
   // to allow for the calculation of the gradient vector with the
   // provided gradient strategy.
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe())
-    return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer, &gradient,
-                            &argumentMapper, n_params, shots);
-
+  if (platform.supports_remote_vqe()) {
+    if (firstArgIsCompatibleWithRemoteVQE(kernel))
+      return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
+                              &gradient, &argumentMapper, n_params, shots);
+    throwPerformanceError();
+  }
   if (platform.supports_remote_serialized_code())
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer, &gradient,
                         &argumentMapper, n_params, shots);
