@@ -123,6 +123,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     ## [>CUDAQuantumCppBuild]
     CUDAQ_ENABLE_STATIC_LINKING=TRUE \
+    CUDAQ_REQUIRE_OPENMP=TRUE \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \

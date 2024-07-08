@@ -129,7 +129,7 @@ option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA-Q runtime, just the compile
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Frontend." OFF)
 option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
-option(CUDAQ_DISABLE_OPENMP "Disable the use of OpenMP within CUDA-Q." OFF)
+option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -167,9 +167,6 @@ if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
 endif()
 if(NOT CUDAQ_ENABLE_CC)
   SET(CUDAQ_ENABLE_CC $ENV{CUDAQ_ENABLE_CC})
-endif()
-if(NOT CUDAQ_DISABLE_OPENMP)
-  SET(CUDAQ_DISABLE_OPENMP $ENV{CUDAQ_DISABLE_OPENMP})
 endif()
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)

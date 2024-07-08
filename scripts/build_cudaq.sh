@@ -139,8 +139,6 @@ if [ -n "$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so')" ]; then
   OMP_LIBRARY=${OMP_LIBRARY:-libomp}
   OpenMP_libomp_LIBRARY=${OMP_LIBRARY#lib}
   OpenMP_FLAGS="${OpenMP_FLAGS:-'-fopenmp'}"
-elif [ -z "$($CC --version | grep -i gcc)" ]; then \
-    CUDAQ_DISABLE_OPENMP=${CUDAQ_DISABLE_OPENMP:-TRUE}; \
 fi
 
 # Generate CMake files 
@@ -158,7 +156,7 @@ cmake_args="-G Ninja '"$repo_root"' \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
   ${OpenMP_FLAGS:+"-DOpenMP_C_FLAGS='"$OpenMP_FLAGS"'"} \
   ${OpenMP_FLAGS:+"-DOpenMP_CXX_FLAGS='"$OpenMP_FLAGS"'"} \
-  -DCUDAQ_DISABLE_OPENMP=${CUDAQ_DISABLE_OPENMP:-FALSE} \
+  -DCUDAQ_REQUIRE_OPENMP=${CUDAQ_REQUIRE_OPENMP:-FALSE} \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
