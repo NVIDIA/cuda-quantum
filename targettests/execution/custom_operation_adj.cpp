@@ -10,28 +10,24 @@
 
 #include <cudaq.h>
 
-using namespace std::complex_literals;
+CUDAQ_REGISTER_OPERATION(custom_s, 1, 0, {1, 0, 0, std::complex<double>{0.0, 1.0}})
 
-CUDAQ_REGISTER_OPERATION(
-    my_u3, 1, 3,
-    {std::cos(parameters[0] / 2.),
-     -std::exp(1i *parameters[2]) * std::sin(parameters[0] / 2.),
-     std::exp(1i *parameters[1]) * std::sin(parameters[0] / 2.),
-     std::exp(1i *(parameters[2] + parameters[1])) *
-         std::cos(parameters[0] / 2.)})
+CUDAQ_REGISTER_OPERATION(custom_s_adj, 1, 0, {1, 0, 0, std::complex<double>{0.0, -1.0}})
 
-__qpu__ void bell_pair() {
-  cudaq::qvector qubits(2);
-  my_u3(M_PI_2, 0., M_PI, qubits[0]);
-  my_u3<cudaq::ctrl>(M_PI, M_PI, M_PI_2, qubits[0], qubits[1]);
+__qpu__ void kernel() {
+  cudaq::qubit q;
+  h(q);
+  custom_s<cudaq::adj>(q);
+  custom_s_adj(q);
+  h(q);
+  mz(q);
 }
 
 int main() {
-  auto counts = cudaq::sample(bell_pair);
+  auto counts = cudaq::sample(kernel);
   for (auto &[bits, count] : counts) {
     printf("%s\n", bits.data());
   }
 }
 
-// CHECK: 11
-// CHECK: 00
+// CHECK: 1
