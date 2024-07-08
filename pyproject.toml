@@ -54,6 +54,7 @@ cmake.build-type = "Release"
 cmake.verbose = false
 cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
+    "-DCUDAQ_REQUIRE_OPENMP=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
     "-DCUDAQ_BUILD_TESTS=TRUE"

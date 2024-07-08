@@ -129,7 +129,7 @@ option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA-Q runtime, just the compile
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Frontend." OFF)
 option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
-option(CUDAQ_DISABLE_OPENMP "Disable the use of OpenMP within CUDA-Q." OFF)
+option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -167,9 +167,6 @@ if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
 endif()
 if(NOT CUDAQ_ENABLE_CC)
   SET(CUDAQ_ENABLE_CC $ENV{CUDAQ_ENABLE_CC})
-endif()
-if(NOT CUDAQ_DISABLE_OPENMP)
-  SET(CUDAQ_DISABLE_OPENMP $ENV{CUDAQ_DISABLE_OPENMP})
 endif()
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
@@ -370,6 +367,7 @@ set(CUDAQ_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
 include(AddCUDAQ)
+include(BuildHelpers)
 
 # Add CUDA Quantum files to the include path
 include_directories(BEFORE
@@ -405,12 +403,8 @@ configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
 
 # Check optional dependencies
 # ==============================================================================
-if (NOT CUDAQ_DISABLE_OPENMP)
-  find_package(OpenMP REQUIRED)
-endif()
 
 find_package(OpenSSL)
-
 if (NOT CUDAQ_SKIP_MPI)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
@@ -475,9 +469,7 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   set_target_properties(libqpp
     PROPERTIES
       INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
-  if (OpenMP_CXX_FOUND)
-    target_compile_definitions(libqpp INTERFACE HAS_OPENMP)
-  endif()
+  add_openmp_interface_definitions(libqpp)
 endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
@@ -615,7 +607,6 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
 endif()
 
 if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
-  include(WheelBuildHelpers)
   while(CUDAQ_EXTERNAL_NVQIR_SIMS)
     list(POP_FRONT CUDAQ_EXTERNAL_NVQIR_SIMS LIB_SO_OR_CONFIG_FILE)
     add_target_libs_to_wheel(${LIB_SO_OR_CONFIG_FILE})

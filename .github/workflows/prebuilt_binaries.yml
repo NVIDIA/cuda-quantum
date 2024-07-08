@@ -316,7 +316,7 @@ jobs:
           config='${{ needs.create_test_config.outputs.json }}'
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
           all_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
-          # Don't install CUDA dependencies since/if we run on a non-GPU runner
+          # Don't install CUDA dependencies if we run on a non-GPU runner
           additional_build_args=`echo $all_build_args | sed -e 's/"cuda_distribution=[^"]*"//g'`
 
           mv /tmp/install/* .

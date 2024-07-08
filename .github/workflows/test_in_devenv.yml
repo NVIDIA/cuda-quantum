@@ -200,9 +200,6 @@ jobs:
           run: |
             cd $CUDAQ_REPO_ROOT
             pip install iqm_client==16.1 --user -vvv
-            if [ -z "$($CC --version | grep -i gcc)" ]; then \
-              export CUDAQ_DISABLE_OPENMP=${CUDAQ_DISABLE_OPENMP:-TRUE}; \
-            fi
             pip install . --user -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then

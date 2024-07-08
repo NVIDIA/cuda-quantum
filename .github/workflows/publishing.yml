@@ -220,7 +220,8 @@ jobs:
             if [[ "$staging_branch" =~ ^bot\/.*$ ]]; then
               git push origin --delete $staging_branch
             else
-              echo "::error::Unexpected staging branch." && exit 1
+              echo "::error::Unexpected staging branch."
+              exit 1
             fi
           }
           
@@ -800,7 +801,8 @@ jobs:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
           tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
           if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "::error::Missing tests for nvidia-mgpu backend." && exit 1
+            echo "::error::Missing tests for nvidia-mgpu backend."
+            exit 1
           fi
 
       - name: Side-by-side installation of Python wheels
@@ -822,12 +824,13 @@ jobs:
           fi
 
           ${PYTHON} -m pip install /tmp/install/cuda_quantum*.whl
-          ${PYTHON} -m pip install pytest numpy
+          ${PYTHON} -m pip install pytest numpy psutil
           ${PYTHON} -m pytest -v /home/cudaq/python \
             --ignore /home/cudaq/python/backends \
             --ignore /home/cudaq/python/domains
           if [ ! $? -eq 0 ]; then
-            echo "::error::Sanity tests failed for side-by-side Python support." && exit 1
+            echo "::error::Sanity tests failed for side-by-side Python support."
+            exit 1
           fi
 
   wheel_validation:
@@ -871,7 +874,8 @@ jobs:
           source validate_wheel.sh -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
-            echo "::error::Error running validation script" && exit $status_sum
+            echo "::error::Error running validation script" 
+            exit $status_sum
           fi
   
   wheel_validation_x86_simple:
@@ -921,7 +925,8 @@ jobs:
           done
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
-            echo "::error::Error running validation script" && exit $status_sum
+            echo "::error::Error running validation script" 
+            exit $status_sum
           fi
   
   image_validation:
@@ -976,7 +981,8 @@ jobs:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
           tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
           if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "::error::Missing tests for nvidia-mgpu backend." && exit 1
+            echo "::error::Missing tests for nvidia-mgpu backend."
+            exit 1
           fi
 
       - name: MPI validation 

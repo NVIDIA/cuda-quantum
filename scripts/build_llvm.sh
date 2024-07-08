@@ -100,13 +100,15 @@ if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; t
     echo "Applying LLVM patches in $LLVM_CMAKE_PATCHES..."
     for patch in `find "$LLVM_CMAKE_PATCHES"/* -maxdepth 0 -type f -name '*.diff'`; do
       # Check if patch is already applied.
-      git apply "$patch" --ignore-whitespace --reverse --check
+      git apply "$patch" --ignore-whitespace --reverse --check 2>/dev/null
       if [ ! 0 -eq $? ]; then
         # If the patch is not yet applied, apply the patch.
         git apply "$patch" --ignore-whitespace
         if [ ! 0 -eq $? ]; then
           echo "Applying patch $patch failed. Please update patch."
           (return 0 2>/dev/null) && return 1 || exit 1
+        else
+          echo "Applied patch $patch."
         fi
       fi
     done

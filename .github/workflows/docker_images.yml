@@ -787,7 +787,8 @@ jobs:
             echo "::error::Validation failed; see job summary for more details."
             exit 1
           elif ${{ inputs.ompidev_image != '' }} && [ "$(cat /tmp/validation.out | grep '^nvidia$')" != "nvidia" ]; then
-            echo "Missing installation for nvidia backend." && exit 1
+            echo "Missing installation for nvidia backend."
+            exit 1
           fi
 
       - name: Create job summary

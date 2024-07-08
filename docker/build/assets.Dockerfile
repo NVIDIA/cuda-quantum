@@ -16,7 +16,7 @@
 
 # [Operating System]
 ARG base_image=amd64/almalinux:8
-FROM ${base_image} as prereqs
+FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
 ARG cuda_version
 ENV CUDA_VERSION=${cuda_version}
@@ -90,7 +90,7 @@ ADD .git/index /cuda-quantum/.git/index
 ADD .git/modules/ /cuda-quantum/.git/modules/
 
 ## [C++ support]
-FROM prereqs as cpp_build
+FROM prereqs AS cpp_build
 ADD "cmake" /cuda-quantum/cmake
 ADD "docs/CMakeLists.txt" /cuda-quantum/docs/CMakeLists.txt
 ADD "docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
@@ -125,6 +125,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     ## [>CUDAQuantumCppBuild]
     CUDAQ_ENABLE_STATIC_LINKING=TRUE \
+    CUDAQ_REQUIRE_OPENMP=TRUE \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
@@ -160,7 +161,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     fi
 
 ## [Python support]
-FROM prereqs as python_build
+FROM prereqs AS python_build
 ADD "pyproject.toml" /cuda-quantum/pyproject.toml
 ADD "python" /cuda-quantum/python
 ADD "cmake" /cuda-quantum/cmake
@@ -243,7 +244,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     fi
 
 ## [Python Tests]
-FROM python_build as python_tests
+FROM python_build AS python_tests
 RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut -d ' ' -f1) && \
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
@@ -256,7 +257,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 # The other tests for the Python wheel are run post-installation.
 
 ## [C++ Tests]
-FROM cpp_build as cpp_tests
+FROM cpp_build AS cpp_tests
 RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut -d ' ' -f1) && \
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel

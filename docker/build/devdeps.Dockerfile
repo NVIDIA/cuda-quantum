@@ -70,8 +70,8 @@ ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
 
-# This is a hack so that we do not need to rebuild the prerequisites 
-# whenever we pick up a new CUDA-Q commit (which is always in CI).
+# This is initializing the .git index sufficiently so that we can 
+# check out the correct commits based on the submodule commit. 
 RUN cd /cuda-quantum && git init && \
     git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | \
     while read path_key local_path; do \

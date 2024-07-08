@@ -25,14 +25,7 @@ target_include_directories(${LIBRARY_NAME}
 
 set (SPIN_DEPENDENCIES "")
 list(APPEND SPIN_DEPENDENCIES fmt::fmt-header-only)
-if (NOT CUDAQ_DISABLE_OPENMP)
-  find_package(OpenMP)
-  if (OpenMP_CXX_FOUND)
-    message(STATUS "OpenMP Found. Adding build flags to spin library: ${OpenMP_CXX_FLAGS}.")
-    list(APPEND SPIN_DEPENDENCIES OpenMP::OpenMP_CXX)
-    target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_OPENMP)
-  endif()
-endif()
+add_openmp_configurations(${LIBRARY_NAME} SPIN_DEPENDENCIES)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE ${SPIN_DEPENDENCIES})
 
