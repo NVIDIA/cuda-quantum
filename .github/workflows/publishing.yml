@@ -574,6 +574,14 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      - name: Upload additional assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-assets
+          path: assets
+          retention-days: 1
+          if-no-files-found: error
+
   cudaq_wheels:
     name: CUDA Quantum Python wheels
     if: ${{ toJson(fromJson(needs.assets.outputs.python_wheels).info_files) != '[]' }}
@@ -1026,18 +1034,24 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
-      - name: Download cuda-quantum wheels
+      - name: Download CUDA-Q Python wheels
         uses: actions/download-artifact@v4
         with:
           pattern: '*-wheels'
           path: wheelhouse
 
-      - name: Download CUDA Quantum installer
+      - name: Download CUDA-Q installer
         uses: actions/download-artifact@v4
         with:
           pattern: '*-installer'
           path: installers
 
+      - name: Download additional assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-assets'
+          path: assets
+  
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
       #  - We could upload wheels to test-pypi when creating a release.
@@ -1070,6 +1084,7 @@ jobs:
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
+          gh release upload $release_id -R ${{ github.repository }} assets/* --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
         env:
