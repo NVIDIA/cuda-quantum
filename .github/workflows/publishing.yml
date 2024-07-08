@@ -737,7 +737,16 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04'] # FIXME: DEBIAN 12
+        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04', 'debian:12']
+        cuda_major_version: [11, 12]
+        cuda_minor_version: [8, 0]
+        exclude:
+          - os_image: 'debian:12'
+            cuda_version: 11
+          - cuda_major_version: 11
+            cuda_minor_version: 0
+          - cuda_major_version: 12
+            cuda_minor_version: 8
       fail-fast: false
 
     container:
@@ -756,11 +765,11 @@ jobs:
       - name: Load installer
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-cu11-installer
+          name: x86_64-cu${{ matrix.cuda_major_version }}-installer
           path: /tmp/install
 
       - name: Runtime dependencies (apt)
-        if: startsWith(matrix.os_image, 'ubuntu')
+        if: startsWith(matrix.os_image, 'ubuntu') || startsWith(matrix.os_image, 'debian')
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             wget ca-certificates libc6-dev libopenmpi-dev
@@ -768,8 +777,11 @@ jobs:
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb
+          cuda_version_suffix=${{ matrix.cuda_major_version }}-${{ matrix.cuda_minor_version }}
           apt-get update && apt-get install -y --no-install-recommends \
-            libcublas-11-8 cuda-cudart-11-8 libcusolver-11-8
+            libcublas-$cuda_version_suffix \
+            cuda-cudart-$cuda_version_suffix \
+            libcusolver-$cuda_version_suffix
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
