@@ -53,7 +53,9 @@ def build_command_list(temp_file_name: str) -> list[str]:
     if WATCHDOG_TIMEOUT_SEC > 0:
         cmd_list = ['timeout', str(WATCHDOG_TIMEOUT_SEC)] + cmd_list
     if RUN_AS_NOBODY:
-        cmd_list = ['su', '-s', '/bin/bash', 'nobody', '-c', ' '.join(cmd_list)]
+        cmd_list = [
+            'su', '-s', '/bin/bash', 'nobody', '-c', ' '.join(cmd_list)
+        ]
         if SUDO_FOUND:
             cmd_list = ['sudo'] + cmd_list
 
@@ -113,7 +115,8 @@ class Server(http.server.SimpleHTTPRequestHandler):
         outgoing message to reference that new file.
         """
         if 'NVCF-MAX-RESPONSE-SIZE-BYTES' in self.headers:
-            max_response_len = int(self.headers['NVCF-MAX-RESPONSE-SIZE-BYTES'])
+            max_response_len = int(
+                self.headers['NVCF-MAX-RESPONSE-SIZE-BYTES'])
             if len(message) > max_response_len:
                 try:
                     outputDir = self.headers['NVCF-LARGE-OUTPUT-DIR']
@@ -180,8 +183,8 @@ class Server(http.server.SimpleHTTPRequestHandler):
 
                 if self.is_serialized_code_execution_request(request_json):
                     result = {'status': 'uninitialized', 'errorMessage': ''}
-                    with tempfile.NamedTemporaryFile(dir=temp_dir,
-                                                     delete=False) as temp_file:
+                    with tempfile.NamedTemporaryFile(
+                            dir=temp_dir, delete=False) as temp_file:
                         temp_file.write(request_data)
                         temp_file.flush()
 
@@ -209,7 +212,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
                                             f'{cmd_result.stderr}\n'
                         result = {
                             'status':
-                                'json_request_runner.py returned an error',
+                            'json_request_runner.py returned an error',
                             'errorMessage': error_message
                         }
 
@@ -259,7 +262,8 @@ if __name__ == "__main__":
         NUM_GPUS = 0
     MPI_FOUND = (shutil.which('mpiexec') != None)
     SUDO_FOUND = (shutil.which('sudo') != None)
-    WATCHDOG_TIMEOUT_SEC = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', WATCHDOG_TIMEOUT_SEC))
+    WATCHDOG_TIMEOUT_SEC = int(
+        os.environ.get('WATCHDOG_TIMEOUT_SEC', WATCHDOG_TIMEOUT_SEC))
     RUN_AS_NOBODY = int(os.environ.get('RUN_AS_NOBODY', 0)) > 0
 
     temp_dir = tempfile.gettempdir()
