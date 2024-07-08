@@ -25,7 +25,7 @@ import pathlib
 # allows the NVCF port (3030) to remain up while allowing the main `cudaq-qpud`
 # application to restart if necessary.
 PROXY_PORT = 3030
-QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
+QPUD_PORT = 3031  # see `scripts/nvqc_launch.sh`
 
 NUM_GPUS = 0
 MPI_FOUND = False
