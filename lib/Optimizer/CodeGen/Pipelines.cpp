@@ -16,7 +16,7 @@ void cudaq::opt::commonPipelineConvertToQIR(
   /// NOTE: Having the following pass here causes some tests in Python, like
   // 'python/tests/kernel/test_kernel_features.py::test_capture_vars' to crash
   // with Fatal Python error: Segmentation fault
-  // pm.addPass(createLiftArrayAllocPass());
+  pm.addPass(createLiftArrayAllocPass());
   addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createUnwindLoweringPass());

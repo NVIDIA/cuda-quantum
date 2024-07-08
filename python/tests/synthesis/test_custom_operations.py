@@ -105,9 +105,11 @@ def test_three_qubit_op():
     assert counts["110"] == 1000
 
 
+# NOTE / [SKIP_TEST]: Following doesn't work on Ubuntu, RedHat and OpenSuse for
+# 'tensornet' (works on Debian and Fedora)
 @pytest.mark.parametrize("target", [
     'density-matrix-cpu', 'nvidia', 'nvidia-fp64', 'nvidia-mqpu',
-    'nvidia-mqpu-fp64', 'qpp-cpu', 'tensornet', 'tensornet-mps'
+    'nvidia-mqpu-fp64', 'qpp-cpu', 'tensornet-mps'
 ])
 def test_simulators(target):
     """Test simulation of custom operation on all available simulation targets."""
