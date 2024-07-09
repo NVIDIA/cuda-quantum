@@ -32,6 +32,7 @@ MPI_FOUND = False
 WATCHDOG_TIMEOUT_SEC = 0
 RUN_AS_NOBODY = False  # Expect this to be overridden to true for NVQC deployment
 SUDO_FOUND = False
+CUDAQ_SER_CODE_EXEC = False
 
 
 def build_command_list(temp_file_name: str) -> list[str]:
@@ -179,49 +180,57 @@ class Server(http.server.SimpleHTTPRequestHandler):
                 request_json = json.loads(request_data)
 
                 if self.is_serialized_code_execution_request(request_json):
-                    result = {'status': 'uninitialized', 'errorMessage': ''}
-                    with tempfile.NamedTemporaryFile(dir=temp_dir,
-                                                     delete=False) as temp_file:
-                        temp_file.write(request_data)
-                        temp_file.flush()
+                    if CUDAQ_SER_CODE_EXEC:
+                        result = {'status': 'uninitialized', 'errorMessage': ''}
+                        with tempfile.NamedTemporaryFile(
+                                dir=temp_dir, delete=False) as temp_file:
+                            temp_file.write(request_data)
+                            temp_file.flush()
 
-                    # Make it world writable so that the `subprocess` can write
-                    # the results to the file.
-                    os.chmod(temp_file.name, 0o666)
+                        # Make it world writable so that the `subprocess` can write
+                        # the results to the file.
+                        os.chmod(temp_file.name, 0o666)
 
-                    # We also must get to a directory where "nobody" can see (in
-                    # order to make MPI happy)
-                    save_dir = os.getcwd()
-                    os.chdir(pathlib.Path(temp_file.name).parent)
-                    cmd_list = build_command_list(temp_file.name)
-                    cmd_result = subprocess.run(cmd_list,
-                                                capture_output=False,
-                                                text=True)
-                    if cmd_result.returncode == 0:
-                        with open(temp_file.name, 'rb') as fp:
-                            result = json.load(fp)
-                    else:
-                        if cmd_result.returncode == 124:
-                            error_message = "Timeout occurred during execution."
+                        # We also must get to a directory where "nobody" can see (in
+                        # order to make MPI happy)
+                        save_dir = os.getcwd()
+                        os.chdir(pathlib.Path(temp_file.name).parent)
+                        cmd_list = build_command_list(temp_file.name)
+                        cmd_result = subprocess.run(cmd_list,
+                                                    capture_output=False,
+                                                    text=True)
+                        if cmd_result.returncode == 0:
+                            with open(temp_file.name, 'rb') as fp:
+                                result = json.load(fp)
                         else:
-                            error_message = f'Return code: {cmd_result.returncode}\n' + \
-                                            f'{cmd_result.stdout}\n' + \
-                                            f'{cmd_result.stderr}\n'
+                            if cmd_result.returncode == 124:
+                                error_message = "Timeout occurred during execution."
+                            else:
+                                error_message = f'Return code: {cmd_result.returncode}\n' + \
+                                                f'{cmd_result.stdout}\n' + \
+                                                f'{cmd_result.stderr}\n'
+                            result = {
+                                'status':
+                                    'json_request_runner.py returned an error',
+                                'errorMessage':
+                                    error_message
+                            }
+
+                        # Cleanup
+                        os.chdir(save_dir)
+                        if RUN_AS_NOBODY:
+                            if SUDO_FOUND:
+                                os.system('sudo pkill -9 -u nobody')
+                            else:
+                                os.system('pkill -9 -u nobody')
+                        os.remove(temp_file.name)
+                    else:
                         result = {
                             'status':
-                                'json_request_runner.py returned an error',
+                                'Invalid Request',
                             'errorMessage':
-                                error_message
+                                'Server does not support serializedCodeExecutionContext at this time'
                         }
-
-                    # Cleanup
-                    os.chdir(save_dir)
-                    if RUN_AS_NOBODY:
-                        if SUDO_FOUND:
-                            os.system('sudo pkill -9 -u nobody')
-                        else:
-                            os.system('pkill -9 -u nobody')
-                    os.remove(temp_file.name)
 
                     self.send_response(HTTPStatus.OK)
                     self.send_header('Content-Type', 'application/json')
@@ -263,6 +272,8 @@ if __name__ == "__main__":
     WATCHDOG_TIMEOUT_SEC = int(
         os.environ.get('WATCHDOG_TIMEOUT_SEC', WATCHDOG_TIMEOUT_SEC))
     RUN_AS_NOBODY = int(os.environ.get('RUN_AS_NOBODY', 0)) > 0
+    CUDAQ_SER_CODE_EXEC = int(
+        os.environ.get('CUDAQ_SER_CODE_EXEC', CUDAQ_SER_CODE_EXEC)) > 0
 
     temp_dir = tempfile.gettempdir()
     if RUN_AS_NOBODY:
