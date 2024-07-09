@@ -1616,7 +1616,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     // See if this is a custom unitary.
     std::string maybeUnitaryGenerator = funcName.str() + "_generator_";
     // Extract number of targets
-    size_t targetCount = 0;
+    std::size_t targetCount = 0;
     std::string genFuncName;
     for (auto name : customOperationNames) {
       if (name.first.find(maybeUnitaryGenerator) != std::string::npos) {
