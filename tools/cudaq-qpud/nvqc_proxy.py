@@ -201,13 +201,17 @@ class Server(http.server.SimpleHTTPRequestHandler):
                         with open(temp_file.name, 'rb') as fp:
                             result = json.load(fp)
                     else:
+                        if cmd_result.returncode == 124:
+                            error_message = "Timeout occurred during execution."
+                        else:
+                            error_message = f'Return code: {cmd_result.returncode}\n' + \
+                                            f'{cmd_result.stdout}\n' + \
+                                            f'{cmd_result.stderr}\n'
                         result = {
                             'status':
                                 'json_request_runner.py returned an error',
                             'errorMessage':
-                                f'Return code: {cmd_result.returncode}\n' +
-                                f'{cmd_result.stdout}\n' +
-                                f'{cmd_result.stderr}\n'
+                                error_message
                         }
 
                     # Cleanup
@@ -256,7 +260,8 @@ if __name__ == "__main__":
         NUM_GPUS = 0
     MPI_FOUND = (shutil.which('mpiexec') != None)
     SUDO_FOUND = (shutil.which('sudo') != None)
-    WATCHDOG_TIMEOUT_SEC = int(os.environ.get('WATCHDOG_TIMEOUT_SEC', 0))
+    WATCHDOG_TIMEOUT_SEC = int(
+        os.environ.get('WATCHDOG_TIMEOUT_SEC', WATCHDOG_TIMEOUT_SEC))
     RUN_AS_NOBODY = int(os.environ.get('RUN_AS_NOBODY', 0)) > 0
 
     temp_dir = tempfile.gettempdir()
