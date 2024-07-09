@@ -1261,9 +1261,8 @@ public:
     auto typeConverter = this->getTypeConverter();
 
     auto numParameters = op.getParameters().size();
-    if (numParameters != 0) {
+    if (numParameters) 
       op.emitOpError("Parameterized custom operations not yet supported.");
-    }
 
     auto arrType = cudaq::opt::getArrayType(context);
     auto qirArrayTy = cudaq::opt::getArrayType(context);
@@ -1314,7 +1313,8 @@ public:
     StringRef generatorName = sref.getRootReference();
     auto globalOp =
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
-    if (globalOp) {
+    if (!globalOp)
+      return op.emitOpError("global not found for custom op"); 
       auto complex64Ty =
           typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
       auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
