@@ -173,12 +173,12 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(find "$OPENSSL_INSTALL_PREFIX" 
   # Additional perl modules can be installed with cpan, e.g.
   # PERL_MM_USE_DEFAULT=1 ~/.perl5/bin/cpan App::cpanminus
 
-  wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
-  tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
+  wget https://www.openssl.org/source/openssl-3.3.1.tar.gz
+  tar -xf openssl-3.3.1.tar.gz && cd openssl-3.3.1
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
   ~/.perl5/bin/perl Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
   make && make install
-  cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 ~/.perl5
+  cd .. && rm -rf openssl-3.3.1.tar.gz openssl-3.3.1 ~/.perl5
   remove_temp_installs
 fi
 
