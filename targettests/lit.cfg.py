@@ -11,6 +11,7 @@ import platform
 import re
 import subprocess
 import sys
+import shutil
 import bisect
 
 import lit.util
@@ -75,3 +76,9 @@ llvm_config.with_system_environment(
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
+
+# Create some of the test inputs.
+target_config_origin = os.path.join(config.cudaq_src_dir, "runtime/cudaq/platform/default/rest/helpers/iqm")
+target_config_dest = os.path.join(config.cudaq_src_dir, "targettests")
+shutil.copy(os.path.join(target_config_origin, "Adonis.txt"), os.path.join(target_config_dest, "Adonis Variant.txt"))
+shutil.copy(os.path.join(target_config_origin, "Apollo.txt"), os.path.join(target_config_dest, "Apollo Variant.txt"))
