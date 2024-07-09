@@ -1215,6 +1215,9 @@ public:
   }
 };
 
+/// NOTE: This class currently targets simulator backends. On hardware targets
+/// the custom operations ought to be decomposed by a separate pass and should
+/// never reach here.
 class CustomUnitaryOpRewrite
     : public ConvertOpToLLVMPattern<quake::CustomUnitarySymbolOp> {
 public:
@@ -1226,28 +1229,28 @@ public:
                          ModuleOp parentModule, Value v) const {
     auto context = rewriter.getContext();
     auto qirArrayTy = cudaq::opt::getArrayType(context);
-    auto i8PtrTy = cudaq::opt::factory::getPointerType(context);
+    auto ptrTy = cudaq::opt::factory::getPointerType(context);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRArrayCreateArray, qirArrayTy,
         {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
     FlatSymbolRefAttr getSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
-            cudaq::opt::QIRArrayGetElementPtr1d, i8PtrTy,
+            cudaq::opt::QIRArrayGetElementPtr1d, ptrTy,
             {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
     Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
     Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
-    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
+    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 64);
     if (v.getType() != cudaq::opt::getQubitType(context))
       return v;
     auto createCall = rewriter.create<LLVM::CallOp>(
         loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
     auto result = createCall.getResult();
-    auto call = rewriter.create<LLVM::CallOp>(loc, i8PtrTy, getSymbolRef,
+    auto call = rewriter.create<LLVM::CallOp>(loc, ptrTy, getSymbolRef,
                                               ArrayRef<Value>{result, zero});
     Value pointer = rewriter.create<LLVM::BitcastOp>(
-        loc, cudaq::opt::factory::getPointerType(i8PtrTy), call.getResult());
-    auto cast = rewriter.create<LLVM::BitcastOp>(loc, i8PtrTy, v);
+        loc, cudaq::opt::factory::getPointerType(ptrTy), call.getResult());
+    auto cast = rewriter.create<LLVM::BitcastOp>(loc, ptrTy, v);
     rewriter.create<LLVM::StoreOp>(loc, cast, pointer);
     return result;
   }
@@ -1261,7 +1264,7 @@ public:
     auto typeConverter = this->getTypeConverter();
 
     auto numParameters = op.getParameters().size();
-    if (numParameters) 
+    if (numParameters)
       op.emitOpError("Parameterized custom operations not yet supported.");
 
     auto arrType = cudaq::opt::getArrayType(context);
@@ -1308,39 +1311,38 @@ public:
         controlArr = glue.getResult();
       }
     }
+
     // Fetch the unitary matrix generator for this custom operation
     auto sref = op.getGenerator();
     StringRef generatorName = sref.getRootReference();
     auto globalOp =
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
     if (!globalOp)
-      return op.emitOpError("global not found for custom op"); 
-      auto complex64Ty =
-          typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
-      auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
-      Type type = getTypeConverter()->convertType(globalOp.getType());
-      auto addrOp =
-          rewriter.create<LLVM::AddressOfOp>(loc, type, generatorName);
-      auto unitaryData =
-          rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
+      return op.emitOpError("global not found for custom op");
 
-      auto qirFunctionName =
-          std::string{cudaq::opt::QIRCustomOp} + (op.isAdj() ? "__adj" : "");
+    auto complex64Ty =
+        typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
+    auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
+    Type type = getTypeConverter()->convertType(globalOp.getType());
+    auto addrOp = rewriter.create<LLVM::AddressOfOp>(loc, type, generatorName);
+    auto unitaryData =
+        rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
 
-      FlatSymbolRefAttr customSymbolRef =
-          cudaq::opt::factory::createLLVMFunctionSymbol(
-              qirFunctionName, LLVM::LLVMVoidType::get(context),
-              {complex64PtrTy, cudaq::opt::getArrayType(context),
-               cudaq::opt::getArrayType(context)},
-              parentModule);
+    auto qirFunctionName =
+        std::string{cudaq::opt::QIRCustomOp} + (op.isAdj() ? "__adj" : "");
 
-      rewriter.replaceOpWithNewOp<LLVM::CallOp>(
-          op, TypeRange{}, customSymbolRef,
-          ValueRange{unitaryData, controlArr, targetArr});
+    FlatSymbolRefAttr customSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            qirFunctionName, LLVM::LLVMVoidType::get(context),
+            {complex64PtrTy, cudaq::opt::getArrayType(context),
+             cudaq::opt::getArrayType(context)},
+            parentModule);
 
-      return success();
-    }
-    return failure();
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        op, TypeRange{}, customSymbolRef,
+        ValueRange{unitaryData, controlArr, targetArr});
+
+    return success();
   }
 };
 } // namespace
