@@ -53,9 +53,15 @@ struct VerifyNVQIRCallOpsPass
 
     func.walk([&](Operation *op) {
       if (auto call = dyn_cast<LLVM::CallOp>(op)) {
-        auto funcName = call.getCalleeAttr().getValue();
-        if (!isKnownFunctionName(funcName)) {
-          call.emitOpError("unexpected function call in NVQIR: " + funcName);
+        if (auto calleeAttr = call.getCalleeAttr()) {
+          auto funcName = calleeAttr.getValue();
+          if (!isKnownFunctionName(funcName)) {
+            call.emitOpError("unexpected function call in NVQIR: " + funcName);
+            passFailed = true;
+            return WalkResult::interrupt();
+          }
+        } else {
+          call.emitOpError("unexpected indirect call in NVQIR");
           passFailed = true;
           return WalkResult::interrupt();
         }
