@@ -574,6 +574,8 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
   auto ctrlsVec = arrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
+  if (numQubits >= 64)
+    throw std::invalid_argument("Too many qubits (>=64), not supported");
   auto nToPowTwo = (1ULL << numQubits);
   auto numElements = nToPowTwo * nToPowTwo;
   std::vector<std::complex<double>> unitaryMatrix(unitary,
@@ -588,6 +590,8 @@ void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
   auto ctrlsVec = arrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
+  if (numQubits >= 64)
+    throw std::invalid_argument("Too many qubits (>=64), not supported");
   auto nToPowTwo = (1ULL << numQubits);
 
   std::vector<std::vector<std::complex<double>>> unitaryConj2D;
