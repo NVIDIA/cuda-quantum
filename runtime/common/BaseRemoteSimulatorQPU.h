@@ -12,12 +12,25 @@
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
+#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <fstream>
 
 namespace cudaq {
+
+// TODO - Remove this once the public NVQC deployment supports this capability.
+static inline bool serializedCodeExecOverride() {
+  if (auto envVal = std::getenv("CUDAQ_SER_CODE_EXEC")) {
+    std::string tmp(envVal);
+    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
+      return true;
+  }
+  return false;
+}
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
@@ -43,6 +56,11 @@ public:
 
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
+
+  // Remote serializable code is executed fully on the server without the need
+  // to go back and forth in between observe calls (see
+  // launchSerializedCodeExecution).
+  virtual bool supportsRemoteSerializedCode() override { return true; }
 
   virtual void setTargetBackend(const std::string &backend) override {
     auto parts = cudaq::split(backend, ';');
@@ -92,8 +110,48 @@ public:
         executionContextPtr ? *executionContextPtr : defaultContext;
     std::string errorMsg;
     const bool requestOkay =
-        m_client->sendRequest(*m_mlirContext, executionContext, m_simName, name,
-                              kernelFunc, args, voidStarSize, &errorMsg);
+        m_client->sendRequest(*m_mlirContext, executionContext,
+                              /*serializedCodeContext=*/nullptr, m_simName,
+                              name, kernelFunc, args, voidStarSize, &errorMsg);
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+  }
+
+  void
+  launchSerializedCodeExecution(const std::string &name,
+                                cudaq::SerializedCodeExecutionContext
+                                    &serializeCodeExecutionObject) override {
+    cudaq::info(
+        "BaseRemoteSimulatorQPU: Launch remote code named '{}' remote QPU {} "
+        "(simulator = {})",
+        name, qpu_id, m_simName);
+
+    cudaq::ExecutionContext *executionContextPtr =
+        [&]() -> cudaq::ExecutionContext * {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      const auto iter = m_contexts.find(std::this_thread::get_id());
+      if (iter == m_contexts.end())
+        return nullptr;
+      return iter->second;
+    }();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer") {
+      return;
+    }
+
+    // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
+    // was set before launching the kernel. Use a static variable per thread to
+    // set up a single-shot execution context for this case.
+    static thread_local cudaq::ExecutionContext defaultContext("sample",
+                                                               /*shots=*/1);
+    cudaq::ExecutionContext &executionContext =
+        executionContextPtr ? *executionContextPtr : defaultContext;
+
+    std::string errorMsg;
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, executionContext, &serializeCodeExecutionObject,
+        m_simName, name, /*kernelFunc=*/nullptr, /*args=*/nullptr,
+        /*voidStarSize=*/0, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
@@ -180,6 +238,14 @@ public:
       clientConfigs.emplace("ngpus", ngpus);
 
     m_client->setConfig(clientConfigs);
+  }
+
+  // Remote serializable code is executed fully on the server without the need
+  // to go back and forth in between observe calls (see
+  // launchSerializedCodeExecution).
+  // TODO - set this to true when NVQC supports this.
+  virtual bool supportsRemoteSerializedCode() override {
+    return serializedCodeExecOverride();
   }
 
 protected:
