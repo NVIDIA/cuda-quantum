@@ -28,6 +28,9 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
+
+static constexpr const char ReadOnlySuffix[] = ".rodata";
+
 class AllocaPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
   explicit AllocaPattern(MLIRContext *ctx, DominanceInfo &di,
@@ -68,7 +71,8 @@ public:
       // static unsigned counter = 0;
       auto ptrTy = cudaq::cc::PointerType::get(arrTy);
       // Build a new name based on the kernel name.
-      std::string name = funcName + ".rodata"; //_" + std::to_string(counter++);
+      /// FIXME: Add a unique identifier per set of parameters
+      std::string name = funcName + ReadOnlySuffix;
       {
         OpBuilder::InsertionGuard guard(rewriter);
         if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
@@ -334,7 +338,7 @@ public:
     auto parentModule = customOp->getParentOfType<ModuleOp>();
 
     auto ccGlobalOp = parentModule.lookupSymbol<cudaq::cc::GlobalOp>(
-        generatorName.str() + ".rodata");
+        generatorName.str() + ReadOnlySuffix);
 
     if (ccGlobalOp) {
       /// ASKME: Is this okay or should we create a new operation?
