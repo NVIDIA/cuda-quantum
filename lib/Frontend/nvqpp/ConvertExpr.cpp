@@ -1675,11 +1675,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto negs =
             negatedControlsAttribute(builder.getContext(), ctrls, negations);
         SmallVector<Value> params;
-        for (auto p : operands.take_front(paramCount)) {
-          if (p.getType().isa<cudaq::cc::PointerType>()) {
+        for (auto p : operands.take_front(paramCount)) 
+          if (p.getType().isa<cudaq::cc::PointerType>()) 
             params.push_back(builder.create<cudaq::cc::LoadOp>(loc, p));
-          }
-        }
         builder.create<quake::CustomUnitarySymbolOp>(
             loc, srefAttr, isAdjoint, params, ctrls, targets, negs);
       }
