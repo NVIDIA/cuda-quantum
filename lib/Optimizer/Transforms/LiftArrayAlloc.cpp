@@ -381,7 +381,3 @@ public:
   }
 };
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createLiftArrayAllocPass() {
-  return std::make_unique<LiftArrayAllocPass>();
-}
