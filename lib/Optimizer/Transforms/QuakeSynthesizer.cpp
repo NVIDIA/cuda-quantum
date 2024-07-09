@@ -455,11 +455,9 @@ public:
     // Keep track of the stdVec sizes.
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
 
-    for (auto iter : llvm::enumerate(arguments)) {
-      if (iter.index() < startingArgIdx)
-        continue;
-      auto argNum = iter.index();
-      auto argument = iter.value();
+    for (std::size_t argNum = startingArgIdx, end = arguments.size();
+         argNum < end; argNum++) {
+      auto argument = arguments[argNum];
       std::size_t offset = structLayout.second[argNum - startingArgIdx];
 
       // Get the argument type

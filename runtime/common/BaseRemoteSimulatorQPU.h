@@ -53,6 +53,16 @@ protected:
   std::unique_ptr<mlir::MLIRContext> m_mlirContext;
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
 
+  /// @brief Return a pointer to the execution context for this thread. It will
+  /// return `nullptr` if it was not found in `m_contexts`.
+  cudaq::ExecutionContext *getExecutionContextForMyThread() {
+    std::scoped_lock<std::mutex> lock(m_contextMutex);
+    const auto iter = m_contexts.find(std::this_thread::get_id());
+    if (iter == m_contexts.end())
+      return nullptr;
+    return iter->second;
+  }
+
 public:
   BaseRemoteSimulatorQPU()
       : QPU(),
@@ -100,13 +110,7 @@ public:
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer")
       return;
@@ -135,13 +139,7 @@ public:
         name, qpu_id, m_simName);
 
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
       return;
@@ -173,13 +171,7 @@ public:
         name, qpu_id, m_simName);
 
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
       return;

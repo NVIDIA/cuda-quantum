@@ -27,13 +27,7 @@ public:
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
 
     auto *wrapper = reinterpret_cast<const cudaq::ArgWrapper *>(kernelArgs);
     auto m_module = wrapper->mod;
@@ -70,13 +64,8 @@ public:
     auto *mlirContext = m_module->getContext();
 
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
+
     // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
     // was set before launching the kernel. Use a static variable per thread to
     // set up a single-shot execution context for this case.
@@ -120,13 +109,8 @@ public:
     auto *mlirContext = m_module->getContext();
 
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
+
     // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
     // was set before launching the kernel. Use a static variable per thread to
     // set up a single-shot execution context for this case.

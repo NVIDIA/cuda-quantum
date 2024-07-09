@@ -63,14 +63,21 @@ bool isArgumentStdVec(MlirModule &module, const std::string &kernelName,
   return isa<cudaq::cc::StdvecType>(kernel.getArgument(argIdx).getType());
 }
 
-/// @brief Run `cudaq::observe` on the provided kernel and spin operator.
-observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
-                         py::args args, const int shots,
-                         bool argMapperProvided = false) {
+/// @brief Return the kernel name and MLIR module for a kernel.
+static inline std::pair<std::string, MlirModule>
+getKernelNameAndModule(py::object &kernel) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  return std::make_pair(kernelName, kernelMod);
+}
+
+/// @brief Run `cudaq::observe` on the provided kernel and spin operator.
+observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
+                         py::args args, const int shots,
+                         bool argMapperProvided = false) {
+  auto [kernelName, kernelMod] = getKernelNameAndModule(kernel);
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
@@ -108,10 +115,7 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
 /// implementation that requires the variation parameters to be the first
 /// argument in the kernel.
 static bool firstArgIsCompatibleWithRemoteVQE(py::object &kernel) {
-  if (py::hasattr(kernel, "compile"))
-    kernel.attr("compile")();
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto [kernelName, kernelMod] = getKernelNameAndModule(kernel);
   auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
   if (kernelFunc.getNumArguments() < 1)
     return false;
@@ -132,11 +136,7 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
                  spin_op &hamiltonian, cudaq::optimizer &optimizer,
                  cudaq::gradient *gradient, py::function *argumentMapper,
                  const int n_params, const int shots) {
-
-  if (py::hasattr(kernel, "compile"))
-    kernel.attr("compile")();
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto [kernelName, kernelMod] = getKernelNameAndModule(kernel);
   auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
   ctx->kernelName = kernelName;
   ctx->spin = &hamiltonian;

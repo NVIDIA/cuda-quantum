@@ -15,6 +15,28 @@
 
 namespace cudaq {
 
+/// \brief This is an internal helper function to reduce duplicated code in the
+/// user-facing `vqe()` functions below. Users should not directly call this
+/// function.
+template <typename QuantumKernel, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>>>
+static inline optimization_result
+remote_vqe(cudaq::quantum_platform &platform, QuantumKernel &&kernel,
+           cudaq::spin_op &H, cudaq::optimizer &optimizer,
+           cudaq::gradient *gradient, const int n_params,
+           const std::size_t shots, Args &&...args) {
+  auto ctx = std::make_unique<ExecutionContext>("observe", shots);
+  ctx->kernelName = cudaq::getKernelName(kernel);
+  ctx->spin = &H;
+  platform.set_exec_ctx(ctx.get());
+  auto serializedArgsBuffer = serializeArgs(args...);
+  platform.launchVQE(ctx->kernelName, serializedArgsBuffer.data(), gradient, H,
+                     optimizer, n_params, shots);
+  platform.reset_exec_ctx();
+  return ctx->optResult.value_or(optimization_result{});
+}
+
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE.
 ///
@@ -73,19 +95,9 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
   }
 
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe()) {
-    auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
-    ctx->kernelName = cudaq::getKernelName(kernel);
-    ctx->spin = &H;
-    platform.set_exec_ctx(ctx.get());
-    auto serializedArgsBuffer = serializeArgs(args...);
-    platform.launchVQE(cudaq::getKernelName(kernel),
-                       /*kernelArgs=*/serializedArgsBuffer.data(),
-                       /*gradient=*/nullptr, H, optimizer, n_params,
-                       /*shots=*/0);
-    platform.reset_exec_ctx();
-    return ctx->optResult.value_or(optimization_result{});
-  }
+  if (platform.supports_remote_vqe())
+    return remote_vqe(platform, kernel, H, optimizer, /*gradient=*/nullptr,
+                      n_params, /*shots=*/0, args...);
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -153,19 +165,9 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
   }
 
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe()) {
-    auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/shots);
-    ctx->kernelName = cudaq::getKernelName(kernel);
-    ctx->spin = &H;
-    platform.set_exec_ctx(ctx.get());
-    auto serializedArgsBuffer = serializeArgs(args...);
-    platform.launchVQE(cudaq::getKernelName(kernel),
-                       serializedArgsBuffer.data(), /*gradient=*/nullptr, H,
-                       optimizer, n_params,
-                       /*shots=*/shots);
-    platform.reset_exec_ctx();
-    return ctx->optResult.value_or(optimization_result{});
-  }
+  if (platform.supports_remote_vqe())
+    return remote_vqe(platform, kernel, H, optimizer, /*gradient=*/nullptr,
+                      n_params, shots, args...);
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -234,19 +236,9 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
       "std::tuple<Args...>(std::vector<double>) ArgMapper function object.");
 
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe()) {
-    auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
-    ctx->kernelName = cudaq::getKernelName(kernel);
-    ctx->spin = &H;
-    platform.set_exec_ctx(ctx.get());
-    auto serializedArgsBuffer = serializeArgs(args...);
-    platform.launchVQE(cudaq::getKernelName(kernel),
-                       /*kernelArgs=*/serializedArgsBuffer.data(), &gradient, H,
-                       optimizer, n_params,
-                       /*shots=*/0);
-    platform.reset_exec_ctx();
-    return ctx->optResult.value_or(optimization_result{});
-  }
+  if (platform.supports_remote_vqe())
+    return remote_vqe(platform, kernel, H, optimizer, &gradient, n_params,
+                      /*shots=*/0, args...);
 
   auto requires_grad = optimizer.requiresGradients();
   // If there are additional arguments, we need to clone the gradient and
