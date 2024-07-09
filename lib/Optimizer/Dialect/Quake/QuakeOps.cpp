@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/SmallPtrSet.h"
