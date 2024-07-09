@@ -301,6 +301,7 @@ COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
 RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
     . /cuda-quantum/scripts/configure_build.sh install-cudart && \
     dnf install -y --nobest --setopt=install_weak_deps=False \
+        libstdc++-static \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
         libcublas-devel-$(echo ${CUDA_VERSION} | tr . -)
