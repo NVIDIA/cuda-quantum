@@ -1632,9 +1632,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         std::size_t count = 0;
         for (auto arg : args) {
           auto argTy = arg.getType();
-          if (isa<FloatType>(argTy))
+          if (isa<FloatType>(argTy)) {
             count++;
-          else if (auto ptrTy = dyn_cast<cc::PointerType>(argTy)) {
+          } else if (auto ptrTy = dyn_cast<cc::PointerType>(argTy)) {
             if (isa<FloatType>(ptrTy.getElementType()))
               count++;
           }
