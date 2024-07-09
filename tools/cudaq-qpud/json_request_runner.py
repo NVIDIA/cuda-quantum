@@ -152,7 +152,12 @@ if __name__ == "__main__":
             'deviceProps': deviceProps
         }
         result['executionInfo'] = executionInfo
-
+    except Exception as e:
+        result = {
+            'status': 'Failed to process incoming request',
+            'errorMessage': str(e)
+        }
+    finally:
         # Only rank 0 writes the result to the output file
         if not (cudaq.mpi.is_initialized()) or (cudaq.mpi.rank() == 0):
             with open(jsonFile, 'w') as fp:
@@ -161,14 +166,3 @@ if __name__ == "__main__":
 
         if cudaq.mpi.is_initialized():
             cudaq.mpi.finalize()
-
-    except Exception as e:
-        result = {
-            'status': 'Failed to process incoming request',
-            'errorMessage': str(e)
-        }
-        # Only rank 0 prints the result
-        if not (cudaq.mpi.is_initialized()) or (cudaq.mpi.rank() == 0):
-            with open(jsonFile, 'w') as fp:
-                json.dump(result, fp)
-                fp.flush()
