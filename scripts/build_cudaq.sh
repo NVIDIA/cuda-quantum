@@ -127,7 +127,10 @@ fi
 
 # Determine CUDA flags
 if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
-  CUDAFLAGS='-allow-unsupported-compiler --compiler-options --stdlib=libstdc++ --linker-options --as-needed'
+  CUDAFLAGS='-allow-unsupported-compiler'
+  if [ -x "$CXX" ] && [ -n "$("$CXX" --version | grep -i clang)" ]; then
+    CUDAFLAGS+=" --compiler-options --stdlib=libstdc++"
+  fi
   if [ -d "$GCC_TOOLCHAIN" ]; then 
     # e.g. GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
     CUDAFLAGS+=" --compiler-options --gcc-toolchain=\"$GCC_TOOLCHAIN\""
