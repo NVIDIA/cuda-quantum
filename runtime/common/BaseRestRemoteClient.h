@@ -685,11 +685,14 @@ public:
     static const std::vector<std::string> DISALLOWED_EXECUTION_CONTEXT = {
         "tracer"};
 
-    if (std::find(DISALLOWED_EXECUTION_CONTEXT.begin(), DISALLOWED_EXECUTION_CONTEXT.end(),
-                    io_context.name) != DISALLOWED_EXECUTION_CONTEXT.end()) {
-      std::cout <<
-          io_context.name + std::string(
-              " operation is not supported with cudaq target nvqc!") << std::endl;
+    if (std::find(DISALLOWED_EXECUTION_CONTEXT.begin(),
+                  DISALLOWED_EXECUTION_CONTEXT.end(),
+                  io_context.name) != DISALLOWED_EXECUTION_CONTEXT.end()) {
+      std::cout
+          << io_context.name +
+                 std::string(
+                     " operation is not supported with cudaq target nvqc!")
+          << std::endl;
       return true;
     }
 
