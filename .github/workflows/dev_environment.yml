@@ -129,7 +129,7 @@ jobs:
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
           fi
 
-          repo_owner=${{ github.repository_owner }}
+          repo_owner=${{ github.actor }}
           registry=${{ vars.registry || 'localhost:5000' }}
           build_target=${{ inputs.build_target }}
           image_id=`basename ${{ inputs.dockerfile }} .Dockerfile`${build_target:+.$build_target}
@@ -212,7 +212,12 @@ jobs:
 
       - name: Set up context for buildx
         run: |
-          docker context create builder_context
+          if ! docker context inspect builder_context > /dev/null 2>&1; then
+            echo "Context 'builder_context' does not exist. Creating it..."
+            docker context create builder_context
+          else
+            echo "Context 'builder_context' already exists. No need to create."
+          fi
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
