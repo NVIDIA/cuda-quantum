@@ -292,7 +292,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
-    filtered=" --filter-out execution/sim_gate_timing|Kernel/inline-qpu-func" && \
+    filtered=" --filter-out Kernel/inline-qpu-func" && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
