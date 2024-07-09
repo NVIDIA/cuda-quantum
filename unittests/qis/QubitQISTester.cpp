@@ -443,7 +443,7 @@ CUDAQ_REGISTER_OPERATION(
 CUDAQ_REGISTER_OPERATION(CustomSwap, 2, 0,
                          {1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1})
 
-CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
+CUDAQ_TEST(CustomUnitaryTester, checkBasic) {
   {
     auto kernel = []() {
       cudaq::qubit q, r;
@@ -493,6 +493,10 @@ CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
     }
     EXPECT_EQ(counter, 1000);
   }
+}
+
+/// NOTE: This is supported only in library mode
+CUDAQ_TEST(CustomUnitaryTester, checkParameterized) {
   {
     // parameterized op, custom u3
     auto check_x = []() {
@@ -548,6 +552,9 @@ CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
       EXPECT_TRUE(bits == "0");
     }
   }
+}
+
+CUDAQ_TEST(CustomUnitaryTester, checkMultiQubitOps) {
   {
     // Test swap operation
     auto kernel = []() {
@@ -601,7 +608,6 @@ CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
     }
     EXPECT_EQ(counter, 1000);
   }
-
   {
     // Test controlled swap operation
     auto kernel = []() {
@@ -636,4 +642,5 @@ CUDAQ_TEST(CustomUnitaryTester, checkSimple) {
   }
 #endif
 }
+
 #endif
