@@ -105,11 +105,12 @@ def test_three_qubit_op():
     assert counts["110"] == 1000
 
 
-# NOTE / [SKIP_TEST]: Following doesn't work on Ubuntu, RedHat and OpenSuse for
-# 'tensornet' (works on Debian and Fedora)
+# NOTE / [SKIP_TEST]: The following test crashes in the 'Validate Python wheel (amd64 / x86)'
+# stage on Ubuntu, RedHat and OpenSuse for 'tensornet' and 'tensornet-mps' backends
+# (works on Debian and Fedora, and on all for arm64 in CI, and locally).
 @pytest.mark.parametrize("target", [
     'density-matrix-cpu', 'nvidia', 'nvidia-fp64', 'nvidia-mqpu',
-    'nvidia-mqpu-fp64', 'qpp-cpu', 'tensornet-mps'
+    'nvidia-mqpu-fp64', 'qpp-cpu'
 ])
 def test_simulators(target):
     """Test simulation of custom operation on all available simulation targets."""
@@ -125,8 +126,7 @@ def test_simulators(target):
     if can_set_target(target):
         test_basic()
         test_cnot_gate()
-        if not target == 'tensornet-mps':
-            test_three_qubit_op()
+        test_three_qubit_op()
         cudaq.reset_target()
     else:
         pytest.skip("target not available")
