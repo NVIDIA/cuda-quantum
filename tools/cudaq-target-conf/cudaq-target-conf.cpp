@@ -93,7 +93,7 @@ struct ScalarEnumerationTraits<ArgumentType> {
     io.enumCase(value, "string", String);
     io.enumCase(value, "integer", Int);
     io.enumCase(value, "uuid", UUID);
-    io.enumCase(value, "feature-flags", FeatureFlag);
+    io.enumCase(value, "option-flags", FeatureFlag);
   }
 };
 } // namespace yaml
@@ -160,6 +160,26 @@ struct BlockScalarTraits<SimulationBackendSetting> {
 } // namespace yaml
 } // namespace llvm
 
+struct ConditionalBuildConfig {
+  std::string Condition;
+  std::string CompileFlag;
+  std::string LinkFlag;
+};
+
+namespace llvm {
+namespace yaml {
+template <>
+struct MappingTraits<ConditionalBuildConfig> {
+  static void mapping(IO &io, ConditionalBuildConfig &info) {
+    io.mapRequired("if", info.Condition);
+    io.mapOptional("compiler-flag", info.CompileFlag);
+    io.mapOptional("link-flag", info.LinkFlag);
+  }
+};
+} // namespace yaml
+} // namespace llvm
+LLVM_YAML_IS_SEQUENCE_VECTOR(ConditionalBuildConfig)
+
 struct BackendEndConfigEntry {
   std::optional<bool> GenTargetBackend;
   std::optional<bool> LibraryMode;
@@ -174,7 +194,7 @@ struct BackendEndConfigEntry {
   std::vector<std::string> LinkLibs;
   std::vector<std::string> LinkerFlags;
   SimulationBackendSetting SimulationBackend;
-  std::string ConfigBashCommands;
+  std::vector<ConditionalBuildConfig> ConditionalBuildConfigs;
 };
 
 namespace llvm {
@@ -196,7 +216,7 @@ struct MappingTraits<BackendEndConfigEntry> {
     io.mapOptional("link-libs", info.LinkLibs);
     io.mapOptional("linker-flags", info.LinkerFlags);
     io.mapOptional("nvqir-simulation-backend", info.SimulationBackend);
-    io.mapOptional("bash", info.ConfigBashCommands);
+    io.mapOptional("rules", info.ConditionalBuildConfigs);
   }
 };
 } // namespace yaml
@@ -215,7 +235,7 @@ template <>
 struct MappingTraits<BackendFeatureMap> {
   static void mapping(IO &io, BackendFeatureMap &info) {
     io.mapRequired("name", info.Name);
-    io.mapRequired("feature-flags", info.Flags);
+    io.mapRequired("option-flags", info.Flags);
     io.mapOptional("default", info.Default);
     io.mapRequired("config", info.Config);
   }
@@ -335,12 +355,21 @@ std::string processSimBackendConfig(const std::string &targetName,
     output << "else\n";
     output << "  error_exit=\"Unable to find NVQIR simulator lib for target "
            << targetName << ". Please check your installation.\"\n";
-    output << "fi";
+    output << "fi\n";
   }
 
-  if (!configValue.ConfigBashCommands.empty()) {
-    output << configValue.ConfigBashCommands << "\n";
+  for (const auto &rule : configValue.ConditionalBuildConfigs) {
+    output << "if [[ " << rule.Condition << " ]]; then\n";
+    if (!rule.CompileFlag.empty()) {
+      output << "  COMPILER_FLAGS=\"${COMPILER_FLAGS} " << rule.CompileFlag
+             << "\"\n";
+    }
+    if (!rule.LinkFlag.empty()) {
+      output << "  LINKER_FLAGS=\"${LINKER_FLAGS} " << rule.LinkFlag << "\"\n";
+    }
+    output << "fi\n";
   }
+
   return output.str();
 }
 
@@ -412,9 +441,10 @@ std::string processRuntimeArgs(const TargetConfig &config,
           return entry.Default.has_value() && entry.Default.value();
         });
 
-    const uint64_t defaultFlag = (defaultFeatureIter != config.ConfigMap.end())
-                                     ? defaultFeatureIter->Flags
-                                     : 0;
+    const uint64_t defaultFlag =
+        (defaultFeatureIter != config.ConfigMap.end())
+            ? static_cast<uint64_t>(defaultFeatureIter->Flags)
+            : 0;
 
     const auto iter = [&]() {
       // If the command line set the feature flag, find it in the config map.

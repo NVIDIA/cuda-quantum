@@ -13,13 +13,13 @@ name: nvidia
 gpu-requirements: true
 
 target-arguments:
-  - key: feature
+  - key: option
     required: false
-    type: feature-flags
+    type: option-flags
 
 configuration-matrix:
   - name: single-gpu-fp32
-    feature-flags: [fp32]
+    option-flags: [fp32]
     default: true
     config:
       # This can be a string or a list.
@@ -28,28 +28,28 @@ configuration-matrix:
       nvqir-simulation-backend: cusvsim-fp32, custatevec-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
   - name: single-gpu-fp64
-    feature-flags: [fp64]
+    option-flags: [fp64]
     config:
       nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
   - name: multi-gpu-fp32
-    feature-flags: [fp32, mgpu]
+    option-flags: [fp32, mgpu]
     config:
       nvqir-simulation-backend: nvidia-mgpu-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
   - name: multi-gpu-fp64
-    feature-flags: [fp64, mgpu]
+    option-flags: [fp64, mgpu]
     config:
       nvqir-simulation-backend: nvidia-mgpu
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
   - name: multi-qpu-fp32
-    feature-flags: [fp32, mqpu]
+    option-flags: [fp32, mqpu]
     config:
       nvqir-simulation-backend: cusvsim-fp32, custatevec-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
       platform-library: mqpu
   - name: multi-qpu-fp64
-    feature-flags: [fp64, mqpu]
+    option-flags: [fp64, mqpu]
     config:
       platform-library: mqpu
       nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
