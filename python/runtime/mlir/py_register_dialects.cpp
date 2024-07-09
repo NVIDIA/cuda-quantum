@@ -19,7 +19,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/InitAllDialects.h"
-
 #include <fmt/core.h>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
