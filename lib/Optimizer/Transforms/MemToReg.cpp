@@ -423,8 +423,11 @@ public:
             // unsafe call here because liveInMap should already have a binding
             // for memref to the promoted load value. That binding will be
             // overwritten.
-            for (auto memref : liveOutSet)
+            for (auto memref : liveOutSet) {
+              if (onlyLinearTypes && !isLinearType(promotedDefs[memref]))
+                continue;
               unsafeAddLiveInToBlock(block, memref);
+            }
             blockSet.insert(block);
             worklist.push_back(block);
             appendToWorklist(worklist, getPredecessors(block));
