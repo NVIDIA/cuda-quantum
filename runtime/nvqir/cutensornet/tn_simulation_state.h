@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -22,6 +22,7 @@ class TensorNetSimulationState : public cudaq::SimulationState {
 
 public:
   TensorNetSimulationState(std::unique_ptr<TensorNetState> inState,
+                           ScratchDeviceMem &inScratchPad,
                            cutensornetHandle_t cutnHandle);
 
   TensorNetSimulationState(const TensorNetSimulationState &) = delete;
@@ -70,8 +71,8 @@ public:
 
 protected:
   std::unique_ptr<TensorNetState> m_state;
+  ScratchDeviceMem &scratchPad;
   cutensornetHandle_t m_cutnHandle;
-  ScratchDeviceMem m_scratchPad;
   // Max number of qubits whereby the tensor network state should be contracted
   // and cached into a state vector.
   // This speeds up sequential state amplitude accessors for small states.

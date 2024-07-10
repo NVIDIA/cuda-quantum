@@ -680,7 +680,7 @@ func.func @cc_struct() {
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_7]][1, 4, 3] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>) -> !cc.ptr<i64>
 // CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_7]][1, %[[VAL_4]], 1] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>, i32) -> !cc.ptr<i16>
 // CHECK:           %[[VAL_10:.*]] = cc.const_array [1.000000e+00, 2.000000e+00] : !cc.array<f32 x 2>
-// CHECK:           %[[VAL_11:.*]] = cc.get_const_element %[[VAL_10]], %[[VAL_4]] : (!cc.array<f32 x 2>, i32) -> f32
+// CHECK:           %[[VAL_11:.*]] = cc.extract_value %[[VAL_10]][%[[VAL_4]]] : (!cc.array<f32 x 2>, i32) -> f32
 // CHECK:   %[[VAL_12:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i32
 // CHECK:   %[[VAL_13:.*]] = cc.sizeof !cc.struct<{f64, f32}> : i64
 // CHECK:           return
@@ -698,7 +698,7 @@ func.func @cc_indexing(%arg0 : !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f
   %p = cc.compute_ptr %ss[1, 4, 3] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>) -> !cc.ptr<i64>
   %q = cc.compute_ptr %ss[1, %one, 1] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>, i32) -> !cc.ptr<i16>
   %arr = cc.const_array [1.0, 2.0] : !cc.array<f32 x 2>
-  %ele = cc.get_const_element %arr, %one : (!cc.array<f32 x 2>, i32) -> f32
+  %ele = cc.extract_value %arr[%one] : (!cc.array<f32 x 2>, i32) -> f32
   %size1 = cc.sizeof !cc.struct<{i32, f64}> : i32
   %size2 = cc.sizeof !cc.struct<{f64, f32}> : i64
   return
@@ -734,3 +734,46 @@ func.func @ssi_if(%arg0: i1) {
 // CHECK:           quake.sink %[[VAL_10]]#0 : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+quake.wire_set @phys [8]
+
+quake.wire_set @phys_ed [4] adjacency
+  sparse<[[0, 1], [1, 2], [2, 3]], true> : tensor<4x4xi1>
+
+func.func @phys_hoops() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = quake.borrow_wire @phys_ed[3] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %2#0 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:  quake.wire_set @phys[8]
+// CHECK-LABEL:  quake.wire_set @phys_ed[4] adjacency sparse<
+// CHECK-SAME:    {{\[}}[0, 1], [1, 2], [2, 3]], true> : tensor<4x4xi1>
+// CHECK-LABEL:  func.func @phys_hoops() {
+// CHECK:    %[[VAL_0:.*]] = quake.borrow_wire @phys[0] : !quake.wire
+// CHECK:    %[[VAL_1:.*]] = quake.borrow_wire @phys_ed[3] : !quake.wire
+// CHECK:    %[[VAL_2:.*]]:2 = quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:    quake.return_wire %[[VAL_2]]#0 : !quake.wire
+// CHECK:    quake.return_wire %[[VAL_2]]#1 : !quake.wire
+// CHECK:    return
+// CHECK:  }
+
+func.func @offsets() {
+  %0 = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+  %1 = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+  %2 = cc.offsetof !cc.struct<{i32, f64, complex<f64>}> [2,1] : i64
+  %3 = cc.offsetof !cc.array<!cc.struct<{i32, f64}> x 100> [86, 1] : i64
+  %4 = cc.offsetof !cc.array<!cc.struct<{i32, f64}> x 100> [0, 0] : i64
+  return
+}
+
+// CHECK-LABEL:   func.func @offsets() {
+// CHECK:           %[[VAL_0:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+// CHECK:           %[[VAL_1:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+// CHECK:           %[[VAL_2:.*]] = cc.offsetof !cc.struct<{i32, f64, complex<f64>}> [2, 1] : i64
+// CHECK:           %[[VAL_3:.*]] = cc.offsetof !cc.array<!cc.struct<{i32, f64}> x 100> [86, 1] : i64
+// CHECK:           %[[VAL_4:.*]] = cc.offsetof !cc.array<!cc.struct<{i32, f64}> x 100> [0, 0] : i64
+// CHECK:           return
