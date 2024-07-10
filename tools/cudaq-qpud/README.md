@@ -30,8 +30,10 @@ manually restart it if you want to invoke it again.
 If you want to run the server in a fully "contained" environment like it is run
 for NVQC, then you can perform the following steps.
 
-1. Build your NVQC server Docker container using this command: `docker build -t nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom -f docker/release/cudaq.nvqc.Dockerfile .`
-2. Launch the server on your local machine: `docker run -it --rm --gpus all --network=host -e NVQC_REST_PAYLOAD_VERSION=1 -e NUM_GPUS=1 -e WATCHDOG_TIMEOUT_SEC=3600 -e RUN_AS_NOBODY=1 nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom`
+1. Build your NVQC server Docker container using this command:
+`docker build -t nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom -f docker/release/cudaq.nvqc.Dockerfile .`
+2. Launch the server on your local machine:
+`docker run -it --rm --gpus all --network=host -e NVQC_REST_PAYLOAD_VERSION=1 -e NUM_GPUS=1 -e WATCHDOG_TIMEOUT_SEC=3600 -e RUN_AS_NOBODY=1 nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom`
    - Note: You need to set the environment variables as intended for your
     environment. If you are running on a multi-GPU machine, you may
     want to set `NUM_GPUS=4` (updating `4` to the correct number for your
@@ -53,7 +55,8 @@ for NVQC, then you can perform the following steps.
 2. Either use the `ngc.nvidia.com` Web GUI to deploy your function, or use the
    `ngc-cli`. Both are documented [here](https://docs.nvidia.com/cloud-functions/user-guide/latest/cloud-function/function-deployment.html#deploying-a-function).
 3. When done, un-deploy your function and remove your custom image using a
-   command like this: `ngc registry image remove nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom`.
+   command like this:
+   `ngc registry image remove nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom`.
 
 ## Special notes about running Python code on the server (`CUDAQ_SER_CODE_EXEC` / `serializedCodeExecutionContext`)
 
