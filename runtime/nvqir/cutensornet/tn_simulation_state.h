@@ -30,7 +30,7 @@ public:
   operator=(const TensorNetSimulationState &) = delete;
   TensorNetSimulationState(TensorNetSimulationState &&) noexcept = default;
   TensorNetSimulationState &
-  operator=(TensorNetSimulationState &&) noexcept = default;
+  operator=(TensorNetSimulationState &&) noexcept = delete;
 
   virtual ~TensorNetSimulationState();
 
