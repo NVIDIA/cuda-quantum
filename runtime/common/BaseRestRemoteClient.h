@@ -289,7 +289,6 @@ public:
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
     if (isDisallowed(io_context.name)) {
       throw std::runtime_error(io_context.name + " operation is not supported with cudaq target remote-mqpu!");
-      return true;
     }
 
     cudaq::RestRequest request = constructJobRequest(

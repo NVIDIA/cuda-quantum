@@ -270,6 +270,7 @@ def check_state(entity):
     assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
     assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
 
+
 def test_state():
     kernel = cudaq.make_kernel()
     num_qubits = 5
@@ -293,6 +294,7 @@ def test_state_kernel():
 
     check_state(kernel)
 
+
 def test_disallowed_execution_context():
     print("In test_disallowed_execution_context...")
 
@@ -303,8 +305,12 @@ def test_disallowed_execution_context():
         x.ctrl(qubits[0], qubits[1])
         mz(qubits)
 
-    with pytest.raises(RuntimeError, match="tracer operation is not supported with cudaq target remote-mqpu!"):
+    with pytest.raises(
+            RuntimeError,
+            match=
+            "tracer operation is not supported with cudaq target remote-mqpu!"):
         cudaq.draw(simple_kernel)
+
 
 def check_overlap(entity_bell, entity_x):
     state1 = cudaq.get_state(entity_bell)
@@ -381,6 +387,7 @@ def test_overlap_param():
     qreg = kernel.qalloc(1)
     kernel.rx(theta, qreg[0])
     check_overlap_param(kernel)
+
 
 def test_math_exp():
 
