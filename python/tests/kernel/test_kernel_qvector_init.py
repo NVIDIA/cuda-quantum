@@ -29,7 +29,7 @@ skipIfNvidiaNotInstalled = pytest.mark.skipif(
 
 
 @skipIfPythonLessThan39
-def test_kernel_state_preparation():
+def test_kernel_complex_synthesize():
     cudaq.reset_target()
 
     c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
@@ -39,9 +39,22 @@ def test_kernel_state_preparation():
         q = cudaq.qvector(vec)
 
     synthesized = cudaq.synthesize(kernel, c)
-    assert 'quake.init_state' in kernel.__str__()
-    assert not 'quake.init_state' in synthesized.__str__()
+    counts = cudaq.sample(synthesized)
+    assert '00' in counts
+    assert '10' in counts
 
+
+@skipIfPythonLessThan39
+def test_kernel_float_synthesize():
+    cudaq.reset_target()
+
+    c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+
+    @cudaq.kernel
+    def kernel(vec: list[float]):
+        q = cudaq.qvector(vec)
+
+    synthesized = cudaq.synthesize(kernel, c)
     counts = cudaq.sample(synthesized)
     assert '00' in counts
     assert '10' in counts

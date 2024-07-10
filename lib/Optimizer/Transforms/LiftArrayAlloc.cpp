@@ -28,6 +28,64 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
+template <typename A>
+std::vector<A> readConstantValues(SmallVectorImpl<Attribute> &vec, Type eleTy) {
+  std::vector<A> result;
+  for (auto a : vec) {
+    if constexpr (std::is_same_v<A, std::complex<double>>) {
+      auto v = cast<ArrayAttr>(a);
+      result.emplace_back(cast<FloatAttr>(v[0]).getValue().convertToDouble(),
+                          cast<FloatAttr>(v[1]).getValue().convertToDouble());
+    } else if constexpr (std::is_same_v<A, std::complex<float>>) {
+      auto v = cast<ArrayAttr>(a);
+      result.emplace_back(cast<FloatAttr>(v[0]).getValue().convertToFloat(),
+                          cast<FloatAttr>(v[1]).getValue().convertToFloat());
+    } else if constexpr (std::is_same_v<A, double>) {
+      auto v = cast<FloatAttr>(a);
+      result.emplace_back(v.getValue().convertToDouble());
+    } else if constexpr (std::is_same_v<A, float>) {
+      auto v = cast<FloatAttr>(a);
+      result.emplace_back(v.getValue().convertToFloat());
+    } else {
+      assert(false && "unexpected type in constant array");
+    }
+  }
+  return result;
+}
+
+void genVectorOfConstantsFromAttributes(cudaq::IRBuilder irBuilder,
+                                        Location loc, ModuleOp module,
+                                        StringRef name,
+                                        SmallVector<Attribute> &values,
+                                        Type eleTy) {
+
+  if (auto cTy = dyn_cast<ComplexType>(eleTy)) {
+    auto floatTy = cTy.getElementType();
+    if (floatTy == irBuilder.getF64Type()) {
+      auto vals = readConstantValues<std::complex<double>>(values, cTy);
+      irBuilder.genVectorOfConstants(loc, module, name, vals);
+      return;
+    } else if (floatTy == irBuilder.getF32Type()) {
+      auto vals = readConstantValues<std::complex<float>>(values, cTy);
+      irBuilder.genVectorOfConstants(loc, module, name, vals);
+      return;
+    }
+  } else if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
+    if (floatTy == irBuilder.getF64Type()) {
+      auto vals = readConstantValues<double>(values, floatTy);
+      irBuilder.genVectorOfConstants(loc, module, name, vals);
+      return;
+    } else if (floatTy == irBuilder.getF32Type()) {
+      auto vals = readConstantValues<float>(values, floatTy);
+      irBuilder.genVectorOfConstants(loc, module, name, vals);
+      return;
+    }
+  }
+  assert(false && "unexpected element type in constant array");
+}
+} // namespace
+
+namespace {
 class AllocaPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
   explicit AllocaPattern(MLIRContext *ctx, DominanceInfo &di,
@@ -66,53 +124,13 @@ public:
     Value conArr;
     Value conGlobal;
     if (toGlobal) {
-      auto ip = rewriter.saveInsertionPoint();
       static unsigned counter = 0;
       auto ptrTy = cudaq::cc::PointerType::get(arrTy);
       // Build a new name based on the kernel name.
       std::string name = funcName + ".rodata_" + std::to_string(counter++);
-      {
-        OpBuilder::InsertionGuard guard(rewriter);
-        if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
-          // Transforming complex vectors is a bit more labor intensive. Use the
-          // IRBuilder to create the object since we have to thread the needle
-          // for the LLVM-IR to be lowered to LLVM correctly.
-          auto transform = [&]<typename A>(SmallVectorImpl<Attribute> &vec)
-              -> std::vector<std::complex<A>> {
-            std::vector<std::complex<A>> result;
-            for (auto a : vec) {
-              auto v = cast<ArrayAttr>(a);
-              if constexpr (std::is_same_v<A, double>) {
-                result.emplace_back(
-                    cast<FloatAttr>(v[0]).getValue().convertToDouble(),
-                    cast<FloatAttr>(v[1]).getValue().convertToDouble());
-              } else {
-                result.emplace_back(
-                    cast<FloatAttr>(v[0]).getValue().convertToFloat(),
-                    cast<FloatAttr>(v[1]).getValue().convertToFloat());
-              }
-            }
-            return result;
-          };
-          cudaq::IRBuilder irBuilder(rewriter.getContext());
-          if (complexTy.getElementType() == rewriter.getF64Type()) {
-            std::vector<std::complex<double>> vals =
-                transform.template operator()<double>(values);
-            irBuilder.genVectorOfComplexConstant(loc, module, name, vals);
-          } else {
-            std::vector<std::complex<float>> vals =
-                transform.template operator()<float>(values);
-            irBuilder.genVectorOfComplexConstant(loc, module, name, vals);
-          }
-        } else {
-          OpBuilder::InsertionGuard guard(rewriter);
-          rewriter.setInsertionPointToEnd(module.getBody());
-          rewriter.create<cudaq::cc::GlobalOp>(loc, arrTy, name, valuesAttr,
-                                               /*isConstant=*/true,
-                                               /*isExternal=*/false);
-        }
-      }
-      rewriter.restoreInsertionPoint(ip);
+      cudaq::IRBuilder irBuilder(rewriter.getContext());
+      genVectorOfConstantsFromAttributes(irBuilder, loc, module, name, values,
+                                         eleTy);
       conGlobal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
       conArr = rewriter.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
     } else {
@@ -150,7 +168,6 @@ public:
         }
         if (isa<cudaq::cc::StoreOp>(useuser)) {
           toErase.push_back(useuser);
-          continue;
         }
         isLive = true;
       }
@@ -165,7 +182,13 @@ public:
     }
 
     for (auto *op : toErase) {
-      rewriter.eraseOp(op);
+      if (op->getUses().empty()) {
+        rewriter.eraseOp(op);
+      } else {
+        module.emitOpError("LiftArrayAlloc failed to remove quake.init_state "
+                           "or its dependencies.");
+        return failure();
+      }
     }
     return success();
   }
@@ -263,7 +286,7 @@ public:
               scoreboard[0] = w;
               continue;
             }
-          // can be a cast only used for a quake.init_state)
+          // can be a cast only used for a quake.init_state or vector init
           continue;
         } else {
           if (getWriteOp(cast, 0)) {
@@ -271,7 +294,8 @@ public:
                        << "another cast used in store: " << *op << '\n');
             return false;
           }
-          // can be a cast only used for a quake.init_state)
+          // can be a cast only used for a quake.init_state or vector init
+          toGlobal = true;
           continue;
         }
         LLVM_DEBUG(llvm::dbgs() << "unexpected cast: " << *op << '\n');

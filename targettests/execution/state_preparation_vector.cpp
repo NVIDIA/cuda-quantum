@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --enable-mlir --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -16,6 +17,11 @@ __qpu__ void test_complex_constant_array() {
 }
 
 __qpu__ void test_complex_constant_array2() {
+   cudaq::qvector v1(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
+   cudaq::qvector v2(std::vector<cudaq::complex>({ 0., 0., M_SQRT1_2, M_SQRT1_2}));
+}
+
+__qpu__ void test_complex_constant_array3() {
    cudaq::qvector v({
     cudaq::complex(M_SQRT1_2),
     cudaq::complex(M_SQRT1_2),
@@ -24,12 +30,12 @@ __qpu__ void test_complex_constant_array2() {
   });
 }
 
-__qpu__ void test_real_constant_array() {
-  cudaq::qvector v({ M_SQRT1_2, M_SQRT1_2, 0., 0.});
-}
-
 __qpu__ void test_complex_array_param(std::vector<cudaq::complex> inState) {
   cudaq::qvector q1 = inState;
+}
+
+__qpu__ void test_real_constant_array() {
+  cudaq::qvector v({ M_SQRT1_2, M_SQRT1_2, 0., 0.});
 }
 
 __qpu__ void test_real_array_param(std::vector<cudaq::real> inState) {
@@ -49,6 +55,7 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
+
     {
       auto counts = cudaq::sample(test_complex_constant_array);
       printCounts(counts);
@@ -56,6 +63,11 @@ int main() {
 
     {
       auto counts = cudaq::sample(test_complex_constant_array2);
+      printCounts(counts);
+    }
+
+    {
+      auto counts = cudaq::sample(test_complex_constant_array3);
       printCounts(counts);
     }
 
@@ -118,8 +130,10 @@ int main() {
 // CHECK: 00
 // CHECK: 10
 
-// CHECK: 00
-// CHECK: 10
+// CHECK: 0001
+// CHECK: 0011
+// CHECK: 1001
+// CHECK: 1011
 
 // CHECK: 00
 // CHECK: 10
@@ -127,23 +141,20 @@ int main() {
 // CHECK: 00
 // CHECK: 10
 
-
 // CHECK: 00
 // CHECK: 10
+
 // CHECK: 01
 // CHECK: 11
 
 // CHECK: 00
 // CHECK: 10
+
 // CHECK: 01
 // CHECK: 11
 
 // CHECK: 00
 // CHECK: 10
-// CHECK: 01
-// CHECK: 11
 
-// CHECK: 00
-// CHECK: 10
 // CHECK: 01
 // CHECK: 11

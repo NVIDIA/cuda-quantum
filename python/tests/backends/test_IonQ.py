@@ -8,6 +8,7 @@
 
 import cudaq, pytest, os, time
 from cudaq import spin
+import numpy as np
 from multiprocessing import Process
 try:
     from utils.mock_qpu.ionq import startServer
@@ -154,6 +155,32 @@ def test_ionq_u3_ctrl_decomposition():
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
 
     result = cudaq.sample(kernel)
+
+
+def test_ionq_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+
+def test_ionq_state_preparation_builder():
+    kernel, state = cudaq.make_kernel(list[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 
 # leave for gdb debugging

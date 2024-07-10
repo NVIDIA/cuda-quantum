@@ -420,22 +420,6 @@ public:
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
 
-    {
-      cudaq::info("Run State Prep.\n");
-      mlir::PassManager pm(&context);
-
-      pm.addPass(mlir::createCanonicalizerPass());
-      pm.addPass(mlir::createCSEPass());
-      pm.addPass(cudaq::opt::createLiftArrayAllocPass());
-      pm.addPass(cudaq::opt::createStatePreparation(kernelName));
-      if (disableMLIRthreading || enablePrintMLIREachPass)
-        moduleOp.getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
-        pm.enableIRPrinting();
-      if (failed(pm.run(moduleOp)))
-        throw std::runtime_error("Could not successfully apply state prep.");
-    }
-
     runPassPipeline(passPipelineConfig, moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(

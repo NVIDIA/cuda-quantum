@@ -15,6 +15,7 @@ import psutil
 
 import cudaq
 from cudaq import spin
+import numpy as np
 
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
@@ -349,6 +350,31 @@ def test_complex_vqe_named_lambda_sweep_opt(optimizer):
 def test_complex_vqe_named_lambda_sweep_grad(gradient):
     test_complex_vqe_named_lambda(cudaq.optimizers.Adam(), gradient)
 
+@skipIfPythonLessThan39
+def test_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+@skipIfPythonLessThan39
+def test_state_preparation_builder():
+    kernel, state = cudaq.make_kernel(list[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -388,39 +388,102 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
 }
 
 template <typename A>
-cc::GlobalOp
-buildVectorOfComplexConstant(Location loc, ModuleOp module, StringRef name,
-                             const std::vector<std::complex<A>> &values,
-                             IRBuilder &builder, Type ty) {
+static std::vector<std::int32_t> asI32(const std::vector<A> &v) {
+  std::vector<std::int32_t> result(v.size());
+  for (auto iter : llvm::enumerate(v))
+    result[iter.index()] = static_cast<std::int32_t>(iter.value());
+  return result;
+}
+
+template <typename T>
+DenseElementsAttr createArrayAttr(const std::vector<T> &values, Type eleTy) {
+  auto newValues = ArrayRef<T>(values.data(), values.size());
+  auto tensorTy = RankedTensorType::get(values.size(), eleTy);
+  return DenseElementsAttr::get(tensorTy, newValues);
+}
+
+template <typename A>
+cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
+                                           StringRef name,
+                                           const std::vector<A> &values,
+                                           IRBuilder &builder, Type eleTy) {
   if (auto glob = module.lookupSymbol<cc::GlobalOp>(name))
     return glob;
   auto *ctx = builder.getContext();
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(module.getBody());
-  auto complexTy = ComplexType::get(ty);
-  auto globalTy = cc::ArrayType::get(ctx, complexTy, values.size());
-  SmallVector<std::complex<APFloat>> newValues;
-  for (auto c : values)
-    newValues.emplace_back(APFloat{c.real()}, APFloat{c.imag()});
-  auto tensorTy = RankedTensorType::get(values.size(), complexTy);
-  auto denseEleAttr = DenseElementsAttr::get(tensorTy, newValues);
-  return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, denseEleAttr,
+  auto globalTy = cc::ArrayType::get(ctx, eleTy, values.size());
+
+  auto arrayAttr = createArrayAttr(values, eleTy);
+  return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
                                              /*constant=*/true,
                                              /*external=*/false);
 }
 
-cc::GlobalOp IRBuilder::genVectorOfComplexConstant(
+cc::GlobalOp IRBuilder::genVectorOfConstants(
     Location loc, ModuleOp module, StringRef name,
     const std::vector<std::complex<double>> &values) {
-  return buildVectorOfComplexConstant(loc, module, name, values, *this,
-                                      getF64Type());
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       ComplexType::get(getF64Type()));
 }
 
-cc::GlobalOp IRBuilder::genVectorOfComplexConstant(
+cc::GlobalOp IRBuilder::genVectorOfConstants(
     Location loc, ModuleOp module, StringRef name,
     const std::vector<std::complex<float>> &values) {
-  return buildVectorOfComplexConstant(loc, module, name, values, *this,
-                                      getF32Type());
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       ComplexType::get(getF32Type()));
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<double> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getF64Type());
+}
+
+cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
+                                             StringRef name,
+                                             const std::vector<float> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getF32Type());
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<std::int64_t> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI64Type());
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<std::int32_t> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI32Type());
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<std::int16_t> &values) {
+  auto converted = asI32(values);
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI32Type());
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<std::int8_t> &values) {
+  auto converted = asI32(values);
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI32Type());
+}
+
+cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
+                                             StringRef name,
+                                             const std::vector<bool> &values) {
+  auto converted = asI32(values);
+  return buildVectorOfConstantElements(loc, module, name, converted, *this,
+                                       getI32Type());
 }
 
 Value IRBuilder::getByteSizeOfType(Location loc, Type ty) {

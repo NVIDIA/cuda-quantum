@@ -8,6 +8,34 @@
 
 // RUN: cudaq-opt -lift-array-value %s | FileCheck %s
 
+func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %cst = arith.constant 0.000000e+00 : f32
+    %cst_0 = arith.constant 0.70710678118654757 : f64
+    %0 = arith.truncf %cst_0 : f64 to f32
+    %1 = complex.create %0, %cst : complex<f32>
+    %2 = complex.create %cst, %cst : complex<f32>
+    %3 = cc.alloca !cc.array<complex<f32> x 4>
+    %4 = cc.cast %3 : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
+    cc.store %1, %4 : !cc.ptr<complex<f32>>
+    %5 = cc.compute_ptr %3[1] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
+    cc.store %1, %5 : !cc.ptr<complex<f32>>
+    %6 = cc.compute_ptr %3[2] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
+    cc.store %2, %6 : !cc.ptr<complex<f32>>
+    %7 = cc.compute_ptr %3[3] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
+    cc.store %2, %7 : !cc.ptr<complex<f32>>
+    %8 = quake.alloca !quake.veq<2>
+    %9 = quake.init_state %8, %4 : (!quake.veq<2>, !cc.ptr<complex<f32>>) -> !quake.veq<2>
+    return
+  }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = cc.address_of @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv.rodata_{{[0-9]+}} : !cc.ptr<!cc.array<complex<f32> x 4>>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_2:.*]] = quake.init_state %[[VAL_1]], %[[VAL_0]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+// CHECK:           return
+// CHECK:         }
+
+
 func.func private @__nvqpp_vectorCopyCtor(%0: !cc.ptr<i8>, %1: i64, %2: i64) -> !cc.ptr<i8>
 
 func.func @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v() -> !cc.stdvec<complex<f64>> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -71,7 +99,6 @@ func.func @test2() -> !quake.veq<2> {
 // CHECK:           return %[[VAL_2]] : !quake.veq<2>
 // CHECK:         }
 
-// CHECK-DAG:         cc.global constant @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v.rodata_{{[0-9]+}} (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (-0.70710678118654757,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-
-// CHECK-DAG:         cc.global constant @test2.rodata_{{[0-9]+}} ([1.000000e+00, 2.000000e+00, 6.000000e+00, 9.000000e+00]) : !cc.array<f64 x 4>
-
+// CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv.rodata_{{[0-9]+}} (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+// CHECK-DAG:     cc.global constant @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1v.rodata_{{[0-9]+}} (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (-0.70710678118654757,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+// CHECK-DAG:     cc.global constant @test2.rodata_{{[0-9]+}} (dense<[1.000000e+00, 2.000000e+00, 6.000000e+00, 9.000000e+00]> : tensor<4xf64>) : !cc.array<f64 x 4>

@@ -532,6 +532,52 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def PrepareState : Pass<"state-prep", "mlir::ModuleOp"> {
+  let summary =
+    "Convert state vector data into gates";
+  let description = [{
+    Convert quake representation that includes qubit initialization
+    from data into qubit initialization using gates.
+
+    For example:
+
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
+        %1 = quake.alloca !quake.veq<2>
+        %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+        return
+      }
+      cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+    }
+    ```
+    Will be rewritten to:
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = quake.alloca !quake.veq<2>
+        %c1_i64 = arith.constant 1 : i64
+        %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst = arith.constant 0.000000e+00 : f64
+        quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+        %c0_i64 = arith.constant 0 : i64
+        %2 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst_0 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_0) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        %cst_1 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_1) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        return
+      }
+    }
+    ```
+  }];
+
+  let constructor = "cudaq::opt::createStatePreparation()";
+}
+
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
   let summary = "Promote single qubit allocations.";
   let description = [{
@@ -570,17 +616,6 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
   }];
-}
-
-def PrepareState : Pass<"state-prep", "mlir::ModuleOp"> {
-  let summary =
-    "Convert state vector data into gates";
-  let description = [{
-    Convert quake representation that includes qubit initialization
-    from data into qubit initialization using gates.
-  }];
-
-  let constructor = "cudaq::opt::createStatePreparation()";
 }
 
 def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {

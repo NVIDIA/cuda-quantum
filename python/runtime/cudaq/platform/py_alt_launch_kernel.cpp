@@ -462,6 +462,18 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   return returnValue;
 }
 
+/// @brief Helper function to get boolean environment variable
+bool getEnvBool(const char *envName, bool defaultVal = false) {
+  if (auto envVal = std::getenv(envName)) {
+    std::string tmp(envVal);
+    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
+      return true;
+  }
+  return defaultVal;
+}
+
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                             cudaq::OpaqueArguments &runtimeArgs) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
@@ -473,12 +485,24 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto context = cloned.getContext();
   registerLLVMDialectTranslation(*context);
 
+  // Get additional debug values
+  auto disableMLIRthreading = getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
+  auto enablePrintMLIREachPass =
+      getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+
   PassManager pm(context);
   pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs));
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createLiftArrayAllocPass());
-  pm.addPass(cudaq::opt::createStatePreparation(name));
+
+  // Run state preparation for quantum devices only.
+  // Simulators have direct implementation of state initialization
+  // in their runtime.
+  auto &platform = cudaq::get_platform();
+  if (!platform.is_simulator() || platform.is_emulated()) {
+    pm.addPass(createCSEPass());
+    pm.addPass(cudaq::opt::createLiftArrayAllocPass());
+    pm.addPass(cudaq::opt::createStatePreparation());
+  }
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
@@ -490,6 +514,10 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
+  if (disableMLIRthreading || enablePrintMLIREachPass)
+    context->disableMultithreading();
+  if (enablePrintMLIREachPass)
+    pm.enableIRPrinting();
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
