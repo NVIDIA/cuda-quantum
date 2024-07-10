@@ -18,7 +18,10 @@ import json
 import subprocess
 import importlib
 from datetime import datetime
+import re
 
+# Pattern to detect ANSI escape color code in the error message
+ANSI_PATTERN = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
 def get_deserialized_dict(scoped_dict):
     deserialized_dict = {}
@@ -163,9 +166,10 @@ if __name__ == "__main__":
             cudaq.mpi.finalize()
 
     except Exception as e:
+        error_message = ANSI_PATTERN.sub('', str(e))
         result = {
             'status': 'Failed to process incoming request',
-            'errorMessage': str(e)
+            'errorMessage': error_message
         }
         # Only rank 0 prints the result
         if not (cudaq.mpi.is_initialized()) or (cudaq.mpi.rank() == 0):
