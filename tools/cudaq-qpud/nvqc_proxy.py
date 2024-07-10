@@ -29,7 +29,8 @@ QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
 
 NUM_GPUS = 0
 MPI_FOUND = False
-WATCHDOG_TIMEOUT_SEC = 0
+# Setting the timeout as per the current WATCHDOG timer
+WATCHDOG_TIMEOUT_SEC = 3600
 RUN_AS_NOBODY = False  # Expect this to be overridden to true for NVQC deployment
 SUDO_FOUND = False
 
@@ -49,9 +50,6 @@ def build_command_list(temp_file_name: str) -> list[str]:
         cmd_list += ['--use-mpi=1']  # `--use-mpi` must come at the end
     else:
         cmd_list += ['--use-mpi=0']  # `--use-mpi` must come at the end
-    # The timeout must be inside the `su`/`sudo` commands in order to function.
-    if WATCHDOG_TIMEOUT_SEC > 0:
-        cmd_list = ['timeout', str(WATCHDOG_TIMEOUT_SEC)] + cmd_list
     if RUN_AS_NOBODY:
         cmd_list = ['su', '-s', '/bin/bash', 'nobody', '-c', ' '.join(cmd_list)]
         if SUDO_FOUND:
@@ -194,24 +192,26 @@ class Server(http.server.SimpleHTTPRequestHandler):
                     save_dir = os.getcwd()
                     os.chdir(pathlib.Path(temp_file.name).parent)
                     cmd_list = build_command_list(temp_file.name)
-                    cmd_result = subprocess.run(cmd_list,
-                                                capture_output=False,
-                                                text=True)
+                    try:
+                        subprocess.run(cmd_list,
+                                       timeout=WATCHDOG_TIMEOUT_SEC,
+                                       capture_output=False,
+                                       text=True)
 
-                    with open(temp_file.name, 'rb') as fp:
-                        result = json.load(fp)
+                        with open(temp_file.name, 'rb') as fp:
+                            result = json.load(fp)
 
-                    if 'errorMessage' in result:
-                        if cmd_result.returncode == 124:
-                            error_message = "Timeout occurred during execution."
-                        else:
-                            error_message = result['errorMessage']
-
+                        if 'errorMessage' in result:
+                            result = {
+                                'status':
+                                    'json_request_runner.py returned an error',
+                                'errorMessage':
+                                    result['errorMessage']
+                            }
+                    except subprocess.TimeoutExpired as e:
                         result = {
-                            'status':
-                                'json_request_runner.py returned an error',
-                            'errorMessage':
-                                error_message
+                            'status': 'Timeout occurred',
+                            'errorMessage': 'Timeout occurred during execution'
                         }
 
                     # Cleanup

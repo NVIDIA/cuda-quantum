@@ -19,7 +19,6 @@ import subprocess
 import importlib
 from datetime import datetime
 
-
 def get_deserialized_dict(scoped_dict):
     deserialized_dict = {}
 
