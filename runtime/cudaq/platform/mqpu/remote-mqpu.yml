@@ -8,7 +8,7 @@
 
 name: remote-mqpu
 description:
-  "The remote-mqpu target is..."
+  "The remote-mqpu target provides locally-hosted CUDA-Q simulator runtime services."
 
 config:
   gen-target-backend: true
@@ -20,6 +20,9 @@ config:
     - if: ${LIBRARY_MODE}
       compiler-flag: "-fembed-bitcode=all"
       link-flag: "-rdynamic"
+    # Clang made "out of line atomics" the default on arm64 targets (https://reviews.llvm.org/D93585);
+    # requiring to link against `libclang_rt.builtins` on the server side when JIT'ing. 
+    # Hence, disable it when using the remote platform. 
     - if: ${LIBRARY_MODE} && "$(uname -m)" == "aarch64"
       compiler-flag: "-mno-outline-atomics" 
 

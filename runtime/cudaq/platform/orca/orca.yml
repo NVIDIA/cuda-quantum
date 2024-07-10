@@ -7,11 +7,15 @@
 # ============================================================================ #
 
 name: orca
-description: "Orca"
+description: "CUDA-Q target for Orca."
 config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
   platform-qpu: orca
+  # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
+  # Add the orca-qpu library to the link list
   link-libs: ["-lcudaq-orca-qpu"]
+  # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 
 target-arguments:

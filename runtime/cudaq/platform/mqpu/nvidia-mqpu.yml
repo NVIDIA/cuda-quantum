@@ -8,7 +8,7 @@
 
 name: nvidia-mqpu
 description: "The NVIDIA MQPU Target provides a simulated QPU for every available CUDA GPU on the underlying system. Each QPU is simulated via cuStateVec FP32. This target enables asynchronous parallel execution of quantum kernel tasks."
-warning: "This target is deprecating..."
+warning: "This target is deprecating. Please use the 'nvidia' target with option 'mqpu,fp32' or 'mqpu' (fp32 is the default precision option)."
 gpu-requirements: true
 
 config:

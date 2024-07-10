@@ -8,7 +8,7 @@
 
 name: nvidia-mqpu-fp64
 description: "The NVIDIA MQPU FP64 Target provides a simulated QPU for every available CUDA GPU on the underlying system. Each QPU is simulated via cuStateVec FP64."
-warning: "This target is deprecating..."
+warning: "This target is deprecating. Please use the 'nvidia' target with option 'mqpu,fp64'."
 gpu-requirements: true
 
 config:

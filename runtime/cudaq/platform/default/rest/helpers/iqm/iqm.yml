@@ -7,13 +7,19 @@
 # ============================================================================ #
 
 name: iqm
-description: "IQM"
+description: "CUDA-Q target for IQM."
 config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
   platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
+  # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
+  # Define the lowering pipeline
   platform-lowering-config: "expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),iqm-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg,qubit-mapping{device=file(%QPU_ARCH%)},delay-measurements,regtomem),iqm-gate-set-mapping"
+  # Tell the rest-qpu that we are generating IQM JSON.
   codegen-emission: iqm
+  # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 
 target-arguments:

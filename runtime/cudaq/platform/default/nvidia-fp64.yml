@@ -8,7 +8,7 @@
 
 name: nvidia-fp64
 description: "The NVIDIA FP64 Target provides a simulated QPU via single-GPU cuStateVec integration on FP64 types."
-warning: "This target is deprecating..."
+warning: "This target is deprecating. Please use the 'nvidia' target with option 'fp64'."
 gpu-requirements: true
 
 config:

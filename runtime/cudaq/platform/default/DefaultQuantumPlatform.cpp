@@ -62,8 +62,6 @@ public:
   }
 };
 
-constexpr char platformQPU[] = "PLATFORM_QPU";
-
 /// The DefaultQuantumPlatform is a quantum_platform that
 /// provides a single simulated QPU, which delegates to the
 /// QIS ExecutionManager.
