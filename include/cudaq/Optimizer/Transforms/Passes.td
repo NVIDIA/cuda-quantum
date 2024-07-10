@@ -262,6 +262,37 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
     be a global constant within the module which holds the concrete matrix 
     representation for the custom operation. This pass will find that global
     variable and update the custom operation to directly point to it. 
+
+    Example:
+    ```mlir
+      module {
+        func.func @__nvqpp__mlirgen__function_foo_generator_1.bar(%arg0: !cc.stdvec<f64>) -> !cc.stdvec<complex<f64>> {
+          ...
+          %0 = cc.address_of @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 : !cc.ptr<!cc.array<complex<f64> x 4>>
+          ...
+          return %3 : !cc.stdvec<complex<f64>>
+        }
+
+        func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
+          %0 = quake.alloca !quake.ref
+          quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar %0 : (!quake.ref) -> ()
+          return
+        }
+
+        cc.global constant @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+      }
+    ```
+
+    The `quake.custom_op` call would be converted to
+
+    ```mlir
+      func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
+        %0 = quake.alloca !quake.ref
+        quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 %0 : (!quake.ref) -> ()
+        return
+      }
+    ```
+
   }];
 }
 

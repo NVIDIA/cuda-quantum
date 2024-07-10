@@ -37,6 +37,9 @@ public:
 
   LogicalResult matchAndRewrite(quake::CustomUnitarySymbolOp customOp,
                                 PatternRewriter &rewriter) const override {
+
+    // Check if the generator associated with custom operation is a function. If
+    // not, it may already have been replaced.
     auto generator = customOp.getGenerator();
 
     auto parentModule = customOp->getParentOfType<ModuleOp>();
@@ -45,21 +48,22 @@ public:
       return failure();
     }
 
+    // The generator function returns a concrete matrix. If prior passes have
+    // run to constant fold and lift array values, the generator function will
+    // have address of the global variable which holds the concrete matrix.
     StringRef concreteMatrix;
-    mlir::Region &body = funcOp.getBody();
-    for (auto &block : body.getBlocks()) {
-      for (auto &op : block.getOperations()) {
-        auto addrOp = dyn_cast<cudaq::cc::AddressOfOp>(op);
-        if (addrOp) {
-          concreteMatrix = addrOp.getGlobalName();
-          break;
-        }
-      }
-    }
-    if (concreteMatrix.empty()) {
-      return failure();
-    }
 
+    funcOp.walk([&](cudaq::cc::AddressOfOp addrOp) {
+      concreteMatrix = addrOp.getGlobalName();
+    });
+
+    if (concreteMatrix.empty()) {
+      return customOp.emitError(
+          "Constant matrix corresponding to custom operation's generator "
+          "function not found in the module.");
+    }
+    // Modify the custom operation to use the global variable instead of the
+    // generator function.
     auto ccGlobalOp =
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix);
 
