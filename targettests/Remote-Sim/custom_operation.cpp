@@ -8,11 +8,11 @@
 
 // REQUIRES: remote-sim
 // clang-format off
-// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t 
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
-// XFAIL: *
-// Not yet supported
 // clang-format on
+
+/// NOTE: Library mode not yet supported
+// nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t 
 
 #include <cudaq.h>
 
