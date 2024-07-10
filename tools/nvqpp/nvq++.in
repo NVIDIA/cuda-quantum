@@ -715,7 +715,7 @@ if ${ENABLE_LOWER_TO_CFG}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,func.func(lower-to-cfg)")
 fi
 if ${RUN_OPT}; then
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "lift-array-value,canonicalize,cse")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "lift-array-value,get-concrete-matrix,canonicalize,cse")
 fi
 
 if [ ! -z "$CUDAQ_OPT_EXTRA_PASSES" ]; then

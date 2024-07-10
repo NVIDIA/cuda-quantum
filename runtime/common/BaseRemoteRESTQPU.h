@@ -383,12 +383,10 @@ public:
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
     // Add any global symbols associated with custom operations (available after
-    // `-lift-array-value` pass)
+    // `lift-array-value` and `get-concrete-matrix` passes)
     for (auto &op : m_module.getOps()) {
       if (auto ccGlobalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
-        if (ccGlobalOp.getSymName().endswith(".rodata")) {
-          moduleOp.push_back(ccGlobalOp.clone());
-        }
+        moduleOp.push_back(ccGlobalOp.clone());
       }
     }
 

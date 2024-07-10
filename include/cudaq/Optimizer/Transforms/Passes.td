@@ -254,6 +254,17 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
   ];
 }
 
+def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
+  let summary = "Replace the unitary matrix generator function with concrete matrix.";
+  let description = [{
+    Given a custom operation whose generator attribute is another function 
+    within the module, such that if `LiftArrayAlloc` pass has run, there will
+    be a global constant within the module which holds the concrete matrix 
+    representation for the custom operation. This pass will find that global
+    variable and update the custom operation to directly point to it. 
+  }];
+}
+
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
 // new FuncOps.
 def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
