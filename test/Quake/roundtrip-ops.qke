@@ -760,3 +760,20 @@ func.func @phys_hoops() {
 // CHECK:    quake.return_wire %[[VAL_2]]#1 : !quake.wire
 // CHECK:    return
 // CHECK:  }
+
+func.func @offsets() {
+  %0 = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+  %1 = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+  %2 = cc.offsetof !cc.struct<{i32, f64, complex<f64>}> [2,1] : i64
+  %3 = cc.offsetof !cc.array<!cc.struct<{i32, f64}> x 100> [86, 1] : i64
+  %4 = cc.offsetof !cc.array<!cc.struct<{i32, f64}> x 100> [0, 0] : i64
+  return
+}
+
+// CHECK-LABEL:   func.func @offsets() {
+// CHECK:           %[[VAL_0:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+// CHECK:           %[[VAL_1:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
+// CHECK:           %[[VAL_2:.*]] = cc.offsetof !cc.struct<{i32, f64, complex<f64>}> [2, 1] : i64
+// CHECK:           %[[VAL_3:.*]] = cc.offsetof !cc.array<!cc.struct<{i32, f64}> x 100> [86, 1] : i64
+// CHECK:           %[[VAL_4:.*]] = cc.offsetof !cc.array<!cc.struct<{i32, f64}> x 100> [0, 0] : i64
+// CHECK:           return

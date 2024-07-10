@@ -17,6 +17,7 @@ from cudaq import spin
 import pytest
 
 iqm_client = pytest.importorskip("iqm.iqm_client")
+
 try:
     from utils.mock_qpu.iqm import startServer
     from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
@@ -35,8 +36,8 @@ def assert_close(want, got, tolerance=1.0e-5) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     # Write a fake access tokens file
-    tmp_tokens_file = tempfile.NamedTemporaryFile(delete=False)
-    write_a_mock_tokens_file(tmp_tokens_file.name)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_tokens_file:
+        write_a_mock_tokens_file(tmp_tokens_file.name)
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -45,8 +46,7 @@ def startUpMockServer():
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    kwargs = dict()
-    kwargs["qpu-architecture"] = "Apollo"
+    kwargs = {"qpu-architecture": "Apollo"}
     # If we're in a git repo, test that we can provide a filename with spaces.
     # If we are not in a git repo, then simply test without overriding
     # mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
@@ -88,9 +88,7 @@ def test_iqm_ghz():
     assert assert_close(counts["11"], shots / 2, 2)
 
     future = cudaq.sample_async(kernel, shots_count=shots)
-
     futureAsString = str(future)
-
     futureReadIn = cudaq.AsyncSampleResult(futureAsString)
     counts = futureReadIn.get()
     assert assert_close(counts["00"], shots / 2, 2)

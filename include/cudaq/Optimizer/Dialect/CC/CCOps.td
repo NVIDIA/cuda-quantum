@@ -1066,10 +1066,10 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
 def cc_SizeOfOp : CCOp<"sizeof", [Pure]> {
   let summary = "Return the size, in bytes, of a type.";
   let description = [{
-    This operation is the size, in bytes, of a type that can be reified. It can
-    be used to determine how many bytes to allocate or move when a value is in
-    memory, for example. If the type cannot be reified, it returns a size of
-    poison.
+    This operation returns the size, in bytes, of a type that can be reified.
+    It can be used to determine how many bytes to allocate or move when a value
+    is in memory, for example. If the type cannot be reified, it returns a size
+    of poison.
 
     Example:
 
@@ -1086,6 +1086,38 @@ def cc_SizeOfOp : CCOp<"sizeof", [Pure]> {
 
   let assemblyFormat = [{
     $inputType `:` qualified(type(results)) attr-dict
+  }];
+}
+
+def cc_OffsetOfOp : CCOp<"offsetof", [Pure]> {
+  let summary = "Return the interior offset, in bytes, of a subelement.";
+  let description = [{
+    This operation returns the offset, in bytes, of a subelement of a type that
+    can be reified. It can be used to determine the byte offset of a particular
+    field in a struct type, for example. If the type cannot be reified, this op
+    returns a value of poison.
+
+    Example:
+    ```mlir
+      // the offset of the i64 in the struct
+      %0 = cc.offsetof !cc.struct<i32, f64, i64> [2] : i64
+      // the offset of of the 3rd i32 element in the array field
+      %1 = cc.offsetof !cc.struct<!cc.array<!cc.struct<i32, i8> x 4>, f32>
+           [0, 2, 0] : i64
+    ```
+  }];
+
+  let arguments = (ins
+    TypeAttr:$inputType,
+    DenseI32ArrayAttr:$constantIndices
+  );
+  let results = (outs AnySignlessInteger);
+
+  let hasVerifier = 1;
+  let hasCanonicalizer = 1;
+
+  let assemblyFormat = [{
+    $inputType $constantIndices `:` type(results) attr-dict
   }];
 }
 
