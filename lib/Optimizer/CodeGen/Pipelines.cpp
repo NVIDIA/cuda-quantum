@@ -47,6 +47,7 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createUnwindLoweringPass());
+  pm.addPass(createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(createQuakeAddDeallocs());
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
