@@ -81,6 +81,71 @@ bool RuntimeTarget::is_emulated() {
 
 simulation_precision RuntimeTarget::get_precision() { return precision; }
 
+std::string RuntimeTarget::get_target_args_help_string() const {
+  std::stringstream ss;
+  for (const auto &argConfig : config.TargetArguments) {
+    ss << "  - " << argConfig.KeyName;
+    if (!argConfig.HelpString.empty()) {
+      ss << " (" << argConfig.HelpString << ")";
+    }
+
+    ss << "\n";
+  }
+
+  return ss.str();
+}
+
+void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
+                        RuntimeTarget &target,
+                        const std::string nvqppBuildConfig) {
+  simulation_precision precision = simulation_precision::fp32;
+  std::optional<std::string> foundPlatformName, foundSimulatorName;
+  for (auto &line : cudaq::split(nvqppBuildConfig, '\n')) {
+    if (line.find(PLATFORM_LIBRARY) != std::string::npos) {
+      cudaq::trim(line);
+      auto platformName = cudaq::split(line, '=')[1];
+      // Post-process the string
+      platformName.erase(
+          std::remove(platformName.begin(), platformName.end(), '\"'),
+          platformName.end());
+      platformName = std::regex_replace(platformName, std::regex("-"), "_");
+      foundPlatformName = platformName;
+    } else if (line.find(NVQIR_SIMULATION_BACKEND) != std::string::npos &&
+               !foundSimulatorName.has_value()) {
+      cudaq::trim(line);
+      auto simulatorName = cudaq::split(line, '=')[1];
+      // Post-process the string
+      simulatorName.erase(
+          std::remove(simulatorName.begin(), simulatorName.end(), '\"'),
+          simulatorName.end());
+
+#if defined(__APPLE__) && defined(__MACH__)
+      const std::string libSuffix = "dylib";
+#else
+      const std::string libSuffix = "so";
+#endif
+      cudaq::info("CUDA-Q Library Path is {}.", cudaqLibPath.string());
+      const auto libName =
+          fmt::format("libnvqir-{}.{}", simulatorName, libSuffix);
+
+      if (std::filesystem::exists(cudaqLibPath / libName)) {
+        cudaq::info("Use {} simulator for target {}", simulatorName,
+                    target.name);
+        foundSimulatorName =
+            std::regex_replace(simulatorName, std::regex("-"), "_");
+      } else {
+        cudaq::info("Skip {} simulator for target {} since it is not available",
+                    simulatorName, target.name);
+      }
+    } else if (line.find(IS_FP64_SIMULATION) != std::string::npos) {
+      precision = simulation_precision::fp64;
+    }
+  }
+  target.platformName = foundPlatformName.value_or("default");
+  target.simulatorName = foundSimulatorName.value_or("qpp");
+  target.precision = precision;
+}
+
 /// @brief Search the targets folder in the install for available targets.
 void findAvailableTargets(
     const std::filesystem::path &targetPath,
@@ -101,66 +166,35 @@ void findAvailableTargets(
   // Loop over all target files
   for (const auto &configFile : targetEntries) {
     auto path = configFile.path();
-    // They must have a .config suffix
-    if (path.extension().string() == ".config") {
-      bool isSimulationTarget = false;
-      // Extract the target name from the file name
-      simulation_precision precision = simulation_precision::fp32;
+    // They must have a .yml suffix
+    const std::string configFileExt = ".yml";
+    if (path.extension().string() == configFileExt) {
       auto fileName = path.filename().string();
-      auto targetName = std::regex_replace(fileName, std::regex(".config"), "");
-      std::string platformName = "default", simulatorName = "qpp",
-                  description = "", line;
-      {
-        // Open the file and look for the platform, simulator, and description
-        std::ifstream inFile(path.string());
-        while (std::getline(inFile, line)) {
-          if (line.find(PLATFORM_LIBRARY) != std::string::npos) {
-            cudaq::trim(line);
-            platformName = cudaq::split(line, '=')[1];
-            // Post-process the string
-            platformName.erase(
-                std::remove(platformName.begin(), platformName.end(), '\"'),
-                platformName.end());
-            platformName =
-                std::regex_replace(platformName, std::regex("-"), "_");
-
-          } else if (line.find(NVQIR_SIMULATION_BACKEND) != std::string::npos) {
-            isSimulationTarget = true;
-            cudaq::trim(line);
-            simulatorName = cudaq::split(line, '=')[1];
-            // Post-process the string
-            simulatorName.erase(
-                std::remove(simulatorName.begin(), simulatorName.end(), '\"'),
-                simulatorName.end());
-            simulatorName =
-                std::regex_replace(simulatorName, std::regex("-"), "_");
-          } else if (line.find(TARGET_DESCRIPTION) != std::string::npos) {
-            cudaq::trim(line);
-            description = cudaq::split(line, '=')[1];
-            // Post-process the string
-            description.erase(
-                std::remove(description.begin(), description.end(), '\"'),
-                description.end());
-          } else if (line.find(IS_FP64_SIMULATION) != std::string::npos) {
-            precision = simulation_precision::fp64;
-          }
-        }
-      }
-
+      auto targetName =
+          std::regex_replace(fileName, std::regex(configFileExt), "");
+      // Open the file and look for the platform, simulator, and description
+      std::ifstream inFile(path.string());
+      const std::string configFileContent(
+          (std::istreambuf_iterator<char>(inFile)),
+          std::istreambuf_iterator<char>());
+      cudaq::config::TargetConfig config;
+      llvm::yaml::Input Input(configFileContent.c_str());
+      Input >> config;
+      cudaq::info("Found Target {} with config file {}", targetName, fileName);
+      const std::string defaultTargetConfigStr =
+          cudaq::config::processRuntimeArgs(config, {});
+      RuntimeTarget target;
+      target.config = config;
+      target.name = targetName;
+      target.description = config.Description;
+      auto cudaqLibPath = targetPath.parent_path() / "lib";
+      parseRuntimeTarget(cudaqLibPath, target, defaultTargetConfigStr);
       cudaq::info("Found Target: {} -> (sim={}, platform={})", targetName,
-                  simulatorName, platformName);
+                  target.simulatorName, target.platformName);
       // Add the target.
-      targets.emplace(targetName,
-                      RuntimeTarget{targetName, simulatorName, platformName,
-                                    description, precision});
-      if (isSimulationTarget) {
-        cudaq::info("Found Simulation target: {} -> (sim={}, platform={})",
-                    targetName, simulatorName, platformName);
-        simulationTargets.emplace(
-            targetName, RuntimeTarget{targetName, simulatorName, platformName,
-                                      description, precision});
-        isSimulationTarget = false;
-      }
+      targets.emplace(targetName, target);
+
+      simulationTargets.emplace(targetName, target);
     }
   }
 }
@@ -396,7 +430,24 @@ void LinkedLibraryHolder::setTarget(
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + targetName + ").");
 
-  auto target = iter->second;
+  std::vector<std::string> argv;
+  for (const auto &[k, v] : extraConfig) {
+    argv.emplace_back(k);
+    argv.emplace_back(v);
+  }
+
+  auto &target = iter->second;
+  if (!target.config.WarningMsg.empty()) {
+    // Output the warning message if any
+    fmt::print(
+        "[{}] Target {}: {}\n",
+        fmt::format(fmt::fg(fmt::color::red), "warning"),
+        fmt::format(fmt::fg(fmt::color::blue), target.name),
+        fmt::format(fmt::fg(fmt::color::blue), target.config.WarningMsg));
+  }
+  const std::string targetConfigStr =
+      cudaq::config::processRuntimeArgs(target.config, argv);
+  parseRuntimeTarget(cudaqLibPath, target, targetConfigStr);
 
   cudaq::info("Setting target={} (sim={}, platform={})", targetName,
               target.simulatorName, target.platformName);

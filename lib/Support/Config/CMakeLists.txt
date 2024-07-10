@@ -6,18 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_mlir_library(CUDAQSupport
-  Plugin.cpp
 
-  ADDITIONAL_HEADER_DIRS
-  ${MLIR_MAIN_INCLUDE_DIR}/mlir/Pass
+add_llvm_library(CUDAQTargetConfigUtil
+  TargetConfig.cpp
 
-  DEPENDS
-  mlir-generic-headers
+  DISABLE_LLVM_LINK_LLVM_DYLIB
 
-  LINK_LIBS PUBLIC
-  MLIRAnalysis
-  MLIRIR
+  LINK_COMPONENTS
+  Support
   )
-
-add_subdirectory(Config)

@@ -22,6 +22,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/spin_op.h"
@@ -264,29 +265,31 @@ public:
     /// Once we know the backend, we should search for the configuration file
     /// from there we can get the URL/PORT and the required MLIR pass
     /// pipeline.
-    std::string fileName = mutableBackend + std::string(".config");
+    std::string fileName = mutableBackend + std::string(".yml");
     auto configFilePath = platformPath / fileName;
     cudaq::info("Config file path = {}", configFilePath.string());
     std::ifstream configFile(configFilePath.string());
-    std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                               std::istreambuf_iterator<char>());
-
-    // Loop through the file, extract the pass pipeline and CODEGEN Type
-    auto lines = cudaq::split(configContents, '\n');
-    std::regex pipeline("^PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
-    std::regex emissionType("^CODEGEN_EMISSION\\s*=\\s*(\\S+)");
-    std::regex postCodeGen("^POST_CODEGEN_PASSES\\s*=\\s*\"(\\S+)\"");
-    std::smatch match;
-    for (const std::string &line : lines) {
-      if (std::regex_search(line, match, pipeline)) {
-        cudaq::info("Appending lowering pipeline: {}", match[1].str());
-        passPipelineConfig += "," + match[1].str();
-      } else if (std::regex_search(line, match, emissionType)) {
-        codegenTranslation = match[1].str();
-      } else if (std::regex_search(line, match, postCodeGen)) {
+    std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
+                                  std::istreambuf_iterator<char>());
+    cudaq::config::TargetConfig config;
+    llvm::yaml::Input Input(configYmlContents.c_str());
+    Input >> config;
+    if (config.BackendConfig.has_value()) {
+      if (!config.BackendConfig->PlatformLoweringConfig.empty()) {
+        cudaq::info("Appending lowering pipeline: {}",
+                    config.BackendConfig->PlatformLoweringConfig);
+        passPipelineConfig +=
+            "," + config.BackendConfig->PlatformLoweringConfig;
+      }
+      if (!config.BackendConfig->CodegenEmission.empty()) {
+        cudaq::info("Set codegen translation: {}",
+                    config.BackendConfig->CodegenEmission);
+        codegenTranslation = config.BackendConfig->CodegenEmission;
+      }
+      if (!config.BackendConfig->PostCodeGenPasses.empty()) {
         cudaq::info("Adding post-codegen lowering pipeline: {}",
-                    match[1].str());
-        postCodeGenPasses = match[1].str();
+                    config.BackendConfig->PostCodeGenPasses);
+        postCodeGenPasses = config.BackendConfig->PostCodeGenPasses;
       }
     }
     std::string allowEarlyExitSetting =

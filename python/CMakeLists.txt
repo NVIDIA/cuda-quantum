@@ -95,6 +95,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    OptCodeGen
    OptTransforms
    MLIRPass
+   CUDAQTargetConfigUtil
 )
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 

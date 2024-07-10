@@ -16,6 +16,7 @@ target-arguments:
   - key: option
     required: false
     type: option-flags
+    help-string: "Specify the target options as a comma-separated list.\nSupported options are 'fp32', 'fp64', 'mgpu', 'mqpu'.\nFor example, the 'fp32,mgpu' option combination will activate multi-GPU distribution with single-precision. Not all option combinations are supported."
 
 configuration-matrix:
   - name: single-gpu-fp32

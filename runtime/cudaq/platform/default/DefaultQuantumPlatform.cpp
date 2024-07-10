@@ -10,6 +10,7 @@
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/Timing.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -95,7 +96,7 @@ public:
 
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    std::string fileName = mutableBackend + std::string(".config");
+    std::string fileName = mutableBackend + std::string(".yml");
 
     /// Once we know the backend, we should search for the config file
     /// from there we can get the URL/PORT and the required MLIR pass pipeline.
@@ -111,19 +112,19 @@ public:
     std::ifstream configFile(configFilePath.string());
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                std::istreambuf_iterator<char>());
+    cudaq::config::TargetConfig config;
+    llvm::yaml::Input Input(configContents.c_str());
+    Input >> config;
 
-    auto lines = cudaq::split(configContents, '\n');
-    for (auto &line : lines) {
-      if (line.find(platformQPU) != std::string::npos) {
-        auto keyVal = cudaq::split(line, '=');
-        auto qpuName = keyVal[1];
-        cudaq::info("Default platform QPU subtype name: {}", qpuName);
-        platformQPUs.clear();
-        platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
-        if (platformQPUs.front() == nullptr)
-          throw std::runtime_error(
-              qpuName + " is not a valid QPU name for the default platform.");
-      }
+    if (config.BackendConfig.has_value() &&
+        !config.BackendConfig->PlatformQpu.empty()) {
+      auto qpuName = config.BackendConfig->PlatformQpu;
+      cudaq::info("Default platform QPU subtype name: {}", qpuName);
+      platformQPUs.clear();
+      platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
+      if (platformQPUs.front() == nullptr)
+        throw std::runtime_error(
+            qpuName + " is not a valid QPU name for the default platform.");
     }
 
     // Forward to the QPU.
