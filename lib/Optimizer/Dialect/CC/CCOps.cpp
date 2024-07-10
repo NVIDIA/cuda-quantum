@@ -1436,7 +1436,8 @@ bool hasAllocation(Region &region) {
     for (auto &op : block) {
       if (auto mem = dyn_cast<MemoryEffectOpInterface>(op))
         if (mem.hasEffect<MemoryEffects::Allocate>())
-          return quantumAllocs || !isa<quake::AllocaOp>(op);
+          if (quantumAllocs || !isa<quake::AllocaOp>(op))
+            return true;
       for (auto &opReg : op.getRegions())
         if (hasAllocation<quantumAllocs>(opReg))
           return true;
