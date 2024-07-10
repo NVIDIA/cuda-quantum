@@ -6,16 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/IR/PatternMatch.h"
-#include "mlir/IR/Threading.h"
-#include "mlir/InitAllDialects.h"
-#include "mlir/Rewrite/FrozenRewritePatternSet.h"
+#include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/Passes.h"
+
+#define DEBUG_TYPE "dep-analysis"
 
 using namespace mlir;
 
@@ -25,20 +26,21 @@ using namespace mlir;
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DEPENDENCYANALYSIS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include <llvm/Support/Debug.h>
 } // namespace cudaq::opt
 
 namespace {
-inline bool isMeasureOp(Operation *op) {
+[[maybe_unused]] bool isMeasureOp(Operation *op) {
   return dyn_cast<quake::MxOp>(*op) || dyn_cast<quake::MyOp>(*op) ||
          dyn_cast<quake::MzOp>(*op);
 }
 
-inline bool isBeginOp(Operation *op) {
+[[maybe_unused]] bool isBeginOp(Operation *op) {
   return dyn_cast<quake::UnwrapOp>(*op) || dyn_cast<quake::ExtractRefOp>(*op) ||
          dyn_cast<quake::NullWireOp>(*op);
 }
 
-inline bool isEndOp(Operation *op) {
+[[maybe_unused]] bool isEndOp(Operation *op) {
   return dyn_cast<quake::DeallocOp>(*op) || dyn_cast<quake::SinkOp>(*op);
 }
 
@@ -75,11 +77,15 @@ class DependencyNode {
   friend class DependencyGraph;
 
 protected:
+  // dependencies and successors are ordered lists:
   SmallVector<DependencyNode *> successors;
+  // successors in the order of results of associated,
   SmallVector<DependencyNode *> dependencies;
+  // dependencies are in the order of operands of associated
   SetVector<size_t> qids;
   Operation *associated;
   uint cycle = INT_MAX;
+  bool hasCodeGen = false;
 
   struct Edge {
     size_t result_idx;
@@ -121,7 +127,8 @@ protected:
   bool isSkip() { return isEndOp(associated) || isBeginOp(associated); }
 
   void propagateUp(SetVector<size_t> &qidsToAdd) {
-    qids.set_union(qidsToAdd);
+    if (!isEndOp(associated))
+      qids.set_union(qidsToAdd);
 
     for (auto successor : successors)
       if (successor)
@@ -132,20 +139,25 @@ protected:
     if (!isSkip()) {
       depth++;
       uint _cycle = total_height - depth;
-      if (_cycle < cycle)
-        cycle = _cycle;
+      if (_cycle >= cycle)
+        return;
+      cycle = _cycle;
     }
 
     for (auto dependency : dependencies)
-      // Assumption: graph saturated
-      dependency->schedule(depth, total_height);
+      if (dependency)
+        dependency->schedule(depth, total_height);
+
+    for (auto successor : successors)
+      if (successor && !successor->isScheduled())
+        successor->schedule(depth - 2, total_height);
   }
 
   /// Dependencies and successors are ordered lists:
   /// Dependencies are in the order of operands,
   /// successors in the order of results.
-  /// This function returns the operand index represented by \p dependency ,
-  /// and which result of \p dependency is relevant to \p this
+  /// This function returns the operand index represented by \p dependency
+  /// and the relevant result index of \p dependency
   Edge getEdgeInfo(DependencyNode *dependency) {
     size_t operand = 0;
     for (; operand < dependencies.size(); operand++)
@@ -164,13 +176,14 @@ protected:
   SetVector<DependencyNode *> getNodesAtCycle(uint _cycle) {
     SetVector<DependencyNode *> nodes;
 
-    if (isScheduled() && cycle < _cycle)
+    if (cycle < _cycle)
       return nodes;
     else if (cycle == _cycle)
       nodes.insert(this);
 
     for (auto dependency : dependencies)
-      nodes.set_union(dependency->getNodesAtCycle(_cycle));
+      if (dependency)
+        nodes.set_union(dependency->getNodesAtCycle(_cycle));
 
     return nodes;
   }
@@ -178,18 +191,24 @@ protected:
   /// Generates a new operation for this node in the dependency graph
   /// using the dependencies of the node as operands.
   void codeGen(OpBuilder &builder) {
+    if (hasCodeGen)
+      return;
+
     auto oldOp = associated;
     SmallVector<mlir::Value> operands(oldOp->getNumOperands());
     for (auto dependency : dependencies) {
+      // Get relevant result from dependency's op
+      // to use as the relevant operand
       auto edge = getEdgeInfo(dependency);
       operands[edge.operand_idx] =
           dependency->associated->getResult(edge.result_idx);
     }
 
-    associated = Operation::create(oldOp->getLoc(), oldOp->getName(),
-                                   oldOp->getResultTypes(), operands,
-                                   oldOp->getAttrs());
+    associated =
+        Operation::create(oldOp->getLoc(), oldOp->getName(),
+                          oldOp->getResultTypes(), operands, oldOp->getAttrs());
     builder.insert(associated);
+    hasCodeGen = true;
   }
 
   /// Replaces the null_wire op for \p qid with \p init
@@ -202,25 +221,23 @@ protected:
       return;
     }
 
-    for (auto dependency : dependencies) {
-      dependency->initializeWire(qid, init);
-    }
+    for (auto dependency : dependencies)
+      if (dependency)
+        dependency->initializeWire(qid, init);
   }
 
 public:
-  DependencyNode(Operation *op, DependencyNode *from) : qids(), associated(op) {
+  DependencyNode(Operation *op) : qids(), associated(op) {
     uint num_dependencies = op->getNumOperands();
     dependencies = SmallVector<DependencyNode *>(num_dependencies, nullptr);
     uint num_successors = op->getNumResults();
     successors = SmallVector<DependencyNode *>(num_successors, nullptr);
+
     if (op->hasAttr("qid")) {
       // Lookup qid
       auto qid = op->getAttrOfType<IntegerAttr>("qid").getUInt();
       qids.insert(qid);
     }
-
-    if (from)
-      addSuccessor(from);
   };
 
   /// Add \p successor as a successor according to which result(s) is passed
@@ -260,16 +277,14 @@ public:
     return max;
   }
 
-  /// Generates code to clean up the qid when it is no longer in use
   void addCleanUp(OpBuilder &builder) {
-    for (auto successor : successors) {
-      if (isEndOp(successor->associated)) {
-        auto edge = successor->getEdgeInfo(this);
-        auto newOp = builder.create<quake::SinkOp>(
-            builder.getUnknownLoc(), associated->getResult(edge.result_idx));
-        newOp->setAttrs(successor->associated->getAttrs());
-      }
-    }
+    assert(isRoot() && "Can only call addCleanUp on a root node!");
+    auto last_use = dependencies[0];
+    auto edge = getEdgeInfo(last_use);
+    auto wire = last_use->associated->getResult(edge.result_idx);
+    auto newOp = builder.create<quake::SinkOp>(builder.getUnknownLoc(), wire);
+    newOp->setAttrs(associated->getAttrs());
+    associated = newOp;
   }
 };
 
@@ -312,8 +327,17 @@ private:
   }
 
   void scheduleNodes() {
-    for (auto root : roots)
-      root->schedule(0, total_height);
+    DependencyNode *tallest;
+    int max = 0;
+    for (auto root : roots) {
+      int height = root->getHeight();
+      if (height > max) {
+        max = height;
+        tallest = root;
+      }
+    }
+
+    tallest->schedule(0, total_height);
   }
 
   SetVector<DependencyNode *> getNodesAtCycle(uint cycle) {
@@ -351,9 +375,13 @@ public:
   DependencyNode *getFirstUseOf(size_t qid) { return firstUses[qid]; }
 
   DependencyNode *getLastUseOf(size_t qid) {
+    return getRootForQID(qid)->dependencies[0];
+  }
+
+  DependencyNode *getRootForQID(size_t qid) {
     for (auto root : roots)
       if (root->associated->getAttr("qid").cast<IntegerAttr>().getUInt() == qid)
-        return root->dependencies[0];
+        return root;
     return nullptr;
   }
 
@@ -385,8 +413,9 @@ public:
     getLastUseOf(qid)->initializeWire(qid, initOp);
   }
 
-  void initializeWire(size_t qid, DependencyNode *init) {
-    getLastUseOf(qid)->initializeWire(qid, init->associated);
+  void initializeWireFromRoot(size_t qid, DependencyNode *init) {
+    auto lastOp = init->dependencies[0]->associated;
+    getFirstUseOf(qid)->initializeWire(qid, lastOp);
   }
 
   void print() {
@@ -395,36 +424,40 @@ public:
       root->print();
     llvm::outs() << "Graph End\n";
   }
+
+  Location getIntroductionLoc(size_t qid) {
+    return getFirstUseOf(qid)->associated->getLoc();
+  }
 };
 
-class DependencyAnalysis {
-private:
+struct DependencyAnalysisPass
+    : public cudaq::opt::impl::DependencyAnalysisBase<DependencyAnalysisPass> {
+  using DependencyAnalysisBase::DependencyAnalysisBase;
   SmallVector<DependencyNode *> perOp;
 
-  inline DependencyNode *getDNodeId(Operation *op) {
+  /// Returns the dependency node for \p op
+  /// Creates a new dependency node if it does not exist
+  DependencyNode *visitOp(Operation *op, DependencyNode *next) {
+    // If we've already visited this operation, return memoized dnode
     if (op->hasAttr("dnodeid")) {
       auto id = op->getAttr("dnodeid").cast<IntegerAttr>().getUInt();
       auto dnode = perOp[id];
+      dnode->addSuccessor(next);
       return dnode;
     }
 
-    return nullptr;
-  }
+    // Skip classical operations
+    bool quakeOp = false;
+    for (auto type : op->getResultTypes())
+      if (isa<quake::WireType>(type)) {
+        quakeOp = true;
+        break;
+      }
 
-public:
-  DependencyAnalysis() : perOp(){};
+    if (!quakeOp && !isEndOp(op))
+      return nullptr;
 
-  DependencyNode *handleDependencyOp(Operation *op, DependencyNode *next) {
-    // If we've already visited this operation, return memoized dnode
-    auto dnodeid = getDNodeId(op);
-    if (dnodeid) {
-      if (dnodeid != next)
-        dnodeid->addSuccessor(next);
-      return dnodeid;
-    }
-
-    // Construct new dnode
-    DependencyNode *newNode = new DependencyNode(op, next);
+    DependencyNode *newNode = new DependencyNode(op);
 
     // Dnodeid is the next slot of the dnode vector
     auto id = perOp.size();
@@ -434,37 +467,33 @@ public:
     op->setAttr("dnodeid", builder.getUI32IntegerAttr(id));
     perOp.push_back(newNode);
 
-    // Reached end of graph (beginning of circuit), don't visit children
-    if (isBeginOp(op))
-      return newNode;
-
     // Recursively visit children
-    for (auto operand : op->getOperands()) {
-      handleDependencyValue(operand, newNode);
-    }
+    for (auto operand : op->getOperands())
+      visitValue(operand, newNode);
 
     return newNode;
   }
 
-  DependencyNode *handleDependencyValue(Value v, DependencyNode *next) {
+  /// Returns the dependency node for the defining operation of \p v
+  /// Creates a new dependency node if it does not exist
+  DependencyNode *visitValue(Value v, DependencyNode *next) {
+    // Skip classical values
     if (!isa<quake::WireType>(v.getType()))
       return nullptr;
 
     auto defOp = v.getDefiningOp();
     if (defOp)
-      return handleDependencyOp(defOp, next);
+      return visitOp(defOp, next);
 
     // TODO: FAIL
-    // llvm::outs() << "UNKNOWN VALUE\n"
     assert(false && "UKKNOWN VALUE");
     return nullptr;
   }
-};
 
-struct DependencyAnalysisPass
-    : public cudaq::opt::impl::DependencyAnalysisBase<DependencyAnalysisPass> {
-  using DependencyAnalysisBase::DependencyAnalysisBase;
-
+  /// Given a set of qubit lifetimes and a candidate lifetime,
+  /// tries to find a qubit to reuse.
+  /// The result either contains the optimal qubit to reuse,
+  /// or contains no value if no qubit can be reused
   std::optional<size_t> findBestQubit(SmallVector<LifeTime *> lifetimes,
                                       LifeTime *lifetime) {
     std::optional<size_t> best;
@@ -493,9 +522,10 @@ struct DependencyAnalysisPass
     return total;
   }
 
+  /// Reorders the program based on the dependency graphs to reuse qubits
   void codeGen(SmallVector<DependencyGraph> &graphs, OpBuilder &builder) {
     SmallVector<LifeTime *> lifetimes;
-    SmallVector<DependencyNode *> live_wires;
+    SmallVector<DependencyNode *> sinks;
     uint cycles = getTotalCycles(graphs);
 
     for (uint cycle = 0; cycle < cycles; cycle++) {
@@ -504,12 +534,18 @@ struct DependencyAnalysisPass
         // that we can reuse. Failing that, use a new qubit.
         for (auto qid : graph.getFirstUsedAtCycle(cycle)) {
           auto lifetime = graph.getLifeTimeForQID(qid);
+          LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
+          LLVM_DEBUG(llvm::dbgs()
+                     << " is in use from cycle " << lifetime->getBegin());
+          LLVM_DEBUG(llvm::dbgs() << " through cycle " << lifetime->getEnd());
+          LLVM_DEBUG(llvm::dbgs() << "\n\n");
+
           auto new_qid = findBestQubit(lifetimes, lifetime);
           if (!new_qid) {
             // Can't reuse any qubits, have to allocate a new one
             new_qid = lifetimes.size();
             lifetimes.push_back(lifetime);
-            live_wires.push_back(graph.getLastUseOf(qid));
+            sinks.push_back(graph.getRootForQID(qid));
             // Initialize the qubit with a null wire op
             graph.initializeWire(qid, builder);
           } else {
@@ -517,12 +553,12 @@ struct DependencyAnalysisPass
             lifetimes[new_qid.value()] =
                 lifetime->combine(lifetimes[new_qid.value()]);
 
-            auto init = live_wires[new_qid.value()];
+            auto last_user = sinks[new_qid.value()];
             // We assume that the result of the last use of the old qubit
             // must have been a null wire (e.g., it was reset),
             // so we can reuse that result as the initial value to reuse it
-            graph.initializeWire(qid, init);
-            live_wires[new_qid.value()] = graph.getLastUseOf(qid);
+            graph.initializeWireFromRoot(qid, last_user);
+            sinks[new_qid.value()] = graph.getRootForQID(qid);
           }
         }
 
@@ -531,22 +567,21 @@ struct DependencyAnalysisPass
     }
 
     // Add teardown instructions
-    for (auto node : live_wires)
-      node->addCleanUp(builder);
+    for (auto sink : sinks)
+      sink->addCleanUp(builder);
   }
 
   void runOnOperation() override {
     auto func = getOperation();
 
-    DependencyAnalysis engine;
-
     SetVector<DependencyNode *> roots;
-
-    func.walk([&](quake::SinkOp sop) {
-      auto root = engine.handleDependencyOp(sop, nullptr);
-      if (root)
+    for (auto &op : func.front().getOperations()) {
+      if (dyn_cast<func::ReturnOp>(op))
+        continue;
+      auto root = visitOp(&op, nullptr);
+      if (isEndOp(&op))
         roots.insert(root);
-    });
+    }
 
     // Construct graphs from roots
     SmallVector<DependencyGraph> graphs;
@@ -556,12 +591,19 @@ struct DependencyAnalysisPass
       graphs.push_back(new_graph);
     }
 
+    // Setup new block to replace function body
     OpBuilder builder(func.getOperation());
     Block *oldBlock = &func.front();
     Block *newBlock = builder.createBlock(&func.getRegion());
+    SmallVector<mlir::Location> locs;
+    for (auto arg : oldBlock->getArguments())
+      locs.push_back(arg.getLoc());
+    newBlock->addArguments(oldBlock->getArgumentTypes(), locs);
     builder.setInsertionPointToStart(newBlock);
+    // Generate optimized instructions in new block
     codeGen(graphs, builder);
     builder.create<func::ReturnOp>(builder.getUnknownLoc());
+    // Replace old block
     oldBlock->erase();
   }
 };

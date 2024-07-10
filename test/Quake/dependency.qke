@@ -8,65 +8,45 @@
 
 // RUN: cudaq-opt --assign-ids --dep-analysis %s | FileCheck %s
 
-// Original generated code
-// func.func @actual() {
-//     %0 = quake.null_wire
-//     %1 = quake.null_wire
-//     %2 = quake.null_wire
-//     %3 = quake.h %0 : (!quake.wire) -> !quake.wire
-//     %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!quake.measure, !quake.wire)
-//     %4 = quake.discriminate %measOut : (!quake.measure) -> i1
-//     cf.cond_br %4, ^bb1(%wires, %1, %2 : !quake.wire, !quake.wire, !quake.wire), ^bb2(%1, %2, %wires : !quake.wire, !quake.wire, !quake.wire)
-//   ^bb1(%5: !quake.wire, %6: !quake.wire, %7: !quake.wire):  // pred: ^bb0
-//     %8 = quake.x %5 : (!quake.wire) -> !quake.wire
-//     cf.br ^bb2(%6, %7, %8 : !quake.wire, !quake.wire, !quake.wire)
-//   ^bb2(%9: !quake.wire, %10: !quake.wire, %11: !quake.wire):  // 2 preds: ^bb0, ^bb1
-//     %12 = quake.h %9 : (!quake.wire) -> !quake.wire
-//     %13 = quake.x %12 : (!quake.wire) -> !quake.wire
-//     %14 = quake.y %13 : (!quake.wire) -> !quake.wire
-//     %15 = quake.z %14 : (!quake.wire) -> !quake.wire
-//     %16 = quake.h %10 : (!quake.wire) -> !quake.wire
-//     %17:2 = quake.x [%16] %15 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-//     %measOut_0, %wires_1 = quake.mz %17#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-//     %18 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
-//     cf.cond_br %18, ^bb3(%wires_1, %17#0, %11 : !quake.wire, !quake.wire, !quake.wire), ^bb4(%17#0, %11, %wires_1 : !quake.wire, !quake.wire, !quake.wire)
-//   ^bb3(%19: !quake.wire, %20: !quake.wire, %21: !quake.wire):  // pred: ^bb2
-//     %22 = quake.x %19 : (!quake.wire) -> !quake.wire
-//     cf.br ^bb4(%20, %21, %22 : !quake.wire, !quake.wire, !quake.wire)
-//   ^bb4(%23: !quake.wire, %24: !quake.wire, %25: !quake.wire):  // 2 preds: ^bb2, ^bb3
-//     %measOut_2, %wires_3 = quake.mz %23 : (!quake.wire) -> (!quake.measure, !quake.wire)
-//     %26 = quake.discriminate %measOut_2 : (!quake.measure) -> i1
-//     cf.cond_br %26, ^bb5(%wires_3, %24, %25 : !quake.wire, !quake.wire, !quake.wire), ^bb6(%24, %25, %wires_3 : !quake.wire, !quake.wire, !quake.wire)
-//   ^bb5(%27: !quake.wire, %28: !quake.wire, %29: !quake.wire):  // pred: ^bb4
-//     %30 = quake.x %27 : (!quake.wire) -> !quake.wire
-//     cf.br ^bb6(%28, %29, %30 : !quake.wire, !quake.wire, !quake.wire)
-//   ^bb6(%31: !quake.wire, %32: !quake.wire, %33: !quake.wire):  // 2 preds: ^bb4, ^bb5
-//     quake.sink %31 : !quake.wire
-//     quake.sink %32 : !quake.wire
-//     quake.sink %33 : !quake.wire
-//     return
-// }
-
-// With branches removed
-func.func @test4() {
+func.func @test() {
     %0 = quake.null_wire
     %1 = quake.null_wire
     %2 = quake.null_wire
     %3 = quake.h %0 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!quake.measure, !quake.wire)
-    %4 = quake.x %wires : (!quake.wire) -> !quake.wire
+    %4 = quake.h %2 : (!quake.wire) -> !quake.wire
     %5 = quake.h %1 : (!quake.wire) -> !quake.wire
-    %6 = quake.x %5 : (!quake.wire) -> !quake.wire
-    %7 = quake.y %6 : (!quake.wire) -> !quake.wire
-    %8 = quake.z %7 : (!quake.wire) -> !quake.wire
-    %9 = quake.h %2 : (!quake.wire) -> !quake.wire
-    %10:2 = quake.x [%9] %8 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    %measOut_1, %wires_1 = quake.mz %10#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-    %11 = quake.x %wires_1 : (!quake.wire) -> !quake.wire
-    %measOut_2, %wires_2 = quake.mz %10#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-    %12 = quake.x %wires_2 : (!quake.wire) -> !quake.wire
-    quake.sink %4 : !quake.wire
+    %6:2 = quake.x [%3] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %7 = quake.h %6#0 : (!quake.wire) -> !quake.wire
+    %8 = quake.y %6#1 : (!quake.wire) -> !quake.wire
+    %9 = quake.z %8 : (!quake.wire) -> !quake.wire
+    %10:2 = quake.x [%4] %9 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %11 = quake.h %10#0 : (!quake.wire) -> !quake.wire
+    %measOut, %wires = quake.mz %10#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.sink %wires : !quake.wire
     quake.sink %11 : !quake.wire
-    quake.sink %12 : !quake.wire
+    quake.sink %7 : !quake.wire
     return
-}
+  }
+
+// CHECK-LABEL:   func.func @test() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK-NOT:       foo
+// CHECK-DAG:       %[[VAL_2:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.h %[[VAL_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]]:2 = quake.x [%[[VAL_3]]] %[[VAL_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-DAG:       %[[VAL_5:.*]] = quake.h %[[VAL_4]]#0 : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_6:.*]] = quake.y %[[VAL_4]]#1 : (!quake.wire) -> !quake.wire
+// CHECK-NOT:       foo
+// CHECK-DAG:       %[[VAL_7:.*]] = quake.h %[[VAL_5]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_8:.*]] = quake.z %[[VAL_6]] : (!quake.wire) -> !quake.wire
+// CHECK-NOT:       foo
+// CHECK-DAG:       %[[VAL_9:.*]]:2 = quake.x [%[[VAL_7]]] %[[VAL_8]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NOT:       foo
+// CHECK-DAG:       %[[VAL_10:.*]] = quake.h %[[VAL_9]]#0 : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_111:.*]], %[[VAL_11:.*]] = quake.mz %[[VAL_9]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK-NOT:       foo
+// CHECK-DAG:       quake.sink %[[VAL_10]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_11]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
