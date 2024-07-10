@@ -156,22 +156,7 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
               "--" + config.Name + "-" + argConfig.KeyName;
           return (nvqppArgKey == argsStr) || (argsStr == argConfig.KeyName);
         });
-    if (iter == config.TargetArguments.end()) {
-      llvm::errs() << "Unknown target argument '" << argsStr << "'\n";
-      llvm::errs() << "Supported arguments for target '" << config.Name
-                   << "' are: "
-                   << "\n";
-      for (const auto &argConfig : config.TargetArguments) {
-        llvm::errs() << "  "
-                     << "--" + config.Name + "-" + argConfig.KeyName;
-        if (!argConfig.HelpString.empty()) {
-          llvm::errs() << " (" << argConfig.HelpString << ")";
-        }
-
-        llvm::errs() << "\n";
-      }
-      abort();
-    } else {
+    if (iter != config.TargetArguments.end()) {
       if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {
         if (!iter->PlatformArgKey.empty()) {
           platformExtraArgs << ";" << iter->PlatformArgKey << ";"
