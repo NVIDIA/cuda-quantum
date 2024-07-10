@@ -288,11 +288,7 @@ public:
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
     if (isDisallowed(io_context.name)) {
-      std::cout
-          << io_context.name +
-                 std::string(
-                     " operation is not supported with cudaq target nvqc!")
-          << std::endl;
+      throw std::runtime_error(io_context.name + " operation is not supported with cudaq target remote-mqpu!");
       return true;
     }
 
@@ -703,12 +699,7 @@ public:
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
     if (isDisallowed(io_context.name)) {
-      std::cout
-          << io_context.name +
-                 std::string(
-                     " operation is not supported with cudaq target nvqc!")
-          << std::endl;
-      return true;
+      throw std::runtime_error(io_context.name + " operation is not supported with cudaq target nvqc!");
     }
 
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {
