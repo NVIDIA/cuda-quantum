@@ -1635,8 +1635,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           if (isa<FloatType>(argTy)) {
             count++;
           } else if (auto ptrTy = dyn_cast<cc::PointerType>(argTy)) {
-            if (isa<FloatType>(ptrTy.getElementType()))
-              count++;
+            emitFatalError(
+                loc,
+                "passing parameters by reference or pointer not supported");
           }
         }
         return count;
