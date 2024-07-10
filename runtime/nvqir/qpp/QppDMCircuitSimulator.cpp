@@ -170,10 +170,15 @@ protected:
       // Map our kraus ops to the qpp::cmat
       std::vector<qpp::cmat> K;
       auto ops = channel.get_ops();
-      std::transform(
-          ops.begin(), ops.end(), std::back_inserter(K), [&](auto &el) {
-            return Eigen::Map<qpp::cmat>(el.data.data(), el.nRows, el.nCols);
-          });
+      std::transform(ops.begin(), ops.end(), std::back_inserter(K),
+                     [&](auto &el) {
+                       // Note: Kraus channel flattened matrix data is
+                       // **row-major**.
+                       return Eigen::Map<
+                           Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
+                                         Eigen::Dynamic, Eigen::RowMajor>>(
+                           el.data.data(), el.nRows, el.nCols);
+                     });
 
       // Apply K rho Kdag
       state = qpp::apply(state, K, casted_qubits);

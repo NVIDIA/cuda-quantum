@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -90,6 +90,7 @@ protected:
   cutensornetHandle_t m_cutnHandle;
   std::unique_ptr<TensorNetState> m_state;
   std::unordered_map<std::string, void *> m_gateDeviceMemCache;
+  ScratchDeviceMem scratchPad;
 };
 
 } // end namespace nvqir
