@@ -23,6 +23,7 @@ import re
 # Pattern to detect ANSI escape color code in the error message
 ANSI_PATTERN = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
+
 def get_deserialized_dict(scoped_dict):
     deserialized_dict = {}
 
