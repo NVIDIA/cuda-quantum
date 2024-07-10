@@ -287,11 +287,10 @@ public:
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
-    if (isDisallowed(io_context.name)) {
+    if (isDisallowed(io_context.name))
       throw std::runtime_error(
           io_context.name +
           " operation is not supported with cudaq target remote-mqpu!");
-    }
 
     cudaq::RestRequest request = constructJobRequest(
         mlirContext, io_context, serializedCodeContext, backendSimName,
@@ -699,11 +698,10 @@ public:
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
-    if (isDisallowed(io_context.name)) {
+    if (isDisallowed(io_context.name))
       throw std::runtime_error(
           io_context.name +
           " operation is not supported with cudaq target nvqc!");
-    }
 
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {
         "tensornet", "nvidia-mgpu", "nvidia-mqpu"};
