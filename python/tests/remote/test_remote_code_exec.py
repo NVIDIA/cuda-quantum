@@ -80,6 +80,7 @@ def wait_until_port_active(port: int) -> bool:
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
+    os.environ['CUDAQ_SER_CODE_EXEC'] = '1'
     cudaq_qpud = os.path.dirname(cudaq.__file__) + "/../bin/cudaq-qpud.py"
     nvqc_proxy = os.path.dirname(cudaq.__file__) + "/../bin/nvqc_proxy.py"
     p1 = subprocess.Popen([sys.executable, nvqc_proxy])

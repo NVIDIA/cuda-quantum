@@ -751,6 +751,12 @@ protected:
       return false;
     }
 
+    if (!in_request.passes.empty()) {
+      outValidationMessage =
+          "Unsupported passes: server-side compilation passes are not allowed.";
+      return false;
+    }
+
     return true;
   }
 
