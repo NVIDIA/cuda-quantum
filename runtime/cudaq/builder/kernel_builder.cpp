@@ -755,94 +755,45 @@ void u3(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &parameters,
 
 template <typename QuakeMeasureOp>
 QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
-                        std::string regName) {
+                        const std::string &regName) {
   auto type = value.getType();
   if (!type.isa<quake::RefType, quake::VeqType>())
     throw std::runtime_error("Invalid parameter passed to mz.");
 
   cudaq::info("kernel_builder apply measurement");
 
-  auto i1Ty = builder.getI1Type();
   auto strAttr = builder.getStringAttr(regName);
-  auto measTy = quake::MeasureType::get(builder.getContext());
-  if (type.isa<quake::RefType>()) {
-    Value measureResult =
-        builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
-            .getMeasOut();
-    Value bits = builder.create<quake::DiscriminateOp>(i1Ty, measureResult);
-    return QuakeValue(builder, bits);
+  Type resTy = builder.getI1Type();
+  Type measTy = quake::MeasureType::get(builder.getContext());
+  if (!type.isa<quake::RefType>()) {
+    resTy = cc::StdvecType::get(resTy);
+    measTy = cc::StdvecType::get(measTy);
   }
-
-  // This must be a veq.
-  auto i64Ty = builder.getIntegerType(64);
-  Value vecSize = builder.template create<quake::VeqSizeOp>(i64Ty, value);
-  Value size = builder.template create<cudaq::cc::CastOp>(
-      i64Ty, vecSize, cudaq::cc::CastOpMode::Unsigned);
-  auto buff = builder.template create<cc::AllocaOp>(i1Ty, vecSize);
-  cudaq::opt::factory::createInvariantLoop(
-      builder, builder.getLoc(), size,
-      [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
-          Block &block) {
-        Value iv = block.getArgument(0);
-        OpBuilder::InsertionGuard guard(nestedBuilder);
-        Value qv =
-            nestedBuilder.create<quake::ExtractRefOp>(nestedLoc, value, iv);
-        Value meas =
-            nestedBuilder.create<QuakeMeasureOp>(nestedLoc, measTy, qv, strAttr)
-                .getMeasOut();
-        Value bit =
-            nestedBuilder.create<quake::DiscriminateOp>(nestedLoc, i1Ty, meas);
-
-        auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
-        auto addr = nestedBuilder.create<cc::ComputePtrOp>(
-            nestedLoc, i1PtrTy, buff, ValueRange{iv});
-        nestedBuilder.create<cc::StoreOp>(nestedLoc, bit, addr);
-      });
-  Value ret = builder.template create<cc::StdvecInitOp>(
-      cc::StdvecType::get(builder.getContext(), i1Ty), buff, vecSize);
-  return QuakeValue(builder, ret);
+  Value measureResult =
+      builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
+          .getMeasOut();
+  Value bits = builder.create<quake::DiscriminateOp>(resTy, measureResult);
+  return QuakeValue(builder, bits);
 }
 
 QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              std::string regName) {
+              const std::string &regName) {
   return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
 QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              std::string regName) {
+              const std::string &regName) {
   return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
 QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              std::string regName) {
+              const std::string &regName) {
   return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
 void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
   auto value = qubitOrQvec.getValue();
-  if (isa<quake::RefType>(value.getType())) {
-    builder.create<quake::ResetOp>(TypeRange{}, value);
-    return;
-  }
-
-  if (isa<quake::VeqType>(value.getType())) {
-    auto target = value;
-    Value rank = builder.create<quake::VeqSizeOp>(builder.getI64Type(), target);
-    auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
-                           Block &block) {
-      Value ref = builder.create<quake::ExtractRefOp>(loc, target,
-                                                      block.getArgument(0));
-      builder.create<quake::ResetOp>(loc, TypeRange{}, ref);
-    };
-    cudaq::opt::factory::createInvariantLoop(builder, builder.getUnknownLoc(),
-                                             rank, bodyBuilder);
-    return;
-  }
-
-  llvm::errs() << "Invalid type:\n";
-  value.getType().dump();
-  llvm::errs() << '\n';
-  throw std::runtime_error("Invalid type passed to reset().");
+  builder.create<quake::ResetOp>(TypeRange{}, value);
 }
 
 void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
