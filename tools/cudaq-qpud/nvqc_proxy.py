@@ -196,12 +196,20 @@ class Server(http.server.SimpleHTTPRequestHandler):
                         save_dir = os.getcwd()
                         os.chdir(pathlib.Path(temp_file.name).parent)
                         cmd_list = build_command_list(temp_file.name)
-                        subprocess.run(cmd_list,
-                                       capture_output=False,
-                                       text=True)
+                        cmd_result = subprocess.run(cmd_list,
+                                                    capture_output=False,
+                                                    text=True)
 
                         with open(temp_file.name, 'rb') as fp:
                             result = json.load(fp)
+
+                        if cmd_result.returncode == 124:
+                            result = {
+                                'status':
+                                    'json_request_runner.py time out',
+                                'errorMessage':
+                                    'Timeout occurred during execution'
+                            }
 
                         # Cleanup
                         os.chdir(save_dir)
