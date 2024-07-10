@@ -1240,7 +1240,7 @@ public:
     Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
     Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
-    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 64);
+    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
     if (v.getType() != cudaq::opt::getQubitType(context))
       return v;
     auto createCall = rewriter.create<LLVM::CallOp>(
