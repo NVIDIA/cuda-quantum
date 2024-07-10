@@ -30,7 +30,6 @@ void setQuantumPlatformInternal(quantum_platform *p);
 static constexpr const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
 static constexpr const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
-static constexpr const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
 static constexpr const char IS_FP64_SIMULATION[] =
     "CUDAQ_SIMULATION_SCALAR_FP64";
 
