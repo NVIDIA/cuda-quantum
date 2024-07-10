@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -154,6 +154,7 @@ public:
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
         pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
+        pm.addPass(mlir::createCanonicalizerPass());
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }

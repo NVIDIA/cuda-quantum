@@ -22,7 +22,7 @@ def kraus_operators(probability):
     """See Nielsen, Chuang Chapter 8.3.5 for definition source."""
     kraus_0 = np.array([[1, 0], [0, np.sqrt(1 - probability)]],
                        dtype=np.complex128)
-    kraus_1 = np.array([[0, 0], [np.sqrt(probability), 0]], dtype=np.complex128)
+    kraus_1 = np.array([[0, np.sqrt(probability)], [0, 0]], dtype=np.complex128)
     return [kraus_0, kraus_1]
 
 

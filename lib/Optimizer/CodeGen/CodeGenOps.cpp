@@ -12,8 +12,6 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 
-using namespace mlir;
-
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//

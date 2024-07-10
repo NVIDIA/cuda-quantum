@@ -24,7 +24,7 @@ namespace cudaq {
 struct kraus_op {
 
   /// @brief Matrix data, represented as a 1d flattened
-  // row major matrix.
+  // *row major* matrix.
   std::vector<cudaq::complex> data;
 
   /// @brief The number of rows in the matrix
@@ -179,8 +179,8 @@ protected:
   using NoiseModelOpMap =
       std::unordered_map<KeyT, std::vector<kraus_channel>, KeyTHash>;
 
-  static const constexpr std::array<const char *, 10> availableOps{
-      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1"};
+  static constexpr const char *availableOps[] = {
+      "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
 
   // The noise model is a mapping of quantum operation
   // names to a Kraus channel applied after the operation is applied.
@@ -263,7 +263,7 @@ class amplitude_damping_channel : public kraus_channel {
 public:
   amplitude_damping_channel(const real probability) : kraus_channel() {
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
-        k1v{0, 0, std::sqrt(probability), 0};
+        k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
     validateCompleteness();
   }

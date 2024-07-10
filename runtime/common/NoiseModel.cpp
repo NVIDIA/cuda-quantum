@@ -12,24 +12,20 @@
 
 namespace cudaq {
 
-template <typename ScalarType>
-bool isIdentity(const Eigen::MatrixX<ScalarType> &mat,
-                double threshold = 1e-9) {
-  Eigen::MatrixX<ScalarType> idMat =
-      Eigen::MatrixX<ScalarType>::Identity(mat.rows(), mat.cols());
-  return mat.isApprox(
-      Eigen::MatrixX<ScalarType>::Identity(mat.rows(), mat.cols()), threshold);
+template <typename EigenMatTy>
+bool isIdentity(const EigenMatTy &mat, double threshold = 1e-9) {
+  EigenMatTy idMat = EigenMatTy::Identity(mat.rows(), mat.cols());
+  return mat.isApprox(EigenMatTy::Identity(mat.rows(), mat.cols()), threshold);
 }
 
-template <typename ScalarType>
-bool validateCPTP(const std::vector<Eigen::MatrixX<ScalarType>> &mats,
+template <typename EigenMatTy>
+bool validateCPTP(const std::vector<EigenMatTy> &mats,
                   double threshold = 1e-9) {
   if (mats.empty()) {
     return true;
   }
 
-  Eigen::MatrixX<ScalarType> cptp =
-      Eigen::MatrixX<ScalarType>::Zero(mats[0].rows(), mats[0].cols());
+  EigenMatTy cptp = EigenMatTy::Zero(mats[0].rows(), mats[0].cols());
   for (const auto &mat : mats) {
     cptp = cptp + mat.adjoint() * mat;
   }
@@ -43,11 +39,13 @@ void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops) {
     if (ops[i].nRows != size)
       throw std::runtime_error(
           "Kraus ops passed to this channel do not all have the same size.");
-
-  std::vector<Eigen::MatrixX<std::complex<float>>> matrices;
+  typedef Eigen::Matrix<std::complex<float>, Eigen::Dynamic, Eigen::Dynamic,
+                        Eigen::RowMajor>
+      RowMajorMatTy;
+  std::vector<RowMajorMatTy> matrices;
   for (auto &op : ops) {
     auto *nonConstPtr = const_cast<complex *>(op.data.data());
-    Eigen::Map<Eigen::MatrixX<std::complex<float>>> map(
+    Eigen::Map<RowMajorMatTy> map(
         reinterpret_cast<std::complex<float> *>(nonConstPtr), op.nRows,
         op.nCols);
     matrices.push_back(map);
@@ -64,11 +62,13 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
     if (ops[i].nRows != size)
       throw std::runtime_error(
           "Kraus ops passed to this channel do not all have the same size.");
-
-  std::vector<Eigen::MatrixX<std::complex<double>>> matrices;
+  typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic,
+                        Eigen::RowMajor>
+      RowMajorMatTy;
+  std::vector<RowMajorMatTy> matrices;
   for (auto &op : ops) {
     auto *nonConstPtr = const_cast<complex *>(op.data.data());
-    Eigen::Map<Eigen::MatrixX<std::complex<double>>> map(
+    Eigen::Map<RowMajorMatTy> map(
         reinterpret_cast<std::complex<double> *>(nonConstPtr), op.nRows,
         op.nCols);
     matrices.push_back(map);
@@ -104,8 +104,8 @@ void noise_model::add_channel(const std::string &quantumOp,
                               const std::vector<std::size_t> &qubits,
                               const kraus_channel &channel) {
 
-  if (std::find(availableOps.begin(), availableOps.end(), quantumOp) ==
-      availableOps.end())
+  if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
+      std::end(availableOps))
     throw std::runtime_error(
         "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
 
