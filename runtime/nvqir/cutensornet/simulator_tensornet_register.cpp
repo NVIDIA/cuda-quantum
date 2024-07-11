@@ -48,19 +48,21 @@ public:
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
     return std::make_unique<TensorNetSimulationState>(std::move(m_state),
-                                                      m_cutnHandle);
+                                                      scratchPad, m_cutnHandle);
   }
 
   void addQubitsToState(std::size_t numQubits, const void *ptr) override {
     LOG_API_TIME();
     if (!m_state) {
       if (!ptr) {
-        m_state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
+        m_state = std::make_unique<TensorNetState>(numQubits, scratchPad,
+                                                   m_cutnHandle);
       } else {
         auto *casted =
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
         std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
-        m_state = TensorNetState::createFromStateVector(stateVec, m_cutnHandle);
+        m_state = TensorNetState::createFromStateVector(stateVec, scratchPad,
+                                                        m_cutnHandle);
       }
     } else {
       if (!ptr) {
@@ -83,8 +85,9 @@ public:
       throw std::invalid_argument(
           "[Tensornet simulator] Incompatible state input");
     if (!m_state) {
-      m_state = TensorNetState::createFromOpTensors(
-          in_state.getNumQubits(), casted->getAppliedTensors(), m_cutnHandle);
+      m_state = TensorNetState::createFromOpTensors(in_state.getNumQubits(),
+                                                    casted->getAppliedTensors(),
+                                                    scratchPad, m_cutnHandle);
     } else {
       // Expand an existing state:
       //  (1) Create a blank tensor network with combined number of qubits

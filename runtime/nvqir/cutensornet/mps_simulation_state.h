@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -24,6 +24,8 @@ struct MPSSettings {
   double absCutoff = 1e-5;
   // Default relative cutoff
   double relCutoff = 1e-5;
+  // Default SVD algorithm (Jacobi)
+  cutensornetTensorSVDAlgo_t svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ;
   MPSSettings();
 };
 
@@ -32,6 +34,7 @@ class MPSSimulationState : public cudaq::SimulationState {
 public:
   MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                      const std::vector<MPSTensor> &mpsTensors,
+                     ScratchDeviceMem &inScratchPad,
                      cutensornetHandle_t cutnHandle);
 
   MPSSimulationState(const MPSSimulationState &) = delete;
@@ -78,6 +81,7 @@ public:
   /// Util method to create an MPS state from an input state vector.
   // For example, state vector from the user's input.
   static MpsStateData createFromStateVec(cutensornetHandle_t cutnHandle,
+                                         ScratchDeviceMem &inScratchPad,
                                          std::size_t size,
                                          std::complex<double> *data,
                                          int bondDim);
@@ -95,7 +99,7 @@ protected:
   cutensornetHandle_t m_cutnHandle;
   std::unique_ptr<TensorNetState> state;
   std::vector<MPSTensor> m_mpsTensors;
-  ScratchDeviceMem m_scratchPad;
+  ScratchDeviceMem &scratchPad;
   // Max number of qubits whereby the tensor network state should be contracted
   // and cached into a state vector.
   // This speeds up sequential state amplitude accessors for small states.

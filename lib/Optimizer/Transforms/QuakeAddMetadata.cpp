@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -21,31 +22,64 @@
 
 using namespace mlir;
 
+#define DEBUG_TYPE "add-metadata"
+
 namespace {
 
-/// @brief Define a type to contain the Quake Function Metadata
+/// Define a type to contain the Quake Function Metadata
 struct QuakeMetadata {
   bool hasConditionalsOnMeasure = false;
+
+  // If the following flag is set, it means we've detected quantum to classical
+  // back to quantum data-flow in the kernel. This could be a problem for
+  // quantum hardware.
+  bool hasQuantumDataflowViaClassical = false;
+
+  // If the following flag is set, this pass was run early enough that function
+  // calls have not been inlined and we have quantum computation that excapes
+  // the kernel. We flag this condition pessimistically, since we may not know
+  // what the called function will do.
+  bool hasUnexpectedCalls = false;
 };
+} // namespace
 
-/// @brief We'll define a type mapping a Quake Function to its metadata
-using QuakeFunctionInfo = DenseMap<Operation *, QuakeMetadata>;
+static cudaq::cc::AllocaOp seekAllocaFrom(Value v);
 
-/// @brief If the operation is a Measurement, check if its
-/// qubits are used in a subsequent reset operation,
-/// return true if so.
-bool checkIsMeasureAndReset(Operation *op, QuakeMetadata &data) {
-  if (auto mxOp = dyn_cast<quake::MeasurementInterface>(op))
-    if (mxOp.getOptionalRegisterName())
-      for (auto measuredQubit : mxOp.getTargets())
-        for (auto user : measuredQubit.getUsers())
-          if (isa<quake::ResetOp>(user)) {
-            data.hasConditionalsOnMeasure = true;
-            return true;
-          }
+static cudaq::cc::AllocaOp seekAllocaFrom(Operation *op) {
+  if (!op)
+    return {};
+  if (auto alloca = dyn_cast<cudaq::cc::AllocaOp>(op)) {
+    LLVM_DEBUG(llvm::dbgs() << "Found alloca " << alloca << " from store.\n");
+    return alloca;
+  }
+  if (auto cp = dyn_cast<cudaq::cc::ComputePtrOp>(op))
+    return seekAllocaFrom(cp.getBase());
+  if (auto castOp = dyn_cast<cudaq::cc::CastOp>(op))
+    if (isa<cudaq::cc::PointerType>(castOp.getOperand().getType()))
+      return seekAllocaFrom(castOp.getValue());
+  return {};
+}
 
+static cudaq::cc::AllocaOp seekAllocaFrom(Value v) {
+  if (!v)
+    return {};
+  return seekAllocaFrom(v.getDefiningOp());
+}
+
+/// If the operation is a Measurement, check if its qubits are used in a
+/// subsequent reset operation, return true if so.
+static bool checkIsMeasureAndReset(quake::MeasurementInterface mxOp) {
+  if (mxOp.getOptionalRegisterName())
+    for (Value measuredQubit : mxOp.getTargets())
+      for (Operation *user : measuredQubit.getUsers())
+        if (isa_and_present<quake::ResetOp>(user))
+          return true;
   return false;
 }
+
+namespace {
+/// We'll define a type mapping a Quake Function to its metadata
+using QuakeFunctionInfo = DenseMap<Operation *, QuakeMetadata>;
 
 /// The analysis on an a Quake function which will attach
 /// metadata under certain situations.
@@ -63,141 +97,108 @@ private:
     if (!funcOp)
       return;
 
+    LLVM_DEBUG(llvm::dbgs()
+               << "Function to analyze: " << funcOp.getName() << '\n');
     QuakeMetadata data;
-    funcOp->walk([&](Operation *op) {
-      // Strategy:
-      // Look for Measure Ops, if the return value is used by a StoreOp
-      // then get the memref.alloca value. Any loads from that alloca
-      // that are used by conditionals is what we are looking for.
-      Operation *measOp = nullptr;
-      if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(op))
-        measOp = disc.getMeasurement().getDefiningOp();
+    SmallPtrSet<Operation *, 8> dirtySet;
+    funcOp->walk([&](quake::DiscriminateOp disc) {
+      dirtySet.insert(disc.getOperation());
+    });
 
-      if (!isa_and_present<quake::MeasurementInterface>(measOp))
-        return WalkResult::skip();
+    // If there are no discriminate ops, we can stop.
+    if (dirtySet.empty()) {
+      LLVM_DEBUG(llvm::dbgs() << "Found no discriminate ops\n");
+      infoMap.insert({operation, data});
+      return;
+    }
 
-      // Get the return bit value
-      Value returnBit = op->getResult(0);
+    // Iterate to a fix-point, collecting all Ops that are data-dependent on the
+    // result of a quantum computation via a quake.discriminate Op. All quantum
+    // computations must, by definition use a quake.discriminate Op to convert
+    // quantum values to classical values. This may terminate early if the set
+    // of dirty ops collected includes a branch (control flow) or a quantum
+    // operation (data flow).
+    SmallVector<Operation *> keys{dirtySet.begin(), dirtySet.end()};
+    auto addUser = [&](Operation *user) {
+      auto [iter, added] = dirtySet.insert(user);
+      (void)iter;
+      if (added) {
+        LLVM_DEBUG(llvm::dbgs() << "op " << *user << " was added\n");
+        keys.push_back(user);
+      }
+    };
 
-      // If no users, then no conditional
-      if (returnBit.getUsers().empty())
-        return WalkResult::skip();
-
-      // Loop over all users of the return bit
-      for (auto user : returnBit.getUsers()) {
-
-        // See if we are immediately used by an If stmt.
-        // If not, we'll do some more work before we give up
-        if (isa<cudaq::cc::IfOp, cf::CondBranchOp>(user)) {
-          data.hasConditionalsOnMeasure = true;
-          return WalkResult::interrupt();
-        }
-
-        // See if it is a store op, storing the bit to memory
-        auto storeOp = dyn_cast_or_null<cudaq::cc::StoreOp>(user);
-        if (!storeOp)
-          return WalkResult::skip();
-
-        // Get the alloca op that this store op operates on
-        auto allocValue = storeOp.getOperand(1);
-        if (auto cp = allocValue.getDefiningOp<cudaq::cc::ComputePtrOp>())
-          allocValue = cp.getBase();
-        if (auto castOp = allocValue.getDefiningOp<cudaq::cc::CastOp>())
-          allocValue = castOp.getOperand();
-
-        if (auto allocaOp = allocValue.getDefiningOp<cudaq::cc::AllocaOp>()) {
-          // Get the alloca users
-          for (auto allocUser : allocaOp->getUsers()) {
-
-            // Look for any future loads, and if that load is
-            // used by a conditional statement
-            if (auto load = dyn_cast<cudaq::cc::LoadOp>(allocUser)) {
-              auto loadUser = *load->getUsers().begin();
-
-              // Loaded Val could be used directly or by an Arith boolean
-              // operation
-              while (loadUser->getDialect()->getNamespace() == "arith") {
-                auto res = loadUser->getResult(0);
-                loadUser = *res.getUsers().begin();
-              }
-
-              // At this point we should be able to check if we are
-              // being used by a conditional
-              if (isa<cudaq::cc::IfOp, cf::CondBranchOp>(loadUser)) {
-                data.hasConditionalsOnMeasure = true;
-                return WalkResult::interrupt();
-              }
-            }
-
-            // Look for any future cast/compute_ptr/load, and if that load is
-            // used by a conditional statement
-            if (auto cast = dyn_cast<cudaq::cc::CastOp>(allocUser)) {
-              for (auto castUser : cast->getUsers()) {
-                if (auto cp = dyn_cast<cudaq::cc::ComputePtrOp>(castUser)) {
-                  for (auto cpUser : cp->getUsers()) {
-                    if (auto load = dyn_cast<cudaq::cc::LoadOp>(cpUser)) {
-                      auto loadUser = *load->getUsers().begin();
-
-                      // Loaded Val could be used directly or by an Arith
-                      // boolean operation
-                      while (loadUser->getDialect()->getNamespace() ==
-                             "arith") {
-                        auto res = loadUser->getResult(0);
-                        loadUser = *res.getUsers().begin();
-                      }
-
-                      // At this point we should be able to check if we are
-                      // being used by a conditional
-                      if (isa<cudaq::cc::IfOp, cf::CondBranchOp>(loadUser)) {
-                        data.hasConditionalsOnMeasure = true;
-                        return WalkResult::interrupt();
-                      }
-                    }
-                  }
-                }
-              }
-            }
+    do {
+      auto *op = keys.back();
+      keys.pop_back();
+      if (isa<cudaq::cc::IfOp, cudaq::cc::ConditionOp, cf::CondBranchOp,
+              quake::MeasurementInterface, quake::OperatorInterface,
+              quake::ApplyOp, cudaq::cc::CallCallableOp, func::CallOp,
+              func::CallIndirectOp>(op)) {
+        data.hasConditionalsOnMeasure = true;
+        data.hasQuantumDataflowViaClassical =
+            isa<quake::MeasurementInterface, quake::OperatorInterface>(op);
+        data.hasUnexpectedCalls = isa<quake::ApplyOp, cudaq::cc::CallCallableOp,
+                                      func::CallOp, func::CallIndirectOp>(op);
+        LLVM_DEBUG(llvm::dbgs() << "FOUND: mid-circuit dependence!\n");
+        break;
+      }
+      for (auto *user : op->getUsers()) {
+        addUser(user);
+        // NB: This chases a store back to an allocation. It is possible that
+        // the store is to an aggregate and that some values in the aggregate
+        // are quantum dirty but NOT the ones used in classical control- or
+        // data-flow. This doesn't perform points-to analysis on the interior of
+        // the object. The analysis may be overly conservative.
+        if (auto storeOp = dyn_cast<cudaq::cc::StoreOp>(user)) {
+          LLVM_DEBUG(llvm::dbgs() << "store seen " << storeOp << '\n');
+          if (auto alloca = seekAllocaFrom(storeOp.getPtrvalue())) {
+            LLVM_DEBUG(llvm::dbgs() << "alloca seen " << alloca << '\n');
+            addUser(alloca.getOperation());
           }
         }
       }
+    } while (!keys.empty());
 
-      return WalkResult::advance();
-    });
-
-    if (!data.hasConditionalsOnMeasure) {
-      // We also want to be able to sample differently
-      // if we have no conditionals but do have a mz to a
-      // classical register with a subsequent reset call.
-      // Handle auto reg = mz(q); reset(q)
-      // don't necessarily need conditional statements
-      funcOp->walk([&](Operation *op) {
-        if (!isa<quake::MeasurementInterface>(op))
-          return WalkResult::skip();
-
-        // Return true if Reset on measured qubit,
-        // if so just drop out because we'll have the function
-        // tagged no matter what
-        if (checkIsMeasureAndReset(op, data))
-          return WalkResult::interrupt();
-
-        return WalkResult::advance();
-      });
+    if (data.hasConditionalsOnMeasure) {
+      infoMap.insert({operation, data});
+      return;
     }
 
+    // We also want to be able to sample differently if we have no conditionals
+    // but do have a mz to a classical register with a subsequent reset call.
+    // Handles
+    //   auto reg = mz(q);
+    //   reset(q);
+    // don't necessarily need conditional statements
+    funcOp->walk([&](quake::MeasurementInterface meas) {
+      // NB: checkIsMeasureAndReset does NOT check the order or any control
+      // flow. We only know that a measurement and a reset acted on the same
+      // SSA-value. This is overly conservative and possibly a lurking bug.
+      if (checkIsMeasureAndReset(meas)) {
+        LLVM_DEBUG(llvm::dbgs() << "reset and measure on same ref\n");
+        data.hasConditionalsOnMeasure = true;
+        return WalkResult::interrupt();
+      }
+      return WalkResult::advance();
+    });
     infoMap.insert({operation, data});
   }
 
-  /// @brief The Quake Function metadata map
   QuakeFunctionInfo infoMap;
 };
 
-/// @brief This pass will analyze Quake functions and attach
-/// metadata (as an MLIR function attribute) for specific features.
+/// This pass will analyze Quake functions and attach metadata (as an MLIR
+/// function attribute) for specific features.
 class QuakeAddMetadataPass
     : public cudaq::opt::QuakeAddMetadataBase<QuakeAddMetadataPass> {
 public:
   QuakeAddMetadataPass() = default;
 
+  /// This analysis is most effective if factor-quantum-alloc and memtoreg
+  /// have been run prior to this pass. If not, this pass may give false
+  /// positives. expand-measurements and loop-unrolling may further reduce
+  /// false positives.
   void runOnOperation() override {
     auto funcOp = getOperation();
     if (!funcOp || funcOp.empty())
@@ -216,8 +217,6 @@ public:
       auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
       funcOp->setAttr("qubitMeasurementFeedback", builder.getBoolAttr(true));
     }
-
-    // ... others in the future ...
   }
 };
 
