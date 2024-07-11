@@ -251,9 +251,9 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     generateNewValue = true;
   }
   if (generateNewValue) {
-    auto [memArr, data] = getArrayInMemory();
+    auto [memArr, _] = getArrayInMemory();
     OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointAfter(data.getDefiningOp());
+    builder.setInsertionPointAfter(memArr.getDefiningOp());
     Value size = builder.create<arith::ConstantIntOp>(argLoc, vec.size(), 64);
     Value newVec =
         builder.create<cudaq::cc::StdvecInitOp>(argLoc, strTy, memArr, size);

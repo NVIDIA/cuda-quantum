@@ -387,18 +387,21 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
       ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
 }
 
-template <typename A>
-static std::vector<std::int32_t> asI32(const std::vector<A> &v) {
-  std::vector<std::int32_t> result(v.size());
-  for (auto iter : llvm::enumerate(v))
-    result[iter.index()] = static_cast<std::int32_t>(iter.value());
-  return result;
-}
-
 template <typename T>
 DenseElementsAttr createArrayAttr(const std::vector<T> &values, Type eleTy) {
   auto newValues = ArrayRef<T>(values.data(), values.size());
   auto tensorTy = RankedTensorType::get(values.size(), eleTy);
+  return DenseElementsAttr::get(tensorTy, newValues);
+}
+
+DenseElementsAttr createArrayAttr(const std::vector<bool> &values, Type eleTy) {
+  std::vector<std::byte> converted;
+  for (auto b : values) {
+    converted.push_back(std::byte(b));
+  }
+  auto newValues = ArrayRef<bool>(reinterpret_cast<bool *>(converted.data()),
+                                  converted.size());
+  auto tensorTy = RankedTensorType::get(converted.size(), eleTy);
   return DenseElementsAttr::get(tensorTy, newValues);
 }
 
@@ -465,25 +468,22 @@ IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
                                 const std::vector<std::int16_t> &values) {
-  auto converted = asI32(values);
   return buildVectorOfConstantElements(loc, module, name, values, *this,
-                                       getI32Type());
+                                       getI16Type());
 }
 
 cc::GlobalOp
 IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
                                 const std::vector<std::int8_t> &values) {
-  auto converted = asI32(values);
   return buildVectorOfConstantElements(loc, module, name, values, *this,
-                                       getI32Type());
+                                       getI8Type());
 }
 
 cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
                                              StringRef name,
                                              const std::vector<bool> &values) {
-  auto converted = asI32(values);
-  return buildVectorOfConstantElements(loc, module, name, converted, *this,
-                                       getI32Type());
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI1Type());
 }
 
 Value IRBuilder::getByteSizeOfType(Location loc, Type ty) {

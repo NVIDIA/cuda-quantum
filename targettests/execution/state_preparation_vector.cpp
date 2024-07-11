@@ -55,7 +55,6 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
-
     {
       auto counts = cudaq::sample(test_complex_constant_array);
       printCounts(counts);

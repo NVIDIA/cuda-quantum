@@ -21,6 +21,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Bitcode/BitcodeReader.h"
@@ -159,6 +160,9 @@ public:
         if (funcOp && (funcOp->hasAttr(cudaq::kernelAttrName) ||
                        funcOp.getName().startswith("__nvqpp__mlirgen__")))
           moduleOp.push_back(funcOp.clone());
+        // Add globals defined in the module.
+        if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
+          moduleOp.push_back(globalOp.clone());
       }
 
       if (args) {
