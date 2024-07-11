@@ -199,21 +199,16 @@ class Server(http.server.SimpleHTTPRequestHandler):
                         cmd_result = subprocess.run(cmd_list,
                                                     capture_output=False,
                                                     text=True)
-                        if cmd_result.returncode == 0:
-                            with open(temp_file.name, 'rb') as fp:
-                                result = json.load(fp)
-                        else:
-                            if cmd_result.returncode == 124:
-                                error_message = "Timeout occurred during execution."
-                            else:
-                                error_message = f'Return code: {cmd_result.returncode}\n' + \
-                                                f'{cmd_result.stdout}\n' + \
-                                                f'{cmd_result.stderr}\n'
+
+                        with open(temp_file.name, 'rb') as fp:
+                            result = json.load(fp)
+
+                        if cmd_result.returncode == 124:
                             result = {
                                 'status':
-                                    'json_request_runner.py returned an error',
+                                    'json_request_runner.py time out',
                                 'errorMessage':
-                                    error_message
+                                    'Timeout occurred during execution'
                             }
 
                         # Cleanup
