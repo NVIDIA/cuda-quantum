@@ -91,6 +91,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
+    pm.addPass(cudaq::opt::createAsyncScopePass());
     cudaq::opt::addPipelineConvertToQIR(pm);
 
     DefaultTimingManager tm;

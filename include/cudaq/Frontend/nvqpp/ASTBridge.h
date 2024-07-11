@@ -169,7 +169,7 @@ public:
       return emittedFunc.first;
     return generateCudaqKernelName(emittedFunc.second);
   }
-
+  
   //===--------------------------------------------------------------------===//
   // Decl nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
@@ -232,6 +232,7 @@ public:
   bool TraverseCompoundStmt(clang::CompoundStmt *x,
                             DataRecursionQueue *q = nullptr);
 
+  bool VisitAsyncStatement(clang::CompoundStmt *stmt);
   bool WalkUpFromCompoundAssignOperator(clang::CompoundAssignOperator *x) {
     return VisitCompoundAssignOperator(x);
   }

@@ -418,6 +418,19 @@ def DistMappingPass: Pass<"dist-qubit-mapping", "mlir::func::FuncOp"> {
   ];
 }
 
+def AsyncScopePass : Pass<"async-scope", "mlir::func::FuncOp"> {
+  let summary = "Partition operations into async scopes based on QPU mapping";
+  let description = [{
+    This pass partitions operations within a function into asynchronous scopes
+    based on a QPU mapping. Each QPU will have its operations enclosed within
+    an async_scope operation with a specified QPU ID.
+  }];
+  let options = [
+    Option<"device", "device", "std::string", /*default=*/"\"-\"",
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">
+  ];
+}
+
 def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
   let summary = "Perform qubit mapping to account for connectivity constraints";
   let description = [{

@@ -326,7 +326,6 @@ SabreRouter::Swap SabreRouter::chooseSwap() {
     cost.emplace_back(maxDecay * swapCost);
     placement.swap(phy0, phy1);
   }
-
   // Find and return the swap with minimal cost
   std::size_t minIdx = 0u;
   for (std::size_t i = 1u, end = cost.size(); i < end; ++i)
@@ -408,6 +407,7 @@ void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
 
     LLVM_DEBUG({
       logger.getOStream() << "\n";
+      logger.getOStream() << "" << " baaaaaaaa\n";
       logger.startLine() << logLineComment;
     });
 
@@ -418,6 +418,7 @@ void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
 
     // Add a swap
     numSwapSearches++;
+    LLVM_DEBUG(logger.getOStream() << "I'm choosing a swap \n";);
     auto [phy0, phy1] = chooseSwap();
     addSwap(phy0, phy1);
     involvedPhy.clear();
@@ -767,6 +768,7 @@ struct Mapper : public cudaq::opt::impl::DistMappingPassBase<Mapper> {
                            placement.getPhy(Placement::VirtualQ(v)).index);
 
     func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
+
 
     // Now populate mapping_reorder_idx attribute. This attribute will be used
     // by downstream processing to reconstruct a global register as if mapping

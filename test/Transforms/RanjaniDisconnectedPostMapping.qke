@@ -1,0 +1,35 @@
+module {
+  func.func @test_00() attributes {mapping_reorder_idx = [0, 1, 2, 3, 4, 5], mapping_v2p = [0, 1, 2, 3, 4, 5]} {
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    %3 = quake.null_wire
+    %4 = quake.null_wire
+    %5 = quake.null_wire
+    %6:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %7:2 = quake.x [%3] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %8:2 = quake.x [%4] %6#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %9:2 = quake.x [%7#0] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %10:2 = quake.x [%6#1] %8#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %measOut, %wires = quake.mz %8#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %11 = quake.discriminate %measOut : (!quake.measure) -> i1
+    %measOut_0, %wires_1 = quake.mz %7#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %12 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
+    %measOut_2, %wires_3 = quake.mz %10#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %13 = quake.discriminate %measOut_2 : (!quake.measure) -> i1
+    %measOut_4, %wires_5 = quake.mz %9#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %14 = quake.discriminate %measOut_4 : (!quake.measure) -> i1
+    %measOut_6, %wires_7 = quake.mz %10#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %15 = quake.discriminate %measOut_6 : (!quake.measure) -> i1
+    %measOut_8, %wires_9 = quake.mz %9#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %16 = quake.discriminate %measOut_8 : (!quake.measure) -> i1
+    quake.sink %wires : !quake.wire
+    quake.sink %wires_1 : !quake.wire
+    quake.sink %wires_3 : !quake.wire
+    quake.sink %wires_5 : !quake.wire
+    quake.sink %wires_7 : !quake.wire
+    quake.sink %wires_9 : !quake.wire
+    return
+  }
+}
+

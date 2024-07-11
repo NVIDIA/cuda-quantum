@@ -1,5 +1,5 @@
 Number of nodes: 6
-Number of edges: 6
-0 --> {1}
+Number of edges: 
+0 --> {2}
 1 --> {2}
-3 --> { 4, 5}
+3 --> { 4,5}

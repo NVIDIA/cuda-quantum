@@ -22,7 +22,7 @@ class Device {
 public:
   using Qubit = GraphCSR::Node;
   using Path = mlir::SmallVector<Qubit>;
-
+  int numComponents;
   /// Read device connectivity info from a file. The input format is the same
   /// as the Graph dump() format.
   static Device file(llvm::StringRef filename) {
@@ -77,6 +77,7 @@ public:
     }
 
     device.computeAllPairShortestPaths();
+    device.ComputeComponents();
     return device;
   }
 
@@ -93,6 +94,7 @@ public:
       device.topology.addWeightedEdge(Qubit(i - 1), Qubit(i));
     }
     device.computeAllPairShortestPaths();
+    device.ComputeComponents();
     return device;
   }
 
@@ -110,6 +112,7 @@ public:
       device.topology.addWeightedEdge(Qubit(i), Qubit((i + 1) % numQubits));
     }
     device.computeAllPairShortestPaths();
+    device.ComputeComponents();
     return device;
   }
 
@@ -136,6 +139,7 @@ public:
         device.topology.addWeightedEdge(Qubit(centerQubit), Qubit(i));
 
     device.computeAllPairShortestPaths();
+    device.ComputeComponents();
     return device;
   }
 
@@ -162,6 +166,7 @@ public:
       }
     }
     device.computeAllPairShortestPaths();
+    device.ComputeComponents();
     return device;
   }
 
@@ -184,11 +189,17 @@ public:
   mlir::ArrayRef<Qubit> getNeighbours(Qubit src) const {
     return topology.getNeighbours(src);
   }
+  
+  int getNumComponents(){
+    return numComponents;
+  }
 
   bool areConnected(Qubit q0, Qubit q1) const {
     return getDistance(q0, q1) == 1;
   }
-
+  int getComponent(unsigned q){
+    return ComponentMap[q];
+  }
   /// Returns a shortest path between two qubits.
   Path getShortestPath(Qubit src, Qubit dst) const {
     unsigned pairID = getPairID(src.index, dst.index);
@@ -248,7 +259,26 @@ private:
       }
     }
   }*/
+  void ComputeComponents(){
+    mlir::SmallVector<unsigned> Visited;
+    numComponents=0;
+    std::size_t numNodes = topology.getNumNodes();
+    ComponentMap.resize(numNodes);
+    for (unsigned n = 0; n < numNodes; ++n) {
+      if (!llvm::is_contained(Visited, n)){
+        Visited.push_back(n);
+        numComponents++;
+        ComponentMap[n]=numComponents;
+        for (auto m = n + 1; m < numNodes; ++m) {
+          if (getWeightedDistance(Qubit(n),Qubit(m))<INT_MAX){
+            Visited.push_back(m);
+            ComponentMap[m]=numComponents;
+          }
+        }
 
+      }
+    }
+  }
   void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
@@ -298,6 +328,7 @@ private:
 
   /// Storage for `PathRef`'s in `shortestPaths`
   mlir::SmallVector<Qubit> pathsData;
+  mlir::SmallVector<int> ComponentMap;
 };
 
 } // namespace cudaq

@@ -35,6 +35,7 @@ add_cudaq_library(OptTransforms
   LowerUnwind.cpp
   Mapping.cpp
   DistMapping.cpp
+  AsyncScopePass.cpp
   MemToReg.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp

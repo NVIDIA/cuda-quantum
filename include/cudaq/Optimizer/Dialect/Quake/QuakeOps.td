@@ -33,6 +33,75 @@ class QuakeOp<string mnemonic, list<Trait> traits = []> :
     Op<QuakeDialect, mnemonic, traits>;
 
 //===----------------------------------------------------------------------===//
+// Async Scope.
+//===----------------------------------------------------------------------===//
+
+def quake_AsyncScopeOp : QuakeOp<"async_scope",
+        [AutomaticAllocationScope, RecursiveMemoryEffects, NoRegionArguments,
+         DeclareOpInterfaceMethods<RegionBranchOpInterface,
+                                   ["getNumRegionInvocations",
+                                    "getRegionInvocationBounds"]>]> {
+  let summary = "A compound statement in which operations are scoped for asynchronous execution.";
+  let description = [{
+    A ScopeOP that designates a segment of a quantum function to be implemented on a specific computer.
+
+    Example:
+    
+    ```mlir
+      quake.async_scope(%qpuId : i32) {
+        %alloc = cc.alloca i32
+        ...
+      }
+      // %alloc is deallocated at this point
+    ```
+  }];
+  let arguments = (ins I64Attr:$qpuId);
+  let results = (outs Variadic<AnyType>:$results);
+  let regions = (region AnyRegion:$initRegion);
+  
+  let hasCustomAssemblyFormat = 1;
+  let hasCanonicalizer = 1;
+
+  let builders = [
+    OpBuilder<(ins "mlir::IntegerAttr":$qpu_id), [{
+      return build($_builder, $_state, qpu_id);
+    }]>
+  ];
+
+  let extraClassDeclaration = [{
+    using BodyBuilderFn =
+        llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
+  }];
+}
+
+
+
+def quake_AsyncContinueOp : QuakeOp<"async_continue", [Pure, ReturnLike, Terminator,
+        ParentOneOf<[ "AsyncScopeOp"]>]> {
+  let summary = "Continue branch.";
+  let description = [{
+    The AsyncContinueOp is a generalized exit terminator for the dialect operations
+    with regions.
+    Example:
+
+    ```mlir
+    %0 = quake.async_scope -> (!quake.wire) {
+      ...
+      quake.async_continue %4 : !quake.wire
+    }
+    ```
+  }];
+
+  let arguments = (ins Variadic<AnyType>:$operands);
+  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
+
+  let assemblyFormat = [{
+    ($operands^ `:` qualified(type($operands)))? attr-dict
+  }];
+}
+
+
+//===----------------------------------------------------------------------===//
 // AllocaOp
 //===----------------------------------------------------------------------===//
 

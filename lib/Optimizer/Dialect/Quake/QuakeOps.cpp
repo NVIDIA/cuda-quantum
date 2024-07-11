@@ -127,6 +127,65 @@ LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
   return success();
 }
 
+
+
+void quake::AsyncScopeOp::print(OpAsmPrinter &p) {
+  bool printBlockTerminators = getRegion().getBlocks().size() > 1;
+  if (!getResults().empty()) {
+    p << " -> (" << getResultTypes() << ")";
+    // Print terminator explicitly if the op defines values.
+    printBlockTerminators = true;
+  }
+  p << ' ';
+  p.printRegion(getRegion(), /*printEntryBlockArgs=*/false,
+                printBlockTerminators);
+  p.printOptionalAttrDict((*this)->getAttrs());
+}
+
+static void ensureScopeRegionTerminator(OpBuilder &builder,
+                                        OperationState &result,
+                                        Region *region) {
+  auto *block = region->empty() ? nullptr : &region->back();
+  if (!block)
+    return;
+  if (!block->empty()) {
+    auto *term = &block->back();
+    if (term->hasTrait<OpTrait::IsTerminator>())
+      return;
+  }
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToEnd(block);
+  builder.create<quake::AsyncContinueOp>(result.location);
+}
+
+ParseResult quake::AsyncScopeOp::parse(OpAsmParser &parser,
+                                      OperationState &result) {
+  if (parser.parseOptionalArrowTypeList(result.types))
+    return failure();
+  auto *body = result.addRegion();
+  if (parser.parseRegion(*body, /*arguments=*/{}) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  OpBuilder opBuilder(parser.getContext());
+  ensureScopeRegionTerminator(opBuilder, result, body);
+  return success();
+}
+
+void quake::AsyncScopeOp::getRegionInvocationBounds(
+    ArrayRef<Attribute> attrs, SmallVectorImpl<InvocationBounds> &bounds) {}
+
+void quake::AsyncScopeOp::getSuccessorRegions(
+    std::optional<unsigned> index, ArrayRef<Attribute> operands,
+    SmallVectorImpl<RegionSuccessor> &regions) {
+  if (!index) {
+    regions.push_back(RegionSuccessor(&getRegion()));
+    return;
+  }
+  regions.push_back(RegionSuccessor(getResults()));
+}
+
+void quake::AsyncScopeOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {}
 //===----------------------------------------------------------------------===//
 // AllocaOp
 //===----------------------------------------------------------------------===//

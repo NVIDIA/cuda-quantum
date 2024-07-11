@@ -227,6 +227,8 @@ using LambdaDeallocPattern =
     DeallocPattern<cudaq::cc::CreateLambdaOp, cudaq::cc::ReturnOp>;
 using ScopeDeallocPattern =
     DeallocPattern<cudaq::cc::ScopeOp, cudaq::cc::ContinueOp>;
+using AsyncScopeDeallocPattern =
+    DeallocPattern<quake::AsyncScopeOp, quake::AsyncContinueOp>;
 
 /// This pass adds quake.dealloc operations to functions and λ expressions to
 /// deallocate any quantum objects as allocated with quake.alloca operations.
