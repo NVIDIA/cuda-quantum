@@ -699,7 +699,8 @@ public:
               global.getName());
           auto str = builder.create<cudaq::cc::CastOp>(loc, pi8Ty, addr);
           auto spanp = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, ptrTy, aos, ArrayRef<cudaq::cc::ComputePtrArg>{i});
+              loc, ptrTy, aos,
+              ArrayRef<cudaq::cc::ComputePtrArg>{static_cast<std::int32_t>(i)});
           auto relocp = builder.create<cudaq::cc::CastOp>(loc, ppi8Ty, spanp);
           builder.create<cudaq::cc::StoreOp>(loc, str, relocp);
           auto lengthp = builder.create<cudaq::cc::CastOp>(loc, iaTy, spanp);
