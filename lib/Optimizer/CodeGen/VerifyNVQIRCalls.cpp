@@ -43,7 +43,9 @@ struct VerifyNVQIRCallOpsPass
           cudaq::opt::NVQIRInvokeRotationWithControlBits,
           cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
           cudaq::opt::NVQIRPackSingleQubitInArray,
-          cudaq::opt::NVQIRReleasePackedQubitArray};
+          cudaq::opt::NVQIRReleasePackedQubitArray,
+          cudaq::getNumQubitsFromCudaqState,
+          };
       // It must be either NVQIR extension functions or in the allowed list.
       return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
                  NVQIR_FUNCS.end() ||
@@ -71,7 +73,7 @@ struct VerifyNVQIRCallOpsPass
         passFailed = true;
         return WalkResult::interrupt();
       } else if (!isa<LLVM::AddressOfOp, LLVM::AllocaOp, LLVM::BitcastOp,
-                      LLVM::ExtractValueOp, LLVM::GEPOp, LLVM::LoadOp,
+                      LLVM::ExtractValueOp, LLVM::GEPOp, LLVM::IntToPtrOp, LLVM::LoadOp,
                       LLVM::StoreOp>(op)) {
         // No pointers allowed except for the above operations.
         for (auto oper : op->getOperands()) {

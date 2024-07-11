@@ -155,19 +155,24 @@ public:
       auto moduleOp = builder.create<mlir::ModuleOp>();
       moduleOp->setAttrs((*module)->getAttrDictionary());
       for (auto &op : *module) {
-        auto funcOp = dyn_cast<mlir::func::FuncOp>(op);
-        // Add quantum kernels defined in the module.
-        if (funcOp && (funcOp->hasAttr(cudaq::kernelAttrName) ||
-                       funcOp.getName().startswith("__nvqpp__mlirgen__")))
-          moduleOp.push_back(funcOp.clone());
-        // Add globals defined in the module.
-        if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
+        if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
+          // Add quantum kernels defined in the module.
+          if (funcOp->hasAttr(cudaq::kernelAttrName) ||
+              funcOp.getName().startswith("__nvqpp__mlirgen__") ||
+              funcOp.getBody().empty())
+            moduleOp.push_back(funcOp.clone());
+        }
+        if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
+          // Add globals defined in the module.
           moduleOp.push_back(globalOp.clone());
+        }
       }
 
       if (args) {
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
+        moduleOp.getContext()->disableMultithreading();
+        pm.enableIRPrinting();
         pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
         pm.addPass(mlir::createCanonicalizerPass());
         if (failed(pm.run(moduleOp)))
@@ -180,6 +185,8 @@ public:
       // Run client-side passes. `clientPasses` is empty right now, but the code
       // below accommodates putting passes into it.
       mlir::PassManager pm(&mlirContext);
+      moduleOp.getContext()->disableMultithreading();
+      pm.enableIRPrinting();
       std::string errMsg;
       llvm::raw_string_ostream os(errMsg);
       const std::string pipeline =
