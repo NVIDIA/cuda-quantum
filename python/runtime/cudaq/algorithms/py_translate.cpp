@@ -79,6 +79,7 @@ Args:
   kernel (:class:`Kernel`): The :class:`Kernel` to translate.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel
     function at. Leave empty if the kernel doesn't accept any arguments.
+  Note: Translating functions with arguments to OpenQasm 2.0 is not supported.
 
 Returns:
   The UTF-8 encoded string of the circuit, without measurement operations.
