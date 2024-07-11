@@ -9,6 +9,7 @@
 import cudaq, pytest, os, time
 from cudaq import spin
 import numpy as np
+from typing import List
 from multiprocessing import Process
 
 
@@ -142,7 +143,7 @@ def test_u3_ctrl_emulation():
 def test_quantinuum_state_preparation():
 
     @cudaq.kernel
-    def kernel(vec: list[complex]):
+    def kernel(vec: List[complex]):
         qubits = cudaq.qvector(vec)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]

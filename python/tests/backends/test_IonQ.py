@@ -9,6 +9,7 @@
 import cudaq, pytest, os, time
 from cudaq import spin
 import numpy as np
+from typing import List
 from multiprocessing import Process
 try:
     from utils.mock_qpu.ionq import startServer
@@ -160,7 +161,7 @@ def test_ionq_u3_ctrl_decomposition():
 def test_ionq_state_preparation():
 
     @cudaq.kernel
-    def kernel(vec: list[complex]):
+    def kernel(vec: List[complex]):
         qubits = cudaq.qvector(vec)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
@@ -172,7 +173,7 @@ def test_ionq_state_preparation():
 
 
 def test_ionq_state_preparation_builder():
-    kernel, state = cudaq.make_kernel(list[complex])
+    kernel, state = cudaq.make_kernel(List[complex])
     qubits = kernel.qalloc(state)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]

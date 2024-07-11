@@ -9,7 +9,7 @@
 import os
 import sys
 import time
-
+from typing import List
 import pytest
 from multiprocessing import Process
 
@@ -162,7 +162,7 @@ def test_OQC_observe():
 def test_OQC_state_preparation():
 
     @cudaq.kernel
-    def kernel(vec: list[complex]):
+    def kernel(vec: List[complex]):
         qubits = cudaq.qvector(vec)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
@@ -174,7 +174,7 @@ def test_OQC_state_preparation():
 
 
 def test_OQC_state_preparation_builder():
-    kernel, state = cudaq.make_kernel(list[complex])
+    kernel, state = cudaq.make_kernel(List[complex])
     qubits = kernel.qalloc(state)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]

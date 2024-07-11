@@ -8,6 +8,7 @@
 
 import cudaq, pytest, os, time
 import numpy as np
+from typing import List
 from cudaq import spin
 from multiprocessing import Process
 try:
@@ -147,7 +148,7 @@ def test_quantinuum_observe():
 
 
 def test_quantinuum_state_preparation():
-    kernel, state = cudaq.make_kernel(list[complex])
+    kernel, state = cudaq.make_kernel(List[complex])
     qubits = kernel.qalloc(state)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]

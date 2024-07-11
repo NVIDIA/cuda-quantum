@@ -10,6 +10,7 @@ import cudaq, pytest, os, time
 import numpy as np
 from cudaq import spin
 from multiprocessing import Process
+from typing import List
 try:
     from utils.mock_qpu.quantinuum import startServer
 except:
@@ -173,7 +174,7 @@ def test_quantinuum_u3_ctrl_decomposition():
 def test_quantinuum_state_preparation():
 
     @cudaq.kernel
-    def kernel(vec: list[complex]):
+    def kernel(vec: List[complex]):
         qubits = cudaq.qvector(vec)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
