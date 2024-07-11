@@ -45,8 +45,8 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
                           CUDA::cudart_static
                           CUDA::cublas)
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-
 endmacro()
 
 nvqir_create_cusv_plugin(nvqir-custatevec-fp64 CuStateVecCircuitSimulator.cpp)
 nvqir_create_cusv_plugin(nvqir-custatevec-fp32 CuStateVecCircuitSimulatorF32.cpp)
+install(FILES CuStateVecCircuitSimulator.h DESTINATION include/nvqir)
