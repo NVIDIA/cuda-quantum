@@ -303,5 +303,6 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
-        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -)
+        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libnvjitlink-$(echo ${CUDA_VERSION} | tr . -)
 
