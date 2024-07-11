@@ -80,6 +80,17 @@ protected:
   // Random number generator.
   std::mt19937 randEngine{std::random_device{}()};
 
+  static constexpr std::array<std::string_view, 1>
+      DISALLOWED_EXECUTION_CONTEXT = {"tracer"};
+
+  static constexpr bool isDisallowed(std::string_view context) {
+    return std::any_of(DISALLOWED_EXECUTION_CONTEXT.begin(),
+                       DISALLOWED_EXECUTION_CONTEXT.end(),
+                       [context](std::string_view disallowed) {
+                         return disallowed == context;
+                       });
+  }
+
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
@@ -279,6 +290,11 @@ public:
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    if (isDisallowed(io_context.name))
+      throw std::runtime_error(
+          io_context.name +
+          " operation is not supported with cudaq target remote-mqpu!");
+
     cudaq::RestRequest request = constructJobRequest(
         mlirContext, io_context, serializedCodeContext, backendSimName,
         kernelName, kernelFunc, kernelArgs, argsSize);
@@ -685,6 +701,11 @@ public:
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    if (isDisallowed(io_context.name))
+      throw std::runtime_error(
+          io_context.name +
+          " operation is not supported with cudaq target nvqc!");
+
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {
         "tensornet", "nvidia-mgpu", "nvidia-mqpu"};
     {
