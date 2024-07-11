@@ -21,11 +21,13 @@ add_cudaq_library(OptTransforms
   DecompositionPatterns.cpp
   DelayMeasurements.cpp
   EraseNopCalls.cpp
+  ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   LambdaLifting.cpp
+  LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
   LoopAnalysis.cpp
   LoopNormalize.cpp

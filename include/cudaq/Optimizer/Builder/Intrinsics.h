@@ -11,6 +11,9 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 
 namespace cudaq {
+namespace cc {
+class GlobalOp;
+}
 
 /// This is the name of a dummy builtin to identify a std::move() call. These
 /// calls will be erased before code gen.
@@ -56,6 +59,9 @@ class IRBuilder : public mlir::OpBuilder {
 public:
   using OpBuilder::OpBuilder;
 
+  /// Create IRBuilder such that it has the same insertion point as \p builder.
+  IRBuilder(const mlir::OpBuilder &builder);
+
   mlir::LLVM::ConstantOp genLlvmI32Constant(mlir::Location loc,
                                             std::int32_t val) {
     return opt::factory::genLlvmI32Constant(loc, *this, val);
@@ -79,6 +85,15 @@ public:
     return genCStringLiteral(loc, module, buffer);
   }
 
+  cc::GlobalOp
+  genVectorOfComplexConstant(mlir::Location loc, mlir::ModuleOp module,
+                             mlir::StringRef name,
+                             const std::vector<std::complex<double>> &values);
+  cc::GlobalOp
+  genVectorOfComplexConstant(mlir::Location loc, mlir::ModuleOp module,
+                             mlir::StringRef name,
+                             const std::vector<std::complex<float>> &values);
+
   /// Load an intrinsic into \p module. The intrinsic to load has name \p name.
   /// This will automatically load any intrinsics that \p name depends upon.
   /// Return `failure()` when \p name is not in the table of known intrinsics.
@@ -86,6 +101,10 @@ public:
                                     llvm::StringRef name);
 
   std::string hashStringByContent(llvm::StringRef sref);
+
+  /// Generates code that yields the size of any type that can be reified in
+  /// memory. Otherwise returns a `nullptr` Value.
+  mlir::Value getByteSizeOfType(mlir::Location loc, mlir::Type ty);
 
   static IRBuilder atBlockEnd(mlir::Block *block) {
     return IRBuilder(block, block->end(), nullptr);

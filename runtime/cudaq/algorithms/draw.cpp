@@ -12,7 +12,9 @@
 #include "cudaq/algorithms/draw.h"
 #include "common/FmtCore.h"
 #include <algorithm>
+#include <string>
 #include <utility>
+#include <vector>
 
 using namespace cudaq;
 
@@ -137,6 +139,10 @@ inline void merge_chars(char &c0, char c1) {
   }
   std::swap(c0, c1);
 }
+
+const std::map<std::string, std::string> latex_gates_map = {
+    {"sdg", R"(S^\dag)"}, {"tdg", R"(T^\dag)"}, {"rx", "R_x"},
+    {"ry", "R_y"},        {"rz", "R_z"},        {"r1", "R_1"}};
 
 class Diagram {
 public:
@@ -383,50 +389,77 @@ private:
   }
 };
 
-std::string cudaq::__internal__::draw(const Trace &trace) {
-  if (trace.begin() == trace.end())
-    return "<empty trace>";
+namespace {
+std::vector<int> convertToIDs(const std::vector<QuditInfo> &qudits) {
+  std::vector<int> ids;
+  ids.reserve(qudits.size());
+  std::transform(qudits.cbegin(), qudits.cend(), std::back_inserter(ids),
+                 [](auto &info) { return info.id; });
+  return ids;
+}
 
-  using Layer = std::vector<std::size_t>;
+using Layer = std::vector<std::size_t>;
 
-  Diagram diagram(trace.getNumQudits());
+// Separate the instructions in layers.  Each layer must contain gates that
+// can be drawn in the same diagram layer.  For example, if I have a
+// CX(0, 2) and a X(1), then I cannot draw those gates on the same layer
+// in the circuit diagram
+std::vector<Layer> layers_from_trace(const Trace &trace) {
 
-  // Separate the instructions in layers.  Each layer must contain gates that
-  // can be drawn in the same diagram layer.  For example, if I have a
-  // CX(0, 2) and a X(1), then I cannot draw those gates on the same layer
-  // in the circuit diagram
-  std::vector<std::unique_ptr<Diagram::Operator>> boxes;
   std::vector<Layer> layers;
-  std::vector<int> layer_width;
-  std::vector<int> wire_layer(diagram.num_wires(), -1);
-
-  auto convertToIDs = [](const std::vector<QuditInfo> &qudits) {
-    std::vector<int> ids;
-    ids.reserve(qudits.size());
-    std::transform(qudits.cbegin(), qudits.cend(), std::back_inserter(ids),
-                   [](auto &info) { return info.id; });
-    return ids;
-  };
+  std::vector<int> wire_layer(trace.getNumQudits(), -1);
 
   std::size_t ref = 0;
+  for (const auto &inst : trace) {
+    std::vector<Diagram::Wire> wires = convertToIDs(inst.targets);
+    const auto minmax_wires = std::minmax_element(begin(wires), end(wires));
+    auto min_dwire = *minmax_wires.first;
+    auto max_dwire = *minmax_wires.second;
+
+    if (!inst.controls.empty()) {
+      const std::vector<Diagram::Wire> controls = convertToIDs(inst.controls);
+      const auto minmax_dwire_controls =
+          std::minmax_element(begin(controls), end(controls));
+      min_dwire = std::min(*minmax_dwire_controls.first, min_dwire);
+      max_dwire = std::max(*minmax_dwire_controls.second, max_dwire);
+    }
+
+    int layer = -1;
+    for (auto i = min_dwire; i <= max_dwire; ++i)
+      layer = std::max(layer, wire_layer.at(i));
+    layer += 1;
+
+    if (static_cast<std::size_t>(layer) == layers.size()) {
+      layers.emplace_back();
+    }
+    layers.at(layer).emplace_back(ref);
+    // advance wire layer
+    for (auto i = min_dwire; i <= max_dwire; ++i)
+      wire_layer.at(i) = layer;
+    ref += 1;
+  }
+  return layers;
+}
+
+std::vector<std::unique_ptr<Diagram::Operator>>
+boxes_from_trace(const Trace &trace) {
+  std::vector<std::unique_ptr<Diagram::Operator>> boxes;
+  boxes.reserve(std::distance(trace.begin(), trace.end()));
+
+  // same iteration order as in layers_from_trace
   for (const auto &inst : trace) {
     std::vector<Diagram::Wire> wires = convertToIDs(inst.targets);
     std::sort(wires.begin(), wires.end());
 
     auto min_target = wires.front();
     auto max_target = wires.back();
-    auto min_dwire = min_target;
-    auto max_dwire = max_target;
-
     bool overlap = false;
     std::vector<Diagram::Wire> controls = convertToIDs(inst.controls);
     for (auto control : controls) {
-      wires.push_back(control);
       if (control > min_target && control < max_target)
         overlap = true;
-      min_dwire = std::min(control, min_dwire);
-      max_dwire = std::max(control, max_dwire);
     }
+    wires.insert(wires.end(), controls.begin(), controls.end());
 
     int padding = 1;
     std::string name = inst.params.empty()
@@ -447,24 +480,29 @@ std::string cudaq::__internal__::draw(const Trace &trace) {
       shape = std::make_unique<ControlledBox>(label, wires, inst.targets.size(),
                                               inst.controls.size());
     }
-
-    int layer = -1;
-    for (auto i = min_dwire; i <= max_dwire; ++i)
-      layer = std::max(layer, wire_layer.at(i));
-    layer += 1;
-
-    if (static_cast<std::size_t>(layer) == layers.size()) {
-      layers.emplace_back();
-      layer_width.push_back(0);
-    }
-    layers.at(layer).emplace_back(ref);
-    for (auto i = min_dwire; i <= max_dwire; ++i)
-      wire_layer.at(i) = layer;
-    layer_width.at(layer) = std::max(layer_width.at(layer), shape->width());
     boxes.push_back(std::move(shape));
-    ref += 1;
+  }
+  return boxes;
+}
+
+std::string string_diagram_from_trace(const Trace &trace,
+                                      const std::vector<Layer> &layers) {
+  std::vector<std::unique_ptr<Diagram::Operator>> boxes =
+      boxes_from_trace(trace);
+  std::vector<int> layer_width(layers.size(), 0);
+  // set the width of the layers
+  for (size_t ref = 0; ref < boxes.size(); ++ref) {
+    // find the layer where the box is through ref
+    auto layer_it =
+        std::find_if(layers.begin(), layers.end(), [&ref](auto &layer) {
+          return std::find(layer.begin(), layer.end(), ref) != layer.end();
+        });
+    auto layer = std::distance(layers.begin(), layer_it);
+    layer_width.at(layer) =
+        std::max(layer_width.at(layer), boxes[ref]->width());
   }
 
+  Diagram diagram(trace.getNumQudits());
   // Draw labels
   std::size_t prefix_size = 0u;
   std::vector<std::string> prefix(diagram.height(), "");
@@ -521,4 +559,113 @@ std::string cudaq::__internal__::draw(const Trace &trace) {
     start = cutting_point.at(i);
   }
   return str;
+}
+
+std::string get_latex_name(const cudaq::Trace::Instruction &inst) {
+  std::string latex_gate;
+  if (latex_gates_map.find(inst.name) != latex_gates_map.end()) {
+    latex_gate = latex_gates_map.at(inst.name);
+  } else {
+    latex_gate = inst.name;
+    // default: name is upper-cased
+    std::transform(latex_gate.begin(), latex_gate.end(), latex_gate.begin(),
+                   [](unsigned char c) { return std::toupper(c); });
+  }
+  latex_gate =
+      inst.params.empty()
+          ? latex_gate
+          : fmt::format("{}({:.4})", latex_gate,
+                        fmt::join(inst.params.begin(), inst.params.end(), ","));
+  return latex_gate;
+}
+
+std::string latex_diagram_from_trace(const Trace &trace,
+                                     const std::vector<Layer> &layers) {
+  // clang-format off
+    std::string latex_string = R"(\documentclass{minimal}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz}
+)";
+  // clang-format on
+  const std::string sep = " & ";
+  std::vector<std::string> latex_lines(trace.getNumQudits());
+  for (std::size_t row = 0; row < trace.getNumQudits(); ++row) {
+    latex_lines[row] += fmt::format("  \\lstick{{$q_{}$}}", row) + sep;
+  }
+  for (const auto &layer : layers) {
+    // unpack this layer
+    for (const auto &ref : layer) {
+      auto instruction = trace.begin() + ref;
+      auto name = get_latex_name(*instruction);
+      // (controlled) swap
+      if (name == "SWAP") {
+        std::vector<Diagram::Wire> wires = convertToIDs(instruction->targets);
+        std::sort(wires.begin(), wires.end());
+        auto target_row0 = wires.at(0);
+        auto target_row1 = wires.at(1);
+        latex_lines[target_row0] +=
+            R"(\swap{)" + std::to_string(target_row1 - target_row0) + "}";
+        latex_lines[target_row1] += R"(\targX{})";
+        std::vector<Diagram::Wire> controls =
+            convertToIDs(instruction->controls);
+        for (int control : controls) {
+          // draw control line to the swap symbol further away
+          if (std::abs(control - target_row0) >
+              std::abs(control - target_row1)) {
+            latex_lines[control] +=
+                R"(\ctrl{)" + std::to_string(target_row0 - control) + "}";
+          } else {
+            latex_lines[control] +=
+                R"(\ctrl{)" + std::to_string(target_row1 - control) + "}";
+          }
+        }
+      } else {
+        // (controlled) box
+        std::vector<Diagram::Wire> wires = convertToIDs(instruction->targets);
+        std::sort(wires.begin(), wires.end());
+        for (auto wire : wires) {
+          latex_lines[wire] += R"(\gate{)" + name + "}";
+        }
+        std::vector<Diagram::Wire> controls =
+            convertToIDs(instruction->controls);
+        for (int control : controls) {
+          latex_lines[control] +=
+              R"(\ctrl{)" + std::to_string(wires.front() - control) + "}";
+        }
+      }
+    }
+    for (auto &latex_line : latex_lines) {
+      // if nothing happened in this layer, add \qw symbol
+      if (latex_line.ends_with(sep)) {
+        latex_line += R"(\qw)";
+      }
+      latex_line += sep;
+    }
+  }
+  for (auto &latex_line : latex_lines) {
+    latex_line += "\\qw \\\\\n";
+    latex_string += latex_line;
+  }
+  // clang-format off
+  latex_string.append(R"(\end{quantikz}
+\end{document}
+)");
+  // clang-format on
+  return latex_string;
+}
+
+} // namespace
+
+std::string cudaq::__internal__::getLaTeXString(const Trace &trace) {
+  const auto layers = layers_from_trace(trace);
+  return latex_diagram_from_trace(trace, layers);
+}
+
+std::string cudaq::__internal__::draw(const Trace &trace) {
+  if (trace.begin() == trace.end()) {
+    return "";
+  }
+  const auto layers = layers_from_trace(trace);
+  return string_diagram_from_trace(trace, layers);
 }

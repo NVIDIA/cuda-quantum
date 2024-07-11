@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -80,6 +80,17 @@ protected:
   // Random number generator.
   std::mt19937 randEngine{std::random_device{}()};
 
+  static constexpr std::array<std::string_view, 1>
+      DISALLOWED_EXECUTION_CONTEXT = {"tracer"};
+
+  static constexpr bool isDisallowed(std::string_view context) {
+    return std::any_of(DISALLOWED_EXECUTION_CONTEXT.begin(),
+                       DISALLOWED_EXECUTION_CONTEXT.end(),
+                       [context](std::string_view disallowed) {
+                         return disallowed == context;
+                       });
+  }
+
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
@@ -154,6 +165,7 @@ public:
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
         pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
+        pm.addPass(mlir::createCanonicalizerPass());
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
@@ -191,10 +203,13 @@ public:
 
   cudaq::RestRequest constructJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+      cudaq::SerializedCodeExecutionContext *serializedCodeContext,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
     cudaq::RestRequest request(io_context, version());
+    if (serializedCodeContext)
+      request.serializedCodeExecutionContext = *serializedCodeContext;
     request.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;
@@ -242,7 +257,7 @@ public:
       request.entryPoint = stateIrPayload1.entryPoint;
       // Second kernel of the overlap calculation
       request.overlapKernel = stateIrPayload2;
-    } else {
+    } else if (serializedCodeContext == nullptr) {
       request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                             kernelArgs, argsSize);
     }
@@ -265,17 +280,23 @@ public:
     return request;
   }
 
-  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
-                           cudaq::ExecutionContext &io_context,
-                           const std::string &backendSimName,
-                           const std::string &kernelName,
-                           void (*kernelFunc)(void *), void *kernelArgs,
-                           std::uint64_t argsSize,
-                           std::string *optionalErrorMsg) override {
-    cudaq::RestRequest request =
-        constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
-                            kernelFunc, kernelArgs, argsSize);
-    if (request.code.empty()) {
+  virtual bool
+  sendRequest(mlir::MLIRContext &mlirContext,
+              cudaq::ExecutionContext &io_context,
+              cudaq::SerializedCodeExecutionContext *serializedCodeContext,
+              const std::string &backendSimName, const std::string &kernelName,
+              void (*kernelFunc)(void *), void *kernelArgs,
+              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    if (isDisallowed(io_context.name))
+      throw std::runtime_error(
+          io_context.name +
+          " operation is not supported with cudaq target remote-mqpu!");
+
+    cudaq::RestRequest request = constructJobRequest(
+        mlirContext, io_context, serializedCodeContext, backendSimName,
+        kernelName, kernelFunc, kernelArgs, argsSize);
+    if (request.code.empty() && (serializedCodeContext == nullptr ||
+                                 serializedCodeContext->source_code.empty())) {
       if (optionalErrorMsg)
         *optionalErrorMsg =
             std::string(
@@ -294,6 +315,7 @@ public:
       cudaq::RestClient restClient;
       auto resultJs =
           restClient.post(m_url, "job", requestJson, headers, false);
+      cudaq::debug("Response: {}", resultJs.dump(/*indent=*/2));
 
       if (!resultJs.contains("executionContext")) {
         std::stringstream errorMsg;
@@ -669,15 +691,20 @@ public:
       }
     }
   }
-  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
-                           cudaq::ExecutionContext &io_context,
-                           const std::string &backendSimName,
-                           const std::string &kernelName,
-                           void (*kernelFunc)(void *), void *kernelArgs,
-                           std::uint64_t argsSize,
-                           std::string *optionalErrorMsg) override {
-    static const std::vector<std::string> MULTI_GPU_BACKENDS = {"tensornet",
-                                                                "nvidia-mgpu"};
+  virtual bool
+  sendRequest(mlir::MLIRContext &mlirContext,
+              cudaq::ExecutionContext &io_context,
+              cudaq::SerializedCodeExecutionContext *serializedCodeContext,
+              const std::string &backendSimName, const std::string &kernelName,
+              void (*kernelFunc)(void *), void *kernelArgs,
+              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    if (isDisallowed(io_context.name))
+      throw std::runtime_error(
+          io_context.name +
+          " operation is not supported with cudaq target nvqc!");
+
+    static const std::vector<std::string> MULTI_GPU_BACKENDS = {
+        "tensornet", "nvidia-mgpu", "nvidia-mqpu"};
     {
       // Print out a message if users request a multi-GPU deployment while
       // setting the backend to a single-GPU one. Only print once in case this
@@ -698,11 +725,12 @@ public:
       }
     }
     // Construct the base `cudaq-qpud` request payload.
-    cudaq::RestRequest request =
-        constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
-                            kernelFunc, kernelArgs, argsSize);
+    cudaq::RestRequest request = constructJobRequest(
+        mlirContext, io_context, serializedCodeContext, backendSimName,
+        kernelName, kernelFunc, kernelArgs, argsSize);
 
-    if (request.code.empty()) {
+    if (request.code.empty() && (serializedCodeContext == nullptr ||
+                                 serializedCodeContext->source_code.empty())) {
       if (optionalErrorMsg)
         *optionalErrorMsg =
             std::string(
@@ -711,7 +739,8 @@ public:
       return false;
     }
 
-    if (request.format != cudaq::CodeFormat::MLIR) {
+    if (request.format != cudaq::CodeFormat::MLIR &&
+        serializedCodeContext == nullptr) {
       // The `.config` file may have been tampered with.
       std::cerr << "Internal error: unsupported kernel IR detected.\nThis may "
                    "indicate a corrupted CUDA-Q installation.";
@@ -945,21 +974,26 @@ public:
             auto rightSize = (totalWidth - strLen) - leftSize;
             std::string leftSide(leftSize, '=');
             std::string rightSide(rightSize, '=');
-            fmt::print("\n{} {} {}\n", leftSide, message, rightSide);
-            fmt::print("GPU Device Name: \"{}\"\n",
-                       info.deviceProps.deviceName);
-            fmt::print("CUDA Driver Version / Runtime Version: {}.{} / {}.{}\n",
-                       info.deviceProps.driverVersion / 1000,
-                       (info.deviceProps.driverVersion % 100) / 10,
-                       info.deviceProps.runtimeVersion / 1000,
-                       (info.deviceProps.runtimeVersion % 100) / 10);
-            fmt::print("Total global memory (GB): {:.1f}\n",
-                       (float)(info.deviceProps.totalGlobalMemMbytes) / 1024.0);
-            fmt::print("Memory Clock Rate (MHz): {:.3f}\n",
-                       info.deviceProps.memoryClockRateMhz);
-            fmt::print("GPU Clock Rate (MHz): {:.3f}\n",
-                       info.deviceProps.clockRateMhz);
-            fmt::print("{}\n", std::string(totalWidth, '='));
+            auto &platform = cudaq::get_platform();
+            std::ostream &os =
+                platform.getLogStream() ? *platform.getLogStream() : std::cout;
+            os << fmt::format("\n{} {} {}\n", leftSide, message, rightSide);
+            os << fmt::format("GPU Device Name: \"{}\"\n",
+                              info.deviceProps.deviceName);
+            os << fmt::format(
+                "CUDA Driver Version / Runtime Version: {}.{} / {}.{}\n",
+                info.deviceProps.driverVersion / 1000,
+                (info.deviceProps.driverVersion % 100) / 10,
+                info.deviceProps.runtimeVersion / 1000,
+                (info.deviceProps.runtimeVersion % 100) / 10);
+            os << fmt::format("Total global memory (GB): {:.1f}\n",
+                              (float)(info.deviceProps.totalGlobalMemMbytes) /
+                                  1024.0);
+            os << fmt::format("Memory Clock Rate (MHz): {:.3f}\n",
+                              info.deviceProps.memoryClockRateMhz);
+            os << fmt::format("GPU Clock Rate (MHz): {:.3f}\n",
+                              info.deviceProps.clockRateMhz);
+            os << fmt::format("{}\n", std::string(totalWidth, '='));
             // Only print this device info once.
             printDeviceInfoOnce = true;
           }

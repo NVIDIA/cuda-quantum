@@ -28,6 +28,9 @@ protected:
   // the IR of both states for remote evaluation)
   mutable std::unique_ptr<cudaq::SimulationState> state;
   mutable std::vector<char> argsBuffer;
+  // Cache log messages from the remote execution.
+  // Mutable to support lazy execution during `const` API calls.
+  mutable std::string platformExecutionLog;
 
 public:
   /// @brief Constructor
@@ -44,7 +47,7 @@ public:
     argsBuffer = cudaq::serializeArgs(std::forward<Args>(args)...);
   }
   RemoteSimulationState() = default;
-
+  virtual ~RemoteSimulationState();
   /// @brief Triggers remote execution to resolve the state data.
   virtual void execute() const;
 

@@ -204,7 +204,7 @@ jobs:
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
-            --build-arg preinstalled_modules="numpy pytest" \
+            --build-arg preinstalled_modules="numpy pytest psutil" \
             --build-arg pip_install_flags=${{ matrix.pip_install_flags }} \
             --build-arg optional_dependencies=$([ "$(uname -m)" == "x86_64" ] && echo cudart)
 
