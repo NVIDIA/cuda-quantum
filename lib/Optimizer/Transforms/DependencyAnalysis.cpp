@@ -26,7 +26,6 @@ using namespace mlir;
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DEPENDENCYANALYSIS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
-#include <llvm/Support/Debug.h>
 } // namespace cudaq::opt
 
 namespace {
@@ -86,6 +85,7 @@ protected:
   Operation *associated;
   uint cycle = INT_MAX;
   bool hasCodeGen = false;
+  uint height = 0;
 
   struct Edge {
     size_t result_idx;
@@ -124,6 +124,8 @@ protected:
 
   bool isRoot() { return successors.size() == 0; }
 
+  bool isLeaf() { return dependencies.size() == 0; }
+
   bool isSkip() { return isEndOp(associated) || isBeginOp(associated); }
 
   void propagateUp(SetVector<size_t> &qidsToAdd) {
@@ -135,22 +137,23 @@ protected:
         successor->propagateUp(qidsToAdd);
   }
 
-  void schedule(uint depth, uint total_height) {
+  void schedule(uint level) {
+    if (level < height)
+      level = height;
+
+    uint current = level;
     if (!isSkip()) {
-      depth++;
-      uint _cycle = total_height - depth;
-      if (_cycle >= cycle)
-        return;
-      cycle = _cycle;
+      current--;
+      cycle = current;
     }
 
     for (auto dependency : dependencies)
-      if (dependency)
-        dependency->schedule(depth, total_height);
+      if (dependency && !dependency->isScheduled() && !dependency->isLeaf())
+        dependency->schedule(current);
 
     for (auto successor : successors)
-      if (successor && !successor->isScheduled())
-        successor->schedule(depth - 2, total_height);
+      if (successor && !successor->isScheduled() && !successor->isRoot())
+        successor->schedule(level + 1);
   }
 
   /// Dependencies and successors are ordered lists:
@@ -226,8 +229,21 @@ protected:
         dependency->initializeWire(qid, init);
   }
 
+  void updateHeight() {
+    uint tallest = 0;
+    for (auto dependency : dependencies)
+      if (dependency && dependency->height > tallest)
+        tallest = dependency->height;
+
+    if (!isSkip())
+      tallest++;
+
+    if (tallest > height)
+      height = tallest;
+  }
+
 public:
-  DependencyNode(Operation *op) : qids(), associated(op) {
+  DependencyNode(Operation *op) : qids(), associated(op), height(0) {
     uint num_dependencies = op->getNumOperands();
     dependencies = SmallVector<DependencyNode *>(num_dependencies, nullptr);
     uint num_successors = op->getNumResults();
@@ -256,26 +272,14 @@ public:
       if (otherOp->getOperand(i).getDefiningOp() == associated)
         successor->dependencies[i] = this;
 
+    successor->updateHeight();
+
     successor->propagateUp(qids);
   }
 
   void print() { printSubGraph(0); }
 
-  uint getHeight() {
-    uint max = 0;
-    for (auto dependency : dependencies) {
-      if (!dependency)
-        continue;
-      uint candidate = dependency->getHeight();
-      if (candidate > max)
-        max = candidate;
-    }
-
-    if (!isSkip())
-      max++;
-
-    return max;
-  }
+  uint getHeight() { return height; }
 
   void addCleanUp(OpBuilder &builder) {
     assert(isRoot() && "Can only call addCleanUp on a root node!");
@@ -295,6 +299,7 @@ private:
   uint total_height;
   DenseMap<size_t, DependencyNode *> firstUses;
   bool isScheduled = false;
+  DependencyNode *tallest = nullptr;
 
   /// Starting from \p next, searches through \p next's family
   /// (excluding already seen nodes) to find all the interconnected roots
@@ -307,9 +312,10 @@ private:
 
     if (next->isRoot()) {
       roots.insert(next);
-      auto root_height = next->getHeight();
-      if (root_height > total_height)
-        total_height = root_height;
+      if (next->height > total_height || tallest == nullptr) {
+        tallest = next;
+        total_height = next->height;
+      }
     }
 
     seen.insert(next);
@@ -327,17 +333,7 @@ private:
   }
 
   void scheduleNodes() {
-    DependencyNode *tallest;
-    int max = 0;
-    for (auto root : roots) {
-      int height = root->getHeight();
-      if (height > max) {
-        max = height;
-        tallest = root;
-      }
-    }
-
-    tallest->schedule(0, total_height);
+    tallest->schedule(total_height);
   }
 
   SetVector<DependencyNode *> getNodesAtCycle(uint cycle) {

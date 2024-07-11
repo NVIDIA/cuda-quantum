@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --assign-ids --dep-analysis %s | FileCheck %s
+
+func.func @test() {
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    %3 = quake.h %2 : (!quake.wire) -> !quake.wire
+    %4 = quake.x %3 : (!quake.wire) -> !quake.wire
+    %5 = quake.y %4 : (!quake.wire) -> !quake.wire
+    %6 = quake.h %1 : (!quake.wire) -> !quake.wire
+    %7:2 = quake.x [%0] %6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %8:2 = quake.x [%7#0] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %9 = quake.z %7#1 : (!quake.wire) -> !quake.wire
+    %10 = quake.y %9 : (!quake.wire) -> !quake.wire
+    %11 = quake.x %10 : (!quake.wire) -> !quake.wire
+    %measOut, %wires = quake.mz %11 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.sink %8#0 : !quake.wire
+    quake.sink %8#1 : !quake.wire
+    quake.sink %wires : !quake.wire
+    return
+  }
