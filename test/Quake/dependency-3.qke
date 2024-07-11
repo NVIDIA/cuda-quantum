@@ -9,7 +9,11 @@
 // RUN: cudaq-opt --assign-ids --dep-analysis %s | FileCheck %s
 
 func.func @test() {
-    %0 = quake.null_wire
-    quake.sink %0 : !quake.wire
-    return
-  }
+  %0 = quake.null_wire
+  quake.sink %0 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @test() {
+// CHECK:           return
+// CHECK:         }
