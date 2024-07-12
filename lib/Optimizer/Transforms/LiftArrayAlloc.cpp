@@ -165,9 +165,8 @@ public:
               ArrayRef<cudaq::cc::ExtractValueArg>{offset});
           continue;
         }
-        if (isa<cudaq::cc::StoreOp>(useuser)) {
+        if (isa<cudaq::cc::StoreOp>(useuser))
           toErase.push_back(useuser);
-        }
         isLive = true;
       }
       if (!isLive)
