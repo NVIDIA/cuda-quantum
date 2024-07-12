@@ -236,9 +236,8 @@ public:
         }
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func)) {
         runChecks = true;
-      } else {
+      else
         quantumTypesNotAllowed = true;
-      }
       if (runChecks) {
         quantumTypesNotAllowed = false;
         // Run semantics checks on the kernel class.
