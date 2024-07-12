@@ -1,0 +1,19 @@
+name: Check if fork
+
+on:
+  workflow_call:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_fork: ${{ steps.check.outputs.is_fork }}
+    steps:
+      - name: Check if repository is a fork
+        id: Check
+        run: |
+          if [ "${{ github.event.repository.fork }}" == "true" ]; then
+            echo "is_fork=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_fork=false" >> $GITHUB_OUTPUT
+          fi
