@@ -37,10 +37,9 @@ class QuakeOp<string mnemonic, list<Trait> traits = []> :
 //===----------------------------------------------------------------------===//
 
 def quake_AsyncScopeOp : QuakeOp<"async_scope",
-        [AutomaticAllocationScope, RecursiveMemoryEffects, NoRegionArguments,
-         DeclareOpInterfaceMethods<RegionBranchOpInterface,
-                                   ["getNumRegionInvocations",
-                                    "getRegionInvocationBounds"]>]> {
+       [AutomaticAllocationScope, RecursiveMemoryEffects, NoRegionArguments,
+        DeclareOpInterfaceMethods<RegionBranchOpInterface,["getNumRegionInvocations","getRegionInvocationBounds"]>
+         ]> {
   let summary = "A compound statement in which operations are scoped for asynchronous execution.";
   let description = [{
     A ScopeOP that designates a segment of a quantum function to be implemented on a specific computer.
@@ -63,15 +62,9 @@ def quake_AsyncScopeOp : QuakeOp<"async_scope",
   let hasCanonicalizer = 1;
 
   let builders = [
-    OpBuilder<(ins "mlir::IntegerAttr":$qpu_id), [{
-      return build($_builder, $_state, qpu_id);
-    }]>
+    OpBuilder<(ins  "mlir::IntegerAttr":$qpu_id )>
   ];
 
-  let extraClassDeclaration = [{
-    using BodyBuilderFn =
-        llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
-  }];
 }
 
 
