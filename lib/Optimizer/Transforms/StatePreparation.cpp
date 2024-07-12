@@ -23,8 +23,14 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/RegionUtils.h"
 #include <span>
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_STATEPREPARATION
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "state-preparation"
 
@@ -34,7 +40,7 @@ using namespace mlir;
 /// For example:
 ///
 ///
-/// Before PrepareState (state-prep):
+/// Before StatePreparation (state-prep):
 ///
 /// module {
 ///   func.func @foo() attributes {
@@ -49,7 +55,7 @@ using namespace mlir;
 ///    !cc.array<complex<f32> x 4>
 /// }
 ///
-/// After PrepareState (state-prep):
+/// After StatePreparation (state-prep):
 ///
 /// module {
 ///   func.func @foo() attributes {
@@ -113,6 +119,8 @@ readConstantArray(mlir::OpBuilder &builder, cudaq::cc::GlobalOp &global) {
 LogicalResult transform(ModuleOp module, func::FuncOp funcOp) {
   auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
   auto toErase = std::vector<mlir::Operation *>();
+  auto succeeded = false;
+
   funcOp->walk([&](Operation *op) {
     if (auto initOp = dyn_cast<quake::InitializeStateOp>(op)) {
       toErase.push_back(initOp);
@@ -145,18 +153,24 @@ LogicalResult transform(ModuleOp module, func::FuncOp funcOp) {
             initOp.replaceAllUsesWith(qubits);
             toErase.push_back(addr);
             toErase.push_back(global);
+            succeeded = true;
           }
         }
       }
     }
   });
 
+  if (!succeeded) {
+    funcOp.emitOpError("StatePreparation failed to replace quake.init_state");
+    return failure();
+  }
+
   for (auto &op : toErase) {
     if (op->getUses().empty()) {
       op->erase();
     } else {
-      module.emitOpError("StatePreparation failed to remove quake.init_state "
-                         "or its dependencies.");
+      op->emitOpError("StatePreparation failed to remove quake.init_state "
+                      "or its dependencies.");
       return failure();
     }
   }
@@ -164,10 +178,11 @@ LogicalResult transform(ModuleOp module, func::FuncOp funcOp) {
   return success();
 }
 
-class StatePreparation : public cudaq::opt::PrepareStateBase<StatePreparation> {
+class StatePreparationPass
+    : public cudaq::opt::impl::StatePreparationBase<StatePreparationPass> {
 protected:
 public:
-  StatePreparation() = default;
+  using StatePreparationBase::StatePreparationBase;
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
@@ -190,7 +205,3 @@ public:
 };
 
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createStatePreparation() {
-  return std::make_unique<StatePreparation>();
-}
