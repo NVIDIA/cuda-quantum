@@ -36,6 +36,8 @@ class PassManager;
 } // namespace mlir
 
 namespace cudaq {
+class pauli_word;
+
 std::string get_quake_by_name(const std::string &);
 
 #if CUDAQ_USE_STD20
@@ -69,7 +71,8 @@ concept KernelBuilderArgTypeIsValid =
           Args, float, double, std::size_t, int, std::vector<int>,             \
           std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
           std::vector<std::complex<float>>, std::vector<std::complex<double>>, \
-          std::vector<cudaq::complex>, cudaq::qubit, cudaq::qvector<>> &&      \
+          std::vector<cudaq::complex>, cudaq::qubit, cudaq::qvector<>,         \
+          std::vector<cudaq::pauli_word>, cudaq::state *> &&                   \
       ...)
 #else
 // Not C++ 2020: stub these out.
@@ -145,6 +148,9 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e);
 
 /// @brief  Map a `qvector` to a `KernelBuilderType`
 KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e);
+
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &e);
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&e);
 
 /// @brief Initialize the `MLIRContext`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
