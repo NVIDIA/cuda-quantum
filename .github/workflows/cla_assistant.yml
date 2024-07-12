@@ -7,8 +7,20 @@ on:
 name: "CLA bot"
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
+  continue_if_not_fork:
+    needs: check_if_fork
+    runs-on: ubuntu-latest
+    steps:
+        - name: Stop if forked
+          if: needs.check_if_fork.outputs.is_fork == 'true'
+          run: exit 1
+
   cla-acknowledgement:
     runs-on: ubuntu-latest
+    needs: [check_if_fork, continue_if_not_fork]
     name: "Check that the CLA has been acknowledged"
     steps:
       - name: "CLA Assistant"
