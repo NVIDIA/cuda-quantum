@@ -182,3 +182,27 @@ def test_sample_async():
     future = cudaq.sample_async(kernel0, 5, qpu_id=0)
     sample_result = future.get()
     assert '1' in sample_result and len(sample_result) == 1
+
+
+@pytest.mark.parametrize("target", [
+    'density-matrix-cpu', 'nvidia', 'nvidia-fp64', 'nvidia-mqpu',
+    'nvidia-mqpu-fp64', 'qpp-cpu', 'tensornet', 'tensornet-mps'
+])
+def test_simulators(target):
+    """Test simulation of custom operation on all available simulation targets."""
+
+    def can_set_target(name):
+        target_installed = True
+        try:
+            cudaq.set_target(name)
+        except RuntimeError:
+            target_installed = False
+        return target_installed
+
+    if can_set_target(target):
+        test_simple_sampling_qpe()
+        cudaq.reset_target()
+    else:
+        pytest.skip("target not available")
+
+    cudaq.reset_target()
