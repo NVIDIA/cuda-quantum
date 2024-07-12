@@ -10,7 +10,7 @@ jobs:
       is_fork: ${{ steps.check.outputs.is_fork }}
     steps:
       - name: Check if repository is a fork
-        id: Check
+        id: check
         run: |
           if [ "${{ github.event.repository.fork }}" == "true" ]; then
             echo "is_fork=true" >> $GITHUB_OUTPUT
