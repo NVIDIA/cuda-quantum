@@ -20,7 +20,7 @@ from cudaq import spin
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
     sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
+    reason="This feature is supported on Python 3.9+")
 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:
@@ -352,6 +352,7 @@ def test_complex_vqe_named_lambda_sweep_grad(gradient):
     test_complex_vqe_named_lambda(cudaq.optimizers.Adam(), gradient)
 
 
+@skipIfPythonLessThan39
 def test_arbitrary_unitary_synthesis():
     cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
