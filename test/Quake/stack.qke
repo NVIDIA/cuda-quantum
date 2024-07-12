@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -lower-to-cfg %s | cudaq-opt | FileCheck %s
+
+func.func private @foo(%0: !cc.ptr<i8>)
+
+func.func @stacksaveandrestore() {
+  cc.scope {
+    %0 = cc.alloca i8
+    func.call @foo(%0) : (!cc.ptr<i8>) -> ()
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @stacksaveandrestore() {
+// CHECK:           %[[VAL_0:.*]] = call @llvm.stacksave() : () -> !cc.ptr<i8>
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i8
+// CHECK:           call @foo(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           cf.br ^bb2
+// CHECK:         ^bb2:
+// CHECK:           call @llvm.stackrestore(%[[VAL_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           return
+// CHECK:         }
