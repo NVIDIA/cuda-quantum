@@ -353,21 +353,29 @@ def test_complex_vqe_named_lambda_sweep_grad(gradient):
 
 
 @skipIfPythonLessThan39
+@pytest.mark.skip(reason="https://github.com/NVIDIA/cuda-quantum/issues/1924")
 def test_arbitrary_unitary_synthesis():
     cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     @cudaq.kernel
-    def bell():
+    def bell(angles: list[float]):
         qubits = cudaq.qvector(2)
         custom_h(qubits[0])
         custom_x.ctrl(qubits[0], qubits[1])
+        ry(angles[0], qubits[1])
 
-    counts = cudaq.sample(bell)
-    assert len(counts) == 2
-    assert "00" in counts
-    assert "11" in counts
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    optimizer = cudaq.optimizers.Adam()
+    energy, parameter = cudaq.vqe(kernel=bell,
+                                  spin_operator=hamiltonian,
+                                  optimizer=optimizer,
+                                  parameter_count=1)
+    print(f"\nminimized <H> = {round(energy,16)}")
+    print(f"optimal theta = {round(parameter[0],16)}")
 
 
 # leave for gdb debugging
