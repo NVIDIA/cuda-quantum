@@ -547,7 +547,8 @@ struct VerifyQIRProfilePass
     func.walk([&](Operation *op) {
       if (auto call = dyn_cast<LLVM::CallOp>(op)) {
         auto funcName = call.getCalleeAttr().getValue();
-        if (!funcName.startswith("__quantum_")) {
+        if (!funcName.startswith("__quantum_") ||
+            funcName.equals(cudaq::opt::QIRCustomOp)) {
           call.emitOpError("unexpected call in QIR base profile");
           passFailed = true;
           return WalkResult::advance();

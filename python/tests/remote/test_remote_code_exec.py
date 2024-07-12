@@ -12,6 +12,7 @@ import requests
 import subprocess
 import time
 import psutil
+import numpy as np
 
 import cudaq
 from cudaq import spin
@@ -349,6 +350,23 @@ def test_complex_vqe_named_lambda_sweep_opt(optimizer):
 ])
 def test_complex_vqe_named_lambda_sweep_grad(gradient):
     test_complex_vqe_named_lambda(cudaq.optimizers.Adam(), gradient)
+
+
+def test_arbitrary_unitary_synthesis():
+    cudaq.register_operation("custom_h",
+                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        custom_h(qubits[0])
+        custom_x.ctrl(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell)
+    assert len(counts) == 2
+    assert "00" in counts
+    assert "11" in counts
 
 
 # leave for gdb debugging
