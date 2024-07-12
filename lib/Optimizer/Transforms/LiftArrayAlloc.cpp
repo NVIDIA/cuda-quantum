@@ -96,9 +96,8 @@ public:
                                 PatternRewriter &rewriter) const override {
     SmallVector<Operation *> stores;
     bool toGlobal = false;
-    if (!isGoodCandidate(alloc, stores, dom, toGlobal)) {
+    if (!isGoodCandidate(alloc, stores, dom, toGlobal))
       return failure();
-    }
 
     LLVM_DEBUG(llvm::dbgs() << "Candidate was found\n");
     auto arrTy = cast<cudaq::cc::ArrayType>(alloc.getType().getElementType());
