@@ -3,7 +3,7 @@
 
 This file contains tips and tricks for when you are performing manual testing/
 debugging for `remote-mqpu` or `nvqc` targets. This file is primarily intended
-for CUDA-Q developers, not end users. See the user-facing docs here:
+for **CUDA-Q developers, not end users**. See the user-facing docs here:
 
 - [`remote-mqpu`](https://nvidia.github.io/cuda-quantum/latest/using/backends/platform.html#remote-mqpu-platform)
 - [`nvqc`](https://nvidia.github.io/cuda-quantum/latest/using/backends/nvqc.html)
@@ -31,6 +31,11 @@ manually restart it if you want to invoke it again.
 If you want to run the server in a fully "contained" environment like it is run
 for NVQC, then you can perform the following steps.
 
+_Note: the following steps use a Docker image tag that is primarily intended
+for CUDA-Q developers, not end users. End users can still use these
+instructions to do any testing they would like, but it is recommended that they
+choose a different Docker tag name._
+
 1. Build your NVQC server Docker container using this command: `docker build -t nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom -f docker/release/cudaq.nvqc.Dockerfile .`
 2. Launch the server on your local machine: `docker run -it --rm --gpus all --network=host -e NVQC_REST_PAYLOAD_VERSION=1 -e NUM_GPUS=1 -e WATCHDOG_TIMEOUT_SEC=3600 -e RUN_AS_NOBODY=1 nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom`
    - Note: You need to set the environment variables as intended for your
@@ -48,6 +53,11 @@ for NVQC, then you can perform the following steps.
    `nvq++ --target remote-mqpu --remote-mqpu-url 172.31.123.45:3030`.
 
 ## Running your own image on the NVQC server
+
+_Note: the following steps use a Docker image tag that is primarily intended
+for CUDA-Q developers, not end users. End users can still use these
+instructions to do any testing they would like, but it is recommended that they
+choose a different Docker tag name._
 
 1. After building your `nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom`
    image, you can `docker push` it (assuming you have authorized credentials).
