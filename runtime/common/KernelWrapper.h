@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/platform.h"
+#include "cudaq/qis/pauli_word.h"
 #include "cudaq/utils/registry.h"
 #include <cstdint>
 #include <cstring>
@@ -221,6 +222,137 @@ public:
         return false;
       vec.emplace_back(elem);
     }
+    return true;
+  }
+};
+
+// Serialization for `pauli_word`
+// Data is packed in the same way as a `vector<char>`.
+template <>
+class SerializeArgImpl<cudaq::pauli_word> {
+public:
+  static std::size_t size(const cudaq::pauli_word &x) {
+    return SerializeArgImpl<std::vector<char>>::size(x.data());
+  }
+
+  static bool serialize(SerializeOutputBuffer &buf,
+                        const cudaq::pauli_word &x) {
+    return SerializeArgImpl<std::vector<char>>::serialize(buf, x.data());
+  }
+
+  static bool deserialize(SerializeInputBuffer &buf, cudaq::pauli_word &x) {
+    std::vector<char> pauliStr;
+    const bool isOk =
+        SerializeArgImpl<std::vector<char>>::deserialize(buf, pauliStr);
+    if (!isOk)
+      return false;
+    x = cudaq::pauli_word(std::string(pauliStr.begin(), pauliStr.end()));
+    return true;
+  }
+};
+
+// Serialization for a vector of vectors
+// Note: we don't support recursively nested vectors (> 2 levels) at the moment.
+template <class T>
+class SerializeArgImpl<std::vector<std::vector<T>>,
+                       std::enable_if_t<std::is_trivial<T>::value>> {
+public:
+  static std::size_t size(const std::vector<std::vector<T>> &vec) {
+    std::size_t size =
+        SerializeArgs<uint64_t>::size(static_cast<uint64_t>(vec.size()));
+    for (const auto &el : vec) {
+      size += SerializeArgs<std::vector<T>>::size(el);
+    }
+    return size;
+  }
+
+  static bool serialize(SerializeOutputBuffer &buf,
+                        const std::vector<std::vector<T>> &vec) {
+    // Size followed by size data the buffer data of each element vector
+    if (!SerializeArgs<uint64_t>::serialize(buf,
+                                            static_cast<uint64_t>(vec.size())))
+      return false;
+    for (const auto &elem : vec) {
+      if (!SerializeArgs<uint64_t>::serialize(
+              buf, static_cast<uint64_t>(elem.size())))
+        return false;
+    }
+
+    for (const auto &subVec : vec) {
+      for (const auto &elem : subVec)
+        if (!SerializeArgs<T>::serialize(buf, elem))
+          return false;
+    }
+    return true;
+  }
+
+  static bool deserialize(SerializeInputBuffer &buf,
+                          std::vector<std::vector<T>> &vec) {
+    uint64_t size = 0;
+    vec.clear();
+    if (!SerializeArgs<uint64_t>::deserialize(buf, size))
+      return false;
+
+    vec.reserve(size);
+
+    for (std::size_t i = 0; i < size; ++i) {
+      uint64_t subVecSizeBytes = 0;
+      if (!SerializeArgs<uint64_t>::deserialize(buf, subVecSizeBytes))
+        return false;
+      vec.emplace_back(std::vector<T>(subVecSizeBytes));
+    }
+    for (std::size_t i = 0; i < size; ++i) {
+      auto &subVec = vec[i];
+      for (auto &el : subVec) {
+        if (!SerializeArgs<T>::deserialize(buf, el))
+          return false;
+      }
+    }
+    return true;
+  }
+};
+
+// Serialization for `std::vector<pauli_word>`
+template <>
+class SerializeArgImpl<std::vector<cudaq::pauli_word>> {
+  using ContainerEquivTy = std::vector<std::vector<char>>;
+  static ContainerEquivTy toStdEquiv(const std::vector<cudaq::pauli_word> &x) {
+    ContainerEquivTy equiv;
+    std::transform(x.begin(), x.end(), std::back_inserter(equiv),
+                   [](const cudaq::pauli_word &p) -> std::vector<char> {
+                     return p.data();
+                   });
+    return equiv;
+  }
+  static std::vector<cudaq::pauli_word>
+  fromStdEquiv(const ContainerEquivTy &x) {
+    std::vector<cudaq::pauli_word> paulis;
+    std::transform(x.begin(), x.end(), std::back_inserter(paulis),
+                   [](const std::vector<char> &pauliStr) -> cudaq::pauli_word {
+                     return cudaq::pauli_word(
+                         std::string(pauliStr.begin(), pauliStr.end()));
+                   });
+    return paulis;
+  }
+
+public:
+  static std::size_t size(const std::vector<cudaq::pauli_word> &x) {
+    return SerializeArgImpl<ContainerEquivTy>::size(toStdEquiv(x));
+  }
+
+  static bool serialize(SerializeOutputBuffer &buf,
+                        const std::vector<cudaq::pauli_word> &x) {
+    return SerializeArgImpl<ContainerEquivTy>::serialize(buf, toStdEquiv(x));
+  }
+
+  static bool deserialize(SerializeInputBuffer &buf,
+                          std::vector<cudaq::pauli_word> &x) {
+    ContainerEquivTy pauliStrs;
+    const bool isOk =
+        SerializeArgImpl<ContainerEquivTy>::deserialize(buf, pauliStrs);
+    if (!isOk)
+      return false;
+    x = fromStdEquiv(pauliStrs);
     return true;
   }
 };
