@@ -602,9 +602,11 @@ void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
     }
     unitaryConj2D.push_back(row);
   }
-  for (std::size_t r = 0; r < nToPowTwo; r++)
-    for (std::size_t c = 0; c < r; c++)
+  for (std::size_t r = 0; r < nToPowTwo; r++) {
+    for (std::size_t c = 0; c < r; c++) {
       std::swap(unitaryConj2D[r][c], unitaryConj2D[c][r]);
+    }
+  }
   std::vector<std::complex<double>> unitaryFlattened;
   for (auto const &row : unitaryConj2D) {
     unitaryFlattened.insert(unitaryFlattened.end(), row.begin(), row.end());

@@ -44,8 +44,9 @@ public:
 
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     auto funcOp = parentModule.lookupSymbol<func::FuncOp>(generator);
-    if (!funcOp)
+    if (!funcOp) {
       return failure();
+    }
 
     // The generator function returns a concrete matrix. If prior passes have
     // run to constant fold and lift array values, the generator function will
