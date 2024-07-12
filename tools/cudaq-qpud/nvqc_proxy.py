@@ -25,7 +25,7 @@ import pathlib
 # allows the NVCF port (3030) to remain up while allowing the main `cudaq-qpud`
 # application to restart if necessary.
 PROXY_PORT = 3030
-QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
+QPUD_PORT = 3031  # see `scripts/nvqc_launch.sh`
 
 NUM_GPUS = 0
 MPI_FOUND = False
@@ -199,21 +199,16 @@ class Server(http.server.SimpleHTTPRequestHandler):
                         cmd_result = subprocess.run(cmd_list,
                                                     capture_output=False,
                                                     text=True)
-                        if cmd_result.returncode == 0:
-                            with open(temp_file.name, 'rb') as fp:
-                                result = json.load(fp)
-                        else:
-                            if cmd_result.returncode == 124:
-                                error_message = "Timeout occurred during execution."
-                            else:
-                                error_message = f'Return code: {cmd_result.returncode}\n' + \
-                                                f'{cmd_result.stdout}\n' + \
-                                                f'{cmd_result.stderr}\n'
+
+                        with open(temp_file.name, 'rb') as fp:
+                            result = json.load(fp)
+
+                        if cmd_result.returncode == 124:
                             result = {
                                 'status':
-                                    'json_request_runner.py returned an error',
+                                    'json_request_runner.py time out',
                                 'errorMessage':
-                                    error_message
+                                    'Timeout occurred during execution'
                             }
 
                         # Cleanup

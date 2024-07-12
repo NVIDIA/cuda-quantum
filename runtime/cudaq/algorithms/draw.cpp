@@ -664,7 +664,7 @@ std::string cudaq::__internal__::getLaTeXString(const Trace &trace) {
 
 std::string cudaq::__internal__::draw(const Trace &trace) {
   if (trace.begin() == trace.end()) {
-    return "<empty trace>";
+    return "";
   }
   const auto layers = layers_from_trace(trace);
   return string_diagram_from_trace(trace, layers);
