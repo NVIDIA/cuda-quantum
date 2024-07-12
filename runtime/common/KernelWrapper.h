@@ -242,9 +242,9 @@ public:
 
   static bool deserialize(SerializeInputBuffer &buf, cudaq::pauli_word &x) {
     std::vector<char> pauliStr;
-    const bool isOk =
+    const bool isVectorCharDeserialized =
         SerializeArgImpl<std::vector<char>>::deserialize(buf, pauliStr);
-    if (!isOk)
+    if (!isVectorCharDeserialized)
       return false;
     x = cudaq::pauli_word(std::string(pauliStr.begin(), pauliStr.end()));
     return true;
@@ -268,7 +268,8 @@ public:
 
   static bool serialize(SerializeOutputBuffer &buf,
                         const std::vector<std::vector<T>> &vec) {
-    // Size followed by size data the buffer data of each element vector
+    // Top-level size followed by size data of all sub-vectors then their buffer
+    // data.
     if (!SerializeArgs<uint64_t>::serialize(buf,
                                             static_cast<uint64_t>(vec.size())))
       return false;
@@ -315,9 +316,10 @@ public:
 // Serialization for `std::vector<pauli_word>`
 template <>
 class SerializeArgImpl<std::vector<cudaq::pauli_word>> {
-  using ContainerEquivTy = std::vector<std::vector<char>>;
-  static ContainerEquivTy toStdEquiv(const std::vector<cudaq::pauli_word> &x) {
-    ContainerEquivTy equiv;
+  using ContainerEquivalentTy = std::vector<std::vector<char>>;
+  static ContainerEquivalentTy
+  paulisToStdEquivalent(const std::vector<cudaq::pauli_word> &x) {
+    ContainerEquivalentTy equiv;
     std::transform(x.begin(), x.end(), std::back_inserter(equiv),
                    [](const cudaq::pauli_word &p) -> std::vector<char> {
                      return p.data();
@@ -325,7 +327,7 @@ class SerializeArgImpl<std::vector<cudaq::pauli_word>> {
     return equiv;
   }
   static std::vector<cudaq::pauli_word>
-  fromStdEquiv(const ContainerEquivTy &x) {
+  fromStdEquivalentToPaulis(const ContainerEquivalentTy &x) {
     std::vector<cudaq::pauli_word> paulis;
     std::transform(x.begin(), x.end(), std::back_inserter(paulis),
                    [](const std::vector<char> &pauliStr) -> cudaq::pauli_word {
@@ -337,29 +339,51 @@ class SerializeArgImpl<std::vector<cudaq::pauli_word>> {
 
 public:
   static std::size_t size(const std::vector<cudaq::pauli_word> &x) {
-    return SerializeArgImpl<ContainerEquivTy>::size(toStdEquiv(x));
+    return SerializeArgImpl<ContainerEquivalentTy>::size(
+        paulisToStdEquivalent(x));
   }
 
   static bool serialize(SerializeOutputBuffer &buf,
                         const std::vector<cudaq::pauli_word> &x) {
-    return SerializeArgImpl<ContainerEquivTy>::serialize(buf, toStdEquiv(x));
+    return SerializeArgImpl<ContainerEquivalentTy>::serialize(
+        buf, paulisToStdEquivalent(x));
   }
 
   static bool deserialize(SerializeInputBuffer &buf,
                           std::vector<cudaq::pauli_word> &x) {
-    ContainerEquivTy pauliStrs;
-    const bool isOk =
-        SerializeArgImpl<ContainerEquivTy>::deserialize(buf, pauliStrs);
-    if (!isOk)
+    ContainerEquivalentTy pauliStrs;
+    const bool isVectorOfPauliStrsDeserialized =
+        SerializeArgImpl<ContainerEquivalentTy>::deserialize(buf, pauliStrs);
+    if (!isVectorOfPauliStrsDeserialized)
       return false;
-    x = fromStdEquiv(pauliStrs);
+    x = fromStdEquivalentToPaulis(pauliStrs);
     return true;
   }
 };
 
+//===----------------------------------------------------------------------===//
+//
+// Utilities to check `SerializeArgImpl` exists
+// We use this to customize the error message.
+//
+//===----------------------------------------------------------------------===//
+namespace internal {
+// We utilize the fact that an incomplete type doesn't support sizeof.
+template <class T, std::size_t = sizeof(T)>
+std::true_type __has_complete_impl(T *);
+std::false_type __has_complete_impl(...);
+template <typename ArgT>
+// Check whether SerializeArgImpl is defined for this argument type.
+using isSerializable =
+    decltype(__has_complete_impl(std::declval<SerializeArgImpl<ArgT> *>()));
+} // namespace internal
+
 // Serialize a list of args into a flat buffer.
 template <typename... Args>
 std::vector<char> serializeArgs(const Args &...args) {
+  static_assert(std::conjunction_v<internal::isSerializable<Args>...>,
+                "Argument type can't be serialized.");
+
   using Serializer = SerializeArgs<Args...>;
   std::vector<char> serializedArgs;
   serializedArgs.resize(Serializer::size(args...));
