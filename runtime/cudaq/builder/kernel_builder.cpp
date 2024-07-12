@@ -120,6 +120,18 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
       [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
 }
 
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(cudaq::cc::CharspanType::get(ctx));
+  });
+}
+
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::PointerType::get(cudaq::cc::StateType::get(ctx));
+  });
+}
+
 MLIRContext *initializeContext() {
   cudaq::info("Initializing the MLIR infrastructure.");
   return cudaq::initializeMLIR().release();
@@ -963,48 +975,52 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // Tag as an entrypoint if it is one
   tagEntryPoint(builder, module, StringRef{});
 
-  PassManager pm(context);
-  OpPassManager &optPM = pm.nest<func::FuncOp>();
-  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
-  cudaq::opt::addAggressiveEarlyInlining(pm);
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
-  optPM.addPass(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addPass(cudaq::opt::createLoopNormalize());
-  pm.addPass(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
-  optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
-  optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
+  {
+    PassManager pm(context);
+    OpPassManager &optPM = pm.nest<func::FuncOp>();
+    optPM.addPass(cudaq::opt::createUnwindLoweringPass());
+    cudaq::opt::addAggressiveEarlyInlining(pm);
+    pm.addPass(createCanonicalizerPass());
+    pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+    optPM.addPass(cudaq::opt::createClassicalMemToReg());
+    pm.addPass(createCanonicalizerPass());
+    pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+    pm.addPass(cudaq::opt::createLoopNormalize());
+    pm.addPass(cudaq::opt::createLoopUnroll());
+    pm.addPass(createCanonicalizerPass());
+    optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
+    optPM.addPass(cudaq::opt::createQuakeAddMetadata());
+    optPM.addPass(createCanonicalizerPass());
+    optPM.addPass(createCSEPass());
+    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
+    pm.addPass(cudaq::opt::createGenerateKernelExecution());
+    if (failed(pm.run(module)))
+      throw std::runtime_error(
+          "cudaq::builder failed to JIT compile the Quake representation.");
+  }
+  {
+    // Start a new pipeline. We want the above pipeline to completely flush it's
+    // rewrites before lowering to a raw CFG form. Loop unrolling depends on the
+    // cc.loop op and GKE generates new code which may have cc.loop ops, etc.
+    PassManager pm(context);
+    OpPassManager &optPM = pm.nest<func::FuncOp>();
+    optPM.addPass(cudaq::opt::createLowerToCFGPass());
+    // We want quantum allocations to stay where they are if
+    // we are simulating and have user-provided state vectors.
+    // This check could be better / smarter probably, in tandem
+    // with some synth strategy to rewrite initState with circuit
+    // synthesis result
+    if (stateVectorStorage.empty())
+      optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
+    optPM.addPass(createCanonicalizerPass());
+    optPM.addPass(createCSEPass());
+    pm.addPass(cudaq::opt::createConvertToQIR());
+    pm.addPass(createCanonicalizerPass());
 
-  // For some reason I get CFG ops from the LowerToCFGPass instead of the
-  // unrolled cc loop if I don't run the above manually.
-  if (failed(pm.run(module)))
-    throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
-
-  // Continue on...
-  pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
-  pm.addPass(cudaq::opt::createGenerateKernelExecution());
-  optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  // We want quantum allocations to stay where they are if
-  // we are simulating and have user-provided state vectors.
-  // This check could be better / smarter probably, in tandem
-  // with some synth strategy to rewrite initState with circuit
-  // synthesis result
-  if (stateVectorStorage.empty())
-    optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createConvertToQIR());
-  pm.addPass(createCanonicalizerPass());
-
-  if (failed(pm.run(module)))
-    throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
+    if (failed(pm.run(module)))
+      throw std::runtime_error(
+          "cudaq::builder failed to JIT compile the Quake representation.");
+  }
 
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here. Revisit this

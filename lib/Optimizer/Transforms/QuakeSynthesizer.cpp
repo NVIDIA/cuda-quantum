@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -552,7 +554,8 @@ public:
       // These will be processed when we reach the buffer's appendix.
       if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
         auto eleTy = vecTy.getElementType();
-        if (!isa<IntegerType, FloatType, ComplexType>(eleTy)) {
+        if (!isa<IntegerType, FloatType, ComplexType, cudaq::cc::CharspanType>(
+                eleTy)) {
           funcOp.emitOpError("synthesis: unsupported argument type");
           signalPassFailure();
           return;
@@ -560,7 +563,9 @@ public:
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto sizeFromBuffer =
             *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        unsigned bytesInType = [&eleTy]() {
+        auto bytesInType = [&eleTy]() -> unsigned {
+          if (isa<cudaq::cc::CharspanType>(eleTy))
+            return 16 /*bytes: sizeof(ptr) + sizeof(i64)*/;
           if (auto complexTy = dyn_cast<ComplexType>(eleTy))
             return 2 * cudaq::opt::convertBitsToBytes(
                            complexTy.getElementType().getIntOrFloatBitWidth());
@@ -655,6 +660,58 @@ public:
       }
       if (eleTy == ComplexType::get(builder.getF64Type())) {
         doVector(std::complex<double>{});
+        continue;
+      }
+      if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(eleTy)) {
+        // For this case, the message buffer contained the length of the range
+        // of sizes that are encoded starting at bufferAppendix.
+        // At the end of the block of sizes, the C-strings will be encoded.
+        auto numberSpans = vecLength;
+        auto *spanSizes = reinterpret_cast<std::uint64_t *>(bufferAppendix);
+        bufferAppendix += vecLength * sizeof(std::uint64_t);
+        // These strings are reified in the following way:
+        //   - Create an array numberSpans in length and where each element
+        //     has a `{i8*, i64}` type.
+        //   - Create a C-string literal constant (global) for each string in
+        //     this vector for a total of numberSpans.
+        //   - Save the address of the C-string to each element of the array.
+        // Users of this data structure will need to use compute_ptr to access
+        // the elements, which are the pointers. Each ptr element is a `char*`
+        // that can be used in, say, a Pauli op.
+        auto ptrTy = cudaq::cc::PointerType::get(charSpanTy);
+        auto loc = arguments[idx].getLoc();
+        auto ns = builder.create<arith::ConstantIntOp>(loc, numberSpans, 64);
+        auto aos = builder.create<cudaq::cc::AllocaOp>(loc, charSpanTy, ns);
+        auto pi8Ty = cudaq::cc::PointerType::get(charSpanTy.getElementType());
+        auto ppi8Ty = cudaq::cc::PointerType::get(pi8Ty);
+        auto ptrI64Ty = cudaq::cc::PointerType::get(builder.getI64Type());
+        auto iaTy = cudaq::cc::PointerType::get(
+            cudaq::cc::ArrayType::get(builder.getI64Type()));
+        cudaq::IRBuilder irBuilder(module);
+        for (decltype(numberSpans) i = 0; i < numberSpans; ++i) {
+          std::size_t length = spanSizes[i];
+          auto strLen = builder.create<arith::ConstantIntOp>(loc, length, 64);
+          StringRef strData{bufferAppendix, length};
+          auto global =
+              irBuilder.genCStringLiteralAppendNul(loc, module, strData);
+          auto addr = builder.create<cudaq::cc::AddressOfOp>(
+              loc, cudaq::cc::PointerType::get(global.getType()),
+              global.getName());
+          auto str = builder.create<cudaq::cc::CastOp>(loc, pi8Ty, addr);
+          auto spanp = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrTy, aos,
+              ArrayRef<cudaq::cc::ComputePtrArg>{static_cast<std::int32_t>(i)});
+          auto relocp = builder.create<cudaq::cc::CastOp>(loc, ppi8Ty, spanp);
+          builder.create<cudaq::cc::StoreOp>(loc, str, relocp);
+          auto lengthp = builder.create<cudaq::cc::CastOp>(loc, iaTy, spanp);
+          auto offsetp = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrI64Ty, lengthp, ArrayRef<cudaq::cc::ComputePtrArg>{1});
+          builder.create<cudaq::cc::StoreOp>(loc, strLen, offsetp);
+          bufferAppendix += length;
+        }
+        auto svTy = cudaq::cc::StdvecType::get(ptrTy);
+        auto ics = builder.create<cudaq::cc::StdvecInitOp>(loc, svTy, aos, ns);
+        arguments[idx].replaceAllUsesWith(ics);
         continue;
       }
     }
