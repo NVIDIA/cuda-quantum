@@ -382,11 +382,9 @@ public:
     moduleOp.push_back(func.clone());
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
-    for (auto &op : m_module.getOps()) {
-      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
+    for (auto &op : m_module.getOps())
+      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
-      }
-    }
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
