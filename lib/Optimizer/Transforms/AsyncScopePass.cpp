@@ -358,14 +358,9 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
       LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: async continue added"<< '\n');
       
     }
-    auto returnOp = func.getBody().front().getTerminator();
-    SmallVector<Value, 4> mappedOperands;
-    for (Value operand : returnOp->getOperands()) {
-      mappedOperands.push_back(mapping.lookupOrNull(operand));
-    }
-    builder.create<func::ReturnOp>(returnOp->getLoc(), mappedOperands);
     SymbolTable::setSymbolVisibility(newFunc, SymbolTable::getSymbolVisibility(func));
     //builder.create<quake::AsyncContinueOp>(newFunc.getLoc());
+    builder.create<func::ReturnOp>(module.getLoc());
     
 
     //LLVM_DEBUG(llvm::dbgs() << "Ranjani checking:\n"<< newFunc << '\n');
