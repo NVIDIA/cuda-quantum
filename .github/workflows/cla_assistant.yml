@@ -21,6 +21,7 @@ jobs:
   cla-acknowledgement:
     runs-on: ubuntu-latest
     needs: [check_if_fork, continue_if_not_fork]
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     name: "Check that the CLA has been acknowledged"
     steps:
       - name: "CLA Assistant"
