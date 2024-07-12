@@ -33,10 +33,10 @@ namespace {
 // pointer.
 //
 //%1 = cc.cast %0 : (!cc.ptr<!cc.array<complex<f32> x 4>>) ->
-//!cc.ptr<!cc.array<complex<f32> x ?>>
+//! cc.ptr<!cc.array<complex<f32> x ?>>
 // ->
 //%1 = cc.cast %0 : (!cc.ptr<!cc.array<complex<f32> x 4>>) ->
-//!cc.ptr<complex<f32>>
+//! cc.ptr<complex<f32>>
 class CastArrayPtrPattern : public OpRewritePattern<cudaq::cc::CastOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
