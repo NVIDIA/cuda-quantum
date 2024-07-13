@@ -49,7 +49,9 @@ protected:
   uint end;
 
 public:
-  LifeTime(uint _begin, uint _end) : begin(_begin), end(_end){};
+  LifeTime(uint _begin, uint _end) : begin(_begin), end(_end) {
+    assert(_end >= _begin && "invalid lifetime");
+  };
 
   bool isAfter(LifeTime *other) { return begin > other->end; }
 
@@ -76,16 +78,25 @@ class DependencyNode {
   friend class DependencyGraph;
 
 protected:
-  // dependencies and successors are ordered lists:
-  SmallVector<DependencyNode *> successors;
+  // Dependencies and successors are ordered lists:
   // successors in the order of results of associated,
-  SmallVector<DependencyNode *> dependencies;
+  SmallVector<DependencyNode *> successors;
   // dependencies are in the order of operands of associated
+  SmallVector<DependencyNode *> dependencies;
+  // If a given dependency appears multiple times,
+  // (e.g., multiple results of the dependency are used by associated),
+  // it is important to know which result from the dependency
+  // corresponds to which operand of associated.
+  // Otherwise, the dependency will be code gen'ed first, and it will
+  // be impossible to know (e.g., which result is a control and which is a
+  // target). Result_idxs tracks this information, and therefore should be
+  // exactly the same size as dependencies.
+  SmallVector<size_t> result_idxs;
   SetVector<size_t> qids;
   Operation *associated;
   uint cycle = INT_MAX;
   bool hasCodeGen = false;
-  uint height = 0;
+  uint height;
 
   struct Edge {
     size_t result_idx;
@@ -122,20 +133,11 @@ protected:
 
   bool isScheduled() { return cycle != INT_MAX; }
 
-  bool isRoot() { return successors.size() == 0; }
+  bool isRoot() { return isEndOp(associated); }
 
-  bool isLeaf() { return dependencies.size() == 0; }
+  bool isLeaf() { return isBeginOp(associated); }
 
-  bool isSkip() { return isEndOp(associated) || isBeginOp(associated); }
-
-  void propagateUp(SetVector<size_t> &qidsToAdd) {
-    if (!isEndOp(associated))
-      qids.set_union(qidsToAdd);
-
-    for (auto successor : successors)
-      if (successor)
-        successor->propagateUp(qidsToAdd);
-  }
+  bool isSkip() { return isRoot() || isLeaf(); }
 
   void schedule(uint level) {
     if (level < height)
@@ -156,23 +158,21 @@ protected:
         successor->schedule(level + 1);
   }
 
-  /// Dependencies and successors are ordered lists:
-  /// Dependencies are in the order of operands,
-  /// successors in the order of results.
-  /// This function returns the operand index represented by \p dependency
-  /// and the relevant result index of \p dependency
-  Edge getEdgeInfo(DependencyNode *dependency) {
+  /// This function returns the index of the result of the dependency
+  /// corresponding to the operand_idx'th operand of this node
+  size_t getResultIdx(size_t operand_idx) { return result_idxs[operand_idx]; }
+
+  /// This function returns the index of the operand of \p successor
+  /// corresponding to the result_idx'th result of this node
+  size_t getOperandIdx(size_t result_idx) {
+    auto successor = successors[result_idx];
+    assert(successor && "Cannot access operand of null successor");
     size_t operand = 0;
-    for (; operand < dependencies.size(); operand++)
-      if (dependencies[operand] == dependency)
+    auto operands = successor->associated->getOperands();
+    for (; operand < operands.size(); operand++)
+      if (operands[operand] == associated->getResult(result_idx))
         break;
-
-    size_t res = 0;
-    for (; res < dependency->successors.size(); res++)
-      if (dependency->successors[res] == this)
-        break;
-
-    return Edge{res, operand};
+    return operand;
   }
 
   /// Recursively find nodes scheduled at a given cycle
@@ -194,17 +194,20 @@ protected:
   /// Generates a new operation for this node in the dependency graph
   /// using the dependencies of the node as operands.
   void codeGen(OpBuilder &builder) {
-    if (hasCodeGen)
+    if (hasCodeGen || isRoot() || isLeaf())
       return;
 
     auto oldOp = associated;
     SmallVector<mlir::Value> operands(oldOp->getNumOperands());
-    for (auto dependency : dependencies) {
+    for (size_t i = 0; i < dependencies.size(); i++) {
+      auto dependency = dependencies[i];
+      if (!dependency)
+        continue;
+
       // Get relevant result from dependency's op
       // to use as the relevant operand
-      auto edge = getEdgeInfo(dependency);
-      operands[edge.operand_idx] =
-          dependency->associated->getResult(edge.result_idx);
+      auto result_idx = getResultIdx(i);
+      operands[i] = dependency->associated->getResult(result_idx);
     }
 
     associated =
@@ -219,7 +222,7 @@ protected:
     if (!qids.contains(qid))
       return;
 
-    if (isBeginOp(associated)) {
+    if (isLeaf()) {
       associated = init;
       return;
     }
@@ -229,63 +232,112 @@ protected:
         dependency->initializeWire(qid, init);
   }
 
-  void updateHeight() {
-    uint tallest = 0;
-    for (auto dependency : dependencies)
-      if (dependency && dependency->height > tallest)
-        tallest = dependency->height;
+  /// Ensures that the node is valid and has been scheduled.
+  /// This should only be called after it has been added to a
+  /// dependency graph.
+  /// This is an expensive check of internal assumptions that will
+  /// only be available during debugging.
+  void validate() {
+    // Validate metadata
+    assert(associated && "Associated op is null");
+    if (!isSkip()) {
+      assert(isScheduled() && "Node part of graph but not scheduled");
+      // A node is included in the calculation of its height, hence + 1
+      assert(cycle + 1 >= height && "Node scheduled too early");
+    }
+    assert(dependencies.size() == associated->getNumOperands() &&
+           "Wrong number of dependencies");
+    assert(successors.size() == associated->getNumResults() &&
+           "Wrong number of successors");
+    // Ensure that the dependencies all make sense
+    for (size_t i = 0; i < dependencies.size(); i++) {
+      auto dependency = dependencies[i];
+      auto operand = associated->getOperand(i);
+      if (!dependency) {
+        assert(!isa<quake::WireType>(operand.getType()) &&
+               "Successor for wire result cannot be null");
+        continue;
+      }
 
-    if (!isSkip())
-      tallest++;
+      auto expected = operand.getDefiningOp();
+      if (!dependency->hasCodeGen)
+        assert(dependency->associated == expected &&
+               "Dependencies in wrong order");
+    }
+    // Ensure that the successors all make sense
+    for (size_t i = 0; i < successors.size(); i++) {
+      auto successor = successors[i];
+      auto result = associated->getResult(i);
+      if (!successor) {
+        assert(!isa<quake::WireType>(result.getType()) &&
+               "Successor for wire result cannot be null");
+        continue;
+      }
 
-    if (tallest > height)
-      height = tallest;
+      auto operand_idx = getOperandIdx(i);
+      if (!hasCodeGen)
+      assert(successor->associated->getOperand(operand_idx) == result &&
+             "Successors in wrong order");
+    }
   }
 
 public:
-  DependencyNode(Operation *op) : qids(), associated(op), height(0) {
-    uint num_dependencies = op->getNumOperands();
-    dependencies = SmallVector<DependencyNode *>(num_dependencies, nullptr);
+  DependencyNode(Operation *op, SmallVector<DependencyNode *> _dependencies)
+      : dependencies(_dependencies), qids(), associated(op) {
+    assert(op && "Cannot make dependency node for null op");
+    assert(_dependencies.size() == op->getNumOperands() &&
+           "Wrong # of dependencies to construct node");
     uint num_successors = op->getNumResults();
     successors = SmallVector<DependencyNode *>(num_successors, nullptr);
+    result_idxs = SmallVector<size_t>(dependencies.size(), INT_MAX);
 
-    if (op->hasAttr("qid")) {
+    if (isBeginOp(op) || isEndOp(op)) {
+      // Should be ensured by assign-ids pass
+      assert(op->hasAttr("qid") && "quake.null_wire or quake.sink missing qid");
+
       // Lookup qid
       auto qid = op->getAttrOfType<IntegerAttr>("qid").getUInt();
       qids.insert(qid);
     }
+
+    height = 0;
+    for (size_t i = 0; i < dependencies.size(); i++) {
+      auto dependency = dependencies[i];
+
+      if (!dependency)
+        continue;
+
+      // Figure out result_idx
+      size_t result_idx = 0;
+      auto results = dependency->associated->getResults();
+      for (; result_idx < results.size(); result_idx++)
+        if (results[result_idx] == associated->getOperand(i))
+          break;
+
+      result_idxs[i] = result_idx;
+      // Set relevant successor of dependency to this
+      dependency->successors[result_idx] = this;
+      // Update metadata
+      if (dependency->height > height)
+        height = dependency->height;
+      if (!isEndOp(op))
+        qids.set_union(dependency->qids);
+    }
+
+    if (!isSkip())
+      height++;
   };
-
-  /// Add \p successor as a successor according to which result(s) is passed
-  /// to \p successor as operands.
-  /// Similarly, adds \p this as a dependency of \p successor according
-  /// to which operand(s) the result(s) is passed as.
-  void addSuccessor(DependencyNode *successor) {
-    auto otherOp = successor->associated;
-
-    for (auto res : associated->getResults())
-      for (auto user : res.getUsers())
-        if (user == otherOp)
-          successors[res.getResultNumber()] = successor;
-
-    for (size_t i = 0; i < otherOp->getNumOperands(); i++)
-      if (otherOp->getOperand(i).getDefiningOp() == associated)
-        successor->dependencies[i] = this;
-
-    successor->updateHeight();
-
-    successor->propagateUp(qids);
-  }
 
   void print() { printSubGraph(0); }
 
   uint getHeight() { return height; }
 
   void addCleanUp(OpBuilder &builder) {
-    assert(isRoot() && "Can only call addCleanUp on a root node!");
+    assert(isRoot() && isEndOp(associated) &&
+           "Can only call addCleanUp on a root node");
     auto last_use = dependencies[0];
-    auto edge = getEdgeInfo(last_use);
-    auto wire = last_use->associated->getResult(edge.result_idx);
+    auto result_idx = getResultIdx(0);
+    auto wire = last_use->associated->getResult(result_idx);
     auto newOp = builder.create<quake::SinkOp>(builder.getUnknownLoc(), wire);
     newOp->setAttrs(associated->getAttrs());
     associated = newOp;
@@ -332,15 +384,27 @@ private:
         gatherRoots(seen, dependency);
   }
 
-  void scheduleNodes() {
-    tallest->schedule(total_height);
-  }
+  void scheduleNodes() { tallest->schedule(total_height); }
 
   SetVector<DependencyNode *> getNodesAtCycle(uint cycle) {
     SetVector<DependencyNode *> nodes;
     for (auto root : roots)
       nodes.set_union(root->getNodesAtCycle(cycle));
     return nodes;
+  }
+
+  /// Ensures that the node is valid and is scheduled properly.
+  /// This is an expensive check that should only be used for
+  /// testing/debugging.
+  void validateNode(DependencyNode *node, uint parent_cycle) {
+    assert(node && "Null node in graph");
+    if (!node->isSkip()) {
+      assert(node->cycle < parent_cycle && "Node scheduled too late");
+      parent_cycle = node->cycle;
+    }
+    node->validate();
+    for (auto dependency : node->dependencies)
+      validateNode(dependency, parent_cycle);
   }
 
 public:
@@ -424,6 +488,14 @@ public:
   Location getIntroductionLoc(size_t qid) {
     return getFirstUseOf(qid)->associated->getLoc();
   }
+
+  /// Ensures that the graph is valid.
+  /// This is an expensive check that should only be used for
+  /// testing/debugging.
+  void validate() {
+    for (auto root : roots)
+      validateNode(root, total_height);
+  }
 };
 
 struct DependencyAnalysisPass
@@ -431,29 +503,73 @@ struct DependencyAnalysisPass
   using DependencyAnalysisBase::DependencyAnalysisBase;
   SmallVector<DependencyNode *> perOp;
 
-  /// Returns the dependency node for \p op
-  /// Creates a new dependency node if it does not exist
-  DependencyNode *visitOp(Operation *op, DependencyNode *next) {
-    // If we've already visited this operation, return memoized dnode
-    if (op->hasAttr("dnodeid")) {
-      auto id = op->getAttr("dnodeid").cast<IntegerAttr>().getUInt();
-      auto dnode = perOp[id];
-      dnode->addSuccessor(next);
-      return dnode;
+  /// Validates that \p op meets the assumptions:
+  /// * control flow operations are not allowed
+  bool validateOp(Operation *op) {
+    if (!quake::isLinearValueForm(op)) {
+      op->emitOpError("dep-analysis requires all operations to be in value form");
+      signalPassFailure();
+      return false;
     }
 
-    // Skip classical operations
-    bool quakeOp = false;
-    for (auto type : op->getResultTypes())
-      if (isa<quake::WireType>(type)) {
-        quakeOp = true;
-        break;
-      }
+    if (op->getRegions().size() != 0) {
+      op->emitOpError(
+          "control flow operations not currently supported in dep-analysis");
+      signalPassFailure();
+      return false;
+    }
 
-    if (!quakeOp && !isEndOp(op))
+    if (dyn_cast<mlir::BranchOpInterface>(op)) {
+      op->emitOpError(
+          "branching operations not currently supported in dep-analysis");
+      signalPassFailure();
+      return false;
+    }
+
+    return true;
+  }
+
+  /// Validates that \p func meets the assumptions:
+  /// * function bodies contain a single block
+  /// * functions have no arguments
+  /// * functions have no results
+  bool validateFunc(func::FuncOp func) {
+    if (func.getBlocks().size() != 1) {
+      func.emitOpError("multiple blocks not currently supported in dep-analysis");
+      signalPassFailure();
+      return false;
+    }
+
+    if (func.getArguments().size() != 0) {
+      func.emitOpError(
+          "function arguments not currently supported in dep-analysis");
+      signalPassFailure();
+      return false;
+    }
+
+    if (func.getNumResults() != 0) {
+      func.emitOpError(
+          "non-void return types not currently supported in dep-analysis");
+      signalPassFailure();
+      return false;
+    }
+    return true;
+  }
+
+  /// Creates and returns a new dependency node for \p op, connecting it to the
+  /// nodes created for the defining operations of the operands of \p op
+  DependencyNode *visitOp(Operation *op) {
+    if (!validateOp(op))
       return nullptr;
 
-    DependencyNode *newNode = new DependencyNode(op);
+    SmallVector<DependencyNode *> dependencies(op->getNumOperands());
+    for (uint i = 0; i < op->getNumOperands(); i++) {
+      auto dependency = visitValue(op->getOperand(i));
+      assert(dependency && "dependency node not found for dependency");
+      dependencies[i] = dependency;
+    }
+
+    DependencyNode *newNode = new DependencyNode(op, dependencies);
 
     // Dnodeid is the next slot of the dnode vector
     auto id = perOp.size();
@@ -463,26 +579,32 @@ struct DependencyAnalysisPass
     op->setAttr("dnodeid", builder.getUI32IntegerAttr(id));
     perOp.push_back(newNode);
 
-    // Recursively visit children
-    for (auto operand : op->getOperands())
-      visitValue(operand, newNode);
-
     return newNode;
   }
 
   /// Returns the dependency node for the defining operation of \p v
-  /// Creates a new dependency node if it does not exist
-  DependencyNode *visitValue(Value v, DependencyNode *next) {
+  /// Assumption: defining operation for \p v exists and already has been
+  /// visited
+  DependencyNode *visitValue(Value v) {
     // Skip classical values
     if (!isa<quake::WireType>(v.getType()))
       return nullptr;
 
     auto defOp = v.getDefiningOp();
-    if (defOp)
-      return visitOp(defOp, next);
+    if (defOp) {
+      // Since we walk forward through the ast, every value should be defined
+      // before it is used, so we should have already visited defOp,
+      // and thus should have a memoized dnode for defOp, fail if not
+      assert(defOp->hasAttr("dnodeid") &&
+             "Error: no dnodeid found for operation");
 
-    // TODO: FAIL
-    assert(false && "UKKNOWN VALUE");
+      auto id = defOp->getAttr("dnodeid").cast<IntegerAttr>().getUInt();
+      auto dnode = perOp[id];
+      return dnode;
+    }
+
+    // This means that v is a block argument which is not allowed
+    // Return null so the error can be handled nicely by visitOp
     return nullptr;
   }
 
@@ -569,14 +691,22 @@ struct DependencyAnalysisPass
 
   void runOnOperation() override {
     auto func = getOperation();
+    validateFunc(func);
 
     SetVector<DependencyNode *> roots;
     for (auto &op : func.front().getOperations()) {
       if (dyn_cast<func::ReturnOp>(op))
         continue;
-      auto root = visitOp(&op, nullptr);
+
+      auto node = visitOp(&op);
+
+      if (!node) {
+        signalPassFailure();
+        return;
+      }
+
       if (isEndOp(&op))
-        roots.insert(root);
+        roots.insert(node);
     }
 
     // Construct graphs from roots
@@ -586,6 +716,9 @@ struct DependencyAnalysisPass
       roots.set_subtract(new_graph.getRoots());
       graphs.push_back(new_graph);
     }
+
+    // Validate the graphs only in debug mode
+    LLVM_DEBUG(for (auto graph : graphs) graph.validate(););
 
     // Setup new block to replace function body
     OpBuilder builder(func.getOperation());

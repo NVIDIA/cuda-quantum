@@ -68,32 +68,18 @@ public:
 };
 
 std::optional<uint> findQid(Value v) {
-  if (!isa<quake::WireType>(v.getType()))
-    return std::optional<uint>();
-
-  if (auto arg = dyn_cast<BlockArgument>(v)) {
-    auto block = arg.getParentBlock();
-    // Look up operands from all branch instructions that can jump
-    // to the parent block and recursively visit them
-    for (auto predecessor : block->getPredecessors()) {
-      if (auto branch =
-              dyn_cast<BranchOpInterface>(predecessor->getTerminator())) {
-        unsigned numSuccs = branch->getNumSuccessors();
-        for (unsigned i = 0; i < numSuccs; ++i) {
-          if (block && branch->getSuccessor(i) != block)
-            continue;
-          auto brArgs = branch.getSuccessorOperands(i).getForwardedOperands();
-          auto operand = brArgs[arg.getArgNumber()];
-          auto qid = findQid(operand);
-          if (qid)
-            return qid;
-        }
-      }
-    }
-  }
-
   auto defop = v.getDefiningOp();
+  if (!defop)
+    return std::nullopt;
+
+  if (!isa<quake::WireType>(v.getType()))
+    return std::nullopt;
+
+  if (!quake::isLinearValueForm(defop))
+      defop->emitOpError("assign-ids requires operations to be in value form");
+
   if (isBeginOp(defop)) {
+    assert(defop->hasAttr("qid") && "qid not present for beginOp");
     uint qid = defop->getAttr("qid").cast<IntegerAttr>().getUInt();
     return std::optional<uint>(qid);
   }
@@ -123,6 +109,10 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto qid = findQid(release.getOperand());
 
+    if (!qid.has_value())
+      release->emitOpError(
+        "Corresponding null_wire not found for sink, illegal ops present");
+
     rewriter.startRootUpdate(release);
     release->setAttr("qid", rewriter.getUI32IntegerAttr(qid.value()));
     rewriter.finalizeRootUpdate(release);
@@ -138,7 +128,18 @@ public:
 struct AssignIDsPass : public cudaq::opt::impl::AssignIDsBase<AssignIDsPass> {
   using AssignIDsBase::AssignIDsBase;
 
-  void runOnOperation() override { assign(); }
+  void runOnOperation() override {
+    auto func = getOperation();
+
+    // Blocks will cause problems for assign-ids, ensure there's only one
+    if (func.getBlocks().size() != 1) {
+      func.emitOpError("multiple blocks not currently supported in assign-ids");
+      signalPassFailure();
+      return;
+    }
+
+    assign();
+  }
 
   void assign() {
     auto *ctx = &getContext();
@@ -155,7 +156,7 @@ struct AssignIDsPass : public cudaq::opt::impl::AssignIDsBase<AssignIDsPass> {
         [&](quake::SinkOp sink) { return sink->hasAttr("qid"); });
     if (failed(applyPartialConversion(func.getOperation(), target,
                                       std::move(patterns)))) {
-      func.emitOpError("factoring quantum allocations failed");
+      func.emitOpError("assigning qids failed");
       signalPassFailure();
     }
   }
