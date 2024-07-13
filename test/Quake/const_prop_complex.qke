@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -const-prop-complex -cse -lift-array-value %s | FileCheck %s
+// RUN: cudaq-opt -const-prop-complex %s | FileCheck %s
 
 func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %cst = arith.constant 0.000000e+00 : f32
