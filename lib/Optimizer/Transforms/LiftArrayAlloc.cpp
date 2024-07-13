@@ -183,8 +183,8 @@ public:
       if (op->getUses().empty()) {
         rewriter.eraseOp(op);
       } else {
-        module.emitOpError("LiftArrayAlloc failed to remove quake.init_state "
-                           "or its dependencies.");
+        op->emitOpError("LiftArrayAlloc failed to remove cc::AllocOp "
+                        "or its uses.");
         return failure();
       }
     }
