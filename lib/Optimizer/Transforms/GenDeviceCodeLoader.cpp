@@ -92,6 +92,7 @@ public:
     // Collect all function declarations to forward as part of each Module.
     // These are thrown in so the Module's CallOps are complete. Unused
     // declarations are just thrown away when the code is JIT compiled.
+    // Also look for any global symbols associated with custom operations
     SmallVector<Operation *> declarations;
     for (auto &op : *module.getBody()) {
       if (auto funcOp = dyn_cast<func::FuncOp>(op)) {

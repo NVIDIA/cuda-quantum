@@ -13,13 +13,14 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/InitAllDialects.h"
-
 #include <fmt/core.h>
+#include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
@@ -251,5 +252,13 @@ void bindRegisterDialects(py::module &mod) {
     mlirContext->appendDialectRegistry(registry);
     mlirContext->loadAllAvailableDialects();
   });
+
+  mod.def("gen_vector_of_complex_constant",
+          [](MlirLocation loc, MlirModule module, std::string name,
+             const std::vector<std::complex<double>> &values) {
+            ModuleOp modOp = unwrap(module);
+            cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
+            builder.genVectorOfConstants(unwrap(loc), modOp, name, values);
+          });
 }
 } // namespace cudaq
