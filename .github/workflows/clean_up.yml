@@ -20,6 +20,17 @@ on:
 name: Clean up
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
+  continue_if_not_fork:
+    needs: check_if_fork
+    runs-on: ubuntu-latest
+    steps:
+        - name: Stop if forked
+          if: needs.check_if_fork.outputs.is_fork == 'true'
+          run: exit 1
+
   bot_branches:
     name: Delete temporary bot/* branches
     if: github.event_name == 'workflow_dispatch' && inputs.delete_temp_branches

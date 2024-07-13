@@ -63,8 +63,8 @@ jobs:
 
   metadata:
     name: Prepare build
-    needs: [check_if_fork, continue_if_not_fork]
-    if: github.event_name != 'push' || github.event.created
+    needs: continue_if_not_fork
+    if: (github.event_name != 'push' || github.event.created)
     runs-on: ubuntu-latest
     permissions:
       contents: read
