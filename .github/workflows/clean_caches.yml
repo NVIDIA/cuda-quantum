@@ -28,9 +28,21 @@ on:
 name: Clean GitHub caches
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
+  continue_if_not_fork:
+    needs: check_if_fork
+    runs-on: ubuntu-latest
+    steps:
+        - name: Stop if forked
+          if: needs.check_if_fork.outputs.is_fork == 'true'
+          run: exit 1
+
   automatic_cleanup:
     name: Clean up GitHub caches produced by other workflows
-    if: github.event_name == 'workflow_run'
+    needs: [check_if_fork, continue_if_not_fork]
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'workflow_run')
     permissions: write-all
     runs-on: ubuntu-latest
 
@@ -68,7 +80,8 @@ jobs:
 
   selective_cleanup:
     name: Clean up selective GitHub caches
-    if: (github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
+    needs: [check_if_fork, continue_if_not_fork]
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -84,7 +97,8 @@ jobs:
 
   tar_cleanup:
     name: Clean up Github caches with tar archives
-    if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' )
+    needs: [check_if_fork, continue_if_not_fork]
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' )
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -101,7 +115,8 @@ jobs:
 
   branch_cleanup:
     name: Clean up branch specific caches
-    if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch' ) || (github.event_name == 'delete' && github.event.ref_type == 'branch')
+    needs: [check_if_fork, continue_if_not_fork]
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch' ) || (github.event_name == 'delete' && github.event.ref_type == 'branch')
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -138,7 +153,8 @@ jobs:
 
   pr_cleanup:
     name: Clean up PR related GitHub caches
-    if: github.event_name == 'pull_request_target'
+    needs: [check_if_fork, continue_if_not_fork]
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'pull_request_target')
     runs-on: ubuntu-latest
     permissions: write-all
 
