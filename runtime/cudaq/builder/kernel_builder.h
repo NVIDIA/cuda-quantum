@@ -224,7 +224,7 @@ CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(r1)
 
 #define CUDAQ_DETAILS_MEASURE_DECLARATION(NAME)                                \
   QuakeValue NAME(mlir::ImplicitLocOpBuilder &builder, QuakeValue &target,     \
-                  std::string regName = "");
+                  const std::string &regName = std::string{});
 
 CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
@@ -646,9 +646,8 @@ public:
                           std::string>>>                                       \
   auto NAME(QubitValues... args) {                                             \
     std::vector<QuakeValue> values{args...}, results;                          \
-    for (auto &value : values) {                                               \
+    for (auto &value : values)                                                 \
       results.emplace_back(NAME(value));                                       \
-    }                                                                          \
     return results;                                                            \
   }
 
