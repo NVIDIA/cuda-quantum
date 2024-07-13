@@ -184,7 +184,11 @@ class PyKernelDecorator(object):
                 }
                 if self.dependentCaptures != None:
                     for k, v in self.dependentCaptures.items():
-                        if self.globalScopedVars[k] != v:
+                        if (isinstance(v, (list, np.ndarray))):
+                            # We can't detect a change in an array, always recompile.
+                            self.module = None
+                            break
+                        elif self.globalScopedVars[k] != v:
                             # Need to recompile
                             self.module = None
                             break
