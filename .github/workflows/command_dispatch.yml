@@ -5,8 +5,13 @@ on:
 name: Slash command dispatch
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   preprocessing:
     name: Check for slash command
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
     permissions:
       # keep this limited to read permissions for the content only!

@@ -13,8 +13,13 @@ on:
 name: Delete tags
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   ghcr_images:
     name: Clean up GHCR image tags
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
 
     steps:

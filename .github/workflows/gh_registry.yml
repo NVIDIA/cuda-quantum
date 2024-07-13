@@ -6,9 +6,13 @@ on:
 name: Update GHCR
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   ghcr_config:
     name: Read GHCR config
-    if: github.event_name == 'workflow_dispatch' || vars.enabled_workflows == 'all'
+    needs: check_if_fork
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && (github.event_name == 'workflow_dispatch' || vars.enabled_workflows == 'all'))
     runs-on: ubuntu-latest
     permissions:
       contents: read

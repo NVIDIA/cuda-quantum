@@ -13,8 +13,13 @@ on:
 name: Create CI cache
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   pr_info:
     name: Determine PR info
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
 
     outputs:

@@ -43,10 +43,15 @@ env:
   python_version: '3.10'
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   # We need this job purely to choose the container image values because the
   # `env` context is unavailable outside of "steps" contexts.
   setup:
     name: Set variables
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
     outputs:
       cudaq_test_image: ${{ steps.vars.outputs.cudaq_test_image }}

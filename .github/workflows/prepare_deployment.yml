@@ -11,10 +11,14 @@ on:
 name: PR merged
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   pr_info:
     name: Store PR info
+    needs: check_if_fork
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event.pull_request.merged == true)
     permissions: {}
 
     steps:

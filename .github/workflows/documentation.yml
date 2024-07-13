@@ -23,10 +23,14 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   publish_docs:
     name: Publish documentation
+    needs: check_if_fork
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.name == 'CI' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'workflow_dispatch' || github.event.workflow_run.name == 'CI' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288'))
 
     permissions:
       contents: write

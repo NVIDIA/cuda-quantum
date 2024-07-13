@@ -5,8 +5,12 @@ on:
 name: Show the context available to slash commands
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   example:
-    if: ${{ github.event.client_payload.github.job == 'command_dispatch' }}
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && ${{ github.event.client_payload.github.job == 'command_dispatch' }})
+    needs: check_if_fork
     runs-on: ubuntu-latest
     steps:
       - name: Show context

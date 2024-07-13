@@ -35,8 +35,13 @@ on:
 name: Docker images
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   metadata:
     name: Metadata
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
     permissions: {}
 

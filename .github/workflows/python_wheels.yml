@@ -31,8 +31,13 @@ on:
 name: Python wheels
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   build_wheel:
     name: Build Python ${{ inputs.python_version }} wheel
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -136,6 +141,8 @@ jobs:
 
   create_test_config:
     name: Prepare validation
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
     permissions:
       contents: read

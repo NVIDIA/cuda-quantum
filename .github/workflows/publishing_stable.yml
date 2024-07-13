@@ -14,8 +14,13 @@ on:
 name: Push stable release
 
 jobs:
+  check_if_fork:
+    uses: ./.github/workflows/check_if_fork.yml
+
   ngc_quantum:
     name: Publish to stable
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
     permissions:
       contents: read
