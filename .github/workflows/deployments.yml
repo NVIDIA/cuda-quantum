@@ -53,18 +53,10 @@ jobs:
   check_if_fork:
     uses: ./.github/workflows/check_if_fork.yml
 
-  continue_if_not_fork:
-    needs: check_if_fork
-    runs-on: ubuntu-latest
-    steps:
-        - name: Stop if forked
-          if: needs.check_if_fork.outputs.is_fork == 'true'
-          run: exit 1
-
   metadata:
     name: Prepare build
-    needs: continue_if_not_fork
-    if: (github.event_name != 'push' || github.event.created)
+    needs: check_if_fork
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && (github.event_name != 'push' || github.event.created))
     runs-on: ubuntu-latest
     permissions:
       contents: read

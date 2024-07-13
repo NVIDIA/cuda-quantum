@@ -31,17 +31,9 @@ jobs:
   check_if_fork:
     uses: ./.github/workflows/check_if_fork.yml
 
-  continue_if_not_fork:
-    needs: check_if_fork
-    runs-on: ubuntu-latest
-    steps:
-        - name: Stop if forked
-          if: needs.check_if_fork.outputs.is_fork == 'true'
-          run: exit 1
-
   automatic_cleanup:
     name: Clean up GitHub caches produced by other workflows
-    needs: [check_if_fork, continue_if_not_fork]
+    needs: check_if_fork
     if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'workflow_run')
     permissions: write-all
     runs-on: ubuntu-latest

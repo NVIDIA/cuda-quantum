@@ -23,17 +23,10 @@ jobs:
   check_if_fork:
     uses: ./.github/workflows/check_if_fork.yml
 
-  continue_if_not_fork:
-    needs: check_if_fork
-    runs-on: ubuntu-latest
-    steps:
-        - name: Stop if forked
-          if: needs.check_if_fork.outputs.is_fork == 'true'
-          run: exit 1
-
   bot_branches:
     name: Delete temporary bot/* branches
-    if: github.event_name == 'workflow_dispatch' && inputs.delete_temp_branches
+    needs: check_if_fork
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'workflow_dispatch' && inputs.delete_temp_branches)
     runs-on: ubuntu-latest
 
     steps:
@@ -57,7 +50,8 @@ jobs:
 
   draft_releases:
     name: Delete draft release
-    if: github.event_name == 'workflow_dispatch' && inputs.delete_draft_releases
+    needs: check_if_fork
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'workflow_dispatch' && inputs.delete_draft_releases)
     runs-on: ubuntu-latest
 
     steps:
@@ -78,6 +72,8 @@ jobs:
 
   ghcr_images:
     name: Clean up GHCR images
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
 
     strategy:
@@ -157,6 +153,8 @@ jobs:
   # See also https://github.com/actions/runner/issues/2120
   deployments:
     name: Deployments
+    needs: check_if_fork
+    if: needs.check_if_fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
     permissions:
       deployments: write
@@ -188,7 +186,8 @@ jobs:
 
   pr_cleanup:
     name: Clean up documentation previews
-    if: github.event_name == 'pull_request_target'
+    needs: check_if_fork
+    if: (needs.check_if_fork.outputs.is_fork == 'false' && github.event_name == 'pull_request_target')
     runs-on: ubuntu-latest
 
     permissions:
