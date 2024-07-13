@@ -26,6 +26,7 @@ add_cudaq_library(OptTransforms
   FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
+  GetConcreteMatrix.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp

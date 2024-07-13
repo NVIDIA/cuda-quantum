@@ -153,6 +153,18 @@ def test_quantinuum_state_preparation():
     assert not '01' in counts
     assert not '11' in counts
 
+def test_arbitrary_unitary_synthesis():
+    cudaq.register_operation("custom_h",
+                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+
+    @cudaq.kernel
+    def basic():
+        q = cudaq.qubit()
+        custom_h(q)
+
+    with pytest.raises(RuntimeError) as error:
+        cudaq.sample(basic)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
