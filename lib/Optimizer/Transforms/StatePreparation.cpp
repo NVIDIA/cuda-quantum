@@ -119,11 +119,13 @@ readConstantArray(mlir::OpBuilder &builder, cudaq::cc::GlobalOp &global) {
 LogicalResult transform(ModuleOp module, func::FuncOp funcOp) {
   auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
   auto toErase = std::vector<mlir::Operation *>();
-  auto succeeded = false;
+  auto hasInitState = false;
+  auto replacedInitState = false;
 
   funcOp->walk([&](Operation *op) {
     if (auto initOp = dyn_cast<quake::InitializeStateOp>(op)) {
       toErase.push_back(initOp);
+      hasInitState = true;
       auto loc = op->getLoc();
       builder.setInsertionPointAfter(initOp);
       // Find the qvector alloc.
@@ -153,14 +155,14 @@ LogicalResult transform(ModuleOp module, func::FuncOp funcOp) {
             initOp.replaceAllUsesWith(qubits);
             toErase.push_back(addr);
             toErase.push_back(global);
-            succeeded = true;
+            replacedInitState = true;
           }
         }
       }
     }
   });
 
-  if (!succeeded) {
+  if (hasInitState && !replacedInitState) {
     funcOp.emitOpError("StatePreparation failed to replace quake.init_state");
     return failure();
   }
