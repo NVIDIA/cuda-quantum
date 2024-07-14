@@ -162,9 +162,6 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
           platformExtraArgs << ";" << iter->PlatformArgKey << ";"
                             << targetArgv[idx + 1];
         }
-
-        idx += 2;
-
       } else {
         const auto featureFlags = targetArgv[idx + 1];
         llvm::SmallVector<llvm::StringRef> flagStrs;
@@ -177,10 +174,9 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
           }
           featureFlag += iter->second;
         }
-
-        idx += 2;
       }
     }
+    idx += 2;
   }
 
   if (!config.ConfigMap.empty()) {
