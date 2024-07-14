@@ -21,6 +21,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Bitcode/BitcodeReader.h"
@@ -79,6 +80,17 @@ protected:
   static inline const std::vector<std::string> serverPasses = {};
   // Random number generator.
   std::mt19937 randEngine{std::random_device{}()};
+
+  static constexpr std::array<std::string_view, 1>
+      DISALLOWED_EXECUTION_CONTEXT = {"tracer"};
+
+  static constexpr bool isDisallowed(std::string_view context) {
+    return std::any_of(DISALLOWED_EXECUTION_CONTEXT.begin(),
+                       DISALLOWED_EXECUTION_CONTEXT.end(),
+                       [context](std::string_view disallowed) {
+                         return disallowed == context;
+                       });
+  }
 
 public:
   virtual void setConfig(
@@ -143,11 +155,20 @@ public:
       auto moduleOp = builder.create<mlir::ModuleOp>();
       moduleOp->setAttrs((*module)->getAttrDictionary());
       for (auto &op : *module) {
-        auto funcOp = dyn_cast<mlir::func::FuncOp>(op);
-        // Add quantum kernels defined in the module.
-        if (funcOp && (funcOp->hasAttr(cudaq::kernelAttrName) ||
-                       funcOp.getName().startswith("__nvqpp__mlirgen__")))
-          moduleOp.push_back(funcOp.clone());
+        if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
+          // Add quantum kernels defined in the module.
+          if (funcOp->hasAttr(cudaq::kernelAttrName) ||
+              funcOp.getName().startswith("__nvqpp__mlirgen__") ||
+              funcOp.getBody().empty())
+            moduleOp.push_back(funcOp.clone());
+        }
+        // Add any global symbols associated with custom operations
+        else {
+          auto ccGlobalOp = dyn_cast<cudaq::cc::GlobalOp>(op);
+          if (ccGlobalOp) {
+            moduleOp.push_back(ccGlobalOp.clone());
+          }
+        }
       }
 
       if (args) {
@@ -276,6 +297,11 @@ public:
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    if (isDisallowed(io_context.name))
+      throw std::runtime_error(
+          io_context.name +
+          " operation is not supported with cudaq target remote-mqpu!");
+
     cudaq::RestRequest request = constructJobRequest(
         mlirContext, io_context, serializedCodeContext, backendSimName,
         kernelName, kernelFunc, kernelArgs, argsSize);
@@ -682,6 +708,11 @@ public:
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    if (isDisallowed(io_context.name))
+      throw std::runtime_error(
+          io_context.name +
+          " operation is not supported with cudaq target nvqc!");
+
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {
         "tensornet", "nvidia-mgpu", "nvidia-mqpu"};
     {

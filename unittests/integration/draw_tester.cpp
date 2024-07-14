@@ -13,7 +13,7 @@ CUDAQ_TEST(DrawTester, checkEmpty) {
 
   auto kernel = []() __qpu__ {};
 
-  std::string expected_str = "<empty trace>";
+  std::string expected_str = "";
   auto produced_str = cudaq::draw(kernel);
   EXPECT_EQ(expected_str, produced_str);
 }
