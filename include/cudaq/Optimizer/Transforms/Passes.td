@@ -107,6 +107,14 @@ def CombineQuantumAllocations :
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
+def ConstPropComplex : Pass<"const-prop-complex", "mlir::ModuleOp"> {
+  let summary = "Create and propagate complex constants.";
+  let description = [{
+    Rewrite the complex.CreateOp to complex.ConstantOp when possible.
+    Replace array pointer casts with element pointer casts.
+  }];
+}
+
 def ConvertToDirectCalls :
     Pass<"indirect-to-direct-calls", "mlir::func::FuncOp"> {
   let summary = "Convert calls to direct calls to Quake routines.";
@@ -563,7 +571,7 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
-def PrepareState : Pass<"state-prep", "mlir::ModuleOp"> {
+def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
   let summary =
     "Convert state vector data into gates";
   let description = [{
@@ -605,8 +613,6 @@ def PrepareState : Pass<"state-prep", "mlir::ModuleOp"> {
     }
     ```
   }];
-
-  let constructor = "cudaq::opt::createStatePreparation()";
 }
 
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {

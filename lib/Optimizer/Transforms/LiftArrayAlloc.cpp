@@ -96,12 +96,11 @@ public:
                                 PatternRewriter &rewriter) const override {
     SmallVector<Operation *> stores;
     bool toGlobal = false;
-    if (!isGoodCandidate(alloc, stores, dom, toGlobal)) {
+    if (!isGoodCandidate(alloc, stores, dom, toGlobal))
       return failure();
-    }
 
     LLVM_DEBUG(llvm::dbgs() << "Candidate was found\n");
-    auto arrTy = cast<cudaq::cc::ArrayType>(alloc.getType().getElementType());
+    auto arrTy = cast<cudaq::cc::ArrayType>(alloc.getElementType());
     SmallVector<Attribute> values;
 
     // Every element of `stores` must be a cc::StoreOp with a ConstantOp as the
@@ -166,9 +165,8 @@ public:
               ArrayRef<cudaq::cc::ExtractValueArg>{offset});
           continue;
         }
-        if (isa<cudaq::cc::StoreOp>(useuser)) {
+        if (isa<cudaq::cc::StoreOp>(useuser))
           toErase.push_back(useuser);
-        }
         isLive = true;
       }
       if (!isLive)
@@ -185,8 +183,8 @@ public:
       if (op->getUses().empty()) {
         rewriter.eraseOp(op);
       } else {
-        module.emitOpError("LiftArrayAlloc failed to remove quake.init_state "
-                           "or its dependencies.");
+        op->emitOpError("LiftArrayAlloc failed to remove cc::AllocOp "
+                        "or its uses.");
         return failure();
       }
     }
@@ -219,8 +217,8 @@ public:
     if (std::distance(alloc->getUses().begin(), alloc->getUses().end()) < size)
       return false;
 
-    //  Keep a scoreboard for every element in the array. Every element *must*
-    //  be stored to with a constant exactly one time.
+    // Keep a scoreboard for every element in the array. Every element *must*
+    // be stored to with a constant exactly one time.
     scoreboard.resize(size);
     for (int i = 0; i < size; i++)
       scoreboard[i] = nullptr;
@@ -286,19 +284,11 @@ public:
               scoreboard[0] = w;
               continue;
             }
-          // can be a cast only used for a quake.init_state or vector init
-          continue;
-        } else {
-          if (getWriteOp(cast, 0)) {
-            LLVM_DEBUG(llvm::dbgs()
-                       << "another cast used in store: " << *op << '\n');
-            return false;
-          }
-          // can be a cast only used for a quake.init_state or vector init
-          toGlobal = true;
-          continue;
+          return false;
         }
         LLVM_DEBUG(llvm::dbgs() << "unexpected cast: " << *op << '\n');
+        toGlobalUses.push_back(op);
+        toGlobal = true;
         continue;
       }
       LLVM_DEBUG(llvm::dbgs() << "unexpected use: " << *op << '\n');
@@ -343,111 +333,6 @@ public:
   mutable ModuleOp module;
 };
 
-// Fold complex.create ops if the arguments are constants.
-class ComplexCreatePattern : public OpRewritePattern<complex::CreateOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(complex::CreateOp create,
-                                PatternRewriter &rewriter) const override {
-    auto re = create.getReal();
-    auto im = create.getImaginary();
-    auto reCon = re.getDefiningOp<arith::ConstantOp>();
-    auto imCon = im.getDefiningOp<arith::ConstantOp>();
-    if (reCon && imCon) {
-      auto aa = ArrayAttr::get(
-          rewriter.getContext(),
-          ArrayRef<Attribute>{reCon.getValue(), imCon.getValue()});
-      rewriter.replaceOpWithNewOp<complex::ConstantOp>(create, create.getType(),
-                                                       aa);
-      return success();
-    }
-    return failure();
-  }
-};
-
-// Fold arith.trunc ops if the argument is constant.
-class FloatTruncatePattern : public OpRewritePattern<arith::TruncFOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(arith::TruncFOp truncate,
-                                PatternRewriter &rewriter) const override {
-    auto val = truncate.getOperand();
-    auto valCon = val.getDefiningOp<arith::ConstantFloatOp>();
-    if (valCon) {
-      auto v = valCon.value().convertToDouble();
-      auto fTy = dyn_cast<FloatType>(truncate.getType());
-      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
-          truncate, APFloat{static_cast<float>(v)}, fTy);
-      return success();
-    }
-    return failure();
-  }
-};
-
-// Fold arith.ext ops if the argument is constant.
-class FloatExtendPattern : public OpRewritePattern<arith::ExtFOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(arith::ExtFOp extend,
-                                PatternRewriter &rewriter) const override {
-    auto val = extend.getOperand();
-    auto valCon = val.getDefiningOp<arith::ConstantFloatOp>();
-    if (valCon) {
-      auto v = valCon.value().convertToFloat();
-      auto fTy = dyn_cast<FloatType>(extend.getType());
-      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
-          extend, APFloat{static_cast<double>(v)}, fTy);
-      return success();
-    }
-    return failure();
-  }
-};
-
-// Fold complex.re ops if the argument is constant.
-class ComplexRePattern : public OpRewritePattern<complex::ReOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(complex::ReOp re,
-                                PatternRewriter &rewriter) const override {
-    auto val = re.getOperand();
-    auto valCon = val.getDefiningOp<complex::ConstantOp>();
-    if (valCon) {
-      auto attr = valCon.getValue();
-      auto real = cast<FloatAttr>(attr[0]).getValue();
-      auto fTy = dyn_cast<FloatType>(re.getType());
-      auto v = fTy.isF64() ? real.convertToDouble() : real.convertToFloat();
-      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(re, APFloat{v}, fTy);
-      return success();
-    }
-    return failure();
-  }
-};
-
-// Fold complex.im ops if the argument is constant.
-class ComplexImPattern : public OpRewritePattern<complex::ImOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(complex::ImOp im,
-                                PatternRewriter &rewriter) const override {
-    auto val = im.getOperand();
-    auto valCon = val.getDefiningOp<complex::ConstantOp>();
-    if (valCon) {
-      auto attr = valCon.getValue();
-      auto real = cast<FloatAttr>(attr[0]).getValue();
-      auto fTy = dyn_cast<FloatType>(im.getType());
-      auto v = fTy.isF64() ? real.convertToDouble() : real.convertToFloat();
-      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(im, APFloat{v}, fTy);
-      return success();
-    }
-    return failure();
-  }
-};
-
 class LiftArrayAllocPass
     : public cudaq::opt::impl::LiftArrayAllocBase<LiftArrayAllocPass> {
 public:
@@ -464,11 +349,6 @@ public:
       std::string funcName = func.getName().str();
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPattern>(ctx, domInfo, funcName, module);
-      patterns.insert<ComplexCreatePattern>(ctx);
-      patterns.insert<FloatExtendPattern>(ctx);
-      patterns.insert<FloatTruncatePattern>(ctx);
-      patterns.insert<ComplexRePattern>(ctx);
-      patterns.insert<ComplexImPattern>(ctx);
 
       LLVM_DEBUG(llvm::dbgs()
                  << "Before lifting constant array: " << func << '\n');
@@ -483,7 +363,3 @@ public:
   }
 };
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createLiftArrayAllocPass() {
-  return std::make_unique<LiftArrayAllocPass>();
-}

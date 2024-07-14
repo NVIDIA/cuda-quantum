@@ -463,7 +463,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
 }
 
 /// @brief Helper function to get boolean environment variable
-bool getEnvBool(const char *envName, bool defaultVal = false) {
+static bool getEnvBool(const char *envName, bool defaultVal = false) {
   if (auto envVal = std::getenv(envName)) {
     std::string tmp(envVal);
     std::transform(tmp.begin(), tmp.end(), tmp.begin(),
@@ -499,8 +499,9 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   // in their runtime.
   auto &platform = cudaq::get_platform();
   if (!platform.is_simulator() || platform.is_emulated()) {
+    pm.addPass(cudaq::opt::createConstPropComplex());
     pm.addPass(createCSEPass());
-    pm.addPass(cudaq::opt::createLiftArrayAllocPass());
+    pm.addPass(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createStatePreparation());
   }
   pm.addPass(createCanonicalizerPass());

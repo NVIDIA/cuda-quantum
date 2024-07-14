@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt -lift-array-value -get-concrete-matrix | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt -const-prop-complex -lift-array-value -get-concrete-matrix | FileCheck %s
 
 #include <cudaq.h>
 

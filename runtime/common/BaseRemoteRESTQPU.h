@@ -383,9 +383,12 @@ public:
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
     for (auto &op : m_module.getOps()) {
-      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
+      // Add any global symbols, including global constant arrays.
+      // Global constant arrays can be created during compilation,
+      // `lift-array-value`, `quake-synthesizer`, and `get-concrete-matrix`
+      // passes.
+      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
-      }
     }
 
     // Lambda to apply a specific pipeline to the given ModuleOp

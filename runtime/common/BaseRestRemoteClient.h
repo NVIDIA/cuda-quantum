@@ -162,10 +162,9 @@ public:
               funcOp.getBody().empty())
             moduleOp.push_back(funcOp.clone());
         }
-        if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
-          // Add globals defined in the module.
+        // Add globals defined in the module.
+        if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
           moduleOp.push_back(globalOp.clone());
-        }
       }
 
       if (args) {
