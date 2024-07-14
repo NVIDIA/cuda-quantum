@@ -9,6 +9,7 @@ name: "CLA bot"
 jobs:
   cla-acknowledgement:
     runs-on: ubuntu-latest
+    if: ${{ ! github.event.repository.fork }}
     name: "Check that the CLA has been acknowledged"
     steps:
       - name: "CLA Assistant"

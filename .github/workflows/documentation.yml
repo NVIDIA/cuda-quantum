@@ -26,7 +26,7 @@ jobs:
   publish_docs:
     name: Publish documentation
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.name == 'CI' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
+    if: (${{ ! github.event.repository.fork }} && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.name == 'CI' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')))
 
     permissions:
       contents: write

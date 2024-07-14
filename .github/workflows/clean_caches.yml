@@ -30,7 +30,7 @@ name: Clean GitHub caches
 jobs:
   automatic_cleanup:
     name: Clean up GitHub caches produced by other workflows
-    if: github.event_name == 'workflow_run'
+    if: (${{ ! github.event.repository.fork }} && github.event_name == 'workflow_run')
     permissions: write-all
     runs-on: ubuntu-latest
 
@@ -68,7 +68,7 @@ jobs:
 
   selective_cleanup:
     name: Clean up selective GitHub caches
-    if: (github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
+    if: (${{ ! github.event.repository.fork }} && github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -84,7 +84,7 @@ jobs:
 
   tar_cleanup:
     name: Clean up Github caches with tar archives
-    if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' )
+    if: (${{ ! github.event.repository.fork }} && github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' )
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -101,7 +101,7 @@ jobs:
 
   branch_cleanup:
     name: Clean up branch specific caches
-    if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch' ) || (github.event_name == 'delete' && github.event.ref_type == 'branch')
+    if: (${{ ! github.event.repository.fork }} && ((github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch') || (github.event_name == 'delete' && github.event.ref_type == 'branch')))
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -138,7 +138,7 @@ jobs:
 
   pr_cleanup:
     name: Clean up PR related GitHub caches
-    if: github.event_name == 'pull_request_target'
+    if: (${{ ! github.event.repository.fork }} && github.event_name == 'pull_request_target')
     runs-on: ubuntu-latest
     permissions: write-all
 

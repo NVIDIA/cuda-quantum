@@ -15,6 +15,7 @@ name: Delete tags
 jobs:
   ghcr_images:
     name: Clean up GHCR image tags
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
 
     steps:

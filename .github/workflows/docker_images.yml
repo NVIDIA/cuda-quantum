@@ -37,6 +37,7 @@ name: Docker images
 jobs:
   metadata:
     name: Metadata
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     permissions: {}
 

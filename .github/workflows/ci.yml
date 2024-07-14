@@ -26,6 +26,7 @@ jobs:
   metadata:
     name: Retrieve PR info
     runs-on: ubuntu-latest
+    if: ${{ ! github.event.repository.fork }}
     permissions:
       pull-requests: read
 

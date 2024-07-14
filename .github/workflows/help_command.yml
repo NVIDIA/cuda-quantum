@@ -6,7 +6,7 @@ name: Show the slash commands help
 
 jobs:
   example:
-    if: ${{ github.event.client_payload.github.job == 'command_dispatch' }}
+    if: (${{ ! github.event.repository.fork }} && ${{ github.event.client_payload.github.job == 'command_dispatch' }})
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

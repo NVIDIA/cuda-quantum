@@ -31,6 +31,7 @@ name: Pre-built binaries
 jobs:
   build_installer:
     name: Build CUDA Quantum assets
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -190,6 +191,7 @@ jobs:
 
   build_openmpi:
     name: Minimal OpenMPI installation
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -248,6 +250,7 @@ jobs:
 
   create_test_config:
     name: Prepare validation
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

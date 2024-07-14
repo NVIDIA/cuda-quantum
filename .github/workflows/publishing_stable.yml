@@ -16,6 +16,7 @@ name: Push stable release
 jobs:
   ngc_quantum:
     name: Publish to stable
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -84,6 +84,7 @@ name: CUDA Quantum cached dev images
 jobs:
   metadata:
     name: Metadata
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -12,6 +12,7 @@ jobs:
   links:
     runs-on: ubuntu-latest
     name: "Check links"
+    if: ${{ ! github.event.repository.fork }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,6 +30,7 @@ jobs:
 
   license_headers:
     name: Check license headers
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +41,7 @@ jobs:
 
   filters:
     name: Filter files to check
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
 
     outputs:

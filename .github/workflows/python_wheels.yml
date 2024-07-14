@@ -33,6 +33,7 @@ name: Python wheels
 jobs:
   build_wheel:
     name: Build Python ${{ inputs.python_version }} wheel
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -136,6 +137,7 @@ jobs:
 
   create_test_config:
     name: Prepare validation
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
