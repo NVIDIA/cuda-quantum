@@ -40,6 +40,7 @@ config.substitutions.append(('%pluginext', config.llvm_plugin_ext))
 config.substitutions.append(('%llvmInclude', config.llvm_install + "/include"))
 config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
+config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 
 llvm_config.use_default_substitutions()
