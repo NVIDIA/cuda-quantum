@@ -27,7 +27,7 @@ function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
   NAME
     nvqpp_${TEST_NAME}
   COMMAND
-    bash -c "rm -f ${TEST_NAME}; ${CMAKE_BINARY_DIR}/bin/nvq++ ${NVQPP_COMPILE_ARGS} ${PARSED_ARGS_SOURCE_DIR}/${SOURCE_LOCATION} -o ${TEST_NAME} && \
+    bash -c "rm -f ${TEST_NAME}; ${CMAKE_BINARY_DIR}/bin/nvq++ ${NVQPP_COMPILE_ARGS} ${NVQPP_EXTRA_ARGS} ${PARSED_ARGS_SOURCE_DIR}/${SOURCE_LOCATION} -o ${TEST_NAME} && \
               ${PARSED_ARGS_LAUNCH_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME} ${PARSED_ARGS_APPLICATION_ARGS}"
   )
   if(PARSED_ARGS_LABELS)
@@ -89,7 +89,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   endif()   
 endif()
 
-add_nvqpp_test(photonics_sim providers/photonics.cpp TARGET photonics)
+add_nvqpp_test(photonics_sim providers/photonics.cpp TARGET photonics NVQPP_EXTRA_ARGS "--library-mode")
 add_nvqpp_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.cpp TARGET remote-mqpu SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 set_tests_properties(
   nvqpp_SampleAsyncRemote

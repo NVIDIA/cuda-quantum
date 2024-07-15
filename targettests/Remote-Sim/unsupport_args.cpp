@@ -7,10 +7,9 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
+// RUN: nvq++ %cpp_std --library-mode -verify --target remote-mqpu %s
 
-// clang-format off
-// RUN: nvq++ %cpp_std --target remote-mqpu %s 2>&1 | FileCheck %s
-// clang-format on
+// Tests for some of the errors that will be emitted in library-mode.
 
 #include <cudaq.h>
 
@@ -42,6 +41,25 @@ struct run_grover {
   }
 };
 
+// expected-error@* {{Callable entry-point kernel arguments are not supported for the remote simulator platform in library mode. Please rewrite the entry point kernel or use MLIR mode.}}
+// expected-error@* {{reference to overloaded function could not be resolved; did you mean to call it?}}
+// expected-error@* {{no matching function for call to 'forward'}}
+
+// 13 notes get generated.
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
+
 struct oracle {
   void operator()(cudaq::qvector<> &q) __qpu__ {
     z<cudaq::ctrl>(q[0], q[2]);
@@ -58,16 +76,10 @@ __qpu__ void oracle_func(cudaq::qvector<> &q) {
 int main() {
   {
     auto counts = cudaq::sample(run_grover{}, 3, 1, oracle{});
-    // CHECK: Callable entry-point kernel arguments are not supported for the
-    // CHECK: remote simulator platform in library mode. Please rewrite the
-    // entry CHECK: point kernel or use MLIR mode.
     counts.dump();
   }
   {
     auto counts = cudaq::sample(run_grover{}, 3, 1, oracle_func);
-    // CHECK NEXT: Callable entry-point kernel arguments are not supported for
-    // CHECK NEXT: the remote simulator platform in library mode. Please
-    // CHECK NEXT: rewrite the entry  point kernel or use MLIR mode.
     counts.dump();
   }
 }
