@@ -185,7 +185,8 @@ class PyKernelDecorator(object):
                 if self.dependentCaptures != None:
                     for k, v in self.dependentCaptures.items():
                         if (isinstance(v, (list, np.ndarray))):
-                            if not all(a == b for a, b in zip(globalScopedVars[k], v)):
+                            if not all(a == b
+                                       for a, b in zip(globalScopedVars[k], v)):
                                 # Recompile if values in the list have changed.
                                 self.module = None
                                 break
