@@ -21,6 +21,7 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/Support/raw_ostream.h"
+#include <sstream>
 
 #define DEBUG_TYPE "target-config"
 
