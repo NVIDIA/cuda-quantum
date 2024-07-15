@@ -47,17 +47,6 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
-def PySynthCallableBlockArgs : Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
-  let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
-  let description = [{
-    This pass is leveraged by the Python bindings to synthesize any 
-    cc.callable block arguments. By synthesis we mean replace all uses of the 
-    callable block argument with a specific in-Module function call (func.call) 
-    retrieved at runtime (the name of the function passed to the kernel at the 
-    cc.callable block argument index).
-  }];
-}
-
 def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
@@ -254,6 +243,48 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
   ];
+}
+
+def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
+  let summary = "Replace the unitary matrix generator function with concrete matrix.";
+  let description = [{
+    Given a custom operation whose generator attribute is another function 
+    within the module, such that if `LiftArrayAlloc` pass has run, there will
+    be a global constant within the module which holds the concrete matrix 
+    representation for the custom operation. This pass will find that global
+    variable and update the custom operation to directly point to it. 
+
+    Example:
+    ```mlir
+      module {
+        func.func @__nvqpp__mlirgen__function_foo_generator_1.bar(%arg0: !cc.stdvec<f64>) -> !cc.stdvec<complex<f64>> {
+          ...
+          %0 = cc.address_of @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 : !cc.ptr<!cc.array<complex<f64> x 4>>
+          ...
+          return %3 : !cc.stdvec<complex<f64>>
+        }
+
+        func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
+          %0 = quake.alloca !quake.ref
+          quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar %0 : (!quake.ref) -> ()
+          return
+        }
+
+        cc.global constant @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+      }
+    ```
+
+    The `quake.custom_op` call would be converted to
+
+    ```mlir
+      func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
+        %0 = quake.alloca !quake.ref
+        quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 %0 : (!quake.ref) -> ()
+        return
+      }
+    ```
+
+  }];
 }
 
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
@@ -571,6 +602,18 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
       %5 = y [%ctrl] %3 : (!control, !wire) -> !wire
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
+  }];
+}
+
+def PySynthCallableBlockArgs :
+    Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
+  let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
+  let description = [{
+    This pass is leveraged by the Python bindings to synthesize any 
+    cc.callable block arguments. By synthesis we mean replace all uses of the 
+    callable block argument with a specific in-Module function call (func.call) 
+    retrieved at runtime (the name of the function passed to the kernel at the 
+    cc.callable block argument index).
   }];
 }
 

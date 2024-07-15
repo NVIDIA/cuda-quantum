@@ -76,6 +76,14 @@ T getValueOrThrow(llvm::Expected<T> valOrErr,
   }
 }
 
+// Clear any registered operations in the ExecutionManager and then destroy the
+// JIT. This needs to be called when the registered operations may contain
+// pointers into the code objects inside the JIT.
+void clearRegOpsAndDestroyJIT(std::unique_ptr<llvm::orc::LLJIT> &jit) {
+  cudaq::getExecutionManager()->clearRegisteredOperations();
+  jit.release();
+}
+
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   int m_port = -1;
   std::unique_ptr<cudaq::RestServer> m_server;
@@ -344,14 +352,19 @@ public:
       cudaq::set_random_seed(seed);
     auto &platform = cudaq::get_platform();
     auto &requestInfo = m_codeTransform[reqId];
+
+    // The lifetime of this pointer should be just as long as `platform` because
+    // any calls to `platform` functions could invoke code that relies on the
+    // JIT being present.
+    std::unique_ptr<llvm::orc::LLJIT> llvmJit;
     if (requestInfo.format == cudaq::CodeFormat::LLVM) {
       if (io_context.name == "sample") {
         // In library mode (LLVM), check to see if we have mid-circuit measures
         // by tracing the kernel function.
         cudaq::ExecutionContext context("tracer");
         platform.set_exec_ctx(&context);
-        cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                   argsSize);
+        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                             kernelArgs, argsSize);
         platform.reset_exec_ctx();
         // In trace mode, if we have a measure result
         // that is passed to an if statement, then
@@ -365,32 +378,40 @@ public:
           // Need to run simulation shot-by-shot
           cudaq::sample_result counts;
           platform.set_exec_ctx(&io_context);
+          // Since registered operations may contain pointers to classes defined
+          // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
+          // deleted.
+          clearRegOpsAndDestroyJIT(llvmJit);
           // If it has conditionals, loop over individual circuit executions
-          cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                     argsSize, io_context.shots,
-                                     [&](std::size_t i) {
-                                       // Reset the context and get the single
-                                       // measure result, add it to the
-                                       // sample_result and clear the context
-                                       // result
-                                       platform.reset_exec_ctx();
-                                       counts += io_context.result;
-                                       io_context.result.clear();
-                                       if (i != (io_context.shots - 1))
-                                         platform.set_exec_ctx(&io_context);
-                                     });
+          llvmJit = cudaq::invokeWrappedKernel(
+              ir, std::string(kernelName), kernelArgs, argsSize,
+              io_context.shots, [&](std::size_t i) {
+                // Reset the context and get the single
+                // measure result, add it to the
+                // sample_result and clear the context
+                // result
+                platform.reset_exec_ctx();
+                counts += io_context.result;
+                io_context.result.clear();
+                if (i != (io_context.shots - 1))
+                  platform.set_exec_ctx(&io_context);
+              });
           io_context.result = counts;
           platform.set_exec_ctx(&io_context);
         } else {
           // If no conditionals, nothing special to do for library mode
           platform.set_exec_ctx(&io_context);
-          cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                     argsSize);
+          // Since registered operations may contain pointers to classes defined
+          // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
+          // deleted.
+          clearRegOpsAndDestroyJIT(llvmJit);
+          llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                               kernelArgs, argsSize);
         }
       } else {
         platform.set_exec_ctx(&io_context);
-        cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                   argsSize);
+        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                             kernelArgs, argsSize);
       }
     } else {
       platform.set_exec_ctx(&io_context);
@@ -419,6 +440,10 @@ public:
       }
     }
     platform.reset_exec_ctx();
+    // Clear the registered operations before the `llvmJit` goes out of scope
+    // so that destruction of registered operations doesn't cause segfaults
+    // during shutdown.
+    clearRegOpsAndDestroyJIT(llvmJit);
     simulationEnd = std::chrono::high_resolution_clock::now();
   }
 

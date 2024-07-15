@@ -120,6 +120,18 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
       [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
 }
 
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(cudaq::cc::CharspanType::get(ctx));
+  });
+}
+
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::PointerType::get(cudaq::cc::StateType::get(ctx));
+  });
+}
+
 MLIRContext *initializeContext() {
   cudaq::info("Initializing the MLIR infrastructure.");
   return cudaq::initializeMLIR().release();
@@ -743,66 +755,39 @@ void u3(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &parameters,
 
 template <typename QuakeMeasureOp>
 QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
-                        std::string regName) {
+                        const std::string &regName) {
   auto type = value.getType();
   if (!type.isa<quake::RefType, quake::VeqType>())
     throw std::runtime_error("Invalid parameter passed to mz.");
 
   cudaq::info("kernel_builder apply measurement");
 
-  auto i1Ty = builder.getI1Type();
   auto strAttr = builder.getStringAttr(regName);
-  auto measTy = quake::MeasureType::get(builder.getContext());
-  if (type.isa<quake::RefType>()) {
-    Value measureResult =
-        builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
-            .getMeasOut();
-    Value bits = builder.create<quake::DiscriminateOp>(i1Ty, measureResult);
-    return QuakeValue(builder, bits);
+  Type resTy = builder.getI1Type();
+  Type measTy = quake::MeasureType::get(builder.getContext());
+  if (!type.isa<quake::RefType>()) {
+    resTy = cc::StdvecType::get(resTy);
+    measTy = cc::StdvecType::get(measTy);
   }
-
-  // This must be a veq.
-  auto i64Ty = builder.getIntegerType(64);
-  Value vecSize = builder.template create<quake::VeqSizeOp>(i64Ty, value);
-  Value size = builder.template create<cudaq::cc::CastOp>(
-      i64Ty, vecSize, cudaq::cc::CastOpMode::Unsigned);
-  auto buff = builder.template create<cc::AllocaOp>(i1Ty, vecSize);
-  cudaq::opt::factory::createInvariantLoop(
-      builder, builder.getLoc(), size,
-      [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
-          Block &block) {
-        Value iv = block.getArgument(0);
-        OpBuilder::InsertionGuard guard(nestedBuilder);
-        Value qv =
-            nestedBuilder.create<quake::ExtractRefOp>(nestedLoc, value, iv);
-        Value meas =
-            nestedBuilder.create<QuakeMeasureOp>(nestedLoc, measTy, qv, strAttr)
-                .getMeasOut();
-        Value bit =
-            nestedBuilder.create<quake::DiscriminateOp>(nestedLoc, i1Ty, meas);
-
-        auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
-        auto addr = nestedBuilder.create<cc::ComputePtrOp>(
-            nestedLoc, i1PtrTy, buff, ValueRange{iv});
-        nestedBuilder.create<cc::StoreOp>(nestedLoc, bit, addr);
-      });
-  Value ret = builder.template create<cc::StdvecInitOp>(
-      cc::StdvecType::get(builder.getContext(), i1Ty), buff, vecSize);
-  return QuakeValue(builder, ret);
+  Value measureResult =
+      builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
+          .getMeasOut();
+  Value bits = builder.create<quake::DiscriminateOp>(resTy, measureResult);
+  return QuakeValue(builder, bits);
 }
 
 QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              std::string regName) {
+              const std::string &regName) {
   return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
 QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              std::string regName) {
+              const std::string &regName) {
   return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
 QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              std::string regName) {
+              const std::string &regName) {
   return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
@@ -963,48 +948,52 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // Tag as an entrypoint if it is one
   tagEntryPoint(builder, module, StringRef{});
 
-  PassManager pm(context);
-  OpPassManager &optPM = pm.nest<func::FuncOp>();
-  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
-  cudaq::opt::addAggressiveEarlyInlining(pm);
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
-  optPM.addPass(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addPass(cudaq::opt::createLoopNormalize());
-  pm.addPass(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
-  optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
-  optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
+  {
+    PassManager pm(context);
+    OpPassManager &optPM = pm.nest<func::FuncOp>();
+    optPM.addPass(cudaq::opt::createUnwindLoweringPass());
+    cudaq::opt::addAggressiveEarlyInlining(pm);
+    pm.addPass(createCanonicalizerPass());
+    pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+    optPM.addPass(cudaq::opt::createClassicalMemToReg());
+    pm.addPass(createCanonicalizerPass());
+    pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+    pm.addPass(cudaq::opt::createLoopNormalize());
+    pm.addPass(cudaq::opt::createLoopUnroll());
+    pm.addPass(createCanonicalizerPass());
+    optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
+    optPM.addPass(cudaq::opt::createQuakeAddMetadata());
+    optPM.addPass(createCanonicalizerPass());
+    optPM.addPass(createCSEPass());
+    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
+    pm.addPass(cudaq::opt::createGenerateKernelExecution());
+    if (failed(pm.run(module)))
+      throw std::runtime_error(
+          "cudaq::builder failed to JIT compile the Quake representation.");
+  }
+  {
+    // Start a new pipeline. We want the above pipeline to completely flush it's
+    // rewrites before lowering to a raw CFG form. Loop unrolling depends on the
+    // cc.loop op and GKE generates new code which may have cc.loop ops, etc.
+    PassManager pm(context);
+    OpPassManager &optPM = pm.nest<func::FuncOp>();
+    optPM.addPass(cudaq::opt::createLowerToCFGPass());
+    // We want quantum allocations to stay where they are if
+    // we are simulating and have user-provided state vectors.
+    // This check could be better / smarter probably, in tandem
+    // with some synth strategy to rewrite initState with circuit
+    // synthesis result
+    if (stateVectorStorage.empty())
+      optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
+    optPM.addPass(createCanonicalizerPass());
+    optPM.addPass(createCSEPass());
+    pm.addPass(cudaq::opt::createConvertToQIR());
+    pm.addPass(createCanonicalizerPass());
 
-  // For some reason I get CFG ops from the LowerToCFGPass instead of the
-  // unrolled cc loop if I don't run the above manually.
-  if (failed(pm.run(module)))
-    throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
-
-  // Continue on...
-  pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
-  pm.addPass(cudaq::opt::createGenerateKernelExecution());
-  optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  // We want quantum allocations to stay where they are if
-  // we are simulating and have user-provided state vectors.
-  // This check could be better / smarter probably, in tandem
-  // with some synth strategy to rewrite initState with circuit
-  // synthesis result
-  if (stateVectorStorage.empty())
-    optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createConvertToQIR());
-  pm.addPass(createCanonicalizerPass());
-
-  if (failed(pm.run(module)))
-    throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
+    if (failed(pm.run(module)))
+      throw std::runtime_error(
+          "cudaq::builder failed to JIT compile the Quake representation.");
+  }
 
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here. Revisit this

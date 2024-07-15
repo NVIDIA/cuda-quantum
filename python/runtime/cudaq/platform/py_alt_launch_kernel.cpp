@@ -590,7 +590,7 @@ std::string getASM(const std::string &name, MlirModule module,
   std::string str;
   llvm::raw_string_ostream os(str);
   if (failed(cudaq::translateToOpenQASM(cloned, os)))
-    throw std::runtime_error("getASM: failed to translate to OpenQasm.");
+    throw std::runtime_error("getASM: failed to translate to OpenQASM.");
   return str;
 }
 
