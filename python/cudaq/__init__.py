@@ -6,8 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os, numpy, platform
+import sys, os, numpy, platform, multiprocessing
 from ._packages import *
+
+# Set the multiprocessing start method to 'spawn' if not already set
+if multiprocessing.get_start_method(allow_none=True) is None:
+    multiprocessing.set_start_method('spawn', force=True)
 
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
 # LinkedLibraryHolder.
