@@ -24,6 +24,8 @@ class MLIRContext;
 }
 namespace cudaq {
 class ExecutionContext;
+class gradient;
+class optimizer;
 class SerializedCodeExecutionContext;
 
 /// Base interface encapsulating a CUDA-Q runtime server capable of
@@ -49,7 +51,14 @@ public:
                              std::string_view ir, std::string_view kernelName,
                              void *kernelArgs, std::uint64_t argsSize,
                              std::size_t seed) = 0;
-
+  // Handle incoming VQE requests
+  virtual void handleVQERequest(std::size_t reqId,
+                                cudaq::ExecutionContext &io_context,
+                                const std::string &backendSimName,
+                                std::string_view ir, cudaq::gradient *gradient,
+                                cudaq::optimizer &optimizer, const int n_params,
+                                std::string_view kernelName,
+                                std::size_t seed) = 0;
   // Destructor
   virtual ~RemoteRuntimeServer() = default;
 };
@@ -79,9 +88,10 @@ public:
   virtual bool
   sendRequest(mlir::MLIRContext &mlirContext, ExecutionContext &io_context,
               SerializedCodeExecutionContext *serializedCodeContext,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize,
+              cudaq::gradient *vqe_gradient, cudaq::optimizer *vqe_optimizer,
+              const int vqe_n_params, const std::string &backendSimName,
+              const std::string &kernelName, void (*kernelFunc)(void *),
+              const void *kernelArgs, std::uint64_t argsSize,
               std::string *optionalErrorMsg = nullptr) = 0;
   // Destructor
   virtual ~RemoteRuntimeClient() = default;
