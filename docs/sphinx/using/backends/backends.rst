@@ -17,8 +17,9 @@ CUDA-Q Backends
 * :ref:`iqm <iqm-backend>`
 * :ref:`nvidia <nvidia-backend>`
 * :ref:`nvidia-fp64 <nvidia-fp64-backend>`
-* :ref:`nvidia-mqpu <nvidia-mgpu-backend>`
-* :ref:`nvidia-mqpu-fp64 <nvidia-mgpu-backend>`
+* :ref:`nvidia-mgpu <nvidia-mgpu-backend>`
+* :ref:`nvidia-mqpu <mqpu-platform>`
+* :ref:`nvidia-mqpu-fp64 <mqpu-platform>`
 * :doc:`nvqc <nvqc>`
 * :ref:`oqc <oqc-backend>`
 * :ref:`orca <orca-backend>`
@@ -27,3 +28,8 @@ CUDA-Q Backends
 * :ref:`remote-mqpu <mqpu-platform>`
 * :ref:`tensornet <tensor-backends>`
 * :ref:`tensornet-mps <tensor-backends>`
+
+.. deprecated:: 0.8
+   The `nvidia-fp64`, `nvidia-mgpu`, `nvidia-mqpu`, and `nvidia-mqpu-fp64` targets can be 
+   enabled as extensions of the unified `nvidia` target.
+   These target names might be removed in a future release.

@@ -183,6 +183,8 @@ if '-target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
 if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
+if '--option' in sys.argv:
+    initKwargs['option'] = sys.argv[sys.argv.index('--option') + 1]
 if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
 if not '--cudaq-full-stack-trace' in sys.argv:

@@ -126,7 +126,7 @@ struct TargetConfig {
   bool GpuRequired = false;
   /// Target configuration
   std::optional<BackendEndConfigEntry> BackendConfig;
-  /// Additional configuration mapping (if this is a multi-config target)
+  /// Additional configuration mapping (if this is a multi-configuration target)
   std::vector<BackendFeatureMap> ConfigMap;
 };
 
