@@ -38,34 +38,34 @@ def kernel_with_call():
 
 
 def test_translate_openqasm():
-    asm = cudaq.translate(bell_pair, format="openqasm")
+    asm = cudaq.translate(bell_pair, format="openqasm2")
     assert "qreg var0[2];" in asm
 
 
 def test_translate_openqasm_with_ignored_args():
-    asm = cudaq.translate(bell_pair, 5, format="openqasm")
+    asm = cudaq.translate(bell_pair, 5, format="openqasm2")
     assert "qreg var0[2];" in asm
 
 
 def test_translate_openqasm_with_args():
     with pytest.raises(RuntimeError) as e:
-        print(cudaq.translate(kernel, 5, format="openqasm"))
-    assert 'Cannot translate function with arguments to OpenQasm 2.0.' in repr(
+        print(cudaq.translate(kernel, 5, format="openqasm2"))
+    assert 'Cannot translate function with arguments to OpenQASM 2.0.' in repr(
         e)
 
 
 def test_translate_openqasm_synth():
     synth = cudaq.synthesize(kernel, 4)
 
-    asm = cudaq.translate(synth, format="openqasm")
+    asm = cudaq.translate(synth, format="openqasm2")
     assert "measure var0[3] -> var8[0]" in asm
 
 
 def test_translate_openqasm_call():
     # error: 'cc.instantiate_callable' op unable to translate op to OpenQASM 2.0
     with pytest.raises(RuntimeError) as e:
-        print(cudaq.translate(kernel_with_call, format="openqasm"))
-    assert 'getASM: failed to translate to OpenQasm.' in repr(e)
+        print(cudaq.translate(kernel_with_call, format="openqasm2"))
+    assert 'getASM: failed to translate to OpenQASM.' in repr(e)
 
 
 def test_translate_qir():
