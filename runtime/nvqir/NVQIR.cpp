@@ -569,6 +569,49 @@ void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
 
 void __quantum__rt__result_record_output(Result *, int8_t *) {}
 
+void __quantum__qis__custom_unitary(std::complex<double> *unitary,
+                                    Array *controls, Array *targets) {
+  auto ctrlsVec = arrayToVectorSizeT(controls);
+  auto tgtsVec = arrayToVectorSizeT(targets);
+  auto numQubits = tgtsVec.size();
+  if (numQubits >= 64)
+    throw std::invalid_argument("Too many qubits (>=64), not supported");
+  auto nToPowTwo = (1ULL << numQubits);
+  auto numElements = nToPowTwo * nToPowTwo;
+  std::vector<std::complex<double>> unitaryMatrix(unitary,
+                                                  unitary + numElements);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(unitaryMatrix,
+                                                             ctrlsVec, tgtsVec);
+}
+
+void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
+                                         Array *controls, Array *targets) {
+
+  auto ctrlsVec = arrayToVectorSizeT(controls);
+  auto tgtsVec = arrayToVectorSizeT(targets);
+  auto numQubits = tgtsVec.size();
+  if (numQubits >= 64)
+    throw std::invalid_argument("Too many qubits (>=64), not supported");
+  auto nToPowTwo = (1ULL << numQubits);
+
+  std::vector<std::vector<std::complex<double>>> unitaryConj2D;
+  for (std::size_t r = 0; r < nToPowTwo; r++) {
+    std::vector<std::complex<double>> row;
+    for (std::size_t c = 0; c < nToPowTwo; c++)
+      row.push_back(std::conj(unitary[r * nToPowTwo + c]));
+    unitaryConj2D.push_back(row);
+  }
+  for (std::size_t r = 0; r < nToPowTwo; r++)
+    for (std::size_t c = 0; c < r; c++)
+      std::swap(unitaryConj2D[r][c], unitaryConj2D[c][r]);
+  std::vector<std::complex<double>> unitaryFlattened;
+  for (auto const &row : unitaryConj2D)
+    unitaryFlattened.insert(unitaryFlattened.end(), row.begin(), row.end());
+
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(unitaryFlattened,
+                                                             ctrlsVec, tgtsVec);
+}
+
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.
 /// @param paulis
 /// @return

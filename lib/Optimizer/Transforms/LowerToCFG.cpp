@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -46,6 +47,17 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = scopeOp.getLoc();
     auto *initBlock = rewriter.getInsertionBlock();
+    Value stacksave;
+    auto module = scopeOp.getOperation()->getParentOfType<ModuleOp>();
+    auto ptrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+    if (scopeOp.hasAllocation(/*quantumAllocs=*/false)) {
+      auto fun = cudaq::opt::factory::createFunction(
+          "llvm.stacksave", ArrayRef<Type>{ptrTy}, {}, module);
+      fun.setPrivate();
+      auto call = rewriter.create<func::CallOp>(
+          loc, ptrTy, fun.getSymNameAttr(), ArrayRef<Value>{});
+      stacksave = call.getResult(0);
+    }
     auto initPos = rewriter.getInsertionPoint();
     auto *endBlock = rewriter.splitBlock(initBlock, initPos);
     ValueRange scopeResults;
@@ -70,6 +82,14 @@ public:
     rewriter.setInsertionPointToEnd(initBlock);
     rewriter.create<cf::BranchOp>(loc, entryBlock, ValueRange{});
     rewriter.inlineRegionBefore(scopeOp.getInitRegion(), endBlock);
+    if (stacksave) {
+      rewriter.setInsertionPointToStart(endBlock);
+      auto fun = cudaq::opt::factory::createFunction(
+          "llvm.stackrestore", {}, ArrayRef<Type>{ptrTy}, module);
+      fun.setPrivate();
+      rewriter.create<func::CallOp>(loc, ArrayRef<Type>{}, fun.getSymNameAttr(),
+                                    ArrayRef<Value>{stacksave});
+    }
     rewriter.replaceOp(scopeOp, scopeResults);
     return success();
   }
