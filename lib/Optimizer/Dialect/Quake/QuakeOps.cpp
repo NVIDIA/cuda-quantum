@@ -133,7 +133,7 @@ void quake::AsyncScopeOp::build(OpBuilder &builder, OperationState &result, Inte
   auto &bodyBlock = bodyRegion->front();
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToStart(&bodyBlock);
-  builder.create<quake::AsyncContinueOp>(result.location);
+  //builder.create<quake::AsyncContinueOp>(result.location);
 }
 
 
