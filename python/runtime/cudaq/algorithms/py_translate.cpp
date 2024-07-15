@@ -46,12 +46,12 @@ std::string pyTranslate(py::object &kernel, py::args args,
                    cudaq::OpaqueArguments args;
                    return getQIR(name, module, args, format);
                  })
-          .Case("openqasm",
+          .Case("openqasm2",
                 [&]() {
                   if (py::hasattr(kernel, "arguments") &&
                       py::len(kernel.attr("arguments")) > 0) {
                     throw std::runtime_error("Cannot translate function with "
-                                             "arguments to OpenQasm 2.0.");
+                                             "arguments to OpenQASM 2.0.");
                   }
                   cudaq::OpaqueArguments args;
                   return getASM(name, module, args);
@@ -75,10 +75,11 @@ path, i.e., the trace, of the provided `kernel`.
 
 Args:
   format (str): format to translate to. Available formats: `qir`, `qir-base`,
-    `qir-adaptive`, `openqasm`.
+    `qir-adaptive`, `openqasm2`.
   kernel (:class:`Kernel`): The :class:`Kernel` to translate.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel
     function at. Leave empty if the kernel doesn't accept any arguments.
+  Note: Translating functions with arguments to OpenQASM 2.0 is not supported.
 
 Returns:
   The UTF-8 encoded string of the circuit, without measurement operations.
