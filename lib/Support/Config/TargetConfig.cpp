@@ -34,7 +34,8 @@ static std::unordered_map<std::string, cudaq::config::TargetFeatureFlag>
                         {"mqpu", cudaq::config::flagsMqpu}};
 }
 
-std::string cudaq::config::processSimBackendConfig(
+/// @brief Convert the backend config entry into nvq++ compatible script.
+static std::string processSimBackendConfig(
     const std::string &targetName,
     const cudaq::config::BackendEndConfigEntry &configValue) {
   std::stringstream output;
@@ -107,7 +108,8 @@ std::string cudaq::config::processSimBackendConfig(
            << configValue.SimulationBackend.values.front() << ".so\" ]; then\n";
     output << "  NVQIR_SIMULATION_BACKEND=\""
            << configValue.SimulationBackend.values.front() << "\"\n";
-
+    // If there are more than one simulator libs, create the `else` paths to
+    // check their .so files.
     for (std::size_t i = 1; i < configValue.SimulationBackend.values.size();
          ++i) {
       output << "elif [ -f \"${install_dir}/lib/libnvqir-"
@@ -141,8 +143,8 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
                                   const std::vector<std::string> &targetArgv) {
   std::stringstream output;
   if (config.BackendConfig.has_value()) {
-    output << cudaq::config::processSimBackendConfig(
-        config.Name, config.BackendConfig.value());
+    output << processSimBackendConfig(config.Name,
+                                      config.BackendConfig.value());
   }
 
   unsigned featureFlag = 0;
@@ -152,17 +154,22 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
     const auto iter = std::find_if(
         config.TargetArguments.begin(), config.TargetArguments.end(),
         [&](const cudaq::config::TargetArgument &argConfig) {
+          // Here, we handle both cases: the config key as is or prefixed with
+          // the target name.
           const std::string nvqppArgKey =
               "--" + config.Name + "-" + argConfig.KeyName;
           return (nvqppArgKey == argsStr) || (argsStr == argConfig.KeyName);
         });
     if (iter != config.TargetArguments.end()) {
       if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {
+        // If this is a platform option (platform argument key is provide),
+        // forward the value to the platform extra arguments.
         if (!iter->PlatformArgKey.empty()) {
           platformExtraArgs << ";" << iter->PlatformArgKey << ";"
                             << targetArgv[idx + 1];
         }
       } else {
+        // This is an option flag, construct the value for mapping selection.
         const auto featureFlags = targetArgv[idx + 1];
         llvm::SmallVector<llvm::StringRef> flagStrs;
         llvm::StringRef(featureFlags).split(flagStrs, ',', -1, false);
@@ -176,6 +183,7 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
         }
       }
     }
+    // We assume the arguments are given as '<key> <value>' pairs.
     idx += 2;
   }
 
@@ -198,12 +206,18 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
                  ? std::find_if(
                        config.ConfigMap.begin(), config.ConfigMap.end(),
                        [&](const cudaq::config::BackendFeatureMap &entry) {
+                         // Mapping selection: exact match + implicit default
+                         // match. e.g., if the default is fp32, `option=mqpu`
+                         // is the same as `option=fp32,mqpu`. The config map
+                         // entry associated with 'mqpu,fp32' will be activated.
                          return featureFlag == entry.Flags ||
                                 (featureFlag | defaultFlag) == entry.Flags;
                        })
                  : std::find_if(
                        config.ConfigMap.begin(), config.ConfigMap.end(),
                        [&](const cudaq::config::BackendFeatureMap &entry) {
+                         // No option flag was provided, find the default
+                         // config.
                          return entry.Default.has_value() &&
                                 entry.Default.value();
                        });
@@ -248,8 +262,6 @@ void MappingTraits<cudaq::config::TargetArgument>::mapping(
   io.mapOptional("platform-arg", info.PlatformArgKey);
   io.mapOptional("help-string", info.HelpString);
   io.mapOptional("type", info.Type);
-  io.mapOptional("default", info.DefaultValue);
-  io.mapOptional("valid-values", info.ValidValues);
 }
 
 void BlockScalarTraits<cudaq::config::SimulationBackendSetting>::output(
