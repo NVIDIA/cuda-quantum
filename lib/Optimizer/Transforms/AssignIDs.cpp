@@ -76,7 +76,7 @@ std::optional<uint> findQid(Value v) {
     return std::nullopt;
 
   if (!quake::isLinearValueForm(defop))
-      defop->emitOpError("assign-ids requires operations to be in value form");
+    defop->emitOpError("assign-ids requires operations to be in value form");
 
   if (isBeginOp(defop)) {
     assert(defop->hasAttr("qid") && "qid not present for beginOp");
@@ -111,7 +111,7 @@ public:
 
     if (!qid.has_value())
       release->emitOpError(
-        "Corresponding null_wire not found for sink, illegal ops present");
+          "Corresponding null_wire not found for sink, illegal ops present");
 
     rewriter.startRootUpdate(release);
     release->setAttr("qid", rewriter.getUI32IntegerAttr(qid.value()));

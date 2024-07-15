@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --assign-ids --dep-analysis %s -split-input-file -verify-diagnostics | FileCheck %s
+// RUN: cudaq-opt --assign-ids --dep-analysis %s -split-input-file -verify-diagnostics
 
 // expected-error @+1 {{function arguments not currently supported in dep-analysis}}
 func.func @test(%arg0 : i32) {

@@ -276,8 +276,8 @@ protected:
 
       auto operand_idx = getOperandIdx(i);
       if (!hasCodeGen)
-      assert(successor->associated->getOperand(operand_idx) == result &&
-             "Successors in wrong order");
+        assert(successor->associated->getOperand(operand_idx) == result &&
+               "Successors in wrong order");
     }
   }
 
@@ -301,22 +301,31 @@ public:
     }
 
     height = 0;
+    // Ingest dependencies, setting up metadata
     for (size_t i = 0; i < dependencies.size(); i++) {
       auto dependency = dependencies[i];
+      auto operand = associated->getOperand(i);
 
-      if (!dependency)
+      if (!dependency) {
+        assert(!isa<quake::WireType>(operand.getType()) &&
+               "Dependency for wire operand cannot be null");
         continue;
+      }
 
       // Figure out result_idx
       size_t result_idx = 0;
       auto results = dependency->associated->getResults();
       for (; result_idx < results.size(); result_idx++)
-        if (results[result_idx] == associated->getOperand(i))
+        if (results[result_idx] == operand)
           break;
+
+      assert(result_idx < results.size() &&
+             "Node passed as dependency isn't actually a dependency!");
 
       result_idxs[i] = result_idx;
       // Set relevant successor of dependency to this
       dependency->successors[result_idx] = this;
+
       // Update metadata
       if (dependency->height > height)
         height = dependency->height;
@@ -332,9 +341,10 @@ public:
 
   uint getHeight() { return height; }
 
+  /// Assuming this is a root, replaces the old sink operation
+  /// with a new one for the "physical" wire we replaced the virtual wire with
   void addCleanUp(OpBuilder &builder) {
-    assert(isRoot() && isEndOp(associated) &&
-           "Can only call addCleanUp on a root node");
+    assert(isRoot() && "Can only call addCleanUp on a root node");
     auto last_use = dependencies[0];
     auto result_idx = getResultIdx(0);
     auto wire = last_use->associated->getResult(result_idx);
@@ -417,6 +427,7 @@ public:
     for (auto root : roots) {
       qids.set_union(root->qids);
     }
+    assert(qids.size() == roots.size() && "Mismatched # of qubits and sinks");
   }
 
   SetVector<DependencyNode *> &getRoots() { return roots; }
@@ -426,19 +437,25 @@ public:
   size_t getNumQIDs() { return qids.size(); }
 
   LifeTime *getLifeTimeForQID(size_t qid) {
+    assert(qids.contains(qid) && "Given qid not in dependency graph");
     uint first = getFirstUseOf(qid)->cycle;
     auto last = getLastUseOf(qid)->cycle;
 
     return new LifeTime(first, last);
   }
 
-  DependencyNode *getFirstUseOf(size_t qid) { return firstUses[qid]; }
+  DependencyNode *getFirstUseOf(size_t qid) {
+    assert(qids.contains(qid) && "Given qid not in dependency graph");
+    return firstUses[qid];
+  }
 
   DependencyNode *getLastUseOf(size_t qid) {
+    assert(qids.contains(qid) && "Given qid not in dependency graph");
     return getRootForQID(qid)->dependencies[0];
   }
 
   DependencyNode *getRootForQID(size_t qid) {
+    assert(qids.contains(qid) && "Given qid not in dependency graph");
     for (auto root : roots)
       if (root->associated->getAttr("qid").cast<IntegerAttr>().getUInt() == qid)
         return root;
@@ -465,15 +482,23 @@ public:
     return cycles;
   }
 
+  /// Creates a new physical null wire to replace the
+  /// "virtual" qubit represented by \p qid
   void initializeWire(size_t qid, OpBuilder &builder) {
+    assert(qids.contains(qid) && "Given qid not in dependency graph");
     auto ctx = builder.getContext();
     auto wireTy = quake::WireType::get(ctx);
     auto initOp =
         builder.create<quake::NullWireOp>(builder.getUnknownLoc(), wireTy);
-    getLastUseOf(qid)->initializeWire(qid, initOp);
+    getFirstUseOf(qid)->initializeWire(qid, initOp);
   }
 
+  /// Replaces the "virtual" qubit represented by \p qid with the same
+  /// physical qubit as \p init, which is assumed to be the last use.
   void initializeWireFromRoot(size_t qid, DependencyNode *init) {
+    assert(qids.contains(qid) && "Given qid not in dependency graph");
+    assert(init && init->isRoot() &&
+           "Can only initialize wire from a valid root");
     auto lastOp = init->dependencies[0]->associated;
     getFirstUseOf(qid)->initializeWire(qid, lastOp);
   }
@@ -486,6 +511,7 @@ public:
   }
 
   Location getIntroductionLoc(size_t qid) {
+    assert(qids.contains(qid) && "Given qid not in dependency graph");
     return getFirstUseOf(qid)->associated->getLoc();
   }
 
@@ -507,7 +533,8 @@ struct DependencyAnalysisPass
   /// * control flow operations are not allowed
   bool validateOp(Operation *op) {
     if (!quake::isLinearValueForm(op)) {
-      op->emitOpError("dep-analysis requires all operations to be in value form");
+      op->emitOpError(
+          "dep-analysis requires all operations to be in value form");
       signalPassFailure();
       return false;
     }
@@ -535,7 +562,8 @@ struct DependencyAnalysisPass
   /// * functions have no results
   bool validateFunc(func::FuncOp func) {
     if (func.getBlocks().size() != 1) {
-      func.emitOpError("multiple blocks not currently supported in dep-analysis");
+      func.emitOpError(
+          "multiple blocks not currently supported in dep-analysis");
       signalPassFailure();
       return false;
     }
