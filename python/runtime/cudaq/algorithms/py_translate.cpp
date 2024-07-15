@@ -51,7 +51,7 @@ std::string pyTranslate(py::object &kernel, py::args args,
                   if (py::hasattr(kernel, "arguments") &&
                       py::len(kernel.attr("arguments")) > 0) {
                     throw std::runtime_error("Cannot translate function with "
-                                             "arguments to OpenQasm 2.0.");
+                                             "arguments to OpenQASM 2.0.");
                   }
                   cudaq::OpaqueArguments args;
                   return getASM(name, module, args);
