@@ -186,6 +186,9 @@ public:
     registeredOperations.insert({name, std::make_unique<T>()});
   }
 
+  /// Clear the registered operations
+  virtual void clearRegisteredOperations() { registeredOperations.clear(); }
+
   virtual ~ExecutionManager() = default;
 };
 
