@@ -1673,6 +1673,25 @@ class PyASTBridge(ast.NodeVisitor):
                     is_adj=False)
                 return
 
+            # Handle the case where we are capturing an opaque kernel
+            # function. It has to be in the capture vars and it has to
+            # be a PyKernelDecorator.
+            if node.func.id in self.capturedVars and node.func.id not in globalKernelRegistry:
+                from .kernel_decorator import PyKernelDecorator
+                var = self.capturedVars[node.func.id]
+                if isinstance(var, PyKernelDecorator):
+                    # If we found it, then compile its ASTModule to MLIR so
+                    # that it is in the proper registries, then give it
+                    # the proper function alias
+                    PyASTBridge(var.capturedDataStorage,
+                                existingModule=self.module,
+                                locationOffset=var.location).visit(
+                                    var.astModule)
+                    # If we have an alias, make sure we point back to the
+                    # kernel registry correctly for the next conditional check
+                    if var.name in globalKernelRegistry:
+                        node.func.id = var.name 
+
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
