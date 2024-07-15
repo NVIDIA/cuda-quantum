@@ -259,6 +259,80 @@ public:
   // Stop the server.
   virtual void stop() override { m_server->stop(); }
 
+  virtual void handleVQERequest(std::size_t reqId,
+                                cudaq::ExecutionContext &io_context,
+                                const std::string &backendSimName,
+                                std::string_view ir, cudaq::gradient *gradient,
+                                cudaq::optimizer &optimizer, const int n_params,
+                                std::string_view kernelName,
+                                std::size_t seed) override {
+    cudaq::optimization_result result;
+
+    // If we're changing the backend, load the new simulator library from file.
+    if (m_simHandle.name != backendSimName) {
+      if (m_simHandle.libHandle)
+        dlclose(m_simHandle.libHandle);
+
+      m_simHandle =
+          SimulatorHandle(backendSimName, loadNvqirSimLib(backendSimName));
+    }
+
+    if (seed != 0)
+      cudaq::set_random_seed(seed);
+    simulationStart = std::chrono::high_resolution_clock::now();
+
+    auto &requestInfo = m_codeTransform[reqId];
+    if (requestInfo.format == cudaq::CodeFormat::LLVM) {
+      throw std::runtime_error("CodeFormat::LLVM is not supported with VQE. "
+                               "Use CodeFormat::MLIR instead.");
+    } else {
+      llvm::SourceMgr sourceMgr;
+      sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(ir),
+                                   llvm::SMLoc());
+      auto module = parseSourceFile<ModuleOp>(sourceMgr, m_mlirContext.get());
+      if (!module)
+        throw std::runtime_error("Failed to parse the input MLIR code");
+      auto engine = jitMlirCode(*module, requestInfo.passes);
+      const std::string entryPointFunc =
+          std::string(cudaq::runtime::cudaqGenPrefixName) +
+          std::string(kernelName);
+      auto fnPtr =
+          getValueOrThrow(engine->lookup(entryPointFunc),
+                          "Failed to look up entry-point function symbol");
+      if (!fnPtr)
+        throw std::runtime_error("Failed to get entry function");
+
+      // quake-to-qir translates cc.stdvec<f64> to !llvm.struct<(ptr<f64>,
+      // i64)>, so we need to provide the inputs in this format. Make a lambda
+      // to convert between the two formats.
+      struct stdvec_struct {
+        const double *ptr;
+        std::size_t size;
+      };
+      auto fn = reinterpret_cast<void (*)(stdvec_struct)>(fnPtr);
+      auto fnWrapper = [fn](const std::vector<double> &x) {
+        fn({x.data(), x.size()});
+      };
+
+      // Construct the gradient object.
+      if (gradient)
+        gradient->setKernel(fnWrapper);
+
+      bool requiresGrad = optimizer.requiresGradients();
+      auto theSpin = **io_context.spin;
+
+      result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
+                                                std::vector<double> &grad_vec) {
+        double e = cudaq::observe(fnWrapper, theSpin, x);
+        if (requiresGrad)
+          gradient->compute(x, grad_vec, theSpin, e);
+        return e;
+      });
+    }
+    simulationEnd = std::chrono::high_resolution_clock::now();
+    io_context.optResult = result;
+  }
+
   virtual void handleRequest(std::size_t reqId,
                              cudaq::ExecutionContext &io_context,
                              const std::string &backendSimName,
@@ -595,7 +669,25 @@ protected:
       m_codeTransform[reqId] =
           CodeTransformInfo(request.format, request.passes);
       json resultJson;
-      if (request.executionContext.name == "state-overlap") {
+      std::vector<char> decodedCodeIr;
+      auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
+      if (errorCode) {
+        LLVMConsumeError(llvm::wrap(std::move(errorCode)));
+        throw std::runtime_error("Failed to decode input IR");
+      }
+      std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
+
+      if (request.opt.has_value() && request.opt->optimizer) {
+        if (!request.opt->optimizer_n_params.has_value())
+          throw std::runtime_error(
+              "Cannot run optimizer without providing optimizer_n_params");
+
+        handleVQERequest(
+            reqId, request.executionContext, request.simulator, codeStr,
+            request.opt->gradient.get(), *request.opt->optimizer,
+            *request.opt->optimizer_n_params, request.entryPoint, request.seed);
+        resultJson["executionContext"] = request.executionContext;
+      } else if (request.executionContext.name == "state-overlap") {
         if (!request.overlapKernel.has_value())
           throw std::runtime_error("Missing overlap kernel data.");
         std::vector<char> decodedCodeIr1, decodedCodeIr2;

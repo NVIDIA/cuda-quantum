@@ -72,10 +72,8 @@ int main() {
       -M_PI / 8.0, M_PI / 8.0, n_params, std::mt19937::default_seed);
 
   // Call the optimizer
-  auto [opt_val, opt_params] = cudaq::vqe(
-      ansatz{}, Hp, optimizer, n_params, [&](std::vector<double> params) {
-        return std::make_tuple(params, n_qubits, n_layers);
-      });
+  auto [opt_val, opt_params] =
+      cudaq::vqe(ansatz{}, Hp, optimizer, n_params, n_qubits, n_layers);
 
   // Print the optimized value and the parameters
   printf("Optimal value = %.16lf\n", opt_val);

@@ -422,6 +422,8 @@ class WrapperFunctionHandlerHelper<void(SignatureArgTs...), InvokeArgTs...> {
 public:
   using ArgTuple = std::tuple<std::decay_t<InvokeArgTs>...>;
   using ArgIndices = std::make_index_sequence<std::tuple_size<ArgTuple>::value>;
+  using ArgIndicesPlus1 =
+      std::make_index_sequence<1 + std::tuple_size<ArgTuple>::value>;
 
   template <typename CallableT>
   static void invoke(CallableT &&func, const char *argData,
@@ -434,6 +436,22 @@ public:
     // Call the wrapped function with args tuple
     WrapperFunctionHandlerCaller::call(std::forward<CallableT>(func), argsTuple,
                                        ArgIndices{});
+  }
+
+  // Specialization when the 1st std::vector<double> argument has been excluded
+  // from the serialized args, but now you want to call it.
+  template <typename CallableT>
+  static void invoke(CallableT &&func, const std::vector<double> &vec_parms,
+                     const char *argData, std::size_t argSize) {
+    ArgTuple argsTuple;
+    // Deserialize buffer to args tuple
+    if (!deserialize(argData, argSize, argsTuple, ArgIndices{}))
+      throw std::runtime_error(
+          "Failed to deserialize arguments for wrapper function call");
+    // Call the wrapped function with args tuple
+    auto newArgsTuple = std::tuple_cat(std::make_tuple(vec_parms), argsTuple);
+    WrapperFunctionHandlerCaller::call(std::forward<CallableT>(func),
+                                       newArgsTuple, ArgIndicesPlus1{});
   }
 
 private:
@@ -474,6 +492,19 @@ void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
   WrapperFunctionHandlerHelper<
       std::remove_reference_t<CallableT>,
       InvokeArgTs...>::invoke(std::forward<CallableT>(func), argData, argSize);
+}
+
+// Invoke a typed callable (functions) with a std::vec<double> + serialized
+// `args`.
+template <typename CallableT, typename... InvokeArgTs>
+void invokeCallableWithSerializedArgs_vec(const std::vector<double> &vec_parms,
+                                          const char *argData,
+                                          std::size_t argSize,
+                                          CallableT &&func) {
+  WrapperFunctionHandlerHelper<
+      std::remove_reference_t<CallableT>,
+      InvokeArgTs...>::invoke(std::forward<CallableT>(func), vec_parms, argData,
+                              argSize);
 }
 
 // Wrapper for quantum kernel invocation, i.e., `kernel(args...)`.
