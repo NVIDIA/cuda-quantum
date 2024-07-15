@@ -104,18 +104,14 @@ int main() {
 
   so4_fabric ansatz;
 
-  auto argMapper = [&](std::vector<double> x) {
-    return std::make_tuple(x, n_qubits, n_layers);
-  };
-
   // Run VQE.
   cudaq::optimizers::lbfgs optimizer;
   optimizer.initial_parameters = init_params;
   optimizer.max_eval = 20;
   optimizer.max_line_search_trials = 10;
-  cudaq::gradients::central_difference gradient(ansatz, argMapper);
+  cudaq::gradients::central_difference gradient;
   auto [opt_val, opt_params] =
-      cudaq::vqe(ansatz, gradient, H, optimizer, n_params, argMapper);
+      cudaq::vqe(ansatz, gradient, H, optimizer, n_params, n_qubits, n_layers);
 
   printf("Optimal value = %.16lf\n", opt_val);
 }
