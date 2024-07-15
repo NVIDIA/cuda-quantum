@@ -55,23 +55,25 @@ requested_backends=`\
 
 installed_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
+    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
     do basename $file | cut -d "." -f 1; \
     done`
 
 # remote_rest targets are automatically filtered, 
 # so is execution on the photonics backend
+# TODO: This will test all NVIDIA-derivative targets in the legacy mode,
+# i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc.
 available_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
+    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
     do
-        if grep -q "LIBRARY_MODE_EXECUTION_MANAGER=photonics" $file ; then 
+        if grep -q "library-mode-execution-manager: photonics" $file ; then 
           continue
         fi 
-        platform=$(cat $file | grep "PLATFORM_QPU=")
-        qpu=${platform#PLATFORM_QPU=}
-        requirements=$(cat $file | grep "GPU_REQUIREMENTS=")
-        gpus=${requirements#GPU_REQUIREMENTS=}
+        platform=$(cat $file | grep "platform-qpu:")
+        qpu=${platform##* }
+        requirements=$(cat $file | grep "gpu-requirements:")
+        gpus=${requirements##* }
         if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
@@ -194,25 +196,54 @@ do
         fi
 
         echo "Testing on $t target..."
-        nvq++ $ex $target_flag 
-        if [ ! $? -eq 0 ]; then
-            let "failed+=1"
-            echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-            continue
-        fi
+        if [ "$t" == "nvidia" ]; then
+            # All target options to valdiate
+            declare -a optionArray=("fp32" "fp64" "fp32,mqpu" "fp64,mqpu" "fp32,mgpu" "fp64,mgpu")
+            arraylength=${#optionArray[@]}
+            for (( i=0; i<${arraylength}; i++ ));
+            do
+                echo "  Testing nvidia target option: ${optionArray[$i]}"
+                nvq++ $ex $target_flag --nvidia-option "${optionArray[$i]}"
+                if [ ! $? -eq 0 ]; then
+                    let "failed+=1"
+                    echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                    continue
+                fi
 
-        ./a.out &> /tmp/cudaq_validation.out
-        status=$?
-        echo "Exited with code $status"
-        if [ "$status" -eq "0" ]; then 
-            let "passed+=1"
-            echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                ./a.out &> /tmp/cudaq_validation.out
+                status=$?
+                echo "  Exited with code $status"
+                if [ "$status" -eq "0" ]; then 
+                    let "passed+=1"
+                    echo "  :white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                else
+                    cat /tmp/cudaq_validation.out
+                    let "failed+=1"
+                    echo "  :x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                fi 
+                rm a.out /tmp/cudaq_validation.out &> /dev/null
+            done
         else
-            cat /tmp/cudaq_validation.out
-            let "failed+=1"
-            echo ":x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-        fi 
-        rm a.out /tmp/cudaq_validation.out &> /dev/null
+            nvq++ $ex $target_flag 
+            if [ ! $? -eq 0 ]; then
+                let "failed+=1"
+                echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                continue
+            fi
+
+            ./a.out &> /tmp/cudaq_validation.out
+            status=$?
+            echo "Exited with code $status"
+            if [ "$status" -eq "0" ]; then 
+                let "passed+=1"
+                echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+            else
+                cat /tmp/cudaq_validation.out
+                let "failed+=1"
+                echo ":x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+            fi 
+            rm a.out /tmp/cudaq_validation.out &> /dev/null
+        fi
     done
     echo "============================="
 done
