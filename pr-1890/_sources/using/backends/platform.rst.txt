@@ -52,7 +52,7 @@ Here is a simple example demonstrating its usage.
 CUDA-Q exposes asynchronous versions of the default :code:`cudaq` algorithmic
 primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`sample_async` function in the above code snippets).
 
-Depending on the number of GPUs available on the system, the :code:`nvidia` MGPU platform will create the same number of virtual QPU instances.
+Depending on the number of GPUs available on the system, the :code:`nvidia` multi-QPU platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
 
 The results might look like the following 4 different random samplings:

@@ -548,7 +548,7 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
 <span class="n">qpu_count</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of QPUs:&quot;</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
@@ -614,7 +614,7 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 </div>
 <p>CUDA-Q exposes asynchronous versions of the default <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> algorithmic
 primitive functions like <code class="code docutils literal notranslate"><span class="pre">sample</span></code> and <code class="code docutils literal notranslate"><span class="pre">observe</span></code> (e.g., <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code> function in the above code snippets).</p>
-<p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> MGPU platform will create the same number of virtual QPU instances.
+<p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> multi-QPU platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> instances.</p>
 <p>The results might look like the following 4 different random samplings:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Number of QPUs: 4</span>
@@ -651,7 +651,7 @@ should be used.</p>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
 
 
 <span class="c1"># Define spin ansatz.</span>

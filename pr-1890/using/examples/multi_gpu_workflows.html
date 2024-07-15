@@ -622,7 +622,7 @@ specifying the number of GPUs you have access to.</p>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This example requires a GPU to run. No GPU detected.&quot;</span><span class="p">)</span>
     <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
 
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">15</span>
@@ -675,7 +675,7 @@ executed asynchronously via the <code class="docutils literal notranslate"><span
     <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
 
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">sample_count</span> <span class="o">=</span> <span class="mi">10000</span>

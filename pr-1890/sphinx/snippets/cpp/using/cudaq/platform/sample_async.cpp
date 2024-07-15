@@ -8,7 +8,7 @@
 
 // Compile and run with:
 // ```
-// nvq++ sample_async.cpp -o sample_async.x -target nvidia-mqpu
+// nvq++ sample_async.cpp -o sample_async.x --target nvidia --nvidia-option mqpu
 // && ./sample_async.x
 // ```
 #include <cudaq.h>
