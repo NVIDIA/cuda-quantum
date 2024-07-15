@@ -1690,7 +1690,7 @@ class PyASTBridge(ast.NodeVisitor):
                     # If we have an alias, make sure we point back to the
                     # kernel registry correctly for the next conditional check
                     if var.name in globalKernelRegistry:
-                        node.func.id = var.name 
+                        node.func.id = var.name
 
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
