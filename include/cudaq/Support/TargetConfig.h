@@ -25,13 +25,13 @@ enum TargetFeatureFlag : unsigned {
   flagsMqpu = 0x0008,
 };
 
-/// @brief Config argument type annotation
+/// @brief Configuration argument type annotation
 // e.g., to support type validation.
 enum ArgumentType { String, Int, UUID, FeatureFlag };
 
-/// @brief  Encapsulates target-specific arguments
+/// @brief Encapsulates target-specific arguments
 struct TargetArgument {
-  /// CLI argument keyname.
+  /// CLI argument key name.
   // Note: target name is prepended automatically for nvq++ driver.
   std::string KeyName;
   bool IsRequired = false;
@@ -66,11 +66,11 @@ struct BackendEndConfigEntry {
   std::optional<bool> GenTargetBackend;
   /// Enable/disable the library mode if provide.
   std::optional<bool> LibraryMode;
-  /// IR lowering config (hardware REST QPU)
+  /// IR lowering configuration (hardware REST QPU)
   std::string PlatformLoweringConfig;
-  /// Codegen emission config (hardware REST QPU)
+  /// Codegen emission configuration (hardware REST QPU)
   std::string CodegenEmission;
-  /// Post codegent IR passes config (hardware REST QPU)
+  /// Post codegent IR passes configuration (hardware REST QPU)
   std::string PostCodeGenPasses;
   /// Name of the platform library to use
   std::string PlatformLibrary;
@@ -90,7 +90,7 @@ struct BackendEndConfigEntry {
   // If more than one are provided, the preceding one will be used if its .so
   // file can be located.
   SimulationBackendSetting SimulationBackend;
-  /// Any conditional compile/link flags configs.
+  /// Any conditional compile/link flags configurations.
   std::vector<ConditionalBuildConfig> ConditionalBuildConfigs;
 };
 
@@ -130,8 +130,8 @@ struct TargetConfig {
   std::vector<BackendFeatureMap> ConfigMap;
 };
 
-/// Process the target configuration into a nvq++ compatible script according to
-/// the provided compile time (C++)/runtime (Python) target arguments.
+/// Process the target configuration into a `nvq++` compatible script according
+/// to the provided compile time (C++)/runtime (Python) target arguments.
 std::string processRuntimeArgs(const TargetConfig &config,
                                const std::vector<std::string> &targetArgv);
 } // namespace config
