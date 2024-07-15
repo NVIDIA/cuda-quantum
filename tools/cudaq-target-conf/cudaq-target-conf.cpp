@@ -44,6 +44,11 @@ static llvm::cl::opt<std::string>
     targetArgs("arg", llvm::cl::desc("Specify target CLI arguments"),
                llvm::cl::value_desc("string"));
 
+static cl::opt<bool> skipGpuCheck(
+    "skip-gpu-check",
+    cl::desc("Skip NVIDIA check on target configuration that requires GPUs."),
+    cl::init(false));
+
 static constexpr const char BOLD[] = "\033[1m";
 static constexpr const char RED[] = "\033[91m";
 static constexpr const char CLEAR[] = "\033[0m";
@@ -102,7 +107,7 @@ int main(int argc, char **argv) {
   Input >> config;
 
   // Verify GPU requirement
-  if (config.GpuRequired && countGPUs() <= 0) {
+  if (!skipGpuCheck && config.GpuRequired && countGPUs() <= 0) {
     llvm::errs() << "Target '" << config.Name
                  << "' requires NVIDIA GPUs but none can be detected.";
     abort();
