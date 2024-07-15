@@ -22,6 +22,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/SimulationData.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
@@ -355,6 +356,27 @@ public:
     return output_names;
   }
 
+  SimulationData readSimulationData(cudaq::state* s) {
+    void *dataPtr = nullptr;
+    void *dataPtr = nullptr;
+    auto stateVector = s->get_tensor();
+    auto precision = s->get_precision();
+    auto numElements = stateVector.get_num_elements();
+    auto elementSize = 0;
+    if (precision == SimulationState::precision::fp32) {
+      elementSize = sizeof(std::complex<float);
+      auto *hostData = new std::complex<float>[numElements];
+      s->to_host(hostData, numElements);
+      dataPtr = reinterpret_cast<void *>(hostData);
+    } else {
+      elementSize = sizeof(std::complex<double);
+      auto *hostData = new std::complex<double>[numElements];
+      s->to_host(hostData, numElements);
+      dataPtr = reinterpret_cast<void *>(hostData);
+    }
+    return SimulationData(dataPtr, numElements, elementSize);
+}
+
   /// @brief Extract the Quake representation for the given kernel name and
   /// lower it to the code format required for the specific backend. The
   /// lowering process is controllable via the configuration file in the
@@ -413,7 +435,7 @@ public:
     if (updatedArgs) {
       cudaq::info("Run Quake Synth.\n");
       mlir::PassManager pm(&context);
-      pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
+      pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, readSimulationData, updatedArgs));
       pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();

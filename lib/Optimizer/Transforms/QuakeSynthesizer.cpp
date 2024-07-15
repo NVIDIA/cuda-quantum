@@ -15,6 +15,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/SimulationData.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -359,7 +360,7 @@ protected:
 
 public:
   QuakeSynthesizer() = default;
-  QuakeSynthesizer(std::string_view kernel, void *a)
+  QuakeSynthesizer(std::string_view kernel, SimulationData::getSimulationDataFunc* getData, void *a)
       : kernelName(kernel), args(a) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
@@ -713,6 +714,6 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 }
 
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, void *a) {
-  return std::make_unique<QuakeSynthesizer>(kernelName, a);
+cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, SimulationData::getSimulationDataFunc* getData, void *a) {
+  return std::make_unique<QuakeSynthesizer>(kernelName, getData, a);
 }

@@ -15,6 +15,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
+#include "SimulationData.h"
 
 namespace cudaq::opt {
 
@@ -41,7 +42,7 @@ std::unique_ptr<mlir::Pass> createObserveAnsatzPass(std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
-std::unique_ptr<mlir::Pass> createQuakeSynthesizer(std::string_view, void *);
+std::unique_ptr<mlir::Pass> createQuakeSynthesizer(std::string_view, SimulationData::getSimulationDataFunc*, void *);
 std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
