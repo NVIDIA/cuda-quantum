@@ -42,29 +42,43 @@ To execute a program on the :code:`nvidia` target, use the following commands:
 .. _nvidia-fp64-backend:
 
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
-switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead. 
+switch to :code:`FP64`, specify the :code:`--nvidia-option fp64` `nvq++` command line option for `C++` or 
+use `cudaq.set_target('nvidia', option='fp64')` for Python instead. 
 
 .. note:: 
 
   This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+
+.. deprecated:: 0.8
+    The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
+    is deprecated and will be removed in a future release.
 
 Multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
 .. _nvidia-mgpu-backend:
 
-The :code:`nvidia-mgpu` target provides a state vector simulator accelerated with 
+The multi-node multi-GPU NVIDIA target provides a state vector simulator accelerated with 
 the :code:`cuStateVec` library but with support for Multi-Node, Multi-GPU distribution of the 
 state vector, in addition to a single GPU.
 
 The multi-node multi-GPU simulator expects to run within an MPI context.
-To execute a program on the :code:`nvidia-mgpu` target, use the following commands (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
+To execute a program on the multi-node multi-GPU NVIDIA target, use the following commands 
+(adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
 
 .. tab:: Python
 
+    Double precision simulation:
+
     .. code:: bash 
 
-        mpiexec -np 2 python3 program.py [...] --target nvidia-mgpu
+        mpiexec -np 2 python3 program.py [...] --target nvidia --option fp64,mgpu
+
+    Single precision simulation:
+    
+    .. code:: bash 
+
+        mpiexec -np 2 python3 program.py [...] --target nvidia --option fp32,mgpu
 
     .. note::
 
@@ -76,28 +90,47 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 
     .. code:: bash 
 
-        mpiexec -np 2 python3 -m mpi4py program.py [...] --target nvidia-mgpu
+        mpiexec -np 2 python3 -m mpi4py program.py [...] --target nvidia --option fp64,mgpu
 
     The target can also be defined in the application code by calling
 
     .. code:: python 
 
-        cudaq.set_target('nvidia-mgpu')
+        cudaq.set_target('nvidia', option='mgpu,fp64')
 
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
 
+    .. note::
+        (1) The order of the option settings are interchangeable.
+        For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64.mgpu')`.
+
+        (2) The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
+
 .. tab:: C++
+
+    Double precision simulation:
 
     .. code:: bash 
 
-        nvq++ --target nvidia-mgpu program.cpp [...] -o program.x
+        nvq++ --target nvidia  --nvidia-option mgpu,fp64 program.cpp [...] -o program.x
+        mpiexec -np 2 ./program.x
+
+    Single precision simulation:
+
+    .. code:: bash 
+
+        nvq++ --target nvidia  --nvidia-option mgpu,fp32 program.cpp [...] -o program.x
         mpiexec -np 2 ./program.x
 
 .. note:: 
 
   This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter either an error stating `invalid simulator requested` (missing CUDA libraries), or an error along the lines of `failed to launch kernel` (missing MPI installation). See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
-The :code:`nvidia-mgpu` backend has additional performance improvements to
+.. deprecated:: 0.8
+    The :code:`nvidia-mgpu` target, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
+    is deprecated and will be removed in a future release.
+
+The :code:`nvidia` backend has additional performance improvements to
 help reduce your simulation runtimes, even on a single GPU. One of the
 performance improvements is to fuse multiple gates together during runtime. For
 example, :code:`x(qubit0)` and :code:`x(qubit1)` can be fused together into a
@@ -114,13 +147,13 @@ environment variable to another integer value as shown below.
 
     .. code:: bash 
 
-        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 python3 program.py [...] --target nvidia-mgpu
+        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 python3 program.py [...] --target nvidia --option mgpu,fp64
 
 .. tab:: C++
 
     .. code:: bash 
 
-        nvq++ --target nvidia-mgpu program.cpp [...] -o program.x
+        nvq++ --target nvidia --nvidia-option mgpu,fp64 program.cpp [...] -o program.x
         CUDAQ_MGPU_FUSE=5 mpiexec -np 2 ./program.x
 
 .. _OpenMP CPU-only:

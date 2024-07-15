@@ -539,8 +539,8 @@ Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.</p>
 <section id="nvidia-mqpu-platform">
 <h2>NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#nvidia-mqpu-platform" title="Permalink to this heading">¶</a></h2>
-<p id="mqpu-platform">The NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> target (<code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code>) provides a simulated QPU for every available NVIDIA GPU on the underlying system.
-Each QPU is simulated via a <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> simulator backend. For more information about using multiple GPUs
+<p id="mqpu-platform">In the multi-QPU mode (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system.
+Each QPU is simulated via a <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> simulator backend as defined by the NVIDIA target. For more information about using multiple GPUs
 to simulate each virtual QPU, or using a different backend for virtual QPUs, please see <a class="reference internal" href="#id1"><span class="std std-ref">remote MQPU platform</span></a>.
 This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 <p>Here is a simple example demonstrating its usage.</p>
@@ -605,8 +605,8 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 <span class="w">  </span><span class="p">}</span>
 </pre></div>
 </div>
-<p>One can specify the target multi-QPU architecture (<code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code>) with the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flag:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ sample_async.cpp -target nvidia-mqpu</span>
+<p>One can specify the target multi-QPU architecture with the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flag:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ sample_async.cpp --target nvidia --nvidia-option mqpu</span>
 <span class="go">./a.out</span>
 </pre></div>
 </div>
@@ -614,7 +614,7 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 </div>
 <p>CUDA-Q exposes asynchronous versions of the default <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> algorithmic
 primitive functions like <code class="code docutils literal notranslate"><span class="pre">sample</span></code> and <code class="code docutils literal notranslate"><span class="pre">observe</span></code> (e.g., <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code> function in the above code snippets).</p>
-<p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will create the same number of virtual QPU instances.
+<p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> MGPU platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> instances.</p>
 <p>The results might look like the following 4 different random samplings:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Number of QPUs: 4</span>
@@ -626,13 +626,16 @@ For example, on a system with 4 GPUs, the above code will distribute the four sa
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>By default, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
+<p>By default, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> multi-QPU platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
 To specify the number QPUs to be instantiated, one can set the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MQPU_NGPUS</span></code> environment variable.
 For example, use <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">CUDAQ_MQPU_NGPUS=2</span></code> to specify that only 2 QPUs (GPUs) are needed.</p>
 </div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> and <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu-fp64</span></code> targets, which are equivalent to the multi-QPU options <code class="code docutils literal notranslate"><span class="pre">mgpu,fp32</span></code> and <code class="code docutils literal notranslate"><span class="pre">mgpu,fp64</span></code>, respectively, of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target, are deprecated and will be removed in a future release.</p>
+</div>
 <section id="parallel-distribution-mode">
 <h3>Parallel distribution mode<a class="headerlink" href="#parallel-distribution-mode" title="Permalink to this heading">¶</a></h3>
-<p>The CUDA-Q <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform supports two modes of parallel distribution of expectation value computation:</p>
+<p>The CUDA-Q <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> multi-QPU platform supports two modes of parallel distribution of expectation value computation:</p>
 <ul class="simple">
 <li><p>MPI: distribute the expectation value computations across available MPI ranks and GPUs for each Hamiltonian term.</p></li>
 <li><p>Thread: distribute the expectation value computations among available GPUs via standard C++ threads (each thread handles one GPU).</p></li>
@@ -695,7 +698,7 @@ should be used.</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">finalize</span><span class="p">();</span>
 </pre></div>
 </div>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp -target nvidia-mqpu</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp --target nvidia --nvidia-option mqpu</span>
 <span class="go">mpiexec -np &lt;N&gt; a.out</span>
 </pre></div>
 </div>
@@ -709,7 +712,7 @@ e.g., <code class="code docutils literal notranslate"><span class="pre">mpiexec<
 </section>
 <section id="remote-mqpu-platform">
 <h2>Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#remote-mqpu-platform" title="Permalink to this heading">¶</a></h2>
-<p id="id1">As shown in the above examples, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform enables
+<p id="id1">As shown in the above examples, the multi-QPU NVIDIA platform enables
 multi-QPU distribution whereby each QPU is simulated by a <a class="reference internal" href="simulators.html#cuquantum-single-gpu"><span class="std std-ref">single NVIDIA GPU</span></a>.
 To run multi-QPU workloads on different simulator backends, one can use the <code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code> platform,
 which encapsulates simulated QPUs as independent HTTP REST server instances.
@@ -854,7 +857,7 @@ that each QPU daemon sees so that it targets specific GPUs.</p>
 Hence, please make sure to either (1) use a non-public TCP/IP port for internal use or
 (2) use firewalls or other security mechanisms to manage user access.</p>
 </div>
-<p>User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform.</p>
+<p>User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the multi-QPU NVIDIA platform platform.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-mqpu&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;localhost:&lt;port1&gt;,localhost:&lt;port2&gt;,localhost:&lt;port3&gt;,localhost:&lt;port4&gt;&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;nvidia-mgpu&quot;</span><span class="p">)</span>
