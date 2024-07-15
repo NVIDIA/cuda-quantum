@@ -48,13 +48,6 @@ static constexpr const char BOLD[] = "\033[1m";
 static constexpr const char RED[] = "\033[91m";
 static constexpr const char CLEAR[] = "\033[0m";
 
-static void checkErrorCode(const std::error_code &ec) {
-  if (ec) {
-    llvm::errs() << "could not open output file";
-    std::exit(ec.value());
-  }
-}
-
 /// @brief A utility function to check availability of Nvidia GPUs and return
 /// their count.
 int countGPUs() {
@@ -96,8 +89,14 @@ int main(int argc, char **argv) {
                           << "\n");
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr =
       llvm::MemoryBuffer::getFileOrSTDIN(inputConfigFile);
-  if (std::error_code ec = fileOrErr.getError())
-    checkErrorCode(ec);
+  if (std::error_code ec = fileOrErr.getError()) {
+    if (ec) {
+      llvm::errs() << "Could not open input YML file: " << inputConfigFile
+                   << "\n";
+      llvm::errs() << "Error code: " << ec.message() << "\n";
+      std::exit(ec.value());
+    }
+  }
   cudaq::config::TargetConfig config;
   llvm::yaml::Input Input(*(fileOrErr.get()));
   Input >> config;

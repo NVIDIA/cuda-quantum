@@ -70,7 +70,7 @@ struct BackendEndConfigEntry {
   std::string PlatformLoweringConfig;
   /// Codegen emission configuration (hardware REST QPU)
   std::string CodegenEmission;
-  /// Post codegent IR passes configuration (hardware REST QPU)
+  /// Post code generation IR passes configuration (hardware REST QPU)
   std::string PostCodeGenPasses;
   /// Name of the platform library to use
   std::string PlatformLibrary;
