@@ -410,6 +410,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -914,6 +915,14 @@ language constructs within quantum kernels may not yet be fully supported.</p>
 <tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> of trivial type</p></td>
 <td><p><code class="code docutils literal notranslate"><span class="pre">std::vector&lt;int&gt;</span></code>, <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;double&gt;</span></code>, etc.</p></td>
 <td><p>Total vector size in bytes as a 64-bit integer followed by serialized data of all vector elements.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">cudaq::pauli_word</span></code></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">cudaq::pauli_word(&quot;IXIZ&quot;)</span></code></p></td>
+<td><p>Same as <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;char&gt;</span></code>: total vector size in bytes as a 64-bit integer followed by serialized data of all characters.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Single-level nested <code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> of supported <code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> types</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">std::vector&lt;std::vector&lt;int&gt;&gt;</span></code>, <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;cudaq::pauli_word&gt;</span></code>, etc.</p></td>
+<td><p>Number of top-level elements (as a 64-bit integer) followed sizes in bytes of element vectors (as a contiguous array of 64-bit integers) then serialized data of the inner vectors.</p></td>
 </tr>
 </tbody>
 </table>
