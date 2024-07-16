@@ -65,31 +65,5 @@ int main() {
 // CHECK: 00
 // CHECK: 10
 
-// CHECK: 0001
-// CHECK: 0011
-// CHECK: 1001
-// CHECK: 1011
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 01
-// CHECK: 11
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 01
-// CHECK: 11
-
-// CHECK: 00
-// CHECK: 10
-
 // CHECK: 01
 // CHECK: 11

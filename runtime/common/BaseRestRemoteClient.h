@@ -209,9 +209,9 @@ public:
         if (platform.is_simulator()) {
           // For efficiency, we don't run state prep to convert states to gates on
           // simulators, instead we synthesize them as vectors.
-          pm.addPass(cudaq::opt::createQuakeSynthesizer(name, readSimulationStateData, args));
+          pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args, readSimulationStateData));
         } else {
-          pm.addPass(cudaq::opt::createQuakeSynthesizer(name, nullptr, args));
+          pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args, nullptr));
         }
         pm.addPass(mlir::createCanonicalizerPass());
         if (failed(pm.run(moduleOp)))
