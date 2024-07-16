@@ -5,8 +5,13 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
+#pragma once
+
 #include <numbers>
 #include <vector>
+
+#include <iostream>
 
 // cudaq::state is defined in the runtime. The compiler will never need to know
 // about its implementation and there should not be a circular build/library
@@ -17,11 +22,11 @@ class state;
 
 
 /// Owns the data
-class SimulationData {
+class SimulationStateData {
  public:
-  typedef SimulationData (getSimulationDataFunc)(cudaq::state*);
+  typedef SimulationStateData (getDataFunc)(cudaq::state*);
 
-  SimulationData(void *data, std::size_t size, std::size_t elementSize): 
+  SimulationStateData(void *data, std::size_t size, std::size_t elementSize): 
     data(data), size(size), elementSize(elementSize) {}
   
   template <typename T> 
@@ -29,19 +34,20 @@ class SimulationData {
     assert(sizeof(T) == elementSize && "incorrect element size in simulation data");
     std::vector<T> result;
 
-    for (auto i = 0; i < size; i++) {
-      auto elePtr = reinterpret_cast<T*>(data + i*elementSize);
-      result[i] = *elePtr;
+    std::cout << "SimulationStateData:" << std::endl;
+    for (std::size_t i = 0; i < size; i++) {
+      auto elePtr = reinterpret_cast<T*>(data) + i;
+      result.push_back(*elePtr);
+      std::cout << *elePtr << std::endl;
     }
 
     return result;
   }
 
-  ~SimulationData() {
-    delete data;
+  ~SimulationStateData() {
+    delete reinterpret_cast<int*>(data);
   }
 
-private:
   void* data;
   std::size_t size;
   std::size_t elementSize;
