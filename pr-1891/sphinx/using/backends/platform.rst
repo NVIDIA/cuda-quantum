@@ -259,4 +259,10 @@ language constructs within quantum kernels may not yet be fully supported.
    * - `std::vector` of trivial type
      - `std::vector<int>`, `std::vector<double>`, etc. 
      - Total vector size in bytes as a 64-bit integer followed by serialized data of all vector elements.
-
+   * - `cudaq::pauli_word`
+     - `cudaq::pauli_word("IXIZ")`
+     - Same as `std::vector<char>`: total vector size in bytes as a 64-bit integer followed by serialized data of all characters.
+   * - Single-level nested `std::vector` of supported `std::vector` types
+     - `std::vector<std::vector<int>>`, `std::vector<cudaq::pauli_word>`, etc. 
+     - Number of top-level elements (as a 64-bit integer) followed sizes in bytes of element vectors (as a contiguous array of 64-bit integers) then serialized data of the inner vectors.
+     
