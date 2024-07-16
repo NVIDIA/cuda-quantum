@@ -488,7 +488,9 @@ protected:
     versionDataJs["functions"].get_to(versions);
     return versions;
   }
-  DeploymentInfo getAllAvailableDeployments() {
+  DeploymentInfo
+  getAllAvailableDeployments(const std::string &functionOverride,
+                             const std::string &versionOverride) {
     auto headers = getHeaders();
     auto allVisibleFunctions =
         m_restClient.get(fmt::format("https://{}/nvcf/functions", m_baseUrl),
@@ -523,10 +525,15 @@ protected:
     // I.e. If client 1.x sees server 1.2 and 1.3, choose 1.3.
     int highestMinorVersion = 0;
     for (auto funcInfo : allVisibleFunctions["functions"]) {
-      if (funcInfo["ncaId"].get<std::string>() == ncaIdToSearch &&
+      bool matchesOverride =
+          funcInfo["id"].get<std::string>() == functionOverride ||
+          funcInfo["versionId"].get<std::string>() == versionOverride;
+      bool matchesWithoutOverride =
+          funcInfo["ncaId"].get<std::string>() == ncaIdToSearch &&
           funcInfo["status"].get<std::string>() == "ACTIVE" &&
           funcInfo["name"].get<std::string>().starts_with(
-              cudaqNvcfFuncNamePrefix)) {
+              cudaqNvcfFuncNamePrefix);
+      if (matchesOverride || matchesWithoutOverride) {
         const auto containerEnvs = [&]() -> FunctionEnvironments {
           FunctionEnvironments envs;
           // Function name convention:
@@ -537,8 +544,9 @@ protected:
           //           Timeout (secs)  __|  |
           //              Number of GPUs  __|
           // Also supported: cuda_quantum_v1.1_t3600_8x
+          // Also supported: cuda_quantum_suffix_v1.1_t3600_8x
           const std::regex funcNameRegex(
-              R"(^cuda_quantum_v([\d\.]+)_t(\d+)_(\d+)x$)");
+              R"(^cuda_quantum_.*v([\d\.]+)_t(\d+)_(\d+)x$)");
           // The first match is the whole string.
           constexpr std::size_t expectedNumMatches = 4;
           std::smatch baseMatch;
@@ -599,8 +607,8 @@ protected:
           return envs;
         }();
 
-        // Only add functions that match client version.
-        if (containerEnvs.majorVersion == version()) {
+        // Only add functions that match client version, unless overridden
+        if (matchesOverride || containerEnvs.majorVersion == version()) {
           info[funcInfo["id"].get<std::string>()] = containerEnvs;
           highestMinorVersion =
               std::max(highestMinorVersion, containerEnvs.minorVersion);
@@ -609,12 +617,14 @@ protected:
     }
 
     // Now make a pass through info and remove all the lower minor versions.
-    std::vector<std::string> funcsToRemove;
-    for (auto &iter : info)
-      if (iter.second.minorVersion != highestMinorVersion)
-        funcsToRemove.push_back(iter.first);
-    for (auto &funcToRemove : funcsToRemove)
-      info.erase(funcToRemove);
+    if (functionOverride.empty()) {
+      std::vector<std::string> funcsToRemove;
+      for (auto &iter : info)
+        if (iter.second.minorVersion != highestMinorVersion)
+          funcsToRemove.push_back(iter.first);
+      for (auto &funcToRemove : funcsToRemove)
+        info.erase(funcToRemove);
+    }
 
     return info;
   }
@@ -692,12 +702,35 @@ public:
         throw std::runtime_error("No NVQC API key is provided.");
     }
 
-    m_availableFuncs = getAllAvailableDeployments();
+    // Save some iterators to be used later
+    const auto funcIdIter = configs.find("function-id");
+    const auto versionIdIter = configs.find("version-id");
+    const auto nGpusIter = configs.find("ngpus");
+    // Default is 1 GPU if none specified
+    const int numGpusRequested =
+        (nGpusIter != configs.end()) ? std::stoi(nGpusIter->second) : 1;
+
+    // Override strings for function id and function version
+    const auto functionOverride = [&]() -> std::string {
+      if (funcIdIter == configs.end())
+        return "";
+      return funcIdIter->second;
+    }();
+    const auto versionOverride = [&]() -> std::string {
+      if (versionIdIter == configs.end())
+        return "";
+      return versionIdIter->second;
+    }();
+
+    // Pass the optional overrides to getAllAvailableDeployments so that it will
+    // return information about functions if they are manually specified by the
+    // user, even if they don't conform to naming conventions.
+    m_availableFuncs =
+        getAllAvailableDeployments(functionOverride, versionOverride);
     for (const auto &[funcId, info] : m_availableFuncs)
       cudaq::info("Function Id {} (API version {}.{}) has {} GPUs.", funcId,
                   info.majorVersion, info.minorVersion, info.numGpus);
     {
-      const auto funcIdIter = configs.find("function-id");
       if (funcIdIter != configs.end()) {
         // User overrides a specific function Id.
         m_functionId = funcIdIter->second;
@@ -715,10 +748,6 @@ public:
               "functions tab, or try to regenerate the key.");
 
         // Determine the function Id based on the number of GPUs
-        const auto nGpusIter = configs.find("ngpus");
-        // Default is 1 GPU if none specified
-        const int numGpusRequested =
-            (nGpusIter != configs.end()) ? std::stoi(nGpusIter->second) : 1;
         cudaq::info("Looking for an NVQC deployment that has {} GPUs.",
                     numGpusRequested);
         for (const auto &[funcId, info] : m_availableFuncs) {
@@ -753,7 +782,6 @@ public:
     {
       auto versions = getFunctionVersions();
       // Check if a version Id is set
-      const auto versionIdIter = configs.find("version-id");
       if (versionIdIter != configs.end()) {
         m_functionVersionId = versionIdIter->second;
         // Do a sanity check that this is an active version (i.e., usable).
@@ -822,6 +850,18 @@ public:
     }
     // Else determine capabilities based on server deployment info.
     cudaq::RemoteCapabilities capabilities(/*initValues=*/false);
+    if (!m_availableFuncs.contains(m_functionId)) {
+      // The user has manually overridden an NVQC function selection, but it
+      // wasn't found in m_availableFuncs.
+      cudaq::info(
+          "Function id overriden ({}) but cannot retrieve its remote "
+          "capabilities because a deployment for it was not found. Will assume "
+          "all optional remote capabilities are unsupported. You can set "
+          "CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE=1 if you wish to override "
+          "this.",
+          m_functionId);
+      return capabilities;
+    }
     const auto &funcEnv = m_availableFuncs.at(m_functionId);
     capabilities.serializedCodeExec =
         funcEnv.name.starts_with("cuda_quantum_remote_py");
