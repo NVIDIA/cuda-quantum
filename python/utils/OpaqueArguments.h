@@ -185,18 +185,18 @@ inline std::string mlirTypeToString(mlir::Type ty) {
   return msg;
 }
 
-inline void
-packArgs(OpaqueArguments &argData, py::args args,
-         mlir::func::FuncOp kernelFuncOp,
-         const std::function<bool(OpaqueArguments &argData, py::object &arg)>
-             &backupHandler) {
+inline void packArgs(OpaqueArguments &argData, py::args args,
+                     mlir::func::FuncOp kernelFuncOp,
+                     const std::function<bool(OpaqueArguments &argData,
+                                              py::object &arg)> &backupHandler,
+                     std::size_t startingArgIdx = 0) {
   if (kernelFuncOp.getNumArguments() != args.size())
     throw std::runtime_error("Invalid runtime arguments - kernel expected " +
                              std::to_string(kernelFuncOp.getNumArguments()) +
                              " but was provided " +
                              std::to_string(args.size()) + " arguments.");
 
-  for (std::size_t i = 0; i < args.size(); i++) {
+  for (std::size_t i = startingArgIdx; i < args.size(); i++) {
     py::object arg = args[i];
     auto kernelArgTy = kernelFuncOp.getArgument(i).getType();
     llvm::TypeSwitch<mlir::Type, void>(kernelArgTy)

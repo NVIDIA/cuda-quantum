@@ -37,10 +37,20 @@ protected:
   /// The parameterized ansatz, a quantum kernel expression
   std::function<void(std::vector<double>)> ansatz_functor;
 
+  // As an alternative to an ArgsMapper, we can have serialized arguments
+  // (excluding the initial std::vector<double> variational parameters).
+  std::vector<char> serializedArgs;
+
   // Given the parameters x and the spin_op h, compute the
   // expected value with respect to the ansatz.
   double getExpectedValue(std::vector<double> &x, spin_op h) {
     return cudaq::observe(ansatz_functor, h, x);
+  }
+
+  // Copy constructor. Derived classes should implement the clone() method.
+  gradient(const gradient &o) {
+    ansatz_functor = o.ansatz_functor;
+    serializedArgs = o.serializedArgs;
   }
 
 public:
@@ -66,14 +76,48 @@ public:
     };
   }
 
+  /// Take the quantum kernel and concrete arguments for all arguments except
+  /// the first std::vector<double> argument, which is used for the variational
+  /// parameters for the gradient. Serialize and save those arguments into this
+  /// object. (Useful for NVQC.)
+  template <typename QuantumKernel, typename... Args>
+  void setArgs(QuantumKernel &kernel, Args &&...args) {
+    static_assert(
+        std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>,
+        "Kernel must be invocable with std::vector<double> and Args...");
+    // Serialize all the parameters except for the first std::vector<double>
+    // parameter. The serialized ones will be saved and used later during each
+    // ansatz_functor invocation.
+    serializedArgs = serializeArgs(std::forward<Args>(args)...);
+    ansatz_functor = [&](std::vector<double> x) {
+      cudaq::invokeCallableWithSerializedArgs_vec<QuantumKernel,
+                                                  std::decay_t<Args>...>(
+          x, serializedArgs.data(), serializedArgs.size(),
+          std::forward<QuantumKernel>(kernel));
+    };
+  }
+
+  /// Set the kernel after the gradient has been constructed. Use of this
+  /// function requires that the kernel ONLY accept the variational parameters.
+  /// It cannot have any non-variational parameters.
+  template <typename QuantumKernel>
+  void setKernel(QuantumKernel &kernel) {
+    static_assert(std::is_invocable_v<QuantumKernel, std::vector<double>>,
+                  "Kernel must be invocable with std::vector<double>");
+    ansatz_functor = kernel;
+  }
+
   /// Constructor, takes a callable that must have the
   /// prescribed call signature (void(std::vector<double>))
-  template <typename KernelT>
+  template <typename KernelT, typename = std::enable_if_t<std::is_invocable_v<
+                                  KernelT, std::vector<double>>>>
   gradient(KernelT &kernel) {
-    if (kernel.getNumParams() != 1)
-      throw std::invalid_argument(
-          "Callable kernel from cudaq::make_kernel must "
-          "have 1 std::vector<double> argument. Provide an ArgMapper if not.");
+    if constexpr (has_name<KernelT>::value)
+      if (kernel.getNumParams() != 1)
+        throw std::invalid_argument(
+            "Callable kernel from cudaq::make_kernel must "
+            "have 1 std::vector<double> argument. Provide an ArgMapper if "
+            "not.");
     ansatz_functor = [&](std::vector<double> x) {
       return cudaq::invokeKernel(std::forward<KernelT>(kernel), x);
     };
@@ -106,6 +150,9 @@ public:
   compute(const std::vector<double> &x,
           const std::function<double(std::vector<double>)> &func,
           double funcAtX) = 0;
+
+  /// Clone the object. Must be implemented by derived classes.
+  virtual std::unique_ptr<cudaq::gradient> clone() = 0;
 
   virtual ~gradient() = default;
 };

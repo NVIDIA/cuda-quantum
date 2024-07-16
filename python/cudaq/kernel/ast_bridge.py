@@ -13,12 +13,12 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
+from .utils import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
 from .captured_data import CapturedDataStorage
 
 State = cudaq_runtime.State
@@ -1215,6 +1215,8 @@ class PyASTBridge(ast.NodeVisitor):
             ry(np.pi, qubits)
         ```
         """
+        global globalRegisteredOperations
+
         if self.verbose:
             print("[Visit Call] {}".format(
                 ast.unparse(node) if hasattr(ast, 'unparse') else node))
@@ -1646,6 +1648,49 @@ class PyASTBridge(ast.NodeVisitor):
                                                      val).result
                 self.__applyQuantumOperation(node.func.id, params, qubitTargets)
                 return
+
+            if node.func.id in globalRegisteredOperations:
+                unitary = globalRegisteredOperations[node.func.id]
+                numTargets = int(np.log2(np.sqrt(unitary.size)))
+                targets = [self.popValue() for _ in range(numTargets)]
+                targets.reverse()
+                self.checkControlAndTargetTypes([], targets)
+
+                globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
+
+                currentST = SymbolTable(self.module.operation)
+                if not globalName in currentST:
+                    with InsertionPoint(self.module.body):
+                        gen_vector_of_complex_constant(self.loc, self.module,
+                                                       globalName,
+                                                       unitary.tolist())
+                quake.CustomUnitarySymbolOp(
+                    [],
+                    generator=FlatSymbolRefAttr.get(globalName),
+                    parameters=[],
+                    controls=[],
+                    targets=targets,
+                    is_adj=False)
+                return
+
+            # Handle the case where we are capturing an opaque kernel
+            # function. It has to be in the capture vars and it has to
+            # be a PyKernelDecorator.
+            if node.func.id in self.capturedVars and node.func.id not in globalKernelRegistry:
+                from .kernel_decorator import PyKernelDecorator
+                var = self.capturedVars[node.func.id]
+                if isinstance(var, PyKernelDecorator):
+                    # If we found it, then compile its ASTModule to MLIR so
+                    # that it is in the proper registries, then give it
+                    # the proper function alias
+                    PyASTBridge(var.capturedDataStorage,
+                                existingModule=self.module,
+                                locationOffset=var.location).visit(
+                                    var.astModule)
+                    # If we have an alias, make sure we point back to the
+                    # kernel registry correctly for the next conditional check
+                    if var.name in globalKernelRegistry:
+                        node.func.id = var.name
 
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
@@ -2328,6 +2373,58 @@ class PyASTBridge(ast.NodeVisitor):
                         self.emitFatalError(
                             'adj quantum operation on incorrect type {}.'.
                             format(target.type), node)
+
+            # custom `ctrl` and `adj`
+            if node.func.value.id in globalRegisteredOperations:
+                if not node.func.attr == 'ctrl' and not node.func.attr == 'adj':
+                    self.emitFatalError(
+                        f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
+                    )
+
+                unitary = globalRegisteredOperations[node.func.value.id]
+                numTargets = int(np.log2(np.sqrt(unitary.size)))
+                numValues = len(self.valueStack)
+                targets = [self.popValue() for _ in range(numTargets)]
+                targets.reverse()
+
+                globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
+
+                currentST = SymbolTable(self.module.operation)
+                if not globalName in currentST:
+                    with InsertionPoint(self.module.body):
+                        gen_vector_of_complex_constant(self.loc, self.module,
+                                                       globalName,
+                                                       unitary.tolist())
+
+                negatedControlQubits = None
+                controls = []
+                is_adj = False
+
+                if node.func.attr == 'ctrl':
+                    controls = [
+                        self.popValue() for _ in range(numValues - numTargets)
+                    ]
+                    negatedControlQubits = None
+                    if len(self.controlNegations):
+                        negCtrlBools = [None] * len(controls)
+                        for i, c in enumerate(controls):
+                            negCtrlBools[i] = c in self.controlNegations
+                        negatedControlQubits = DenseBoolArrayAttr.get(
+                            negCtrlBools)
+                        self.controlNegations.clear()
+                if node.func.attr == 'adj':
+                    is_adj = True
+
+                self.checkControlAndTargetTypes(controls, targets)
+                quake.CustomUnitarySymbolOp(
+                    [],
+                    generator=FlatSymbolRefAttr.get(globalName),
+                    parameters=[],
+                    controls=controls,
+                    targets=targets,
+                    is_adj=is_adj,
+                    negated_qubit_controls=negatedControlQubits)
+                return
 
             self.emitFatalError(
                 f"Invalid function call - '{node.func.value.id}' is unknown.")
@@ -3489,7 +3586,9 @@ class PyASTBridge(ast.NodeVisitor):
                     ]
 
                 if elementValues != None:
-                    self.dependentCaptureVars[node.id] = value
+                    # Save the copy of the captured list so we can compare
+                    # it to the scope to detect changes on recompilation.
+                    self.dependentCaptureVars[node.id] = value.copy()
                     mlirVal = self.__createStdvecWithKnownValues(
                         len(value), elementValues)
                     self.symbolTable.add(node.id, mlirVal, 0)

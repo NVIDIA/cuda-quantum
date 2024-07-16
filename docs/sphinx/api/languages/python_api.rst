@@ -68,7 +68,8 @@ Kernel Execution
 .. autofunction:: cudaq::get_state
 .. autofunction:: cudaq::get_state_async
 .. autofunction:: cudaq::vqe
-.. autofunction:: cudaq::draw    
+.. autofunction:: cudaq::draw
+.. autofunction:: cudaq::translate
 
 Backend Configuration
 =============================

@@ -17,6 +17,12 @@ public:
   using gradient::gradient;
   double step = 1e-4;
 
+  virtual std::unique_ptr<cudaq::gradient> clone() override {
+    auto newGrad = std::make_unique<central_difference>(*this);
+    newGrad->step = this->step;
+    return newGrad;
+  }
+
   void compute(const std::vector<double> &x, std::vector<double> &dx,
                const spin_op &h, double exp_h) override {
     auto tmpX = x;

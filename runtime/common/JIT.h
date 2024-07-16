@@ -7,8 +7,10 @@
  ******************************************************************************/
 #pragma once
 
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 
 namespace cudaq {
@@ -20,8 +22,9 @@ namespace cudaq {
 // Optionally, the JIT'ed kernel can be executed a number of
 // times along with a post-execution callback. For example, sample a dynamic
 // kernel.
-void invokeWrappedKernel(
-    std::string_view llvmIr, const std::string &kernelName, void *args,
-    std::uint64_t argsSize, std::size_t numTimes = 1,
-    std::function<void(std::size_t)> postExecCallback = {});
+std::unique_ptr<llvm::orc::LLJIT>
+invokeWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
+                    void *args, std::uint64_t argsSize,
+                    std::size_t numTimes = 1,
+                    std::function<void(std::size_t)> postExecCallback = {});
 } // namespace cudaq

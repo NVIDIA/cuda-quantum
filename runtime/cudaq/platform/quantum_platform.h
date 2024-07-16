@@ -24,6 +24,8 @@
 namespace cudaq {
 
 class QPU;
+class gradient;
+class optimizer;
 class SerializedCodeExecutionContext;
 
 /// Typedefs for defining the connectivity structure of a QPU
@@ -114,6 +116,9 @@ public:
   /// @brief Return true if QPU is locally emulating a remote QPU
   bool is_emulated(const std::size_t qpuId = 0) const;
 
+  /// @brief Return whether the QPU has support for fully remote VQE execution
+  bool supports_remote_vqe(const std::size_t qpuId = 0) const;
+
   /// @brief Set the noise model for future invocations of
   /// quantum kernels.
   void set_noise(const noise_model *model);
@@ -131,6 +136,12 @@ public:
 
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
+
+  /// @brief Launch a VQE operation on the platform.
+  void launchVQE(const std::string kernelName, const void *kernelArgs,
+                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::optimizer &optimizer, const int n_params,
+                 const std::size_t shots);
 
   // This method is the hook for the kernel rewrites to invoke
   // quantum kernels.
