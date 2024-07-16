@@ -233,12 +233,12 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
         if (getZint()) {
-          auto v = static_cast<std::uint64_t>(val.convertToDouble());
+          std::uint64_t v = val.convertToDouble();
           return builder.create<arith::ConstantIntOp>(loc, v, width)
               .getResult();
         }
         if (getSint()) {
-          auto v = static_cast<std::int64_t>(val.convertToDouble());
+          std::int64_t v = val.convertToDouble();
           return builder.create<arith::ConstantIntOp>(loc, v, width)
               .getResult();
         }
