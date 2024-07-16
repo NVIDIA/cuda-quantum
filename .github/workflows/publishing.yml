@@ -32,7 +32,7 @@ name: Publishing
 jobs:
   assets:
     name: Assets
-    if: (${{ ! github.event.repository.fork }} && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'))
+    if: (${{ github.event_name == 'workflow_dispatch' || ! github.event.repository.fork }} && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'))
     runs-on: ubuntu-latest
     permissions:
       contents: read

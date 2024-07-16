@@ -80,7 +80,7 @@ jobs:
   # `env` context is unavailable outside of "steps" contexts.
   setup:
     name: Set variables
-    if: ${{ ! github.event.repository.fork }}
+    if: ${{ github.event_name == 'workflow_dispatch' || ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     outputs:
       cudaq_test_image: ${{ steps.vars.outputs.cudaq_test_image }}

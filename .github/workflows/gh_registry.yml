@@ -8,7 +8,7 @@ name: Update GHCR
 jobs:
   ghcr_config:
     name: Read GHCR config
-    if: (${{ ! github.event.repository.fork }} && (github.event_name == 'workflow_dispatch' || vars.enabled_workflows == 'all'))
+    if: (${{ github.event_name == 'workflow_dispatch' || ! github.event.repository.fork }} && (github.event_name == 'workflow_dispatch' || vars.enabled_workflows == 'all'))
     runs-on: ubuntu-latest
     permissions:
       contents: read

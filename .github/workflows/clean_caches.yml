@@ -30,7 +30,7 @@ name: Clean GitHub caches
 jobs:
   automatic_cleanup:
     name: Clean up GitHub caches produced by other workflows
-    if: (${{ ! github.event.repository.fork }} && github.event_name == 'workflow_run')
+    if: (${{ github.event_name == 'workflow_dispatch' || ! github.event.repository.fork }} && github.event_name == 'workflow_run')
     permissions: write-all
     runs-on: ubuntu-latest
 

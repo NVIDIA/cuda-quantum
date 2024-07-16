@@ -12,7 +12,7 @@ jobs:
   links:
     runs-on: ubuntu-latest
     name: "Check links"
-    if: ${{ ! github.event.repository.fork }}
+    if: ${{ github.event_name == 'workflow_dispatch' || ! github.event.repository.fork }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

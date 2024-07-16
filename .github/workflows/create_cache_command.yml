@@ -15,7 +15,7 @@ name: Create CI cache
 jobs:
   pr_info:
     name: Determine PR info
-    if: ${{ ! github.event.repository.fork }}
+    if: ${{ github.event_name == 'workflow_dispatch' || ! github.event.repository.fork }}
     runs-on: ubuntu-latest
 
     outputs:
