@@ -15,6 +15,7 @@
 #pragma once
 
 #include "common/Registry.h"
+#include "cudaq/remote_capabilities.h"
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -80,6 +81,9 @@ public:
   // Reset the random seed sequence using for remote execution.
   // This is triggered by a random seed value being set in CUDA-Q runtime.
   virtual void resetRemoteRandomSeed(std::size_t seed) = 0;
+
+  // Return the remote capabilities of the server.
+  virtual cudaq::RemoteCapabilities getRemoteCapabilities() const = 0;
 
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and

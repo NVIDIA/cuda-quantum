@@ -14,6 +14,7 @@
 #include "common/Timing.h"
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
+#include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 
 #include <optional>
@@ -138,12 +139,10 @@ public:
   /// @brief Return whether this QPU has conditional feedback support
   virtual bool supportsConditionalFeedback() { return false; }
 
-  /// @brief Return whether this QPU has remote VQE execution support
-  virtual bool supportsRemoteVQE() { return false; }
-
-  /// @brief Return whether this QPU has support for remote serialized code
-  /// execution
-  virtual bool supportsRemoteSerializedCode() { return false; }
+  /// @brief Return the remote capabilities for this platform.
+  virtual RemoteCapabilities getRemoteCapabilities() const {
+    return cudaq::RemoteCapabilities(/*initValues=*/false);
+  }
 
   /// Base class handling of shots is do-nothing,
   /// subclasses can handle as they wish
@@ -177,8 +176,7 @@ public:
                             void *args, std::uint64_t, std::uint64_t) = 0;
 
   /// Launch serialized code for remote execution. Subtypes that support this
-  /// should override this function and the supportsRemoteSerializedCode()
-  /// function.
+  /// should override this function.
   virtual void launchSerializedCodeExecution(
       const std::string &name,
       cudaq::SerializedCodeExecutionContext &serializeCodeExecutionObject) {}

@@ -189,7 +189,7 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
           "optimize",
           [](OptimizerT &opt, const int dim, py::function &func) {
             auto &platform = cudaq::get_platform();
-            if (platform.supports_remote_serialized_code() &&
+            if (platform.get_remote_capabilities().serializedCodeExec &&
                 platform.num_qpus() == 1) {
               std::string optimizer_var_name =
                   cudaq::get_var_name_for_handle(py::cast(&opt));
