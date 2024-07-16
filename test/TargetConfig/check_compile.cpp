@@ -8,8 +8,8 @@
 
 // Check that we can compile all the targets
 // i.e., all the config files are valid.
-// RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}"; nvq++ --target ${target} %s; done
-// RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}";  nvq++ --enable-mlir --target ${target} %s; done
+// RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}"; nvq++ %cpp_std --target ${target} %s; done
+// RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}";  nvq++ %cpp_std --enable-mlir --target ${target} %s; done
 
 #include "cudaq.h"
 
