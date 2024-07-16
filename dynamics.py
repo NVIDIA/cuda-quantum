@@ -1,6 +1,40 @@
 import numpy
 from numpy.typing import NDArray
 
+class BuiltIns:
+    ops = {
+        "spin_x": numpy.array([[0,1],[1,0]]),
+        "spin_y": numpy.array([[0,1j],[-1j,0]]),
+        "spin_z": numpy.array([[1,0],[0,-1]]),
+        "spin_i": numpy.array([[1,0],[0,1]]),
+    }
+
+    # From https://en.wikipedia.org/wiki/Pauli_matrices (Cayley table)
+    # FIXME: missing constants
+    pauli_table = [
+        ["spin_i", "spin_z", "spin_y", "spin_x"],
+        ["spin_z", "spin_i", "spin_x", "spin_y"],
+        ["spin_y", "spin_x", "spin_i", "spin_z"],
+        ["spin_x", "spin_y", "spin_z", "spin_i"],
+    ]
+
+    @staticmethod
+    def pauli_id(arg: str):
+        match arg:
+            case "spin_x": return 0
+            case "spin_y": return 1
+            case "spin_z": return 2
+            case "spin_i": return 3
+
+    @staticmethod
+    def product(arg1: str, arg2: str):
+        if not arg1.startswith("spin_") or not arg2.startswith("spin_"):
+            raise NotImplementedError("Only implemented spin operators so far.")
+        row = BuiltIns.pauli_id(arg1)
+        column = BuiltIns.pauli_id(arg2)
+        return BuiltIns.pauli_table[row][column]
+
+
 class SimpleOperator():
     pass
 
@@ -16,82 +50,31 @@ class OperatorSum:
     def __init__(self, terms: list[ProductOperator]):
         if len(terms) == 0:
             raise ValueError("Need at least one term.")
-        degrees = [op._degree for op in terms[0]._operators]
-        for term in terms[1:]:
-            if degrees != [op._degree for op in term._operators]:
-                raise ValueError("All operators must act on the same degrees of freedom")
         self._terms = terms
 
-    def _add_identity_padding(prod1: ProductOperator, prod2: ProductOperator):
-        prod1_ops, prod2_ops = [], []
-        prod1_idx, prod2_idx = 0, 0
-        while prod1_idx < len(prod1._operators):
-            while prod2_idx < len(prod2._operators) and prod2._operators[prod2_idx]._degree < prod1._operators[prod1_idx]._degree:
-                prod1_ops.append(spin.i(prod2._operators[prod2_idx]._degree))
-                prod2_ops.append(prod2._operators[prod2_idx])
-                prod2_idx += 1
-            if prod2._operators[prod2_idx]._degree == prod1._operators[prod1_idx]._degree:
-                prod1_ops.append(prod1._operators[prod1_idx])
-                prod2_ops.append(prod2._operators[prod2_idx])
-                prod2_idx += 1
-            else: 
-                prod1_ops.append(prod1._operators[prod1_idx])
-                prod2_ops.append(spin.i(prod1._operators[prod1_idx]._degree))
-            prod1_idx += 1
-        for other_op in prod2._operators[prod2_idx:]:
-            prod2_ops.append(other_op)
-            prod1_ops.append(spin.i(other_op._degree))
-        return ProductOperator(prod1_ops), ProductOperator(prod2_ops)
-
-    @property
-    def matrix(self) -> NDArray[complex]:
-        matrix = self._terms[0].matrix
-        for term in self._terms[1:]:
-            matrix += term.matrix
-        return matrix
-    
-    def add_product(self, prod: ProductOperator) -> OperatorSum:
-        # If prod acts on different degrees of freedom than self, we add 
-        # a product with the identity for the degree that is not represented in 
-        # some of the product operators.
-        # FIXME: we could probably just do this when we concretize the matrix,
-        # instead of upon construction of the operator sum.
-        padded_self, padded_prod = OperatorSum._add_identity_padding(self._terms[0], prod)
-        if len(padded_self._operators) == len(self._terms[0]._operators):
-            terms = self._terms
-        else:
-            terms = [padded_self]
-            for term in self._terms[1:]:
-                terms.append(OperatorSum._add_identity_padding(padded_self, term)[1])
-        terms.append(padded_prod)
-        return OperatorSum(terms)
+    def concretize(self, levels: dict[int, int]) -> NDArray[complex]:
+        degrees = set([op._degree for term in self._terms for op in term._operators])
+        padded_terms = []
+        for term in self._terms:
+            for degree in degrees:
+                if not degree in [op._degree for op in term._operators]:
+                    term *= spin.i(degree)
+            padded_terms.append(term)
+        return sum([term.concretize(levels) for term in padded_terms])
 
     def __mul__(self, other: OperatorSum):
         if type(other) == SimpleOperator:
             return self * OperatorSum([ProductOperator([other])])
         elif type(other) == ProductOperator:
             return self * OperatorSum([other])
-
-        terms = []
-        for self_term in self._terms:
-            for other_term in other._terms:
-                terms.append(self_term * other_term)
-        return OperatorSum(terms)
+        return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
     
     def __add__(self, other: OperatorSum):
         if type(other) == SimpleOperator:
             return self + OperatorSum([ProductOperator([other])])
         elif type(other) == ProductOperator:
             return self + OperatorSum([other])
-
-        # Make sure all operators act on the same degrees of freedom.
-        sum = self.add_product(other._terms[0])
-        if len(sum._terms[0]._operators) == len(other._terms[0]._operators):
-            return OperatorSum(sum._terms + other._terms[1:])
-        else:
-            for term in other._terms[1:]:
-                sum = sum.add_product(term)
-            return sum
+        return OperatorSum(self._terms + other._terms)
 
 class ProductOperator(OperatorSum):
     _operators: list[SimpleOperator]
@@ -106,16 +89,15 @@ class ProductOperator(OperatorSum):
         self._operators = operators
         super().__init__([self])
 
-    @property
-    def matrix(self) -> NDArray[complex]:
-        matrix = self._operators[0].matrix
+    def concretize(self, levels: dict[int, int]) -> NDArray[complex]:
+        matrix = self._operators[0].concretize(levels)
         for op in self._operators[1:]:
-            matrix = numpy.kron(matrix, op.matrix)
+            matrix = numpy.kron(matrix, op.concretize(levels))
         return matrix
 
     def __mul__(self, other: ProductOperator):
         if type(other) == SimpleOperator:
-            return self * OperatorSum([other])
+            return self * ProductOperator([other])
         elif type(other) != ProductOperator:
             return OperatorSum([self]) * other
 
@@ -145,97 +127,97 @@ class ProductOperator(OperatorSum):
             return self + OperatorSum([other])
         elif type(other) != ProductOperator:
             return OperatorSum([self]) + other
-        return OperatorSum([self]).add_product(other)
+        return OperatorSum([self, other])
 
 class SimpleOperator(ProductOperator):
     _degree: int
-    _matrix: NDArray[complex]
+    _builtin_id: str
 
-    def __init__(self, degree: int, matrix: NDArray[complex]):
+    def __init__(self, degree: int, builtin_id: str):
         self._degree = degree
-        self._matrix = matrix
+        self._builtin_id = builtin_id
         super().__init__([self])
 
-    @property
-    def matrix(self) -> NDArray[complex]:
-       return self._matrix
+    def concretize(self, levels: dict[int, int]) -> NDArray[complex]:
+        if self._degree not in levels:
+            raise ValueError(f'Missing levels for degree {self._degree}')
+
+        if levels[self._degree] != 2:
+           raise NotImplementedError() # FIXME
+
+        return BuiltIns.ops[self._builtin_id]
 
     def __mul__(self, other: SimpleOperator):
         if type(other) != SimpleOperator:
             return ProductOperator([self]) * other
 
         if self._degree == other._degree:
-            matrix = numpy.dot(self.matrix, other.matrix) # FIXME: replace with symbolic
-            return SimpleOperator(self._degree, matrix)
+            product_id = BuiltIns.product(self._builtin_id, other._builtin_id)
+            return SimpleOperator(self._degree, product_id)
         else:
             return ProductOperator([self, other])
 
     def __add__(self, other: SimpleOperator):
         if type(other) != SimpleOperator:
             return ProductOperator([self]) + other
-
-        if self._degree == other._degree:
-            matrix = self.matrix + other.matrix
-            return SimpleOperator(self._degree, matrix)
-        else:
-            op1 = ProductOperator([self, spin.i(other._degree)])
-            op2 = ProductOperator([spin.i(self._degree), other])
-            return OperatorSum([op1, op2])
+        op1 = ProductOperator([self])
+        op2 = ProductOperator([other])
+        return OperatorSum([op1, op2])
 
 # Operators as defined here: 
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
 
-class spin: # FIXME: matrix only valid when on qubits... -> concretized...
+class spin:
 
     @classmethod
     def x(cls, degree: int) -> SimpleOperator:
-        return SimpleOperator(degree, numpy.array([[0,1],[1,0]]))
+        return SimpleOperator(degree, "spin_x")
     @classmethod
     def y(cls, degree: int) -> SimpleOperator:
-        return SimpleOperator(degree, numpy.array([[0,1j],[-1j,0]]))
+        return SimpleOperator(degree, "spin_y")
     @classmethod
     def z(cls, degree: int) -> SimpleOperator:
-        return SimpleOperator(degree, numpy.array([[1,0],[0,-1]]))
+        return SimpleOperator(degree, "spin_z")
     @classmethod
     def i(cls, degree: int) -> SimpleOperator:
-        return SimpleOperator(degree, numpy.array([[1,0],[0,1]]))
+        return SimpleOperator(degree, "spin_i")
     
+levels = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
+print(f'spinX(1): {spin.x(1).concretize(levels)}')
+print(f'spinY(2): {spin.y(2).concretize(levels)}')
 
-print(f'spinX(1): {spin.x(1).matrix}')
-print(f'spinY(2): {spin.y(2).matrix}')
-
-print(f'spinZ(0) * spinZ(0): {(spin.z(0) * spin.z(0)).matrix}')
-print(f'spinZ(0) * spinZ(1): {(spin.z(0) * spin.z(1)).matrix}')
-print(f'spinZ(0) * spinY(1): {(spin.z(0) * spin.y(1)).matrix}')
+print(f'spinZ(0) * spinZ(0): {(spin.z(0) * spin.z(0)).concretize(levels)}')
+print(f'spinZ(0) * spinZ(1): {(spin.z(0) * spin.z(1)).concretize(levels)}')
+print(f'spinZ(0) * spinY(1): {(spin.z(0) * spin.y(1)).concretize(levels)}')
 
 op1 = ProductOperator([spin.x(0), spin.i(1)])
 op2 = ProductOperator([spin.i(0), spin.x(1)])
-print(f'spinX(0) + spinX(1): {op1.matrix + op2.matrix}')
+print(f'spinX(0) + spinX(1): {op1.concretize(levels) + op2.concretize(levels)}')
 op3 = ProductOperator([spin.x(1), spin.i(0)])
 op4 = ProductOperator([spin.i(1), spin.x(0),])
-print(f'spinX(1) + spinX(0): {op1.matrix + op2.matrix}')
+print(f'spinX(1) + spinX(0): {op1.concretize(levels) + op2.concretize(levels)}')
 
-print(f'spinX(0) + spinX(1): {(spin.x(0) + spin.x(1)).matrix}')
+print(f'spinX(0) + spinX(1): {(spin.x(0) + spin.x(1)).concretize(levels)}')
 
-print(f'spinX(0) * spinX(1): {(spin.x(0) * spin.x(1)).matrix}')
-print(f'spinX(0) * spinI(1) * spinI(0) * spinX(1): {(op1 * op2).matrix}')
+print(f'spinX(0) * spinX(1): {(spin.x(0) * spin.x(1)).concretize(levels)}')
+print(f'spinX(0) * spinI(1) * spinI(0) * spinX(1): {(op1 * op2).concretize(levels)}')
 
-print(f'spinX(0) * spinI(1): {op1.matrix}')
-print(f'spinI(0) * spinX(1): {op2.matrix}')
-print(f'spinX(0) * spinI(1) + spinI(0) * spinX(1): {(op1 + op2).matrix}')
+print(f'spinX(0) * spinI(1): {op1.concretize(levels)}')
+print(f'spinI(0) * spinX(1): {op2.concretize(levels)}')
+print(f'spinX(0) * spinI(1) + spinI(0) * spinX(1): {(op1 + op2).concretize(levels)}')
 
 op5 = spin.x(0) * spin.x(1)
 op6 = spin.z(0) * spin.z(1)
-print(f'spinX(0) * spinX(1): {op5.matrix}')
-print(f'spinZ(0) * spinZ(1): {op6.matrix}')
-print(f'spinX(0) * spinX(1) + spinZ(0) * spinZ(1): {(op5 + op6).matrix}')
+print(f'spinX(0) * spinX(1): {op5.concretize(levels)}')
+print(f'spinZ(0) * spinZ(1): {op6.concretize(levels)}')
+print(f'spinX(0) * spinX(1) + spinZ(0) * spinZ(1): {(op5 + op6).concretize(levels)}')
 
 op7 = spin.x(0) + spin.x(1)
 op8 = spin.z(0) + spin.z(1)
-print(f'spinX(0) + spinX(1): {op7.matrix}')
-print(f'spinZ(0) + spinZ(1): {op8.matrix}')
-print(f'spinX(0) + spinX(1) + spinZ(0) + spinZ(1): {(op7 + op8).matrix}')
-print(f'(spinX(0) + spinX(1)) * (spinZ(0) + spinZ(1)): {(op7 * op8).matrix}')
+print(f'spinX(0) + spinX(1): {op7.concretize(levels)}')
+print(f'spinZ(0) + spinZ(1): {op8.concretize(levels)}')
+print(f'spinX(0) + spinX(1) + spinZ(0) + spinZ(1): {(op7 + op8).concretize(levels)}')
+print(f'(spinX(0) + spinX(1)) * (spinZ(0) + spinZ(1)): {(op7 * op8).concretize(levels)}')
 
-print(f'spinX(0) * (spinZ(0) + spinZ(1)): {(spin.x(0) * op8).matrix}')
-print(f'(spinZ(0) + spinZ(1)) * spinX(0): {(op8 * spin.x(0)).matrix}')
+print(f'spinX(0) * (spinZ(0) + spinZ(1)): {(spin.x(0) * op8).concretize(levels)}')
+print(f'(spinZ(0) + spinZ(1)) * spinX(0): {(op8 * spin.x(0)).concretize(levels)}')
