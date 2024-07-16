@@ -543,20 +543,27 @@ protected:
           constexpr std::size_t expectedNumMatches = 4;
           std::smatch baseMatch;
           const std::string fname = funcInfo["name"].get<std::string>();
+          auto getMajorMinorVersion = [](const std::string &versionStr) {
+            std::size_t pos = versionStr.find('.');
+            int majorVersion = 0;
+            int minorVersion = 0;
+            if (pos != std::string::npos) {
+              majorVersion = std::stoi(versionStr.substr(0, pos));
+              minorVersion = std::stoi(versionStr.substr(pos + 1));
+            } else {
+              // If it doesn't say x.y, then assume it is x.0
+              majorVersion = std::stoi(versionStr);
+              minorVersion = 0;
+            }
+            return std::make_pair(majorVersion, minorVersion);
+          };
           // If the function name matches 'Production' naming convention,
           // retrieve deployment information from the name.
           envs.name = fname;
           if (std::regex_match(fname, baseMatch, funcNameRegex) &&
               baseMatch.size() == expectedNumMatches) {
-            auto versionStr = baseMatch[1].str();
-            std::size_t pos = versionStr.find('.');
-            if (pos != std::string::npos) {
-              envs.majorVersion = std::stoi(versionStr.substr(0, pos));
-              envs.minorVersion = std::stoi(versionStr.substr(pos + 1));
-            } else {
-              envs.majorVersion = std::stoi(versionStr);
-              envs.minorVersion = 0;
-            }
+            std::tie(envs.majorVersion, envs.minorVersion) =
+                getMajorMinorVersion(baseMatch[1].str());
             envs.timeoutSecs = std::stoi(baseMatch[2].str());
             envs.numGpus = std::stoi(baseMatch[3].str());
           } else if (funcInfo.contains("containerEnvironment")) {
@@ -565,19 +572,25 @@ protected:
             // (name vs. meta-data). We keep it here since function metadata
             // (similar to `containerEnvironment`) will be supported in the near
             // future.
-            for (auto it : funcInfo["containerEnvironment"]) {
-              const auto getEnvValueIfMatch =
-                  [](json &js, const std::string &envKey, int &varToSet) {
-                    if (js["key"].get<std::string>() == envKey)
-                      varToSet = std::stoi(js["value"].get<std::string>());
-                  };
-              getEnvValueIfMatch(it, "NUM_GPUS", envs.numGpus);
-              getEnvValueIfMatch(it, "NVQC_REST_PAYLOAD_VERSION",
-                                 envs.majorVersion);
-              getEnvValueIfMatch(it, "WATCHDOG_TIMEOUT_SEC", envs.timeoutSecs);
-              // FIXME minorVersion not yet supported in this path, but that's
-              // ok because we do not use this path right now.
-            }
+            // Convert to unordered_map
+            std::unordered_map<std::string, std::string> containerEnvironment;
+            for (auto it : funcInfo["containerEnvironment"])
+              containerEnvironment[it["key"].get<std::string>()] =
+                  it["value"].get<std::string>();
+            // Fetch values
+            const auto getIntIfFound = [&](const std::string &envKey,
+                                           int &varToSet) {
+              if (auto it = containerEnvironment.find(envKey);
+                  it != containerEnvironment.end())
+                varToSet = std::stoi(it->second);
+            };
+            getIntIfFound("NUM_GPUS", envs.numGpus);
+            getIntIfFound("WATCHDOG_TIMEOUT_SEC", envs.timeoutSecs);
+            if (auto it =
+                    containerEnvironment.find("NVQC_REST_PAYLOAD_VERSION");
+                it != containerEnvironment.end())
+              std::tie(envs.majorVersion, envs.minorVersion) =
+                  getMajorMinorVersion(it->second);
           }
 
           // Note: invalid/uninitialized FunctionEnvironments will be

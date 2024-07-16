@@ -192,7 +192,7 @@ jobs:
           create_function_result=$(ngc-cli/ngc cloud-function function create \
             --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly \
             --container-environment-variable NUM_GPUS:1 \
-            --container-environment-variable NVQC_REST_PAYLOAD_VERSION:1 \
+            --container-environment-variable NVQC_REST_PAYLOAD_VERSION:1.1 \
             --api-body-format CUSTOM \
             --inference-port 3030 \
             --health-uri / \

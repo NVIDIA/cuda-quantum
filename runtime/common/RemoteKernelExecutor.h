@@ -45,7 +45,7 @@ public:
   virtual void stop() = 0;
   // Return the version of the server implementation.
   // It's defined by the Json payload version that it can handle.
-  virtual int version() const = 0;
+  virtual std::pair<int, int> version() const = 0;
   // Handle incoming kernel execution requests.
   virtual void handleRequest(std::size_t reqId, ExecutionContext &io_context,
                              const std::string &backendSimName,
