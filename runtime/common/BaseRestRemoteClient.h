@@ -543,16 +543,16 @@ protected:
           //              Version __|    |  |
           //           Timeout (secs)  __|  |
           //              Number of GPUs  __|
-          // Also supported: cuda_quantum_v1.1_t3600_8x
-          // Also supported: cuda_quantum_suffix_v1.1_t3600_8x
+          // Also supported: cuda_quantum_v1-1_t3600_8x
+          // Also supported: cuda_quantum_suffix_v1-1_t3600_8x
           const std::regex funcNameRegex(
-              R"(^cuda_quantum_.*v([\d\.]+)_t(\d+)_(\d+)x$)");
+              R"(^cuda_quantum_.*v([\d\-]+)_t(\d+)_(\d+)x$)");
           // The first match is the whole string.
           constexpr std::size_t expectedNumMatches = 4;
           std::smatch baseMatch;
           const std::string fname = funcInfo["name"].get<std::string>();
           auto getMajorMinorVersion = [](const std::string &versionStr) {
-            std::size_t pos = versionStr.find('.');
+            std::size_t pos = versionStr.find('-');
             int majorVersion = 0;
             int minorVersion = 0;
             if (pos != std::string::npos) {
