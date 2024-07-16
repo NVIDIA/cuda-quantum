@@ -141,7 +141,7 @@ public:
 
   /// @brief Return the remote capabilities for this platform.
   virtual RemoteCapabilities getRemoteCapabilities() const {
-    return cudaq::RemoteCapabilities(/*initValues=*/false);
+    return RemoteCapabilities(/*initValues=*/false);
   }
 
   /// Base class handling of shots is do-nothing,

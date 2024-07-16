@@ -416,8 +416,8 @@ public:
 
   // The remote-mqpu backend (this class) returns true for all remote
   // capabilities.
-  virtual cudaq::RemoteCapabilities getRemoteCapabilities() const override {
-    return cudaq::RemoteCapabilities(/*initValues=*/true);
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return RemoteCapabilities(/*initValues=*/true);
   }
 };
 
@@ -842,7 +842,7 @@ public:
 
   // The NVCF version of this function needs to dynamically determine the remote
   // capabilities based on the servers currently deployed.
-  virtual cudaq::RemoteCapabilities getRemoteCapabilities() const override {
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
     // If an environment variable override is activated, then enable all remote
     // capabilities.
     if (auto *envVal = std::getenv("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE")) {
@@ -850,10 +850,10 @@ public:
       std::transform(tmp.begin(), tmp.end(), tmp.begin(),
                      [](unsigned char c) { return std::tolower(c); });
       if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        return cudaq::RemoteCapabilities(/*initValues=*/true);
+        return RemoteCapabilities(/*initValues=*/true);
     }
     // Else determine capabilities based on server deployment info.
-    cudaq::RemoteCapabilities capabilities(/*initValues=*/false);
+    RemoteCapabilities capabilities(/*initValues=*/false);
     if (!m_availableFuncs.contains(m_functionId)) {
       // The user has manually overridden an NVQC function selection, but it
       // wasn't found in m_availableFuncs.

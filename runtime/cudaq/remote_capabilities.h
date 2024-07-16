@@ -11,16 +11,17 @@
 namespace cudaq {
 
 /// @brief A structure of boolean fields to indicate whether a given remote
-/// server as specific capabilities.
-/// @param stateOverlap True if the remote can perform state overlap operations.
-/// @param serializedCodeExec True if the remote can perform serialized code
-/// execution (raw Python commands)
-/// @param vqe True if the remote can perform an entire VQE operation without
-/// and back-and-forth client/server communications.
+/// server has specific capabilities.
 struct RemoteCapabilities {
+  /// True if the remote can perform state overlap operations.
   bool stateOverlap = false;
+  /// True if the remote can perform serialized code execution (raw Python
+  /// commands).
   bool serializedCodeExec = false;
+  /// True if the remote can perform an entire VQE operation without and
+  /// back-and-forth client/server communications.
   bool vqe = false;
+  /// Constructor that broadcasts \p initValue to all fields.
   RemoteCapabilities(bool initValue)
       : stateOverlap(initValue), serializedCodeExec(initValue), vqe(initValue) {
   }

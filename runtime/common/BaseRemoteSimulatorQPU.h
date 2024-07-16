@@ -59,8 +59,8 @@ public:
 
   // By default, the remote capabilities are all enabled. Subtypes may override
   // this.
-  virtual cudaq::RemoteCapabilities getRemoteCapabilities() const override {
-    return cudaq::RemoteCapabilities(/*initValues=*/true);
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return RemoteCapabilities(/*initValues=*/true);
   }
 
   virtual void setTargetBackend(const std::string &backend) override {
@@ -257,7 +257,7 @@ public:
 
   // The NVCF version of this function needs to dynamically fetch the remote
   // capabilities from the currently deployed servers.
-  virtual cudaq::RemoteCapabilities getRemoteCapabilities() const override {
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
     return m_client->getRemoteCapabilities();
   }
 

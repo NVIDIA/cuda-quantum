@@ -83,7 +83,7 @@ public:
   virtual void resetRemoteRandomSeed(std::size_t seed) = 0;
 
   // Return the remote capabilities of the server.
-  virtual cudaq::RemoteCapabilities getRemoteCapabilities() const = 0;
+  virtual RemoteCapabilities getRemoteCapabilities() const = 0;
 
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and

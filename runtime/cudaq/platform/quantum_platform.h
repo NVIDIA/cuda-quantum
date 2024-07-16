@@ -122,8 +122,7 @@ public:
   void set_noise(const noise_model *model);
 
   /// @brief Get the remote capabilities (only applicable for remote platforms)
-  cudaq::RemoteCapabilities
-  get_remote_capabilities(const std::size_t qpuId = 0) const;
+  RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
 
   /// @brief Turn off any noise models.
   void reset_noise();

@@ -143,7 +143,7 @@ void quantum_platform::launchVQE(const std::string kernelName,
                  shots);
 }
 
-cudaq::RemoteCapabilities
+RemoteCapabilities
 quantum_platform::get_remote_capabilities(const std::size_t qpu_id) const {
   return platformQPUs[qpu_id]->getRemoteCapabilities();
 }
