@@ -23,6 +23,7 @@
 #include "llvm/Support/YAMLTraits.h"
 #include "llvm/Support/raw_ostream.h"
 #include <fstream>
+#include <sstream>
 
 using namespace llvm;
 #define DEBUG_TYPE "target-config"
