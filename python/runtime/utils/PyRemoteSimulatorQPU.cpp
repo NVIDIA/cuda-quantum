@@ -20,7 +20,7 @@ static void _launchVQE(cudaq::ExecutionContext *executionContextPtr,
                        std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
                        const std::string &m_simName, const std::string &name,
                        const void *kernelArgs, cudaq::gradient *gradient,
-                       cudaq::spin_op H, cudaq::optimizer &optimizer,
+                       cudaq::spin_op &H, cudaq::optimizer &optimizer,
                        const int n_params, const std::size_t shots) {
   auto *wrapper = reinterpret_cast<const cudaq::ArgWrapper *>(kernelArgs);
   auto m_module = wrapper->mod;
@@ -86,6 +86,10 @@ public:
                  cudaq::gradient *gradient, cudaq::spin_op H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
+    cudaq::info(
+        "PyRemoteSimulatorQPU: Launch VQE kernel named '{}' remote QPU {} "
+        "(simulator = {})",
+        name, qpu_id, m_simName);
     ::_launchVQE(getExecutionContextForMyThread(), m_client, m_simName, name,
                  kernelArgs, gradient, H, optimizer, n_params, shots);
   }
@@ -118,6 +122,10 @@ public:
                  cudaq::gradient *gradient, cudaq::spin_op H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
+    cudaq::info(
+        "PyNvcfSimulatorQPU: Launch VQE kernel named '{}' remote QPU {} "
+        "(simulator = {})",
+        name, qpu_id, m_simName);
     ::_launchVQE(getExecutionContextForMyThread(), m_client, m_simName, name,
                  kernelArgs, gradient, H, optimizer, n_params, shots);
   }
