@@ -113,7 +113,9 @@ func.func @c0() -> i32 {
 // CHECK:           return %[[VAL_0]] : i32
 // CHECK:         }
 
-// Why? On amd64, the result is 4294967289 (-7) but on arm64 it folds to 0.
+// On amd64, the result is 4294967289 (-7) but on arm64 it folds to 0.
+// I've verified this behavior on an arm64 machine with g++ and clang++.
+
 // CHECK-LABEL:   func.func @c0() -> i32 {
 // CHECK:           %[[VAL_0:.*]] = arith.constant {{.*}} : i32
 // CHECK:           return %[[VAL_0]] : i32
