@@ -132,13 +132,13 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
 # Instantiation of all Python modules
 ################################################################################
 
-file(GLOB_RECURSE PYTHON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/*.py")
+file(GLOB_RECURSE PYTHON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
 
 add_custom_target(
   CopyPythonFiles ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-  ${CMAKE_CURRENT_SOURCE_DIR}/cudaq
-  ${CMAKE_BINARY_DIR}/python/cudaq
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_BINARY_DIR}/python
   DEPENDS ${PYTHON_SOURCES}
 )
 
