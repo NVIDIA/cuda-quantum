@@ -1420,6 +1420,7 @@ def test_builder_rotate_state():
     assert '10' in counts
 
 
+@skipIfPythonLessThan39
 def test_issue_9():
 
     kernel, features = cudaq.make_kernel(list)

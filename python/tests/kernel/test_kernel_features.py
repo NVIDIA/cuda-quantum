@@ -1618,6 +1618,7 @@ def test_capture_opaque_kernel():
     assert len(counts) == 2 and '0' in counts and '1' in counts 
     
 
+@skipIfPythonLessThan39
 def test_issue_9():
 
     @cudaq.kernel
