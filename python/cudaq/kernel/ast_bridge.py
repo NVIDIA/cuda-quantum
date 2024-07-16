@@ -1861,7 +1861,7 @@ class PyASTBridge(ast.NodeVisitor):
                 stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
                                         TypeAttr.get(structTy)).result
 
-                # loop over each type and compute_ptr / store
+                # loop over each type and `compute_ptr` / store
                 nArgs = len(self.valueStack)
                 ctorArgs = [self.popValue() for _ in range(nArgs)]
                 ctorArgs.reverse()

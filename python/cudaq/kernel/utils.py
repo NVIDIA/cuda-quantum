@@ -39,6 +39,7 @@ globalRegisteredOperations = {}
 
 globalRegisteredTypes = {}
 
+
 class Color:
     YELLOW = '\033[93m'
     RED = '\033[91m'
@@ -204,7 +205,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
     if id in globalRegisteredTypes:
         _, memberTys = globalRegisteredTypes[id]
-        structTys = [mlirTypeFromPyType(v, ctx) for _,v in memberTys.items()]
+        structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
         return cc.StructType.getNamed(ctx, id, structTys)
 
     localEmitFatalError(
@@ -296,10 +297,12 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
         if argType == list[float]:
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
- 
+
     for name, (customTys, memberTys) in globalRegisteredTypes.items():
         if argType == customTys:
-            structTys = [mlirTypeFromPyType(v, ctx) for _,v in memberTys.items()]
+            structTys = [
+                mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
+            ]
             return cc.StructType.getNamed(ctx, name, structTys)
 
     emitFatalError(
