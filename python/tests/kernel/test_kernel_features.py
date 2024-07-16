@@ -1199,11 +1199,11 @@ def test_ctrl_wrong_dtype_1447():
     @cudaq.kernel
     def test_kernel(nQubits: int):
         qubits = cudaq.qvector(nQubits)
-        swap.ctrl(3, 4)
+        swap.ctrl(2, 3, 4)
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'control operand 0 is not of quantum type' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1487,7 +1487,7 @@ def test_nested_loops_with_break():
         for _ in range(5):
             while True:
                 x(q)
-                ry.ctrl(theta, q[1])
+                ry(theta, q[1])
                 res = mz(q[1])
 
                 if res:
