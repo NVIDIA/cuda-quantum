@@ -184,7 +184,13 @@ class PyKernelDecorator(object):
                 }
                 if self.dependentCaptures != None:
                     for k, v in self.dependentCaptures.items():
-                        if self.globalScopedVars[k] != v:
+                        if (isinstance(v, (list, np.ndarray))):
+                            if not all(a == b for a, b in zip(
+                                    self.globalScopedVars[k], v)):
+                                # Recompile if values in the list have changed.
+                                self.module = None
+                                break
+                        elif self.globalScopedVars[k] != v:
                             # Need to recompile
                             self.module = None
                             break
