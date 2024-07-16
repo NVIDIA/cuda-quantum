@@ -1420,6 +1420,25 @@ def test_builder_rotate_state():
     assert '10' in counts
 
 
+def test_issue_9():
+
+    kernel, features = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(8)
+    kernel.rx(features[0], qubits[100])
+
+    with pytest.raises(RuntimeError) as error:
+        kernel([3.14])
+
+
+def test_issue_670():
+    
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(1)
+    kernel.ry(0.1, qubits)
+
+    cudaq.sample(kernel)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
