@@ -57,7 +57,7 @@ func.func @b8() -> i64 {
 }
 
 func.func @b9() -> i32 {
-  %0 = arith.constant -7.11 : f64
+  %0 = arith.constant 7.11 : f64
   %1 = cc.cast unsigned %0 : (f64) -> i32
   return %1 : i32
 }
@@ -103,6 +103,6 @@ func.func @b9() -> i32 {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @b9() -> i32 {
-// CHECK:           %[[VAL_0:.*]] = arith.constant -7 : i32
+// CHECK:           %[[VAL_0:.*]] = arith.constant 7 : i32
 // CHECK:           return %[[VAL_0]] : i32
 // CHECK:         }
