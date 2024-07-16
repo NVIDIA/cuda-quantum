@@ -1578,6 +1578,45 @@ def test_subtract():
 
     cudaq.sample(bug_subtract)
 
+def test_capture_opaque_kernel():
+
+    def retFunc():
+        @cudaq.kernel
+        def bell(i : int):
+            q = cudaq.qvector(i)
+            h(q[0])
+            x.ctrl(q[0], q[1])
+        
+        return bell 
+
+    def retFunc2():
+        @cudaq.kernel
+        def super():
+            q = cudaq.qubit()
+            h(q)
+        
+        return super 
+
+    b = retFunc()
+    @cudaq.kernel
+    def k():
+        b(2)
+
+    print(k)
+
+    b = retFunc2()
+    @cudaq.kernel
+    def kd():
+        b()
+
+    print(kd)
+
+    counts = cudaq.sample(k)
+    assert len(counts) == 2 and '00' in counts and '11' in counts 
+    
+    counts = cudaq.sample(kd)
+    assert len(counts) == 2 and '0' in counts and '1' in counts 
+    
 
 # leave for gdb debugging
 if __name__ == "__main__":
