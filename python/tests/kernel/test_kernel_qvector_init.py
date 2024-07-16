@@ -25,6 +25,13 @@ skipIfNvidiaNotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason='Could not find nvidia in installation')
 
+
+def swap(arr, index1, index2):
+    t = arr[index2]
+    arr[index2] = arr[index1]
+    arr[index1] = t
+
+
 # state preparation and synthesis
 
 
@@ -94,6 +101,13 @@ def test_kernel_float_capture():
     assert '11' in counts
     assert '00' in counts
 
+    swap(f, 1, 3)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
+    assert '00' in counts
+
 
 @skipIfPythonLessThan39
 def test_kernel_float_np_array_from_capture():
@@ -103,11 +117,18 @@ def test_kernel_float_np_array_from_capture():
 
     @cudaq.kernel
     def kernel():
-        q = cudaq.qvector(np.array(f))
+        q = cudaq.qvector(f)
 
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
+    assert '00' in counts
+
+    swap(f, 1, 3)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
     assert '00' in counts
 
 
@@ -181,6 +202,13 @@ def test_kernel_complex_capture():
     assert '11' in counts
     assert '00' in counts
 
+    swap(c, 1, 3)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
+    assert '00' in counts
+
 
 @skipIfPythonLessThan39
 def test_kernel_complex_np_array_from_capture():
@@ -190,11 +218,18 @@ def test_kernel_complex_np_array_from_capture():
 
     @cudaq.kernel
     def kernel():
-        q = cudaq.qvector(np.array(c))
+        q = cudaq.qvector(c)
 
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
+    assert '00' in counts
+
+    swap(c, 1, 3)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
     assert '00' in counts
 
 
@@ -324,12 +359,19 @@ def test_kernel_amplitudes_complex_from_capture():
     c = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
-    def kernel(vec: list[complex]):
-        q = cudaq.qvector(cudaq.amplitudes(vec))
+    def kernel():
+        q = cudaq.qvector(cudaq.amplitudes(c))
 
-    counts = cudaq.sample(kernel, c)
+    counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
+    assert '00' in counts
+
+    swap(c, 1, 3)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
     assert '00' in counts
 
 
@@ -349,6 +391,13 @@ def test_kernel_simulation_dtype_np_array_from_capture_f64():
     assert '11' in counts
     assert '00' in counts
 
+    swap(c, 1, 3)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
+    assert '00' in counts
+
 
 @skipIfNvidiaNotInstalled
 def test_kernel_simulation_dtype_np_array_from_capture_f32():
@@ -366,13 +415,19 @@ def test_kernel_simulation_dtype_np_array_from_capture_f32():
     assert '11' in counts
     assert '00' in counts
 
+    swap(c, 1, 3)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
+    assert '00' in counts
+
 
 @skipIfPythonLessThan39
-def test_kernel_simulation_dtype_np_array_capture_f64():
+def test_kernel_simulation_dtype_np_array_capture():
     cudaq.reset_target()
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
-
     state = np.array(c, dtype=cudaq.complex())
 
     @cudaq.kernel
@@ -382,6 +437,14 @@ def test_kernel_simulation_dtype_np_array_capture_f64():
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
+    assert '00' in counts
+
+    swap(c, 1, 3)
+    state = np.array(c, dtype=cudaq.complex())
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
     assert '00' in counts
 
 
@@ -446,6 +509,13 @@ def test_kernel_qvector_init_from_capture_int():
     assert not '10' in counts
     assert not '01' in counts
     assert '00' in counts
+
+    n = 1
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert not '1' in counts
+    assert '0' in counts
 
 
 def test_kernel_qvector_init_from_int():

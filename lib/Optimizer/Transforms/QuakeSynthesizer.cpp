@@ -55,14 +55,14 @@ class state;
 /// BlockArgument with it.
 template <typename ConcreteType>
 void synthesizeRuntimeArgument(
-    OpBuilder &builder, BlockArgument argument, void *args, std::size_t offset,
-    std::size_t typeSize,
+    OpBuilder &builder, BlockArgument argument, const void *args,
+    std::size_t offset, std::size_t typeSize,
     std::function<Value(OpBuilder &, ConcreteType *)> &&opGenerator) {
 
   // Create an instance of the concrete type
   ConcreteType concrete;
   // Copy the void* struct member into that concrete instance
-  std::memcpy(&concrete, ((char *)args) + offset, typeSize);
+  std::memcpy(&concrete, ((const char *)args) + offset, typeSize);
 
   // Generate the MLIR Value (arith constant for example)
   auto runtimeArg = opGenerator(builder, &concrete);
@@ -355,18 +355,26 @@ protected:
   std::string kernelName;
 
   // The raw pointer to the runtime arguments.
-  void *args;
+  const void *args;
+
+  // The starting argument index to synthesize. Typically 0 but may be >0 for
+  // partial synthesis. If >0, it is assumed that the first argument(s) are NOT
+  // in `args`.
+  std::size_t startingArgIdx = 0;
 
 public:
   QuakeSynthesizer() = default;
-  QuakeSynthesizer(std::string_view kernel, void *a)
+  QuakeSynthesizer(std::string_view kernel, const void *a)
       : kernelName(kernel), args(a) {}
+  QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s)
+      : kernelName(kernel), args(a), startingArgIdx(s) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
   std::pair<std::size_t, std::vector<std::size_t>>
   getTargetLayout(FunctionType funcTy) {
-    auto bufferTy = cudaq::opt::factory::buildInvokeStructType(funcTy);
+    auto bufferTy =
+        cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
     StringRef dataLayoutSpec = "";
     if (auto attr =
             getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
@@ -417,10 +425,10 @@ public:
     // Keep track of the stdVec sizes.
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
 
-    for (auto iter : llvm::enumerate(arguments)) {
-      auto argNum = iter.index();
-      auto argument = iter.value();
-      std::size_t offset = structLayout.second[argNum];
+    for (std::size_t argNum = startingArgIdx, end = arguments.size();
+         argNum < end; argNum++) {
+      auto argument = arguments[argNum];
+      std::size_t offset = structLayout.second[argNum - startingArgIdx];
 
       // Get the argument type
       auto type = argument.getType();
@@ -528,9 +536,10 @@ public:
           signalPassFailure();
           return;
         }
-        char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
+        const char *ptrToSizeInBuffer =
+            static_cast<const char *>(args) + offset;
         auto sizeFromBuffer =
-            *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
+            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         auto bytesInType = [&eleTy]() -> unsigned {
           if (isa<cudaq::cc::CharspanType>(eleTy))
             return 16 /*bytes: sizeof(ptr) + sizeof(i64)*/;
@@ -557,8 +566,10 @@ public:
           // TODO: for now we can ignore empty struct types.
           continue;
         }
-        char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
-        auto rawSize = *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
+        const char *ptrToSizeInBuffer =
+            static_cast<const char *>(args) + offset;
+        auto rawSize =
+            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
         continue;
       }
@@ -572,7 +583,7 @@ public:
     // the block arg with the actual vector element data. First get the pointer
     // to the start of the buffer's appendix.
     auto structSize = structLayout.first;
-    char *bufferAppendix = static_cast<char *>(args) + structSize;
+    const char *bufferAppendix = static_cast<const char *>(args) + structSize;
     for (auto [idx, eleTy, vecLength] : stdVecInfo) {
       if (!eleTy) {
         // FIXME: Skip struct values.
@@ -582,7 +593,7 @@ public:
         continue;
       }
       auto doVector = [&]<typename T>(T) {
-        auto *ptr = reinterpret_cast<T *>(bufferAppendix);
+        auto *ptr = reinterpret_cast<const T *>(bufferAppendix);
         std::vector<T> v(ptr, ptr + vecLength);
         if (failed(synthesizeVectorArgument(builder, module, counter,
                                             arguments[idx], v)))
@@ -635,7 +646,8 @@ public:
         // of sizes that are encoded starting at bufferAppendix.
         // At the end of the block of sizes, the C-strings will be encoded.
         auto numberSpans = vecLength;
-        auto *spanSizes = reinterpret_cast<std::uint64_t *>(bufferAppendix);
+        auto *spanSizes =
+            reinterpret_cast<const std::uint64_t *>(bufferAppendix);
         bufferAppendix += vecLength * sizeof(std::uint64_t);
         // These strings are reified in the following way:
         //   - Create an array numberSpans in length and where each element
@@ -694,7 +706,8 @@ public:
     // Remove the old arguments.
     auto numArgs = funcOp.getNumArguments();
     BitVector argsToErase(numArgs);
-    for (std::size_t argIndex = 0; argIndex < numArgs; ++argIndex) {
+    for (std::size_t argIndex = startingArgIdx; argIndex < numArgs;
+         ++argIndex) {
       argsToErase.set(argIndex);
       if (!funcOp.getBody().front().getArgument(argIndex).getUses().empty()) {
         funcOp.emitError("argument(s) still in use after synthesis.");
@@ -713,6 +726,7 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 }
 
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, void *a) {
-  return std::make_unique<QuakeSynthesizer>(kernelName, a);
+cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, const void *a,
+                                   std::size_t startingArgIdx) {
+  return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx);
 }

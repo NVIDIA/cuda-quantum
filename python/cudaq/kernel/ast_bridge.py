@@ -3567,7 +3567,9 @@ class PyASTBridge(ast.NodeVisitor):
                     ]
 
                 if elementValues != None:
-                    self.dependentCaptureVars[node.id] = value
+                    # Save the copy of the captured list so we can compare
+                    # it to the scope to detect changes on recompilation.
+                    self.dependentCaptureVars[node.id] = value.copy()
                     mlirVal = self.__createStdvecWithKnownValues(
                         len(value), elementValues)
                     self.symbolTable.add(node.id, mlirVal, 0)

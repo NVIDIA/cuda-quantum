@@ -1,7 +1,16 @@
-// Compile and run with:
-// ```
-// nvq++ vqe_h2.cpp -o vqe.x && ./vqe.x
-// ```
+/*******************************************************************************
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// REQUIRES: remote-sim
+
+// clang-format off
+// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -22,21 +31,21 @@ __qpu__ void so4(cudaq::qubit &q, cudaq::qubit &r,
   ry(thetas[1], r);
 
   h(r);
-  x<cudaq::ctrl>(q, r);
+  cx(q, r);
   h(r);
 
   ry(thetas[2], q);
   ry(thetas[3], r);
 
   h(r);
-  x<cudaq::ctrl>(q, r);
+  cx(q, r);
   h(r);
 
   ry(thetas[4], q);
   ry(thetas[5], r);
 
   h(r);
-  x<cudaq::ctrl>(q, r);
+  cx(q, r);
   h(r);
 }
 
@@ -92,6 +101,7 @@ int main() {
                               0, 0, 0, 2, -0.22004130022499999, 0.0,
                               15};
   cudaq::spin_op H(h2_data, /*nQubits*/ 4);
+
   // For 8 qubits, 36 parameters per layer
   int n_layers = 2, n_qubits = H.num_qubits(), block_size = 2, p_counter = 0;
   int n_blocks_per_layer = 2 * (n_qubits / block_size) - 1;
@@ -104,14 +114,36 @@ int main() {
 
   so4_fabric ansatz;
 
-  // Run VQE.
-  cudaq::optimizers::lbfgs optimizer;
-  optimizer.initial_parameters = init_params;
-  optimizer.max_eval = 20;
-  optimizer.max_line_search_trials = 10;
-  cudaq::gradients::central_difference gradient;
-  auto [opt_val, opt_params] =
-      cudaq::vqe(ansatz, gradient, H, optimizer, n_params, n_qubits, n_layers);
-
-  printf("Optimal value = %.16lf\n", opt_val);
+  // Run VQE with lbfgs + central_difference
+  {
+    cudaq::optimizers::lbfgs optimizer;
+    optimizer.initial_parameters = init_params;
+    optimizer.max_eval = 20;
+    optimizer.max_line_search_trials = 10;
+    cudaq::gradients::central_difference gradient;
+    auto [opt_val, opt_params] = cudaq::vqe(ansatz, gradient, H, optimizer,
+                                            n_params, n_qubits, n_layers);
+    printf("Optimal value = %.16lf\n", opt_val);
+    assert(std::abs(opt_val - -1.1164613629294273) < 1e-3);
+  }
+  // Run VQE with cobyla
+  {
+    cudaq::optimizers::cobyla optimizer;
+    optimizer.initial_parameters = init_params;
+    optimizer.max_eval = 100;
+    auto [opt_val, opt_params] =
+        cudaq::vqe(ansatz, H, optimizer, n_params, n_qubits, n_layers);
+    printf("Optimal value = %.16lf\n", opt_val);
+    assert(std::abs(opt_val - -1.0769400650758392) < 1e-3);
+  }
+  // Run VQE with cobyla with fixed number of shots
+  {
+    cudaq::optimizers::cobyla optimizer;
+    optimizer.initial_parameters = init_params;
+    optimizer.max_eval = 100;
+    auto [opt_val, opt_params] = cudaq::vqe(
+        /*shots=*/1000, ansatz, H, optimizer, n_params, n_qubits, n_layers);
+    printf("Optimal value = %.16lf\n", opt_val);
+    assert(std::abs(opt_val - -1.0769400650758392) < 1e-3);
+  }
 }

@@ -14,15 +14,16 @@
 #include "common/RuntimeMLIR.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
+#include "cudaq/algorithms/gradient.h"
+#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <fstream>
 
 namespace cudaq {
 
-// TODO - Remove this once the public NVQC deployment supports this capability.
-static inline bool serializedCodeExecOverride() {
-  if (auto envVal = std::getenv("CUDAQ_SER_CODE_EXEC")) {
+static inline bool getEnvVarBool(const char *envVarName) {
+  if (auto envVal = std::getenv(envVarName)) {
     std::string tmp(envVal);
     std::transform(tmp.begin(), tmp.end(), tmp.begin(),
                    [](unsigned char c) { return std::tolower(c); });
@@ -30,6 +31,16 @@ static inline bool serializedCodeExecOverride() {
       return true;
   }
   return false;
+}
+
+// TODO - Remove this once the public NVQC deployment supports this capability.
+static inline bool remoteVQEExecOverride() {
+  return getEnvVarBool("CUDAQ_REMOTE_VQE");
+}
+
+// TODO - Remove this once the public NVQC deployment supports this capability.
+static inline bool serializedCodeExecOverride() {
+  return getEnvVarBool("CUDAQ_SER_CODE_EXEC");
 }
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
@@ -41,6 +52,16 @@ protected:
   std::mutex m_contextMutex;
   std::unique_ptr<mlir::MLIRContext> m_mlirContext;
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
+
+  /// @brief Return a pointer to the execution context for this thread. It will
+  /// return `nullptr` if it was not found in `m_contexts`.
+  cudaq::ExecutionContext *getExecutionContextForMyThread() {
+    std::scoped_lock<std::mutex> lock(m_contextMutex);
+    const auto iter = m_contexts.find(std::this_thread::get_id());
+    if (iter == m_contexts.end())
+      return nullptr;
+    return iter->second;
+  }
 
 public:
   BaseRemoteSimulatorQPU()
@@ -56,6 +77,10 @@ public:
 
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
+
+  // VQE is executed fully on the server without the need to go back and forth
+  // in between observe calls
+  virtual bool supportsRemoteVQE() override { return true; }
 
   // Remote serializable code is executed fully on the server without the need
   // to go back and forth in between observe calls (see
@@ -80,6 +105,31 @@ public:
     execution_queue->enqueue(task);
   }
 
+  void launchVQE(const std::string &name, const void *kernelArgs,
+                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::optimizer &optimizer, const int n_params,
+                 const std::size_t shots) override {
+    cudaq::ExecutionContext *executionContextPtr =
+        getExecutionContextForMyThread();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer")
+      return;
+
+    auto ctx = std::make_unique<ExecutionContext>("observe", shots);
+    ctx->kernelName = name;
+    ctx->spin = &H;
+    if (shots > 0)
+      ctx->shots = shots;
+
+    std::string errorMsg;
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, *executionContextPtr, /*serializedCodeContext=*/nullptr,
+        gradient, &optimizer, n_params, m_simName, name, /*kernelFunc=*/nullptr,
+        kernelArgs, /*argSize=*/0, &errorMsg);
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
+  }
+
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset) override {
@@ -89,13 +139,7 @@ public:
         name, qpu_id, m_simName);
 
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
       return;
@@ -109,10 +153,10 @@ public:
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
     std::string errorMsg;
-    const bool requestOkay =
-        m_client->sendRequest(*m_mlirContext, executionContext,
-                              /*serializedCodeContext=*/nullptr, m_simName,
-                              name, kernelFunc, args, voidStarSize, &errorMsg);
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
+        m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
@@ -127,13 +171,7 @@ public:
         name, qpu_id, m_simName);
 
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
       return;
@@ -150,6 +188,7 @@ public:
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, &serializeCodeExecutionObject,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, /*kernelFunc=*/nullptr, /*args=*/nullptr,
         /*voidStarSize=*/0, &errorMsg);
     if (!requestOkay)
@@ -239,6 +278,11 @@ public:
 
     m_client->setConfig(clientConfigs);
   }
+
+  // VQE is executed fully on the server without the need to go back and forth
+  // in between observe calls (see launchVQE).
+  // TODO - set this to true when NVQC supports this.
+  virtual bool supportsRemoteVQE() override { return remoteVQEExecOverride(); }
 
   // Remote serializable code is executed fully on the server without the need
   // to go back and forth in between observe calls (see
