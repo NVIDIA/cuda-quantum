@@ -446,6 +446,7 @@ protected:
     int minorVersion{-1};
     int numGpus{-1};
     int timeoutSecs{-1};
+    int hasSerializedCodeExec{-1}; // -1 means unknown; 0 = false, 1 = true
     std::string name;
   };
   // Available functions: function Id to info mapping
@@ -574,6 +575,8 @@ protected:
                 getMajorMinorVersion(baseMatch[1].str());
             envs.timeoutSecs = std::stoi(baseMatch[2].str());
             envs.numGpus = std::stoi(baseMatch[3].str());
+            envs.hasSerializedCodeExec =
+                fname.starts_with("cuda_quantum_remote_py") ? 1 : 0;
           } else if (funcInfo.contains("containerEnvironment")) {
             // Otherwise, retrieve the info from deployment configurations.
             // TODO: at some point, we may want to consolidate these two paths
@@ -594,6 +597,7 @@ protected:
             };
             getIntIfFound("NUM_GPUS", envs.numGpus);
             getIntIfFound("WATCHDOG_TIMEOUT_SEC", envs.timeoutSecs);
+            getIntIfFound("CUDAQ_SER_CODE_EXEC", envs.hasSerializedCodeExec);
             if (auto it =
                     containerEnvironment.find("NVQC_REST_PAYLOAD_VERSION");
                 it != containerEnvironment.end())
@@ -863,8 +867,7 @@ public:
       return capabilities;
     }
     const auto &funcEnv = m_availableFuncs.at(m_functionId);
-    capabilities.serializedCodeExec =
-        funcEnv.name.starts_with("cuda_quantum_remote_py");
+    capabilities.serializedCodeExec = funcEnv.hasSerializedCodeExec > 0;
     capabilities.stateOverlap =
         funcEnv.majorVersion >= 1 && funcEnv.minorVersion >= 1;
     capabilities.vqe = funcEnv.majorVersion >= 1 && funcEnv.minorVersion >= 1;
