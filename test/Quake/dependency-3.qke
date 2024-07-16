@@ -8,12 +8,34 @@
 
 // RUN: cudaq-opt --assign-ids --dep-analysis %s | FileCheck %s
 
-func.func @test() {
+// These are more basic tests
+
+func.func @test1() {
   %0 = quake.null_wire
   quake.sink %0 : !quake.wire
   return
 }
 
-// CHECK-LABEL:   func.func @test() {
+// CHECK-LABEL:   func.func @test1() {
+// CHECK:           return
+// CHECK:         }
+
+func.func @test2() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3:2 = quake.x [%2#0] %2#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %3#0 : !quake.wire
+  quake.sink %3#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @test2() {
+// CHECK-DAG:       %[[VAL_0:.*]] = quake.null_wire
+// CHECK-DAG:       %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]]:2 = quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_3:.*]]:2 = quake.x [%[[VAL_2]]#0] %[[VAL_2]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-DAG:       quake.sink %[[VAL_3]]#0 : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_3]]#1 : !quake.wire
 // CHECK:           return
 // CHECK:         }

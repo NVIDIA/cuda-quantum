@@ -33,6 +33,11 @@ inline bool isMeasureOp(Operation *op) {
          dyn_cast<quake::MzOp>(*op);
 }
 
+inline bool hasClassicalInput(Operation *op) {
+  return dyn_cast<quake::RxOp>(*op) || dyn_cast<quake::RyOp>(*op) ||
+         dyn_cast<quake::RzOp>(*op);
+}
+
 inline bool isBeginOp(Operation *op) {
   return dyn_cast<quake::UnwrapOp>(*op) || dyn_cast<quake::ExtractRefOp>(*op) ||
          dyn_cast<quake::NullWireOp>(*op);
@@ -84,16 +89,17 @@ std::optional<uint> findQid(Value v) {
     return std::optional<uint>(qid);
   }
 
-  // Special case where result # != operand #
-  if (isMeasureOp(defop)) {
-    return findQid(defop->getOperand(0));
-  }
-
   // Figure out matching operand
   size_t i = 0;
   for (; i < defop->getNumResults(); i++)
     if (defop->getResult(i) == v)
       break;
+
+  // Special cases where result # != operand #
+  if (isMeasureOp(defop))
+    i = 0;
+  else if (hasClassicalInput(defop))
+    i++;
 
   return findQid(defop->getOperand(i));
 }

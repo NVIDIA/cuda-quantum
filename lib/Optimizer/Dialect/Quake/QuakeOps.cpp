@@ -25,15 +25,6 @@ namespace {
 #include "cudaq/Optimizer/Dialect/Quake/Canonical.inc"
 } // namespace
 
-// Is \p op in the Quake dialect?
-// TODO: Is this StringRef comparison faster than calling MLIRContext::
-// getLoadedDialect("quake")?
-static bool isQuakeOperation(Operation *op) {
-  if (auto *dialect = op->getDialect())
-    return dialect->getNamespace().equals("quake");
-  return false;
-}
-
 static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   for (Value v : op->getOpResults())
     if (isa<quake::WireType>(v.getType())) {

@@ -8,6 +8,8 @@
 
 // RUN: cudaq-opt --assign-ids --dep-analysis %s | FileCheck %s
 
+// A more complete functional test
+
 func.func @test() {
   %0 = quake.null_wire
   %1 = quake.null_wire

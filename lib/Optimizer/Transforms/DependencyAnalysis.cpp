@@ -9,7 +9,6 @@
 #include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/IRMapping.h"
@@ -97,6 +96,8 @@ protected:
   uint cycle = INT_MAX;
   bool hasCodeGen = false;
   uint height;
+  bool quakeOp;
+  bool isScheduled;
 
   struct Edge {
     size_t result_idx;
@@ -112,7 +113,7 @@ protected:
       llvm::outs() << qid;
       printComma = true;
     }
-    if (isScheduled())
+    if (isScheduled)
       llvm::outs() << " @ " << cycle;
     llvm::outs() << " | ";
     associated->dump();
@@ -127,43 +128,85 @@ protected:
     printNode();
 
     for (auto dependency : dependencies)
-      if (dependency)
-        dependency->printSubGraph(tabIndex + 1);
+      dependency->printSubGraph(tabIndex + 1);
   }
-
-  bool isScheduled() { return cycle != INT_MAX; }
 
   bool isRoot() { return isEndOp(associated); }
 
   bool isLeaf() { return isBeginOp(associated); }
 
-  bool isSkip() { return isRoot() || isLeaf(); }
+  bool isSkip() { return isRoot() || isLeaf() || !quakeOp; }
 
+  bool isQuakeDependent() { return qids.size() > 0; }
+
+  uint numTicks() { return isSkip() ? 0 : 1; }
+
+  /// This function guarantees that nodes are scheduled after their predecessors
+  /// and before their successors, and that every node is scheduled at a cycle
+  /// between 0 and the height of the graph to which they belong.
+  ///
+  /// The scheduling algorithm works by always following the longest path first.
+  /// The longest path will always be "saturated" with an operation every cycle,
+  /// so we know exactly when to schedule every operation along that path.
+  /// Then, every successor (not on the path) of an operation on the path should
+  /// be scheduled as early as possible, (the earliest an operation can be
+  /// scheduled is determined by its height). Likewise, every dependency (not on
+  /// the path) should be scheduled as late as possible. Because we work
+  /// outwards from the longest path, this ensures that every other path is
+  /// scheduled as "densely" as possible around the connections with the longest
+  /// path, while still having a valid schedule.
+  ///
+  /// Always following the longest path first is essentially an implementation
+  /// of a transitive reduction of the graph. The only auxiliary data structure
+  /// used here is a sorted copy of the dependency list. The length of a path
+  /// is equal to the height of the node which is metadata present from
+  /// construction.
+  ///
+  /// \p level is essentially the depth from the tallest point in the graph
   void schedule(uint level) {
+    isScheduled = true;
+    // Ignore classical values that don't depend on quantum values
+    if (!quakeOp && !isQuakeDependent())
+      return;
+
+    // The height of a node (minus numTicks()) is the earliest a node can be
+    // scheduled
     if (level < height)
       level = height;
 
     uint current = level;
     if (!isSkip()) {
-      current--;
+      current -= numTicks();
       cycle = current;
     }
 
-    for (auto dependency : dependencies)
-      if (dependency && !dependency->isScheduled() && !dependency->isLeaf())
+    // Sort dependencies by height to always follow the longest path first.
+    // Without this, two dependencies may be scheduled at the same cycle,
+    // even if one of the dependencies depends on the other.
+    // This sort of mimics working over a transitive reduction of the graph.
+    SmallVector<DependencyNode *> sorted(dependencies);
+    std::sort(sorted.begin(), sorted.end(),
+              [](DependencyNode *x, DependencyNode *y) {
+                return x->getHeight() > y->getHeight();
+              });
+
+    // Schedule dependencies as late as possible (right before this operation)
+    for (auto dependency : sorted)
+      if (!dependency->isScheduled && !dependency->isLeaf())
         dependency->schedule(current);
 
+    // Schedule unscheduled successors as early as possible
     for (auto successor : successors)
-      if (successor && !successor->isScheduled() && !successor->isRoot())
-        successor->schedule(level + 1);
+      if (successor && !successor->isScheduled && !successor->isRoot())
+        successor->schedule(current + numTicks() + successor->numTicks());
   }
 
-  /// This function returns the index of the result of the dependency
-  /// corresponding to the operand_idx'th operand of this node
+  /// Returns the index of the result of the dependency corresponding to the
+  /// \p operand_idx'th operand of this node
   size_t getResultIdx(size_t operand_idx) { return result_idxs[operand_idx]; }
 
-  /// This function returns the index of the operand of \p successor
-  /// corresponding to the result_idx'th result of this node
+  /// Returns the index of the operand of \p successor corresponding to the
+  /// \p result_idx'th result of this node
   size_t getOperandIdx(size_t result_idx) {
     auto successor = successors[result_idx];
     assert(successor && "Cannot access operand of null successor");
@@ -181,12 +224,11 @@ protected:
 
     if (cycle < _cycle)
       return nodes;
-    else if (cycle == _cycle)
+    else if (cycle == _cycle && !isSkip())
       nodes.insert(this);
 
     for (auto dependency : dependencies)
-      if (dependency)
-        nodes.set_union(dependency->getNodesAtCycle(_cycle));
+      nodes.set_union(dependency->getNodesAtCycle(_cycle));
 
     return nodes;
   }
@@ -201,10 +243,15 @@ protected:
     SmallVector<mlir::Value> operands(oldOp->getNumOperands());
     for (size_t i = 0; i < dependencies.size(); i++) {
       auto dependency = dependencies[i];
-      if (!dependency)
-        continue;
 
-      // Get relevant result from dependency's op
+      // Ensure classical values are available
+      if (!dependency->quakeOp)
+        dependency->codeGen(builder);
+
+      assert(dependency->hasCodeGen &&
+             "Generating code for successor before dependency");
+
+      // Get relevant result from dependency's updated op
       // to use as the relevant operand
       auto result_idx = getResultIdx(i);
       operands[i] = dependency->associated->getResult(result_idx);
@@ -213,6 +260,7 @@ protected:
     associated =
         Operation::create(oldOp->getLoc(), oldOp->getName(),
                           oldOp->getResultTypes(), operands, oldOp->getAttrs());
+    associated->removeAttr("dnodeid");
     builder.insert(associated);
     hasCodeGen = true;
   }
@@ -224,12 +272,12 @@ protected:
 
     if (isLeaf()) {
       associated = init;
+      hasCodeGen = true;
       return;
     }
 
     for (auto dependency : dependencies)
-      if (dependency)
-        dependency->initializeWire(qid, init);
+      dependency->initializeWire(qid, init);
   }
 
   /// Ensures that the node is valid and has been scheduled.
@@ -241,30 +289,17 @@ protected:
     // Validate metadata
     assert(associated && "Associated op is null");
     if (!isSkip()) {
-      assert(isScheduled() && "Node part of graph but not scheduled");
-      // A node is included in the calculation of its height, hence + 1
-      assert(cycle + 1 >= height && "Node scheduled too early");
+      assert(isScheduled && "Node part of graph but not scheduled");
+      // A node is included in the calculation of its height, hence + numTicks()
+      assert(cycle + numTicks() >= height && "Node scheduled too early");
     }
     assert(dependencies.size() == associated->getNumOperands() &&
            "Wrong number of dependencies");
     assert(successors.size() == associated->getNumResults() &&
            "Wrong number of successors");
-    // Ensure that the dependencies all make sense
-    for (size_t i = 0; i < dependencies.size(); i++) {
-      auto dependency = dependencies[i];
-      auto operand = associated->getOperand(i);
-      if (!dependency) {
-        assert(!isa<quake::WireType>(operand.getType()) &&
-               "Successor for wire result cannot be null");
-        continue;
-      }
-
-      auto expected = operand.getDefiningOp();
-      if (!dependency->hasCodeGen)
-        assert(dependency->associated == expected &&
-               "Dependencies in wrong order");
-    }
-    // Ensure that the successors all make sense
+    // Dependencies are ensured by the constructor, so only check the
+    // successors which are added after construction.
+    // Ensure that the successors all make sense.
     for (size_t i = 0; i < successors.size(); i++) {
       auto successor = successors[i];
       auto result = associated->getResult(i);
@@ -300,17 +335,15 @@ public:
       qids.insert(qid);
     }
 
+    quakeOp = isQuakeOperation(op);
+
     height = 0;
     // Ingest dependencies, setting up metadata
     for (size_t i = 0; i < dependencies.size(); i++) {
       auto dependency = dependencies[i];
       auto operand = associated->getOperand(i);
 
-      if (!dependency) {
-        assert(!isa<quake::WireType>(operand.getType()) &&
-               "Dependency for wire operand cannot be null");
-        continue;
-      }
+      assert(dependency && "Invalid dependency");
 
       // Figure out result_idx
       size_t result_idx = 0;
@@ -333,8 +366,7 @@ public:
         qids.set_union(dependency->qids);
     }
 
-    if (!isSkip())
-      height++;
+    height += numTicks();
   };
 
   void print() { printSubGraph(0); }
@@ -350,7 +382,9 @@ public:
     auto wire = last_use->associated->getResult(result_idx);
     auto newOp = builder.create<quake::SinkOp>(builder.getUnknownLoc(), wire);
     newOp->setAttrs(associated->getAttrs());
+    associated->removeAttr("dnodeid");
     associated = newOp;
+    hasCodeGen = true;
   }
 };
 
@@ -390,8 +424,7 @@ private:
       if (successor)
         gatherRoots(seen, successor);
     for (auto dependency : next->dependencies)
-      if (dependency)
-        gatherRoots(seen, dependency);
+      gatherRoots(seen, dependency);
   }
 
   void scheduleNodes() { tallest->schedule(total_height); }
@@ -532,9 +565,10 @@ struct DependencyAnalysisPass
   /// Validates that \p op meets the assumptions:
   /// * control flow operations are not allowed
   bool validateOp(Operation *op) {
-    if (!quake::isLinearValueForm(op)) {
+    if (isQuakeOperation(op) && !quake::isLinearValueForm(op) &&
+        !dyn_cast<quake::DiscriminateOp>(op)) {
       op->emitOpError(
-          "dep-analysis requires all operations to be in value form");
+          "dep-analysis requires all quake operations to be in value form");
       signalPassFailure();
       return false;
     }
@@ -549,6 +583,12 @@ struct DependencyAnalysisPass
     if (dyn_cast<mlir::BranchOpInterface>(op)) {
       op->emitOpError(
           "branching operations not currently supported in dep-analysis");
+      signalPassFailure();
+      return false;
+    }
+
+    if (dyn_cast<mlir::CallOpInterface>(op)) {
+      op->emitOpError("function calls not currently supported in dep-analysis");
       signalPassFailure();
       return false;
     }
@@ -615,9 +655,6 @@ struct DependencyAnalysisPass
   /// visited
   DependencyNode *visitValue(Value v) {
     // Skip classical values
-    if (!isa<quake::WireType>(v.getType()))
-      return nullptr;
-
     auto defOp = v.getDefiningOp();
     if (defOp) {
       // Since we walk forward through the ast, every value should be defined
