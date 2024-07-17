@@ -52,7 +52,7 @@ class OperatorSum:
             raise ValueError("Need at least one term.")
         self._terms = terms
 
-    def concretize(self, levels: dict[int, int]) -> NDArray[complex]:
+    def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
         degrees = set([op._degree for term in self._terms for op in term._operators])
         padded_terms = []
         for term in self._terms:
@@ -60,7 +60,7 @@ class OperatorSum:
                 if not degree in [op._degree for op in term._operators]:
                     term *= spin.i(degree)
             padded_terms.append(term)
-        return sum([term.concretize(levels) for term in padded_terms])
+        return sum([term.concretize(levels, time) for term in padded_terms])
 
     def __mul__(self, other: OperatorSum):
         if type(other) == SimpleOperator:
@@ -89,10 +89,10 @@ class ProductOperator(OperatorSum):
         self._operators = operators
         super().__init__([self])
 
-    def concretize(self, levels: dict[int, int]) -> NDArray[complex]:
-        matrix = self._operators[0].concretize(levels)
+    def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
+        matrix = self._operators[0].concretize(levels, time)
         for op in self._operators[1:]:
-            matrix = numpy.kron(matrix, op.concretize(levels))
+            matrix = numpy.kron(matrix, op.concretize(levels, time))
         return matrix
 
     def __mul__(self, other: ProductOperator):
@@ -138,14 +138,13 @@ class SimpleOperator(ProductOperator):
         self._builtin_id = builtin_id
         super().__init__([self])
 
-    def concretize(self, levels: dict[int, int]) -> NDArray[complex]:
+    def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
         if self._degree not in levels:
             raise ValueError(f'Missing levels for degree {self._degree}')
 
         if levels[self._degree] != 2:
            raise NotImplementedError() # FIXME
-
-        return BuiltIns.ops[self._builtin_id]
+        return BuiltIns.ops[self._builtin_id] # FIXME
 
     def __mul__(self, other: SimpleOperator):
         if type(other) != SimpleOperator:
@@ -183,41 +182,43 @@ class spin:
         return SimpleOperator(degree, "spin_i")
     
 levels = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
-print(f'spinX(1): {spin.x(1).concretize(levels)}')
-print(f'spinY(2): {spin.y(2).concretize(levels)}')
+time = 1.0
 
-print(f'spinZ(0) * spinZ(0): {(spin.z(0) * spin.z(0)).concretize(levels)}')
-print(f'spinZ(0) * spinZ(1): {(spin.z(0) * spin.z(1)).concretize(levels)}')
-print(f'spinZ(0) * spinY(1): {(spin.z(0) * spin.y(1)).concretize(levels)}')
+print(f'spinX(1): {spin.x(1).concretize(levels, time)}')
+print(f'spinY(2): {spin.y(2).concretize(levels, time)}')
+
+print(f'spinZ(0) * spinZ(0): {(spin.z(0) * spin.z(0)).concretize(levels, time)}')
+print(f'spinZ(0) * spinZ(1): {(spin.z(0) * spin.z(1)).concretize(levels, time)}')
+print(f'spinZ(0) * spinY(1): {(spin.z(0) * spin.y(1)).concretize(levels, time)}')
 
 op1 = ProductOperator([spin.x(0), spin.i(1)])
 op2 = ProductOperator([spin.i(0), spin.x(1)])
-print(f'spinX(0) + spinX(1): {op1.concretize(levels) + op2.concretize(levels)}')
+print(f'spinX(0) + spinX(1): {op1.concretize(levels, time) + op2.concretize(levels, time)}')
 op3 = ProductOperator([spin.x(1), spin.i(0)])
 op4 = ProductOperator([spin.i(1), spin.x(0),])
-print(f'spinX(1) + spinX(0): {op1.concretize(levels) + op2.concretize(levels)}')
+print(f'spinX(1) + spinX(0): {op1.concretize(levels, time) + op2.concretize(levels, time)}')
 
-print(f'spinX(0) + spinX(1): {(spin.x(0) + spin.x(1)).concretize(levels)}')
+print(f'spinX(0) + spinX(1): {(spin.x(0) + spin.x(1)).concretize(levels, time)}')
 
-print(f'spinX(0) * spinX(1): {(spin.x(0) * spin.x(1)).concretize(levels)}')
-print(f'spinX(0) * spinI(1) * spinI(0) * spinX(1): {(op1 * op2).concretize(levels)}')
+print(f'spinX(0) * spinX(1): {(spin.x(0) * spin.x(1)).concretize(levels, time)}')
+print(f'spinX(0) * spinI(1) * spinI(0) * spinX(1): {(op1 * op2).concretize(levels, time)}')
 
-print(f'spinX(0) * spinI(1): {op1.concretize(levels)}')
-print(f'spinI(0) * spinX(1): {op2.concretize(levels)}')
-print(f'spinX(0) * spinI(1) + spinI(0) * spinX(1): {(op1 + op2).concretize(levels)}')
+print(f'spinX(0) * spinI(1): {op1.concretize(levels, time)}')
+print(f'spinI(0) * spinX(1): {op2.concretize(levels, time)}')
+print(f'spinX(0) * spinI(1) + spinI(0) * spinX(1): {(op1 + op2).concretize(levels, time)}')
 
 op5 = spin.x(0) * spin.x(1)
 op6 = spin.z(0) * spin.z(1)
-print(f'spinX(0) * spinX(1): {op5.concretize(levels)}')
-print(f'spinZ(0) * spinZ(1): {op6.concretize(levels)}')
-print(f'spinX(0) * spinX(1) + spinZ(0) * spinZ(1): {(op5 + op6).concretize(levels)}')
+print(f'spinX(0) * spinX(1): {op5.concretize(levels, time)}')
+print(f'spinZ(0) * spinZ(1): {op6.concretize(levels, time)}')
+print(f'spinX(0) * spinX(1) + spinZ(0) * spinZ(1): {(op5 + op6).concretize(levels, time)}')
 
 op7 = spin.x(0) + spin.x(1)
 op8 = spin.z(0) + spin.z(1)
-print(f'spinX(0) + spinX(1): {op7.concretize(levels)}')
-print(f'spinZ(0) + spinZ(1): {op8.concretize(levels)}')
-print(f'spinX(0) + spinX(1) + spinZ(0) + spinZ(1): {(op7 + op8).concretize(levels)}')
-print(f'(spinX(0) + spinX(1)) * (spinZ(0) + spinZ(1)): {(op7 * op8).concretize(levels)}')
+print(f'spinX(0) + spinX(1): {op7.concretize(levels, time)}')
+print(f'spinZ(0) + spinZ(1): {op8.concretize(levels, time)}')
+print(f'spinX(0) + spinX(1) + spinZ(0) + spinZ(1): {(op7 + op8).concretize(levels, time)}')
+print(f'(spinX(0) + spinX(1)) * (spinZ(0) + spinZ(1)): {(op7 * op8).concretize(levels, time)}')
 
-print(f'spinX(0) * (spinZ(0) + spinZ(1)): {(spin.x(0) * op8).concretize(levels)}')
-print(f'(spinZ(0) + spinZ(1)) * spinX(0): {(op8 * spin.x(0)).concretize(levels)}')
+print(f'spinX(0) * (spinZ(0) + spinZ(1)): {(spin.x(0) * op8).concretize(levels, time)}')
+print(f'(spinZ(0) + spinZ(1)) * spinX(0): {(op8 * spin.x(0)).concretize(levels, time)}')
