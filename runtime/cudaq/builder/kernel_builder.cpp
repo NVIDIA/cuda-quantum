@@ -792,30 +792,7 @@ QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
 }
 
 void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
-  auto value = qubitOrQvec.getValue();
-  if (isa<quake::RefType>(value.getType())) {
-    builder.create<quake::ResetOp>(TypeRange{}, value);
-    return;
-  }
-
-  if (isa<quake::VeqType>(value.getType())) {
-    auto target = value;
-    Value rank = builder.create<quake::VeqSizeOp>(builder.getI64Type(), target);
-    auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
-                           Block &block) {
-      Value ref = builder.create<quake::ExtractRefOp>(loc, target,
-                                                      block.getArgument(0));
-      builder.create<quake::ResetOp>(loc, TypeRange{}, ref);
-    };
-    cudaq::opt::factory::createInvariantLoop(builder, builder.getUnknownLoc(),
-                                             rank, bodyBuilder);
-    return;
-  }
-
-  llvm::errs() << "Invalid type:\n";
-  value.getType().dump();
-  llvm::errs() << '\n';
-  throw std::runtime_error("Invalid type passed to reset().");
+  builder.create<quake::ResetOp>(TypeRange{}, qubitOrQvec.getValue());
 }
 
 void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
