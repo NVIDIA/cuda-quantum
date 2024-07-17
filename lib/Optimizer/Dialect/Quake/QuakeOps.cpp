@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -544,6 +545,20 @@ struct ForwardAllocaTypePattern
                 initState.getLoc(), targTy, targ, initState.getState());
             rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(initState, isTy,
                                                             newInit);
+            return success();
+          }
+      }
+
+    // Remove any intervening cast to !cc.ptr<!cc.array<T x ?>> ops.
+    if (auto stateCast =
+            initState.getState().getDefiningOp<cudaq::cc::CastOp>())
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateCast.getType())) {
+        auto eleTy = ptrTy.getElementType();
+        if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy))
+          if (arrTy.isUnknownSize()) {
+            rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
+                initState, initState.getTargets().getType(),
+                initState.getTargets(), stateCast.getValue());
             return success();
           }
       }
