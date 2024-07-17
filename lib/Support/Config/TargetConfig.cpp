@@ -40,37 +40,34 @@ static std::string processSimBackendConfig(
     const std::string &targetName,
     const cudaq::config::BackendEndConfigEntry &configValue) {
   std::stringstream output;
-  if (configValue.GenTargetBackend.has_value()) {
+  if (configValue.GenTargetBackend.has_value())
     output << "GEN_TARGET_BACKEND="
            << (configValue.GenTargetBackend.value() ? "true" : "false") << "\n";
-  }
 
-  if (configValue.LibraryMode.has_value()) {
+  if (configValue.LibraryMode.has_value())
     output << "LIBRARY_MODE="
            << (configValue.LibraryMode.value() ? "true" : "false") << "\n";
-  }
 
-  if (!configValue.PlatformLoweringConfig.empty()) {
+  if (!configValue.PlatformLoweringConfig.empty())
     output << "PLATFORM_LOWERING_CONFIG=\""
            << configValue.PlatformLoweringConfig << "\"\n";
-  }
-  if (!configValue.CodegenEmission.empty()) {
+
+  if (!configValue.CodegenEmission.empty())
     output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
-  }
-  if (!configValue.PostCodeGenPasses.empty()) {
+
+  if (!configValue.PostCodeGenPasses.empty())
     output << "POST_CODEGEN_PASSES=\"" << configValue.PostCodeGenPasses
            << "\"\n";
-  }
-  if (!configValue.PlatformLibrary.empty()) {
+
+  if (!configValue.PlatformLibrary.empty())
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";
-  }
-  if (!configValue.LibraryModeExecutionManager.empty()) {
+
+  if (!configValue.LibraryModeExecutionManager.empty())
     output << "LIBRARY_MODE_EXECUTION_MANAGER="
            << configValue.LibraryModeExecutionManager << "\n";
-  }
-  if (!configValue.PlatformQpu.empty()) {
+
+  if (!configValue.PlatformQpu.empty())
     output << "PLATFORM_QPU=" << configValue.PlatformQpu << "\n";
-  }
 
   if (!configValue.PreprocessorDefines.empty()) {
     output << "PREPROCESSOR_DEFINES=\"${PREPROCESSOR_DEFINES}";
