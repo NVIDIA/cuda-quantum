@@ -54,6 +54,15 @@ else:
     from .visualization.bloch_visualize import add_to_bloch_sphere
     from .visualization.bloch_visualize import show_bloch_sphere as show
 
+
+def __getattr__(name):
+    if hasattr(cudaq_runtime, name):
+        return getattr(cudaq_runtime, name)
+    raise AttributeError(f"'{name}' is not supported for CUDA-Q in Python")
+
+
+sys.modules[__name__].__getattr__ = __getattr__
+
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
 
