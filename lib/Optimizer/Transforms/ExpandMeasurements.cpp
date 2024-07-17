@@ -122,6 +122,30 @@ using MxRewrite = ExpandRewritePattern<quake::MxOp>;
 using MyRewrite = ExpandRewritePattern<quake::MyOp>;
 using MzRewrite = ExpandRewritePattern<quake::MzOp>;
 
+/// Convert a `quake.reset` with a `veq` argument into a loop over the elements
+/// of the `veq` and `quake.reset` on each of them.
+class ResetRewrite : public OpRewritePattern<quake::ResetOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ResetOp resetOp,
+                                PatternRewriter &rewriter) const override {
+    auto loc = resetOp.getLoc();
+    auto veqArg = resetOp.getTargets();
+    auto i64Ty = rewriter.getI64Type();
+    Value vecSz = rewriter.create<quake::VeqSizeOp>(loc, i64Ty, veqArg);
+    cudaq::opt::factory::createInvariantLoop(
+        rewriter, loc, vecSz,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value iv = block.getArgument(0);
+          Value qv = builder.create<quake::ExtractRefOp>(loc, veqArg, iv);
+          builder.create<quake::ResetOp>(loc, TypeRange{}, qv);
+        });
+    rewriter.eraseOp(resetOp);
+    return success();
+  }
+};
+
 class ExpandMeasurementsPass
     : public cudaq::opt::ExpandMeasurementsBase<ExpandMeasurementsPass> {
 public:
@@ -129,7 +153,7 @@ public:
     auto *op = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<MxRewrite, MyRewrite, MzRewrite>(ctx);
+    patterns.insert<MxRewrite, MyRewrite, MzRewrite, ResetRewrite>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
                            arith::ArithDialect, LLVM::LLVMDialect>();
@@ -139,6 +163,9 @@ public:
         [](quake::MyOp x) { return usesIndividualQubit(x.getMeasOut()); });
     target.addDynamicallyLegalOp<quake::MzOp>(
         [](quake::MzOp x) { return usesIndividualQubit(x.getMeasOut()); });
+    target.addDynamicallyLegalOp<quake::ResetOp>([](quake::ResetOp r) {
+      return !isa<quake::VeqType>(r.getTargets().getType());
+    });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
       op->emitOpError("could not expand measurements");
       signalPassFailure();
