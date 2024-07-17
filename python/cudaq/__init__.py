@@ -39,7 +39,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
         pass
 
 from .display import display_trace
-from .kernel.kernel_decorator import kernel, PyKernelDecorator, kernel_type
+from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
 from .runtime.sample import sample

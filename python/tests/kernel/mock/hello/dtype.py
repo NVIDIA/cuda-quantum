@@ -6,8 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import cudaq 
+from dataclasses import dataclass
 
-@cudaq.kernel_type
+@dataclass
 class TestClass:
     i : int 
     d : float 

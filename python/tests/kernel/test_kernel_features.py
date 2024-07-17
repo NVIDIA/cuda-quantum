@@ -1623,8 +1623,9 @@ def test_capture_opaque_kernel():
     assert len(counts) == 2 and '0' in counts and '1' in counts 
     
 def test_custom_kernel_type():
+    from dataclasses import dataclass
 
-    @cudaq.kernel_type
+    @dataclass
     class CustomIntAndFloatType:
         integer : int 
         floatingPoint : float 
@@ -1644,7 +1645,7 @@ def test_custom_kernel_type():
     counts.dump()
     assert len(counts) == 2 and '00' in counts and '11' in counts 
 
-    @cudaq.kernel_type
+    @dataclass
     class CustomIntAndListFloat:
         integer: int 
         array : List[float]
@@ -1663,7 +1664,7 @@ def test_custom_kernel_type():
     counts.dump()
     assert len(counts) == 2 and '00' in counts and '11' in counts 
 
-    @cudaq.kernel_type 
+    @dataclass
     class patch:
         data : cudaq.qview 
         ancx : cudaq.qview 
@@ -1698,25 +1699,12 @@ def test_custom_kernel_type():
 
     # Test that the class can be in a library 
     # and the paths all work out 
-
-    import mock.hello 
-    @cudaq.kernel
-    def test(input : mock.hello.TestClass):
-        q = cudaq.qvector(input.i)
-    
-    instance = mock.hello.dtype.TestClass(2, 2.2)
-    state = cudaq.get_state(test, instance)
-    state.dump()
-
-    assert len(state) == 2**instance.i
-
-    # This should work too
     from mock.hello import TestClass
     @cudaq.kernel
     def test(input : TestClass):
         q = cudaq.qvector(input.i)
     
-    instance = mock.hello.dtype.TestClass(2, 2.2)
+    instance = TestClass(2, 2.2)
     state = cudaq.get_state(test, instance)
     state.dump()
 

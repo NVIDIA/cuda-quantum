@@ -88,6 +88,12 @@ class PyKernelDecorator(object):
                 ['f_locals'].items()
             }
 
+        # Register any external class types that may be used
+        # in the kernel definition
+        for name, var in self.globalScopedVars.items():
+            if isinstance(var, type):
+                globalRegisteredTypes[name] = (var, var.__annotations__)
+
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
         # used in the kernel. We need to track these.
@@ -454,41 +460,3 @@ def kernel(function=None, **kwargs):
             return PyKernelDecorator(function, **kwargs)
 
         return wrapper
-
-
-def kernel_type(cls=None):
-    """
-    The `cudaq.kernel_type` is a class decorator that allows one to 
-    extend the types that are usable within CUDA-Q kernel code. Usage is as 
-    follows: 
-
-    ```python
-    @cudaq.kernel_type
-    class MyCustomType:
-       numQubits : int 
-       rotationAngle : float 
-       listOfAngles : list[float]
-    
-    @cudaq.kernel
-    def kernel(inputArg : MyCustomType):
-       qubits = cudaq.qvector(inputArg.numQubits)
-       ...
-    ```
-    """
-    from dataclasses import _process_class
-
-    def wrap(cls):
-        return _process_class(cls, True, True, True, False, False, False, True,
-                              False, False)
-
-    if cls is None:
-        raise RuntimeError('kernel_type requires class declaration.')
-
-    for el in inspect.getmembers(cls):
-        if el[0] == '__annotations__':
-            annotations = el[1]
-            break
-    if annotations == None:
-        raise RuntimeError('invalid user type. must have type annotations.')
-    globalRegisteredTypes[cls.__name__] = (cls, annotations)
-    return wrap(cls)
