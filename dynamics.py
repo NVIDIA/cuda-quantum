@@ -1,4 +1,5 @@
 import numpy, itertools
+from typing import Callable
 from numpy.typing import NDArray
 
 # FIXME: 
@@ -6,37 +7,14 @@ from numpy.typing import NDArray
 # it will be heavily revised in future iterations.
 class BuiltIns:
     ops = {
-        "spin_x": numpy.array([[0,1],[1,0]]),
-        "spin_y": numpy.array([[0,1j],[-1j,0]]),
-        "spin_z": numpy.array([[1,0],[0,-1]]),
-        "spin_i": numpy.array([[1,0],[0,1]]),
+        ("spin_x", "2"): lambda _: numpy.array([[0,1],[1,0]]),
+        ("spin_y", "2"): lambda _: numpy.array([[0,1j],[-1j,0]]),
+        ("spin_z", "2"): lambda _: numpy.array([[1,0],[0,-1]]),
+        ("spin_i", "2"): lambda _: numpy.array([[1,0],[0,1]]),
     }
 
-    # From https://en.wikipedia.org/wiki/Pauli_matrices (Cayley table)
-    # FIXME: missing constants
-    pauli_table = [
-        ["spin_i", "spin_z", "spin_y", "spin_x"],
-        ["spin_z", "spin_i", "spin_x", "spin_y"],
-        ["spin_y", "spin_x", "spin_i", "spin_z"],
-        ["spin_x", "spin_y", "spin_z", "spin_i"],
-    ]
-
-    @staticmethod
-    def pauli_id(arg: str):
-        match arg:
-            case "spin_x": return 0
-            case "spin_y": return 1
-            case "spin_z": return 2
-            case "spin_i": return 3
-
-    @staticmethod
-    def product(arg1: str, arg2: str):
-        if not arg1.startswith("spin_") or not arg2.startswith("spin_"):
-            raise NotImplementedError("Only implemented spin operators so far.")
-        row = BuiltIns.pauli_id(arg1)
-        column = BuiltIns.pauli_id(arg2)
-        return BuiltIns.pauli_table[row][column]
-
+class ScalarOperator():
+    pass
 
 class ElementaryOperator():
     pass
@@ -55,7 +33,7 @@ class OperatorSum:
             raise ValueError("Need at least one term.")
         self._terms = terms
 
-    def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
+    def concretize(self, levels: dict[int, int], time: complex) -> NDArray[complex]:
         degrees = set([degree for term in self._terms for op in term._operators for degree in op._degrees])
         padded_terms = [] # We need to make sure all matrices are of the same size to sum them up.
         for term in self._terms:
@@ -88,7 +66,7 @@ class ProductOperator(OperatorSum):
         self._operators = operators
         super().__init__([self])
 
-    def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
+    def concretize(self, levels: dict[int, int], time: complex) -> NDArray[complex]:
         def generate_all_states(degrees: list[int]):
             states = [[str(state)] for state in range(levels[degrees[0]])]
             for d in degrees[1:]:
@@ -147,19 +125,22 @@ class ElementaryOperator(ProductOperator):
     _degrees: list[int]
     _builtin_id: str
 
-    def __init__(self, degrees: list[int], builtin_id: str):
-        self._degrees = degrees
+    def __init__(self, builtin_id: str, degrees: list[int]):
         self._builtin_id = builtin_id
+        self._degrees = degrees
+        self._degrees.sort() # sorting so that we have a unique ordering for builtin
         super().__init__([self])
 
-    def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
+    def concretize(self, levels: dict[int, int], time: complex) -> NDArray[complex]:
         missing_degrees = [degree not in levels for degree in self._degrees]
         if any(missing_degrees):
             raise ValueError(f'Missing levels for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
 
-        if any([levels[degree] != 2 for degree in self._degrees]):
-           raise NotImplementedError() # FIXME
-        return BuiltIns.ops[self._builtin_id] # FIXME
+        relevant_levels = [levels[degree] for degree in self._degrees]
+        ops_key = (self._builtin_id, "".join([str(l) for l in relevant_levels]))
+        if not ops_key in BuiltIns.ops:
+           raise ValueError(f'No built-in operator {self._builtin_id} for {len(relevant_levels)} degrees of freedom with levels {relevant_levels}.')
+        return BuiltIns.ops[ops_key](time)
 
     def __mul__(self, other: ElementaryOperator):
         if type(other) != ElementaryOperator:
@@ -173,6 +154,27 @@ class ElementaryOperator(ProductOperator):
         op2 = ProductOperator([other])
         return OperatorSum([op1, op2])
 
+class ScalarOperator:
+    _generator: Callable[[complex], complex]
+
+    def __init__(self, generator: Callable[[complex], complex]):
+        self._generator = generator
+
+    def concretize(self, time: complex):
+        return self._generator(time)
+
+    #def __matmul__(self, other: ScalarOperator) -> ScalarOperator:
+    #    generator = lambda time: self._generator(other._generator(time))
+    #    return ScalarOperator(generator)
+
+    def __mul__(self, other: ScalarOperator) -> ScalarOperator:
+        generator = lambda time: self._generator(time) * other._generator(time)
+        return ScalarOperator(generator)
+    
+    def __add__(self, other: ScalarOperator) -> ScalarOperator:
+        generator = lambda time: self._generator(time) + other._generator(time)
+        return ScalarOperator(generator)
+
 # Operators as defined here: 
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
 
@@ -180,16 +182,16 @@ class spin:
 
     @classmethod
     def x(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator([degree], "spin_x")
+        return ElementaryOperator("spin_x", [degree])
     @classmethod
     def y(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator([degree], "spin_y")
+        return ElementaryOperator("spin_y", [degree])
     @classmethod
     def z(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator([degree], "spin_z")
+        return ElementaryOperator("spin_z", [degree])
     @classmethod
     def i(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator([degree], "spin_i")
+        return ElementaryOperator("spin_i", [degree])
     
 levels = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 time = 1.0
