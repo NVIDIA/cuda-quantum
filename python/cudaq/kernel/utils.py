@@ -114,27 +114,28 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             'cudaq.kernel functions must have argument type annotations.')
 
     if hasattr(annotation, 'attr'):
-        if annotation.value.id == 'cudaq':
-            if annotation.attr in ['qview', 'qvector']:
-                return quake.VeqType.get(ctx)
-            if annotation.attr in ['State']:
-                return cc.PointerType.get(ctx, cc.StateType.get(ctx))
-            if annotation.attr == 'qubit':
-                return quake.RefType.get(ctx)
-            if annotation.attr == 'pauli_word':
-                return cc.CharspanType.get(ctx)
+        if hasattr(annotation.value, 'id'):
+            if annotation.value.id == 'cudaq':
+                if annotation.attr in ['qview', 'qvector']:
+                    return quake.VeqType.get(ctx)
+                if annotation.attr in ['State']:
+                    return cc.PointerType.get(ctx, cc.StateType.get(ctx))
+                if annotation.attr == 'qubit':
+                    return quake.RefType.get(ctx)
+                if annotation.attr == 'pauli_word':
+                    return cc.CharspanType.get(ctx)
 
-        if annotation.value.id in ['numpy', 'np']:
-            if annotation.attr in ['array', 'ndarray']:
-                return cc.StdvecType.get(ctx, F64Type.get())
-            if annotation.attr == 'complex128':
-                return ComplexType.get(F64Type.get())
-            if annotation.attr == 'complex64':
-                return ComplexType.get(F32Type.get())
-            if annotation.attr == 'float64':
-                return F64Type.get()
-            if annotation.attr == 'float32':
-                return F32Type.get()
+            if annotation.value.id in ['numpy', 'np']:
+                if annotation.attr in ['array', 'ndarray']:
+                    return cc.StdvecType.get(ctx, F64Type.get())
+                if annotation.attr == 'complex128':
+                    return ComplexType.get(F64Type.get())
+                if annotation.attr == 'complex64':
+                    return ComplexType.get(F32Type.get())
+                if annotation.attr == 'float64':
+                    return F64Type.get()
+                if annotation.attr == 'float32':
+                    return F32Type.get()
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
@@ -202,6 +203,11 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
     if id == 'complex':
         return ComplexType.get(F64Type.get())
+
+    if isinstance(annotation, ast.Attribute):
+        # in this case we might have mod1.mod2...mod3.UserType
+        # slurp up the path to the type
+        id = annotation.attr
 
     if id in globalRegisteredTypes:
         _, memberTys = globalRegisteredTypes[id]

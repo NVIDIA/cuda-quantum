@@ -1692,10 +1692,35 @@ def test_custom_kernel_type():
         logicalX(p)
         logicalZ(p)
     
+    # Test here is that it compiles and runs successfully
     print(run)
     run()
 
+    # Test that the class can be in a library 
+    # and the paths all work out 
 
+    import mock.hello 
+    @cudaq.kernel
+    def test(input : mock.hello.TestClass):
+        q = cudaq.qvector(input.i)
+    
+    instance = mock.hello.dtype.TestClass(2, 2.2)
+    state = cudaq.get_state(test, instance)
+    state.dump()
+
+    assert len(state) == 2**instance.i
+
+    # This should work too
+    from mock.hello import TestClass
+    @cudaq.kernel
+    def test(input : TestClass):
+        q = cudaq.qvector(input.i)
+    
+    instance = mock.hello.dtype.TestClass(2, 2.2)
+    state = cudaq.get_state(test, instance)
+    state.dump()
+
+    assert len(state) == 2**instance.i
 
 @skipIfPythonLessThan39
 def test_issue_9():
