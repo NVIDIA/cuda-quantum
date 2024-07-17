@@ -162,7 +162,7 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
       if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {
         // If this is a platform option (platform argument key is provide),
         // forward the value to the platform extra arguments.
-        if (!iter->PlatformArgKey.empty()) {
+        if (!iter->PlatformArgKey.empty() && idx + 1 < targetArgv.size()) {
           platformExtraArgs << ";" << iter->PlatformArgKey << ";"
                             << targetArgv[idx + 1];
         }
