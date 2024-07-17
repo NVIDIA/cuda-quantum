@@ -1710,6 +1710,15 @@ def test_custom_kernel_type():
 
     assert len(state) == 2**instance.i
 
+    # Test invalid struct member
+    @cudaq.kernel
+    def test(input : TestClass):
+        local = input.helloBadMember 
+    
+    with pytest.raises(RuntimeError) as e:
+        test.compile()
+
+
 @skipIfPythonLessThan39
 def test_issue_9():
 

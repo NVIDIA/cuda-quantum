@@ -223,7 +223,7 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
   };
   llvm::TypeSwitch<Type, void>(memberType)
       .Case([&](IntegerType ty) {
-        if (ty.getIntOrFloatBitWidth() == 1) {
+        if (ty.isInteger(1)) {
           appendValue(data, value.cast<py::bool_>(), offset);
           return;
         }
@@ -245,7 +245,7 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
 
         TypeSwitch<Type, void>(ty.getElementType())
             .Case([&](IntegerType type) {
-              if (type.getIntOrFloatBitWidth() == 1) {
+              if (type.isInteger(1)) {
                 appendVectorValue(value, data, offset, bool());
                 return;
               }
@@ -254,7 +254,7 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
               return;
             })
             .Case([&](FloatType type) {
-              if (type.getIntOrFloatBitWidth() == 32) {
+              if (type.isF32()) {
                 appendVectorValue(value, data, offset, float());
                 return;
               }
