@@ -3311,7 +3311,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE">
-<span class="target" id="classcudaq_1_1quantum__platform_1a539157fe29650fe5e5af9afb8db2ad8b"></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_remote_capabilities</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpuId</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1quantum__platform_1a1459a03708bb0236c804148fb6775cbf"></span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_remote_capabilities</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpuId</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the remote capabilities (only applicable for remote platforms) </p>
 </dd></dl>
 
@@ -3389,18 +3389,37 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilitiesE">
 <span class="target" id="structcudaq_1_1RemoteCapabilities"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemoteCapabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>A structure of boolean fields to indicate whether a given remote server as specific capabilities. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Param stateOverlap<span class="colon">:</span></dt>
-<dd class="field-odd"><p>True if the remote can perform state overlap operations. </p>
-</dd>
-<dt class="field-even">Param serializedCodeExec<span class="colon">:</span></dt>
-<dd class="field-even"><p>True if the remote can perform serialized code execution (raw Python commands) </p>
-</dd>
-<dt class="field-odd">Param vqe<span class="colon">:</span></dt>
-<dd class="field-odd"><p>True if the remote can perform an entire VQE operation without and back-and-forth client/server communications. </p>
-</dd>
-</dl>
+<dd><p>A structure of boolean fields to indicate whether a given remote server has specific capabilities. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb">
+<span class="target" id="structcudaq_1_1RemoteCapabilities_1a436f02286cef89972c62bc8e3cc98122"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemoteCapabilities</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">initValue</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructor that broadcasts <code class="docutils literal notranslate"><span class="pre">initValue</span></code> to all fields. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE">
+<span class="target" id="structcudaq_1_1RemoteCapabilities_1a534e4bef1df86badcf37620ec8e41aec"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stateOverlap</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>True if the remote can perform state overlap operations. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities18serializedCodeExecE">
+<span class="target" id="structcudaq_1_1RemoteCapabilities_1a59e51afc4c9baeefbad76528f0291857"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serializedCodeExec</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities18serializedCodeExecE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>True if the remote can perform serialized code execution (raw Python commands). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities3vqeE">
+<span class="target" id="structcudaq_1_1RemoteCapabilities_1a9747aef4cba0c08f8a8c762848663c64"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vqe</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities3vqeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>True if the remote can perform an entire VQE operation without and back-and-forth client/server communications. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
