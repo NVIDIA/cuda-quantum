@@ -133,6 +133,16 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
 # Instantiation of all Python modules
 ################################################################################
 
+file(GLOB_RECURSE PYTHON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
+
+add_custom_target(
+  CopyPythonFiles ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_BINARY_DIR}/python
+  DEPENDS ${PYTHON_SOURCES}
+)
+
 add_mlir_python_modules(CUDAQuantumPythonModules
   ROOT_PREFIX "${MLIR_BINARY_DIR}/python/cudaq/mlir"
   INSTALL_PREFIX "cudaq/mlir"
@@ -146,7 +156,7 @@ add_mlir_python_modules(CUDAQuantumPythonModules
     CUDAQuantumPythonCAPI
   )
 
-file (COPY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
+add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
