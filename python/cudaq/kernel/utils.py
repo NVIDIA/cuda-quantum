@@ -205,7 +205,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         return ComplexType.get(F64Type.get())
 
     if isinstance(annotation, ast.Attribute):
-        # in this case we might have mod1.mod2...mod3.UserType
+        # in this case we might have `mod1.mod2...mod3.UserType`
         # slurp up the path to the type
         id = annotation.attr
 
