@@ -1097,10 +1097,14 @@ class PyASTBridge(ast.NodeVisitor):
             varNames = [node.targets[0].id]
 
         for i, value in enumerate(varValues):
-            if self.isQuantumType(value.type) or self.isMeasureResultType(
-                    value.type, value) or cc.CallableType.isinstance(
-                        value.type):
+            if self.isQuantumType(value.type) or cc.CallableType.isinstance(
+                    value.type):
                 self.symbolTable[varNames[i]] = value
+            elif self.isMeasureResultType(value.type, value):
+                if varNames[i] in self.symbolTable:
+                    cc.StoreOp(value, self.symbolTable[varNames[i]])
+                else:
+                    self.symbolTable[varNames[i]] = value
             elif varNames[i] in self.symbolTable:
                 if varNames[i] in self.capturedVars:
                     self.emitFatalError(
