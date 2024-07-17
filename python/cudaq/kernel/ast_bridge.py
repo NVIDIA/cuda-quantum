@@ -257,7 +257,9 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Return true if the given type is a qubit measurement result type (an i1 type).
         """
-        if not 'quake.discriminate' == value.owner.name:
+        if hasattr(value, 'owner') and hasattr(
+                value.owner,
+                'name') and not 'quake.discriminate' == value.owner.name:
             return False
         return IntegerType.isinstance(ty) and ty == IntegerType.get_signless(1)
 

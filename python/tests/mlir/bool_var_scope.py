@@ -10,17 +10,20 @@
 
 import cudaq
 
+import pytest
 
-@cudaq.kernel
-def test():
-    qubits = cudaq.qvector(2)
-    var_int = 42
-    var_bool = True
+def test_var_scope():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(2)
+        var_int = 42
+        var_bool = True
+
+    print(kernel)
 
 
-print(test)
-
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant true
 # CHECK:           %[[VAL_1:.*]] = arith.constant 42 : i64
 # CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
