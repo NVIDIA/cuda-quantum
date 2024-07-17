@@ -37,6 +37,7 @@ globalAstRegistry = {}
 # Keep a global registry of all registered custom operations.
 globalRegisteredOperations = {}
 
+# Keep a global registry of any custom data types
 globalRegisteredTypes = {}
 
 
@@ -209,6 +210,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         # slurp up the path to the type
         id = annotation.attr
 
+    # One final check to see if this is a custom data type.
     if id in globalRegisteredTypes:
         _, memberTys = globalRegisteredTypes[id]
         structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
