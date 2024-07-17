@@ -718,6 +718,10 @@ public:
 
     // Return true if this FunctionDecl is a quantum kernel.
     static bool isQuantum(const clang::FunctionDecl *decl);
+
+    // Return true if this FunctionDecl is a generator function for custom
+    // operation
+    static bool isCustomOpGenerator(const clang::FunctionDecl *decl);
   };
 
 protected:
