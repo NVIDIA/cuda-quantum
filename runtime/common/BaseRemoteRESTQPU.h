@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/FmtCore.h"
@@ -123,18 +124,6 @@ protected:
                                  const std::string &kernelName) {
     invokeJITKernel(jit, kernelName);
     delete jit;
-  }
-
-  /// @brief Helper function to get boolean environment variable
-  bool getEnvBool(const char *envName, bool defaultVal = false) {
-    if (auto envVal = std::getenv(envName)) {
-      std::string tmp(envVal);
-      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        return true;
-    }
-    return defaultVal;
   }
 
   virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>

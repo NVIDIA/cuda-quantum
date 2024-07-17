@@ -180,13 +180,7 @@ public:
     }
 
     for (auto *op : toErase) {
-      if (op->getUses().empty()) {
-        rewriter.eraseOp(op);
-      } else {
-        op->emitOpError("LiftArrayAlloc failed to remove cc::AllocOp "
-                        "or its uses.");
-        return failure();
-      }
+      rewriter.eraseOp(op);
     }
     return success();
   }
@@ -259,7 +253,9 @@ public:
       return theStore;
     };
 
-    auto ptrArrEleTy = cudaq::cc::PointerType::get(arrTy.getElementType());
+    auto unsizedArrTy = cudaq::cc::ArrayType::get(arrEleTy);
+    auto ptrUnsizedArrTy = cudaq::cc::PointerType::get(unsizedArrTy);
+    auto ptrArrEleTy = cudaq::cc::PointerType::get(arrEleTy);
     for (auto &use : alloc->getUses()) {
       // All uses *must* be a degenerate cc.cast, cc.compute_ptr, or
       // cc.init_state.
@@ -278,6 +274,7 @@ public:
         return false;
       }
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(op)) {
+        // Process casts that are used in store ops.
         if (cast.getType() == ptrArrEleTy) {
           if (auto w = getWriteOp(cast, 0))
             if (!scoreboard[0]) {
@@ -285,6 +282,20 @@ public:
               continue;
             }
           return false;
+        }
+        // Process casts that are used in quake.init_state.
+        if (cast.getType() == ptrUnsizedArrTy) {
+          if (getWriteOp(cast, 0))
+            LLVM_DEBUG(
+                llvm::dbgs()
+                << "unexpected use of array size removing cast in a store"
+                << *op << '\n');
+          continue;
+        }
+        if (isa<quake::InitializeStateOp>(op)) {
+          toGlobalUses.push_back(op);
+          toGlobal = true;
+          continue;
         }
         LLVM_DEBUG(llvm::dbgs() << "unexpected cast: " << *op << '\n');
         toGlobalUses.push_back(op);

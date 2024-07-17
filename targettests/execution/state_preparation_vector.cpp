@@ -6,7 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --enable-mlir                               %s -o %t && %t | FileCheck %s
+// Simulators
+// RUN: nvq++ %cpp_std --enable-mlir --target nvidia %s       -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --enable-mlir --target nvidia-fp64 %s  -o %t && %t | FileCheck %s
+
+// Quantum emulators
 // RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // 2 different IQM machines for 2 different topologies
@@ -18,16 +22,26 @@
 #include <iostream>
 
 __qpu__ void test_complex_constant_array() {
-   cudaq::qvector v(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
+  cudaq::qvector v(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
 }
 
+#ifdef CUDAQ_SIMULATION_SCALAR_FP32
+__qpu__ void test_complex_constant_array_floating_point() {
+  cudaq::qvector v(std::vector<std::complex<float>>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
+}
+#else
+__qpu__ void test_complex_constant_array_floating_point() {
+  cudaq::qvector v(std::vector<std::complex<double>>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
+}
+#endif
+
 __qpu__ void test_complex_constant_array2() {
-   cudaq::qvector v1(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
-   cudaq::qvector v2(std::vector<cudaq::complex>({ 0., 0., M_SQRT1_2, M_SQRT1_2}));
+  cudaq::qvector v1(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
+  cudaq::qvector v2(std::vector<cudaq::complex>({ 0., 0., M_SQRT1_2, M_SQRT1_2}));
 }
 
 __qpu__ void test_complex_constant_array3() {
-   cudaq::qvector v({
+  cudaq::qvector v({
     cudaq::complex(M_SQRT1_2),
     cudaq::complex(M_SQRT1_2),
     cudaq::complex(0.0),
@@ -39,13 +53,43 @@ __qpu__ void test_complex_array_param(std::vector<cudaq::complex> inState) {
   cudaq::qvector q1 = inState;
 }
 
+#ifdef CUDAQ_SIMULATION_SCALAR_FP32
+__qpu__ void test_complex_array_param_floating_point(std::vector<std::complex<float>> inState) {
+  cudaq::qvector q1 = inState;
+}
+#else
+__qpu__ void test_complex_array_param_floating_point(std::vector<std::complex<double>> inState) {
+  cudaq::qvector q1 = inState;
+}
+#endif
+
 __qpu__ void test_real_constant_array() {
   cudaq::qvector v({ M_SQRT1_2, M_SQRT1_2, 0., 0.});
 }
 
+#ifdef CUDAQ_SIMULATION_SCALAR_FP32
+__qpu__ void test_real_constant_array_floating_point() {
+  cudaq::qvector v(std::vector<float>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
+}
+#else
+__qpu__ void test_real_constant_array_floating_point() {
+  cudaq::qvector v(std::vector<double>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
+}
+#endif
+
 __qpu__ void test_real_array_param(std::vector<cudaq::real> inState) {
   cudaq::qvector q1 = inState;
 }
+
+#ifdef CUDAQ_SIMULATION_SCALAR_FP32
+__qpu__ void test_real_array_param_floating_point(std::vector<float> inState) {
+  cudaq::qvector q1 = inState;
+}
+#else
+__qpu__ void test_real_array_param_floating_point(std::vector<double> inState) {
+  cudaq::qvector q1 = inState;
+}
+#endif
 
 void printCounts(cudaq::sample_result& result) {
   std::vector<std::string> values{};
@@ -60,105 +104,155 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
-    {
-      auto counts = cudaq::sample(test_complex_constant_array);
-      printCounts(counts);
-    }
-
-    {
-      auto counts = cudaq::sample(test_complex_constant_array2);
-      printCounts(counts);
-    }
-
-    {
-      auto counts = cudaq::sample(test_complex_constant_array3);
-      printCounts(counts);
-    }
-
-    {
-      auto counts = cudaq::sample(test_real_constant_array);
-      printCounts(counts);
-    }
-
-    {
-      std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
-      std::vector<cudaq::complex> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
-      {
-          // Passing state data as argument (kernel mode)
-          auto counts = cudaq::sample(test_complex_array_param, vec);
-          printCounts(counts);
-
-          counts = cudaq::sample(test_complex_array_param, vec1);
-          printCounts(counts);
-      }
-
-      {
-          // Passing state data as argument (builder mode)
-          auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::complex>>();
-          auto qubits = kernel.qalloc(v);
-
-          auto counts = cudaq::sample(kernel, vec);
-          printCounts(counts);
-
-          counts = cudaq::sample(kernel, vec1);
-          printCounts(counts);
-      }
-    }
-
-    {
-      std::vector<cudaq::real> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
-      std::vector<cudaq::real> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
-      {
-          // Passing state data as argument (kernel mode)
-          auto counts = cudaq::sample(test_real_array_param, vec);
-          printCounts(counts);
-
-          counts = cudaq::sample(test_real_array_param, vec1);
-          printCounts(counts);
-      }
-
-      {
-          // Passing state data as argument (builder mode)
-          auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::real>>();
-          auto qubits = kernel.qalloc(v);
-
-          auto counts = cudaq::sample(kernel, vec);
-          printCounts(counts);
-
-          counts = cudaq::sample(kernel, vec1);
-          printCounts(counts);
-      }
-    }
-}
+  {
+    auto counts = cudaq::sample(test_complex_constant_array);
+    printCounts(counts);
+  }
 
 // CHECK: 00
 // CHECK: 10
+
+  {
+    auto counts = cudaq::sample(test_complex_constant_array_floating_point);
+    printCounts(counts);
+  }
+
+// CHECK: 00
+// CHECK: 10
+
+  {
+    auto counts = cudaq::sample(test_complex_constant_array2);
+    printCounts(counts);
+  }
 
 // CHECK: 0001
 // CHECK: 0011
 // CHECK: 1001
 // CHECK: 1011
 
-// CHECK: 00
-// CHECK: 10
+  {
+    auto counts = cudaq::sample(test_complex_constant_array3);
+    printCounts(counts);
+  }
 
 // CHECK: 00
 // CHECK: 10
 
+  {
+    auto counts = cudaq::sample(test_real_constant_array);
+    printCounts(counts);
+  }
+
 // CHECK: 00
 // CHECK: 10
+
+  {
+    auto counts = cudaq::sample(test_real_constant_array_floating_point);
+    printCounts(counts);
+  }
+
+// CHECK: 00
+// CHECK: 10
+
+  {
+    std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
+    std::vector<cudaq::complex> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
+    {
+        // Passing state data as argument (kernel mode)
+        auto counts = cudaq::sample(test_complex_array_param, vec);
+        printCounts(counts);
+
+// CHECK: 00
+// CHECK: 10
+
+        counts = cudaq::sample(test_complex_array_param, vec1);
+        printCounts(counts);
 
 // CHECK: 01
 // CHECK: 11
+    }
+    {
+        // Passing state data as argument (kernel mode)
+        auto counts = cudaq::sample(test_complex_array_param_floating_point, vec);
+        printCounts(counts);
 
 // CHECK: 00
 // CHECK: 10
 
+        counts = cudaq::sample(test_complex_array_param_floating_point, vec1);
+        printCounts(counts);
+
 // CHECK: 01
 // CHECK: 11
+    }
+
+    {
+        // Passing state data as argument (builder mode)
+        auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::complex>>();
+        auto qubits = kernel.qalloc(v);
+
+        auto counts = cudaq::sample(kernel, vec);
+        printCounts(counts);
 
 // CHECK: 00
 // CHECK: 10
 
+        counts = cudaq::sample(kernel, vec1);
+        printCounts(counts);
+
 // CHECK: 01
 // CHECK: 11
+    }
+  }
+
+  {
+    std::vector<cudaq::real> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
+    std::vector<cudaq::real> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
+    {
+        // Passing state data as argument (kernel mode)
+        auto counts = cudaq::sample(test_real_array_param, vec);
+        printCounts(counts);
+
+// CHECK: 00
+// CHECK: 10
+
+        counts = cudaq::sample(test_real_array_param, vec1);
+        printCounts(counts);
+
+// CHECK: 01
+// CHECK: 11
+    }
+    {
+        // Passing state data as argument (kernel mode)
+        auto counts = cudaq::sample(test_real_array_param_floating_point, vec);
+        printCounts(counts);
+
+// CHECK: 00
+// CHECK: 10
+
+        counts = cudaq::sample(test_real_array_param_floating_point, vec1);
+        printCounts(counts);
+
+// CHECK: 01
+// CHECK: 11
+    }
+
+    {
+        // Passing state data as argument (builder mode)
+        auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::real>>();
+        auto qubits = kernel.qalloc(v);
+
+        auto counts = cudaq::sample(kernel, vec);
+        printCounts(counts);
+
+// CHECK: 00
+// CHECK: 10
+
+        counts = cudaq::sample(kernel, vec1);
+        printCounts(counts);
+
+// CHECK: 01
+// CHECK: 11
+    }
+  }
+}
