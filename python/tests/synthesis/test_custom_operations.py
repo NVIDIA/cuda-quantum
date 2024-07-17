@@ -191,6 +191,20 @@ def test_builder_mode():
     check_bell(kernel)
 
 
+def test_invalid_ctrl():
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def bell():
+        q = cudaq.qubit()
+        custom_x.ctrl(q)
+
+    with pytest.raises(RuntimeError) as error:
+        bell.compile()
+    assert 'controlled operation requested without any control argument(s)' in repr(
+        error)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
