@@ -67,8 +67,8 @@ using measure_result = bool;
 struct unitary_operation {
   /// @brief Given a set of rotation parameters, return
   /// a row-major 1D array representing the unitary operation
-  virtual std::vector<std::complex<double>>
-  unitary(const std::vector<double> &parameters) const = 0;
+  virtual std::vector<std::complex<double>> unitary(
+      const std::vector<double> &parameters = std::vector<double>()) const = 0;
   virtual ~unitary_operation() {}
 };
 
@@ -185,6 +185,9 @@ public:
       return;
     registeredOperations.insert({name, std::make_unique<T>()});
   }
+
+  /// Clear the registered operations
+  virtual void clearRegisteredOperations() { registeredOperations.clear(); }
 
   virtual ~ExecutionManager() = default;
 };

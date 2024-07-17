@@ -883,6 +883,26 @@ skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
     reason='Could not find nvidia-fp64 in installation')
 
 
+def test_state_capture():
+    state = np.array([.70710678, 0., 0., 0.70710678], dtype=complex)
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(state)
+    counts = cudaq.sample(kernel)
+
+    assert '11' in counts
+    assert '00' in counts
+
+    t = state[1]
+    state[1] = state[3]
+    state[3] = t
+
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(state)
+    counts = cudaq.sample(kernel)
+    assert '10' in counts
+    assert '00' in counts
+
+
 @skipIfNvidiaFP64NotInstalled
 def test_from_state0():
     cudaq.set_target('nvidia-fp64')
@@ -1398,6 +1418,26 @@ def test_builder_rotate_state():
     assert '00' in counts
     assert '01' in counts
     assert '10' in counts
+
+
+@skipIfPythonLessThan39
+def test_issue_9():
+
+    kernel, features = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(8)
+    kernel.rx(features[0], qubits[100])
+
+    with pytest.raises(RuntimeError) as error:
+        kernel([3.14])
+
+
+def test_issue_670():
+    
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(1)
+    kernel.ry(0.1, qubits)
+
+    cudaq.sample(kernel)
 
 
 # leave for gdb debugging
