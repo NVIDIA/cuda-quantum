@@ -18,6 +18,7 @@ namespace config {
 /// Flag to enable feature(s) of the unified NVIDIA target.
 // Use bitset so that we can combine different options, e.g., multi-gpu with
 // fp32/64.
+// Use raw enum since we need to use it as a bit set.
 enum TargetFeatureFlag : unsigned {
   flagsFP32 = 0x0001,
   flagsFP64 = 0x0002,
@@ -27,7 +28,7 @@ enum TargetFeatureFlag : unsigned {
 
 /// @brief Configuration argument type annotation
 // e.g., to support type validation.
-enum ArgumentType { String, Int, UUID, FeatureFlag };
+enum class ArgumentType { String, Int, UUID, FeatureFlag };
 
 /// @brief Encapsulates target-specific arguments
 struct TargetArgument {

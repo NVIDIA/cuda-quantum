@@ -250,10 +250,10 @@ void ScalarBitSetTraits<cudaq::config::TargetFeatureFlag>::bitset(
 
 void ScalarEnumerationTraits<cudaq::config::ArgumentType>::enumeration(
     IO &io, cudaq::config::ArgumentType &value) {
-  io.enumCase(value, "string", cudaq::config::String);
-  io.enumCase(value, "integer", cudaq::config::Int);
-  io.enumCase(value, "uuid", cudaq::config::UUID);
-  io.enumCase(value, "option-flags", cudaq::config::FeatureFlag);
+  io.enumCase(value, "string", cudaq::config::ArgumentType::String);
+  io.enumCase(value, "integer", cudaq::config::ArgumentType::Int);
+  io.enumCase(value, "uuid", cudaq::config::ArgumentType::UUID);
+  io.enumCase(value, "option-flags", cudaq::config::ArgumentType::FeatureFlag);
 }
 
 void MappingTraits<cudaq::config::TargetArgument>::mapping(
