@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // Check that we can compile all the targets
 // i.e., all the config files are valid.
 // RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}"; nvq++ %cpp_std --target ${target} %s; done

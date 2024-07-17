@@ -42,7 +42,6 @@ target-arguments:
     platform-arg: api_key 
     help-string: "Specify NVQC API key."
 
-# Can have top-level configuration as well
 config:
   gen-target-backend: true
   platform-library: mqpu
