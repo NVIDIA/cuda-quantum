@@ -186,6 +186,9 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
     The target may only support measuring a single qubit however. This pass
     expands these ops in list format into a series of measurements (including
     loops) on individual qubits and into a single `std::vector<bool>` result.
+
+    The `reset` op can also take a veq argument and this pass will also expand
+    that to a series of `reset` operations on single qubits.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
