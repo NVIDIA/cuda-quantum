@@ -1,6 +1,9 @@
-import numpy
+import numpy, itertools
 from numpy.typing import NDArray
 
+# FIXME: 
+# This BuildIns class is just a stand-in for now - ignore this class; 
+# it will be heavily revised in future iterations.
 class BuiltIns:
     ops = {
         "spin_x": numpy.array([[0,1],[1,0]]),
@@ -35,7 +38,7 @@ class BuiltIns:
         return BuiltIns.pauli_table[row][column]
 
 
-class SimpleOperator():
+class ElementaryOperator():
     pass
 
 class ProductOperator():
@@ -53,111 +56,118 @@ class OperatorSum:
         self._terms = terms
 
     def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
-        degrees = set([op._degree for term in self._terms for op in term._operators])
-        padded_terms = []
+        degrees = set([degree for term in self._terms for op in term._operators for degree in op._degrees])
+        padded_terms = [] # We need to make sure all matrices are of the same size to sum them up.
         for term in self._terms:
             for degree in degrees:
-                if not degree in [op._degree for op in term._operators]:
+                if not degree in [degree for op in term._operators for degree in op._degrees]:
                     term *= spin.i(degree)
             padded_terms.append(term)
         return sum([term.concretize(levels, time) for term in padded_terms])
 
     def __mul__(self, other: OperatorSum):
-        if type(other) == SimpleOperator:
+        if type(other) == ElementaryOperator:
             return self * OperatorSum([ProductOperator([other])])
         elif type(other) == ProductOperator:
             return self * OperatorSum([other])
         return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
     
     def __add__(self, other: OperatorSum):
-        if type(other) == SimpleOperator:
+        if type(other) == ElementaryOperator:
             return self + OperatorSum([ProductOperator([other])])
         elif type(other) == ProductOperator:
             return self + OperatorSum([other])
         return OperatorSum(self._terms + other._terms)
 
 class ProductOperator(OperatorSum):
-    _operators: list[SimpleOperator]
+    _operators: list[ElementaryOperator]
 
-    def __init__(self, operators : list[SimpleOperator]):
+    def __init__(self, operators : list[ElementaryOperator]):
         if len(operators) == 0:
             raise ValueError("Need at least one operator.")
-        operators.sort(key = lambda op: op._degree)
-        for i in range(1, len(operators)):
-            if operators[i]._degree == operators[i-1]._degree:
-                raise ValueError("Multiple operators cannot act on the same degree of freedom.")
         self._operators = operators
         super().__init__([self])
 
     def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
-        matrix = self._operators[0].concretize(levels, time)
+        def generate_all_states(degrees: list[int]):
+            states = [[str(state)] for state in range(levels[degrees[0]])]
+            for d in degrees[1:]:
+                prod = itertools.product(states, [str(state) for state in range(levels[d])])
+                states = [current + [new] for current, new in prod]
+            return [''.join(state) for state in states]
+
+        def padded_matrix(op: ElementaryOperator, degrees: list[int]):
+            op_matrix = op.concretize(levels, time)
+            op_degrees = op._degrees.copy() # Determines the initial qubit ordering of op_matrix.
+            for degree in degrees:
+                if not degree in [d for d in op._degrees]:
+                    op_matrix = numpy.kron(op_matrix, spin.i(degree).concretize(levels, time))
+                    op_degrees.append(degree)
+            # Need to permute the matrix such that the qubit ordering of all matrices is the same.
+            if op_degrees != degrees:
+                # I'm sure there is a more efficient way, but needed something correct first.
+                states = generate_all_states(degrees) # ordered according to degrees
+                indices = dict([(d, idx) for idx, d in enumerate(degrees)])
+                reordering = [indices[op_degree] for op_degree in op_degrees]
+                # [degrees[i] for i in reordering] produces op_degrees
+                op_states = [''.join([state[i] for i in reordering]) for state in states]
+                state_indices = dict([(state, idx) for idx, state in enumerate(states)])
+                permutation = [state_indices[op_state] for op_state in op_states]
+                # [states[i] for i in permutation] produces op_states
+                for i in range(numpy.size(op_matrix, 1)):
+                    op_matrix[:,i] = op_matrix[permutation,i]
+                for i in range(numpy.size(op_matrix, 0)):
+                    op_matrix[i,:] = op_matrix[i,permutation]
+            return op_matrix
+        
+        degrees = list(set([degree for op in self._operators for degree in op._degrees]))
+        degrees.sort() # This sorting determines the qubit ordering of the final matrix.
+        # FIXME: make the overall degrees of the product op accessible?
+        # FIXME: check endianness ...
+        matrix = padded_matrix(self._operators[0], degrees)
         for op in self._operators[1:]:
-            matrix = numpy.kron(matrix, op.concretize(levels, time))
+            matrix = numpy.dot(matrix, padded_matrix(op, degrees))
         return matrix
 
     def __mul__(self, other: ProductOperator):
-        if type(other) == SimpleOperator:
+        if type(other) == ElementaryOperator:
             return self * ProductOperator([other])
         elif type(other) != ProductOperator:
             return OperatorSum([self]) * other
-
-        self_idx, other_idx = 0, 0
-        operators = []
-        # If the two operators don't share a degree of freedom, 
-        # we could just return ProductOperator(self._operators + other._operators).
-        # In the case they share a degree of freedom, we need to take the product
-        # for that degree since a product operator expects unique degrees.
-        # This while loop just takes care of the sorting while we are at it.
-        while self_idx < len(self._operators):
-            while other_idx < len(other._operators) and other._operators[other_idx]._degree < self._operators[self_idx]._degree:
-                operators += [other._operators[other_idx]]
-                other_idx += 1
-            if other_idx < len(other._operators) and other._operators[other_idx]._degree == self._operators[self_idx]._degree:
-                operators += [self._operators[self_idx] * other._operators[other_idx]]
-                other_idx += 1
-            else: 
-                operators += [self._operators[self_idx]]
-            self_idx += 1
-        for other_op in other._operators[other_idx:]:
-            operators += [other_op]
-        return ProductOperator(operators)
+        return ProductOperator(self._operators + other._operators)
 
     def __add__(self, other: ProductOperator):
-        if type(other) == SimpleOperator:
+        if type(other) == ElementaryOperator:
             return self + OperatorSum([other])
         elif type(other) != ProductOperator:
             return OperatorSum([self]) + other
         return OperatorSum([self, other])
 
-class SimpleOperator(ProductOperator):
-    _degree: int
+class ElementaryOperator(ProductOperator):
+    _degrees: list[int]
     _builtin_id: str
 
-    def __init__(self, degree: int, builtin_id: str):
-        self._degree = degree
+    def __init__(self, degrees: list[int], builtin_id: str):
+        self._degrees = degrees
         self._builtin_id = builtin_id
         super().__init__([self])
 
     def concretize(self, levels: dict[int, int], time: float) -> NDArray[complex]:
-        if self._degree not in levels:
-            raise ValueError(f'Missing levels for degree {self._degree}')
+        missing_degrees = [degree not in levels for degree in self._degrees]
+        if any(missing_degrees):
+            raise ValueError(f'Missing levels for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
 
-        if levels[self._degree] != 2:
+        if any([levels[degree] != 2 for degree in self._degrees]):
            raise NotImplementedError() # FIXME
         return BuiltIns.ops[self._builtin_id] # FIXME
 
-    def __mul__(self, other: SimpleOperator):
-        if type(other) != SimpleOperator:
+    def __mul__(self, other: ElementaryOperator):
+        if type(other) != ElementaryOperator:
             return ProductOperator([self]) * other
+        return ProductOperator([self, other])
 
-        if self._degree == other._degree:
-            product_id = BuiltIns.product(self._builtin_id, other._builtin_id)
-            return SimpleOperator(self._degree, product_id)
-        else:
-            return ProductOperator([self, other])
-
-    def __add__(self, other: SimpleOperator):
-        if type(other) != SimpleOperator:
+    def __add__(self, other: ElementaryOperator):
+        if type(other) != ElementaryOperator:
             return ProductOperator([self]) + other
         op1 = ProductOperator([self])
         op2 = ProductOperator([other])
@@ -169,17 +179,17 @@ class SimpleOperator(ProductOperator):
 class spin:
 
     @classmethod
-    def x(cls, degree: int) -> SimpleOperator:
-        return SimpleOperator(degree, "spin_x")
+    def x(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator([degree], "spin_x")
     @classmethod
-    def y(cls, degree: int) -> SimpleOperator:
-        return SimpleOperator(degree, "spin_y")
+    def y(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator([degree], "spin_y")
     @classmethod
-    def z(cls, degree: int) -> SimpleOperator:
-        return SimpleOperator(degree, "spin_z")
+    def z(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator([degree], "spin_z")
     @classmethod
-    def i(cls, degree: int) -> SimpleOperator:
-        return SimpleOperator(degree, "spin_i")
+    def i(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator([degree], "spin_i")
     
 levels = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 time = 1.0
@@ -199,7 +209,6 @@ op4 = ProductOperator([spin.i(1), spin.x(0),])
 print(f'spinX(1) + spinX(0): {op1.concretize(levels, time) + op2.concretize(levels, time)}')
 
 print(f'spinX(0) + spinX(1): {(spin.x(0) + spin.x(1)).concretize(levels, time)}')
-
 print(f'spinX(0) * spinX(1): {(spin.x(0) * spin.x(1)).concretize(levels, time)}')
 print(f'spinX(0) * spinI(1) * spinI(0) * spinX(1): {(op1 * op2).concretize(levels, time)}')
 
@@ -222,3 +231,11 @@ print(f'(spinX(0) + spinX(1)) * (spinZ(0) + spinZ(1)): {(op7 * op8).concretize(l
 
 print(f'spinX(0) * (spinZ(0) + spinZ(1)): {(spin.x(0) * op8).concretize(levels, time)}')
 print(f'(spinZ(0) + spinZ(1)) * spinX(0): {(op8 * spin.x(0)).concretize(levels, time)}')
+
+op9 = spin.z(1) + spin.z(2)
+print(f'(spinX(0) + spinX(1)) * spinI(2): {numpy.kron(op7.concretize(levels, time), spin.i(2).concretize(levels, time))}')
+print(f'(spinX(0) + spinX(1)) * spinI(2): {(op7 * spin.i(2)).concretize(levels, time)}')
+print(f'(spinX(0) + spinX(1)) * spinI(2): {(spin.i(2) * op7).concretize(levels, time)}')
+print(f'spinI(0) * (spinZ(1) + spinZ(2)): {numpy.kron(spin.i(0).concretize(levels, time), op9.concretize(levels, time))}')
+print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(op7 * op9).concretize(levels, time)}')
+
