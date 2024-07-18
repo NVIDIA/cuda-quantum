@@ -52,7 +52,7 @@ std::vector<std::size_t> getControlIndices(std::size_t numBits) {
     // the position where the lth and (l + 1)th bit strings g[l] and g[l+1] of
     // the binary reflected Gray code differ.
     auto position = std::log2(code[i] ^ code[(i + 1) % code.size()]);
-    // N.B: In CUDA Quantum we write the least significant bit (LSb) on the left
+    // N.B: The algorithm expects the least significant bit (LSb) on the left
     //
     //  lsb -v
     //       001
@@ -63,8 +63,8 @@ std::vector<std::size_t> getControlIndices(std::size_t numBits) {
     // numbers with the LSb on the left.
     //
     // Now, what we need to find out is the position of the 1 in the bitstring.
-    // If we take LSb as being position 0, then for the normal convention its
-    // position will be 0. Using CUDA Quantum convention it will be 2. Hence,
+    // If we take LSB as being position 0, then for the normal convention its
+    // position will be 0. Using the algorithm's convention it will be 2. Hence,
     // we need to convert the position we find using:
     //
     // numBits - position - 1
