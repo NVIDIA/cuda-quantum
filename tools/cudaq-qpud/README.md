@@ -37,7 +37,7 @@ instructions to do any testing they would like, but it is recommended that they
 choose a different Docker tag name._
 
 1. Build your NVQC server Docker container using this command: `docker build -t nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom -f docker/release/cudaq.nvqc.Dockerfile .`
-2. Launch the server on your local machine: `docker run -it --rm --gpus all --network=host -e NVQC_REST_PAYLOAD_VERSION=1 -e NUM_GPUS=1 -e WATCHDOG_TIMEOUT_SEC=3600 -e RUN_AS_NOBODY=1 nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom`
+2. Launch the server on your local machine: `docker run -it --rm --gpus all --network=host -e NVQC_REST_PAYLOAD_VERSION=1.1 -e NUM_GPUS=1 -e WATCHDOG_TIMEOUT_SEC=3600 -e RUN_AS_NOBODY=1 nvcr.io/pnyjrcojiblh/cuda-quantum/cuda-quantum:custom`
    - Note: You need to set the environment variables as intended for your
     environment. If you are running on a multi-GPU machine, you may
     want to set `NUM_GPUS=4` (updating `4` to the correct number for your

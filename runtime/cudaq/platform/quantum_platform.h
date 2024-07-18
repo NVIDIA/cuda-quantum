@@ -11,6 +11,7 @@
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
@@ -116,16 +117,12 @@ public:
   /// @brief Return true if QPU is locally emulating a remote QPU
   bool is_emulated(const std::size_t qpuId = 0) const;
 
-  /// @brief Return whether the QPU has support for fully remote VQE execution
-  bool supports_remote_vqe(const std::size_t qpuId = 0) const;
-
   /// @brief Set the noise model for future invocations of
   /// quantum kernels.
   void set_noise(const noise_model *model);
 
-  /// @brief Return whether the QPU has support for remote serialized code
-  /// execution
-  bool supports_remote_serialized_code(const std::size_t qpuId = 0) const;
+  /// @brief Get the remote capabilities (only applicable for remote platforms)
+  RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
 
   /// @brief Turn off any noise models.
   void reset_noise();
