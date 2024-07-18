@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quantum Fourier Transform &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Water Molecule with Active Space (CPU vs. GPU) &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Cost Minimization" href="cost_minimization.html" />
-    <link rel="prev" title="Deutsch’s Algorithm" href="deutschs_algorithm.html" /> 
+    <link rel="next" title="CUDA-Q Backends" href="../../../using/backends/backends.html" />
+    <link rel="prev" title="Readout Error Mitigation" href="readout_error_mitigation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -168,8 +168,8 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Fourier Transform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
@@ -196,9 +196,9 @@
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="vqe_water_active_space.html">Water Molecule with Active Space (CPU vs. GPU)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#A--Classical-simulation-as-a-reference:-CCSD">A- Classical simulation as a reference: CCSD</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Water Molecule with Active Space (CPU vs. GPU)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#A--Classical-simulation-as-a-reference:-CCSD">A- Classical simulation as a reference: CCSD</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
 </ul>
@@ -526,275 +526,202 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Quantum Fourier Transform</li>
+      <li class="breadcrumb-item active">Water Molecule with Active Space (CPU vs. GPU)</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/examples/python/tutorials/quantum_fourier_transform.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/examples/python/tutorials/vqe_water_active_space.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="deutschs_algorithm.html" class="btn btn-neutral float-left" title="Deutsch’s Algorithm" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="readout_error_mitigation.html" class="btn btn-neutral float-left" title="Readout Error Mitigation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Quantum-Fourier-Transform">
-<h1>Quantum Fourier Transform<a class="headerlink" href="#Quantum-Fourier-Transform" title="Permalink to this heading">¶</a></h1>
-<p>Classical Fourier transforms aid many areas such as signal processing and data compression. Below, we quantize it to enable Quantum Fourier Transforms (QFT) in CUDA-Q.</p>
-<p>QFT is a key ingredient in Shor’s algorithm which is exponentially faster at factoring prime numbers and also plays a vital role in many other interesting quantum algorithms.</p>
-<p>The idea with classical Fourier transforms is to take the problem from the frequency domain, to the time domain where it is easier to solve. This is the same analogy we draw with QFT, where we take the basis state from the computational basis to the Fourier basis.</p>
-<p>The Quantum Fourier Transform is defined to be the linear operation which takes a basis state, <span class="math notranslate nohighlight">\(\ket{x}\)</span>,</p>
-<div class="math notranslate nohighlight">
-\[\begin{equation}
-\text{QFT}\ket{x}  =   \frac{1}{\sqrt{N}}\sum_{y=0}^{N-1} e^{\frac{2\pi ixy}{N}} \ket{y}
-\tag{1}
-\end{equation}\]</div>
-<p>where <span class="math notranslate nohighlight">\(n\)</span> is the number of qubits and <span class="math notranslate nohighlight">\(N= 2^n\)</span>.</p>
-<p>It is convenient to represent states like <span class="math notranslate nohighlight">\(\ket{x} = \ket{101}\)</span> in their binary representation which in this case would be <span class="math notranslate nohighlight">\(2^2 \times 1 + 2^1 \times 0 + 2^0 \times 1 = \ket{5}\)</span>.</p>
-<p>For the <span class="math notranslate nohighlight">\(n=1\)</span> qubit case, we have the following basis states: <span class="math notranslate nohighlight">\(\ket{0}, \ket{1}\)</span>. The QFT on these is as follows:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{equation}
-\begin{aligned}
-\text{QFT}|0\rangle &amp;= \frac{1}{\sqrt{2}}\sum_{y=0}^{2-1} e^{\frac{2\pi i(0)y}{2}}|y\rangle \\
-&amp;= \frac{1}{\sqrt{2}}\left(e^0|0\rangle + e^0|1\rangle\right) \\
-&amp;= \frac{1}{\sqrt{2}}(|0\rangle + |1\rangle) \\
-&amp;= \ket{+} \\
-\end{aligned}
-\tag{2}
-\end{equation}\end{split}\]</div>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{equation}
-\begin{aligned}
-\text{QFT}|1\rangle &amp;= \frac{1}{\sqrt{2}}\sum_{y=0}^{2-1} e^{\frac{2\pi i(1)y}{2}}|y\rangle \\
-&amp;= \frac{1}{\sqrt{2}}\left(e^0|0\rangle + e^{\pi i}|1\rangle\right) \\
-&amp;= \frac{1}{\sqrt{2}}(|0\rangle - |1\rangle) \\
-&amp;= \ket{-} \\
-\end{aligned}
-\tag{3}
-\end{equation}\end{split}\]</div>
-<p>To summarize, <span class="math notranslate nohighlight">\(\text{QFT}|0\rangle = \ket{+}\)</span> and <span class="math notranslate nohighlight">\(\text{QFT}|1\rangle = \ket{-}\)</span> which can be achieved by applying Hadamard gates.</p>
-<p>Let us now extend this and see how we can apply this to <span class="math notranslate nohighlight">\(n=3\)</span> qubits.</p>
-<p>For <span class="math notranslate nohighlight">\(n=3, N = 2^3 = 8\)</span> and we would like to perform <span class="math notranslate nohighlight">\(\text{QFT}|101\rangle\)</span> which in binary is <span class="math notranslate nohighlight">\(2^2 \times 1 + 2^1 \times 0 + 2^0 \times 1 = 5\)</span>:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{equation}
-\begin{aligned}
-\text{QFT}|101\rangle = \text{QFT}|5\rangle &amp;= \frac{1}{\sqrt{8}}\sum_{y=0}^{8-1} e^{\frac{2\pi i(5)y}{8}}|y\rangle \\
-&amp;= \frac{1}{\sqrt{8}} [ e^{0}\ket{0} + e^{\frac{5i\pi (1)}{4}}\ket{1}  + e^{\frac{5i\pi (2)}{4}}\ket{2} +...++ e^{\frac{5i\pi (7)}{4}}\ket{7} ]   \\
-&amp;= \frac{1}{\sqrt{8}} [ \ket{000} + e^{\frac{5i\pi (1)}{4}}\ket{001}  + e^{\frac{5i\pi (2)}{4}}\ket{010} +...++ e^{\frac{5i\pi (7)}{4}}\ket{111} ]   \\
-&amp;=  (0.35+0i) \ket{000} + (-0.25-0.25i)\ket{001}  + (0+0.35i)\ket{010} +...+ (-0.25+0.25i)\ket{111}    \\
-\end{aligned}
-\tag{4}
-\end{equation}\end{split}\]</div>
-<p>where we have used the fact that <span class="math notranslate nohighlight">\(e^{i\theta} = \cos(\theta) + i\sin(\theta).\)</span></p>
-<p>Here, we see how in addition to the Hadamard gates, we need some phase gates to apply the appropriate phases to the basis states. It turns out that the gate we need is the controlled <span class="math notranslate nohighlight">\(R_k\)</span> rotation where the <span class="math notranslate nohighlight">\(R_k\)</span> gate is denoted by:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{equation}
-R_k = \begin{bmatrix}
-1 &amp; 0 \\
-0 &amp; e^{2\pi i/ 2^{k}}
-\end{bmatrix}
-\tag{5}
-\end{equation}\end{split}\]</div>
-<p>Here is a generalized ciruit for a <span class="math notranslate nohighlight">\(n\)</span>-qubit quantum Fourier transform:</p>
-<p><img alt="qft" class="no-scaled-link" src="../../../_images/qft.png" style="width: 600px;" /></p>
-<p>Below we show the code for a QFT implementation in CUDA-Q based on the circuit diagram above:</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+  <section id="Water-Molecule-with-Active-Space-(CPU-vs.-GPU)">
+<h1>Water Molecule with Active Space (CPU vs. GPU)<a class="headerlink" href="#Water-Molecule-with-Active-Space-(CPU-vs.-GPU)" title="Permalink to this heading">¶</a></h1>
+<section id="A--Classical-simulation-as-a-reference:-CCSD">
+<h2>A- Classical simulation as a reference: CCSD<a class="headerlink" href="#A--Classical-simulation-as-a-reference:-CCSD" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># You should install pyscf</span>
+<span class="c1"># pip install pyscf</span>
+
+<span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">mcscf</span><span class="p">,</span> <span class="n">cc</span>
+
+<span class="n">geometry</span> <span class="o">=</span><span class="s1">&#39;O 0.1173 0.0 0.0; H -0.4691 0.7570 0.0; H -0.4691 -0.7570 0.0&#39;</span>
+<span class="n">mol</span><span class="o">=</span><span class="n">gto</span><span class="o">.</span><span class="n">M</span><span class="p">(</span>
+    <span class="n">atom</span> <span class="o">=</span> <span class="n">geometry</span><span class="p">,</span>
+    <span class="n">spin</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">basis</span> <span class="o">=</span> <span class="s1">&#39;631g&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">myhf</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">RHF</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+<span class="n">myhf</span><span class="o">.</span><span class="n">max_cycle</span><span class="o">=</span><span class="mi">100</span>
+<span class="n">myhf</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+<span class="n">nelec</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">nelectron</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of electrons = &#39;</span><span class="p">,</span> <span class="n">nelec</span><span class="p">)</span>
+<span class="n">norb</span> <span class="o">=</span> <span class="n">myhf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of orbitals = &#39;</span><span class="p">,</span> <span class="n">norb</span><span class="p">)</span>
+
+<span class="n">norb_cas</span><span class="p">,</span> <span class="n">nele_cas</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">mycasci</span> <span class="o">=</span> <span class="n">mcscf</span><span class="o">.</span><span class="n">CASCI</span><span class="p">(</span><span class="n">myhf</span><span class="p">,</span> <span class="n">norb_cas</span><span class="p">,</span> <span class="n">nele_cas</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ncore occupied orbitals = &#39;</span><span class="p">,</span> <span class="n">mycasci</span><span class="o">.</span><span class="n">ncore</span><span class="p">)</span>
+
+<span class="n">frozen</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frozen</span> <span class="o">+=</span> <span class="p">[</span><span class="n">y</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">mycasci</span><span class="o">.</span><span class="n">ncore</span><span class="p">)]</span>
+<span class="n">frozen</span> <span class="o">+=</span> <span class="p">[</span><span class="n">y</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mycasci</span><span class="o">.</span><span class="n">ncore</span><span class="o">+</span><span class="n">norb_cas</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mycasci</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">))]</span>
+<span class="n">mycc</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">CCSD</span><span class="p">(</span><span class="n">myhf</span><span class="p">,</span><span class="n">frozen</span><span class="o">=</span><span class="n">frozen</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total CCSD energy for active space Hamiltonian = &#39;</span><span class="p">,</span> <span class="n">mycc</span><span class="o">.</span><span class="n">e_tot</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+converged SCF energy = -75.983975537279
+Total number of electrons =  10
+Total number of orbitals =  13
+ncore occupied orbitals =  3
+E(CCSD) = -75.98508980454687  E_corr = -0.001114267267875347
+Total CCSD energy for active space Hamiltonian =  -75.98508980454687
+
+</pre></div></div>
+</div>
+</section>
+<section id="B--VQE-UCCSD:">
+<h2>B- VQE-UCCSD:<a class="headerlink" href="#B--VQE-UCCSD:" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># You should install:</span>
+<span class="c1"># pip install openfermion</span>
+<span class="c1"># pip install openfermionpyscf</span>
+
+<span class="kn">import</span> <span class="nn">openfermion</span>
+<span class="kn">import</span> <span class="nn">openfermionpyscf</span>
+<span class="kn">from</span> <span class="nn">openfermion.transforms</span> <span class="kn">import</span> <span class="n">jordan_wigner</span><span class="p">,</span> <span class="n">get_fermion_operator</span>
+
+<span class="kn">import</span> <span class="nn">timeit</span>
+
+
+<span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 
+<span class="c1"># GPU</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-fp64&quot;</span><span class="p">)</span>
+<span class="c1"># CPU</span>
+<span class="c1">#cudaq.set_target(&quot;qpp-cpu&quot;)</span>
+
+<span class="c1"># 1- Classical pre-processing:</span>
+
+<span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.1173</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4691</span><span class="p">,</span><span class="mf">0.7570</span><span class="p">,</span><span class="mf">0.0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4691</span><span class="p">,</span><span class="o">-</span><span class="mf">0.7570</span><span class="p">,</span><span class="mf">0.0</span><span class="p">))]</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s1">&#39;631g&#39;</span>
+<span class="n">multiplicity</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">ncore</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">norb_cas</span><span class="p">,</span> <span class="n">nele_cas</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+
+<span class="n">molecule</span> <span class="o">=</span> <span class="n">openfermionpyscf</span><span class="o">.</span><span class="n">run_pyscf</span><span class="p">(</span><span class="n">openfermion</span><span class="o">.</span><span class="n">MolecularData</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">,</span><span class="n">charge</span><span class="p">))</span>
+
+<span class="n">molecular_hamiltonian</span> <span class="o">=</span> <span class="n">molecule</span><span class="o">.</span><span class="n">get_molecular_hamiltonian</span><span class="p">(</span>
+        <span class="n">occupied_indices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">ncore</span><span class="p">),</span> <span class="n">active_indices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">ncore</span><span class="p">,</span> <span class="n">ncore</span> <span class="o">+</span> <span class="n">norb_cas</span><span class="p">))</span>
+
+<span class="n">fermion_hamiltonian</span> <span class="o">=</span> <span class="n">get_fermion_operator</span><span class="p">(</span><span class="n">molecular_hamiltonian</span><span class="p">)</span>
+<span class="n">qubit_hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner</span><span class="p">(</span><span class="n">fermion_hamiltonian</span><span class="p">)</span>
+
+<span class="n">spin_ham</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">qubit_hamiltonian</span><span class="p">)</span>
+
+<span class="c1"># 2- Quantum computing using UCCSD ansatz</span>
+
+<span class="n">electron_count</span> <span class="o">=</span> <span class="n">nele_cas</span>
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">norb_cas</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">quantum_fourier_transform</span><span class="p">(</span><span class="n">input_state</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
-<span class="sd">    input_state (list[int]): specifies the input state to be Fourier transformed.  &#39;&#39;&#39;</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+        <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
 
-    <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_state</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_num</span><span class="p">):</span>
+                <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-    <span class="c1"># Initialize qubits.</span>
-    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+        <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
 
-    <span class="c1"># Initialize the quantum circuit to the initial state.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">input_state</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span><span class="n">qubit_count</span><span class="p">)</span>
 
-    <span class="c1"># Apply Hadamard gates and controlled rotation gates.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
-        <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
-            <span class="n">angle</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-            <span class="n">cr1</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="p">[</span><span class="n">qubits</span><span class="p">[</span><span class="n">j</span><span class="p">]],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<span class="c1"># Define a function to minimize</span>
+<span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+
+        <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">exp_val</span>
+
+
+<span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
+        <span class="n">exp_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">(</span><span class="n">xk</span><span class="p">))</span>
+
+<span class="c1"># Initial variational parameters.</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
+
+<span class="c1"># Use the scipy optimizer to minimize the function of interest</span>
+<span class="n">start_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;COBYLA&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">300</span><span class="p">})</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;UCCSD-VQE energy =  &#39;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Pyscf-CCSD energy = &#39;</span><span class="p">,</span> <span class="n">mycc</span><span class="o">.</span><span class="n">e_tot</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of qubits = &#39;</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of parameters = &#39;</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of terms in the spin hamiltonian = &#39;</span><span class="p">,</span><span class="n">spin_ham</span><span class="o">.</span><span class="n">get_term_count</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total elapsed time (s) = &#39;</span><span class="p">,</span> <span class="n">end_time</span><span class="o">-</span><span class="n">start_time</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">exp_vals</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Epochs&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Energy&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;VQE&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
-</pre></div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Can be changed to &#39;nvidia&#39; for single gpu, &#39;nvidia-mgpu&#39; for multi-GPU or quantum hardware.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
-
-<span class="c1"># The state to which the QFT operation is applied to. The zeroth element in the list is the zeroth qubit.</span>
-<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-
-<span class="c1"># Number of decimal points to round up the statevector to.</span>
-<span class="n">precision</span> <span class="o">=</span> <span class="mi">2</span>
-
-<span class="c1"># Draw the quantum circuit.</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
-
-<span class="c1"># Print the statevector to the specified precision</span>
-<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">statevector</span><span class="p">,</span> <span class="n">precision</span><span class="p">))</span>
-</pre></div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/tmp/ipykernel_317959/2228520842.py:39: ComplexWarning: Casting complex values to real discards the imaginary part
+  spin_ham = cudaq.SpinOperator(qubit_hamiltonian)
+</pre></div></div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+UCCSD-VQE energy =   -75.98415928173226
+Pyscf-CCSD energy =  -75.98508980454687
+Total number of qubits =  8
+Total number of parameters =  26
+Total number of terms in the spin hamiltonian =  105
+Total elapsed time (s) =  12.730307687073946
+</pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<div class="highlight"><pre>
-     ╭───╮╭───╮╭───────────╮╭────────────╮
-q0 : ┤ x ├┤ h ├┤ r1(1.571) ├┤ r1(0.7854) ├───────────────────────
-     ╰───╯╰───╯╰─────┬─────╯╰─────┬──────╯╭───╮╭───────────╮
-q1 : ────────────────●────────────┼───────┤ h ├┤ r1(1.571) ├─────
-     ╭───╮                        │       ╰───╯╰─────┬─────╯╭───╮
-q2 : ┤ x ├────────────────────────●──────────────────●──────┤ h ├
-     ╰───╯                                                  ╰───╯
-
-[ 0.35+0.j   -0.25-0.25j  0.  +0.35j  0.25-0.25j -0.35+0.j    0.25+0.25j
- -0.  -0.35j -0.25+0.25j]
-</pre></div></div>
+<img alt="../../../_images/examples_python_tutorials_vqe_water_active_space_3_2.png" src="../../../_images/examples_python_tutorials_vqe_water_active_space_3_2.png" />
 </div>
-<p>We can verify that this is the correct answer as above we worked out that:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{equation}
-\begin{aligned}
-\text{QFT}|101\rangle = \text{QFT}|5\rangle &amp;= \frac{1}{\sqrt{8}}\sum_{y=0}^{8-1} e^{\frac{2\pi i(5)y}{8}}|y\rangle \\
-&amp;=  (0.35+0i) \ket{000} + (-0.25-0.25i)\ket{001}  + (0+0.35i)\ket{010} +...+ (-0.25+0.25i)\ket{111}.   \\
-\end{aligned}
-\tag{6}
-\end{equation}\end{split}\]</div>
-<p>Barring the gates used in the state preparation step, the circuit starts off by implementing a Hadamard gate and then <span class="math notranslate nohighlight">\(n-1\)</span> rotations on the zeroth qubit - a total of <span class="math notranslate nohighlight">\(n\)</span> gates. This is followed by a Hadamard and <span class="math notranslate nohighlight">\(n-2\)</span> conditional rotations on the first qubit which totals to <span class="math notranslate nohighlight">\(n -1\)</span> gates. If we continue the series, we get <span class="math notranslate nohighlight">\(n + (n-1) + (n-2)... = n(n+1)/2\)</span> gates. Hence, this circuit provides an algorithm with <span class="math notranslate nohighlight">\(O(n^2)\)</span> gates for computing the QFT.</p>
-<p>The best classical algorithms for computing fast Fourier transforms on <span class="math notranslate nohighlight">\(2^{n}\)</span> elements require <span class="math notranslate nohighlight">\(O(n2^{n})\)</span> gates. This means that it requires exponentially more operations to compute the fast Fourier transform on a classical computer than it does to implement the QFT on a quantum computer.</p>
-<p>Why are we not using QFT for real life applications then? The problem lies in quantum measurement. The quantum-Fourier-transformed amplitudes cannot be accessed by quantum measurement. However there are other quantum algorithms that do make use of QFT such as Shor’s algorithm.</p>
-<p>One can also invert the QFT where the circuit is executed in reverse with the inverse of each gate. The figure below shows the general <span class="math notranslate nohighlight">\(n\)</span>-qubit inverse QFT. Why don’t you try implementing this in CUDA-Q?</p>
-<p><img alt="qft" class="no-scaled-link" src="../../../_images/inverse_qft.png" style="width: 600px;" /></p>
-<section id="Quantum-Fourier-Transform-revisited">
-<h2>Quantum Fourier Transform revisited<a class="headerlink" href="#Quantum-Fourier-Transform-revisited" title="Permalink to this heading">¶</a></h2>
-<p>We provided one implementation of the Quantum Fourier Transform above. To demonstrate some of the other features of CUDA-Q, let’s define a new kernel for the Quantum Fourier Transform, which we’ll call <code class="docutils literal notranslate"><span class="pre">quantum_fourier_transform2</span></code>. Pay attention to how the kernel definition differs from the example above.</p>
-<p>Since the Quantum Fourier Transform is a unitary operator, its inverse is its adjoint. Therefore, once we have implemented the Quantum Fourier Transform as a kernel in CUDA-Q, we can use the built-in <code class="docutils literal notranslate"><span class="pre">adjoint</span></code> operation to create the Inverse Quantum Fourier Transform.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernels for the Quantum Fourier Transform and the Inverse Quantum Fourier Transform</span>
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">quantum_fourier_transform2</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
-<span class="sd">    qubits (cudaq.qview): specifies the quantum register to which apply the QFT.&#39;&#39;&#39;</span>
-    <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
-    <span class="c1"># Apply Hadamard gates and controlled rotation gates.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
-        <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
-            <span class="n">angle</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-            <span class="n">cr1</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="p">[</span><span class="n">qubits</span><span class="p">[</span><span class="n">j</span><span class="p">]],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
-<span class="sd">    qubits (cudaq.qview): specifies the quantum register to which apply the inverse QFT.&#39;&#39;&#39;</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">adjoint</span><span class="p">(</span><span class="n">quantum_fourier_transform2</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<p>Let’s see that this approach gives us the same results as the section above.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">verification_example</span><span class="p">(</span><span class="n">input_state</span> <span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;Args:</span>
-<span class="sd">    input_state (list[int]): specifies the input state to be transformed with QFT and the inverse QFT.  &#39;&#39;&#39;</span>
-    <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_state</span><span class="p">)</span>
-    <span class="c1"># Initialize qubits.</span>
-    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-
-    <span class="c1"># Initialize the quantum circuit to the initial state.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">input_state</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-    <span class="c1"># Apply the quantum Fourier Transform</span>
-    <span class="n">quantum_fourier_transform2</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
-
-    <span class="c1"># Apply the inverse quantum Fourier Transform</span>
-    <span class="n">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
-
-<span class="c1"># The state to which the QFT operation is applied to. The zeroth element in the list is the zeroth qubit.</span>
-<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-
-
-<span class="c1"># Number of decimal points to round up the statevector to.</span>
-<span class="n">precision</span> <span class="o">=</span> <span class="mi">2</span>
-
-
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
-
-<span class="c1"># Print the statevector to the specified precision</span>
-<span class="n">statevector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">verification_example</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">statevector</span><span class="p">,</span> <span class="n">precision</span><span class="p">))</span> <span class="c1"># The result should be the input state</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-     ╭───╮╭───╮╭─────────╮╭──────────╮                                      »
-q0 : ┤ x ├┤ h ├┤ r1(1.5) ├┤ r1(0.75) ├──────────────────────────────────────»
-     ╰───╯╰───╯╰────┬────╯╰────┬─────╯╭───╮╭─────────╮          ╭──────────╮»
-q1 : ───────────────●──────────┼──────┤ h ├┤ r1(1.5) ├──────────┤ r1(-1.5) ├»
-     ╭───╮                     │      ╰───╯╰────┬────╯╭───╮╭───╮╰────┬─────╯»
-q2 : ┤ x ├─────────────────────●────────────────●─────┤ h ├┤ h ├─────●──────»
-     ╰───╯                                            ╰───╯╰───╯            »
-
-################################################################################
-
-     ╭───────────╮╭──────────╮╭───╮
-─────┤ r1(-0.75) ├┤ r1(-1.5) ├┤ h ├
-╭───╮╰─────┬─────╯╰────┬─────╯╰───╯
-┤ h ├──────┼───────────●───────────
-╰───╯      │
-───────────●───────────────────────
-
-
-[0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 1.-0.j 0.-0.j 0.+0.j]
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408cbf595ce6fe5f33dcd8b4c)
-</pre></div></div>
 </div>
 </section>
 </section>
@@ -803,8 +730,8 @@ CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="deutschs_algorithm.html" class="btn btn-neutral float-left" title="Deutsch’s Algorithm" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="readout_error_mitigation.html" class="btn btn-neutral float-left" title="Readout Error Mitigation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
