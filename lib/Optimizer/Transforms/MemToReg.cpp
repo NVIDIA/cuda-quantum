@@ -331,6 +331,11 @@ public:
     return addLiveInToBlock(block, mr);
   }
 
+  void maybeAddBalancedLiveInToBlock(Block *block, MemRef mr) {
+    if (liveOutSet.count(mr))
+      maybeAddLiveInToBlock(block, mr);
+  }
+
   /// Record the memory reference \p mr as live-in to \p block. The live-in
   /// value is specified as \p val. Consequently, \p val \em{must dominate} \p
   /// block.
@@ -957,6 +962,8 @@ public:
       auto *block = term->getBlock();
       for (auto liveOut : bindings) {
         if (dataFlow.hasBinding(block, liveOut)) {
+          if (!isFunctionBlock(block) && !usePromo && !onlyLinear)
+            dataFlow.maybeAddBalancedLiveInToBlock(block, liveOut);
           auto oldVal = dataFlow.getBinding(block, liveOut);
           addTerminatorArgument(term, target, oldVal);
         } else if ((usePromo ||
