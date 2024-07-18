@@ -1,8 +1,4 @@
-import itertools, numpy
-from copy import copy
-from functools import update_wrapper
-from types import FunctionType
-from inspect import Parameter, signature
+import inspect, itertools, numpy
 from numbers import Number
 from typing import Callable
 from numpy.typing import NDArray
@@ -198,7 +194,7 @@ class ScalarOperator(ProductOperator):
     # The generator must must return a numeric value.
     def __init__(self, generator: Callable):
         self._degrees = []
-        self._generator = generator
+        self.generator = generator # Don't set self._generator directly; the setter validates the value.
         super().__init__([self])
 
     @property
@@ -207,33 +203,53 @@ class ScalarOperator(ProductOperator):
 
     @generator.setter
     def generator(self, generator: Callable):
+        # A variable number of arguments (i.e. *args) cannot be supported
+        # for generators; it would prevent proper argument handling while 
+        # supporting additions and multiplication of all kinds of operators.
+        arg_spec = inspect.getfullargspec(generator)
+        if arg_spec.varargs is not None:
+            raise ValueError("The generator for a ScalarOperator must not have an *args argument.")
         self._generator = generator
 
     def _args_from_kwargs(fct, **kwargs):
-        args = []
-        for arg_name in signature(fct).parameters:
+        arg_spec = inspect.getfullargspec(fct)
+        consumes_kwargs = arg_spec.varkw is not None
+        if consumes_kwargs:
+            kwargs = kwargs.copy() # We will modify and return a copy
+
+        def find_in_kwargs(arg_name: str):
             # Try to get the argument from the kwargs passed to concretize.
             arg_value = kwargs.get(arg_name)
             if arg_value is None:
                 # If no suitable keyword argument was defined, check if the 
                 # generator defines a default value for this argument.
-                default_value = signature(fct).parameters[arg_name].default
-                if default_value is not Parameter.empty:
+                default_value = inspect.signature(fct).parameters[arg_name].default
+                if default_value is not inspect.Parameter.empty:
                     arg_value = default_value
-            # We use underscore as a means to indicate arguments that may be None.
-            if arg_value is None and not arg_name.startswith("_"):
+            elif consumes_kwargs:
+                del kwargs[arg_name]
+            if arg_value is None:
                 raise ValueError(f'Missing keyword argument {arg_name}.')
-            args.append(arg_value)
-        return args
+            return arg_value
 
+        extracted_args = []
+        for arg_name in arg_spec.args:
+            extracted_args.append(find_in_kwargs(arg_name))
+        if consumes_kwargs:
+            return extracted_args, kwargs
+        elif len(arg_spec.kwonlyargs) > 0:
+            # If we can't pass all remaining kwargs, 
+            # we need to create a separate dictionary for kwonlyargs.
+            kwonlyargs = {}
+            for arg_name in arg_spec.kwonlyargs:
+                kwonlyargs[arg_name] = find_in_kwargs(arg_name)
+            return extracted_args, kwonlyargs
+        return extracted_args, {}
+    
     # The argument `levels` here is only passed for consistency with parent classes.
     def concretize(self, levels: dict[int, int] = None, **kwargs):
-        parameter_names = [key for key in signature(self._generator).parameters]
-        if parameter_names == ["kwargs"]:
-            evaluated = self._generator(**kwargs)
-        else:
-            generator_args = ScalarOperator._args_from_kwargs(self._generator, **kwargs)
-            evaluated = self._generator(*generator_args)
+        generator_args, remaining_kwargs = ScalarOperator._args_from_kwargs(self._generator, **kwargs)
+        evaluated = self._generator(*generator_args, **remaining_kwargs)
         if not isinstance(evaluated, Number):
             raise ValueError("Generator of ScalarOperator must return a number.")
         return evaluated
@@ -241,19 +257,13 @@ class ScalarOperator(ProductOperator):
     def __mul__(self, other: ScalarOperator) -> ScalarOperator:
         if type(other) != ScalarOperator:
             return ProductOperator([self]) * other
-        def generator(**kwargs):
-            self_args = ScalarOperator._args_from_kwargs(self._generator, **kwargs)
-            other_args = ScalarOperator._args_from_kwargs(other._generator, **kwargs)
-            return self.generator(*self_args) * other._generator(*other_args)
+        generator = lambda **kwargs: self.concretize(**kwargs) * other.concretize(**kwargs)
         return ScalarOperator(generator)
     
     def __add__(self, other: ScalarOperator) -> ScalarOperator:
         if type(other) != ScalarOperator:
             return ProductOperator([self]) + other
-        def generator(**kwargs):
-            self_args = ScalarOperator._args_from_kwargs(self._generator, **kwargs)
-            other_args = ScalarOperator._args_from_kwargs(other._generator, **kwargs)
-            return self.generator(*self_args) + other._generator(*other_args)
+        generator = lambda **kwargs: self.concretize(**kwargs) + other.concretize(**kwargs)
         return ScalarOperator(generator)
 
 class spin:
@@ -318,7 +328,7 @@ print(f'(spinX(0) + spinX(1)) * spinI(2): {(spin.i(2) * op7).concretize(levels)}
 print(f'spinI(0) * (spinZ(1) + spinZ(2)): {numpy.kron(spin.i(0).concretize(levels), op9.concretize(levels))}')
 print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(op7 * op9).concretize(levels)}')
 
-so0 = ScalarOperator(lambda _: 1.0j)
+so0 = ScalarOperator(lambda: 1.0j)
 print(f'Scalar op (t -> 1.0)(): {so0.concretize()}')
 
 so1 = ScalarOperator(lambda t: t)
@@ -352,9 +362,19 @@ print(f'spinZ(0) * (t -> t^2)(2.): {op11.concretize(levels, t = 2.)}')
 so3 = ScalarOperator(lambda t: 1./t)
 so4 = ScalarOperator(lambda t: t**2)
 print(f'((t -> 1/t) * (t -> t^2))(2.): {(so3 * so4).concretize(t = 2.)}')
+so5 = so3 + so4
 so3.generator = lambda field: 1./field
-print(f'((f -> 1/f) + (t -> t^2))(f=2, t=1.): {(so3 + so4).concretize(t = 1., field = 2)}')
+print(f'((f -> 1/f) + (t -> t^2))(f=2, t=1.): {so5.concretize(t = 1., field = 2)}')
 
+def generator(field, **kwargs):
+    print(f'generator got kwargs: {kwargs}')
+    return field
 
+so3.generator = generator
+print(f'((f -> f) + (t -> t^2))(f=3, t=2): {so5.concretize(field = 3, t = 2, dummy = 10)}')
 
+so6 = ScalarOperator(lambda foo, *, bar: foo * bar)
+print(f'((f,t) -> f*t)(f=3, t=2): {so6.concretize(foo = 3, bar = 2, dummy = 10)}')
+so7 = ScalarOperator(lambda foo, *, bar, **kwargs: foo * bar)
+print(f'((f,t) -> f*t)(f=3, t=2): {so6.concretize(foo = 3, bar = 2, dummy = 10)}')
 
