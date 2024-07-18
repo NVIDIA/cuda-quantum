@@ -178,12 +178,10 @@ public:
       DominanceInfo domInfo(func);
       std::string funcName = func.getName().str();
       RewritePatternSet patterns(ctx);
-      patterns.insert<ComplexCreatePattern>(ctx);
-      patterns.insert<FloatCastPattern>(ctx);
-      patterns.insert<FloatExtendPattern>(ctx);
-      patterns.insert<FloatTruncatePattern>(ctx);
-      patterns.insert<ComplexRePattern>(ctx);
-      patterns.insert<ComplexImPattern>(ctx);
+      patterns
+          .insert<ComplexCreatePattern, FloatCastPattern, FloatExtendPattern,
+                  FloatTruncatePattern, ComplexRePattern, ComplexImPattern>(
+              ctx);
 
       LLVM_DEBUG(llvm::dbgs()
                  << "Before lifting constant array: " << func << '\n');
