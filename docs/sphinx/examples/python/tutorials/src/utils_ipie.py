@@ -1,10 +1,8 @@
 import numpy as np
 
 from ipie.utils.from_pyscf import (load_from_pyscf_chkfile,
-                                   generate_hamiltonian,
-                                   copy_LPX_to_LXmn,
-                                   generate_wavefunction_from_mo_coeff
-                                   )
+                                   generate_hamiltonian, copy_LPX_to_LXmn,
+                                   generate_wavefunction_from_mo_coeff)
 
 
 def signature_permutation(orbital_list):
@@ -20,7 +18,7 @@ def signature_permutation(orbital_list):
             if element > next_element:
                 transposition_count += 1
 
-    return (-1) ** transposition_count
+    return (-1)**transposition_count
 
 
 def get_coeff_wf(final_state_vector, n_active_elec, spin=0, thres=1e-6):
@@ -32,8 +30,7 @@ def get_coeff_wf(final_state_vector, n_active_elec, spin=0, thres=1e-6):
     :returns: Input for ipie trial: coefficients, list of occupied alpha, list of occupied bets
     """
     n_qubits = int(np.log2(final_state_vector.size))
-    n_elec = [(n_active_elec + spin) // 2,
-              (n_active_elec - spin) // 2]
+    n_elec = [(n_active_elec + spin) // 2, (n_active_elec - spin) // 2]
 
     coeff = []
     occas = []
@@ -61,14 +58,13 @@ def get_coeff_wf(final_state_vector, n_active_elec, spin=0, thres=1e-6):
     return coeff, occas, occbs
 
 
-def gen_ipie_input_from_pyscf_chk(
-        pyscf_chkfile: str,
-        verbose: bool = True,
-        chol_cut: float = 1e-5,
-        ortho_ao: bool = False,
-        mcscf: bool = False,
-        linear_dep_thresh: float = 1e-8,
-        num_frozen_core: int = 0):
+def gen_ipie_input_from_pyscf_chk(pyscf_chkfile: str,
+                                  verbose: bool = True,
+                                  chol_cut: float = 1e-5,
+                                  ortho_ao: bool = False,
+                                  mcscf: bool = False,
+                                  linear_dep_thresh: float = 1e-8,
+                                  num_frozen_core: int = 0):
     """Generate AFQMC data from PYSCF (molecular) simulation.
         Adapted from ipie.utils.from_pyscf: returns hamiltonian and wavefunction instead of writing on files
     """
@@ -88,10 +84,8 @@ def gen_ipie_input_from_pyscf_chk(
 
         if isinstance(mo_coeffs, list) or len(mo_coeffs.shape) == 3:
             if verbose:
-                print(
-                    "# UHF mo coefficients found and ortho-ao == False. Using"
-                    " alpha mo coefficients for basis transformation."
-                )
+                print("# UHF mo coefficients found and ortho-ao == False. Using"
+                      " alpha mo coefficients for basis transformation.")
             basis_change_matrix = mo_coeffs[0]
     ham = generate_hamiltonian(
         mol,
