@@ -42,7 +42,7 @@ To execute a program on the :code:`nvidia` target, use the following commands:
 .. _nvidia-fp64-backend:
 
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
-switch to :code:`FP64`, specify the :code:`--nvidia-option fp64` `nvq++` command line option for `C++` or 
+switch to :code:`FP64`, specify the :code:`--target-option fp64` `nvq++` command line option for `C++` or 
 use `cudaq.set_target('nvidia', option='fp64')` for Python instead. 
 
 .. note:: 
@@ -72,13 +72,13 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
     .. code:: bash 
 
-        mpiexec -np 2 python3 program.py [...] --target nvidia --option fp64,mgpu
+        mpiexec -np 2 python3 program.py [...] --target nvidia --target-option fp64,mgpu
 
     Single precision simulation:
     
     .. code:: bash 
 
-        mpiexec -np 2 python3 program.py [...] --target nvidia --option fp32,mgpu
+        mpiexec -np 2 python3 program.py [...] --target nvidia --target-option fp32,mgpu
 
     .. note::
 
@@ -90,7 +90,7 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
     .. code:: bash 
 
-        mpiexec -np 2 python3 -m mpi4py program.py [...] --target nvidia --option fp64,mgpu
+        mpiexec -np 2 python3 -m mpi4py program.py [...] --target nvidia --target-option fp64,mgpu
 
     The target can also be defined in the application code by calling
 
@@ -112,14 +112,14 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
     .. code:: bash 
 
-        nvq++ --target nvidia  --nvidia-option mgpu,fp64 program.cpp [...] -o program.x
+        nvq++ --target nvidia  --target-option mgpu,fp64 program.cpp [...] -o program.x
         mpiexec -np 2 ./program.x
 
     Single precision simulation:
 
     .. code:: bash 
 
-        nvq++ --target nvidia  --nvidia-option mgpu,fp32 program.cpp [...] -o program.x
+        nvq++ --target nvidia  --target-option mgpu,fp32 program.cpp [...] -o program.x
         mpiexec -np 2 ./program.x
 
 .. note:: 
@@ -147,13 +147,13 @@ environment variable to another integer value as shown below.
 
     .. code:: bash 
 
-        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 python3 program.py [...] --target nvidia --option mgpu,fp64
+        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 python3 program.py [...] --target nvidia --target-option mgpu,fp64
 
 .. tab:: C++
 
     .. code:: bash 
 
-        nvq++ --target nvidia --nvidia-option mgpu,fp64 program.cpp [...] -o program.x
+        nvq++ --target nvidia --target-option mgpu,fp64 program.cpp [...] -o program.x
         CUDAQ_MGPU_FUSE=5 mpiexec -np 2 ./program.x
 
 .. _OpenMP CPU-only:

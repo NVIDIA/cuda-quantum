@@ -46,7 +46,7 @@ Here is a simple example demonstrating its usage.
     
     .. code-block:: console
 
-        nvq++ sample_async.cpp --target nvidia --nvidia-option mqpu
+        nvq++ sample_async.cpp --target nvidia --target-option mqpu
         ./a.out
 
 CUDA-Q exposes asynchronous versions of the default :code:`cudaq` algorithmic
@@ -108,7 +108,7 @@ An example of MPI distribution mode usage in both C++ and Python is given below:
 
     .. code-block:: console
 
-        nvq++ file.cpp --target nvidia --nvidia-option mqpu
+        nvq++ file.cpp --target nvidia --target-option mqpu
         mpiexec -np <N> a.out
 
 In the above example, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.

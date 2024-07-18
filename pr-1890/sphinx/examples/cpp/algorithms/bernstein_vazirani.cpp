@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ bernstein_vazirani.cpp -o bv.x --target nvidia --nvidia-option mgpu
+// nvq++ bernstein_vazirani.cpp -o bv.x --target nvidia --target-option mgpu
 // mpirun -np 4 ./bv.x
 // ```
 

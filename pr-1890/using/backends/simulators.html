@@ -551,7 +551,7 @@ the <code class="code docutils literal notranslate"><span class="pre">cuStateVec
 </div>
 </div>
 <p id="nvidia-fp64-backend">By default, this will leverage <code class="code docutils literal notranslate"><span class="pre">FP32</span></code> floating point types for the simulation. To
-switch to <code class="code docutils literal notranslate"><span class="pre">FP64</span></code>, specify the <code class="code docutils literal notranslate"><span class="pre">--nvidia-option</span> <span class="pre">fp64</span></code> <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command line option for <code class="code docutils literal notranslate"><span class="pre">C++</span></code> or
+switch to <code class="code docutils literal notranslate"><span class="pre">FP64</span></code>, specify the <code class="code docutils literal notranslate"><span class="pre">--target-option</span> <span class="pre">fp64</span></code> <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command line option for <code class="code docutils literal notranslate"><span class="pre">C++</span></code> or
 use <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='fp64')</span></code> for Python instead.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -573,11 +573,11 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>Double precision simulation:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--option<span class="w"> </span>fp64,mgpu
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>fp64,mgpu
 </pre></div>
 </div>
 <p>Single precision simulation:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--option<span class="w"> </span>fp32,mgpu
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>fp32,mgpu
 </pre></div>
 </div>
 <div class="admonition note">
@@ -587,7 +587,7 @@ please follow the instructions for installing dependencies in the <a class="refe
 </div>
 <p>In addition to using MPI in the simulator, you can use it in your application code by installing <a class="reference external" href="https://mpi4py.readthedocs.io/">mpi4py</a>, and
 invoking the program with the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>-m<span class="w"> </span>mpi4py<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--option<span class="w"> </span>fp64,mgpu
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>-m<span class="w"> </span>mpi4py<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>fp64,mgpu
 </pre></div>
 </div>
 <p>The target can also be defined in the application code by calling</p>
@@ -606,12 +606,12 @@ For example, <code class="code docutils literal notranslate"><span class="pre">c
 </div>
 <input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
 <p>Double precision simulation:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w">  </span>--nvidia-option<span class="w"> </span>mgpu,fp64<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w">  </span>--target-option<span class="w"> </span>mgpu,fp64<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.x
 </pre></div>
 </div>
 <p>Single precision simulation:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w">  </span>--nvidia-option<span class="w"> </span>mgpu,fp32<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w">  </span>--target-option<span class="w"> </span>mgpu,fp32<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.x
 </pre></div>
 </div>
@@ -639,12 +639,12 @@ can override the default fusion level by setting the setting <code class="code d
 environment variable to another integer value as shown below.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_MGPU_FUSE</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--option<span class="w"> </span>mgpu,fp64
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_MGPU_FUSE</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>mgpu,fp64
 </pre></div>
 </div>
 </div>
 <input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--nvidia-option<span class="w"> </span>mgpu,fp64<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>mgpu,fp64<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 <span class="nv">CUDAQ_MGPU_FUSE</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.x
 </pre></div>
 </div>

@@ -607,7 +607,7 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 </pre></div>
 </div>
 <p>One can specify the target multi-QPU architecture with the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flag:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ sample_async.cpp --target nvidia --nvidia-option mqpu</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ sample_async.cpp --target nvidia --target-option mqpu</span>
 <span class="go">./a.out</span>
 </pre></div>
 </div>
@@ -699,7 +699,7 @@ should be used.</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">finalize</span><span class="p">();</span>
 </pre></div>
 </div>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp --target nvidia --nvidia-option mqpu</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp --target nvidia --target-option mqpu</span>
 <span class="go">mpiexec -np &lt;N&gt; a.out</span>
 </pre></div>
 </div>
