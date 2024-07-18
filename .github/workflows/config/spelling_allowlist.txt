@@ -300,9 +300,9 @@ summarize
 superpositions
 symplectic
 tablegen
+templated
 th
 thres
-templated
 toolchain
 toolchains
 toolset
