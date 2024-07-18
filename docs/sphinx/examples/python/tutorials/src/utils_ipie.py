@@ -96,7 +96,7 @@ def gen_ipie_input_from_pyscf_chk(pyscf_chkfile: str,
         num_frozen_core=num_frozen_core,
         verbose=False,
     )
-    # write_hamiltonian(ham.H1[0], copy_LPX_to_LXmn(ham.chol), ham.ecore, filename=hamil_file)
+    # write_hamiltonian(ham.H1[0], copy_LPX_to_LXmn(ham.chol), ham.ecore, filename=hamiltonian_file)
     ipie_ham = (ham.H1[0], copy_LPX_to_LXmn(ham.chol), ham.ecore)
     nelec = (mol.nelec[0] - num_frozen_core, mol.nelec[1] - num_frozen_core)
     if verbose:
@@ -105,10 +105,10 @@ def gen_ipie_input_from_pyscf_chk(pyscf_chkfile: str,
         # ci_coeffs = scf_data["ci_coeffs"]
         # occa = scf_data["occa"]
         # occb = scf_data["occb"]
-        # write_wavefunction((ci_coeffs, occa, occb), wfn_file)
+        # write_wavefunction((ci_coeffs, occa, occb), wavefunction_file)
         return ipie_ham
     else:
-        wfn = generate_wavefunction_from_mo_coeff(
+        wavefunction = generate_wavefunction_from_mo_coeff(
             mo_coeffs,
             mo_occ,
             basis_change_matrix,
@@ -116,5 +116,5 @@ def gen_ipie_input_from_pyscf_chk(pyscf_chkfile: str,
             ortho_ao=ortho_ao,
             num_frozen_core=num_frozen_core,
         )
-        # write_wavefunction(wfn, wfn_file)
-        return ipie_ham, wfn
+        # write_wavefunction(wavefunction, wavefunction_file)
+        return ipie_ham, wavefunction
