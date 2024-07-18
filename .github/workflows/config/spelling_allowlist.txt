@@ -85,11 +85,11 @@ QPP
 QPU
 QTX
 Qiskit
-QPUs
 QPU’s
-QuTiP
+QPUs
 Quake
 Quantinuum
+QuTiP
 RHEL
 RSA
 RSH
