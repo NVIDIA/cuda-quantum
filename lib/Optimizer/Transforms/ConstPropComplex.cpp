@@ -63,13 +63,15 @@ public:
     auto valCon = val.getDefiningOp<arith::ConstantFloatOp>();
     if (valCon) {
       auto fTy = dyn_cast<FloatType>(cast.getType());
-      if (fTy == rewriter.getF64Type()) {
+      auto opTy = dyn_cast<FloatType>(cast.getOperand().getType());
+      if (fTy == rewriter.getF64Type() && opTy == rewriter.getF32Type()) {
         auto v = valCon.value().convertToFloat();
         auto fTy = dyn_cast<FloatType>(cast.getType());
         rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
             cast, APFloat{static_cast<double>(v)}, fTy);
         return success();
-      } else if (fTy == rewriter.getF32Type()) {
+      } else if (fTy == rewriter.getF32Type() &&
+                 opTy == rewriter.getF64Type()) {
         auto v = valCon.value().convertToDouble();
         auto fTy = dyn_cast<FloatType>(cast.getType());
         rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(

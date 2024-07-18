@@ -8,42 +8,27 @@
 
 // RUN: cudaq-opt -const-prop-complex %s | FileCheck %s
 
-func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-  %cst = arith.constant 0.000000e+00 : f32
-  %cst_0 = arith.constant 0.70710678118654757 : f64
-  %0 = cc.cast %cst_0 : (f64) -> f32
-  %1 = complex.create %0, %cst : complex<f32>
-  %2 = complex.create %cst, %cst : complex<f32>
-  %3 = cc.alloca !cc.array<complex<f32> x 4>
-  %4 = cc.cast %3 : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
-  cc.store %1, %4 : !cc.ptr<complex<f32>>
-  %5 = cc.compute_ptr %3[1] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
-  cc.store %1, %5 : !cc.ptr<complex<f32>>
-  %6 = cc.compute_ptr %3[2] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
-  cc.store %2, %6 : !cc.ptr<complex<f32>>
-  %7 = cc.compute_ptr %3[3] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
-  cc.store %2, %7 : !cc.ptr<complex<f32>>
-  %8 = quake.alloca !quake.veq<2>
-  %9 = quake.init_state %8, %4 : (!quake.veq<2>, !cc.ptr<complex<f32>>) -> !quake.veq<2>
-  return
+func.func @__nvqpp__mlirgen__function_test_const_prop_cast_double() -> f32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %cst = arith.constant 0.70710678118654757 : f64
+  %0 = cc.cast %cst : (f64) -> f32
+  return %0 : f32
 }
 
-// CHECK-LABEL:   func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = complex.constant [0.707106769 : f32, 0.000000e+00 : f32] : complex<f32>
-// CHECK:           %[[VAL_1:.*]] = complex.constant [0.000000e+00 : f32, 0.000000e+00 : f32] : complex<f32>
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.array<complex<f32> x 4>
-// CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<complex<f32>>
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<complex<f32>>
-// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_2]][2] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<complex<f32>>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_2]][3] : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<complex<f32>>
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_6]] : !cc.ptr<complex<f32>>
-// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_8:.*]] = quake.init_state %[[VAL_7]], %[[VAL_3]] : (!quake.veq<2>, !cc.ptr<complex<f32>>) -> !quake.veq<2>
-// CHECK:           return
-// CHECK:           }
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_const_prop_cast_double() -> f32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0.707106769 : f32
+// CHECK:           return %[[VAL_0]] : f32
+// CHECK:         }
+
+func.func @__nvqpp__mlirgen__function_test_const_prop_cast_float() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %cst = arith.constant 0.7071067 : f32
+  %0 = cc.cast %cst : (f32) -> f64
+  return %0 : f64
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_const_prop_cast_float() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0.70710670948028564 : f64
+// CHECK:           return %[[VAL_0]] : f64
+// CHECK:         }
 
 func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %cst = arith.constant 0.000000e+00 : f32

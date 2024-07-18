@@ -20,6 +20,15 @@
 #include <cudaq.h>
 #include <iostream>
 
+__qpu__ float test_const_prop_cast() {
+  return M_SQRT1_2;
+}
+
+__qpu__ void test_const_prop_cast_caller() {
+  auto c = test_const_prop_cast();
+  cudaq::qvector v(std::vector<cudaq::complex>({ c, c, 0., 0.}));
+}
+
 __qpu__ void test_complex_constant_array() {
   cudaq::qvector v(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
 }
@@ -103,6 +112,14 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
+  {
+    auto counts = cudaq::sample(test_const_prop_cast_caller);
+    printCounts(counts);
+  }
+
+// CHECK: 00
+// CHECK: 10
+
   {
     auto counts = cudaq::sample(test_complex_constant_array);
     printCounts(counts);
