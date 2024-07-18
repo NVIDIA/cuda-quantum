@@ -135,10 +135,7 @@ canonicalization
 canonicalize
 canonicalizer
 canonicalizes
-chol
-ci
 codebase
-coeffs
 comparator
 comparators
 composability
@@ -171,7 +168,6 @@ discoverable
 discretization
 discretize
 discretized
-ecore
 eigensolver
 eigensolvers
 eigenstate
@@ -197,7 +193,6 @@ extremal
 fermionic
 frontend
 frontends
-hamiltonian
 homogenous
 iff
 increment
@@ -224,7 +219,6 @@ lossy
 lvalue
 makefiles
 merchantability
-mgpu
 multithreaded
 mutex
 namespace
@@ -268,7 +262,6 @@ runtimes
 rvalue
 scalability
 scalable
-scf
 sexualized
 shifter
 shifters
@@ -299,7 +292,6 @@ superpositions
 symplectic
 tablegen
 templated
-thres
 toolchain
 toolchains
 toolset
@@ -312,10 +304,8 @@ unitarity
 unitary
 unoptimized
 upvote
-utils
 variadic
 variational
-veq
 verifier
 vertices
 wavefunction
