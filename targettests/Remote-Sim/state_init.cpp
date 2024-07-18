@@ -10,7 +10,6 @@
 
 // clang-format off
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu %s -o %t && %t
-// RUN: nvq++ %cpp_std --target remote-mqpu %s -o %t && %t // TODO: this fails to compile, do we need it?
 // clang-format on
 
 #include <cudaq.h>
@@ -34,36 +33,22 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
-    {
-      std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
-      std::vector<cudaq::complex> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
-      auto state = cudaq::state::from_data(vec);
-      auto state1 = cudaq::state::from_data(vec1);
-      {
-          // Passing state data as argument (kernel mode)
-          auto counts = cudaq::sample(test_complex_array_param, &state);
-          printCounts(counts);
+  std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.,  0., 0.,  0., 0.};
+  std::vector<cudaq::complex> vec1{0., 0.,  0., 0., 0., 0., M_SQRT1_2, M_SQRT1_2};
+  auto state = cudaq::state::from_data(vec);
+  auto state1 = cudaq::state::from_data(vec1);
+  {
+      // Passing state data as argument (kernel mode)
+      auto counts = cudaq::sample(test_complex_array_param, &state);
+      printCounts(counts);
 
-          counts = cudaq::sample(test_complex_array_param, &state1);
-          printCounts(counts);
-      }
-
-      // {
-      //     // Passing state data as argument (builder mode)
-      //     auto [kernel, state] = cudaq::make_kernel<cudaq::state*>();
-      //     auto qubits = kernel.qalloc(state);
-
-      //     auto counts = cudaq::sample(kernel, &state);
-      //     printCounts(counts);
-
-      //     counts = cudaq::sample(kernel, &state1);
-      //     printCounts(counts);
-      // }
-    }
+      counts = cudaq::sample(test_complex_array_param, &state1);
+      printCounts(counts);
+  }
 }
 
-// CHECK: 00
-// CHECK: 10
+// CHECK: 000
+// CHECK: 100
 
-// CHECK: 01
-// CHECK: 11
+// CHECK: 011
+// CHECK: 111

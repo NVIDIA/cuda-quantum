@@ -20,19 +20,18 @@ namespace cudaq {
 class state;
 }
 
-
 /// Owns the data
 class SimulationStateData {
- public:
-  typedef SimulationStateData (getDataFunc)(cudaq::state*);
+public:
+  typedef SimulationStateData(getDataFunc)(cudaq::state *);
 
-  SimulationStateData(void *data, std::size_t size, std::size_t elementSize): 
-    data(data), size(size), elementSize(elementSize) {}
-  
-  // template <typename T> 
+  SimulationStateData(void *data, std::size_t size, std::size_t elementSize)
+      : data(data), size(size), elementSize(elementSize) {}
+
+  // template <typename T>
   // std::vector<T> toVector() {
-  //   assert(sizeof(T) == elementSize && "incorrect element size in simulation data");
-  //   std::vector<T> result;
+  //   assert(sizeof(T) == elementSize && "incorrect element size in simulation
+  //   data"); std::vector<T> result;
 
   //   std::cout << "SimulationStateData:" << std::endl;
   //   for (std::size_t i = 0; i < size; i++) {
@@ -44,13 +43,9 @@ class SimulationStateData {
   //   return result;
   // }
 
-  ~SimulationStateData() {
-    delete reinterpret_cast<int*>(data);
-  }
+  ~SimulationStateData() { delete reinterpret_cast<int *>(data); }
 
-  void* data;
+  void *data;
   std::size_t size;
   std::size_t elementSize;
 };
-
-

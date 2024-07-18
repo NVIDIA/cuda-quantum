@@ -92,34 +92,22 @@ protected:
                        });
   }
 
-  static SimulationStateData readSimulationStateData(cudaq::state* s) {
-    std::cout << "Reading sim state data" << std::endl;
+  static SimulationStateData readSimulationStateData(cudaq::state *s) {
+    ;
     void *dataPtr = nullptr;
     auto stateVector = s->get_tensor();
     auto precision = s->get_precision();
     auto numElements = stateVector.get_num_elements();
     auto elementSize = 0;
     if (precision == SimulationState::precision::fp32) {
-      std::cout << "32 bit precision" << std::endl;
       elementSize = sizeof(std::complex<float>);
       auto *hostData = new std::complex<float>[numElements];
-      std::cout << "Reading host data" << std::endl;
       s->to_host(hostData, numElements);
-      std::cout << "Host data:" << std::endl;
-      for (size_t i = 0; i< numElements; i++) {
-        std::cout << hostData[i] << std::endl;
-      }
       dataPtr = reinterpret_cast<void *>(hostData);
     } else {
-      std::cout << "64 bit precision" << std::endl;
       elementSize = sizeof(std::complex<double>);
       auto *hostData = new std::complex<double>[numElements];
-      std::cout << "Reading host data" << std::endl;
       s->to_host(hostData, numElements);
-       std::cout << "Host data:" << std::endl;
-      for (size_t i = 0; i< numElements; i++) {
-        std::cout << hostData[i] << std::endl;
-      }
       dataPtr = reinterpret_cast<void *>(hostData);
     }
     return SimulationStateData(dataPtr, numElements, elementSize);
@@ -205,26 +193,19 @@ public:
       if (args) {
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
-        moduleOp.getContext()->disableMultithreading();
-        pm.enableIRPrinting();
-        auto &platform = cudaq::get_platform();
-        
         // For efficiency, we don't run state prep to convert states to gates on
-        // simulators, instead we synthesize them as vectors.
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args, readSimulationStateData, startingArgIdx));
+        // remote simulators, instead we synthesize states as vectors.
+        // Pass the data reader function to the synthesizer for this purpose.
+        pm.addPass(cudaq::opt::createQuakeSynthesizer(
+            name, args, readSimulationStateData, startingArgIdx));
         pm.addPass(mlir::createCanonicalizerPass());
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
 
-      // Note: do not run state preparation pass here since we are always
-      // using simulators.
-
       // Run client-side passes. `clientPasses` is empty right now, but the code
       // below accommodates putting passes into it.
       mlir::PassManager pm(&mlirContext);
-      moduleOp.getContext()->disableMultithreading();
-      pm.enableIRPrinting();
       std::string errMsg;
       llvm::raw_string_ostream os(errMsg);
       const std::string pipeline =
