@@ -418,6 +418,7 @@ def DistMappingPass: Pass<"dist-qubit-mapping", "mlir::func::FuncOp"> {
   ];
 }
 
+
 def AsyncScopePass : Pass<"async-scope", "mlir::func::FuncOp"> {
   let summary = "Partition operations into async scopes based on QPU mapping";
   let description = [{

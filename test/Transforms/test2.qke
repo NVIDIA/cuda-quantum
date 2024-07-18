@@ -1,0 +1,19 @@
+module {
+  func.func @new_function() {
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    %3 = quake.null_wire
+    %4 = quake.null_wire
+    %5 = quake.null_wire
+    %6:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %7 = quake.h %6#0 : (!quake.wire) -> !quake.wire
+    %8 = quake.h %1 : (!quake.wire) -> !quake.wire
+    %9:2 = quake.x [%3] %8 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %10:2 = quake.x [%4] %7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %11:2 = quake.x [%9#0] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %12:2 = quake.x [%6#1] %10#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    return
+  }
+}
+

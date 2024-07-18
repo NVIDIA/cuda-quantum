@@ -17,6 +17,7 @@
 #include "mlir/IR/Value.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/IRMapping.h"
+#include "mlir/Transforms/DialectConversion.h"
 
 #define DEBUG_TYPE "quantum-scoper"
 
@@ -36,6 +37,133 @@ namespace cudaq::opt {
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 }
 
+bool hasDependencies(mlir::Operation *op) {
+    // Placeholder: checks if there are any operands that are defined by operations in the same block
+    for (auto operand : op->getOperands()) {
+        if (operand.getDefiningOp() && operand.getDefiningOp()->getBlock() == op->getBlock()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<mlir::Operation*> getDependencies(mlir::Operation *op) {
+    std::vector<mlir::Operation*> dependencies;
+    // Collect operations that define operands of 'op'
+    for (auto operand : op->getOperands()) {
+        if (auto defOp = operand.getDefiningOp()) {
+            if (defOp->getBlock() == op->getBlock()) {
+                dependencies.push_back(defOp);
+            }
+        }
+    }
+    return dependencies;
+}
+
+std::vector<std::vector<mlir::Operation*>> analyzeAndLayerOperations(IRMapping mapper, mlir::Block& block) {
+  std::vector<std::vector<mlir::Operation*>> layers;
+  std::map<mlir::Operation*, size_t> operationToLayer;
+    for (auto &op : block) {
+      for (auto result : op.getResults()) {
+          // Directly map each result to itself initially
+          mapper.map(result, result);
+      }
+    }
+
+    // Initial pass to find independent operations (no dependencies)
+    for (auto &op : block) {
+        bool hasDep = false; // Assuming a function to check dependencies
+
+        // Here you would have logic to check actual dependencies
+        // For this example, assume no dependencies for simplicity
+        // hasDependencies = checkDependencies(op);
+        hasDep=hasDependencies(&op);
+        if (!hasDep) {
+            if (layers.empty()) layers.emplace_back();
+            auto clonedOp= op.clone(mapper);
+            for (size_t i = 0, e = (op).getNumResults(); i < e; ++i) {
+                mapper.map((op).getResult(i), clonedOp->getResult(i));
+            }
+            for (auto &operand : op.getOpOperands()) {
+              if (auto repl = mapper.lookupOrNull(operand.get())) {
+                  operand.set(repl);
+              }
+            }
+            layers[0].push_back(clonedOp);
+            operationToLayer[&op] = 0;
+        }
+    }
+
+    // Process all operations, placing them into layers based on dependencies
+    bool addedToLayer;
+    do {
+        addedToLayer = false;
+        std::vector<mlir::Operation*> currentLayer;
+
+        for (auto &op : block) {
+            if (operationToLayer.find(&op) != operationToLayer.end()) continue; // Already placed in a layer
+
+            int dependencyLayer = -1;
+            // Assuming a function exists to retrieve operation dependencies
+            for (auto dep : getDependencies(&op)) {
+                if (operationToLayer.find(dep) != operationToLayer.end()) {
+                    dependencyLayer = std::max(dependencyLayer, int(operationToLayer[dep]));
+                }
+            }
+
+            if (dependencyLayer != -1) {
+                auto clonedOp= op.clone(mapper);
+                for (size_t i = 0, e = (op).getNumResults(); i < e; ++i) {
+                    mapper.map((op).getResult(i), clonedOp->getResult(i));
+                }
+                for (auto &operand : op.getOpOperands()) {
+                  if (auto repl = mapper.lookupOrNull(operand.get())) {
+                      operand.set(repl);
+                  }
+                }
+                currentLayer.push_back(&op);
+                operationToLayer[&op] = dependencyLayer + 1;
+                addedToLayer = true;
+            }
+        }
+
+        if (!currentLayer.empty()) {
+            layers.push_back(currentLayer);
+        }
+    } while (addedToLayer);
+
+    return layers;
+}
+
+// Function to create a new block based on operation layers
+mlir::Block* createBlockFromLayers(mlir::OpBuilder& builder, mlir::Block& block) {
+    // Create a new block
+    auto *newBlock = new Block();
+    IRMapping mapper;
+    for (auto argPair : llvm::zip(block.getArguments(), (*newBlock).getArguments())) {
+      mapper.map(std::get<0>(argPair), std::get<1>(argPair));
+    }
+    auto layers= analyzeAndLayerOperations(mapper, block);
+
+    // Insert all operations from layers into the new block
+    builder.setInsertionPointToEnd(newBlock);
+    for (const auto& layer : layers) {
+        for (auto* op : layer) {
+            auto* clonedOp= builder.clone(*op,mapper);
+            for (size_t i = 0, e = (op)->getNumResults(); i < e; ++i) {
+                mapper.map((op)->getResult(i), clonedOp->getResult(i));
+            }
+            LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: in layer"<<op<<"\n");
+        }
+    }
+    for (Operation *cloned : (newBlock).getOperations()) {
+      for (OpOperand &opOper : cloned->getOpOperands())
+          if (Value mappedValue = mapper.lookupOrNull(opOper.get()))
+              rewriter.updateRootInPlace(cloned, [&]() { opOper.set(mappedValue); });
+    }
+
+    return newBlock;
+}
 
 namespace {
   
@@ -133,6 +261,7 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
     SmallVector<Operation *> sinksToRemove;
     SmallVector<Operation *> Measurements;
     SmallVector<std::size_t> userQubitsMeasured;
+    OpBuilder builder2(func);
       std::size_t x = deviceDim[0];
     std::size_t y = deviceDim[1];
     std::size_t deviceNumQubits = deviceTopoType == Grid ? x * y : x;
@@ -181,10 +310,14 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
     SmallVector< SmallVector<Operation *>> qpuGroups;
     SmallVector<Operation *> CurrentVector;
     mlir::SmallVector<int> AsyncComponentIds;
+    SmallVector<std::tuple<int,int>> RemoteQPUIds;
     int numBlocks=0;
     int currentComponent=-1;
-    
-
+    // auto newBlock=createBlockFromLayers(builder2,func.front());
+    // LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: NewBlock"<<"\n");
+    // for (auto& op : *newBlock) {
+    //  LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: New block operations"<<op<<"\n");
+    // }
     func.walk([&](Operation *op) {
       LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: walking operations"<<op<<"\n");
       int i=0;
@@ -219,11 +352,11 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
           LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: finished preprocessing\n");
         //llvm::errs()
           for (auto wireOp : quake::getQuantumOperands(op)) {
-            LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: zip" <<wireOp<<"\n");
+            //LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: zip" <<wireOp<<"\n");
             if (i==0){
               prev=wireOp;
               i++;
-              LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: In loop IF "<<"\n");
+              //LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: In loop IF "<<"\n");
 
               if(quake::getQuantumOperands(op).size()==1){
                 auto q1=static_cast<unsigned int>( mapping_v2p[wireToVirtualQ[prev].index].dyn_cast<mlir::IntegerAttr>().getInt());
@@ -238,6 +371,9 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
                   CurrentVector.clear();
                   CurrentVector.push_back(op);
                   AsyncComponentIds.push_back(currentComponent);
+                }
+                else{
+                  CurrentVector.push_back(op);
                 }
               }
               continue;
@@ -266,6 +402,8 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
                 CurrentVector.clear();
                 CurrentVector.push_back(op);
                 AsyncComponentIds.push_back(currentComponent);
+                LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: remote gate "<<q1<<" "<<q2<<"\n");
+                RemoteQPUIds.push_back(std::make_tuple(d.getComponent(q1),d.getComponent(q2)));
               }
             }
             else{
@@ -279,12 +417,16 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
                 CurrentVector.clear();
                 CurrentVector.push_back(op);
                 AsyncComponentIds.push_back(currentComponent);
+                LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: remote gate "<<q1<<" "<<q2<<"\n");
+                RemoteQPUIds.push_back(std::make_tuple(d.getComponent(q1),d.getComponent(q2)));
               }
             }
           }
       }
       
     });
+    qpuGroups.push_back(CurrentVector);
+    CurrentVector.clear();
     //builder.setInsertionPointToEnd(asyncScopeBlock);
     //builder.create<quake::AsyncContinueOp>(loc);
     ModuleOp module = func->getParentOfType<ModuleOp>();
@@ -305,20 +447,6 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
     builder.setInsertionPointToStart(entryBlock);
     
 
-    //LLVM_DEBUG(llvm::dbgs() << "Ranjani checking:\n"<< func << '\n');
-
-    //auto loc = newFunc.getLoc();
-
-
-    // auto asyncScopeOp = builder.create<quake::AsyncScopeOp>(loc, builder.getI64IntegerAttr(-1));
-    // auto qpuIdAttr = builder.getI64IntegerAttr(-1);
-    // asyncScopeOp->setAttr("qpuId", qpuIdAttr);
-    // // Create a new block for the async_scope body
-    // Block *asyncScopeBlock = builder.createBlock(&asyncScopeOp.getRegion());
-    // //asyncScopeOp.getRegion().push_back(asyncScopeBlock);
-    // // Set insertion point to the new block
-    // builder.setInsertionPointToStart(asyncScopeBlock);
-    // Move operations into the new block
     for (Operation *op : sources) {
       auto clonedOp = op->clone(mapping);
         //Update the mapping for the results of the cloned operation
@@ -328,13 +456,16 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
       builder.insert(clonedOp);
     }
     qpuGroups.erase(qpuGroups.begin());
-    LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: sources added"<< '\n');
+    LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: sources added "<<qpuGroups.size()<< '\n');
+    int remoteCount=0;
     for (size_t i = 0; i < qpuGroups.size(); ++i) {
       auto loc = newFunc.getLoc();
       int blockNum = i;
       int qpu=AsyncComponentIds[blockNum];
+      LLVM_DEBUG(llvm::dbgs() << "block number "<<blockNum<<'\n');
       if (qpu==-1){
         LLVM_DEBUG(llvm::dbgs() << "in -1 section"<<'\n');
+        builder.create<quake::SyncOp>(loc,std::get<0>( RemoteQPUIds[remoteCount]),std::get<1>(RemoteQPUIds[remoteCount]));
         for (Operation *op : qpuGroups[i]) {
           //builder.insert(op->clone());
           auto clonedOp = op->clone(mapping);
@@ -347,6 +478,7 @@ struct AsyncScopePass : public cudaq::opt::impl::AsyncScopePassBase<AsyncScopePa
           LLVM_DEBUG(llvm::dbgs() << "Ranjani checking: adding ops"<<op<<'\n');
         }
          builder.setInsertionPointToEnd(entryBlock);
+         remoteCount++;
         continue;
       }
       // Create async_scope and async_scope_end

@@ -93,6 +93,26 @@ def quake_AsyncContinueOp : QuakeOp<"async_continue", [Pure, ReturnLike, Termina
   }];
 }
 
+//===----------------------------------------------------------------------===//
+// Sync
+//===----------------------------------------------------------------------===//
+
+def quake_SyncOp : QuakeOp<"sync"> {
+  let summary = "Sync two QPUs before  remote operation.";
+  let description = [{
+    The `quake.sync` operation is used to mark a point in the code where the tensor network states of two QPUs need to be synced.
+
+
+    Example:
+    ```mlir
+      quake.sync($qpu_id1, $qpu_id2)
+    ```
+  }];
+
+  let arguments = (ins I64Attr:$qpuId1, I64Attr:$qpuId2
+  );
+
+}
 
 //===----------------------------------------------------------------------===//
 // AllocaOp
