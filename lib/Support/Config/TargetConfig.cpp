@@ -164,11 +164,10 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
       if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {
         // If this is a platform option (platform argument key is provide),
         // forward the value to the platform extra arguments.
-        if (!iter->PlatformArgKey.empty())
+        if (!iter->PlatformArgKey.empty() && idx + 1 < targetArgv.size())
           platformExtraArgs << ";" << iter->PlatformArgKey << ";"
                             << targetArgv[idx + 1];
-
-      } else {
+      } else if (idx + 1 < targetArgv.size()) {
         // This is an option flag, construct the value for mapping selection.
         const auto featureFlags = targetArgv[idx + 1];
         llvm::SmallVector<llvm::StringRef> flagStrs;
