@@ -563,6 +563,7 @@ public:
   // IMPORTANT: When a new version is defined, a new NVQC deployment will be
   // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
+  static constexpr std::size_t REST_PAYLOAD_MINOR_VERSION = 1;
   RestRequest(ExecutionContext &context, int versionNumber)
       : executionContext(context), version(versionNumber),
         clientVersion(CUDA_QUANTUM_VERSION) {}
