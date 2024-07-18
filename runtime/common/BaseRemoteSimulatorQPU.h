@@ -22,27 +22,6 @@
 
 namespace cudaq {
 
-static inline bool getEnvVarBool(const char *envVarName) {
-  if (auto envVal = std::getenv(envVarName)) {
-    std::string tmp(envVal);
-    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-      return true;
-  }
-  return false;
-}
-
-// TODO - Remove this once the public NVQC deployment supports this capability.
-static inline bool remoteVQEExecOverride() {
-  return getEnvVarBool("CUDAQ_REMOTE_VQE");
-}
-
-// TODO - Remove this once the public NVQC deployment supports this capability.
-static inline bool serializedCodeExecOverride() {
-  return getEnvVarBool("CUDAQ_SER_CODE_EXEC");
-}
-
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
 class BaseRemoteSimulatorQPU : public cudaq::QPU {
@@ -78,14 +57,11 @@ public:
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
 
-  // VQE is executed fully on the server without the need to go back and forth
-  // in between observe calls
-  virtual bool supportsRemoteVQE() override { return true; }
-
-  // Remote serializable code is executed fully on the server without the need
-  // to go back and forth in between observe calls (see
-  // launchSerializedCodeExecution).
-  virtual bool supportsRemoteSerializedCode() override { return true; }
+  // By default, the remote capabilities are all enabled. Subtypes may override
+  // this.
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return RemoteCapabilities(/*initValues=*/true);
+  }
 
   virtual void setTargetBackend(const std::string &backend) override {
     auto parts = cudaq::split(backend, ';');
@@ -279,17 +255,10 @@ public:
     m_client->setConfig(clientConfigs);
   }
 
-  // VQE is executed fully on the server without the need to go back and forth
-  // in between observe calls (see launchVQE).
-  // TODO - set this to true when NVQC supports this.
-  virtual bool supportsRemoteVQE() override { return remoteVQEExecOverride(); }
-
-  // Remote serializable code is executed fully on the server without the need
-  // to go back and forth in between observe calls (see
-  // launchSerializedCodeExecution).
-  // TODO - set this to true when NVQC supports this.
-  virtual bool supportsRemoteSerializedCode() override {
-    return serializedCodeExecOverride();
+  // The NVCF version of this function needs to dynamically fetch the remote
+  // capabilities from the currently deployed servers.
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return m_client->getRemoteCapabilities();
   }
 
 protected:
@@ -297,10 +266,8 @@ protected:
   NvcfConfig searchNvcfConfig() {
     NvcfConfig config;
     // Search from environment variable
-    if (auto apiKey = std::getenv("NVQC_API_KEY")) {
-      const auto key = std::string(apiKey);
-      config.apiKey = key;
-    }
+    if (auto apiKey = std::getenv("NVQC_API_KEY"))
+      config.apiKey = std::string(apiKey);
 
     if (auto funcIdEnv = std::getenv("NVQC_FUNCTION_ID"))
       config.functionId = std::string(funcIdEnv);
