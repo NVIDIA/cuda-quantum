@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -1483,6 +1484,8 @@ public:
     LLVM_DEBUG(llvm::dbgs()
                << workList.size() << " kernel entry functions to process\n");
     for (auto funcOp : workList) {
+      if (funcOp->hasAttr(cudaq::generatorAnnotation))
+        continue;
       auto loc = funcOp.getLoc();
       [[maybe_unused]] auto className =
           funcOp.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);
