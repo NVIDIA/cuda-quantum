@@ -369,7 +369,6 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   mlir::PassManager pm(context);
   if (printIntermediateMLIR)
     pm.enableIRPrinting();
-
   std::string errMsg;
   llvm::raw_string_ostream errOs(errMsg);
   cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
