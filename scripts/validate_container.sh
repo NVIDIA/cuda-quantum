@@ -61,8 +61,8 @@ installed_backends=`\
 
 # remote_rest targets are automatically filtered, 
 # so is execution on the photonics backend
-# TODO: This will test all NVIDIA-derivative targets in the legacy mode,
-# i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc.
+# This will test all NVIDIA-derivative targets in the legacy mode,
+# i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
 available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
@@ -197,13 +197,15 @@ do
 
         echo "Testing on $t target..."
         if [ "$t" == "nvidia" ]; then
-            # All target options to valdiate
+            # For the unified 'nvidia' target, we validate all target options as well.
+            # Note: this overlaps some legacy standalone targets (e.g., nvidia-mqpu, nvidia-mgpu, etc.),
+            # but we want to make sure all supported configurations in the unified 'nvidia' target are validated.
             declare -a optionArray=("fp32" "fp64" "fp32,mqpu" "fp64,mqpu" "fp32,mgpu" "fp64,mgpu")
             arraylength=${#optionArray[@]}
             for (( i=0; i<${arraylength}; i++ ));
             do
                 echo "  Testing nvidia target option: ${optionArray[$i]}"
-                nvq++ $ex $target_flag --nvidia-option "${optionArray[$i]}"
+                nvq++ $ex $target_flag --target-option "${optionArray[$i]}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"

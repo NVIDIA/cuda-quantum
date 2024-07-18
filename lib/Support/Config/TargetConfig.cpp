@@ -154,11 +154,14 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
     const auto iter = std::find_if(
         config.TargetArguments.begin(), config.TargetArguments.end(),
         [&](const cudaq::config::TargetArgument &argConfig) {
-          // Here, we handle both cases: the config key as is or prefixed with
-          // the target name.
+          // Here, we handle both cases: the config key as is (python kwargs)
+          // or prefixed with the target name or "target".
           const std::string nvqppArgKey =
               "--" + config.Name + "-" + argConfig.KeyName;
-          return (nvqppArgKey == argsStr) || (argsStr == argConfig.KeyName);
+          const std::string targetPrefixArgKey =
+              "--target-" + argConfig.KeyName;
+          return (nvqppArgKey == argsStr) || (targetPrefixArgKey == argsStr) ||
+                 (argsStr == argConfig.KeyName);
         });
     if (iter != config.TargetArguments.end()) {
       if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {

@@ -97,7 +97,7 @@ struct BackendEndConfigEntry {
 
 /// Feature option mapping for NVIDIA target.
 // For the unified `nvidia` target, users can use feature option to specify
-// precision, mgpu/mqpu distribution. e.g., `--nvidia-option fp32,mgpu` or
+// precision, mgpu/mqpu distribution. e.g., `--target-option fp32,mgpu` or
 // `set_target('nvidia', option="fp32,mgpu")` would configure the C++ or Python
 // execution to the single-precision, multi-GPU configuration.
 struct BackendFeatureMap {
