@@ -15,7 +15,8 @@ import cudaq
 def do_something():
     cudaq.reset_target()
     yield
-    cudaq.__clearKernelRegistries()
+    ## Ref: https://github.com/NVIDIA/cuda-quantum/issues/1954
+    # cudaq.__clearKernelRegistries()
 
 
 def check_bell(entity):
@@ -189,6 +190,20 @@ def test_builder_mode():
     kernel.cx(qubits[0], qubits[1])
 
     check_bell(kernel)
+
+
+def test_invalid_ctrl():
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def bell():
+        q = cudaq.qubit()
+        custom_x.ctrl(q)
+
+    with pytest.raises(RuntimeError) as error:
+        bell.compile()
+    assert 'controlled operation requested without any control argument(s)' in repr(
+        error)
 
 
 # leave for gdb debugging

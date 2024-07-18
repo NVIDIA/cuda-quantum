@@ -1149,7 +1149,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'quantum operation h on incorrect quantum type' in repr(e)
+    assert 'target operand 0 is not of quantum type' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1199,11 +1199,11 @@ def test_ctrl_wrong_dtype_1447():
     @cudaq.kernel
     def test_kernel(nQubits: int):
         qubits = cudaq.qvector(nQubits)
-        swap.ctrl(3, 4)
+        swap.ctrl(2, 3, 4)
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'control operand 0 is not of quantum type' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1487,7 +1487,7 @@ def test_nested_loops_with_break():
         for _ in range(5):
             while True:
                 x(q)
-                ry.ctrl(theta, q[1])
+                ry(theta, q[1])
                 res = mz(q[1])
 
                 if res:
@@ -1577,6 +1577,98 @@ def test_subtract():
         mz(qubits)
 
     cudaq.sample(bug_subtract)
+
+def test_capture_opaque_kernel():
+
+    def retFunc():
+        @cudaq.kernel
+        def bell(i : int):
+            q = cudaq.qvector(i)
+            h(q[0])
+            x.ctrl(q[0], q[1])
+        
+        return bell 
+
+    def retFunc2():
+        @cudaq.kernel
+        def super():
+            q = cudaq.qubit()
+            h(q)
+        
+        return super 
+
+    b = retFunc()
+    @cudaq.kernel
+    def k():
+        b(2)
+
+    print(k)
+
+    b = retFunc2()
+    @cudaq.kernel
+    def kd():
+        b()
+
+    print(kd)
+
+    counts = cudaq.sample(k)
+    assert len(counts) == 2 and '00' in counts and '11' in counts 
+    
+    counts = cudaq.sample(kd)
+    assert len(counts) == 2 and '0' in counts and '1' in counts 
+    
+
+@skipIfPythonLessThan39
+def test_issue_9():
+
+    @cudaq.kernel
+    def kernel(features: list[float]):
+        qubits = cudaq.qvector(8)
+        rx(features[0], qubits[100])
+
+    with pytest.raises(RuntimeError) as error:
+        kernel([3.14])
+
+
+def test_issue_1641():
+
+    @cudaq.kernel
+    def less_arguments():
+        q = cudaq.qubit()
+        rx(3.14)
+
+    with pytest.raises(RuntimeError) as error:
+        print(less_arguments)
+    assert 'invalid number of arguments (1) passed to rx (requires at least 2 arguments)' in repr(
+        error)
+
+    @cudaq.kernel
+    def wrong_arguments():
+        q = cudaq.qubit()
+        rx("random_argument", q)
+
+    with pytest.raises(RuntimeError) as error:
+        print(wrong_arguments)
+    assert 'rotational parameter must be a float, or int' in repr(error)
+
+    @cudaq.kernel
+    def wrong_type():
+        q = cudaq.qubit()
+        x("random_argument")
+
+    with pytest.raises(RuntimeError) as error:
+        print(wrong_type)
+    assert 'target operand 0 is not of quantum type' in repr(error)
+
+    @cudaq.kernel
+    def invalid_ctrl():
+        q = cudaq.qubit()
+        rx.ctrl(np.pi, q)
+
+    with pytest.raises(RuntimeError) as error:
+        print(invalid_ctrl)
+    assert 'controlled operation requested without any control argument(s)' in repr(
+        error)
 
 
 # leave for gdb debugging

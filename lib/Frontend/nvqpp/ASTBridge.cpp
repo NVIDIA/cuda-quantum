@@ -227,13 +227,12 @@ public:
 
     if (func) {
       bool runChecks = false;
-
-      if (auto attr = func->getAttr<clang::AnnotateAttr>())
-        if (attr->getAnnotation().str() == "user_custom_quantum_operation") {
-          customOperationNames[func->getName().str()] =
-              cudaq::details::getTagNameOfFunctionDecl(func, mangler);
-          runChecks = true;
-        }
+      if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+              func)) {
+        customOperationNames[func->getName().str()] =
+            cudaq::details::getTagNameOfFunctionDecl(func, mangler);
+        runChecks = true;
+      }
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func))
         runChecks = true;
       else
@@ -390,6 +389,9 @@ bool QuakeBridgeVisitor::generateFunctionDeclaration(
   if (!isa<clang::CXXMethodDecl>(x) || x->isStatic())
     fnPair.first->setAttr("no_this", builder.getUnitAttr());
   assert(typeStack.empty() && "expected type stack to be cleared");
+  // Retain the attribute for custom operation generator functions
+  if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(x))
+    fnPair.first->setAttr(cudaq::generatorAnnotation, builder.getUnitAttr());
   return true;
 }
 
@@ -404,7 +406,14 @@ bool ASTBridgeAction::ASTBridgeConsumer::isQuantum(
     const clang::FunctionDecl *decl) {
   // Quantum kernels are Functions that are annotated with "quantum"
   if (auto attr = decl->getAttr<clang::AnnotateAttr>())
-    return attr->getAnnotation().str() == "quantum";
+    return attr->getAnnotation().str() == cudaq::kernelAnnotation;
+  return false;
+}
+
+bool ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+    const clang::FunctionDecl *decl) {
+  if (auto attr = decl->getAttr<clang::AnnotateAttr>())
+    return attr->getAnnotation().str() == cudaq::generatorAnnotation;
   return false;
 }
 
@@ -571,7 +580,9 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
-      if (!hasAnyQubitTypes(func.getFunctionType())) {
+      if ((!hasAnyQubitTypes(func.getFunctionType())) &&
+          (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+              fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.
         func->setAttr(entryPointAttrName, unitAttr);
         // Generate a declaration for the CPU C++ function.

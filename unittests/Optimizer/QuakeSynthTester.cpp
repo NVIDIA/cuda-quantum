@@ -54,7 +54,7 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
   PassManager pm(module->getContext());
   module->getContext()->disableMultithreading();
   pm.enableIRPrinting();
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, nullptr));
+  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, true));
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());

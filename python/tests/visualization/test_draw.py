@@ -12,50 +12,55 @@ import os
 import pytest
 
 
-@cudaq.kernel
-def bar(qvec: cudaq.qview):
-    # FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
-    # rx(np.e, qvec[0])
-    rx(2.71828182845904523536028, qvec[0])
-    ry(np.pi, qvec[1])
-    # FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
-    # cudaq.adjoint(rz, np.pi, qvec[2])
-    rz(-np.pi, qvec[2])
-
-
-@cudaq.kernel
-def zaz(qub: cudaq.qubit):
-    sdg(qub)
-
-
-@cudaq.kernel
-def kernel():
-    q = cudaq.qvector(4)
-    h(q)
-    x.ctrl(q[0], q[1])
-    y.ctrl(q[0], q[1], q[2])
-    y.ctrl(q[2], q[0], q[1])
-    y.ctrl(q[1], q[2], q[0])
-    z(q[2])
-    r1(3.14159, q[0])
-    tdg(q[1])
-    s(q[2])
-    swap.ctrl(q[0], q[2])
-    swap.ctrl(q[1], q[2])
-    swap.ctrl(q[0], q[1])
-    swap.ctrl(q[0], q[2])
-    swap.ctrl(q[1], q[2])
-    swap.ctrl(q[3], q[0], q[1])
-    swap.ctrl(q[0], q[3], q[1], q[2])
-    swap.ctrl(q[1], q[0], q[3])
-    swap.ctrl(q[1], q[2], q[0], q[3])
-    bar(q)
-    cudaq.control(zaz, q[1], q[0])
-    cudaq.adjoint(bar, q)
+@pytest.fixture(autouse=True)
+def do_something():
+    cudaq.reset_target()
+    yield
+    cudaq.__clearKernelRegistries()
 
 
 def test_draw():
     """Test draw function, mainly copied from draw_tester.cpp"""
+
+    @cudaq.kernel
+    def bar(qvec: cudaq.qview):
+        # FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
+        # rx(np.e, qvec[0])
+        rx(2.71828182845904523536028, qvec[0])
+        ry(np.pi, qvec[1])
+        # FIXME https://github.com/NVIDIA/cuda-quantum/issues/1734
+        # cudaq.adjoint(rz, np.pi, qvec[2])
+        rz(-np.pi, qvec[2])
+
+    @cudaq.kernel
+    def zaz(qub: cudaq.qubit):
+        sdg(qub)
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(4)
+        h(q)
+        x.ctrl(q[0], q[1])
+        y.ctrl(q[0], q[1], q[2])
+        y.ctrl(q[2], q[0], q[1])
+        y.ctrl(q[1], q[2], q[0])
+        z(q[2])
+        r1(3.14159, q[0])
+        tdg(q[1])
+        s(q[2])
+        swap(q[0], q[2])
+        swap(q[1], q[2])
+        swap(q[0], q[1])
+        swap(q[0], q[2])
+        swap(q[1], q[2])
+        swap.ctrl(q[3], q[0], q[1])
+        swap.ctrl(q[0], q[3], q[1], q[2])
+        swap.ctrl(q[1], q[0], q[3])
+        swap.ctrl(q[1], q[2], q[0], q[3])
+        bar(q)
+        cudaq.control(zaz, q[1], q[0])
+        cudaq.adjoint(bar, q)
+
     # fmt: off
     expected_str = R"""
      ╭───╮               ╭───╮╭───────────╮                          ╭───────╮»
@@ -85,9 +90,6 @@ q3 : ┤ h ├──────────────────────
     produced_string = cudaq.draw(kernel)
     assert expected_str == produced_string
 
-
-def test_draw_latex():
-    """Test draw function, mainly copied from draw_tester.cpp"""
     # fmt: off
     expected_str = R"""
 \documentclass{minimal}
