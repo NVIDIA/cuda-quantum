@@ -1,4 +1,4 @@
-import numpy, itertools
+import numpy, itertools, types, functools, copy
 from typing import Callable
 from numpy.typing import NDArray
 
@@ -44,14 +44,18 @@ class OperatorSum:
         return sum([term.concretize(levels, time) for term in padded_terms])
 
     def __mul__(self, other: OperatorSum):
-        if type(other) == ElementaryOperator:
+        if type(other) == ScalarOperator:
+            return self * OperatorSum([ProductOperator([other])])
+        elif type(other) == ElementaryOperator:
             return self * OperatorSum([ProductOperator([other])])
         elif type(other) == ProductOperator:
             return self * OperatorSum([other])
         return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
     
     def __add__(self, other: OperatorSum):
-        if type(other) == ElementaryOperator:
+        if type(other) == ScalarOperator:
+            return self + OperatorSum([ProductOperator([other])])
+        elif type(other) == ElementaryOperator:
             return self + OperatorSum([ProductOperator([other])])
         elif type(other) == ProductOperator:
             return self + OperatorSum([other])
@@ -68,6 +72,8 @@ class ProductOperator(OperatorSum):
 
     def concretize(self, levels: dict[int, int], time: complex) -> NDArray[complex]:
         def generate_all_states(degrees: list[int]):
+            if len(degrees) == 0:
+                return []
             states = [[str(state)] for state in range(levels[degrees[0]])]
             for d in degrees[1:]:
                 prod = itertools.product(states, [str(state) for state in range(levels[d])])
@@ -108,14 +114,18 @@ class ProductOperator(OperatorSum):
         return matrix
 
     def __mul__(self, other: ProductOperator):
-        if type(other) == ElementaryOperator:
+        if type(other) == ScalarOperator:
+            return self * ProductOperator([other])
+        elif type(other) == ElementaryOperator:
             return self * ProductOperator([other])
         elif type(other) != ProductOperator:
             return OperatorSum([self]) * other
         return ProductOperator(self._operators + other._operators)
 
     def __add__(self, other: ProductOperator):
-        if type(other) == ElementaryOperator:
+        if type(other) == ScalarOperator:
+            return self + ProductOperator([other])
+        elif type(other) == ElementaryOperator:
             return self + OperatorSum([other])
         elif type(other) != ProductOperator:
             return OperatorSum([self]) + other
@@ -143,35 +153,74 @@ class ElementaryOperator(ProductOperator):
         return BuiltIns.ops[ops_key](time)
 
     def __mul__(self, other: ElementaryOperator):
-        if type(other) != ElementaryOperator:
+        if type(other) == ScalarOperator:
+            return ProductOperator([self]) * ProductOperator([other])
+        elif type(other) != ElementaryOperator:
             return ProductOperator([self]) * other
         return ProductOperator([self, other])
 
     def __add__(self, other: ElementaryOperator):
-        if type(other) != ElementaryOperator:
+        if type(other) == ScalarOperator:
+            return ProductOperator([self]) + ProductOperator([other])
+        elif type(other) != ElementaryOperator:
             return ProductOperator([self]) + other
         op1 = ProductOperator([self])
         op2 = ProductOperator([other])
         return OperatorSum([op1, op2])
 
-class ScalarOperator:
+class ScalarOperator(ProductOperator):
+    _degrees: list[int] # Always empty; here for consistency with other operators.
     _generator: Callable[[complex], complex]
 
     def __init__(self, generator: Callable[[complex], complex]):
+        self._degrees = []
+        self._generator = generator
+        super().__init__([self])
+
+    @staticmethod
+    def _copy_func(f):
+        # See also:
+        # https://stackoverflow.com/a/49077211
+        # https://stackoverflow.com/a/13503277
+        # https://stackoverflow.com/a/56901529
+        # https://stackoverflow.com/a/77155447
+        # https://docs.python.org/3/library/functools.html#functools.update_wrapper
+        g = types.FunctionType(f.__code__, 
+                               f.__globals__, 
+                               name = f.__name__,
+                               argdefs = f.__defaults__,
+                               closure = f.__closure__)
+        g = functools.update_wrapper(g, f)
+        g.__kwdefaults__ = copy.copy(f.__kwdefaults__)
+        return g
+
+    @property
+    def generator(self):
+        return self._generator
+
+    @generator.setter
+    def generator(self, generator: Callable[[complex], complex]):
         self._generator = generator
 
-    def concretize(self, time: complex):
+    # The argument `levels` here is only passed for consistency with parent classes.
+    def concretize(self, levels: dict[int, int], time: complex):
         return self._generator(time)
 
-    #def __matmul__(self, other: ScalarOperator) -> ScalarOperator:
-    #    generator = lambda time: self._generator(other._generator(time))
-    #    return ScalarOperator(generator)
+    def __matmul__(self, other: ScalarOperator) -> ScalarOperator:
+        if type(other) != ScalarOperator:
+            raise ValueError("Right hand side of composition must be a ScalarOperator.")
+        generator = lambda time: self._generator(other._generator(time))
+        return ScalarOperator(generator)
 
     def __mul__(self, other: ScalarOperator) -> ScalarOperator:
+        if type(other) != ScalarOperator:
+            return ProductOperator([self]) * other
         generator = lambda time: self._generator(time) * other._generator(time)
         return ScalarOperator(generator)
     
     def __add__(self, other: ScalarOperator) -> ScalarOperator:
+        if type(other) != ScalarOperator:
+            return ProductOperator([self]) + other
         generator = lambda time: self._generator(time) + other._generator(time)
         return ScalarOperator(generator)
 
@@ -240,4 +289,39 @@ print(f'(spinX(0) + spinX(1)) * spinI(2): {(op7 * spin.i(2)).concretize(levels, 
 print(f'(spinX(0) + spinX(1)) * spinI(2): {(spin.i(2) * op7).concretize(levels, time)}')
 print(f'spinI(0) * (spinZ(1) + spinZ(2)): {numpy.kron(spin.i(0).concretize(levels, time), op9.concretize(levels, time))}')
 print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(op7 * op9).concretize(levels, time)}')
+
+so1 = ScalarOperator(lambda t: t)
+print(f'Scalar op (t -> t)({time}): {so1.concretize({}, time)}')
+print(f'Trivial prod op (t -> t)({time}): {(ProductOperator([so1])).concretize({}, time)}')
+print(f'Trivial prod op (t -> t)({time + 1}): {(ProductOperator([so1])).concretize({}, time + 1)}')
+print(f'(t -> t)(1j) * spinX(0): {(so1 * spin.x(0)).concretize(levels, 1j)}')
+print(f'spinX(0) * (t -> t)(1j): {(spin.x(0) * so1).concretize(levels, 1j)}')
+print(f'spinX(0) + (t -> t)(1j): {(spin.x(0) + so1).concretize(levels, 1j)}')
+print(f'(t -> t)(1j) + spinX(0): {(so1 + spin.x(0)).concretize(levels, 1j)}')
+print(f'spinX(0) + (t -> t)(1j): {(spin.x(0) + so1).concretize(levels, 1j)}')
+print(f'(t -> t)(1j) + spinX(0): {(so1 + spin.x(0)).concretize(levels, 1j)}')
+print(f'(t -> t)({2*time}) * (spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(so1 * op7 * op9).concretize(levels, 2*time)}')
+print(f'(spinX(0) + spinX(1)) * (t -> t)({2*time}) * (spinZ(1) + spinZ(2)): {(op7 * so1 * op9).concretize(levels, 2*time)}')
+print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)) * (t -> t)({2*time}): {(op7 * op9 * so1).concretize(levels, 2*time)}')
+
+op10 = so1 * spin.x(0)
+so1.generator = lambda t: 1./t
+print(f'(t -> 1/t)(2) * spinX(0): {op10.concretize(levels, 2.)}')
+so1_gen2 = so1.generator
+so1.generator = lambda t: so1_gen2(2*t)
+print(f'(t -> 1/(2t))(2) * spinX(0): {op10.concretize(levels, 2.)}')
+so1.generator = lambda t: so1_gen2(t)
+print(f'(t -> 1/t)(2) * spinX(0): {op10.concretize(levels, 2.)}')
+
+so2 = ScalarOperator(lambda t: t**2)
+op11 = spin.z(1) * so2
+print(f'spinZ(0) * (t -> t^2)(2): {op11.concretize(levels, 2.)}')
+op12 = so1 @ so2 * spin.z(1)
+print(f'(t -> 1/(t^2))(2) * spinZ(0): {op12.concretize(levels, 2.)}')
+so1.generator = lambda t: t
+print(f'(t -> t^2)(2) * spinZ(0): {op12.concretize(levels, 2.)}')
+so2.generator = so1.generator
+print(f'(t -> t)(2) * spinZ(0): {op12.concretize(levels, 2.)}')
+
+
 
