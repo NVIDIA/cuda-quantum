@@ -123,8 +123,11 @@ jobs:
 
           # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
-            # unsupport_args is a compile error test
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"state_overlap"* ]]; then
+            # unsupport_args and compile_errors are compile error tests
+            # pauli_word: https://github.com/NVIDIA/cuda-quantum/issues/1957
+            # nested_vectors: related to vector of pauli_words (https://github.com/NVIDIA/cuda-quantum/issues/1957)
+            # vqe_h2: "Unknown gep/load configuration for synthesis", only on NVQC.
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"state_overlap"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"vqe_h2"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"pauli_word"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
