@@ -696,8 +696,11 @@ public:
         auto sizeFromBuffer =
             *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         auto bytesInType = [&eleTy]() -> unsigned {
-          if (isa<cudaq::cc::CharspanType>(eleTy))
-            return 16 /*bytes: sizeof(ptr) + sizeof(i64)*/;
+          if (isa<cudaq::cc::CharspanType>(eleTy)) {
+            /* A charspan is a struct{ ptr, i64 }, which is just an i64 in
+             * pointer-free encoding. */
+            return sizeof(std::int64_t);
+          }
           if (auto complexTy = dyn_cast<ComplexType>(eleTy))
             return 2 * cudaq::opt::convertBitsToBytes(
                            complexTy.getElementType().getIntOrFloatBitWidth());
