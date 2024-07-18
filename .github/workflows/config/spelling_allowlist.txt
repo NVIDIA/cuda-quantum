@@ -51,7 +51,6 @@ LPX
 LSB
 Libraries
 LXmn
-Libraries
 MCA
 MLIR
 MPI
@@ -98,9 +97,7 @@ SDK
 SLED
 SLES
 SLURM
-SpinOperator
 SVD
-SpinOperator
 Superpositions
 TBI
 TCP
@@ -183,7 +180,6 @@ eigenvalue
 eigenvalues
 eigenvector
 eigenvectors
-elec
 enqueue
 enqueues
 enqueuing
@@ -243,12 +239,12 @@ occb
 openfermion
 optimizer
 optimizers
-param
-params
 parallelization
 parallelize
 parallelizing
+param
 parameterization
+params
 performant
 photonic
 precompute
@@ -302,9 +298,8 @@ summarize
 superpositions
 symplectic
 tablegen
-th
-thres
 templated
+thres
 toolchain
 toolchains
 toolset
@@ -320,8 +315,8 @@ upvote
 utils
 variadic
 variational
+veq
 verifier
 vertices
-veq
 wavefunction
 workflow

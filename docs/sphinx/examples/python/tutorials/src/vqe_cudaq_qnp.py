@@ -28,7 +28,7 @@ class VQE(object):
 
         # Define the initial state for the VQE as a list
         # [n_1, n_2, ....]
-        # where n_j=(0,1,2) is the occupation of j-th the orbital
+        # where n_j=(0,1,2) is the occupation of j-`th` the orbital
 
         n_alpha_vec = [1] * num_active_electrons_alpha + [0] * (
             num_active_orbitals - num_active_electrons_alpha)
@@ -245,7 +245,7 @@ def from_string_to_cudaq_spin(pauli_string, qubit):
 
 
 def get_cudaq_hamiltonian(jw_hamiltonian):
-    """ Converts an openfermion QubitOperator Hamiltonian into a cudaq.SpinOperator Hamiltonian
+    """ Converts an openfermion QubitOperator Hamiltonian into a `cudaq.SpinOperator` Hamiltonian
 
     """
 
@@ -268,7 +268,7 @@ def get_cudaq_hamiltonian(jw_hamiltonian):
 
 
 def get_cudaq_operator(jw_hamiltonian):
-    """ Converts an openfermion QubitOperator Hamiltonian into a cudaq.SpinOperator Hamiltonian
+    """ Converts an openfermion QubitOperator Hamiltonian into a `cudaq.SpinOperator` Hamiltonian
 
     """
 

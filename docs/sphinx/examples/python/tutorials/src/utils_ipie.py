@@ -23,11 +23,11 @@ def signature_permutation(orbital_list):
 
 def get_coeff_wf(final_state_vector, n_active_elec, spin=0, thres=1e-6):
     """
-    :param final_state_vector: State vector from a VQE simulation
-    :param n_active_elec: Number of total electrons in active space
-    :param spin: spin
-    :param thres: Threshold for coefficients to keep from VQE wavefunction
-    :returns: Input for ipie trial: coefficients, list of occupied alpha, list of occupied bets
+    :param `final_state_vector`: State vector from a VQE simulation
+    :param `n_active_elec`: Number of total electrons in active space
+    :param `spin`: spin
+    :param `thres`: Threshold for coefficients to keep from VQE wavefunction
+    :returns: Input for `ipie` trial: coefficients, list of occupied alpha, list of occupied bets
     """
     n_qubits = int(np.log2(final_state_vector.size))
     n_elec = [(n_active_elec + spin) // 2, (n_active_elec - spin) // 2]
