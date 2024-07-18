@@ -3,49 +3,8 @@ from numbers import Number
 from typing import Callable
 from numpy.typing import NDArray
 
-class BuiltIns:
-    _ops = {}
-
-    # The Callable `create` that is passed here must take a list of levels as argument 
-    # as well as **kwargs, and return the concrete matrix (NDArray[complex]) for a 
-    # system with the given levels and keyword parameters. Any keywords used for the 
-    # construction of the matrix must be passed as keyword arguments when concretizing
-    # any operator that involves this built-in one.
-    # Note that the levels passed to the create function are automatically validated 
-    # against the expected/supported levels passed to `add_operator`. There is hence 
-    # no need to validate the levels as part of the `create` function. 
-    # A negative or zero value for one (or more) of the expected level indicates that 
-    # the matrix/operator is defined for any value of this level.
-    @classmethod
-    def add_operator(cls, op_id: str, expected_levels: list[int], create: Callable):
-        def with_level_check(generator, given_levels: list[int]) -> Callable:
-            # Passing a value 0 for one of the expected levels indicates that
-            # the generator can be invoked with any value for that level.
-            # The generator returns a function that, given some keyword arguments,
-            # returns a matrix (NDArray[complex]).
-            if any([expected > 0 and given_levels[i] != expected for i, expected in enumerate(expected_levels)]):
-                raise ValueError(f'No built-in operator {op_id} has been defined '\
-                                 f'for {len(given_levels)} degree(s) of freedom '\
-                                 f'with level(s) {given_levels}.')
-            # FIXME: do the same thing here as we do for the generators of 
-            # ScalarOperators to detect missing kwargs during concretize 
-            # and allow for arbitrary signatures of the generators here.
-            return lambda **kwargs: generator(given_levels, **kwargs)
-        cls._ops[op_id] = lambda levels: with_level_check(create, levels)
-
-    @classmethod
-    def get_operator(cls, op_id: str, levels: list[int]) -> Callable:
-        if not op_id in cls._ops:
-            raise ValueError(f'No built-in operator {op_id} has been defined.')
-        return cls._ops[op_id](levels)
-
-# Operators as defined here: 
-# https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
-BuiltIns.add_operator("spin_x", [2], lambda _, **kwargs: numpy.array([[0,1],[1,0]]))
-BuiltIns.add_operator("spin_y", [2], lambda _, **kwargs: numpy.array([[0,1j],[-1j,0]]))
-BuiltIns.add_operator("spin_z", [2], lambda _, **kwargs: numpy.array([[1,0],[0,-1]]))
-BuiltIns.add_operator("spin_i", [2], lambda _, **kwargs: numpy.array([[1,0],[0,1]]))
-
+class BuiltIns():
+    pass
 
 class ScalarOperator():
     pass
@@ -278,6 +237,49 @@ class ScalarOperator(ProductOperator):
             return ProductOperator([self]) + other
         generator = lambda **kwargs: self.concretize(**kwargs) + other.concretize(**kwargs)
         return ScalarOperator(generator)
+
+class BuiltIns:
+    _ops = {}
+
+    # The Callable `create` that is passed here must take a list of levels as argument 
+    # as well as **kwargs, and return the concrete matrix (NDArray[complex]) for a 
+    # system with the given levels and keyword parameters. Any keywords used for the 
+    # construction of the matrix must be passed as keyword arguments when concretizing
+    # any operator that involves this built-in one.
+    # Note that the levels passed to the create function are automatically validated 
+    # against the expected/supported levels passed to `add_operator`. There is hence 
+    # no need to validate the levels as part of the `create` function. 
+    # A negative or zero value for one (or more) of the expected level indicates that 
+    # the matrix/operator is defined for any value of this level.
+    @classmethod
+    def add_operator(cls, op_id: str, expected_levels: list[int], create: Callable):
+        def with_level_check(generator, given_levels: list[int]) -> Callable:
+            # Passing a value 0 for one of the expected levels indicates that
+            # the generator can be invoked with any value for that level.
+            # The generator returns a function that, given some keyword arguments,
+            # returns a matrix (NDArray[complex]).
+            if any([expected > 0 and given_levels[i] != expected for i, expected in enumerate(expected_levels)]):
+                raise ValueError(f'No built-in operator {op_id} has been defined '\
+                                 f'for {len(given_levels)} degree(s) of freedom '\
+                                 f'with level(s) {given_levels}.')
+            # FIXME: do the same thing here as we do for the generators of 
+            # ScalarOperators to detect missing kwargs during concretize 
+            # and allow for arbitrary signatures of the generators here.
+            return lambda **kwargs: generator(given_levels, **kwargs)
+        cls._ops[op_id] = lambda levels: with_level_check(create, levels)
+
+    @classmethod
+    def get_operator(cls, op_id: str, levels: list[int]) -> Callable:
+        if not op_id in cls._ops:
+            raise ValueError(f'No built-in operator {op_id} has been defined.')
+        return cls._ops[op_id](levels)
+
+# Operators as defined here: 
+# https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
+BuiltIns.add_operator("spin_x", [2], lambda _, **kwargs: numpy.array([[0,1],[1,0]]))
+BuiltIns.add_operator("spin_y", [2], lambda _, **kwargs: numpy.array([[0,1j],[-1j,0]]))
+BuiltIns.add_operator("spin_z", [2], lambda _, **kwargs: numpy.array([[1,0],[0,-1]]))
+BuiltIns.add_operator("spin_i", [2], lambda _, **kwargs: numpy.array([[1,0],[0,1]]))
 
 class spin:
 
