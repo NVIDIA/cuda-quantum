@@ -71,33 +71,36 @@ static std::string processSimBackendConfig(
 
   if (!configValue.PreprocessorDefines.empty()) {
     output << "PREPROCESSOR_DEFINES=\"${PREPROCESSOR_DEFINES}";
-    for (const auto &def : configValue.PreprocessorDefines) {
+
+    for (const auto &def : configValue.PreprocessorDefines)
       output << " " << def;
-    }
+
     output << "\"\n";
   }
 
   if (!configValue.CompilerFlags.empty()) {
     output << "COMPILER_FLAGS=\"${COMPILER_FLAGS}";
-    for (const auto &def : configValue.CompilerFlags) {
+
+    for (const auto &def : configValue.CompilerFlags)
       output << " " << def;
-    }
+
     output << "\"\n";
   }
 
   if (!configValue.LinkLibs.empty()) {
     output << "LINKLIBS=\"${LINKLIBS}";
-    for (const auto &lib : configValue.LinkLibs) {
+
+    for (const auto &lib : configValue.LinkLibs)
       output << " " << lib;
-    }
+
     output << "\"\n";
   }
 
   if (!configValue.LinkerFlags.empty()) {
     output << "LINKER_FLAGS=\"${LINKER_FLAGS}";
-    for (const auto &def : configValue.LinkerFlags) {
+    for (const auto &def : configValue.LinkerFlags)
       output << " " << def;
-    }
+
     output << "\"\n";
   }
 
@@ -123,13 +126,13 @@ static std::string processSimBackendConfig(
 
   for (const auto &rule : configValue.ConditionalBuildConfigs) {
     output << "if [[ " << rule.Condition << " ]]; then\n";
-    if (!rule.CompileFlag.empty()) {
+    if (!rule.CompileFlag.empty())
       output << "  COMPILER_FLAGS=\"${COMPILER_FLAGS} " << rule.CompileFlag
              << "\"\n";
-    }
-    if (!rule.LinkFlag.empty()) {
+
+    if (!rule.LinkFlag.empty())
       output << "  LINKER_FLAGS=\"${LINKER_FLAGS} " << rule.LinkFlag << "\"\n";
-    }
+
     output << "fi\n";
   }
 
@@ -140,10 +143,9 @@ std::string
 cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
                                   const std::vector<std::string> &targetArgv) {
   std::stringstream output;
-  if (config.BackendConfig.has_value()) {
+  if (config.BackendConfig.has_value())
     output << processSimBackendConfig(config.Name,
                                       config.BackendConfig.value());
-  }
 
   unsigned featureFlag = 0;
   std::stringstream platformExtraArgs;
@@ -162,10 +164,10 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
       if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {
         // If this is a platform option (platform argument key is provide),
         // forward the value to the platform extra arguments.
-        if (!iter->PlatformArgKey.empty()) {
+        if (!iter->PlatformArgKey.empty())
           platformExtraArgs << ";" << iter->PlatformArgKey << ";"
                             << targetArgv[idx + 1];
-        }
+
       } else {
         // This is an option flag, construct the value for mapping selection.
         const auto featureFlags = targetArgv[idx + 1];
@@ -230,10 +232,10 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
     output << processSimBackendConfig(config.Name, iter->Config);
   }
   const auto platformExtraArgsStr = platformExtraArgs.str();
-  if (!platformExtraArgsStr.empty()) {
+  if (!platformExtraArgsStr.empty())
     output << "PLATFORM_EXTRA_ARGS=\"${PLATFORM_EXTRA_ARGS}"
            << platformExtraArgsStr << "\"\n";
-  }
+
   return output.str();
 }
 
@@ -268,9 +270,9 @@ void BlockScalarTraits<cudaq::config::SimulationBackendSetting>::output(
   std::size_t idx = 0;
   for (const auto &val : Value.values) {
     OS << val;
-    if (idx != Value.values.size() - 1) {
+    if (idx != Value.values.size() - 1)
       OS << ", ";
-    }
+
     ++idx;
   }
 }
@@ -280,9 +282,9 @@ StringRef BlockScalarTraits<cudaq::config::SimulationBackendSetting>::input(
     cudaq::config::SimulationBackendSetting &Value) {
   llvm::SmallVector<llvm::StringRef> values;
   Scalar.split(values, ',', -1, false);
-  for (const auto &val : values) {
+  for (const auto &val : values)
     Value.values.emplace_back(val.trim().str());
-  }
+
   return StringRef();
 }
 
