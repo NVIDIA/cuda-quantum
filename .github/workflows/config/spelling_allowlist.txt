@@ -49,8 +49,8 @@ Kraus
 LLVM
 LPX
 LSB
-LXmn
 Libraries
+LXmn
 MCA
 MLIR
 MPI
