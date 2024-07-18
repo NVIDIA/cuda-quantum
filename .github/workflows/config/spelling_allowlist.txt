@@ -1,9 +1,9 @@
 AFQMC
 API
-APIs
 AST
 Aer
 AlmaLinux
+APIs
 Asynchronous
 BFGS
 Bloch
