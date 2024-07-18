@@ -49,8 +49,8 @@ Kraus
 LLVM
 LPX
 LSB
-Libraries
 LXmn
+Libraries
 MCA
 MLIR
 MPI
@@ -97,8 +97,8 @@ SDK
 SLED
 SLES
 SLURM
-SpinOperator
 SVD
+SpinOperator
 Superpositions
 TBI
 TCP
