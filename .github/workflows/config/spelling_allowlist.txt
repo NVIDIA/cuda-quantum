@@ -318,8 +318,8 @@ upvote
 utils
 variadic
 variational
+veq
 verifier
 vertices
-veq
 wavefunction
 workflow
