@@ -241,12 +241,12 @@ occb
 openfermion
 optimizer
 optimizers
-param
-params
 parallelization
 parallelize
 parallelizing
+param
 parameterization
+params
 performant
 photonic
 precompute
