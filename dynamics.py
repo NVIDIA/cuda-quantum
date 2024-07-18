@@ -1,6 +1,6 @@
 import inspect, itertools, numpy
 from numbers import Number
-from typing import Callable
+from typing import Any, Callable, Iterable, Iterator
 from numpy.typing import NDArray
 
 class BuiltIns():
@@ -25,6 +25,10 @@ class OperatorSum:
         if len(terms) == 0:
             raise ValueError("Need at least one term.")
         self._terms = terms
+
+    @property
+    def parameter_names(self) -> set[str]:
+        return set([name for term in self._terms for name in term.parameter_names])
 
     def concretize(self, levels: dict[int, int], **kwargs) -> NDArray[complex]:
         degrees = set([degree for term in self._terms for op in term._operators for degree in op._degrees])
@@ -62,6 +66,10 @@ class ProductOperator(OperatorSum):
             raise ValueError("Need at least one operator.")
         self._operators = operators
         super().__init__([self])
+
+    @property
+    def parameter_names(self) -> set[str]:
+        return set([name for operator in self._operators for name in operator.parameter_names])
 
     def concretize(self, levels: dict[int, int], **kwargs) -> NDArray[complex]:
         def generate_all_states(degrees: list[int]):
@@ -134,6 +142,11 @@ class ElementaryOperator(ProductOperator):
         self._degrees.sort() # sorting so that we have a unique ordering for builtin
         super().__init__([self])
 
+    @property
+    def parameter_names(self) -> set[str]:
+        # FIXME: implement
+        raise NotImplementedError("Cannot determine parameters for ElementaryOperator")
+
     def concretize(self, levels: dict[int, int], **kwargs) -> NDArray[complex]:
         missing_degrees = [degree not in levels for degree in self._degrees]
         if any(missing_degrees):
@@ -182,6 +195,11 @@ class ScalarOperator(ProductOperator):
         if arg_spec.varargs is not None:
             raise ValueError("The generator for a ScalarOperator must not have an *args argument.")
         self._generator = generator
+
+    @property
+    def parameter_names(self) -> set[str]:
+        arg_spec = inspect.getfullargspec(self._generator)
+        return set([arg_name for arg_name in arg_spec.args + arg_spec.kwonlyargs])
 
     def _args_from_kwargs(fct, **kwargs):
         arg_spec = inspect.getfullargspec(fct)
@@ -296,6 +314,35 @@ class spin:
     def i(cls, degree: int) -> ElementaryOperator:
         return ElementaryOperator("spin_i", [degree])
     
+class Schedule:
+    _iterator: Iterator[Any]
+    _parameters: list[str]
+    _get_value: Callable[[str, Any], Any]
+    _current_step: Any
+
+    # The output type of the iterable steps must match the second argument of `get_value`.
+    def __init__(self, steps: Iterable[Any], parameters: list[str], get_value: Callable[[str, Any], Any]):
+        self._iterator = iter(steps)
+        self._parameters = parameters
+        self._get_value = get_value
+        self._current_step = None
+
+    @property
+    def current_step(self):
+        return self._current_step
+    
+    def __iter__(self):
+        return self
+        
+    def __next__(self):
+        self._current_step = None # Set current_step to None when we reach the end of the iteration.
+        self._current_step = next(self._iterator)
+        kvargs = {}
+        for parameter in self._parameters:
+            kvargs[parameter] = self._get_value(parameter, self._current_step)
+        return kvargs
+
+
 levels = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
 print(f'spinX(1): {spin.x(1).concretize(levels)}')
@@ -393,3 +440,13 @@ print(f'((f,t) -> f*t)(f=3, t=2): {so6.concretize(foo = 3, bar = 2, dummy = 10)}
 so7 = ScalarOperator(lambda foo, *, bar, **kwargs: foo * bar)
 print(f'((f,t) -> f*t)(f=3, t=2): {so6.concretize(foo = 3, bar = 2, dummy = 10)}')
 
+def get_parameter_value(parameter_name: str, time: float):
+    match parameter_name:
+        case "foo": return time
+        case "bar": return 2 * time
+        case _: raise NotImplementedError(f'No value defined for parameter {parameter_name}.')
+
+schedule = Schedule([0.0, 0.5, 1.0], so6.parameter_names, get_parameter_value)
+for parameters in schedule:
+    print(f'step {schedule.current_step}')
+    print(f'((f,t) -> f*t)({parameters}): {so6.concretize(**parameters)}')
