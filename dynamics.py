@@ -8,7 +8,9 @@ class BuiltIns:
 
     # The Callable `create` that is passed here must take a list of levels as argument 
     # as well as **kwargs, and return the concrete matrix (NDArray[complex]) for a 
-    # system with the given levels and keyword parameters.
+    # system with the given levels and keyword parameters. Any keywords used for the 
+    # construction of the matrix must be passed as keyword arguments when concretizing
+    # any operator that involves this built-in one.
     # Note that the levels passed to the create function are automatically validated 
     # against the expected/supported levels passed to `add_operator`. There is hence 
     # no need to validate the levels as part of the `create` function. 
@@ -25,6 +27,9 @@ class BuiltIns:
                 raise ValueError(f'No built-in operator {op_id} has been defined '\
                                  f'for {len(given_levels)} degree(s) of freedom '\
                                  f'with level(s) {given_levels}.')
+            # FIXME: do the same thing here as we do for the generators of 
+            # ScalarOperators to detect missing kwargs during concretize 
+            # and allow for arbitrary signatures of the generators here.
             return lambda **kwargs: generator(given_levels, **kwargs)
         cls._ops[op_id] = lambda levels: with_level_check(create, levels)
 
