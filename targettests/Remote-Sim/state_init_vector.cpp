@@ -10,13 +10,10 @@
 
 // clang-format off
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu %s -o %t && %t
-// RUN: nvq++ %cpp_std --target remote-mqpu %s -o %t && %t // TODO: this fails to compile, do we need it?
 // clang-format on
 
 #include <cudaq.h>
 #include <iostream>
-
-
 
 __qpu__ void test_complex_constant_array() {
    cudaq::qvector v(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
@@ -69,27 +66,41 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
-    // {
-    //   auto counts = cudaq::sample(test_complex_constant_array);
-    //   printCounts(counts);
-    // }
+    {
+      auto counts = cudaq::sample(test_complex_constant_array);
+      printCounts(counts);
+    }
 
-    // {
-    //   auto counts = cudaq::sample(test_complex_constant_array2);
-    //   printCounts(counts);
-    // }
+// CHECK: 00
+// CHECK: 10
 
-    // {
-    //   auto counts = cudaq::sample(test_complex_constant_array3);
-    //   printCounts(counts);
-    // }
+    {
+      auto counts = cudaq::sample(test_complex_constant_array2);
+      printCounts(counts);
+    }
 
-    // {
-    //   auto counts = cudaq::sample(test_real_constant_array);
-    //   printCounts(counts);
-    // }
+// CHECK: 0001
+// CHECK: 0011
+// CHECK: 1001
+// CHECK: 1011
 
-    // {
+    {
+      auto counts = cudaq::sample(test_complex_constant_array3);
+      printCounts(counts);
+    }
+
+// CHECK: 00
+// CHECK: 10
+
+    {
+      auto counts = cudaq::sample(test_real_constant_array);
+      printCounts(counts);
+    }
+
+// CHECK: 00
+// CHECK: 10
+
+    {
       std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
       std::vector<cudaq::complex> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
       {
@@ -101,101 +112,102 @@ int main() {
           printCounts(counts);
       }
 
-    //   {
-    //       // Passing state data as argument (builder mode)
-    //       auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::complex>>();
-    //       auto qubits = kernel.qalloc(v);
+// CHECK: 00
+// CHECK: 10
 
-    //       auto counts = cudaq::sample(kernel, vec);
-    //       printCounts(counts);
+// CHECK: 01
+// CHECK: 11
 
-    //       counts = cudaq::sample(kernel, vec1);
-    //       printCounts(counts);
-    //   }
-    // }
+      {
+          // Passing state data as argument (builder mode)
+          auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::complex>>();
+          auto qubits = kernel.qalloc(v);
 
-    // {
-    //   std::vector<cudaq::real> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
-    //   std::vector<cudaq::real> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
-    //   {
-    //       // Passing state data as argument (kernel mode)
-    //       auto counts = cudaq::sample(test_real_array_param, vec);
-    //       printCounts(counts);
+          auto counts = cudaq::sample(kernel, vec);
+          printCounts(counts);
 
-    //       counts = cudaq::sample(test_real_array_param, vec1);
-    //       printCounts(counts);
-    //   }
+          counts = cudaq::sample(kernel, vec1);
+          printCounts(counts);
+      }
+    }
 
-    //   {
-    //       // Passing state data as argument (builder mode)
-    //       auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::real>>();
-    //       auto qubits = kernel.qalloc(v);
+// CHECK: 00
+// CHECK: 10
 
-    //       auto counts = cudaq::sample(kernel, vec);
-    //       printCounts(counts);
+// CHECK: 01
+// CHECK: 11
 
-    //       counts = cudaq::sample(kernel, vec1);
-    //       printCounts(counts);
-    //   }
-    // }
+    {
+      std::vector<cudaq::real> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
+      std::vector<cudaq::real> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
+      {
+          // Passing state data as argument (kernel mode)
+          auto counts = cudaq::sample(test_real_array_param, vec);
+          printCounts(counts);
 
-    // Error message: "Invalid user-provided state data. Simulator is FP64 but state data is FP32."
-    // {
-    //   std::vector<double> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
-    //   std::vector<double> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
-    //   {
-    //       // Passing state data as argument (kernel mode)
-    //       auto counts = cudaq::sample(test_double_array_param, vec);
-    //       printCounts(counts);
+          counts = cudaq::sample(test_real_array_param, vec1);
+          printCounts(counts);
+      }
 
-    //       counts = cudaq::sample(test_double_array_param, vec1);
-    //       printCounts(counts);
-    //   }
-    // }
+// CHECK: 00
+// CHECK: 10
 
-    // UCX  ERROR Failed to allocate memory pool (name=mm_recv_desc) chunk: Out of memory
-    // {
-    //   std::vector<float> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
-    //   std::vector<float> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
-    //   {
-    //       // Passing state data as argument (kernel mode)
-    //       auto counts = cudaq::sample(test_float_array_param, vec);
-    //       printCounts(counts);
+// CHECK: 01
+// CHECK: 11
 
-    //       counts = cudaq::sample(test_float_array_param, vec1);
-    //       printCounts(counts);
-    //   }
-    // }
+      {
+          // Passing state data as argument (builder mode)
+          auto [kernel, v] = cudaq::make_kernel<std::vector<cudaq::real>>();
+          auto qubits = kernel.qalloc(v);
+
+          auto counts = cudaq::sample(kernel, vec);
+          printCounts(counts);
+
+          counts = cudaq::sample(kernel, vec1);
+          printCounts(counts);
+      }
+
+// CHECK: 00
+// CHECK: 10
+
+// CHECK: 01
+// CHECK: 11
+    }
+
+    {
+      std::vector<double> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
+      std::vector<double> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
+
+      // Passing state data as argument (kernel mode)
+      auto counts = cudaq::sample(test_double_array_param, vec);
+      printCounts(counts);
+
+      counts = cudaq::sample(test_double_array_param, vec1);
+      printCounts(counts);
+    }
+
+// CHECK: 00
+// CHECK: 10
+
+// CHECK: 01
+// CHECK: 11
+
+    {
+      std::vector<float> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
+      std::vector<float> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
+
+      // Passing state data as argument (kernel mode)
+      auto counts = cudaq::sample(test_float_array_param, vec);
+      printCounts(counts);
+
+      counts = cudaq::sample(test_float_array_param, vec1);
+      printCounts(counts);
+    }
+
+// CHECK: 00
+// CHECK: 10
+
+// CHECK: 01
+// CHECK: 11
 }
 
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 0001
-// CHECK: 0011
-// CHECK: 1001
-// CHECK: 1011
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 01
-// CHECK: 11
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 01
-// CHECK: 11
-
-// CHECK: 00
-// CHECK: 10
-
-// CHECK: 01
-// CHECK: 11
