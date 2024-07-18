@@ -127,11 +127,9 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
   auto eleTy = cast<ELETY>(strTy.getElementType());
   builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
-
-  auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, vec.size());
   auto conArray = builder.create<cudaq::cc::ConstantArrayOp>(
       argLoc, cudaq::cc::ArrayType::get(ctx, eleTy, vec.size()), arrayAttr);
-
+  auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, vec.size());
   std::optional<Value> arrayInMemory;
   auto ptrEleTy = cudaq::cc::PointerType::get(eleTy);
   bool generateNewValue = false;
@@ -141,8 +139,6 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     if (arrayInMemory)
       return *arrayInMemory;
     OpBuilder::InsertionGuard guard(builder);
-    auto argLoc = argument.getLoc();
-
     Value buffer;
     if (hasInitStateUse(argument)) {
       // Stick global at end of Module.
@@ -250,7 +246,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       // Check if there were other uses of `vec.data()` and simply forward the
       // constant array as materialized in memory.
       if (replaceOtherUses) {
-        Value memArr = getArrayInMemory();
+        auto memArr = getArrayInMemory();
         stdvecDataOp.replaceAllUsesWith(memArr);
       }
       continue;
@@ -286,7 +282,6 @@ std::vector<std::int32_t> asI32(const std::vector<A> &v) {
 static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument, std::vector<bool> &vec) {
-
   auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
   return synthesizeVectorArgument<IntegerType>(builder, module, counter,
                                                argument, vec, arrayAttr,
@@ -359,7 +354,6 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          std::vector<std::complex<float>> &vec) {
-
   std::vector<float> vec2;
   for (auto c : vec) {
     vec2.push_back(c.real());

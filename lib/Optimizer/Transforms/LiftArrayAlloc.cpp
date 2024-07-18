@@ -229,8 +229,8 @@ public:
     if (std::distance(alloc->getUses().begin(), alloc->getUses().end()) < size)
       return false;
 
-    // Keep a scoreboard for every element in the array. Every element *must*
-    // be stored to with a constant exactly one time.
+    // Keep a scoreboard for every element in the array. Every element *must* be
+    // stored to with a constant exactly one time.
     scoreboard.resize(size);
     for (int i = 0; i < size; i++)
       scoreboard[i] = nullptr;
