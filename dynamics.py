@@ -177,23 +177,6 @@ class ScalarOperator(ProductOperator):
         self._generator = generator
         super().__init__([self])
 
-    @staticmethod
-    def _copy_func(f):
-        # See also:
-        # https://stackoverflow.com/a/49077211
-        # https://stackoverflow.com/a/13503277
-        # https://stackoverflow.com/a/56901529
-        # https://stackoverflow.com/a/77155447
-        # https://docs.python.org/3/library/functools.html#functools.update_wrapper
-        g = types.FunctionType(f.__code__, 
-                               f.__globals__, 
-                               name = f.__name__,
-                               argdefs = f.__defaults__,
-                               closure = f.__closure__)
-        g = functools.update_wrapper(g, f)
-        g.__kwdefaults__ = copy.copy(f.__kwdefaults__)
-        return g
-
     @property
     def generator(self):
         return self._generator
