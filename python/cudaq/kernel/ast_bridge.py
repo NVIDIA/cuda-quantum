@@ -253,10 +253,14 @@ class PyASTBridge(ast.NodeVisitor):
         """
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty)
 
-    def isMeasureResultType(self, ty):
+    def isMeasureResultType(self, ty, value):
         """
         Return true if the given type is a qubit measurement result type (an i1 type).
         """
+        if hasattr(value, 'owner') and hasattr(
+                value.owner,
+                'name') and not 'quake.discriminate' == value.owner.name:
+            return False
         return IntegerType.isinstance(ty) and ty == IntegerType.get_signless(1)
 
     def getIntegerType(self, width=64):
@@ -1093,9 +1097,14 @@ class PyASTBridge(ast.NodeVisitor):
             varNames = [node.targets[0].id]
 
         for i, value in enumerate(varValues):
-            if self.isQuantumType(value.type) or self.isMeasureResultType(
-                    value.type) or cc.CallableType.isinstance(value.type):
+            if self.isQuantumType(value.type) or cc.CallableType.isinstance(
+                    value.type):
                 self.symbolTable[varNames[i]] = value
+            elif self.isMeasureResultType(value.type, value):
+                if varNames[i] in self.symbolTable:
+                    cc.StoreOp(value, self.symbolTable[varNames[i]])
+                else:
+                    self.symbolTable[varNames[i]] = value
             elif varNames[i] in self.symbolTable:
                 if varNames[i] in self.capturedVars:
                     self.emitFatalError(
