@@ -15,7 +15,8 @@ import cudaq
 def do_something():
     cudaq.reset_target()
     yield
-    cudaq.__clearKernelRegistries()
+    ## Ref: https://github.com/NVIDIA/cuda-quantum/issues/1954
+    # cudaq.__clearKernelRegistries()
 
 
 def check_bell(entity):
