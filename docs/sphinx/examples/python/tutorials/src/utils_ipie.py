@@ -66,7 +66,7 @@ def gen_ipie_input_from_pyscf_chk(pyscf_chkfile: str,
                                   linear_dep_thresh: float = 1e-8,
                                   num_frozen_core: int = 0):
     """Generate AFQMC data from PYSCF (molecular) simulation.
-        Adapted from ipie.utils.from_pyscf: returns hamiltonian and wavefunction instead of writing on files
+        Adapted from ipie.`utils`.from_pyscf: returns Hamiltonian and wavefunction instead of writing on files
     """
     if mcscf:
         scf_data = load_from_pyscf_chkfile(pyscf_chkfile, base="mcscf")
@@ -96,16 +96,16 @@ def gen_ipie_input_from_pyscf_chk(pyscf_chkfile: str,
         num_frozen_core=num_frozen_core,
         verbose=False,
     )
-    # write_hamiltonian(ham.H1[0], copy_LPX_to_LXmn(ham.chol), ham.ecore, filename=hamiltonian_file)
+    # write_Hamiltonian(ham.H1[0], copy_LPX_to_LXmn(ham.`chol``), ham.ecore, filename=Hamiltonian_file)
     ipie_ham = (ham.H1[0], copy_LPX_to_LXmn(ham.chol), ham.ecore)
     nelec = (mol.nelec[0] - num_frozen_core, mol.nelec[1] - num_frozen_core)
     if verbose:
         print(f"# Number of electrons in simulation: {nelec}")
     if mcscf:
-        # ci_coeffs = scf_data["ci_coeffs"]
-        # occa = scf_data["occa"]
-        # occb = scf_data["occb"]
-        # write_wavefunction((ci_coeffs, occa, occb), wavefunction_file)
+        # `ci`_`coeffs` = `scf`_data["`ci_coeffs`"]
+        # `occa` = `scf`_data["occa"]
+        # `occb` = `scf`_data["occb"]
+        # write_wavefunction((`ci_coeffs`, `occa`, `occb`), wavefunction_file)
         return ipie_ham
     else:
         wavefunction = generate_wavefunction_from_mo_coeff(

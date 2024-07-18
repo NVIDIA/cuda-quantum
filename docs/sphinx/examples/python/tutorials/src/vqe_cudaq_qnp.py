@@ -73,7 +73,7 @@ class VQE(object):
         n_layers = self.n_layers
         number_of_blocks = self.number_of_Q_blocks
 
-        cudaq.set_target(self.target)  # nvidia or nvidia-mgpu
+        cudaq.set_target(self.target)  # `nvidia` or `nvidia-mgpu`
 
         kernel, thetas = cudaq.make_kernel(list)
         # Allocate n qubits.
