@@ -6,8 +6,11 @@ from numpy.typing import NDArray
 class BuiltIns:
     _ops = {}
 
+    # The Callable `create` that is passed here must take a list of levels as argument 
+    # as well as **kwargs, and return the concrete matrix for a system with the given
+    # levels and keyword parameters.
     @classmethod
-    def add_operator(cls, op_id: str, expected_levels: list[int], create: Callable[[list[int]],Callable]):
+    def add_operator(cls, op_id: str, expected_levels: list[int], create: Callable):
         def with_level_check(generator, given_levels: list[int]) -> Callable:
             # Passing a value 0 for one of the expected levels indicates that
             # the generator can be invoked with any value for that level.
@@ -21,7 +24,7 @@ class BuiltIns:
         cls._ops[op_id] = lambda levels: with_level_check(create, levels)
 
     @classmethod
-    def get_operator(cls, op_id: str, levels: list[int]) -> Callable[[complex], NDArray[complex]]:
+    def get_operator(cls, op_id: str, levels: list[int]) -> Callable:
         if not op_id in cls._ops:
             raise ValueError(f'No built-in operator {op_id} has been defined.')
         return cls._ops[op_id](levels)
