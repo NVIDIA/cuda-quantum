@@ -83,7 +83,8 @@ int main(int argc, char **argv) {
     // IMPORTANT: Don't change this message without updating
     // `scripts/nvqc_launch.sh`, which relies on the this information to perform
     // deployment sanity check.
-    printf("\nCUDA-Q REST API version: %d\n", restServer->version());
+    printf("\nCUDA-Q REST API version: %d.%d\n", restServer->version().first,
+           restServer->version().second);
     return 0;
   }
 

@@ -107,7 +107,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
   }
 
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe())
+  if (platform.get_remote_capabilities().vqe)
     return __internal__::remote_vqe(platform, kernel, H, optimizer,
                                     /*gradient=*/nullptr, n_params, /*shots=*/0,
                                     args...);
@@ -178,7 +178,7 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
   }
 
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe())
+  if (platform.get_remote_capabilities().vqe)
     return __internal__::remote_vqe(platform, kernel, H, optimizer,
                                     /*gradient=*/nullptr, n_params, shots,
                                     args...);
@@ -250,7 +250,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
       "std::tuple<Args...>(std::vector<double>) ArgMapper function object.");
 
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe())
+  if (platform.get_remote_capabilities().vqe)
     return __internal__::remote_vqe(platform, kernel, H, optimizer, &gradient,
                                     n_params,
                                     /*shots=*/0, args...);
@@ -345,7 +345,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
         "Please provide a cudaq::gradient instance. Make sure the gradient is "
         "aware of the ArgMapper.");
   }
-  if (cudaq::get_platform().supports_remote_vqe())
+  if (cudaq::get_platform().get_remote_capabilities().vqe)
     __internal__::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
@@ -427,7 +427,7 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
         "Please provide a cudaq::gradient instance. Make sure the gradient is "
         "aware of the ArgMapper.");
   }
-  if (cudaq::get_platform().supports_remote_vqe())
+  if (cudaq::get_platform().get_remote_capabilities().vqe)
     __internal__::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
@@ -479,7 +479,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                         cudaq::spin_op H, cudaq::optimizer &optimizer,
                         const int n_params, ArgMapper &&argsMapper) {
   bool requiresGrad = optimizer.requiresGradients();
-  if (cudaq::get_platform().supports_remote_vqe())
+  if (cudaq::get_platform().get_remote_capabilities().vqe)
     __internal__::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
