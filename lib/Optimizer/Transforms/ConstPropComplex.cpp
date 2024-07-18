@@ -29,45 +29,6 @@ using namespace mlir;
 
 namespace {
 
-// Replace array ptr casts that throw away the size by a cast to element
-// pointer.
-//
-//%1 = cc.cast %0 : (!cc.ptr<!cc.array<complex<f32> x 4>>) ->
-//! cc.ptr<!cc.array<complex<f32> x ?>>
-// ->
-//%1 = cc.cast %0 : (!cc.ptr<!cc.array<complex<f32> x 4>>) ->
-//! cc.ptr<complex<f32>>
-class CastArrayPtrPattern : public OpRewritePattern<cudaq::cc::CastOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(cudaq::cc::CastOp cast,
-                                PatternRewriter &rewriter) const override {
-
-    auto fromTy = cast.getOperand().getType();
-    auto toTy = cast.getType();
-
-    if (auto ptrFromTy = dyn_cast<cudaq::cc::PointerType>(fromTy)) {
-      if (auto arrayFromTy =
-              dyn_cast<cudaq::cc::ArrayType>(ptrFromTy.getElementType())) {
-        if (auto ptrToTy = dyn_cast<cudaq::cc::PointerType>(toTy)) {
-          if (auto arrayToTy =
-                  dyn_cast<cudaq::cc::ArrayType>(ptrToTy.getElementType())) {
-            if (arrayFromTy.getElementType() == arrayToTy.getElementType()) {
-              auto eleTy = arrayFromTy.getElementType();
-              auto elePtrType = cudaq::cc::PointerType::get(eleTy);
-              rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(cast, elePtrType,
-                                                             cast.getOperand());
-              return success();
-            }
-          }
-        }
-      }
-    }
-    return failure();
-  }
-};
-
 // Fold complex.create ops if the arguments are constants.
 class ComplexCreatePattern : public OpRewritePattern<complex::CreateOp> {
 public:
@@ -86,6 +47,37 @@ public:
       rewriter.replaceOpWithNewOp<complex::ConstantOp>(create, create.getType(),
                                                        aa);
       return success();
+    }
+    return failure();
+  }
+};
+
+// Fold floating point cast ops if the argument is constant.
+class FloatCastPattern : public OpRewritePattern<cudaq::cc::CastOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CastOp cast,
+                                PatternRewriter &rewriter) const override {
+    auto val = cast.getOperand();
+    auto valCon = val.getDefiningOp<arith::ConstantFloatOp>();
+    if (valCon) {
+      auto fTy = dyn_cast<FloatType>(cast.getType());
+      auto opTy = dyn_cast<FloatType>(cast.getOperand().getType());
+      if (fTy == rewriter.getF64Type() && opTy == rewriter.getF32Type()) {
+        auto v = valCon.value().convertToFloat();
+        auto fTy = dyn_cast<FloatType>(cast.getType());
+        rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
+            cast, APFloat{static_cast<double>(v)}, fTy);
+        return success();
+      } else if (fTy == rewriter.getF32Type() &&
+                 opTy == rewriter.getF64Type()) {
+        auto v = valCon.value().convertToDouble();
+        auto fTy = dyn_cast<FloatType>(cast.getType());
+        rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
+            cast, APFloat{static_cast<float>(v)}, fTy);
+        return success();
+      }
     }
     return failure();
   }
@@ -188,12 +180,10 @@ public:
       DominanceInfo domInfo(func);
       std::string funcName = func.getName().str();
       RewritePatternSet patterns(ctx);
-      patterns.insert<ComplexCreatePattern>(ctx);
-      patterns.insert<FloatExtendPattern>(ctx);
-      patterns.insert<FloatTruncatePattern>(ctx);
-      patterns.insert<ComplexRePattern>(ctx);
-      patterns.insert<ComplexImPattern>(ctx);
-      patterns.insert<CastArrayPtrPattern>(ctx);
+      patterns
+          .insert<ComplexCreatePattern, FloatCastPattern, FloatExtendPattern,
+                  FloatTruncatePattern, ComplexRePattern, ComplexImPattern>(
+              ctx);
 
       LLVM_DEBUG(llvm::dbgs()
                  << "Before lifting constant array: " << func << '\n');

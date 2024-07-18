@@ -106,8 +106,8 @@ public:
           LLVM_DEBUG(llvm::dbgs() << "adding declaration: " << op);
           declarations.push_back(&op);
         }
-      } else if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
-        LLVM_DEBUG(llvm::dbgs() << "adding global: " << op);
+      } else if (auto ccGlobalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
+        LLVM_DEBUG(llvm::dbgs() << "adding global constants: " << op);
         declarations.push_back(&op);
       }
     }

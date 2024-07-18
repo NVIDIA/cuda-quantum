@@ -46,42 +46,48 @@ std::vector<A> readConstantValues(SmallVectorImpl<Attribute> &vec, Type eleTy) {
     } else if constexpr (std::is_same_v<A, float>) {
       auto v = cast<FloatAttr>(a);
       result.emplace_back(v.getValue().convertToFloat());
-    } else {
-      assert(false && "unexpected type in constant array");
     }
   }
   return result;
 }
 
-void genVectorOfConstantsFromAttributes(cudaq::IRBuilder irBuilder,
-                                        Location loc, ModuleOp module,
-                                        StringRef name,
-                                        SmallVector<Attribute> &values,
-                                        Type eleTy) {
+LogicalResult genVectorOfConstantsFromAttributes(cudaq::IRBuilder irBuilder,
+                                                 Location loc, ModuleOp module,
+                                                 StringRef name,
+                                                 SmallVector<Attribute> &values,
+                                                 Type eleTy) {
 
   if (auto cTy = dyn_cast<ComplexType>(eleTy)) {
     auto floatTy = cTy.getElementType();
     if (floatTy == irBuilder.getF64Type()) {
       auto vals = readConstantValues<std::complex<double>>(values, cTy);
-      irBuilder.genVectorOfConstants(loc, module, name, vals);
-      return;
+      if (vals.size() == values.size()) {
+        irBuilder.genVectorOfConstants(loc, module, name, vals);
+        return success();
+      }
     } else if (floatTy == irBuilder.getF32Type()) {
       auto vals = readConstantValues<std::complex<float>>(values, cTy);
-      irBuilder.genVectorOfConstants(loc, module, name, vals);
-      return;
+      if (vals.size() == values.size()) {
+        irBuilder.genVectorOfConstants(loc, module, name, vals);
+        return success();
+      }
     }
   } else if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
     if (floatTy == irBuilder.getF64Type()) {
       auto vals = readConstantValues<double>(values, floatTy);
-      irBuilder.genVectorOfConstants(loc, module, name, vals);
-      return;
+      if (vals.size() == values.size()) {
+        irBuilder.genVectorOfConstants(loc, module, name, vals);
+        return success();
+      }
     } else if (floatTy == irBuilder.getF32Type()) {
       auto vals = readConstantValues<float>(values, floatTy);
-      irBuilder.genVectorOfConstants(loc, module, name, vals);
-      return;
+      if (vals.size() == values.size()) {
+        irBuilder.genVectorOfConstants(loc, module, name, vals);
+        return success();
+      }
     }
   }
-  assert(false && "unexpected element type in constant array");
+  return failure();
 }
 } // namespace
 
@@ -128,10 +134,14 @@ public:
       // Build a new name based on the kernel name.
       std::string name = funcName + ".rodata_" + std::to_string(counter++);
       cudaq::IRBuilder irBuilder(rewriter.getContext());
-      genVectorOfConstantsFromAttributes(irBuilder, loc, module, name, values,
-                                         eleTy);
-      conGlobal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
-      conArr = rewriter.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
+      if (succeeded(genVectorOfConstantsFromAttributes(irBuilder, loc, module,
+                                                       name, values, eleTy))) {
+        conGlobal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
+        conArr = rewriter.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
+      } else {
+        conArr =
+            rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
+      }
     } else {
       conArr =
           rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
@@ -169,6 +179,14 @@ public:
           toErase.push_back(useuser);
         isLive = true;
       }
+      if (auto ist = dyn_cast<quake::InitializeStateOp>(user)) {
+        rewriter.setInsertionPointAfter(user);
+        LLVM_DEBUG(llvm::dbgs() << "replaced init_state\n");
+        assert(conGlobal && "global must be defined");
+        rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
+            ist, ist.getType(), ist.getTargets(), conGlobal);
+        continue;
+      }
       if (!isLive)
         toErase.push_back(user);
     }
@@ -179,15 +197,9 @@ public:
       toErase.push_back(alloc);
     }
 
-    for (auto *op : toErase) {
-      if (op->getUses().empty()) {
-        rewriter.eraseOp(op);
-      } else {
-        op->emitOpError("LiftArrayAlloc failed to remove cc::AllocOp "
-                        "or its uses.");
-        return failure();
-      }
-    }
+    for (auto *op : toErase)
+      rewriter.eraseOp(op);
+
     return success();
   }
 
@@ -217,8 +229,8 @@ public:
     if (std::distance(alloc->getUses().begin(), alloc->getUses().end()) < size)
       return false;
 
-    // Keep a scoreboard for every element in the array. Every element *must*
-    // be stored to with a constant exactly one time.
+    // Keep a scoreboard for every element in the array. Every element *must* be
+    // stored to with a constant exactly one time.
     scoreboard.resize(size);
     for (int i = 0; i < size; i++)
       scoreboard[i] = nullptr;
@@ -259,7 +271,9 @@ public:
       return theStore;
     };
 
-    auto ptrArrEleTy = cudaq::cc::PointerType::get(arrTy.getElementType());
+    auto unsizedArrTy = cudaq::cc::ArrayType::get(arrEleTy);
+    auto ptrUnsizedArrTy = cudaq::cc::PointerType::get(unsizedArrTy);
+    auto ptrArrEleTy = cudaq::cc::PointerType::get(arrEleTy);
     for (auto &use : alloc->getUses()) {
       // All uses *must* be a degenerate cc.cast, cc.compute_ptr, or
       // cc.init_state.
@@ -278,6 +292,7 @@ public:
         return false;
       }
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(op)) {
+        // Process casts that are used in store ops.
         if (cast.getType() == ptrArrEleTy) {
           if (auto w = getWriteOp(cast, 0))
             if (!scoreboard[0]) {
@@ -286,7 +301,21 @@ public:
             }
           return false;
         }
+        // Process casts that are used in quake.init_state.
+        if (cast.getType() == ptrUnsizedArrTy) {
+          if (getWriteOp(cast, 0))
+            LLVM_DEBUG(
+                llvm::dbgs()
+                << "unexpected use of array size removing cast in a store"
+                << *op << '\n');
+          continue;
+        }
         LLVM_DEBUG(llvm::dbgs() << "unexpected cast: " << *op << '\n');
+        toGlobalUses.push_back(op);
+        toGlobal = true;
+        continue;
+      }
+      if (isa<quake::InitializeStateOp>(op)) {
         toGlobalUses.push_back(op);
         toGlobal = true;
         continue;

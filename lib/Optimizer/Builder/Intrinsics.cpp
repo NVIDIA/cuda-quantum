@@ -388,13 +388,15 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
 }
 
 template <typename T>
-DenseElementsAttr createArrayAttr(const std::vector<T> &values, Type eleTy) {
+DenseElementsAttr createDenseElementsAttr(const std::vector<T> &values,
+                                          Type eleTy) {
   auto newValues = ArrayRef<T>(values.data(), values.size());
   auto tensorTy = RankedTensorType::get(values.size(), eleTy);
   return DenseElementsAttr::get(tensorTy, newValues);
 }
 
-DenseElementsAttr createArrayAttr(const std::vector<bool> &values, Type eleTy) {
+DenseElementsAttr createDenseElementsAttr(const std::vector<bool> &values,
+                                          Type eleTy) {
   std::vector<std::byte> converted;
   for (auto b : values) {
     converted.push_back(std::byte(b));
@@ -417,7 +419,7 @@ cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
   builder.setInsertionPointToEnd(module.getBody());
   auto globalTy = cc::ArrayType::get(ctx, eleTy, values.size());
 
-  auto arrayAttr = createArrayAttr(values, eleTy);
+  auto arrayAttr = createDenseElementsAttr(values, eleTy);
   return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
                                              /*constant=*/true,
                                              /*external=*/false);

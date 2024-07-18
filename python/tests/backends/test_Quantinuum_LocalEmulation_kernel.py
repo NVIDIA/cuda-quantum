@@ -153,6 +153,18 @@ def test_quantinuum_state_preparation():
     assert not '01' in counts
     assert not '11' in counts
 
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0., 0., 0., 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '000' in counts
+    assert '100' in counts
+    assert not '001' in counts
+    assert not '010' in counts
+    assert not '011' in counts
+    assert not '101' in counts
+    assert not '110' in counts
+    assert not '111' in counts
+
+
 def test_arbitrary_unitary_synthesis():
     cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))

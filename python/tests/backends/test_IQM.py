@@ -174,6 +174,17 @@ def test_IQM_state_preparation():
     assert assert_close(counts["01"], 0., 2)
     assert assert_close(counts["11"], 0., 2)
 
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0., 0., 0., 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert assert_close(counts["000"], shots / 2, 2)
+    assert assert_close(counts["100"], shots / 2, 2)
+    assert assert_close(counts["001"], 0., 2)
+    assert assert_close(counts["010"], 0., 2)
+    assert assert_close(counts["011"], 0., 2)
+    assert assert_close(counts["101"], 0., 2)
+    assert assert_close(counts["110"], 0., 2)
+    assert assert_close(counts["111"], 0., 2)
+
 
 def test_IQM_state_preparation_builder():
     shots = 10000
@@ -186,6 +197,17 @@ def test_IQM_state_preparation_builder():
     assert assert_close(counts["10"], shots / 2, 2)
     assert assert_close(counts["01"], 0., 2)
     assert assert_close(counts["11"], 0., 2)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0., 0., 0., 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert assert_close(counts["000"], shots / 2, 2)
+    assert assert_close(counts["100"], shots / 2, 2)
+    assert assert_close(counts["001"], 0., 2)
+    assert assert_close(counts["010"], 0., 2)
+    assert assert_close(counts["011"], 0., 2)
+    assert assert_close(counts["101"], 0., 2)
+    assert assert_close(counts["110"], 0., 2)
+    assert assert_close(counts["111"], 0., 2)
 
 
 # leave for gdb debugging

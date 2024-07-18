@@ -8,6 +8,28 @@
 
 // RUN: cudaq-opt -const-prop-complex %s | FileCheck %s
 
+func.func @__nvqpp__mlirgen__function_test_const_prop_cast_double() -> f32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %cst = arith.constant 0.70710678118654757 : f64
+  %0 = cc.cast %cst : (f64) -> f32
+  return %0 : f32
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_const_prop_cast_double() -> f32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0.707106769 : f32
+// CHECK:           return %[[VAL_0]] : f32
+// CHECK:         }
+
+func.func @__nvqpp__mlirgen__function_test_const_prop_cast_float() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %cst = arith.constant 0.7071067 : f32
+  %0 = cc.cast %cst : (f32) -> f64
+  return %0 : f64
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_const_prop_cast_float() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0.70710670948028564 : f64
+// CHECK:           return %[[VAL_0]] : f64
+// CHECK:         }
+
 func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %cst = arith.constant 0.000000e+00 : f32
     %cst_0 = arith.constant 0.70710678118654757 : f64

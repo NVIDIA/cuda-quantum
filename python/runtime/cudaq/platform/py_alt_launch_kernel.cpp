@@ -8,6 +8,7 @@
 
 #include "JITExecutionCache.h"
 #include "common/ArgumentWrapper.h"
+#include "common/Environment.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -493,18 +494,6 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   return returnValue;
 }
 
-/// @brief Helper function to get boolean environment variable
-static bool getEnvBool(const char *envName, bool defaultVal = false) {
-  if (auto envVal = std::getenv(envName)) {
-    std::string tmp(envVal);
-    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-      return true;
-  }
-  return defaultVal;
-}
-
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                             cudaq::OpaqueArguments &runtimeArgs) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
@@ -531,7 +520,6 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto &platform = cudaq::get_platform();
   if (!platform.is_simulator() || platform.is_emulated()) {
     pm.addPass(cudaq::opt::createConstPropComplex());
-    pm.addPass(createCSEPass());
     pm.addPass(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createStatePreparation());
   }
