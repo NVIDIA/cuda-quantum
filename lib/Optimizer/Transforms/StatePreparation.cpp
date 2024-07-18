@@ -200,8 +200,10 @@ private:
 
 class StateDecomposer {
 public:
-  StateDecomposer(StateGateBuilder &b, std::span<std::complex<double>> a)
-      : builder(b), amplitudes(a), numQubits(log2(a.size())) {}
+  StateDecomposer(StateGateBuilder &b, std::span<std::complex<double>> a,
+                  double t)
+      : builder(b), amplitudes(a), numQubits(log2(a.size())),
+        phaseThreshold(t) {}
 
   /// @brief Decompose the input state vector data to a set of controlled
   /// operations and rotations. This function takes as input a `OpBuilder`
@@ -217,8 +219,7 @@ public:
     for (const auto &a : amplitudes) {
       phases.push_back(std::arg(a));
       magnitudes.push_back(std::abs(a));
-      // FIXME: remove magic number.
-      needsPhaseEqualization |= std::abs(phases.back()) > 1e-10;
+      needsPhaseEqualization |= std::abs(phases.back()) > phaseThreshold;
     }
 
     // N.B: The algorithm, as described in the paper, creates a circuit that
@@ -279,6 +280,7 @@ private:
   StateGateBuilder &builder;
   std::span<std::complex<double>> amplitudes;
   std::size_t numQubits;
+  double phaseThreshold;
 };
 
 /// Replace a qubit initialization from vectors with quantum gates.
@@ -355,7 +357,8 @@ readGlobalConstantArray(mlir::OpBuilder &builder, cudaq::cc::GlobalOp &global) {
   return result;
 }
 
-LogicalResult transform(ModuleOp module, func::FuncOp funcOp) {
+LogicalResult transform(ModuleOp module, func::FuncOp funcOp,
+                        double phaseThreshold) {
   auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
   auto toErase = std::vector<mlir::Operation *>();
   auto result = success();
@@ -385,7 +388,7 @@ LogicalResult transform(ModuleOp module, func::FuncOp funcOp) {
 
             // Prepare state from vector data.
             auto gateBuilder = StateGateBuilder(builder, loc, qubits);
-            auto decomposer = StateDecomposer(gateBuilder, vec);
+            auto decomposer = StateDecomposer(gateBuilder, vec, phaseThreshold);
             decomposer.decompose();
 
             initOp.replaceAllUsesWith(qubits);
@@ -398,8 +401,7 @@ LogicalResult transform(ModuleOp module, func::FuncOp funcOp) {
           }
         }
       }
-      funcOp.emitOpError(
-          "StatePreparation failed to find to replace quake.state_init");
+      funcOp.emitOpError("StatePreparation failed to replace quake.state_init");
       result = failure();
     }
   });
@@ -427,7 +429,7 @@ public:
         continue;
       std::string kernelName = funcOp.getName().str();
 
-      auto result = transform(module, funcOp);
+      auto result = transform(module, funcOp, phaseThreshold);
       if (result.failed()) {
         funcOp.emitOpError("Failed to prepare state for '" + kernelName);
         signalPassFailure();
