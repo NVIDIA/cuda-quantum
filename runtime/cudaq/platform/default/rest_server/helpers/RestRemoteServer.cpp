@@ -129,8 +129,9 @@ public:
         m_simHandle(DEFAULT_NVQIR_SIMULATION_BACKEND,
                     loadNvqirSimLib(DEFAULT_NVQIR_SIMULATION_BACKEND)) {}
 
-  virtual int version() const override {
-    return cudaq::RestRequest::REST_PAYLOAD_VERSION;
+  virtual std::pair<int, int> version() const override {
+    return std::make_pair(cudaq::RestRequest::REST_PAYLOAD_VERSION,
+                          cudaq::RestRequest::REST_PAYLOAD_MINOR_VERSION);
   }
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
@@ -650,11 +651,11 @@ protected:
       // server is expecting, throw an error. Note: we don't support
       // automatically versioning the payload (converting payload between
       // different versions) at the moment.
-      if (static_cast<int>(request.version) != version())
+      if (static_cast<int>(request.version) != version().first)
         throw std::runtime_error(fmt::format(
             "Incompatible REST payload version detected: supported version {}, "
             "got version {}.",
-            version(), request.version));
+            version().first, request.version));
 
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
