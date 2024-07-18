@@ -33,7 +33,7 @@ class OperatorSum:
             raise ValueError("Need at least one term.")
         self._terms = terms
 
-    def concretize(self, levels: dict[int, int], time: complex) -> NDArray[complex]:
+    def concretize(self, time: complex, levels: dict[int, int]) -> NDArray[complex]:
         degrees = set([degree for term in self._terms for op in term._operators for degree in op._degrees])
         padded_terms = [] # We need to make sure all matrices are of the same size to sum them up.
         for term in self._terms:
@@ -41,7 +41,7 @@ class OperatorSum:
                 if not degree in [degree for op in term._operators for degree in op._degrees]:
                     term *= spin.i(degree)
             padded_terms.append(term)
-        return sum([term.concretize(levels, time) for term in padded_terms])
+        return sum([term.concretize(time, levels) for term in padded_terms])
 
     def __mul__(self, other: OperatorSum):
         if type(other) == ScalarOperator:
@@ -70,7 +70,7 @@ class ProductOperator(OperatorSum):
         self._operators = operators
         super().__init__([self])
 
-    def concretize(self, levels: dict[int, int], time: complex) -> NDArray[complex]:
+    def concretize(self, time: complex, levels: dict[int, int]) -> NDArray[complex]:
         def generate_all_states(degrees: list[int]):
             if len(degrees) == 0:
                 return []
@@ -81,11 +81,11 @@ class ProductOperator(OperatorSum):
             return [''.join(state) for state in states]
 
         def padded_matrix(op: ElementaryOperator, degrees: list[int]):
-            op_matrix = op.concretize(levels, time)
+            op_matrix = op.concretize(time, levels)
             op_degrees = op._degrees.copy() # Determines the initial qubit ordering of op_matrix.
             for degree in degrees:
                 if not degree in [d for d in op._degrees]:
-                    op_matrix = numpy.kron(op_matrix, spin.i(degree).concretize(levels, time))
+                    op_matrix = numpy.kron(op_matrix, spin.i(degree).concretize(time, levels))
                     op_degrees.append(degree)
             # Need to permute the matrix such that the qubit ordering of all matrices is the same.
             if op_degrees != degrees:
@@ -141,7 +141,7 @@ class ElementaryOperator(ProductOperator):
         self._degrees.sort() # sorting so that we have a unique ordering for builtin
         super().__init__([self])
 
-    def concretize(self, levels: dict[int, int], time: complex) -> NDArray[complex]:
+    def concretize(self, time: complex, levels: dict[int, int]) -> NDArray[complex]:
         missing_degrees = [degree not in levels for degree in self._degrees]
         if any(missing_degrees):
             raise ValueError(f'Missing levels for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
@@ -186,7 +186,7 @@ class ScalarOperator(ProductOperator):
         self._generator = generator
 
     # The argument `levels` here is only passed for consistency with parent classes.
-    def concretize(self, levels: dict[int, int], time: complex):
+    def concretize(self, time: complex, levels: dict[int, int] = None):
         return self._generator(time)
 
     def __matmul__(self, other: ScalarOperator) -> ScalarOperator:
@@ -228,83 +228,83 @@ class spin:
 levels = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 time = 1.0
 
-print(f'spinX(1): {spin.x(1).concretize(levels, time)}')
-print(f'spinY(2): {spin.y(2).concretize(levels, time)}')
+print(f'spinX(1): {spin.x(1).concretize(time, levels)}')
+print(f'spinY(2): {spin.y(2).concretize(time, levels)}')
 
-print(f'spinZ(0) * spinZ(0): {(spin.z(0) * spin.z(0)).concretize(levels, time)}')
-print(f'spinZ(0) * spinZ(1): {(spin.z(0) * spin.z(1)).concretize(levels, time)}')
-print(f'spinZ(0) * spinY(1): {(spin.z(0) * spin.y(1)).concretize(levels, time)}')
+print(f'spinZ(0) * spinZ(0): {(spin.z(0) * spin.z(0)).concretize(time, levels)}')
+print(f'spinZ(0) * spinZ(1): {(spin.z(0) * spin.z(1)).concretize(time, levels)}')
+print(f'spinZ(0) * spinY(1): {(spin.z(0) * spin.y(1)).concretize(time, levels)}')
 
 op1 = ProductOperator([spin.x(0), spin.i(1)])
 op2 = ProductOperator([spin.i(0), spin.x(1)])
-print(f'spinX(0) + spinX(1): {op1.concretize(levels, time) + op2.concretize(levels, time)}')
+print(f'spinX(0) + spinX(1): {op1.concretize(time, levels) + op2.concretize(time, levels)}')
 op3 = ProductOperator([spin.x(1), spin.i(0)])
 op4 = ProductOperator([spin.i(1), spin.x(0),])
-print(f'spinX(1) + spinX(0): {op1.concretize(levels, time) + op2.concretize(levels, time)}')
+print(f'spinX(1) + spinX(0): {op1.concretize(time, levels) + op2.concretize(time, levels)}')
 
-print(f'spinX(0) + spinX(1): {(spin.x(0) + spin.x(1)).concretize(levels, time)}')
-print(f'spinX(0) * spinX(1): {(spin.x(0) * spin.x(1)).concretize(levels, time)}')
-print(f'spinX(0) * spinI(1) * spinI(0) * spinX(1): {(op1 * op2).concretize(levels, time)}')
+print(f'spinX(0) + spinX(1): {(spin.x(0) + spin.x(1)).concretize(time, levels)}')
+print(f'spinX(0) * spinX(1): {(spin.x(0) * spin.x(1)).concretize(time, levels)}')
+print(f'spinX(0) * spinI(1) * spinI(0) * spinX(1): {(op1 * op2).concretize(time, levels)}')
 
-print(f'spinX(0) * spinI(1): {op1.concretize(levels, time)}')
-print(f'spinI(0) * spinX(1): {op2.concretize(levels, time)}')
-print(f'spinX(0) * spinI(1) + spinI(0) * spinX(1): {(op1 + op2).concretize(levels, time)}')
+print(f'spinX(0) * spinI(1): {op1.concretize(time, levels)}')
+print(f'spinI(0) * spinX(1): {op2.concretize(time, levels)}')
+print(f'spinX(0) * spinI(1) + spinI(0) * spinX(1): {(op1 + op2).concretize(time, levels)}')
 
 op5 = spin.x(0) * spin.x(1)
 op6 = spin.z(0) * spin.z(1)
-print(f'spinX(0) * spinX(1): {op5.concretize(levels, time)}')
-print(f'spinZ(0) * spinZ(1): {op6.concretize(levels, time)}')
-print(f'spinX(0) * spinX(1) + spinZ(0) * spinZ(1): {(op5 + op6).concretize(levels, time)}')
+print(f'spinX(0) * spinX(1): {op5.concretize(time, levels)}')
+print(f'spinZ(0) * spinZ(1): {op6.concretize(time, levels)}')
+print(f'spinX(0) * spinX(1) + spinZ(0) * spinZ(1): {(op5 + op6).concretize(time, levels)}')
 
 op7 = spin.x(0) + spin.x(1)
 op8 = spin.z(0) + spin.z(1)
-print(f'spinX(0) + spinX(1): {op7.concretize(levels, time)}')
-print(f'spinZ(0) + spinZ(1): {op8.concretize(levels, time)}')
-print(f'spinX(0) + spinX(1) + spinZ(0) + spinZ(1): {(op7 + op8).concretize(levels, time)}')
-print(f'(spinX(0) + spinX(1)) * (spinZ(0) + spinZ(1)): {(op7 * op8).concretize(levels, time)}')
+print(f'spinX(0) + spinX(1): {op7.concretize(time, levels)}')
+print(f'spinZ(0) + spinZ(1): {op8.concretize(time, levels)}')
+print(f'spinX(0) + spinX(1) + spinZ(0) + spinZ(1): {(op7 + op8).concretize(time, levels)}')
+print(f'(spinX(0) + spinX(1)) * (spinZ(0) + spinZ(1)): {(op7 * op8).concretize(time, levels)}')
 
-print(f'spinX(0) * (spinZ(0) + spinZ(1)): {(spin.x(0) * op8).concretize(levels, time)}')
-print(f'(spinZ(0) + spinZ(1)) * spinX(0): {(op8 * spin.x(0)).concretize(levels, time)}')
+print(f'spinX(0) * (spinZ(0) + spinZ(1)): {(spin.x(0) * op8).concretize(time, levels)}')
+print(f'(spinZ(0) + spinZ(1)) * spinX(0): {(op8 * spin.x(0)).concretize(time, levels)}')
 
 op9 = spin.z(1) + spin.z(2)
-print(f'(spinX(0) + spinX(1)) * spinI(2): {numpy.kron(op7.concretize(levels, time), spin.i(2).concretize(levels, time))}')
-print(f'(spinX(0) + spinX(1)) * spinI(2): {(op7 * spin.i(2)).concretize(levels, time)}')
-print(f'(spinX(0) + spinX(1)) * spinI(2): {(spin.i(2) * op7).concretize(levels, time)}')
-print(f'spinI(0) * (spinZ(1) + spinZ(2)): {numpy.kron(spin.i(0).concretize(levels, time), op9.concretize(levels, time))}')
-print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(op7 * op9).concretize(levels, time)}')
+print(f'(spinX(0) + spinX(1)) * spinI(2): {numpy.kron(op7.concretize(time, levels), spin.i(2).concretize(time, levels))}')
+print(f'(spinX(0) + spinX(1)) * spinI(2): {(op7 * spin.i(2)).concretize(time, levels)}')
+print(f'(spinX(0) + spinX(1)) * spinI(2): {(spin.i(2) * op7).concretize(time, levels)}')
+print(f'spinI(0) * (spinZ(1) + spinZ(2)): {numpy.kron(spin.i(0).concretize(time, levels), op9.concretize(time, levels))}')
+print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(op7 * op9).concretize(time, levels)}')
 
 so1 = ScalarOperator(lambda t: t)
-print(f'Scalar op (t -> t)({time}): {so1.concretize({}, time)}')
-print(f'Trivial prod op (t -> t)({time}): {(ProductOperator([so1])).concretize({}, time)}')
-print(f'Trivial prod op (t -> t)({time + 1}): {(ProductOperator([so1])).concretize({}, time + 1)}')
-print(f'(t -> t)(1j) * spinX(0): {(so1 * spin.x(0)).concretize(levels, 1j)}')
-print(f'spinX(0) * (t -> t)(1j): {(spin.x(0) * so1).concretize(levels, 1j)}')
-print(f'spinX(0) + (t -> t)(1j): {(spin.x(0) + so1).concretize(levels, 1j)}')
-print(f'(t -> t)(1j) + spinX(0): {(so1 + spin.x(0)).concretize(levels, 1j)}')
-print(f'spinX(0) + (t -> t)(1j): {(spin.x(0) + so1).concretize(levels, 1j)}')
-print(f'(t -> t)(1j) + spinX(0): {(so1 + spin.x(0)).concretize(levels, 1j)}')
-print(f'(t -> t)({2*time}) * (spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(so1 * op7 * op9).concretize(levels, 2*time)}')
-print(f'(spinX(0) + spinX(1)) * (t -> t)({2*time}) * (spinZ(1) + spinZ(2)): {(op7 * so1 * op9).concretize(levels, 2*time)}')
-print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)) * (t -> t)({2*time}): {(op7 * op9 * so1).concretize(levels, 2*time)}')
+print(f'Scalar op (t -> t)({time}): {so1.concretize(time)}')
+print(f'Trivial prod op (t -> t)({time}): {(ProductOperator([so1])).concretize(time, {})}')
+print(f'Trivial prod op (t -> t)({time + 1}): {(ProductOperator([so1])).concretize(time + 1, {})}')
+print(f'(t -> t)(1j) * spinX(0): {(so1 * spin.x(0)).concretize(1j, levels)}')
+print(f'spinX(0) * (t -> t)(1j): {(spin.x(0) * so1).concretize(1j, levels)}')
+print(f'spinX(0) + (t -> t)(1j): {(spin.x(0) + so1).concretize(1j, levels)}')
+print(f'(t -> t)(1j) + spinX(0): {(so1 + spin.x(0)).concretize(1j, levels)}')
+print(f'spinX(0) + (t -> t)(1j): {(spin.x(0) + so1).concretize(1j, levels)}')
+print(f'(t -> t)(1j) + spinX(0): {(so1 + spin.x(0)).concretize(1j, levels)}')
+print(f'(t -> t)({2*time}) * (spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(so1 * op7 * op9).concretize(2*time, levels)}')
+print(f'(spinX(0) + spinX(1)) * (t -> t)({2*time}) * (spinZ(1) + spinZ(2)): {(op7 * so1 * op9).concretize(2*time, levels)}')
+print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)) * (t -> t)({2*time}): {(op7 * op9 * so1).concretize(2*time, levels)}')
 
 op10 = so1 * spin.x(0)
 so1.generator = lambda t: 1./t
-print(f'(t -> 1/t)(2) * spinX(0): {op10.concretize(levels, 2.)}')
+print(f'(t -> 1/t)(2) * spinX(0): {op10.concretize(2., levels)}')
 so1_gen2 = so1.generator
 so1.generator = lambda t: so1_gen2(2*t)
-print(f'(t -> 1/(2t))(2) * spinX(0): {op10.concretize(levels, 2.)}')
+print(f'(t -> 1/(2t))(2) * spinX(0): {op10.concretize(2., levels)}')
 so1.generator = lambda t: so1_gen2(t)
-print(f'(t -> 1/t)(2) * spinX(0): {op10.concretize(levels, 2.)}')
+print(f'(t -> 1/t)(2) * spinX(0): {op10.concretize(2., levels)}')
 
 so2 = ScalarOperator(lambda t: t**2)
 op11 = spin.z(1) * so2
-print(f'spinZ(0) * (t -> t^2)(2): {op11.concretize(levels, 2.)}')
+print(f'spinZ(0) * (t -> t^2)(2): {op11.concretize(2., levels)}')
 op12 = so1 @ so2 * spin.z(1)
-print(f'(t -> 1/(t^2))(2) * spinZ(0): {op12.concretize(levels, 2.)}')
+print(f'(t -> 1/(t^2))(2) * spinZ(0): {op12.concretize(2., levels)}')
 so1.generator = lambda t: t
-print(f'(t -> t^2)(2) * spinZ(0): {op12.concretize(levels, 2.)}')
+print(f'(t -> t^2)(2) * spinZ(0): {op12.concretize(2., levels)}')
 so2.generator = so1.generator
-print(f'(t -> t)(2) * spinZ(0): {op12.concretize(levels, 2.)}')
+print(f'(t -> t)(2) * spinZ(0): {op12.concretize(2., levels)}')
 
 
 
