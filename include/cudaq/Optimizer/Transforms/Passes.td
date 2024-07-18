@@ -621,7 +621,7 @@ def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
 
   let options = [
     Option<"phaseThreshold", "threshold", "double",
-      /*default=*/"1e-10", "Equalize the state if larger than the threshold">,
+      /*default=*/"1e-10", "Threshold to trigger phase equalization">,
   ];
 }
 
