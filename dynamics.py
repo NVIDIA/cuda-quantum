@@ -7,8 +7,13 @@ class BuiltIns:
     _ops = {}
 
     # The Callable `create` that is passed here must take a list of levels as argument 
-    # as well as **kwargs, and return the concrete matrix for a system with the given
-    # levels and keyword parameters.
+    # as well as **kwargs, and return the concrete matrix (NDArray[complex]) for a 
+    # system with the given levels and keyword parameters.
+    # Note that the levels passed to the create function are automatically validated 
+    # against the expected/supported levels passed to `add_operator`. There is hence 
+    # no need to validate the levels as part of the `create` function. 
+    # A negative or zero value for one (or more) of the expected level indicates that 
+    # the matrix/operator is defined for any value of this level.
     @classmethod
     def add_operator(cls, op_id: str, expected_levels: list[int], create: Callable):
         def with_level_check(generator, given_levels: list[int]) -> Callable:
@@ -16,7 +21,7 @@ class BuiltIns:
             # the generator can be invoked with any value for that level.
             # The generator returns a function that, given some keyword arguments,
             # returns a matrix (NDArray[complex]).
-            if any([expected != 0 and given_levels[i] != expected for i, expected in enumerate(expected_levels)]):
+            if any([expected > 0 and given_levels[i] != expected for i, expected in enumerate(expected_levels)]):
                 raise ValueError(f'No built-in operator {op_id} has been defined '\
                                  f'for {len(given_levels)} degree(s) of freedom '\
                                  f'with level(s) {given_levels}.')
