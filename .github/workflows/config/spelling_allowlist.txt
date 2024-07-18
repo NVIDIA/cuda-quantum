@@ -202,7 +202,6 @@ frontends
 hamiltonian
 homogenous
 iff
-ipie
 increment
 incrementing
 initializer
@@ -214,6 +213,7 @@ instantiations
 interferometer
 interoperational
 intrinsics
+ipie
 iterable
 iteratively
 kets
