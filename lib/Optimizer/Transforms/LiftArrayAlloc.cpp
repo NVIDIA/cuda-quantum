@@ -197,9 +197,9 @@ public:
       toErase.push_back(alloc);
     }
 
-    for (auto *op : toErase) {
+    for (auto *op : toErase)
       rewriter.eraseOp(op);
-    }
+
     return success();
   }
 
