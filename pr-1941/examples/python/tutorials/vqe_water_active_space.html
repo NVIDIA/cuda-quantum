@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Deutsch’s Algorithm &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Water Molecule with Active Space (CPU vs. GPU) &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Quantum Fourier Transform" href="quantum_fourier_transform.html" />
-    <link rel="prev" title="CUDA-Q Tutorials" href="../../../using/tutorials.html" /> 
+    <link rel="next" title="CUDA-Q Backends" href="../../../using/backends/backends.html" />
+    <link rel="prev" title="Readout Error Mitigation" href="readout_error_mitigation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -160,12 +160,12 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Deutsch’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Quantum-oracles">Quantum oracles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Phase-oracle">Phase oracle</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
@@ -196,9 +196,9 @@
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="vqe_water_active_space.html">Water Molecule with Active Space (CPU vs. GPU)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#A--Classical-simulation-as-a-reference:-CCSD">A- Classical simulation as a reference: CCSD</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Water Molecule with Active Space (CPU vs. GPU)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#A--Classical-simulation-as-a-reference:-CCSD">A- Classical simulation as a reference: CCSD</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
 </ul>
@@ -526,72 +526,57 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Deutsch’s Algorithm</li>
+      <li class="breadcrumb-item active">Water Molecule with Active Space (CPU vs. GPU)</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/examples/python/tutorials/deutschs_algorithm.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/examples/python/tutorials/vqe_water_active_space.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA-Q Tutorials" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="readout_error_mitigation.html" class="btn btn-neutral float-left" title="Readout Error Mitigation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Deutsch's-Algorithm">
-<h1>Deutsch’s Algorithm<a class="headerlink" href="#Deutsch's-Algorithm" title="Permalink to this heading">¶</a></h1>
-<p>We have a function which takes in a bit and outputs a bit. This can be represented as <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span>.</p>
-<p>The function <span class="math notranslate nohighlight">\(f\)</span> has a property; either it is constant or balanced.</p>
-<p>If constant, the outputs are the same regardless of the inputs, i.e., <span class="math notranslate nohighlight">\(f(0) = f(1) = 0\)</span> or <span class="math notranslate nohighlight">\(f(0) = f(1) = 1\)</span>.</p>
-<p>If balanced, the ouputs are balanced across their possibilities, i.e, if <span class="math notranslate nohighlight">\(f(0) = 0\)</span> then <span class="math notranslate nohighlight">\(f(1) = 1\)</span> or if <span class="math notranslate nohighlight">\(f(0) = 1\)</span> then <span class="math notranslate nohighlight">\(f(1) = 0\)</span>.</p>
-<p>The question we would like to answer is if the function is constant or balanced.</p>
-<p>Classically, if we are given a function <span class="math notranslate nohighlight">\(f\)</span>, we can solve to find its property via the code below:</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Treat the code snippet below like a black box, i.e., you don&#39;t have access to the value of the property argument and can just query f with different inputs.</span>
-
-
-<span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">property</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">):</span>
-
-    <span class="k">if</span> <span class="nb">property</span> <span class="o">==</span> <span class="s1">&#39;constant&#39;</span><span class="p">:</span>
-
-        <span class="c1"># The output is a 1 regardless of the input; we can also make the output to be 0.</span>
-
-        <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mi">1</span>
-        <span class="k">elif</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mi">1</span>
-
-    <span class="k">if</span> <span class="nb">property</span> <span class="o">==</span> <span class="s1">&#39;balanced&#39;</span><span class="p">:</span>
-
-        <span class="c1"># The output depends on the input.</span>
-
-        <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mi">1</span>
-        <span class="k">elif</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mi">0</span>
-</pre></div>
-</div>
-</div>
-<p>Let us now classically find out if the function we defined above is constant or balanced.</p>
+  <section id="Water-Molecule-with-Active-Space-(CPU-vs.-GPU)">
+<h1>Water Molecule with Active Space (CPU vs. GPU)<a class="headerlink" href="#Water-Molecule-with-Active-Space-(CPU-vs.-GPU)" title="Permalink to this heading">¶</a></h1>
+<section id="A--Classical-simulation-as-a-reference:-CCSD">
+<h2>A- Classical simulation as a reference: CCSD<a class="headerlink" href="#A--Classical-simulation-as-a-reference:-CCSD" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">f</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">f</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The function is constant&#39;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">f</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The function is balanced&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># You should install pyscf</span>
+<span class="c1"># pip install pyscf</span>
 
-<span class="k">elif</span> <span class="n">f</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">f</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The function is constant&#39;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">f</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The function is balanced&#39;</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">mcscf</span><span class="p">,</span> <span class="n">cc</span>
+
+<span class="n">geometry</span> <span class="o">=</span><span class="s1">&#39;O 0.1173 0.0 0.0; H -0.4691 0.7570 0.0; H -0.4691 -0.7570 0.0&#39;</span>
+<span class="n">mol</span><span class="o">=</span><span class="n">gto</span><span class="o">.</span><span class="n">M</span><span class="p">(</span>
+    <span class="n">atom</span> <span class="o">=</span> <span class="n">geometry</span><span class="p">,</span>
+    <span class="n">spin</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">basis</span> <span class="o">=</span> <span class="s1">&#39;631g&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">myhf</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">RHF</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+<span class="n">myhf</span><span class="o">.</span><span class="n">max_cycle</span><span class="o">=</span><span class="mi">100</span>
+<span class="n">myhf</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+<span class="n">nelec</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">nelectron</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of electrons = &#39;</span><span class="p">,</span> <span class="n">nelec</span><span class="p">)</span>
+<span class="n">norb</span> <span class="o">=</span> <span class="n">myhf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of orbitals = &#39;</span><span class="p">,</span> <span class="n">norb</span><span class="p">)</span>
+
+<span class="n">norb_cas</span><span class="p">,</span> <span class="n">nele_cas</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">mycasci</span> <span class="o">=</span> <span class="n">mcscf</span><span class="o">.</span><span class="n">CASCI</span><span class="p">(</span><span class="n">myhf</span><span class="p">,</span> <span class="n">norb_cas</span><span class="p">,</span> <span class="n">nele_cas</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ncore occupied orbitals = &#39;</span><span class="p">,</span> <span class="n">mycasci</span><span class="o">.</span><span class="n">ncore</span><span class="p">)</span>
+
+<span class="n">frozen</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frozen</span> <span class="o">+=</span> <span class="p">[</span><span class="n">y</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">mycasci</span><span class="o">.</span><span class="n">ncore</span><span class="p">)]</span>
+<span class="n">frozen</span> <span class="o">+=</span> <span class="p">[</span><span class="n">y</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mycasci</span><span class="o">.</span><span class="n">ncore</span><span class="o">+</span><span class="n">norb_cas</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mycasci</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">))]</span>
+<span class="n">mycc</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">CCSD</span><span class="p">(</span><span class="n">myhf</span><span class="p">,</span><span class="n">frozen</span><span class="o">=</span><span class="n">frozen</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total CCSD energy for active space Hamiltonian = &#39;</span><span class="p">,</span> <span class="n">mycc</span><span class="o">.</span><span class="n">e_tot</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -600,201 +585,143 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-The function is constant
+converged SCF energy = -75.983975537279
+Total number of electrons =  10
+Total number of orbitals =  13
+ncore occupied orbitals =  3
+E(CCSD) = -75.98508980454687  E_corr = -0.001114267267875347
+Total CCSD energy for active space Hamiltonian =  -75.98508980454687
+
 </pre></div></div>
 </div>
-<p>If you step through the <code class="docutils literal notranslate"><span class="pre">if</span></code> statements above, one can see that we require 2 calls to the function to determine its property. That is, we have to query <span class="math notranslate nohighlight">\(f\)</span> twice.</p>
-<p>The claim is that Deutsch’s algorithm can solve for this property with 1 function evalulation, demonstrating quantum advantage.</p>
-<p>Below we first go through the math and then the implementation in CUDA Quantum.</p>
-<section id="XOR-\oplus">
-<h2>XOR <span class="math notranslate nohighlight">\(\oplus\)</span><a class="headerlink" href="#XOR-\oplus" title="Permalink to this heading">¶</a></h2>
-<p>You may have seen the <span class="math notranslate nohighlight">\(\oplus\)</span> symbol floating around. This is the exclusive OR or the XOR operation. It follows the rules of addition modulo 2. For example,</p>
-<ol class="arabic simple">
-<li><p><span class="math notranslate nohighlight">\(3\oplus5 = (3+5)_{\%2} = 8_{\%2} = 0\)</span></p></li>
-<li><p><span class="math notranslate nohighlight">\(5\oplus4 = (5+4)_{\%2} = 9_{\%2} = 1\)</span></p></li>
-</ol>
-<p>A quick way to perform the <span class="math notranslate nohighlight">\(\oplus\)</span> calculation is if the result of the addition is an even number, the result is 0 otherwise 1.</p>
 </section>
-<section id="Quantum-oracles">
-<h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="9827fe04c71a48f998b6e56eecc29156" class="no-scaled-link" src="../../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
-<p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logic gates.</p>
-<p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
-<div class="math notranslate nohighlight">
-\[\begin{aligned}
-U_f\ket{x}\ket{y}  =  \ket{x}\ket{y \oplus f(x)}
-\end{aligned}\]</div>
-<p>If <span class="math notranslate nohighlight">\(y = 0\)</span>, then <span class="math notranslate nohighlight">\(U_f\ket{x}\ket{y} = U_f\ket{x}\ket{0} = \ket{x}\ket{0 \oplus f(x)} = \ket{x}\ket{f(x)}\)</span> since <span class="math notranslate nohighlight">\(f(x)\)</span> can either be <span class="math notranslate nohighlight">\(0/1\)</span> and <span class="math notranslate nohighlight">\(0 \oplus 0 = 0\)</span> and <span class="math notranslate nohighlight">\(0 \oplus 1 = 1\)</span>.</p>
-<p>This is remarkable because by setting <span class="math notranslate nohighlight">\(\ket{y} = \ket{0}\)</span>, we can extract the value of <span class="math notranslate nohighlight">\(f(x)\)</span> by measuring the value of the second qubit.</p>
-</section>
-<section id="Phase-oracle">
-<h2>Phase oracle<a class="headerlink" href="#Phase-oracle" title="Permalink to this heading">¶</a></h2>
-<p>Since <span class="math notranslate nohighlight">\(f(x)\)</span> can be either <span class="math notranslate nohighlight">\(0\)</span> or <span class="math notranslate nohighlight">\(1\)</span>, we have that <span class="math notranslate nohighlight">\(0 \oplus f(x) = 0 \oplus 0 = 0 = f(x)\)</span> or <span class="math notranslate nohighlight">\(0 \oplus f(x) = 0 \oplus 1 = 1 = f(x)\)</span>.</p>
-<p>Similarly, <span class="math notranslate nohighlight">\(1 \oplus f(x) = 1 \oplus 0 = 1 = \overline{f(x)}\)</span> or <span class="math notranslate nohighlight">\(1 \oplus f(x) = 1 \oplus 1 = 0 = \overline{f(x)}\)</span> where the bar on top of <span class="math notranslate nohighlight">\(f(x)\)</span> denotes ‘not <span class="math notranslate nohighlight">\(f(x)\)</span>’.</p>
-<p>Let us now prove a result which we shall use later:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{aligned}
-U_f\ket{x}\ket{-}  &amp;=   U_f \ket{x} \tfrac{1}{\sqrt{2}}(\ket{0} - \ket{1}) \\
-&amp;= \tfrac{1}{\sqrt{2}}  (U_f\ket{x}\ket{0} - U_f\ket{x}\ket{1}) \\
-&amp;= \tfrac{1}{\sqrt{2}}  (\ket{x}\ket{0 \oplus f(x)} - \ket{x}\ket{1 \oplus f(x)}) \\
-&amp;= \tfrac{1}{\sqrt{2}}  (\ket{x}\ket{f(x)} - \ket{x}\ket{\overline{f(x)}}) \\
-&amp;=
-\begin{cases}
-      \tfrac{1}{\sqrt{2}}  (\ket{x}\ket{0} - \ket{x}\ket{1}) = \ket{x}\ket{-} &amp;   f(x) = 0 \\
-      \tfrac{1}{\sqrt{2}}  (\ket{x}\ket{1} - \ket{x}\ket{0}) = -\ket{x}\ket{-} &amp;   f(x) = 1 \\
-\end{cases} \\
-&amp;= (-1)^{f(x)}\ket{x}\ket{-}
-\end{aligned}\end{split}\]</div>
-<p>In summary, <span class="math notranslate nohighlight">\(U_f\ket{x}\ket{-} = (-1)^{f(x)}\ket{x}\ket{-}\)</span> where the <span class="math notranslate nohighlight">\(\ket{-}\)</span> qubit was left unchanged and a phase was applied to <span class="math notranslate nohighlight">\(\ket{x}\)</span>.</p>
-</section>
-<section id="Quantum-parallelism">
-<h2>Quantum parallelism<a class="headerlink" href="#Quantum-parallelism" title="Permalink to this heading">¶</a></h2>
-<p>Consider:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{aligned}
-U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
-&amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}\ket{0}+\ket{1}\ket{0}) \\
-&amp;= \tfrac{1}{\sqrt{2}}(U_f \ket{0}\ket{0} + U_f \ket{1}\ket{0})  \\
-&amp;= \tfrac{1}{\sqrt{2}}(U_f \ket{0}\ket{0} + U_f \ket{1}\ket{0})  \\
-&amp;= \tfrac{1}{\sqrt{2}}(\ket{0}\ket{0 \oplus f(0)} + \ket{1}\ket{0 \oplus f(1)})  \\
-&amp;= \tfrac{1}{\sqrt{2}}(\ket{0}\ket{f(0)} + \ket{1}\ket{f(1)})  \\
-\end{aligned}\end{split}\]</div>
-<p>We have calculated information about both <span class="math notranslate nohighlight">\(f(0)\)</span> and <span class="math notranslate nohighlight">\(f(1)\)</span> simultaneously. Quantum mechanics allows for parallelism by exploiting the ability of superposition states.</p>
-</section>
-<section id="Deutschs'-Algorithm:">
-<h2>Deutschs’ Algorithm:<a class="headerlink" href="#Deutschs'-Algorithm:" title="Permalink to this heading">¶</a></h2>
-<p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
-<p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="54429b2057604039ad1726fe2cd14bdf" class="no-scaled-link" src="../../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
-<div class="math notranslate nohighlight">
-\[\ket{\psi_0}  =  \ket{01}
-\tag{1}\]</div>
-<div class="math notranslate nohighlight">
-\[\ket{\psi_1}  =   H_1H_0\ket{\psi_0} = H_1H_0\ket{01} = \ket{+-} = \frac{1}{\sqrt{2}} (\ket{0}+\ket{1})\ket{-}
-\tag{2}\]</div>
-<div class="math notranslate nohighlight">
-\[\ket{\psi_2}  =   U_f\ket{\psi_1} = \frac{1}{\sqrt{2}} (U_f\ket{0}\ket{-} + U_f\ket{1}\ket{-})
-\tag{3}\]</div>
-<p>using <span class="math notranslate nohighlight">\(U_f\ket{x}\ket{-} = (-1)^{f(x)}\ket{x}\ket{-}\)</span> which we proved in the phase oracle section above:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{aligned}
-\ket{\psi_2}  =  \frac{1}{\sqrt{2}} ((-1)^{f(0)}\ket{0}\ket{-} + (-1)^{f(1)}\ket{1}\ket{-}) \\
-= \frac{1}{\sqrt{2}} ((-1)^{f(0)}\ket{0} + (-1)^{f(1)}\ket{1}) \ket{-} \\
-\end{aligned}\end{split}\]</div>
-<p>We now drop the second, qubit in the <span class="math notranslate nohighlight">\(\ket{-}\)</span> state from our derivations as the figure above has no further gate operations acting on it. Remember our aim is to find out if <span class="math notranslate nohighlight">\(f(x)\)</span> is a constant or a balanced function. We have the following options:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{aligned}
-\ket{\psi_{2}}=
-\begin{cases}
-      \tfrac{1}{\sqrt{2}} (\ket{0} + \ket{1})  &amp;   f(0) = 0, f(1) = 0, f(x)  \text{ is constant} \\
-      -\tfrac{1}{\sqrt{2}} (\ket{0} + \ket{1})  &amp;   f(0) = 1, f(1) = 1, f(x)  \text{ is constant} \\
-      \tfrac{1}{\sqrt{2}} (\ket{0} - \ket{1})  &amp;   f(0) = 0, f(1) = 1, f(x)  \text{ is balanced} \\
-      -\tfrac{1}{\sqrt{2}} (\ket{0} - \ket{1})  &amp;   f(0) = 1, f(1) = 0, f(x)  \text{ is balanced} \\
-\end{cases}
-\end{aligned}\end{split}\]</div>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{aligned}
-\ket{\psi_{2}} =
-\begin{cases}
-      \pm \tfrac{1}{\sqrt{2}} (\ket{0} + \ket{1}) = \pm \ket{+}  &amp;    f(x)  \text{ is constant} \\
-      \pm \tfrac{1}{\sqrt{2}} (\ket{0} - \ket{1})= \pm \ket{-}  &amp;    f(x)  \text{ is balanced} \\
-\end{cases}
-\end{aligned}\end{split}\]</div>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{aligned}
-\ket{\psi_{3}}= H\ket{\psi_{2}}
-\begin{cases}
-      \pm H\ket{+} =  \pm \ket{0} &amp;    f(x)  \text{ is constant} \\
-      \pm H\ket{-}  = \pm \ket{1}  &amp;   f(x)  \text{ is balanced} \\
-\end{cases}
-\end{aligned}\end{split}\]</div>
-<p>We can now measure the first qubit to yield either a <span class="math notranslate nohighlight">\(0\)</span> or a <span class="math notranslate nohighlight">\(1\)</span> to determine if <span class="math notranslate nohighlight">\(f(x)\)</span> is constant or balanced.</p>
-<p>Deutsch’s algorithm may not be practically useful but does demonstrate quantum advantage since it uses one function call to determine the property of <span class="math notranslate nohighlight">\(f\)</span> in comparison to two for classical methods.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<section id="B--VQE-UCCSD:">
+<h2>B- VQE-UCCSD:<a class="headerlink" href="#B--VQE-UCCSD:" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the CUDA-Q package and set the target to run on NVIDIA GPUs.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># You should install:</span>
+<span class="c1"># pip install openfermion</span>
+<span class="c1"># pip install openfermionpyscf</span>
+
+<span class="kn">import</span> <span class="nn">openfermion</span>
+<span class="kn">import</span> <span class="nn">openfermionpyscf</span>
+<span class="kn">from</span> <span class="nn">openfermion.transforms</span> <span class="kn">import</span> <span class="n">jordan_wigner</span><span class="p">,</span> <span class="n">get_fermion_operator</span>
+
+<span class="kn">import</span> <span class="nn">timeit</span>
+
 
 <span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="c1"># GPU</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-fp64&quot;</span><span class="p">)</span>
+<span class="c1"># CPU</span>
+<span class="c1">#cudaq.set_target(&quot;qpp-cpu&quot;)</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Here we input the values of [f(0), f(1)] which allows us to represent constant or balanced functions.</span>
+<span class="c1"># 1- Classical pre-processing:</span>
 
-<span class="n">fx</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Let us now code up the circuit shown above following the state Psi after each step.</span>
+<span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.1173</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4691</span><span class="p">,</span><span class="mf">0.7570</span><span class="p">,</span><span class="mf">0.0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4691</span><span class="p">,</span><span class="o">-</span><span class="mf">0.7570</span><span class="p">,</span><span class="mf">0.0</span><span class="p">))]</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s1">&#39;631g&#39;</span>
+<span class="n">multiplicity</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">ncore</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">norb_cas</span><span class="p">,</span> <span class="n">nele_cas</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
 
-<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">molecule</span> <span class="o">=</span> <span class="n">openfermionpyscf</span><span class="o">.</span><span class="n">run_pyscf</span><span class="p">(</span><span class="n">openfermion</span><span class="o">.</span><span class="n">MolecularData</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">,</span><span class="n">charge</span><span class="p">))</span>
 
+<span class="n">molecular_hamiltonian</span> <span class="o">=</span> <span class="n">molecule</span><span class="o">.</span><span class="n">get_molecular_hamiltonian</span><span class="p">(</span>
+        <span class="n">occupied_indices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">ncore</span><span class="p">),</span> <span class="n">active_indices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">ncore</span><span class="p">,</span> <span class="n">ncore</span> <span class="o">+</span> <span class="n">norb_cas</span><span class="p">))</span>
+
+<span class="n">fermion_hamiltonian</span> <span class="o">=</span> <span class="n">get_fermion_operator</span><span class="p">(</span><span class="n">molecular_hamiltonian</span><span class="p">)</span>
+<span class="n">qubit_hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner</span><span class="p">(</span><span class="n">fermion_hamiltonian</span><span class="p">)</span>
+
+<span class="n">spin_ham</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">qubit_hamiltonian</span><span class="p">)</span>
+
+<span class="c1"># 2- Quantum computing using UCCSD ansatz</span>
+
+<span class="n">electron_count</span> <span class="o">=</span> <span class="n">nele_cas</span>
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">norb_cas</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">fx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
-    <span class="n">qubit_0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
-    <span class="n">qubit_1</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+        <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
 
-    <span class="c1"># Psi 0</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">qubit_1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_num</span><span class="p">):</span>
+                <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-    <span class="c1"># Psi 1</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">)</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">qubit_1</span><span class="p">)</span>
+        <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
 
-    <span class="c1"># Psi 2 - oracle</span>
-    <span class="k">if</span> <span class="n">fx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">)</span>
-        <span class="n">x</span><span class="p">(</span><span class="n">qubit_1</span><span class="p">)</span>
+<span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span><span class="n">qubit_count</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">fx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">)</span>
+<span class="c1"># Define a function to minimize</span>
+<span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
-    <span class="c1"># Psi 3</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">)</span>
+        <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
-    <span class="c1"># Measure the qubit to yield if the function is constant or balanced.</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">exp_val</span>
 
 
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">fx</span><span class="p">))</span>
+<span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">fx</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
+        <span class="n">exp_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">(</span><span class="n">xk</span><span class="p">))</span>
 
-<span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;f(x) is a constant function&#39;</span><span class="p">)</span>
-<span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;f(x) is a balanced function&#39;</span><span class="p">)</span>
+<span class="c1"># Initial variational parameters.</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
+
+<span class="c1"># Use the scipy optimizer to minimize the function of interest</span>
+<span class="n">start_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;COBYLA&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">300</span><span class="p">})</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;UCCSD-VQE energy =  &#39;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Pyscf-CCSD energy = &#39;</span><span class="p">,</span> <span class="n">mycc</span><span class="o">.</span><span class="n">e_tot</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of qubits = &#39;</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of parameters = &#39;</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of terms in the spin hamiltonian = &#39;</span><span class="p">,</span><span class="n">spin_ham</span><span class="o">.</span><span class="n">get_term_count</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total elapsed time (s) = &#39;</span><span class="p">,</span> <span class="n">end_time</span><span class="o">-</span><span class="n">start_time</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">exp_vals</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Epochs&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Energy&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;VQE&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/tmp/ipykernel_317959/2228520842.py:39: ComplexWarning: Casting complex values to real discards the imaginary part
+  spin_ham = cudaq.SpinOperator(qubit_hamiltonian)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+UCCSD-VQE energy =   -75.98415928173226
+Pyscf-CCSD energy =  -75.98508980454687
+Total number of qubits =  8
+Total number of parameters =  26
+Total number of terms in the spin hamiltonian =  105
+Total elapsed time (s) =  12.730307687073946
+</pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<div class="highlight"><pre>
-     ╭───╮          ╭───╮
-q0 : ┤ h ├───────●──┤ h ├
-     ├───┤╭───╮╭─┴─╮╰───╯
-q1 : ┤ x ├┤ h ├┤ x ├─────
-     ╰───╯╰───╯╰───╯
-
-f(x) is a balanced function
-</pre></div></div>
+<img alt="../../../_images/examples_python_tutorials_vqe_water_active_space_3_2.png" src="../../../_images/examples_python_tutorials_vqe_water_active_space_3_2.png" />
+</div>
 </div>
 </section>
 </section>
@@ -803,8 +730,8 @@ f(x) is a balanced function
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA-Q Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="readout_error_mitigation.html" class="btn btn-neutral float-left" title="Readout Error Mitigation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
