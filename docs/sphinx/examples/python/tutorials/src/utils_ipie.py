@@ -96,7 +96,7 @@ def gen_ipie_input_from_pyscf_chk(pyscf_chkfile: str,
         num_frozen_core=num_frozen_core,
         verbose=False,
     )
-    # write_Hamiltonian(ham.H1[0], copy_LPX_to_LXmn(ham.`chol``), ham.ecore, filename=Hamiltonian_file)
+    # write_Hamiltonian(ham.H1[0], copy_LPX_to_LXmn(ham.`chol`), ham.ecore, filename=Hamiltonian_file)
     ipie_ham = (ham.H1[0], copy_LPX_to_LXmn(ham.chol), ham.ecore)
     nelec = (mol.nelec[0] - num_frozen_core, mol.nelec[1] - num_frozen_core)
     if verbose:
