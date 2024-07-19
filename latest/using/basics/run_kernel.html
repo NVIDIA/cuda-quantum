@@ -662,7 +662,7 @@ is available, for example, by choosing the target <code class="code docutils lit
 <span class="n">num_gpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span>
 <span class="k">if</span> <span class="n">num_gpus</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
     <span class="c1"># Set the target to include multiple virtual QPUs.</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
     <span class="c1"># Asynchronous execution on multiple virtual QPUs, each simulated by an NVIDIA GPU.</span>
     <span class="n">result_1</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
                                   <span class="n">qubit_count</span><span class="p">,</span>
