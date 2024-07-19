@@ -595,9 +595,9 @@ protected:
       for (std::size_t i = 0; i < numTimes; ++i) {
         // Invoke the kernel
         fn();
-        if (postExecCallback) {
+        if (postExecCallback) 
           postExecCallback(i);
-        }
+        
       }
     }
   }
