@@ -1,6 +1,6 @@
 import inspect, itertools, numpy
 from numbers import Number
-from typing import Any, Callable, Iterable, Iterator
+from typing import Any, Callable, Generic, Iterable, Iterator, TypeVar, get_args
 from numpy.typing import NDArray
 
 class BuiltIns():
@@ -41,7 +41,7 @@ class OperatorSum:
         return sum([term.concretize(levels, **kwargs) for term in padded_terms])
 
     def __mul__(self, other: OperatorSum):
-        if type(other) == ScalarOperator:
+        if type(other) == ParameterizedOperator:
             return self * OperatorSum([ProductOperator([other])])
         elif type(other) == ElementaryOperator:
             return self * OperatorSum([ProductOperator([other])])
@@ -50,7 +50,7 @@ class OperatorSum:
         return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
     
     def __add__(self, other: OperatorSum):
-        if type(other) == ScalarOperator:
+        if type(other) == ParameterizedOperator:
             return self + OperatorSum([ProductOperator([other])])
         elif type(other) == ElementaryOperator:
             return self + OperatorSum([ProductOperator([other])])
@@ -115,7 +115,7 @@ class ProductOperator(OperatorSum):
         return matrix
 
     def __mul__(self, other: ProductOperator):
-        if type(other) == ScalarOperator:
+        if type(other) == ParameterizedOperator:
             return self * ProductOperator([other])
         elif type(other) == ElementaryOperator:
             return self * ProductOperator([other])
@@ -124,7 +124,7 @@ class ProductOperator(OperatorSum):
         return ProductOperator(self._operators + other._operators)
 
     def __add__(self, other: ProductOperator):
-        if type(other) == ScalarOperator:
+        if type(other) == ParameterizedOperator:
             return self + ProductOperator([other])
         elif type(other) == ElementaryOperator:
             return self + OperatorSum([other])
@@ -152,17 +152,17 @@ class ElementaryOperator(ProductOperator):
         if any(missing_degrees):
             raise ValueError(f'Missing levels for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
         relevant_levels = [levels[degree] for degree in self._degrees]
-        return BuiltIns.get_operator(self._builtin_id, relevant_levels)(**kwargs)
+        return BuiltIns.concretize(self._builtin_id, relevant_levels, **kwargs)
 
     def __mul__(self, other: ElementaryOperator):
-        if type(other) == ScalarOperator:
+        if type(other) == ParameterizedOperator:
             return ProductOperator([self]) * ProductOperator([other])
         elif type(other) != ElementaryOperator:
             return ProductOperator([self]) * other
         return ProductOperator([self, other])
 
     def __add__(self, other: ElementaryOperator):
-        if type(other) == ScalarOperator:
+        if type(other) == ParameterizedOperator:
             return ProductOperator([self]) + ProductOperator([other])
         elif type(other) != ElementaryOperator:
             return ProductOperator([self]) + other
@@ -170,7 +170,8 @@ class ElementaryOperator(ProductOperator):
         op2 = ProductOperator([other])
         return OperatorSum([op1, op2])
 
-class ScalarOperator(ProductOperator):
+_OpType = TypeVar('_OpType')
+class ParameterizedOperator(ProductOperator, Generic[_OpType]):
     _degrees: list[int] # Always empty; here for consistency with other operators.
     _generator: Callable # Can take any number and types of arguments, must return a number.
 
@@ -235,26 +236,33 @@ class ScalarOperator(ProductOperator):
                 kwonlyargs[arg_name] = find_in_kwargs(arg_name)
             return extracted_args, kwonlyargs
         return extracted_args, {}
-    
+
     # The argument `levels` here is only passed for consistency with parent classes.
     def concretize(self, levels: dict[int, int] = None, **kwargs):
         generator_args, remaining_kwargs = ScalarOperator._args_from_kwargs(self._generator, **kwargs)
         evaluated = self._generator(*generator_args, **remaining_kwargs)
-        if not isinstance(evaluated, Number):
-            raise ValueError("Generator of ScalarOperator must return a number.")
+        if hasattr(self, '__orig_class__'):
+            expected_return_type = get_args(self.__orig_class__)[0]
+            if not isinstance(evaluated, expected_return_type):
+                raise ValueError(f'Return type of generator for ParameterizedOperator must be {expected_return_type}.')
         return evaluated
 
+    # FIXME: ONLY WORKS FOR SCALARS
     def __mul__(self, other: ScalarOperator) -> ScalarOperator:
-        if type(other) != ScalarOperator:
+        if type(other) != type(self):
             return ProductOperator([self]) * other
         generator = lambda **kwargs: self.concretize(**kwargs) * other.concretize(**kwargs)
         return ScalarOperator(generator)
     
+    # FIXME: ONLY WORKS FOR SCALARS
     def __add__(self, other: ScalarOperator) -> ScalarOperator:
-        if type(other) != ScalarOperator:
+        if type(other) != type(self):
             return ProductOperator([self]) + other
         generator = lambda **kwargs: self.concretize(**kwargs) + other.concretize(**kwargs)
         return ScalarOperator(generator)
+
+ScalarOperator = ParameterizedOperator[Number]
+BuiltInOperator = ParameterizedOperator[numpy.ndarray]
 
 class BuiltIns:
     _ops = {}
@@ -271,7 +279,7 @@ class BuiltIns:
     # the matrix/operator is defined for any value of this level.
     @classmethod
     def add_operator(cls, op_id: str, expected_levels: list[int], create: Callable):
-        def with_level_check(generator, given_levels: list[int]) -> Callable:
+        def with_level_check(generator, given_levels: list[int], **kwargs) -> Callable:
             # Passing a value 0 for one of the expected levels indicates that
             # the generator can be invoked with any value for that level.
             # The generator returns a function that, given some keyword arguments,
@@ -280,24 +288,21 @@ class BuiltIns:
                 raise ValueError(f'No built-in operator {op_id} has been defined '\
                                  f'for {len(given_levels)} degree(s) of freedom '\
                                  f'with level(s) {given_levels}.')
-            # FIXME: do the same thing here as we do for the generators of 
-            # ScalarOperators to detect missing kwargs during concretize 
-            # and allow for arbitrary signatures of the generators here.
-            return lambda **kwargs: generator(given_levels, **kwargs)
-        cls._ops[op_id] = lambda levels: with_level_check(create, levels)
+            return ParameterizedOperator[numpy.ndarray](generator).concretize(given_levels, **kwargs)
+        cls._ops[op_id] = lambda levels, **kwargs: with_level_check(create, levels, **kwargs)
 
     @classmethod
-    def get_operator(cls, op_id: str, levels: list[int]) -> Callable:
+    def concretize(cls, op_id: str, levels: list[int], **kwargs) -> Callable:
         if not op_id in cls._ops:
             raise ValueError(f'No built-in operator {op_id} has been defined.')
-        return cls._ops[op_id](levels)
+        return cls._ops[op_id](levels, **kwargs)
 
 # Operators as defined here: 
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
-BuiltIns.add_operator("spin_x", [2], lambda _, **kwargs: numpy.array([[0,1],[1,0]]))
-BuiltIns.add_operator("spin_y", [2], lambda _, **kwargs: numpy.array([[0,1j],[-1j,0]]))
-BuiltIns.add_operator("spin_z", [2], lambda _, **kwargs: numpy.array([[1,0],[0,-1]]))
-BuiltIns.add_operator("spin_i", [2], lambda _, **kwargs: numpy.array([[1,0],[0,1]]))
+BuiltIns.add_operator("spin_x", [2], lambda: numpy.array([[0,1],[1,0]]))
+BuiltIns.add_operator("spin_y", [2], lambda: numpy.array([[0,1j],[-1j,0]]))
+BuiltIns.add_operator("spin_z", [2], lambda: numpy.array([[1,0],[0,-1]]))
+BuiltIns.add_operator("spin_i", [2], lambda: numpy.array([[1,0],[0,1]]))
 
 class spin:
 
@@ -450,3 +455,4 @@ schedule = Schedule([0.0, 0.5, 1.0], so6.parameter_names, get_parameter_value)
 for parameters in schedule:
     print(f'step {schedule.current_step}')
     print(f'((f,t) -> f*t)({parameters}): {so6.concretize(**parameters)}')
+
