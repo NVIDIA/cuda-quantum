@@ -1,19 +1,88 @@
-import inspect, itertools, numpy, scipy
+import inspect, itertools, numpy, os, scipy
 from numbers import Number
 from typing import Any, Callable, Iterable, Iterator
 from numpy.typing import NDArray
 
+class _OperatorHelpers:
 
-class ScalarOperator():
+    # Helper function used by all operator classes to return a dictionary with the 
+    # used parameters and their respective description as defined in a doc comment.
+    def aggregate_parameters(dicts: Iterable[dict[str, str]]):
+        param_descriptions = {}
+        for dict in dicts:
+            for key in dict:
+                existing_desc = param_descriptions.get(key)
+                new_desc = dict[key]
+                has_existing_desc = existing_desc is not None and existing_desc != ""
+                has_new_desc = new_desc != ""
+                if has_existing_desc and has_new_desc:
+                    param_descriptions[key] = existing_desc + f'{os.linesep}---{os.linesep}' + new_desc
+                elif has_existing_desc:
+                    param_descriptions[key] = existing_desc
+                else: 
+                    param_descriptions[key] = new_desc
+        return param_descriptions
+
+    def args_from_kwargs(fct, **kwargs):
+        arg_spec = inspect.getfullargspec(fct)
+        signature = inspect.signature(fct)
+        if arg_spec.varargs is not None:
+            raise ValueError("cannot extract arguments for a function with a *args argument")
+        consumes_kwargs = arg_spec.varkw is not None
+        if consumes_kwargs:
+            kwargs = kwargs.copy() # We will modify and return a copy
+
+        def find_in_kwargs(arg_name: str):
+            # Try to get the argument from the kwargs passed to concretize.
+            arg_value = kwargs.get(arg_name)
+            if arg_value is None:
+                # If no suitable keyword argument was defined, check if the 
+                # generator defines a default value for this argument.
+                default_value = signature.parameters[arg_name].default
+                if default_value is not inspect.Parameter.empty:
+                    arg_value = default_value
+            elif consumes_kwargs:
+                del kwargs[arg_name]
+            if arg_value is None:
+                raise ValueError(f'missing keyword argument {arg_name}')
+            return arg_value
+
+        extracted_args = []
+        for arg_name in arg_spec.args:
+            extracted_args.append(find_in_kwargs(arg_name))
+        if consumes_kwargs:
+            return extracted_args, kwargs
+        elif len(arg_spec.kwonlyargs) > 0:
+            # If we can't pass all remaining kwargs, 
+            # we need to create a separate dictionary for kwonlyargs.
+            kwonlyargs = {}
+            for arg_name in arg_spec.kwonlyargs:
+                kwonlyargs[arg_name] = find_in_kwargs(arg_name)
+            return extracted_args, kwonlyargs
+        return extracted_args, {}
+
+    # Generates all possible states for the given dimensions ordered according to 
+    # the list of degrees (ordering is relevant if dimensions differ).
+    def generate_all_states(degrees: list[int], dimensions: dict[int, int]):
+        if len(degrees) == 0:
+            return []
+        states = [[str(state)] for state in range(dimensions[degrees[0]])]
+        for d in degrees[1:]:
+            prod = itertools.product(states, [str(state) for state in range(dimensions[d])])
+            states = [current + [new] for current, new in prod]
+        return [''.join(state) for state in states]
+
+
+class ScalarOperator:
     pass
 
-class ElementaryOperator():
+class ElementaryOperator:
     pass
 
-class ProductOperator():
+class ProductOperator:
     pass
 
-class OperatorSum():
+class OperatorSum:
     pass
 
 class OperatorSum:
@@ -24,10 +93,10 @@ class OperatorSum:
         self._terms = terms
 
     @property
-    def parameter_names(self) -> set[str]:
-        return set([name for term in self._terms for name in term.parameter_names])
+    def parameters(self) -> dict[str, str]:
+        return _OperatorHelpers.aggregate_parameters([term.parameters for term in self._terms])
 
-    def concretize(self, levels: dict[int, int], **kwargs) -> NDArray[complex]:
+    def concretize(self, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
         degrees = set([degree for term in self._terms for op in term._operators for degree in op._degrees])
         padded_terms = [] # We need to make sure all matrices are of the same size to sum them up.
         for term in self._terms:
@@ -35,7 +104,7 @@ class OperatorSum:
                 if not degree in [degree for op in term._operators for degree in op._degrees]:
                     term *= operators.identity(degree)
             padded_terms.append(term)
-        return sum([term.concretize(levels, **kwargs) for term in padded_terms])
+        return sum([term.concretize(dimensions, **kwargs) for term in padded_terms])
 
     def __mul__(self, other: OperatorSum):
         if not isinstance(other, OperatorSum):
@@ -50,7 +119,7 @@ class OperatorSum:
     
     def __add__(self, other: OperatorSum):
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+            raise TypeError(f"unsupported operand type(s) for +/-: '{type(self).__name__}' and '{type(other).__name__}'")
         elif type(other) == ScalarOperator:
             return self + OperatorSum([ProductOperator([other])])
         elif type(other) == ElementaryOperator:
@@ -68,30 +137,21 @@ class ProductOperator(OperatorSum):
         super().__init__([self])
 
     @property
-    def parameter_names(self) -> set[str]:
-        return set([name for operator in self._operators for name in operator.parameter_names])
+    def parameters(self) -> dict[str, str]:
+        return _OperatorHelpers.aggregate_parameters([operator.parameters for operator in self._operators])
 
-    def concretize(self, levels: dict[int, int], **kwargs) -> NDArray[complex]:
-        def generate_all_states(degrees: list[int]):
-            if len(degrees) == 0:
-                return []
-            states = [[str(state)] for state in range(levels[degrees[0]])]
-            for d in degrees[1:]:
-                prod = itertools.product(states, [str(state) for state in range(levels[d])])
-                states = [current + [new] for current, new in prod]
-            return [''.join(state) for state in states]
-
+    def concretize(self, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
         def padded_matrix(op: ElementaryOperator, degrees: list[int]):
-            op_matrix = op.concretize(levels, **kwargs)
+            op_matrix = op.concretize(dimensions, **kwargs)
             op_degrees = op._degrees.copy() # Determines the initial qubit ordering of op_matrix.
             for degree in degrees:
                 if not degree in [d for d in op._degrees]:
-                    op_matrix = numpy.kron(op_matrix, operators.identity(degree).concretize(levels, **kwargs))
+                    op_matrix = numpy.kron(op_matrix, operators.identity(degree).concretize(dimensions, **kwargs))
                     op_degrees.append(degree)
             # Need to permute the matrix such that the qubit ordering of all matrices is the same.
             if op_degrees != degrees:
                 # I'm sure there is a more efficient way, but needed something correct first.
-                states = generate_all_states(degrees) # ordered according to degrees
+                states = _OperatorHelpers.generate_all_states(degrees, dimensions)
                 indices = dict([(d, idx) for idx, d in enumerate(degrees)])
                 reordering = [indices[op_degree] for op_degree in op_degrees]
                 # [degrees[i] for i in reordering] produces op_degrees
@@ -127,7 +187,7 @@ class ProductOperator(OperatorSum):
 
     def __add__(self, other: ProductOperator):
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+            raise TypeError(f"unsupported operand type(s) for +/-: '{type(self).__name__}' and '{type(other).__name__}'")
         elif type(other) == ScalarOperator:
             return self + ProductOperator([other])
         elif type(other) == ElementaryOperator:
@@ -140,58 +200,70 @@ class ProductOperator(OperatorSum):
         return self + operators.const(-1) * other
 
 class ElementaryOperator(ProductOperator):
-    _ops = {}
+    _ops = {} # Contains the generator for each defined ElementaryOperator.
+    _parameter_info = {} # Information about all required parameters for each ElementaryOperator.
 
     # The Callable `create` that is passed here may take any number and types of 
     # arguments and must return a NDArray[complex]. Each argument must be passed
     # as keyword arguments when concretizing any operator that involves this built-in.
-    # Note that the levels passed to the create function are automatically validated 
-    # against the expected/supported levels passed to `add_operator`. There is hence 
-    # no need to validate the levels as part of the `create` function. 
-    # A negative or zero value for one (or more) of the expected level indicates that 
-    # the matrix/operator is defined for any value of this level. If the operator
-    # definition depends on the level(s), then the `create` function must take an 
-    # argument called `levels`, or `level` if it is just one. The given list of levels,
+    # Note that the dimensions passed to the create function are automatically validated 
+    # against the expected/supported dimensions passed to `add_operator`. There is hence 
+    # no need to validate the dimensions as part of the `create` function. 
+    # A negative or zero value for one (or more) of the expected dimensions indicates 
+    # that the matrix/operator is defined for any dimension of the corresponding degree 
+    # of freedom. If the operator definition depends on the dimensions, then the 
+    # `create` function must take an argument called `dimensions` (or `dims` for short),
+    # or `dimension` (or `dim` for short) if it is just one. The given list of dimensions, 
     # or its only entry if it is a list of length one, will then be automatically 
     # forwarded as argument to `create`.
     @classmethod
-    def define(cls, op_id: str, expected_levels: list[int], create: Callable):
-        def with_level_check(generator, levels: list[int], **kwargs) -> Callable:
-            # Passing a value 0 for one of the expected levels indicates that
-            # the generator can be invoked with any value for that level.
-            # The generator returns a function that, given some keyword arguments,
-            # returns a matrix (NDArray[complex]).
-            if any([expected > 0 and levels[i] != expected for i, expected in enumerate(expected_levels)]):
+    def define(cls, op_id: str, expected_dimensions: list[int], create: Callable):
+        forwarded_as_kwarg = [["dimensions", "dims"], ["dimension", "dim"]]
+        def with_dimension_check(creation: Callable, dimensions: list[int], **kwargs) -> Callable:
+            # Passing a value 0 for one of the expected dimensions indicates that
+            # the creation function can be invoked with any value for that dimension.
+            if any([expected > 0 and dimensions[i] != expected for i, expected in enumerate(expected_dimensions)]):
                 raise ValueError(f'no built-in operator {op_id} has been defined '\
-                                 f'for {len(levels)} degree(s) of freedom with level(s) {levels}')
-            if len(levels) == 1: kwargs["level"] = levels[0]
-            else: kwargs["levels"] = levels 
-            generator_args, remaining_kwargs = ScalarOperator._args_from_kwargs(generator, **kwargs)
-            evaluated = generator(*generator_args, **remaining_kwargs)
+                                 f'for {len(dimensions)} degree(s) of freedom with dimension(s) {dimensions}')
+            # If the population of kwargs here is changed, adjust the filtering 
+            # in the `parameters` property below.
+            for forwarded in forwarded_as_kwarg[0]:
+                kwargs[forwarded] = kwargs.get(forwarded, dimensions) # add if it does not exist
+            if len(dimensions) == 1: 
+                for forwarded in forwarded_as_kwarg[1]:
+                    kwargs[forwarded] = kwargs.get(forwarded, dimensions[0]) # add if it does not exist
+            creation_args, remaining_kwargs = _OperatorHelpers.args_from_kwargs(creation, **kwargs)
+            evaluated = creation(*creation_args, **remaining_kwargs)
             if not isinstance(evaluated, numpy.ndarray):
                 raise TypeError("operator concretization must return a 'NDArray[complex]'")
             return evaluated
-        cls._ops[op_id] = lambda levels, **kwargs: with_level_check(create, levels, **kwargs)
+        generator = lambda dimensions, **kwargs: with_dimension_check(create, dimensions, **kwargs)
+        parameters, forwarded = {}, list([keyword for group in forwarded_as_kwarg for keyword in group])
+        arg_spec = inspect.getfullargspec(create)
+        for pname in arg_spec.args + arg_spec.kwonlyargs:
+            if not pname in forwarded:
+                parameters[pname] = "" # FIXME: extract parameter docs from create.__doc__
+        cls._ops[op_id] = generator
+        cls._parameter_info[op_id] = parameters
 
     def __init__(self, operator_id: str, degrees: list[int]):
         if not operator_id in ElementaryOperator._ops:
             raise ValueError(f"no built-in operator '{operator_id}' has been defined")
-        self._generator = ElementaryOperator._ops[operator_id]
+        self._op_id = operator_id
         self._degrees = degrees
         self._degrees.sort() # sorting so that we have a unique ordering for builtin
         super().__init__([self])
 
     @property
-    def parameter_names(self) -> set[str]:
-        arg_spec = inspect.getfullargspec(self._generator)
-        return set([arg_name for arg_name in arg_spec.args + arg_spec.kwonlyargs])
+    def parameters(self) -> dict[str, str]:
+        return ElementaryOperator._parameter_info[self._op_id]
 
-    def concretize(self, levels: dict[int, int], **kwargs) -> NDArray[complex]:
-        missing_degrees = [degree not in levels for degree in self._degrees]
+    def concretize(self, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
+        missing_degrees = [degree not in dimensions for degree in self._degrees]
         if any(missing_degrees):
-            raise ValueError(f'missing levels for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
-        relevant_levels = [levels[degree] for degree in self._degrees]
-        return self._generator(relevant_levels, **kwargs)
+            raise ValueError(f'missing dimensions for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
+        relevant_dimensions = [dimensions[degree] for degree in self._degrees]
+        return ElementaryOperator._ops[self._op_id](relevant_dimensions, **kwargs)
 
     def __mul__(self, other: ElementaryOperator):
         if not isinstance(other, OperatorSum):
@@ -204,7 +276,7 @@ class ElementaryOperator(ProductOperator):
 
     def __add__(self, other: ElementaryOperator):
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+            raise TypeError(f"unsupported operand type(s) for +/-: '{type(self).__name__}' and '{type(other).__name__}'")
         elif type(other) == ScalarOperator:
             return ProductOperator([self]) + ProductOperator([other])
         elif type(other) != ElementaryOperator:
@@ -239,53 +311,23 @@ class ScalarOperator(ProductOperator):
         arg_spec = inspect.getfullargspec(generator)
         if arg_spec.varargs is not None:
             raise ValueError(f"generator for a '{type(self).__name__}' must not take *args")
+        param_descriptions = {}
+        for arg_name in arg_spec.args + arg_spec.kwonlyargs:
+            param_descriptions[arg_name] = "" # FIXME: extract parameter docs from generator.__doc__
+        # We need to create a lambda to retrieve information about what
+        # parameters are required to invoke the generator, to ensure that
+        # the information accurately captures any updates to the generators
+        # of sub-operators, just like the lambda in the add/multiply below.    
+        self._parameter_info = lambda: param_descriptions
         self._generator = generator
 
     @property
-    def parameter_names(self) -> set[str]:
-        arg_spec = inspect.getfullargspec(self._generator)
-        return set([arg_name for arg_name in arg_spec.args + arg_spec.kwonlyargs])
+    def parameters(self) -> dict[str, str]:
+        return self._parameter_info()
 
-    def _args_from_kwargs(fct, **kwargs):
-        arg_spec = inspect.getfullargspec(fct)
-        if arg_spec.varargs is not None:
-            raise ValueError("cannot extract arguments for a function with a *args argument")
-        consumes_kwargs = arg_spec.varkw is not None
-        if consumes_kwargs:
-            kwargs = kwargs.copy() # We will modify and return a copy
-
-        def find_in_kwargs(arg_name: str):
-            # Try to get the argument from the kwargs passed to concretize.
-            arg_value = kwargs.get(arg_name)
-            if arg_value is None:
-                # If no suitable keyword argument was defined, check if the 
-                # generator defines a default value for this argument.
-                default_value = inspect.signature(fct).parameters[arg_name].default
-                if default_value is not inspect.Parameter.empty:
-                    arg_value = default_value
-            elif consumes_kwargs:
-                del kwargs[arg_name]
-            if arg_value is None:
-                raise ValueError(f'missing keyword argument {arg_name}')
-            return arg_value
-
-        extracted_args = []
-        for arg_name in arg_spec.args:
-            extracted_args.append(find_in_kwargs(arg_name))
-        if consumes_kwargs:
-            return extracted_args, kwargs
-        elif len(arg_spec.kwonlyargs) > 0:
-            # If we can't pass all remaining kwargs, 
-            # we need to create a separate dictionary for kwonlyargs.
-            kwonlyargs = {}
-            for arg_name in arg_spec.kwonlyargs:
-                kwonlyargs[arg_name] = find_in_kwargs(arg_name)
-            return extracted_args, kwonlyargs
-        return extracted_args, {}
-
-    # The argument `levels` here is only passed for consistency with parent classes.
-    def concretize(self, levels: dict[int, int] = None, **kwargs):
-        generator_args, remaining_kwargs = ScalarOperator._args_from_kwargs(self._generator, **kwargs)
+    # The argument `dimensions` here is only passed for consistency with parent classes.
+    def concretize(self, dimensions: dict[int, int] = None, **kwargs):
+        generator_args, remaining_kwargs = _OperatorHelpers.args_from_kwargs(self._generator, **kwargs)
         evaluated = self._generator(*generator_args, **remaining_kwargs)
         if not isinstance(evaluated, Number):
             raise TypeError(f"generator of {type(self).__name__} must return a 'Number'")
@@ -297,15 +339,19 @@ class ScalarOperator(ProductOperator):
         elif type(other) != ScalarOperator:
             return ProductOperator([self]) * other
         generator = lambda **kwargs: self.concretize(**kwargs) * other.concretize(**kwargs)
-        return ScalarOperator(generator)
+        operator = ScalarOperator(generator)
+        operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
+        return operator
     
     def __add__(self, other: ScalarOperator) -> ScalarOperator:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+            raise TypeError(f"unsupported operand type(s) for +/-: '{type(self).__name__}' and '{type(other).__name__}'")
         elif type(other) != ScalarOperator:
             return ProductOperator([self]) + other
         generator = lambda **kwargs: self.concretize(**kwargs) + other.concretize(**kwargs)
-        return ScalarOperator(generator)
+        operator = ScalarOperator(generator)
+        operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
+        return operator
 
     def __sub__(self, other: ScalarOperator) -> ScalarOperator:
         return self + operators.const(-1) * other
@@ -315,29 +361,29 @@ class ScalarOperator(ProductOperator):
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
 class operators:
 
-    def _create(level: int): 
-        return numpy.diag(numpy.sqrt(numpy.arange(1, level, dtype=complex)), -1)
-    def _annihilate(level: int): 
-        return numpy.diag(numpy.sqrt(numpy.arange(1, level, dtype=complex)), 1)
-    def _position(level: int):
-        return 0.5 * (operators._create(level) + operators._annihilate(level))
-    def _momentum(level: int):
-        return 0.5j * (operators._create(level) - operators._annihilate(level))
-    def _displace(level: int, displacement: complex):
-        term1 = displacement * operators._create(level)
-        term2 = numpy.conjugate(displacement) * operators._annihilate(level)
+    def _create(dimension: int): 
+        return numpy.diag(numpy.sqrt(numpy.arange(1, dimension, dtype=complex)), -1)
+    def _annihilate(dimension: int): 
+        return numpy.diag(numpy.sqrt(numpy.arange(1, dimension, dtype=complex)), 1)
+    def _position(dimension: int):
+        return 0.5 * (operators._create(dimension) + operators._annihilate(dimension))
+    def _momentum(dimension: int):
+        return 0.5j * (operators._create(dimension) - operators._annihilate(dimension))
+    def _displace(dimension: int, displacement: complex):
+        term1 = displacement * operators._create(dimension)
+        term2 = numpy.conjugate(displacement) * operators._annihilate(dimension)
         return scipy.linalg.expm(term1 - term2)
-    def _squeeze(level: int, squeezing: complex):
-        term1 = numpy.conjugate(squeezing) * numpy.linalg.matrix_power(operators._annihilate(level), 2)
-        term2 = squeezing * numpy.linalg.matrix_power(operators._create(level), 2)
+    def _squeeze(dimension: int, squeezing: complex):
+        term1 = numpy.conjugate(squeezing) * numpy.linalg.matrix_power(operators._annihilate(dimension), 2)
+        term2 = squeezing * numpy.linalg.matrix_power(operators._create(dimension), 2)
         return scipy.linalg.expm(0.5 * (term1 - term2))
 
-    ElementaryOperator.define("op_zero", [0], lambda level: numpy.zeros((level, level), dtype=complex))
-    ElementaryOperator.define("op_identity", [0], lambda level: numpy.diag(numpy.ones(level, dtype=complex)))
+    ElementaryOperator.define("op_zero", [0], lambda dim: numpy.zeros((dim, dim), dtype=complex))
+    ElementaryOperator.define("op_identity", [0], lambda dim: numpy.diag(numpy.ones(dim, dtype=complex)))
     ElementaryOperator.define("op_create", [0], _create)
     ElementaryOperator.define("op_annihilate", [0], _annihilate)
-    ElementaryOperator.define("op_number", [0], lambda level: numpy.diag(numpy.arange(level, dtype=complex)))
-    ElementaryOperator.define("op_parity", [0], lambda level: numpy.diag([(-1.+0j)**i for i in range(level)]))
+    ElementaryOperator.define("op_number", [0], lambda dim: numpy.diag(numpy.arange(dim, dtype=complex)))
+    ElementaryOperator.define("op_parity", [0], lambda dim: numpy.diag([(-1.+0j)**i for i in range(dim)]))
     ElementaryOperator.define("op_displace", [0], _displace)
     ElementaryOperator.define("op_squeeze", [0], _squeeze)
     ElementaryOperator.define("op_position", [0], _position)
@@ -406,12 +452,12 @@ class pauli:
     
 class Schedule:
     _iterator: Iterator[Any]
-    _parameters: list[str]
+    _parameters: Iterable[str]
     _get_value: Callable[[str, Any], Any]
     _current_step: Any
 
     # The output type of the iterable steps must match the second argument of `get_value`.
-    def __init__(self, steps: Iterable[Any], parameters: list[str], get_value: Callable[[str, Any], Any]):
+    def __init__(self, steps: Iterable[Any], parameters: Iterable[str], get_value: Callable[[str, Any], Any]):
         self._iterator = iter(steps)
         self._parameters = parameters
         self._get_value = get_value
@@ -433,52 +479,52 @@ class Schedule:
         return kvargs
 
 
-levels = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
+dims = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
-print(f'pauliX(1): {pauli.x(1).concretize(levels)}')
-print(f'pauliY(2): {pauli.y(2).concretize(levels)}')
+print(f'pauliX(1): {pauli.x(1).concretize(dims)}')
+print(f'pauliY(2): {pauli.y(2).concretize(dims)}')
 
-print(f'pauliZ(0) * pauliZ(0): {(pauli.z(0) * pauli.z(0)).concretize(levels)}')
-print(f'pauliZ(0) * pauliZ(1): {(pauli.z(0) * pauli.z(1)).concretize(levels)}')
-print(f'pauliZ(0) * pauliY(1): {(pauli.z(0) * pauli.y(1)).concretize(levels)}')
+print(f'pauliZ(0) * pauliZ(0): {(pauli.z(0) * pauli.z(0)).concretize(dims)}')
+print(f'pauliZ(0) * pauliZ(1): {(pauli.z(0) * pauli.z(1)).concretize(dims)}')
+print(f'pauliZ(0) * pauliY(1): {(pauli.z(0) * pauli.y(1)).concretize(dims)}')
 
 op1 = ProductOperator([pauli.x(0), pauli.i(1)])
 op2 = ProductOperator([pauli.i(0), pauli.x(1)])
-print(f'pauliX(0) + pauliX(1): {op1.concretize(levels) + op2.concretize(levels)}')
+print(f'pauliX(0) + pauliX(1): {op1.concretize(dims) + op2.concretize(dims)}')
 op3 = ProductOperator([pauli.x(1), pauli.i(0)])
 op4 = ProductOperator([pauli.i(1), pauli.x(0),])
-print(f'pauliX(1) + pauliX(0): {op1.concretize(levels) + op2.concretize(levels)}')
+print(f'pauliX(1) + pauliX(0): {op1.concretize(dims) + op2.concretize(dims)}')
 
-print(f'pauliX(0) + pauliX(1): {(pauli.x(0) + pauli.x(1)).concretize(levels)}')
-print(f'pauliX(0) * pauliX(1): {(pauli.x(0) * pauli.x(1)).concretize(levels)}')
-print(f'pauliX(0) * pauliI(1) * pauliI(0) * pauliX(1): {(op1 * op2).concretize(levels)}')
+print(f'pauliX(0) + pauliX(1): {(pauli.x(0) + pauli.x(1)).concretize(dims)}')
+print(f'pauliX(0) * pauliX(1): {(pauli.x(0) * pauli.x(1)).concretize(dims)}')
+print(f'pauliX(0) * pauliI(1) * pauliI(0) * pauliX(1): {(op1 * op2).concretize(dims)}')
 
-print(f'pauliX(0) * pauliI(1): {op1.concretize(levels)}')
-print(f'pauliI(0) * pauliX(1): {op2.concretize(levels)}')
-print(f'pauliX(0) * pauliI(1) + pauliI(0) * pauliX(1): {(op1 + op2).concretize(levels)}')
+print(f'pauliX(0) * pauliI(1): {op1.concretize(dims)}')
+print(f'pauliI(0) * pauliX(1): {op2.concretize(dims)}')
+print(f'pauliX(0) * pauliI(1) + pauliI(0) * pauliX(1): {(op1 + op2).concretize(dims)}')
 
 op5 = pauli.x(0) * pauli.x(1)
 op6 = pauli.z(0) * pauli.z(1)
-print(f'pauliX(0) * pauliX(1): {op5.concretize(levels)}')
-print(f'pauliZ(0) * pauliZ(1): {op6.concretize(levels)}')
-print(f'pauliX(0) * pauliX(1) + pauliZ(0) * pauliZ(1): {(op5 + op6).concretize(levels)}')
+print(f'pauliX(0) * pauliX(1): {op5.concretize(dims)}')
+print(f'pauliZ(0) * pauliZ(1): {op6.concretize(dims)}')
+print(f'pauliX(0) * pauliX(1) + pauliZ(0) * pauliZ(1): {(op5 + op6).concretize(dims)}')
 
 op7 = pauli.x(0) + pauli.x(1)
 op8 = pauli.z(0) + pauli.z(1)
-print(f'pauliX(0) + pauliX(1): {op7.concretize(levels)}')
-print(f'pauliZ(0) + pauliZ(1): {op8.concretize(levels)}')
-print(f'pauliX(0) + pauliX(1) + pauliZ(0) + pauliZ(1): {(op7 + op8).concretize(levels)}')
-print(f'(pauliX(0) + pauliX(1)) * (pauliZ(0) + pauliZ(1)): {(op7 * op8).concretize(levels)}')
+print(f'pauliX(0) + pauliX(1): {op7.concretize(dims)}')
+print(f'pauliZ(0) + pauliZ(1): {op8.concretize(dims)}')
+print(f'pauliX(0) + pauliX(1) + pauliZ(0) + pauliZ(1): {(op7 + op8).concretize(dims)}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(0) + pauliZ(1)): {(op7 * op8).concretize(dims)}')
 
-print(f'pauliX(0) * (pauliZ(0) + pauliZ(1)): {(pauli.x(0) * op8).concretize(levels)}')
-print(f'(pauliZ(0) + pauliZ(1)) * pauliX(0): {(op8 * pauli.x(0)).concretize(levels)}')
+print(f'pauliX(0) * (pauliZ(0) + pauliZ(1)): {(pauli.x(0) * op8).concretize(dims)}')
+print(f'(pauliZ(0) + pauliZ(1)) * pauliX(0): {(op8 * pauli.x(0)).concretize(dims)}')
 
 op9 = pauli.z(1) + pauli.z(2)
-print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {numpy.kron(op7.concretize(levels), pauli.i(2).concretize(levels))}')
-print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(op7 * pauli.i(2)).concretize(levels)}')
-print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(pauli.i(2) * op7).concretize(levels)}')
-print(f'pauliI(0) * (pauliZ(1) + pauliZ(2)): {numpy.kron(pauli.i(0).concretize(levels), op9.concretize(levels))}')
-print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(op7 * op9).concretize(levels)}')
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {numpy.kron(op7.concretize(dims), pauli.i(2).concretize(dims))}')
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(op7 * pauli.i(2)).concretize(dims)}')
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(pauli.i(2) * op7).concretize(dims)}')
+print(f'pauliI(0) * (pauliZ(1) + pauliZ(2)): {numpy.kron(pauli.i(0).concretize(dims), op9.concretize(dims))}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(op7 * op9).concretize(dims)}')
 
 so0 = ScalarOperator(lambda: 1.0j)
 print(f'Scalar op (t -> 1.0)(): {so0.concretize()}')
@@ -488,28 +534,28 @@ print(f'Scalar op (t -> t)(1.): {so1.concretize(t = 1.0)}')
 print(f'Trivial prod op (t -> t)(1.): {(ProductOperator([so1])).concretize({}, t = 1.)}')
 print(f'Trivial prod op (t -> t)(2.): {(ProductOperator([so1])).concretize({}, t = 2.)}')
 
-print(f'(t -> t)(1j) * pauliX(0): {(so1 * pauli.x(0)).concretize(levels, t = 1j)}')
-print(f'pauliX(0) * (t -> t)(1j): {(pauli.x(0) * so1).concretize(levels, t = 1j)}')
-print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).concretize(levels, t = 1j)}')
-print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).concretize(levels, t = 1j)}')
-print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).concretize(levels, t = 1j)}')
-print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).concretize(levels, t = 1j)}')
-print(f'(t -> t)(2.) * (pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(so1 * op7 * op9).concretize(levels, t = 2.)}')
-print(f'(pauliX(0) + pauliX(1)) * (t -> t)(2.) * (pauliZ(1) + pauliZ(2)): {(op7 * so1 * op9).concretize(levels, t = 2.)}')
-print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)) * (t -> t)(2.): {(op7 * op9 * so1).concretize(levels, t = 2.)}')
+print(f'(t -> t)(1j) * pauliX(0): {(so1 * pauli.x(0)).concretize(dims, t = 1j)}')
+print(f'pauliX(0) * (t -> t)(1j): {(pauli.x(0) * so1).concretize(dims, t = 1j)}')
+print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).concretize(dims, t = 1j)}')
+print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).concretize(dims, t = 1j)}')
+print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).concretize(dims, t = 1j)}')
+print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).concretize(dims, t = 1j)}')
+print(f'(t -> t)(2.) * (pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(so1 * op7 * op9).concretize(dims, t = 2.)}')
+print(f'(pauliX(0) + pauliX(1)) * (t -> t)(2.) * (pauliZ(1) + pauliZ(2)): {(op7 * so1 * op9).concretize(dims, t = 2.)}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)) * (t -> t)(2.): {(op7 * op9 * so1).concretize(dims, t = 2.)}')
 
 op10 = so1 * pauli.x(0)
 so1.generator = lambda t: 1./t
-print(f'(t -> 1/t)(2) * pauliX(0): {op10.concretize(levels, t = 2.)}')
+print(f'(t -> 1/t)(2) * pauliX(0): {op10.concretize(dims, t = 2.)}')
 so1_gen2 = so1.generator
 so1.generator = lambda t: so1_gen2(2*t)
-print(f'(t -> 1/(2t))(2) * pauliX(0): {op10.concretize(levels, t = 2.)}')
+print(f'(t -> 1/(2t))(2) * pauliX(0): {op10.concretize(dims, t = 2.)}')
 so1.generator = lambda t: so1_gen2(t)
-print(f'(t -> 1/t)(2) * pauliX(0): {op10.concretize(levels, t = 2.)}')
+print(f'(t -> 1/t)(2) * pauliX(0): {op10.concretize(dims, t = 2.)}')
 
 so2 = ScalarOperator(lambda t: t**2)
 op11 = pauli.z(1) * so2
-print(f'pauliZ(0) * (t -> t^2)(2.): {op11.concretize(levels, t = 2.)}')
+print(f'pauliZ(0) * (t -> t^2)(2.): {op11.concretize(dims, t = 2.)}')
 
 so3 = ScalarOperator(lambda t: 1./t)
 so4 = ScalarOperator(lambda t: t**2)
@@ -536,15 +582,15 @@ def get_parameter_value(parameter_name: str, time: float):
         case "bar": return 2 * time
         case _: raise NotImplementedError(f'No value defined for parameter {parameter_name}.')
 
-schedule = Schedule([0.0, 0.5, 1.0], so6.parameter_names, get_parameter_value)
+schedule = Schedule([0.0, 0.5, 1.0], so6.parameters, get_parameter_value)
 for parameters in schedule:
     print(f'step {schedule.current_step}')
     print(f'((f,t) -> f*t)({parameters}): {so6.concretize(**parameters)}')
 
-print(f'(pauliX(0) + i*pauliY(0))/2: {0.5 * (pauli.x(0) + operators.const(1j) * pauli.y(0)).concretize(levels)}')
-print(f'pauli+(0): {pauli.plus(0).concretize(levels)}')
-print(f'(pauliX(0) - i*pauliY(0))/2: {0.5 * (pauli.x(0) - operators.const(1j) * pauli.y(0)).concretize(levels)}')
-print(f'pauli-(0): {pauli.minus(0).concretize(levels)}')
+print(f'(pauliX(0) + i*pauliY(0))/2: {0.5 * (pauli.x(0) + operators.const(1j) * pauli.y(0)).concretize(dims)}')
+print(f'pauli+(0): {pauli.plus(0).concretize(dims)}')
+print(f'(pauliX(0) - i*pauliY(0))/2: {0.5 * (pauli.x(0) - operators.const(1j) * pauli.y(0)).concretize(dims)}')
+print(f'pauli-(0): {pauli.minus(0).concretize(dims)}')
 
 op12 = operators.squeeze(0) + operators.displace(0)
 print(f'create<3>(0): {operators.create(0).concretize({0:3})}')
@@ -555,3 +601,10 @@ print(f'(squeeze<3>(0) + displace<3>(0))[squeezing = 0.5, displacement = 0.5]: {
 print(f'squeeze<4>(0)[squeezing = 0.5]: {operators.squeeze(0).concretize({0:4}, squeezing=0.5)}')
 print(f'displace<4>(0)[displacement = 0.5]: {operators.displace(0).concretize({0:4}, displacement=0.5)}')
 print(f'(squeeze<4>(0) + displace<4>(0))[squeezing = 0.5, displacement = 0.5]: {op12.concretize({0:4}, displacement=0.5, squeezing=0.5)}')
+
+so8 = ScalarOperator(lambda my_param: my_param - 1)
+print(f'parameter descriptions: {operators.squeeze(0).parameters}')
+print(f'parameter descriptions: {op12.parameters}')
+print(f'parameter descriptions: {(so7 + so8).parameters}')
+print(f'parameter descriptions: {(so7 * so8).parameters}')
+
