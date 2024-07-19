@@ -1,0 +1,48 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: ionq
+description: "CUDA-Q target for IonQ."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Define the lowering pipeline
+  platform-lowering-config: "const-prop-complex,canonicalize,cse,lift-array-value,state-prep,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),ionq-gate-set-mapping"
+  # Tell the rest-qpu that we are generating QIR.
+  codegen-emission: qir-base
+  # Additional passes to run after lowering to QIR
+  # This is required due to https://github.com/NVIDIA/cuda-quantum/issues/512
+  post-codegen-passes: "remove-measurements"
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: qpu 
+    help-string: "Specify the IonQ QPU."
+  - key: noise-model
+    required: false
+    type: string
+    platform-arg: noise 
+    help-string: "Specify the noise model for simulation."
+  - key: debias
+    required: false
+    type: string
+    platform-arg: debias 
+    help-string: "Specify debiasing."
+  - key: sharpen
+    required: false
+    type: string
+    platform-arg: sharpen
+    help-string: "Specify sharpening."

@@ -1,0 +1,44 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: remote-mqpu
+description:
+  "The remote-mqpu target provides locally-hosted CUDA-Q simulator runtime services."
+
+config:
+  gen-target-backend: true
+  platform-library: mqpu
+  platform-qpu: RemoteSimulatorQPU
+  preprocessor-defines: ["-D CUDAQ_REMOTE_SIM"]
+  link-libs: ["-lcudaq-remote-simulator-qpu"]
+  rules:
+    - if: ${LIBRARY_MODE}
+      compiler-flag: "-fembed-bitcode=all"
+      link-flag: "-rdynamic"
+    # Clang made "out of line atomics" the default on arm64 targets (https://reviews.llvm.org/D93585);
+    # requiring to link against `libclang_rt.builtins` on the server side when JIT'ing. 
+    # Hence, disable it when using the remote platform. 
+    - if: ${LIBRARY_MODE} && "$(uname -m)" == "aarch64"
+      compiler-flag: "-mno-outline-atomics" 
+
+target-arguments:
+  - key: backend
+    required: false
+    type: string
+    platform-arg: backend 
+    help-string: "Specify the remote simulator backend."
+  - key: url
+    required: false
+    type: string
+    platform-arg: url 
+    help-string: "Specify the URL of the server."
+  - key: auto-launch
+    required: false
+    type: integer
+    platform-arg: auto_launch 
+    help-string: "Specify the number of server instances to be launched and shut down automatically."

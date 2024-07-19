@@ -1,0 +1,35 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: iqm
+description: "CUDA-Q target for IQM."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Define the lowering pipeline
+  platform-lowering-config: "const-prop-complex,canonicalize,cse,lift-array-value,state-prep,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),iqm-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg,qubit-mapping{device=file(%QPU_ARCH%)},delay-measurements,regtomem),iqm-gate-set-mapping"
+  # Tell the rest-qpu that we are generating IQM JSON.
+  codegen-emission: iqm
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+
+target-arguments:
+  - key: server-url
+    required: false
+    type: string
+    platform-arg: url 
+    help-string: "Specify URL."
+  - key: machine
+    required: false
+    type: string
+    platform-arg: qpu-architecture 
+    help-string: "Specify the IQM QPU."

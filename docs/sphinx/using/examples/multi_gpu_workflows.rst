@@ -11,7 +11,7 @@ Available Targets
 -  **`qpp-cpu`**: The QPP based CPU backend which is multithreaded to
    maximize the usage of available cores on your system.
 
--  **`nvidia`**: Single GPU based backend which accelerates quantum circuit
+-  **`nvidia`**: GPU-accelerated state-vector based backend which accelerates quantum circuit
    simulation on NVIDIA GPUs powered by cuQuantum.
 
 -  **`nvidia-mgpu`**: Allows for scaling circuit simulation on multiple GPUs.
