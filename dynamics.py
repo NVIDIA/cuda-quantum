@@ -1,6 +1,6 @@
-import inspect, itertools, numpy
+import inspect, itertools, numpy, scipy
 from numbers import Number
-from typing import Any, Callable, Generic, Iterable, Iterator, TypeVar, get_args
+from typing import Any, Callable, Iterable, Iterator
 from numpy.typing import NDArray
 
 class BuiltIns():
@@ -23,7 +23,7 @@ class OperatorSum:
 
     def __init__(self, terms: list[ProductOperator]):
         if len(terms) == 0:
-            raise ValueError("Need at least one term.")
+            raise ValueError("need at least one term")
         self._terms = terms
 
     @property
@@ -36,12 +36,14 @@ class OperatorSum:
         for term in self._terms:
             for degree in degrees:
                 if not degree in [degree for op in term._operators for degree in op._degrees]:
-                    term *= spin.i(degree)
+                    term *= operators.identity(degree)
             padded_terms.append(term)
         return sum([term.concretize(levels, **kwargs) for term in padded_terms])
 
     def __mul__(self, other: OperatorSum):
-        if type(other) == ParameterizedOperator:
+        if not isinstance(other, OperatorSum):
+            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+        elif type(other) == ScalarOperator:
             return self * OperatorSum([ProductOperator([other])])
         elif type(other) == ElementaryOperator:
             return self * OperatorSum([ProductOperator([other])])
@@ -50,7 +52,9 @@ class OperatorSum:
         return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
     
     def __add__(self, other: OperatorSum):
-        if type(other) == ParameterizedOperator:
+        if not isinstance(other, OperatorSum):
+            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+        elif type(other) == ScalarOperator:
             return self + OperatorSum([ProductOperator([other])])
         elif type(other) == ElementaryOperator:
             return self + OperatorSum([ProductOperator([other])])
@@ -63,7 +67,7 @@ class ProductOperator(OperatorSum):
 
     def __init__(self, operators : list[ElementaryOperator]):
         if len(operators) == 0:
-            raise ValueError("Need at least one operator.")
+            raise ValueError("need at least one operator")
         self._operators = operators
         super().__init__([self])
 
@@ -86,7 +90,7 @@ class ProductOperator(OperatorSum):
             op_degrees = op._degrees.copy() # Determines the initial qubit ordering of op_matrix.
             for degree in degrees:
                 if not degree in [d for d in op._degrees]:
-                    op_matrix = numpy.kron(op_matrix, spin.i(degree).concretize(levels, **kwargs))
+                    op_matrix = numpy.kron(op_matrix, operators.identity(degree).concretize(levels, **kwargs))
                     op_degrees.append(degree)
             # Need to permute the matrix such that the qubit ordering of all matrices is the same.
             if op_degrees != degrees:
@@ -115,7 +119,9 @@ class ProductOperator(OperatorSum):
         return matrix
 
     def __mul__(self, other: ProductOperator):
-        if type(other) == ParameterizedOperator:
+        if not isinstance(other, OperatorSum):
+            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+        elif type(other) == ScalarOperator:
             return self * ProductOperator([other])
         elif type(other) == ElementaryOperator:
             return self * ProductOperator([other])
@@ -124,13 +130,18 @@ class ProductOperator(OperatorSum):
         return ProductOperator(self._operators + other._operators)
 
     def __add__(self, other: ProductOperator):
-        if type(other) == ParameterizedOperator:
+        if not isinstance(other, OperatorSum):
+            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+        elif type(other) == ScalarOperator:
             return self + ProductOperator([other])
         elif type(other) == ElementaryOperator:
             return self + OperatorSum([other])
         elif type(other) != ProductOperator:
             return OperatorSum([self]) + other
         return OperatorSum([self, other])
+
+    def __sub__(self, other: ScalarOperator) -> ScalarOperator:
+        return self + operators.const(-1) * other
 
 class ElementaryOperator(ProductOperator):
     _degrees: list[int]
@@ -150,19 +161,23 @@ class ElementaryOperator(ProductOperator):
     def concretize(self, levels: dict[int, int], **kwargs) -> NDArray[complex]:
         missing_degrees = [degree not in levels for degree in self._degrees]
         if any(missing_degrees):
-            raise ValueError(f'Missing levels for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
+            raise ValueError(f'missing levels for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
         relevant_levels = [levels[degree] for degree in self._degrees]
         return BuiltIns.concretize(self._builtin_id, relevant_levels, **kwargs)
 
     def __mul__(self, other: ElementaryOperator):
-        if type(other) == ParameterizedOperator:
+        if not isinstance(other, OperatorSum):
+            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+        elif type(other) == ScalarOperator:
             return ProductOperator([self]) * ProductOperator([other])
         elif type(other) != ElementaryOperator:
             return ProductOperator([self]) * other
         return ProductOperator([self, other])
 
     def __add__(self, other: ElementaryOperator):
-        if type(other) == ParameterizedOperator:
+        if not isinstance(other, OperatorSum):
+            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+        elif type(other) == ScalarOperator:
             return ProductOperator([self]) + ProductOperator([other])
         elif type(other) != ElementaryOperator:
             return ProductOperator([self]) + other
@@ -170,14 +185,17 @@ class ElementaryOperator(ProductOperator):
         op2 = ProductOperator([other])
         return OperatorSum([op1, op2])
 
-_OpType = TypeVar('_OpType')
-class ParameterizedOperator(ProductOperator, Generic[_OpType]):
+    def __sub__(self, other: ScalarOperator) -> ScalarOperator:
+        return self + operators.const(-1) * other
+
+class ScalarOperator(ProductOperator):
     _degrees: list[int] # Always empty; here for consistency with other operators.
     _generator: Callable # Can take any number and types of arguments, must return a number.
 
-    # The given generator may take any number and types of arguments.
-    # Each argument must be passed via keyword upon concretizing. 
-    # The generator must must return a numeric value.
+    # The given generator may take any number and types of arguments, 
+    # and must return a numeric value. Each argument must be passed
+    # as keyword arguments when concretizing any operator that involves
+    # this scalar operator.
     def __init__(self, generator: Callable):
         self._degrees = []
         self.generator = generator # Don't set self._generator directly; the setter validates the value.
@@ -194,7 +212,7 @@ class ParameterizedOperator(ProductOperator, Generic[_OpType]):
         # supporting additions and multiplication of all kinds of operators.
         arg_spec = inspect.getfullargspec(generator)
         if arg_spec.varargs is not None:
-            raise ValueError("The generator for a ScalarOperator must not have an *args argument.")
+            raise ValueError(f"generator for a '{type(self).__name__}' must not take *args")
         self._generator = generator
 
     @property
@@ -204,6 +222,8 @@ class ParameterizedOperator(ProductOperator, Generic[_OpType]):
 
     def _args_from_kwargs(fct, **kwargs):
         arg_spec = inspect.getfullargspec(fct)
+        if arg_spec.varargs is not None:
+            raise ValueError("cannot extract arguments for a function with a *args argument")
         consumes_kwargs = arg_spec.varkw is not None
         if consumes_kwargs:
             kwargs = kwargs.copy() # We will modify and return a copy
@@ -220,7 +240,7 @@ class ParameterizedOperator(ProductOperator, Generic[_OpType]):
             elif consumes_kwargs:
                 del kwargs[arg_name]
             if arg_value is None:
-                raise ValueError(f'Missing keyword argument {arg_name}.')
+                raise ValueError(f'missing keyword argument {arg_name}')
             return arg_value
 
         extracted_args = []
@@ -241,83 +261,162 @@ class ParameterizedOperator(ProductOperator, Generic[_OpType]):
     def concretize(self, levels: dict[int, int] = None, **kwargs):
         generator_args, remaining_kwargs = ScalarOperator._args_from_kwargs(self._generator, **kwargs)
         evaluated = self._generator(*generator_args, **remaining_kwargs)
-        if hasattr(self, '__orig_class__'):
-            expected_return_type = get_args(self.__orig_class__)[0]
-            if not isinstance(evaluated, expected_return_type):
-                raise ValueError(f'Return type of generator for ParameterizedOperator must be {expected_return_type}.')
+        if not isinstance(evaluated, Number):
+            raise TypeError(f"generator of {type(self).__name__} must return a 'Number'")
         return evaluated
 
-    # FIXME: ONLY WORKS FOR SCALARS
     def __mul__(self, other: ScalarOperator) -> ScalarOperator:
-        if type(other) != type(self):
+        if not isinstance(other, OperatorSum):
+            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+        elif type(other) != ScalarOperator:
             return ProductOperator([self]) * other
         generator = lambda **kwargs: self.concretize(**kwargs) * other.concretize(**kwargs)
         return ScalarOperator(generator)
     
-    # FIXME: ONLY WORKS FOR SCALARS
     def __add__(self, other: ScalarOperator) -> ScalarOperator:
-        if type(other) != type(self):
+        if not isinstance(other, OperatorSum):
+            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+        elif type(other) != ScalarOperator:
             return ProductOperator([self]) + other
         generator = lambda **kwargs: self.concretize(**kwargs) + other.concretize(**kwargs)
         return ScalarOperator(generator)
 
-ScalarOperator = ParameterizedOperator[Number]
-BuiltInOperator = ParameterizedOperator[numpy.ndarray]
+    def __sub__(self, other: ScalarOperator) -> ScalarOperator:
+        return self + operators.const(-1) * other
 
 class BuiltIns:
     _ops = {}
 
-    # The Callable `create` that is passed here must take a list of levels as argument 
-    # as well as **kwargs, and return the concrete matrix (NDArray[complex]) for a 
-    # system with the given levels and keyword parameters. Any keywords used for the 
-    # construction of the matrix must be passed as keyword arguments when concretizing
-    # any operator that involves this built-in one.
+    # The Callable `create` that is passed here may take any number and types of 
+    # arguments and must return a NDArray[complex]. Each argument must be passed
+    # as keyword arguments when concretizing any operator that involves this built-in.
     # Note that the levels passed to the create function are automatically validated 
     # against the expected/supported levels passed to `add_operator`. There is hence 
     # no need to validate the levels as part of the `create` function. 
     # A negative or zero value for one (or more) of the expected level indicates that 
-    # the matrix/operator is defined for any value of this level.
+    # the matrix/operator is defined for any value of this level. If the operator
+    # definition depends on the level(s), then the `create` function must take an 
+    # argument called `levels`, or `level` if it is just one. The given list of levels,
+    # or its only entry if it is a list of length one, will then be automatically 
+    # forwarded as argument to `create`.
     @classmethod
     def add_operator(cls, op_id: str, expected_levels: list[int], create: Callable):
-        def with_level_check(generator, given_levels: list[int], **kwargs) -> Callable:
+        def with_level_check(generator, levels: list[int], **kwargs) -> Callable:
             # Passing a value 0 for one of the expected levels indicates that
             # the generator can be invoked with any value for that level.
             # The generator returns a function that, given some keyword arguments,
             # returns a matrix (NDArray[complex]).
-            if any([expected > 0 and given_levels[i] != expected for i, expected in enumerate(expected_levels)]):
-                raise ValueError(f'No built-in operator {op_id} has been defined '\
-                                 f'for {len(given_levels)} degree(s) of freedom '\
-                                 f'with level(s) {given_levels}.')
-            return ParameterizedOperator[numpy.ndarray](generator).concretize(given_levels, **kwargs)
+            if any([expected > 0 and levels[i] != expected for i, expected in enumerate(expected_levels)]):
+                raise ValueError(f'no built-in operator {op_id} has been defined '\
+                                 f'for {len(levels)} degree(s) of freedom with level(s) {levels}')
+            if len(levels) == 1: kwargs["level"] = levels[0]
+            else: kwargs["levels"] = levels 
+            generator_args, remaining_kwargs = ScalarOperator._args_from_kwargs(generator, **kwargs)
+            evaluated = generator(*generator_args, **remaining_kwargs)
+            if not isinstance(evaluated, numpy.ndarray):
+                raise TypeError("operator concretization must return a 'NDArray[complex]'")
+            return evaluated
         cls._ops[op_id] = lambda levels, **kwargs: with_level_check(create, levels, **kwargs)
 
     @classmethod
     def concretize(cls, op_id: str, levels: list[int], **kwargs) -> Callable:
         if not op_id in cls._ops:
-            raise ValueError(f'No built-in operator {op_id} has been defined.')
+            raise ValueError(f'no built-in operator {op_id} has been defined')
         return cls._ops[op_id](levels, **kwargs)
 
 # Operators as defined here: 
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
-BuiltIns.add_operator("spin_x", [2], lambda: numpy.array([[0,1],[1,0]]))
-BuiltIns.add_operator("spin_y", [2], lambda: numpy.array([[0,1j],[-1j,0]]))
-BuiltIns.add_operator("spin_z", [2], lambda: numpy.array([[1,0],[0,-1]]))
-BuiltIns.add_operator("spin_i", [2], lambda: numpy.array([[1,0],[0,1]]))
 
-class spin:
+class operators:
+
+    def _create(level: int): 
+        return numpy.diag(numpy.sqrt(numpy.arange(1, level, dtype=complex)), -1)
+    def _annihilate(level: int): 
+        return numpy.diag(numpy.sqrt(numpy.arange(1, level, dtype=complex)), 1)
+    def _position(level: int):
+        return 0.5 * (operators._create(level) + operators._annihilate(level))
+    def _momentum(level: int):
+        return 0.5j * (operators._create(level) - operators._annihilate(level))
+    def _displace(level: int, displacement: complex):
+        term1 = displacement * operators._create(level)
+        term2 = numpy.conjugate(displacement) * operators._annihilate(level)
+        return scipy.linalg.expm(term1 - term2)
+    def _squeeze(level: int, squeezing: complex):
+        term1 = numpy.conjugate(squeezing) * numpy.linalg.matrix_power(operators._annihilate(level), 2)
+        term2 = squeezing * numpy.linalg.matrix_power(operators._create(level), 2)
+        return scipy.linalg.expm(0.5 * (term1 - term2))
+
+    BuiltIns.add_operator("op_zero", [0], lambda level: numpy.zeros((level, level), dtype=complex))
+    BuiltIns.add_operator("op_identity", [0], lambda level: numpy.diag(numpy.ones(level, dtype=complex)))
+    BuiltIns.add_operator("op_create", [0], _create)
+    BuiltIns.add_operator("op_annihilate", [0], _annihilate)
+    BuiltIns.add_operator("op_number", [0], lambda level: numpy.diag(numpy.arange(level, dtype=complex)))
+    BuiltIns.add_operator("op_parity", [0], lambda level: numpy.diag([(-1.+0j)**i for i in range(level)]))
+    BuiltIns.add_operator("op_displace", [0], _displace)
+    BuiltIns.add_operator("op_squeeze", [0], _squeeze)
+    BuiltIns.add_operator("op_position", [0], _position)
+    BuiltIns.add_operator("op_momentum", [0], _momentum)
+
+    @classmethod
+    def const(cls, constant_value: complex) -> ScalarOperator:
+        return ScalarOperator(lambda: constant_value)
+    @classmethod
+    def zero(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_zero", [degree])
+    @classmethod
+    def identity(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_identity", [degree])
+    @classmethod
+    def create(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_create", [degree])
+    @classmethod
+    def annihilate(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_annihilate", [degree])
+    @classmethod
+    def number(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_number", [degree])
+    @classmethod
+    def parity(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_parity", [degree])
+    @classmethod
+    def displace(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_displace", [degree])
+    @classmethod
+    def squeeze(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_squeeze", [degree])
+    @classmethod
+    def position(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_position", [degree])
+    @classmethod
+    def momentum(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("op_momentum", [degree])
+
+class pauli:
+    BuiltIns.add_operator("pauli_x", [2], lambda: numpy.array([[0,1],[1,0]], dtype=complex))
+    BuiltIns.add_operator("pauli_y", [2], lambda: numpy.array([[0,1j],[-1j,0]], dtype=complex))
+    BuiltIns.add_operator("pauli_z", [2], lambda: numpy.array([[1,0],[0,-1]], dtype=complex))
+    BuiltIns.add_operator("pauli_i", [2], lambda: numpy.array([[1,0],[0,1]], dtype=complex))
+    BuiltIns.add_operator("pauli_plus", [2], lambda: numpy.array([[0,0],[1,0]], dtype=complex))
+    BuiltIns.add_operator("pauli_minus", [2], lambda: numpy.array([[0,1],[0,0]], dtype=complex))
 
     @classmethod
     def x(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator("spin_x", [degree])
+        return ElementaryOperator("pauli_x", [degree])
     @classmethod
     def y(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator("spin_y", [degree])
+        return ElementaryOperator("pauli_y", [degree])
     @classmethod
     def z(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator("spin_z", [degree])
+        return ElementaryOperator("pauli_z", [degree])
     @classmethod
     def i(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator("spin_i", [degree])
+        return ElementaryOperator("pauli_i", [degree])
+    @classmethod
+    def plus(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("pauli_plus", [degree])
+    @classmethod
+    def minus(cls, degree: int) -> ElementaryOperator:
+        return ElementaryOperator("pauli_minus", [degree])
     
 class Schedule:
     _iterator: Iterator[Any]
@@ -350,50 +449,50 @@ class Schedule:
 
 levels = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
-print(f'spinX(1): {spin.x(1).concretize(levels)}')
-print(f'spinY(2): {spin.y(2).concretize(levels)}')
+print(f'pauliX(1): {pauli.x(1).concretize(levels)}')
+print(f'pauliY(2): {pauli.y(2).concretize(levels)}')
 
-print(f'spinZ(0) * spinZ(0): {(spin.z(0) * spin.z(0)).concretize(levels)}')
-print(f'spinZ(0) * spinZ(1): {(spin.z(0) * spin.z(1)).concretize(levels)}')
-print(f'spinZ(0) * spinY(1): {(spin.z(0) * spin.y(1)).concretize(levels)}')
+print(f'pauliZ(0) * pauliZ(0): {(pauli.z(0) * pauli.z(0)).concretize(levels)}')
+print(f'pauliZ(0) * pauliZ(1): {(pauli.z(0) * pauli.z(1)).concretize(levels)}')
+print(f'pauliZ(0) * pauliY(1): {(pauli.z(0) * pauli.y(1)).concretize(levels)}')
 
-op1 = ProductOperator([spin.x(0), spin.i(1)])
-op2 = ProductOperator([spin.i(0), spin.x(1)])
-print(f'spinX(0) + spinX(1): {op1.concretize(levels) + op2.concretize(levels)}')
-op3 = ProductOperator([spin.x(1), spin.i(0)])
-op4 = ProductOperator([spin.i(1), spin.x(0),])
-print(f'spinX(1) + spinX(0): {op1.concretize(levels) + op2.concretize(levels)}')
+op1 = ProductOperator([pauli.x(0), pauli.i(1)])
+op2 = ProductOperator([pauli.i(0), pauli.x(1)])
+print(f'pauliX(0) + pauliX(1): {op1.concretize(levels) + op2.concretize(levels)}')
+op3 = ProductOperator([pauli.x(1), pauli.i(0)])
+op4 = ProductOperator([pauli.i(1), pauli.x(0),])
+print(f'pauliX(1) + pauliX(0): {op1.concretize(levels) + op2.concretize(levels)}')
 
-print(f'spinX(0) + spinX(1): {(spin.x(0) + spin.x(1)).concretize(levels)}')
-print(f'spinX(0) * spinX(1): {(spin.x(0) * spin.x(1)).concretize(levels)}')
-print(f'spinX(0) * spinI(1) * spinI(0) * spinX(1): {(op1 * op2).concretize(levels)}')
+print(f'pauliX(0) + pauliX(1): {(pauli.x(0) + pauli.x(1)).concretize(levels)}')
+print(f'pauliX(0) * pauliX(1): {(pauli.x(0) * pauli.x(1)).concretize(levels)}')
+print(f'pauliX(0) * pauliI(1) * pauliI(0) * pauliX(1): {(op1 * op2).concretize(levels)}')
 
-print(f'spinX(0) * spinI(1): {op1.concretize(levels)}')
-print(f'spinI(0) * spinX(1): {op2.concretize(levels)}')
-print(f'spinX(0) * spinI(1) + spinI(0) * spinX(1): {(op1 + op2).concretize(levels)}')
+print(f'pauliX(0) * pauliI(1): {op1.concretize(levels)}')
+print(f'pauliI(0) * pauliX(1): {op2.concretize(levels)}')
+print(f'pauliX(0) * pauliI(1) + pauliI(0) * pauliX(1): {(op1 + op2).concretize(levels)}')
 
-op5 = spin.x(0) * spin.x(1)
-op6 = spin.z(0) * spin.z(1)
-print(f'spinX(0) * spinX(1): {op5.concretize(levels)}')
-print(f'spinZ(0) * spinZ(1): {op6.concretize(levels)}')
-print(f'spinX(0) * spinX(1) + spinZ(0) * spinZ(1): {(op5 + op6).concretize(levels)}')
+op5 = pauli.x(0) * pauli.x(1)
+op6 = pauli.z(0) * pauli.z(1)
+print(f'pauliX(0) * pauliX(1): {op5.concretize(levels)}')
+print(f'pauliZ(0) * pauliZ(1): {op6.concretize(levels)}')
+print(f'pauliX(0) * pauliX(1) + pauliZ(0) * pauliZ(1): {(op5 + op6).concretize(levels)}')
 
-op7 = spin.x(0) + spin.x(1)
-op8 = spin.z(0) + spin.z(1)
-print(f'spinX(0) + spinX(1): {op7.concretize(levels)}')
-print(f'spinZ(0) + spinZ(1): {op8.concretize(levels)}')
-print(f'spinX(0) + spinX(1) + spinZ(0) + spinZ(1): {(op7 + op8).concretize(levels)}')
-print(f'(spinX(0) + spinX(1)) * (spinZ(0) + spinZ(1)): {(op7 * op8).concretize(levels)}')
+op7 = pauli.x(0) + pauli.x(1)
+op8 = pauli.z(0) + pauli.z(1)
+print(f'pauliX(0) + pauliX(1): {op7.concretize(levels)}')
+print(f'pauliZ(0) + pauliZ(1): {op8.concretize(levels)}')
+print(f'pauliX(0) + pauliX(1) + pauliZ(0) + pauliZ(1): {(op7 + op8).concretize(levels)}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(0) + pauliZ(1)): {(op7 * op8).concretize(levels)}')
 
-print(f'spinX(0) * (spinZ(0) + spinZ(1)): {(spin.x(0) * op8).concretize(levels)}')
-print(f'(spinZ(0) + spinZ(1)) * spinX(0): {(op8 * spin.x(0)).concretize(levels)}')
+print(f'pauliX(0) * (pauliZ(0) + pauliZ(1)): {(pauli.x(0) * op8).concretize(levels)}')
+print(f'(pauliZ(0) + pauliZ(1)) * pauliX(0): {(op8 * pauli.x(0)).concretize(levels)}')
 
-op9 = spin.z(1) + spin.z(2)
-print(f'(spinX(0) + spinX(1)) * spinI(2): {numpy.kron(op7.concretize(levels), spin.i(2).concretize(levels))}')
-print(f'(spinX(0) + spinX(1)) * spinI(2): {(op7 * spin.i(2)).concretize(levels)}')
-print(f'(spinX(0) + spinX(1)) * spinI(2): {(spin.i(2) * op7).concretize(levels)}')
-print(f'spinI(0) * (spinZ(1) + spinZ(2)): {numpy.kron(spin.i(0).concretize(levels), op9.concretize(levels))}')
-print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(op7 * op9).concretize(levels)}')
+op9 = pauli.z(1) + pauli.z(2)
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {numpy.kron(op7.concretize(levels), pauli.i(2).concretize(levels))}')
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(op7 * pauli.i(2)).concretize(levels)}')
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(pauli.i(2) * op7).concretize(levels)}')
+print(f'pauliI(0) * (pauliZ(1) + pauliZ(2)): {numpy.kron(pauli.i(0).concretize(levels), op9.concretize(levels))}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(op7 * op9).concretize(levels)}')
 
 so0 = ScalarOperator(lambda: 1.0j)
 print(f'Scalar op (t -> 1.0)(): {so0.concretize()}')
@@ -403,28 +502,28 @@ print(f'Scalar op (t -> t)(1.): {so1.concretize(t = 1.0)}')
 print(f'Trivial prod op (t -> t)(1.): {(ProductOperator([so1])).concretize({}, t = 1.)}')
 print(f'Trivial prod op (t -> t)(2.): {(ProductOperator([so1])).concretize({}, t = 2.)}')
 
-print(f'(t -> t)(1j) * spinX(0): {(so1 * spin.x(0)).concretize(levels, t = 1j)}')
-print(f'spinX(0) * (t -> t)(1j): {(spin.x(0) * so1).concretize(levels, t = 1j)}')
-print(f'spinX(0) + (t -> t)(1j): {(spin.x(0) + so1).concretize(levels, t = 1j)}')
-print(f'(t -> t)(1j) + spinX(0): {(so1 + spin.x(0)).concretize(levels, t = 1j)}')
-print(f'spinX(0) + (t -> t)(1j): {(spin.x(0) + so1).concretize(levels, t = 1j)}')
-print(f'(t -> t)(1j) + spinX(0): {(so1 + spin.x(0)).concretize(levels, t = 1j)}')
-print(f'(t -> t)(2.) * (spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)): {(so1 * op7 * op9).concretize(levels, t = 2.)}')
-print(f'(spinX(0) + spinX(1)) * (t -> t)(2.) * (spinZ(1) + spinZ(2)): {(op7 * so1 * op9).concretize(levels, t = 2.)}')
-print(f'(spinX(0) + spinX(1)) * (spinZ(1) + spinZ(2)) * (t -> t)(2.): {(op7 * op9 * so1).concretize(levels, t = 2.)}')
+print(f'(t -> t)(1j) * pauliX(0): {(so1 * pauli.x(0)).concretize(levels, t = 1j)}')
+print(f'pauliX(0) * (t -> t)(1j): {(pauli.x(0) * so1).concretize(levels, t = 1j)}')
+print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).concretize(levels, t = 1j)}')
+print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).concretize(levels, t = 1j)}')
+print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).concretize(levels, t = 1j)}')
+print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).concretize(levels, t = 1j)}')
+print(f'(t -> t)(2.) * (pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(so1 * op7 * op9).concretize(levels, t = 2.)}')
+print(f'(pauliX(0) + pauliX(1)) * (t -> t)(2.) * (pauliZ(1) + pauliZ(2)): {(op7 * so1 * op9).concretize(levels, t = 2.)}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)) * (t -> t)(2.): {(op7 * op9 * so1).concretize(levels, t = 2.)}')
 
-op10 = so1 * spin.x(0)
+op10 = so1 * pauli.x(0)
 so1.generator = lambda t: 1./t
-print(f'(t -> 1/t)(2) * spinX(0): {op10.concretize(levels, t = 2.)}')
+print(f'(t -> 1/t)(2) * pauliX(0): {op10.concretize(levels, t = 2.)}')
 so1_gen2 = so1.generator
 so1.generator = lambda t: so1_gen2(2*t)
-print(f'(t -> 1/(2t))(2) * spinX(0): {op10.concretize(levels, t = 2.)}')
+print(f'(t -> 1/(2t))(2) * pauliX(0): {op10.concretize(levels, t = 2.)}')
 so1.generator = lambda t: so1_gen2(t)
-print(f'(t -> 1/t)(2) * spinX(0): {op10.concretize(levels, t = 2.)}')
+print(f'(t -> 1/t)(2) * pauliX(0): {op10.concretize(levels, t = 2.)}')
 
 so2 = ScalarOperator(lambda t: t**2)
-op11 = spin.z(1) * so2
-print(f'spinZ(0) * (t -> t^2)(2.): {op11.concretize(levels, t = 2.)}')
+op11 = pauli.z(1) * so2
+print(f'pauliZ(0) * (t -> t^2)(2.): {op11.concretize(levels, t = 2.)}')
 
 so3 = ScalarOperator(lambda t: 1./t)
 so4 = ScalarOperator(lambda t: t**2)
@@ -456,3 +555,17 @@ for parameters in schedule:
     print(f'step {schedule.current_step}')
     print(f'((f,t) -> f*t)({parameters}): {so6.concretize(**parameters)}')
 
+print(f'(pauliX(0) + i*pauliY(0))/2: {0.5 * (pauli.x(0) + operators.const(1j) * pauli.y(0)).concretize(levels)}')
+print(f'pauli+(0): {pauli.plus(0).concretize(levels)}')
+print(f'(pauliX(0) - i*pauliY(0))/2: {0.5 * (pauli.x(0) - operators.const(1j) * pauli.y(0)).concretize(levels)}')
+print(f'pauli-(0): {pauli.minus(0).concretize(levels)}')
+
+op12 = operators.squeeze(0) + operators.displace(0)
+print(f'create<3>(0): {operators.create(0).concretize({0:3})}')
+print(f'annihilate<3>(0): {operators.annihilate(0).concretize({0:3})}')
+print(f'squeeze<3>(0)[squeezing = 0.5]: {operators.squeeze(0).concretize({0:3}, squeezing=0.5)}')
+print(f'displace<3>(0)[displacement = 0.5]: {operators.displace(0).concretize({0:3}, displacement=0.5)}')
+print(f'(squeeze<3>(0) + displace<3>(0))[squeezing = 0.5, displacement = 0.5]: {op12.concretize({0:3}, displacement=0.5, squeezing=0.5)}')
+print(f'squeeze<4>(0)[squeezing = 0.5]: {operators.squeeze(0).concretize({0:4}, squeezing=0.5)}')
+print(f'displace<4>(0)[displacement = 0.5]: {operators.displace(0).concretize({0:4}, displacement=0.5)}')
+print(f'(squeeze<4>(0) + displace<4>(0))[squeezing = 0.5, displacement = 0.5]: {op12.concretize({0:4}, displacement=0.5, squeezing=0.5)}')
