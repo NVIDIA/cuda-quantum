@@ -34,19 +34,19 @@ def register_operation(operation_name: str, unitary):
     if isinstance(unitary, Callable):
         raise RuntimeError("parameterized custom operations not yet supported.")
 
-    if isinstance(unitary, np.ndarray):
-        if (len(unitary.shape) != unitary.ndim):
-            raise RuntimeError(
-                "provide a 1D array for the matrix representation in row-major format."
-            )
+    if isinstance(unitary, np.matrix):
+        matrix = np.array(unitary)
+    elif isinstance(unitary, np.ndarray):
         matrix = unitary
     elif isinstance(unitary, List):
         matrix = np.array(unitary)
     else:
         raise RuntimeError("unknown type of unitary.")
 
-    # TODO: Flatten the matrix if not flattened
-    assert (matrix.ndim == len(matrix.shape))
+    matrix = matrix.flatten()
+    assert (
+        matrix.ndim == len(matrix.shape),
+        "provide a 1D array for the matrix representation in row-major format.")
 
     # Size must be a power of 2
     assert (matrix.size != 0)
