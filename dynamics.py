@@ -603,8 +603,12 @@ print(f'displace<4>(0)[displacement = 0.5]: {operators.displace(0).concretize({0
 print(f'(squeeze<4>(0) + displace<4>(0))[squeezing = 0.5, displacement = 0.5]: {op12.concretize({0:4}, displacement=0.5, squeezing=0.5)}')
 
 so8 = ScalarOperator(lambda my_param: my_param - 1)
+so9 = so7 * so8
 print(f'parameter descriptions: {operators.squeeze(0).parameters}')
 print(f'parameter descriptions: {op12.parameters}')
 print(f'parameter descriptions: {(so7 + so8).parameters}')
-print(f'parameter descriptions: {(so7 * so8).parameters}')
-
+print(f'parameter descriptions: {so9.parameters}')
+so7.generator = lambda new_parameter: 1.0
+print(f'parameter descriptions: {so9.parameters}')
+so9.generator = lambda reset: reset
+print(f'parameter descriptions: {so9.parameters}')
