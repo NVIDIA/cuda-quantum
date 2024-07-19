@@ -93,7 +93,6 @@ protected:
   }
 
   static SimulationStateData readSimulationStateData(cudaq::state *s) {
-    ;
     void *dataPtr = nullptr;
     auto stateVector = s->get_tensor();
     auto precision = s->get_precision();

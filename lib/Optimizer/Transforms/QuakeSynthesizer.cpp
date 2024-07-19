@@ -26,8 +26,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
 
-#include <iostream>
-
 #define DEBUG_TYPE "quake-synthesizer"
 
 using namespace mlir;
