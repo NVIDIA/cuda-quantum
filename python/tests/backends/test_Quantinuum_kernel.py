@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os, time
+import cudaq, pytest, os
 import numpy as np
 from cudaq import spin
 from multiprocessing import Process
