@@ -9,7 +9,9 @@
 import os
 import tempfile
 import time
+from typing import List
 from multiprocessing import Process
+import numpy as np
 
 import cudaq
 from cudaq import spin
@@ -156,6 +158,34 @@ def test_iqm_u3_ctrl_decomposition():
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
 
     result = cudaq.sample(kernel)
+
+
+def test_IQM_state_preparation():
+    shots = 10000
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_IQM_state_preparation_builder():
+    shots = 10000
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 # leave for gdb debugging

@@ -142,13 +142,13 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     Value buffer;
     if (hasInitStateUse(argument)) {
       // Stick global at end of Module.
-      builder.setInsertionPointToEnd(module.getBody());
       std::string symbol =
           "__nvqpp_rodata_init_state." + std::to_string(counter++);
-      builder.create<cudaq::cc::GlobalOp>(argLoc, arrTy, symbol, arrayAttr,
-                                          /*isConstant=*/true,
-                                          /*isExternal=*/false);
-      builder.setInsertionPointAfter(conArray);
+
+      cudaq::IRBuilder irBuilder(builder);
+      irBuilder.genVectorOfConstants(argLoc, module, symbol, vec);
+
+      builder.setInsertionPointToStart(argument.getOwner());
       buffer = builder.create<cudaq::cc::AddressOfOp>(
           argLoc, cudaq::cc::PointerType::get(arrTy), symbol);
     } else {
@@ -156,6 +156,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
       builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
     }
+
     auto ptrArrEleTy =
         cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
     Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrArrEleTy, buffer);
@@ -245,7 +246,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       // Check if there were other uses of `vec.data()` and simply forward the
       // constant array as materialized in memory.
       if (replaceOtherUses) {
-        Value memArr = getArrayInMemory();
+        auto memArr = getArrayInMemory();
         stdvecDataOp.replaceAllUsesWith(memArr);
       }
       continue;
@@ -257,7 +258,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     generateNewValue = true;
   }
   if (generateNewValue) {
-    auto memArr = getArrayInMemory();
+    Value memArr = getArrayInMemory();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointAfter(memArr.getDefiningOp());
     Value size = builder.create<arith::ConstantIntOp>(argLoc, vec.size(), 64);
