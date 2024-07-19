@@ -101,8 +101,8 @@ public:
   std::vector<std::size_t> reorderIdx;
 
   /// @brief A buffer containing the return value of a kernel invocation.
-  // Note: this is only needed for invocation not able to return a
-  // sample_result.
+  /// Note: this is only needed for invocation not able to return a
+  /// `sample_result`.
   std::vector<char> invocationResultBuffer;
 
   /// @brief The Constructor, takes the name of the context
