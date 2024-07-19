@@ -1207,13 +1207,8 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
                                                 std::forward<Args>(args)...);  \
   }                                                                            \
   }                                                                            \
-  extern "C" __qop__ void CONCAT(NAME, _generator)(                            \
-      const double *params, std::size_t numParams,                             \
-      std::complex<double> *output) {                                          \
-    std::vector<double> input(params, params + numParams);                     \
-    cudaq::CONCAT(NAME, _operation) op;                                        \
-    auto tmpOutput = op.unitary(input);                                        \
-    for (std::size_t i = 0; i < tmpOutput.size(); i++)                         \
-      output[i] = tmpOutput[i];                                                \
-    return;                                                                    \
+  __qop__ std::vector<std::complex<double>> CONCAT(NAME,                       \
+                                                   CONCAT(_generator_, NUMT))( \
+      const std::vector<double> &parameters = std::vector<double>()) {         \
+    return __VA_ARGS__;                                                        \
   }

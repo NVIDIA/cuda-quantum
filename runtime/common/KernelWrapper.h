@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/platform.h"
+#include "cudaq/qis/pauli_word.h"
 #include "cudaq/utils/registry.h"
 #include <cstdint>
 #include <cstring>
@@ -225,9 +226,164 @@ public:
   }
 };
 
+// Serialization for `pauli_word`
+// Data is packed in the same way as a `vector<char>`.
+template <>
+class SerializeArgImpl<cudaq::pauli_word> {
+public:
+  static std::size_t size(const cudaq::pauli_word &x) {
+    return SerializeArgImpl<std::vector<char>>::size(x.data());
+  }
+
+  static bool serialize(SerializeOutputBuffer &buf,
+                        const cudaq::pauli_word &x) {
+    return SerializeArgImpl<std::vector<char>>::serialize(buf, x.data());
+  }
+
+  static bool deserialize(SerializeInputBuffer &buf, cudaq::pauli_word &x) {
+    std::vector<char> pauliStr;
+    const bool isVectorCharDeserialized =
+        SerializeArgImpl<std::vector<char>>::deserialize(buf, pauliStr);
+    if (!isVectorCharDeserialized)
+      return false;
+    x = cudaq::pauli_word(std::string(pauliStr.begin(), pauliStr.end()));
+    return true;
+  }
+};
+
+// Serialization for a vector of vectors
+// Note: we don't support recursively nested vectors (> 2 levels) at the moment.
+template <class T>
+class SerializeArgImpl<std::vector<std::vector<T>>,
+                       std::enable_if_t<std::is_trivial<T>::value>> {
+public:
+  static std::size_t size(const std::vector<std::vector<T>> &vec) {
+    std::size_t size =
+        SerializeArgs<uint64_t>::size(static_cast<uint64_t>(vec.size()));
+    for (const auto &el : vec) {
+      size += SerializeArgs<std::vector<T>>::size(el);
+    }
+    return size;
+  }
+
+  static bool serialize(SerializeOutputBuffer &buf,
+                        const std::vector<std::vector<T>> &vec) {
+    // Top-level size followed by size data of all sub-vectors then their buffer
+    // data.
+    if (!SerializeArgs<uint64_t>::serialize(buf,
+                                            static_cast<uint64_t>(vec.size())))
+      return false;
+    for (const auto &elem : vec) {
+      if (!SerializeArgs<uint64_t>::serialize(
+              buf, static_cast<uint64_t>(elem.size())))
+        return false;
+    }
+
+    for (const auto &subVec : vec) {
+      for (const auto &elem : subVec)
+        if (!SerializeArgs<T>::serialize(buf, elem))
+          return false;
+    }
+    return true;
+  }
+
+  static bool deserialize(SerializeInputBuffer &buf,
+                          std::vector<std::vector<T>> &vec) {
+    uint64_t size = 0;
+    vec.clear();
+    if (!SerializeArgs<uint64_t>::deserialize(buf, size))
+      return false;
+
+    vec.reserve(size);
+
+    for (std::size_t i = 0; i < size; ++i) {
+      uint64_t subVecSizeBytes = 0;
+      if (!SerializeArgs<uint64_t>::deserialize(buf, subVecSizeBytes))
+        return false;
+      vec.emplace_back(std::vector<T>(subVecSizeBytes));
+    }
+    for (std::size_t i = 0; i < size; ++i) {
+      auto &subVec = vec[i];
+      for (auto &el : subVec) {
+        if (!SerializeArgs<T>::deserialize(buf, el))
+          return false;
+      }
+    }
+    return true;
+  }
+};
+
+// Serialization for `std::vector<pauli_word>`
+template <>
+class SerializeArgImpl<std::vector<cudaq::pauli_word>> {
+  using ContainerEquivalentTy = std::vector<std::vector<char>>;
+  static ContainerEquivalentTy
+  paulisToStdEquivalent(const std::vector<cudaq::pauli_word> &x) {
+    ContainerEquivalentTy equiv;
+    std::transform(x.begin(), x.end(), std::back_inserter(equiv),
+                   [](const cudaq::pauli_word &p) -> std::vector<char> {
+                     return p.data();
+                   });
+    return equiv;
+  }
+  static std::vector<cudaq::pauli_word>
+  fromStdEquivalentToPaulis(const ContainerEquivalentTy &x) {
+    std::vector<cudaq::pauli_word> paulis;
+    std::transform(x.begin(), x.end(), std::back_inserter(paulis),
+                   [](const std::vector<char> &pauliStr) -> cudaq::pauli_word {
+                     return cudaq::pauli_word(
+                         std::string(pauliStr.begin(), pauliStr.end()));
+                   });
+    return paulis;
+  }
+
+public:
+  static std::size_t size(const std::vector<cudaq::pauli_word> &x) {
+    return SerializeArgImpl<ContainerEquivalentTy>::size(
+        paulisToStdEquivalent(x));
+  }
+
+  static bool serialize(SerializeOutputBuffer &buf,
+                        const std::vector<cudaq::pauli_word> &x) {
+    return SerializeArgImpl<ContainerEquivalentTy>::serialize(
+        buf, paulisToStdEquivalent(x));
+  }
+
+  static bool deserialize(SerializeInputBuffer &buf,
+                          std::vector<cudaq::pauli_word> &x) {
+    ContainerEquivalentTy pauliStrs;
+    const bool isVectorOfPauliStrsDeserialized =
+        SerializeArgImpl<ContainerEquivalentTy>::deserialize(buf, pauliStrs);
+    if (!isVectorOfPauliStrsDeserialized)
+      return false;
+    x = fromStdEquivalentToPaulis(pauliStrs);
+    return true;
+  }
+};
+
+//===----------------------------------------------------------------------===//
+//
+// Utilities to check `SerializeArgImpl` exists
+// We use this to customize the error message.
+//
+//===----------------------------------------------------------------------===//
+namespace internal {
+// We utilize the fact that an incomplete type doesn't support sizeof.
+template <class T, std::size_t = sizeof(T)>
+std::true_type __has_complete_impl(T *);
+std::false_type __has_complete_impl(...);
+template <typename ArgT>
+// Check whether SerializeArgImpl is defined for this argument type.
+using isSerializable =
+    decltype(__has_complete_impl(std::declval<SerializeArgImpl<ArgT> *>()));
+} // namespace internal
+
 // Serialize a list of args into a flat buffer.
 template <typename... Args>
 std::vector<char> serializeArgs(const Args &...args) {
+  static_assert(std::conjunction_v<internal::isSerializable<Args>...>,
+                "Argument type can't be serialized.");
+
   using Serializer = SerializeArgs<Args...>;
   std::vector<char> serializedArgs;
   serializedArgs.resize(Serializer::size(args...));
@@ -266,6 +422,8 @@ class WrapperFunctionHandlerHelper<void(SignatureArgTs...), InvokeArgTs...> {
 public:
   using ArgTuple = std::tuple<std::decay_t<InvokeArgTs>...>;
   using ArgIndices = std::make_index_sequence<std::tuple_size<ArgTuple>::value>;
+  using ArgIndicesPlus1 =
+      std::make_index_sequence<1 + std::tuple_size<ArgTuple>::value>;
 
   template <typename CallableT>
   static void invoke(CallableT &&func, const char *argData,
@@ -278,6 +436,22 @@ public:
     // Call the wrapped function with args tuple
     WrapperFunctionHandlerCaller::call(std::forward<CallableT>(func), argsTuple,
                                        ArgIndices{});
+  }
+
+  // Specialization when the 1st std::vector<double> argument has been excluded
+  // from the serialized args, but now you want to call it.
+  template <typename CallableT>
+  static void invoke(CallableT &&func, const std::vector<double> &vec_parms,
+                     const char *argData, std::size_t argSize) {
+    ArgTuple argsTuple;
+    // Deserialize buffer to args tuple
+    if (!deserialize(argData, argSize, argsTuple, ArgIndices{}))
+      throw std::runtime_error(
+          "Failed to deserialize arguments for wrapper function call");
+    // Call the wrapped function with args tuple
+    auto newArgsTuple = std::tuple_cat(std::make_tuple(vec_parms), argsTuple);
+    WrapperFunctionHandlerCaller::call(std::forward<CallableT>(func),
+                                       newArgsTuple, ArgIndicesPlus1{});
   }
 
 private:
@@ -318,6 +492,19 @@ void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
   WrapperFunctionHandlerHelper<
       std::remove_reference_t<CallableT>,
       InvokeArgTs...>::invoke(std::forward<CallableT>(func), argData, argSize);
+}
+
+// Invoke a typed callable (functions) with a std::vec<double> + serialized
+// `args`.
+template <typename CallableT, typename... InvokeArgTs>
+void invokeCallableWithSerializedArgs_vec(const std::vector<double> &vec_parms,
+                                          const char *argData,
+                                          std::size_t argSize,
+                                          CallableT &&func) {
+  WrapperFunctionHandlerHelper<
+      std::remove_reference_t<CallableT>,
+      InvokeArgTs...>::invoke(std::forward<CallableT>(func), vec_parms, argData,
+                              argSize);
 }
 
 // Wrapper for quantum kernel invocation, i.e., `kernel(args...)`.
