@@ -126,8 +126,17 @@ public:
     // set up a single-shot execution context for this case.
     static thread_local cudaq::ExecutionContext defaultContext("sample",
                                                                /*shots=*/1);
+    // This is a kernel invocation outside the CUDA-Q APIs (sample/observe).
+    const bool isDirectInvocation = executionContextPtr == nullptr;
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
+
+    // Populate the conditional feedback metadata if this is a direct
+    // invocation (not otherwise populated by cudaq::sample)
+    if (isDirectInvocation)
+      executionContext.hasConditionalsOnMeasureResults =
+          cudaq::kernelHasConditionalFeedback(name);
+
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
@@ -135,6 +144,20 @@ public:
         m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+    if (isDirectInvocation &&
+        !executionContext.invocationResultBuffer.empty()) {
+      if (executionContext.invocationResultBuffer.size() + resultOffset >
+          voidStarSize)
+        throw std::runtime_error(
+            "Unexpected result: return type size of " +
+            std::to_string(executionContext.invocationResultBuffer.size()) +
+            " bytes overflows the argument buffer.");
+      char *resultBuf = reinterpret_cast<char *>(args) + resultOffset;
+      // Copy the result data to the args buffer.
+      std::memcpy(resultBuf, executionContext.invocationResultBuffer.data(),
+                  executionContext.invocationResultBuffer.size());
+      executionContext.invocationResultBuffer.clear();
+    }
   }
 
   void
