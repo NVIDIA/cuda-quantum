@@ -196,7 +196,7 @@ public:
         // remote simulators, instead we synthesize states as vectors.
         // Pass the data reader function to the synthesizer for this purpose.
         pm.addPass(cudaq::opt::createQuakeSynthesizer(
-            name, args, readSimulationStateData, startingArgIdx));
+            name, args, startingArgIdx, readSimulationStateData));
         pm.addPass(mlir::createCanonicalizerPass());
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
