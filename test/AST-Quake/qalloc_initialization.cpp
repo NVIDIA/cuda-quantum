@@ -43,23 +43,24 @@ struct Cherry {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Cherry() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 4.000000e-01 : f64
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 6.000000e-01 : f64
-// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK:           %[[VAL_7:.*]] = complex.create %[[VAL_5]], %[[VAL_6]] : complex<f64>
-// CHECK:           %[[VAL_8:.*]] = complex.create %[[VAL_4]], %[[VAL_3]] : complex<f64>
-// CHECK:           %[[VAL_9:.*]] = complex.create %[[VAL_6]], %[[VAL_5]] : complex<f64>
-// CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.array<complex<f64> x 4>
-// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_7]], %[[VAL_11]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_10]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_8]], %[[VAL_12]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_10]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_9]], %[[VAL_13]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_10]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<2>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_2:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_3:.*]] = complex.constant [6.000000e-01, 4.000000e-01] : complex<f64>
+// CHECK-DAG:       %[[VAL_4:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_7:.*]] = cc.alloca !cc.array<complex<f64> x 4>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_8]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_7]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_9]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_7]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_10]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_7]][3] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_11]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_12:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_13:.*]] = quake.init_state %[[VAL_12]], %[[VAL_7]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<2>
 // clang-format on
 
 struct MooseTracks {
@@ -75,23 +76,24 @@ struct MooseTracks {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__MooseTracks() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2.500000e-01 : f64
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 7.500000e-01 : f64
-// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK:           %[[VAL_7:.*]] = complex.create %[[VAL_5]], %[[VAL_6]] : complex<f64>
-// CHECK:           %[[VAL_8:.*]] = complex.create %[[VAL_4]], %[[VAL_3]] : complex<f64>
-// CHECK:           %[[VAL_9:.*]] = complex.create %[[VAL_6]], %[[VAL_5]] : complex<f64>
-// CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.array<complex<f64> x 4>
-// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_7]], %[[VAL_11]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_10]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_8]], %[[VAL_12]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_10]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_9]], %[[VAL_13]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_10]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<2>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_2:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_3:.*]] = complex.constant [7.500000e-01, 2.500000e-01] : complex<f64>
+// CHECK-DAG:       %[[VAL_4:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_7:.*]] = cc.alloca !cc.array<complex<f64> x 4>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_8]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_7]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_9]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_7]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_10]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_7]][3] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_11]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_12:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_13:.*]] = quake.init_state %[[VAL_12]], %[[VAL_7]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<2>
 // clang-format on
 
 struct RockyRoad {
@@ -106,35 +108,38 @@ struct RockyRoad {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__RockyRoad() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0.000000e+00 : f{{[1280]+}}
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 2.000000e-01 : f64
-// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 8.000000e-01 : f64
-// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f{{[1280]+}}
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_2:.*]] = complex.constant [8.000000e-01, 2.000000e-01] : complex<f64>
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f80
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f80
 // CHECK-DAG:       %[[VAL_8:.*]] = arith.constant 0.000000e+00 : f64
 // CHECK-DAG:       %[[VAL_9:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_10:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_7]]) : (f{{[1280]+}}) -> complex<f64>
+// CHECK:           %[[VAL_10:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_7]]) : (f80) -> complex<f64>
 // CHECK:           %[[VAL_11:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_12:.*]] = call @_ZStplIdESt7complexIT_ERKS1_RKS2_(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
-// CHECK:           %[[VAL_13:.*]] = complex.create %[[VAL_6]], %[[VAL_5]] : complex<f64>
-// CHECK:           %[[VAL_14:.*]] = cc.alloca f64
-// CHECK:           cc.store %[[VAL_4]], %[[VAL_14]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_15:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_3]]) : (f{{[1280]+}}) -> complex<f64>
-// CHECK:           %[[VAL_16:.*]] = cc.alloca complex<f64>
-// CHECK:           cc.store %[[VAL_15]], %[[VAL_16]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_17:.*]] = call @_ZStplIdESt7complexIT_ERKS1_RKS2_(%[[VAL_14]], %[[VAL_16]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
-// CHECK:           %[[VAL_18:.*]] = cc.alloca !cc.array<complex<f64> x 4>
-// CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_12]], %[[VAL_19]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_18]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_13]], %[[VAL_20]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_18]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_17]], %[[VAL_21]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_13:.*]] = cc.alloca f64
+// CHECK:           cc.store %[[VAL_6]], %[[VAL_13]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_14:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_5]]) : (f80) -> complex<f64>
+// CHECK:           %[[VAL_15:.*]] = cc.alloca complex<f64>
+// CHECK:           cc.store %[[VAL_14]], %[[VAL_15]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_16:.*]] = call @_ZStplIdESt7complexIT_ERKS1_RKS2_(%[[VAL_13]], %[[VAL_15]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
+// CHECK:           %[[VAL_17:.*]] = cc.alloca !cc.array<complex<f64> x 4>
+// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_12]], %[[VAL_18]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_17]][1] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_19]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_17]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_16]], %[[VAL_20]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_17]][3] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_21]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_22:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_18]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<2>
+// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_17]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<2>
 // clang-format on
 
 std::vector<double> getTwoTimesRank();
@@ -220,21 +225,19 @@ __qpu__ auto Strawberry() {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_Strawberry._Z10Strawberryv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK:           %[[VAL_2:.*]] = complex.create %[[VAL_1]], %[[VAL_1]] : complex<f64>
-// CHECK:           %[[VAL_3:.*]] = complex.create %[[VAL_0]], %[[VAL_1]] : complex<f64>
-// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<complex<f64> x 2>
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<1>
-// CHECK:           %[[VAL_8:.*]] = quake.init_state %[[VAL_7]], %[[VAL_4]] : (!quake.veq<1>, !cc.ptr<!cc.array<complex<f64> x 2>>) -> !quake.veq<1>
-// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<1>) -> !quake.ref
-// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
-// CHECK:           return %[[VAL_11]] : i1
+// CHECK:           %[[VAL_0:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_1:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.array<complex<f64> x 2>
+// CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_2]] : (!quake.veq<1>, !cc.ptr<!cc.array<complex<f64> x 2>>) -> !quake.veq<1>
+// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_6]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_8]] : (!quake.measure) -> i1
+// CHECK:           return %[[VAL_9]] : i1
 // CHECK:         }
 // clang-format on
 
@@ -253,21 +256,18 @@ __qpu__ bool Peppermint() {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_Peppermint._Z10Peppermintv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 0.70710678118654757 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK:           %[[VAL_2:.*]] = complex.create %[[VAL_0]], %[[VAL_1]] : complex<f64>
-// CHECK:           %[[VAL_3:.*]] = complex.create %[[VAL_0]], %[[VAL_1]] : complex<f64>
-// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<complex<f64> x 2>
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
-// CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<1>
-// CHECK:           %[[VAL_8:.*]] = quake.init_state %[[VAL_7]], %[[VAL_4]] : (!quake.veq<1>, !cc.ptr<!cc.array<complex<f64> x 2>>) -> !quake.veq<1>
-// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<1>) -> !quake.ref
-// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
-// CHECK:           return %[[VAL_11]] : i1
+// CHECK:           %[[VAL_0:.*]] = complex.constant [0.70710678118654757, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.array<complex<f64> x 2>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_3:.*]] = cc.compute_ptr %[[VAL_1]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_1]] : (!quake.veq<1>, !cc.ptr<!cc.array<complex<f64> x 2>>) -> !quake.veq<1>
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_7]] : (!quake.measure) -> i1
+// CHECK:           return %[[VAL_8]] : i1
 // CHECK:         }
 // clang-format on
 
