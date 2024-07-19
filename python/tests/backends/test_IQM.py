@@ -11,7 +11,7 @@ import tempfile
 from typing import List
 from multiprocessing import Process
 import numpy as np
-from python.tests.utils.network_utils import check_server_connection
+from network_utils import check_server_connection
 
 import cudaq
 from cudaq import spin

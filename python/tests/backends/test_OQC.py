@@ -10,7 +10,7 @@ import os
 from typing import List
 import pytest
 from multiprocessing import Process
-from python.tests.utils.network_utils import check_server_connection
+from network_utils import check_server_connection
 
 import cudaq
 from cudaq import spin

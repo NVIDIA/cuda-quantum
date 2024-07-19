@@ -11,7 +11,7 @@ import numpy as np
 from typing import List
 from cudaq import spin
 from multiprocessing import Process
-from python.tests.utils.network_utils import check_server_connection
+from network_utils import check_server_connection
 try:
     from utils.mock_qpu.quantinuum import startServer
 except:
