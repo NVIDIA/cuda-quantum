@@ -77,10 +77,8 @@ class DependencyNode {
   friend class DependencyGraph;
 
 protected:
-  // Dependencies and successors are ordered lists:
-  // successors in the order of results of associated,
-  SmallVector<DependencyNode *> successors;
-  // dependencies are in the order of operands of associated
+  SetVector<DependencyNode *> successors;
+  // Dependencies are in the order of operands of associated
   SmallVector<DependencyNode *> dependencies;
   // If a given dependency appears multiple times,
   // (e.g., multiple results of the dependency are used by associated),
@@ -89,20 +87,15 @@ protected:
   // Otherwise, the dependency will be code gen'ed first, and it will
   // be impossible to know (e.g., which result is a control and which is a
   // target). Result_idxs tracks this information, and therefore should be
-  // exactly the same size as dependencies.
+  // exactly the same size/order as dependencies.
   SmallVector<size_t> result_idxs;
   SetVector<size_t> qids;
   Operation *associated;
   uint cycle = INT_MAX;
   bool hasCodeGen = false;
   uint height;
-  bool quakeOp;
+  bool quantumOp;
   bool isScheduled;
-
-  struct Edge {
-    size_t result_idx;
-    size_t operand_idx;
-  };
 
   void printNode() {
     llvm::outs() << "QIDs: ";
@@ -135,9 +128,9 @@ protected:
 
   bool isLeaf() { return isBeginOp(associated); }
 
-  bool isSkip() { return isRoot() || isLeaf() || !quakeOp; }
+  bool isSkip() { return isRoot() || isLeaf() || !quantumOp; }
 
-  bool isQuakeDependent() { return qids.size() > 0; }
+  bool isQuantumDependent() { return qids.size() > 0; }
 
   uint numTicks() { return isSkip() ? 0 : 1; }
 
@@ -166,7 +159,7 @@ protected:
   void schedule(uint level) {
     isScheduled = true;
     // Ignore classical values that don't depend on quantum values
-    if (!quakeOp && !isQuakeDependent())
+    if (!quantumOp && !isQuantumDependent())
       return;
 
     // The height of a node (minus numTicks()) is the earliest a node can be
@@ -197,26 +190,13 @@ protected:
 
     // Schedule unscheduled successors as early as possible
     for (auto successor : successors)
-      if (successor && !successor->isScheduled && !successor->isRoot())
+      if (!successor->isScheduled && !successor->isRoot())
         successor->schedule(current + numTicks() + successor->numTicks());
   }
 
   /// Returns the index of the result of the dependency corresponding to the
   /// \p operand_idx'th operand of this node
   size_t getResultIdx(size_t operand_idx) { return result_idxs[operand_idx]; }
-
-  /// Returns the index of the operand of \p successor corresponding to the
-  /// \p result_idx'th result of this node
-  size_t getOperandIdx(size_t result_idx) {
-    auto successor = successors[result_idx];
-    assert(successor && "Cannot access operand of null successor");
-    size_t operand = 0;
-    auto operands = successor->associated->getOperands();
-    for (; operand < operands.size(); operand++)
-      if (operands[operand] == associated->getResult(result_idx))
-        break;
-    return operand;
-  }
 
   /// Recursively find nodes scheduled at a given cycle
   SetVector<DependencyNode *> getNodesAtCycle(uint _cycle) {
@@ -245,7 +225,7 @@ protected:
       auto dependency = dependencies[i];
 
       // Ensure classical values are available
-      if (!dependency->quakeOp)
+      if (!dependency->quantumOp)
         dependency->codeGen(builder);
 
       assert(dependency->hasCodeGen &&
@@ -266,54 +246,25 @@ protected:
   }
 
   /// Replaces the null_wire op for \p qid with \p init
-  void initializeWire(size_t qid, Operation *init) {
+  void initializeWire(size_t qid, Operation *init, uint result_idx) {
     if (!qids.contains(qid))
       return;
 
     if (isLeaf()) {
       associated = init;
       hasCodeGen = true;
+
+      // Update result_idxs of successors
+      for (auto successor : successors)
+        for (uint i = 0; i < successor->dependencies.size(); i++)
+          if (successor->dependencies[i] == this)
+            successor->result_idxs[i] = result_idx;
+
       return;
     }
 
     for (auto dependency : dependencies)
-      dependency->initializeWire(qid, init);
-  }
-
-  /// Ensures that the node is valid and has been scheduled.
-  /// This should only be called after it has been added to a
-  /// dependency graph.
-  /// This is an expensive check of internal assumptions that will
-  /// only be available during debugging.
-  void validate() {
-    // Validate metadata
-    assert(associated && "Associated op is null");
-    if (!isSkip()) {
-      assert(isScheduled && "Node part of graph but not scheduled");
-      // A node is included in the calculation of its height, hence + numTicks()
-      assert(cycle + numTicks() >= height && "Node scheduled too early");
-    }
-    assert(dependencies.size() == associated->getNumOperands() &&
-           "Wrong number of dependencies");
-    assert(successors.size() == associated->getNumResults() &&
-           "Wrong number of successors");
-    // Dependencies are ensured by the constructor, so only check the
-    // successors which are added after construction.
-    // Ensure that the successors all make sense.
-    for (size_t i = 0; i < successors.size(); i++) {
-      auto successor = successors[i];
-      auto result = associated->getResult(i);
-      if (!successor) {
-        assert(!isa<quake::WireType>(result.getType()) &&
-               "Successor for wire result cannot be null");
-        continue;
-      }
-
-      auto operand_idx = getOperandIdx(i);
-      if (!hasCodeGen)
-        assert(successor->associated->getOperand(operand_idx) == result &&
-               "Successors in wrong order");
-    }
+      dependency->initializeWire(qid, init, result_idx);
   }
 
 public:
@@ -322,8 +273,7 @@ public:
     assert(op && "Cannot make dependency node for null op");
     assert(_dependencies.size() == op->getNumOperands() &&
            "Wrong # of dependencies to construct node");
-    uint num_successors = op->getNumResults();
-    successors = SmallVector<DependencyNode *>(num_successors, nullptr);
+    successors = SetVector<DependencyNode *>();
     result_idxs = SmallVector<size_t>(dependencies.size(), INT_MAX);
 
     if (isBeginOp(op) || isEndOp(op)) {
@@ -335,7 +285,9 @@ public:
       qids.insert(qid);
     }
 
-    quakeOp = isQuakeOperation(op);
+    quantumOp = isQuakeOperation(op);
+    if (dyn_cast<quake::DiscriminateOp>(op))
+      quantumOp = false;
 
     height = 0;
     // Ingest dependencies, setting up metadata
@@ -357,7 +309,7 @@ public:
 
       result_idxs[i] = result_idx;
       // Set relevant successor of dependency to this
-      dependency->successors[result_idx] = this;
+      dependency->successors.insert(this);
 
       // Update metadata
       if (dependency->height > height)
@@ -403,7 +355,7 @@ private:
   /// Also fills in metadata about the height of the graph, and the qids in the
   /// graph.
   void gatherRoots(SetVector<DependencyNode *> &seen, DependencyNode *next) {
-    if (seen.contains(next))
+    if (seen.contains(next) || !next->isQuantumDependent())
       return;
 
     if (next->isRoot()) {
@@ -421,8 +373,7 @@ private:
       firstUses.insert({next->qids.front(), next->successors.front()});
 
     for (auto successor : next->successors)
-      if (successor)
-        gatherRoots(seen, successor);
+      gatherRoots(seen, successor);
     for (auto dependency : next->dependencies)
       gatherRoots(seen, dependency);
   }
@@ -445,7 +396,6 @@ private:
       assert(node->cycle < parent_cycle && "Node scheduled too late");
       parent_cycle = node->cycle;
     }
-    node->validate();
     for (auto dependency : node->dependencies)
       validateNode(dependency, parent_cycle);
   }
@@ -523,7 +473,7 @@ public:
     auto wireTy = quake::WireType::get(ctx);
     auto initOp =
         builder.create<quake::NullWireOp>(builder.getUnknownLoc(), wireTy);
-    getFirstUseOf(qid)->initializeWire(qid, initOp);
+    getFirstUseOf(qid)->initializeWire(qid, initOp, 0);
   }
 
   /// Replaces the "virtual" qubit represented by \p qid with the same
@@ -533,7 +483,7 @@ public:
     assert(init && init->isRoot() &&
            "Can only initialize wire from a valid root");
     auto lastOp = init->dependencies[0]->associated;
-    getFirstUseOf(qid)->initializeWire(qid, lastOp);
+    getFirstUseOf(qid)->initializeWire(qid, lastOp, init->result_idxs[0]);
   }
 
   void print() {
