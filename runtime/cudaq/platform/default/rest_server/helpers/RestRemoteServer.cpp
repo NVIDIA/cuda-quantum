@@ -579,9 +579,8 @@ protected:
     if (numTimes == 1 && !returnArg.empty()) {
       simulationStart = std::chrono::high_resolution_clock::now();
       llvm::Error error = engine->invokePacked(entryPointFunc, returnArg);
-      if (error) {
+      if (error) 
         throw std::runtime_error("JIT invocation failed");
-      }
       if (postExecCallback)
         postExecCallback(0);
     } else {
