@@ -164,13 +164,9 @@ public:
               funcOp.getBody().empty())
             moduleOp.push_back(funcOp.clone());
         }
-        // Add any global symbols associated with custom operations
-        else {
-          auto ccGlobalOp = dyn_cast<cudaq::cc::GlobalOp>(op);
-          if (ccGlobalOp) {
-            moduleOp.push_back(ccGlobalOp.clone());
-          }
-        }
+        // Add globals defined in the module.
+        if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
+          moduleOp.push_back(globalOp.clone());
       }
 
       if (args) {
@@ -182,6 +178,9 @@ public:
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
+
+      // Note: do not run state preparation pass here since we are always
+      // using simulators.
 
       // Run client-side passes. `clientPasses` is empty right now, but the code
       // below accommodates putting passes into it.

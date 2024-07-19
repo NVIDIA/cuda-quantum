@@ -1,0 +1,31 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: orca
+description: "CUDA-Q target for Orca."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: orca
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add the orca-qpu library to the link list
+  link-libs: ["-lcudaq-orca-qpu"]
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+
+target-arguments:
+  - key: url
+    required: false
+    type: string
+    platform-arg: url 
+    help-string: "Specify URL."
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: "Specify the Orca QPU."

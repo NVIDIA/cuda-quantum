@@ -6,6 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-NVQIR_SIMULATION_BACKEND="dm"
-PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_SIMULATION_SCALAR_FP64"
-TARGET_DESCRIPTION="The Density Matrix CPU Target provides a simulated QPU via OpenMP-enabled, CPU-only density matrix emulation."
+name: nvidia-mqpu-fp64
+description: "The NVIDIA MQPU FP64 Target provides a simulated QPU for every available CUDA GPU on the underlying system. Each QPU is simulated via cuStateVec FP64."
+warning: "This target is deprecating. Please use the 'nvidia' target with option 'mqpu,fp64'."
+gpu-requirements: true
+
+config:
+  nvqir-simulation-backend: custatevec-fp64
+  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+  platform-library: mqpu
+

@@ -28,6 +28,70 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
+template <typename A>
+std::vector<A> readConstantValues(SmallVectorImpl<Attribute> &vec, Type eleTy) {
+  std::vector<A> result;
+  for (auto a : vec) {
+    if constexpr (std::is_same_v<A, std::complex<double>>) {
+      auto v = cast<ArrayAttr>(a);
+      result.emplace_back(cast<FloatAttr>(v[0]).getValue().convertToDouble(),
+                          cast<FloatAttr>(v[1]).getValue().convertToDouble());
+    } else if constexpr (std::is_same_v<A, std::complex<float>>) {
+      auto v = cast<ArrayAttr>(a);
+      result.emplace_back(cast<FloatAttr>(v[0]).getValue().convertToFloat(),
+                          cast<FloatAttr>(v[1]).getValue().convertToFloat());
+    } else if constexpr (std::is_same_v<A, double>) {
+      auto v = cast<FloatAttr>(a);
+      result.emplace_back(v.getValue().convertToDouble());
+    } else if constexpr (std::is_same_v<A, float>) {
+      auto v = cast<FloatAttr>(a);
+      result.emplace_back(v.getValue().convertToFloat());
+    }
+  }
+  return result;
+}
+
+LogicalResult genVectorOfConstantsFromAttributes(cudaq::IRBuilder irBuilder,
+                                                 Location loc, ModuleOp module,
+                                                 StringRef name,
+                                                 SmallVector<Attribute> &values,
+                                                 Type eleTy) {
+
+  if (auto cTy = dyn_cast<ComplexType>(eleTy)) {
+    auto floatTy = cTy.getElementType();
+    if (floatTy == irBuilder.getF64Type()) {
+      auto vals = readConstantValues<std::complex<double>>(values, cTy);
+      if (vals.size() == values.size()) {
+        irBuilder.genVectorOfConstants(loc, module, name, vals);
+        return success();
+      }
+    } else if (floatTy == irBuilder.getF32Type()) {
+      auto vals = readConstantValues<std::complex<float>>(values, cTy);
+      if (vals.size() == values.size()) {
+        irBuilder.genVectorOfConstants(loc, module, name, vals);
+        return success();
+      }
+    }
+  } else if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
+    if (floatTy == irBuilder.getF64Type()) {
+      auto vals = readConstantValues<double>(values, floatTy);
+      if (vals.size() == values.size()) {
+        irBuilder.genVectorOfConstants(loc, module, name, vals);
+        return success();
+      }
+    } else if (floatTy == irBuilder.getF32Type()) {
+      auto vals = readConstantValues<float>(values, floatTy);
+      if (vals.size() == values.size()) {
+        irBuilder.genVectorOfConstants(loc, module, name, vals);
+        return success();
+      }
+    }
+  }
+  return failure();
+}
+} // namespace
+
+namespace {
 class AllocaPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
   explicit AllocaPattern(MLIRContext *ctx, DominanceInfo &di,
@@ -69,53 +133,21 @@ public:
       auto ptrTy = cudaq::cc::PointerType::get(arrTy);
       // Build a new name based on the kernel name.
       std::string name = funcName + ".rodata_" + std::to_string(counter++);
-      {
-        OpBuilder::InsertionGuard guard(rewriter);
-        if (auto complexTy = dyn_cast<ComplexType>(eleTy)) {
-          // Transforming complex vectors is a bit more labor intensive. Use the
-          // IRBuilder to create the object since we have to thread the needle
-          // for the LLVM-IR to be lowered to LLVM correctly.
-          auto transform = [&]<typename A>(SmallVectorImpl<Attribute> &vec)
-              -> std::vector<std::complex<A>> {
-            std::vector<std::complex<A>> result;
-            for (auto a : vec) {
-              auto v = cast<ArrayAttr>(a);
-              if constexpr (std::is_same_v<A, double>) {
-                result.emplace_back(
-                    cast<FloatAttr>(v[0]).getValue().convertToDouble(),
-                    cast<FloatAttr>(v[1]).getValue().convertToDouble());
-              } else {
-                result.emplace_back(
-                    cast<FloatAttr>(v[0]).getValue().convertToFloat(),
-                    cast<FloatAttr>(v[1]).getValue().convertToFloat());
-              }
-            }
-            return result;
-          };
-          cudaq::IRBuilder irBuilder(rewriter.getContext());
-          if (complexTy.getElementType() == rewriter.getF64Type()) {
-            std::vector<std::complex<double>> vals =
-                transform.template operator()<double>(values);
-            irBuilder.genVectorOfComplexConstant(loc, module, name, vals);
-          } else {
-            std::vector<std::complex<float>> vals =
-                transform.template operator()<float>(values);
-            irBuilder.genVectorOfComplexConstant(loc, module, name, vals);
-          }
-        } else {
-          OpBuilder::InsertionGuard guard(rewriter);
-          rewriter.setInsertionPointToEnd(module.getBody());
-          rewriter.create<cudaq::cc::GlobalOp>(loc, arrTy, name, valuesAttr,
-                                               /*isConstant=*/true,
-                                               /*isExternal=*/false);
-        }
+      cudaq::IRBuilder irBuilder(rewriter.getContext());
+      if (succeeded(genVectorOfConstantsFromAttributes(irBuilder, loc, module,
+                                                       name, values, eleTy))) {
+        conGlobal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
+        conArr = rewriter.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
+      } else {
+        conArr =
+            rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
       }
-      conGlobal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
-      conArr = rewriter.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
     } else {
       conArr =
           rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
     }
+
+    std::vector<mlir::Operation *> toErase;
 
     // Rewalk all the uses of alloc, u, which must be cc.cast or cc.compute_ptr.
     // For each,u, remove a store and replace a load with a cc.extract_value.
@@ -128,6 +160,7 @@ public:
       for (auto &useuse : user->getUses()) {
         auto *useuser = useuse.getOwner();
         if (auto ist = dyn_cast<quake::InitializeStateOp>(useuser)) {
+          rewriter.setInsertionPointAfter(useuser);
           LLVM_DEBUG(llvm::dbgs() << "replaced init_state\n");
           assert(conGlobal && "global must be defined");
           rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
@@ -135,6 +168,7 @@ public:
           continue;
         }
         if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
+          rewriter.setInsertionPointAfter(useuser);
           LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
           rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(
               load, eleTy, conArr,
@@ -142,17 +176,30 @@ public:
           continue;
         }
         if (isa<cudaq::cc::StoreOp>(useuser))
-          rewriter.eraseOp(useuser);
+          toErase.push_back(useuser);
         isLive = true;
       }
+      if (auto ist = dyn_cast<quake::InitializeStateOp>(user)) {
+        rewriter.setInsertionPointAfter(user);
+        LLVM_DEBUG(llvm::dbgs() << "replaced init_state\n");
+        assert(conGlobal && "global must be defined");
+        rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
+            ist, ist.getType(), ist.getTargets(), conGlobal);
+        continue;
+      }
       if (!isLive)
-        rewriter.eraseOp(user);
+        toErase.push_back(user);
     }
     if (toGlobal) {
+      rewriter.setInsertionPointAfter(alloc);
       rewriter.replaceOp(alloc, conGlobal);
     } else {
-      rewriter.eraseOp(alloc);
+      toErase.push_back(alloc);
     }
+
+    for (auto *op : toErase)
+      rewriter.eraseOp(op);
+
     return success();
   }
 
@@ -224,7 +271,9 @@ public:
       return theStore;
     };
 
-    auto ptrArrEleTy = cudaq::cc::PointerType::get(arrTy.getElementType());
+    auto unsizedArrTy = cudaq::cc::ArrayType::get(arrEleTy);
+    auto ptrUnsizedArrTy = cudaq::cc::PointerType::get(unsizedArrTy);
+    auto ptrArrEleTy = cudaq::cc::PointerType::get(arrEleTy);
     for (auto &use : alloc->getUses()) {
       // All uses *must* be a degenerate cc.cast, cc.compute_ptr, or
       // cc.init_state.
@@ -243,6 +292,7 @@ public:
         return false;
       }
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(op)) {
+        // Process casts that are used in store ops.
         if (cast.getType() == ptrArrEleTy) {
           if (auto w = getWriteOp(cast, 0))
             if (!scoreboard[0]) {
@@ -251,7 +301,21 @@ public:
             }
           return false;
         }
+        // Process casts that are used in quake.init_state.
+        if (cast.getType() == ptrUnsizedArrTy) {
+          if (getWriteOp(cast, 0))
+            LLVM_DEBUG(
+                llvm::dbgs()
+                << "unexpected use of array size removing cast in a store"
+                << *op << '\n');
+          continue;
+        }
         LLVM_DEBUG(llvm::dbgs() << "unexpected cast: " << *op << '\n');
+        toGlobalUses.push_back(op);
+        toGlobal = true;
+        continue;
+      }
+      if (isa<quake::InitializeStateOp>(op)) {
         toGlobalUses.push_back(op);
         toGlobal = true;
         continue;
@@ -298,29 +362,6 @@ public:
   mutable ModuleOp module;
 };
 
-// Fold complex.create ops if the arguments are constants.
-class ComplexCreatePattern : public OpRewritePattern<complex::CreateOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(complex::CreateOp create,
-                                PatternRewriter &rewriter) const override {
-    auto re = create.getReal();
-    auto im = create.getImaginary();
-    auto reCon = re.getDefiningOp<arith::ConstantOp>();
-    auto imCon = im.getDefiningOp<arith::ConstantOp>();
-    if (reCon && imCon) {
-      auto aa = ArrayAttr::get(
-          rewriter.getContext(),
-          ArrayRef<Attribute>{reCon.getValue(), imCon.getValue()});
-      rewriter.replaceOpWithNewOp<complex::ConstantOp>(create, create.getType(),
-                                                       aa);
-      return success();
-    }
-    return failure();
-  }
-};
-
 class LiftArrayAllocPass
     : public cudaq::opt::impl::LiftArrayAllocBase<LiftArrayAllocPass> {
 public:
@@ -337,7 +378,6 @@ public:
       std::string funcName = func.getName().str();
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPattern>(ctx, domInfo, funcName, module);
-      patterns.insert<ComplexCreatePattern>(ctx);
 
       LLVM_DEBUG(llvm::dbgs()
                  << "Before lifting constant array: " << func << '\n');

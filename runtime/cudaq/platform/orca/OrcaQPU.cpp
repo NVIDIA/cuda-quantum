@@ -214,13 +214,6 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   /// Once we know the backend, we should search for the config file
   /// from there we can get the URL/PORT and other inforation used in the
   /// pipeline.
-  std::string fileName = mutableBackend + std::string(".config");
-  auto configFilePath = platformPath / fileName;
-  cudaq::info("Config file path = {}", configFilePath.string());
-  std::ifstream configFile(configFilePath.string());
-  std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                             std::istreambuf_iterator<char>());
-
   // Set the qpu name
   qpuName = mutableBackend;
   initialize();
