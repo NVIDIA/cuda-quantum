@@ -71,8 +71,6 @@ void genericOpPrinter(mlir::OpAsmPrinter &_odsPrinter, mlir::Operation *op,
 //===----------------------------------------------------------------------===//
 
 // Is \p op in the Quake dialect?
-// TODO: Is this StringRef comparison faster than calling MLIRContext::
-// getLoadedDialect("quake")?
 inline bool isQuakeOperation(mlir::Operation *op) {
   if (auto *dialect = op->getDialect())
     return dialect->getNamespace().equals("quake");
