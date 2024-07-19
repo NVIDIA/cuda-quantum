@@ -328,6 +328,65 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
   EXPECT_EQ(countz.size(), 1);
 }
 
+TEST(QuakeSynthTests, checkStatePointerLocalSim) {
+  auto [kernel, thetas] = cudaq::make_kernel<cudaq::state*>();
+  auto theta = thetas[0];
+  auto phi = thetas[1];
+  auto q = kernel.qalloc(3);
+  kernel.x(q[0]);
+  kernel.ry(theta, q[1]);
+  kernel.ry(phi, q[2]);
+  kernel.x<cudaq::ctrl>(q[2], q[0]);
+  kernel.x<cudaq::ctrl>(q[0], q[1]);
+  kernel.ry(-theta, q[1]);
+  kernel.x<cudaq::ctrl>(q[0], q[1]);
+  kernel.x<cudaq::ctrl>(q[1], q[0]);
+
+  std::cout << kernel.to_quake() << '\n';
+
+  // Set the proper name for the kernel
+  auto properName = cudaq::runtime::cudaqGenPrefixName + kernel.name();
+
+  using namespace cudaq::spin;
+  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                     .21829 * z(0) - 6.125 * z(1);
+  cudaq::spin_op h3 = h + 9.625 - 9.625 * z(2) - 3.913119 * x(1) * x(2) -
+                      3.913119 * y(1) * y(2);
+
+  cudaq::state state = cudaq::state::from_data(std::vector<std::complex<double>>({.3591, .2569}));
+  double energy = cudaq::observe(kernel, h3, &state);
+  EXPECT_NEAR(energy, -2.045375, 1e-3);
+
+  // Map the kernel_builder to_quake output  to MLIR
+  auto context = cudaq::initializeMLIR();
+  auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
+
+  // Create a struct defining the runtime args for the kernel
+  auto [args, offset] =
+      cudaq::mapToRawArgs(kernel.name(), std::vector<double>{.3591, .2569});
+
+  // Run quake-synth
+  EXPECT_TRUE(succeeded(runQuakeSynth(kernel.name(), args, module)));
+
+  // Get the function, make sure that it has no arguments
+  auto func = module->lookupSymbol<func::FuncOp>(properName);
+  EXPECT_TRUE(func);
+  EXPECT_TRUE(func.getArguments().empty());
+
+  func.dump();
+
+  // Lower to LLVM and create the JIT execution engine
+  EXPECT_TRUE(succeeded(lowerToLLVMDialect(*module)));
+  auto jitOrError = ExecutionEngine::create(*module);
+  EXPECT_TRUE(!!jitOrError);
+  std::unique_ptr<ExecutionEngine> jit = std::move(jitOrError.get());
+
+  // // Sample this new kernel processed with quake synth
+  energy = observeJitCode(jit.get(), h3, kernel.name());
+  // Should see the same thing as before.
+  EXPECT_NEAR(energy, -2.045375, 1e-3);
+}
+
 TEST(QuakeSynthTests, checkCallable) {
   auto [ansatz, thetas] = cudaq::make_kernel<std::vector<double>>();
   auto q = ansatz.qalloc(2);
