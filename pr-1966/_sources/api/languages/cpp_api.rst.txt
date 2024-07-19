@@ -171,6 +171,9 @@ Platform
 .. doxygenclass:: cudaq::quantum_platform
     :members:
 
+.. doxygenstruct:: cudaq::RemoteCapabilities
+    :members:
+
 .. doxygenclass:: cudaq::SerializedCodeExecutionContext
 
 .. doxygentypedef:: cudaq::QuantumTask

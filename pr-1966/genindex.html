@@ -183,6 +183,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/maximum_vertex_weight_clique.html">Molecular docking via DC-QAOA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
@@ -1004,6 +1005,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12getNumQubitsEv">cudaq::QPU::getNumQubits (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv">cudaq::QPU::getRemoteCapabilities (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU10isEmulatedEv">cudaq::QPU::isEmulated (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU11isSimulatorEv">cudaq::QPU::isSimulator (C++ function)</a>
@@ -1026,20 +1029,16 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU27supportsConditionalFeedbackEv">cudaq::QPU::supportsConditionalFeedback (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU28supportsRemoteSerializedCodeEv">cudaq::QPU::supportsRemoteSerializedCode (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU17supportsRemoteVQEEv">cudaq::QPU::supportsRemoteVQE (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUD0Ev">cudaq::QPU::~QPU (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE">cudaq::qreg (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backENSt6size_tE">cudaq::qreg::back (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5beginEv">cudaq::qreg::begin (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5clearEv">cudaq::qreg::clear (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontENSt6size_tE">cudaq::qreg::front (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontEv">[1]</a>
@@ -1100,6 +1099,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14get_num_qubitsENSt6size_tE">cudaq::quantum_platform::get_num_qubits (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14get_num_qubitsEv">[1]</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE">cudaq::quantum_platform::get_remote_capabilities (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9get_shotsEv">cudaq::quantum_platform::get_shots (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12getLogStreamEv">cudaq::quantum_platform::getLogStream (C++ function)</a>
@@ -1139,10 +1140,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16setTargetBackendERKNSt6stringE">cudaq::quantum_platform::setTargetBackend (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackEKNSt6size_tE">cudaq::quantum_platform::supports_conditional_feedback (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform31supports_remote_serialized_codeEKNSt6size_tE">cudaq::quantum_platform::supports_remote_serialized_code (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform19supports_remote_vqeEKNSt6size_tE">cudaq::quantum_platform::supports_remote_vqe (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv">cudaq::quantum_platform::supports_task_distribution (C++ function)</a>
 </li>
@@ -1193,6 +1190,16 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8registryE">cudaq::registry (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8registry14RegisteredTypeE">cudaq::registry::RegisteredType (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilitiesE">cudaq::RemoteCapabilities (C++ struct)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb">cudaq::RemoteCapabilities::RemoteCapabilities (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities18serializedCodeExecE">cudaq::RemoteCapabilities::serializedCodeExec (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE">cudaq::RemoteCapabilities::stateOverlap (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities3vqeE">cudaq::RemoteCapabilities::vqe (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq21RemoteSimulationStateE">cudaq::RemoteSimulationState (C++ class)</a>
 </li>
