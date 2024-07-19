@@ -126,10 +126,6 @@ bool quantum_platform::supports_conditional_feedback(
   return platformQPUs[qpu_id]->supportsConditionalFeedback();
 }
 
-bool quantum_platform::supports_remote_vqe(const std::size_t qpu_id) const {
-  return platformQPUs[qpu_id]->supportsRemoteVQE();
-}
-
 void quantum_platform::launchVQE(const std::string kernelName,
                                  const void *kernelArgs,
                                  cudaq::gradient *gradient, cudaq::spin_op H,
@@ -147,9 +143,9 @@ void quantum_platform::launchVQE(const std::string kernelName,
                  shots);
 }
 
-bool quantum_platform::supports_remote_serialized_code(
-    const std::size_t qpu_id) const {
-  return platformQPUs[qpu_id]->supportsRemoteSerializedCode();
+RemoteCapabilities
+quantum_platform::get_remote_capabilities(const std::size_t qpu_id) const {
+  return platformQPUs[qpu_id]->getRemoteCapabilities();
 }
 
 void quantum_platform::launchKernel(std::string kernelName,

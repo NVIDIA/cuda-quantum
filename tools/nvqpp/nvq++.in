@@ -717,7 +717,7 @@ fi
 if ${ENABLE_DEVICE_CODE_LOADERS}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(quake-add-metadata)")
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "lift-array-value,func.func(get-concrete-matrix),device-code-loader{use-quake=1}")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "const-prop-complex,lift-array-value,func.func(get-concrete-matrix),device-code-loader{use-quake=1}")
 fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true

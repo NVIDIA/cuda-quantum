@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/FmtCore.h"
@@ -124,18 +125,6 @@ protected:
                                  const std::string &kernelName) {
     invokeJITKernel(jit, kernelName);
     delete jit;
-  }
-
-  /// @brief Helper function to get boolean environment variable
-  bool getEnvBool(const char *envName, bool defaultVal = false) {
-    if (auto envVal = std::getenv(envName)) {
-      std::string tmp(envVal);
-      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        return true;
-    }
-    return defaultVal;
   }
 
   virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
@@ -385,12 +374,13 @@ public:
     moduleOp.push_back(func.clone());
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
-    // Add any global symbols associated with custom operations (available after
-    // `lift-array-value` and `get-concrete-matrix` passes)
     for (auto &op : m_module.getOps()) {
-      if (auto ccGlobalOp = dyn_cast<cudaq::cc::GlobalOp>(op)) {
-        moduleOp.push_back(ccGlobalOp.clone());
-      }
+      // Add any global symbols, including global constant arrays.
+      // Global constant arrays can be created during compilation,
+      // `lift-array-value`, `quake-synthesizer`, and `get-concrete-matrix`
+      // passes.
+      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
+        moduleOp.push_back(globalOp.clone());
     }
 
     // Lambda to apply a specific pipeline to the given ModuleOp
@@ -425,7 +415,6 @@ public:
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
 
-    // Run the config-specified pass pipeline
     runPassPipeline(passPipelineConfig, moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(

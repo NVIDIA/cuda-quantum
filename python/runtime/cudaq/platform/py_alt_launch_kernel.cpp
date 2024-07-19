@@ -8,6 +8,7 @@
 
 #include "JITExecutionCache.h"
 #include "common/ArgumentWrapper.h"
+#include "common/Environment.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -504,8 +505,24 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto context = cloned.getContext();
   registerLLVMDialectTranslation(*context);
 
+  // Get additional debug values
+  auto disableMLIRthreading = getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
+  auto enablePrintMLIREachPass =
+      getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+
   PassManager pm(context);
   pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs));
+  pm.addPass(createCanonicalizerPass());
+
+  // Run state preparation for quantum devices only.
+  // Simulators have direct implementation of state initialization
+  // in their runtime.
+  auto &platform = cudaq::get_platform();
+  if (!platform.is_simulator() || platform.is_emulated()) {
+    pm.addPass(cudaq::opt::createConstPropComplex());
+    pm.addPass(cudaq::opt::createLiftArrayAlloc());
+    pm.addPass(cudaq::opt::createStatePreparation());
+  }
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
@@ -517,6 +534,10 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
+  if (disableMLIRthreading || enablePrintMLIREachPass)
+    context->disableMultithreading();
+  if (enablePrintMLIREachPass)
+    pm.enableIRPrinting();
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
