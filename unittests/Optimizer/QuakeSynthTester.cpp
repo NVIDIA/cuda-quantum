@@ -54,7 +54,8 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
   PassManager pm(module->getContext());
   module->getContext()->disableMultithreading();
   pm.enableIRPrinting();
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, true));
+  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, 0, nullptr,
+                                                true));
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
@@ -329,7 +330,7 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
 }
 
 TEST(QuakeSynthTests, checkStatePointerLocalSim) {
-  auto [kernel, thetas] = cudaq::make_kernel<cudaq::state*>();
+  auto [kernel, thetas] = cudaq::make_kernel<cudaq::state *>();
   auto theta = thetas[0];
   auto phi = thetas[1];
   auto q = kernel.qalloc(3);
@@ -353,7 +354,8 @@ TEST(QuakeSynthTests, checkStatePointerLocalSim) {
   cudaq::spin_op h3 = h + 9.625 - 9.625 * z(2) - 3.913119 * x(1) * x(2) -
                       3.913119 * y(1) * y(2);
 
-  cudaq::state state = cudaq::state::from_data(std::vector<std::complex<double>>({.3591, .2569}));
+  cudaq::state state = cudaq::state::from_data(
+      std::vector<std::complex<double>>({.3591, .2569}));
   double energy = cudaq::observe(kernel, h3, &state);
   EXPECT_NEAR(energy, -2.045375, 1e-3);
 

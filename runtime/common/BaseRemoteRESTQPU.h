@@ -406,8 +406,7 @@ public:
     if (updatedArgs) {
       cudaq::info("Run Quake Synth.\n");
       mlir::PassManager pm(&context);
-      pm.addPass(
-          cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs, false));
+      pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();

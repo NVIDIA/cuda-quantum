@@ -481,28 +481,23 @@ protected:
   // The raw pointer to the runtime arguments.
   const void *args;
 
+  // The starting argument index to synthesize. Typically 0 but may be >0 for
+  // partial synthesis. If >0, it is assumed that the first argument(s) are NOT
+  // in `args`.
+  std::size_t startingArgIdx = 0;
+
   // Function to read the state data, if any.
   SimulationStateData::getDataFunc *getStateData = nullptr;
 
   // Is the simulation running in the same address space as synthesis?
   bool sameAddressSpace = false;
 
-  // The starting argument index to synthesize. Typically 0 but may be >0 for
-  // partial synthesis. If >0, it is assumed that the first argument(s) are NOT
-  // in `args`.
-  std::size_t startingArgIdx = 0;
-
 public:
   QuakeSynthesizer() = default;
-
-  // Execution in a same address space on a simulator, or a quantum device
-  QuakeSynthesizer(std::string_view kernel, const void *a, bool sameSpace)
-      : kernelName(kernel), args(a), sameAddressSpace(sameSpace) {}
-
-  // Execution on a remote simulator
-  QuakeSynthesizer(std::string_view kernel, const void *a,
-                   SimulationStateData::getDataFunc *getData, std::size_t s)
-      : kernelName(kernel), args(a), getStateData(getData), startingArgIdx(s) {}
+  QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s,
+                   SimulationStateData::getDataFunc *getData, bool sameSpace)
+      : kernelName(kernel), args(a), startingArgIdx(s), getStateData(getData),
+        sameAddressSpace(sameSpace) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
@@ -881,18 +876,10 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
   return std::make_unique<QuakeSynthesizer>();
 }
 
-/// Execution on remote simulator
-std::unique_ptr<mlir::Pass>
-cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, const void *a,
-                                   SimulationStateData::getDataFunc *getData,
-                                   std::size_t startingArgIdx = 0) {
-  return std::make_unique<QuakeSynthesizer>(kernelName, a, getData,
-                                            startingArgIdx);
-}
-
-/// Execution on the same address space in a simulator or a quantum device
-std::unique_ptr<mlir::Pass>
-cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, const void *a,
-                                   bool sameAddressSpace = false) {
-  return std::make_unique<QuakeSynthesizer>(kernelName, a, sameAddressSpace);
+std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer(
+    std::string_view kernelName, const void *a, std::size_t startingArgIdx = 0,
+    SimulationStateData::getDataFunc *getData = nullptr,
+    bool sameAddressSpace = false) {
+  return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx,
+                                            getData, sameAddressSpace);
 }
