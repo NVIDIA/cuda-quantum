@@ -8,10 +8,10 @@
 
 import os
 import tempfile
-import time
 from typing import List
 from multiprocessing import Process
 import numpy as np
+from python.tests.utils.network_utils import check_server_connection
 
 import cudaq
 from cudaq import spin
@@ -43,7 +43,10 @@ def startUpMockServer():
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
-    time.sleep(1)
+
+    if not check_server_connection(port):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.")
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
