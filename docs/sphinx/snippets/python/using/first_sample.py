@@ -67,7 +67,7 @@ def kernel2(qubit_count: int):
 num_gpus = cudaq.num_available_gpus()
 if num_gpus > 1:
     # Set the target to include multiple virtual QPUs.
-    cudaq.set_target("nvidia-mqpu")
+    cudaq.set_target("nvidia", option="mqpu")
     # Asynchronous execution on multiple virtual QPUs, each simulated by an NVIDIA GPU.
     result_1 = cudaq.sample_async(kernel,
                                   qubit_count,

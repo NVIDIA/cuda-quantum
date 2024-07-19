@@ -19,3 +19,5 @@ add_mlir_library(CUDAQSupport
   MLIRAnalysis
   MLIRIR
   )
+
+add_subdirectory(Config)

@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -81,7 +82,7 @@ public:
                                 : description;
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    std::string targetConfigFileName = targetName + std::string(".config");
+    std::string targetConfigFileName = targetName + std::string(".yml");
     auto configFilePath = platformPath / targetConfigFileName;
     cudaq::info("Config file path for target {} = {}", targetName,
                 configFilePath.string());
@@ -91,17 +92,13 @@ public:
     std::ifstream configFile(configFilePath.string());
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                std::istreambuf_iterator<char>());
-    auto lines = cudaq::split(configContents, '\n');
-    constexpr char platformQPU[] = "PLATFORM_QPU";
-    for (auto &line : lines) {
-      if (line.find(platformQPU) != std::string::npos) {
-        const auto keyVal = cudaq::split(line, '=');
-        if (keyVal.size() > 1) {
-          auto qpuName = keyVal[1];
-          cudaq::trim(qpuName);
-          return qpuName;
-        }
-      }
+    cudaq::config::TargetConfig config;
+    llvm::yaml::Input Input(configContents.c_str());
+    Input >> config;
+
+    if (config.BackendConfig.has_value() &&
+        !config.BackendConfig->PlatformQpu.empty()) {
+      return config.BackendConfig->PlatformQpu;
     }
 
     return "";
