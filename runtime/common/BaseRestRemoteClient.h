@@ -413,6 +413,12 @@ public:
     // Re-seed the generator, e.g., when `cudaq::set_random_seed` is called.
     randEngine.seed(seed);
   }
+
+  // The remote-mqpu backend (this class) returns true for all remote
+  // capabilities.
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return RemoteCapabilities(/*initValues=*/true);
+  }
 };
 
 /// Base class for the REST client submitting jobs to NVCF-hosted `cudaq-qpud`
@@ -436,9 +442,12 @@ protected:
   // Information about function deployment from environment variable info.
   struct FunctionEnvironments {
     // These configs should be positive numbers.
-    int version{-1};
+    int majorVersion{-1};
+    int minorVersion{-1};
     int numGpus{-1};
     int timeoutSecs{-1};
+    int hasSerializedCodeExec{-1}; // -1 means unknown; 0 = false, 1 = true
+    std::string name;
   };
   // Available functions: function Id to info mapping
   using DeploymentInfo = std::unordered_map<std::string, FunctionEnvironments>;
@@ -480,7 +489,9 @@ protected:
     versionDataJs["functions"].get_to(versions);
     return versions;
   }
-  DeploymentInfo getAllAvailableDeployments() {
+  DeploymentInfo
+  getAllAvailableDeployments(const std::string &functionOverride,
+                             const std::string &versionOverride) {
     auto headers = getHeaders();
     auto allVisibleFunctions =
         m_restClient.get(fmt::format("https://{}/nvcf/functions", m_baseUrl),
@@ -510,11 +521,20 @@ protected:
       return CUDAQ_NCA_ID;
     }();
 
+    // Only add functions that are the latest minor version for the major
+    // version matched by the client.
+    // I.e. If client 1.x sees server 1.2 and 1.3, choose 1.3.
+    int highestMinorVersion = 0;
     for (auto funcInfo : allVisibleFunctions["functions"]) {
-      if (funcInfo["ncaId"].get<std::string>() == ncaIdToSearch &&
+      bool matchesOverride =
+          funcInfo["id"].get<std::string>() == functionOverride ||
+          funcInfo["versionId"].get<std::string>() == versionOverride;
+      bool matchesWithoutOverride =
+          funcInfo["ncaId"].get<std::string>() == ncaIdToSearch &&
           funcInfo["status"].get<std::string>() == "ACTIVE" &&
           funcInfo["name"].get<std::string>().starts_with(
-              cudaqNvcfFuncNamePrefix)) {
+              cudaqNvcfFuncNamePrefix);
+      if (matchesOverride || matchesWithoutOverride) {
         const auto containerEnvs = [&]() -> FunctionEnvironments {
           FunctionEnvironments envs;
           // Function name convention:
@@ -524,35 +544,65 @@ protected:
           //              Version __|    |  |
           //           Timeout (secs)  __|  |
           //              Number of GPUs  __|
+          // Also supported: cuda_quantum_v1-1_t3600_8x
+          // Also supported: cuda_quantum_suffix_v1-1_t3600_8x
           const std::regex funcNameRegex(
-              R"(^cuda_quantum_v(\d+)_t(\d+)_(\d+)x$)");
+              R"(^cuda_quantum_.*v([\d\-]+)_t(\d+)_(\d+)x$)");
           // The first match is the whole string.
           constexpr std::size_t expectedNumMatches = 4;
           std::smatch baseMatch;
           const std::string fname = funcInfo["name"].get<std::string>();
+          auto getMajorMinorVersion = [](const std::string &versionStr) {
+            std::size_t pos = versionStr.find('-');
+            int majorVersion = 0;
+            int minorVersion = 0;
+            if (pos != std::string::npos) {
+              majorVersion = std::stoi(versionStr.substr(0, pos));
+              minorVersion = std::stoi(versionStr.substr(pos + 1));
+            } else {
+              // If it doesn't say x.y, then assume it is x.0
+              majorVersion = std::stoi(versionStr);
+              minorVersion = 0;
+            }
+            return std::make_pair(majorVersion, minorVersion);
+          };
           // If the function name matches 'Production' naming convention,
           // retrieve deployment information from the name.
+          envs.name = fname;
           if (std::regex_match(fname, baseMatch, funcNameRegex) &&
               baseMatch.size() == expectedNumMatches) {
-            envs.version = std::stoi(baseMatch[1].str());
+            std::tie(envs.majorVersion, envs.minorVersion) =
+                getMajorMinorVersion(baseMatch[1].str());
             envs.timeoutSecs = std::stoi(baseMatch[2].str());
             envs.numGpus = std::stoi(baseMatch[3].str());
+            envs.hasSerializedCodeExec =
+                fname.starts_with("cuda_quantum_remote_py") ? 1 : 0;
           } else if (funcInfo.contains("containerEnvironment")) {
             // Otherwise, retrieve the info from deployment configurations.
             // TODO: at some point, we may want to consolidate these two paths
             // (name vs. meta-data). We keep it here since function metadata
             // (similar to `containerEnvironment`) will be supported in the near
             // future.
-            for (auto it : funcInfo["containerEnvironment"]) {
-              const auto getEnvValueIfMatch =
-                  [](json &js, const std::string &envKey, int &varToSet) {
-                    if (js["key"].get<std::string>() == envKey)
-                      varToSet = std::stoi(js["value"].get<std::string>());
-                  };
-              getEnvValueIfMatch(it, "NUM_GPUS", envs.numGpus);
-              getEnvValueIfMatch(it, "NVQC_REST_PAYLOAD_VERSION", envs.version);
-              getEnvValueIfMatch(it, "WATCHDOG_TIMEOUT_SEC", envs.timeoutSecs);
-            }
+            // Convert to unordered_map
+            std::unordered_map<std::string, std::string> containerEnvironment;
+            for (auto it : funcInfo["containerEnvironment"])
+              containerEnvironment[it["key"].get<std::string>()] =
+                  it["value"].get<std::string>();
+            // Fetch values
+            const auto getIntIfFound = [&](const std::string &envKey,
+                                           int &varToSet) {
+              if (auto it = containerEnvironment.find(envKey);
+                  it != containerEnvironment.end())
+                varToSet = std::stoi(it->second);
+            };
+            getIntIfFound("NUM_GPUS", envs.numGpus);
+            getIntIfFound("WATCHDOG_TIMEOUT_SEC", envs.timeoutSecs);
+            getIntIfFound("CUDAQ_SER_CODE_EXEC", envs.hasSerializedCodeExec);
+            if (auto it =
+                    containerEnvironment.find("NVQC_REST_PAYLOAD_VERSION");
+                it != containerEnvironment.end())
+              std::tie(envs.majorVersion, envs.minorVersion) =
+                  getMajorMinorVersion(it->second);
           }
 
           // Note: invalid/uninitialized FunctionEnvironments will be
@@ -561,10 +611,23 @@ protected:
           return envs;
         }();
 
-        // Only add functions that match client version.
-        if (containerEnvs.version == version())
+        // Only add functions that match client version, unless overridden
+        if (matchesOverride || containerEnvs.majorVersion == version()) {
           info[funcInfo["id"].get<std::string>()] = containerEnvs;
+          highestMinorVersion =
+              std::max(highestMinorVersion, containerEnvs.minorVersion);
+        }
       }
+    }
+
+    // Now make a pass through info and remove all the lower minor versions.
+    if (functionOverride.empty()) {
+      std::vector<std::string> funcsToRemove;
+      for (auto &iter : info)
+        if (iter.second.minorVersion != highestMinorVersion)
+          funcsToRemove.push_back(iter.first);
+      for (auto &funcToRemove : funcsToRemove)
+        info.erase(funcToRemove);
     }
 
     return info;
@@ -643,11 +706,35 @@ public:
         throw std::runtime_error("No NVQC API key is provided.");
     }
 
-    m_availableFuncs = getAllAvailableDeployments();
+    // Save some iterators to be used later
+    const auto funcIdIter = configs.find("function-id");
+    const auto versionIdIter = configs.find("version-id");
+    const auto nGpusIter = configs.find("ngpus");
+    // Default is 1 GPU if none specified
+    const int numGpusRequested =
+        (nGpusIter != configs.end()) ? std::stoi(nGpusIter->second) : 1;
+
+    // Override strings for function id and function version
+    const auto functionOverride = [&]() -> std::string {
+      if (funcIdIter == configs.end())
+        return "";
+      return funcIdIter->second;
+    }();
+    const auto versionOverride = [&]() -> std::string {
+      if (versionIdIter == configs.end())
+        return "";
+      return versionIdIter->second;
+    }();
+
+    // Pass the optional overrides to getAllAvailableDeployments so that it will
+    // return information about functions if they are manually specified by the
+    // user, even if they don't conform to naming conventions.
+    m_availableFuncs =
+        getAllAvailableDeployments(functionOverride, versionOverride);
     for (const auto &[funcId, info] : m_availableFuncs)
-      cudaq::info("Function Id {} has {} GPUs.", funcId, info.numGpus);
+      cudaq::info("Function Id {} (API version {}.{}) has {} GPUs.", funcId,
+                  info.majorVersion, info.minorVersion, info.numGpus);
     {
-      const auto funcIdIter = configs.find("function-id");
       if (funcIdIter != configs.end()) {
         // User overrides a specific function Id.
         m_functionId = funcIdIter->second;
@@ -665,10 +752,6 @@ public:
               "functions tab, or try to regenerate the key.");
 
         // Determine the function Id based on the number of GPUs
-        const auto nGpusIter = configs.find("ngpus");
-        // Default is 1 GPU if none specified
-        const int numGpusRequested =
-            (nGpusIter != configs.end()) ? std::stoi(nGpusIter->second) : 1;
         cudaq::info("Looking for an NVQC deployment that has {} GPUs.",
                     numGpusRequested);
         for (const auto &[funcId, info] : m_availableFuncs) {
@@ -703,7 +786,6 @@ public:
     {
       auto versions = getFunctionVersions();
       // Check if a version Id is set
-      const auto versionIdIter = configs.find("version-id");
       if (versionIdIter != configs.end()) {
         m_functionVersionId = versionIdIter->second;
         // Do a sanity check that this is an active version (i.e., usable).
@@ -757,6 +839,43 @@ public:
       }
     }
   }
+
+  // The NVCF version of this function needs to dynamically determine the remote
+  // capabilities based on the servers currently deployed.
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    // If an environment variable override is activated, then enable all remote
+    // capabilities.
+    if (auto *envVal = std::getenv("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE")) {
+      std::string tmp(envVal);
+      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
+        return RemoteCapabilities(/*initValues=*/true);
+    }
+    // Else determine capabilities based on server deployment info.
+    RemoteCapabilities capabilities(/*initValues=*/false);
+    if (!m_availableFuncs.contains(m_functionId)) {
+      // The user has manually overridden an NVQC function selection, but it
+      // wasn't found in m_availableFuncs.
+      cudaq::info(
+          "Function id overriden ({}) but cannot retrieve its remote "
+          "capabilities because a deployment for it was not found. Will assume "
+          "all optional remote capabilities are unsupported. You can set "
+          "CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE=1 if you wish to override "
+          "this.",
+          m_functionId);
+      return capabilities;
+    }
+    const auto &funcEnv = m_availableFuncs.at(m_functionId);
+    capabilities.serializedCodeExec = funcEnv.hasSerializedCodeExec > 0;
+    capabilities.stateOverlap =
+        funcEnv.majorVersion > 1 ||
+        (funcEnv.majorVersion >= 1 && funcEnv.minorVersion >= 1);
+    capabilities.vqe = funcEnv.majorVersion > 1 ||
+                       (funcEnv.majorVersion >= 1 && funcEnv.minorVersion >= 1);
+    return capabilities;
+  }
+
   virtual bool
   sendRequest(mlir::MLIRContext &mlirContext,
               cudaq::ExecutionContext &io_context,
