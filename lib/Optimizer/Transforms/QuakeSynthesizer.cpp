@@ -390,6 +390,9 @@ protected:
   // The raw pointer to the runtime arguments.
   const void *args;
 
+  // The program is executed in the same address space as the synthesis.
+  bool sameAddressSpace = false;
+
   // The starting argument index to synthesize. Typically 0 but may be >0 for
   // partial synthesis. If >0, it is assumed that the first argument(s) are NOT
   // in `args`.
@@ -397,10 +400,10 @@ protected:
 
 public:
   QuakeSynthesizer() = default;
-  QuakeSynthesizer(std::string_view kernel, const void *a)
-      : kernelName(kernel), args(a) {}
-  QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s)
-      : kernelName(kernel), args(a), startingArgIdx(s) {}
+  QuakeSynthesizer(std::string_view kernel, const void *a, bool sameAddrSpace,
+                   std::size_t s)
+      : kernelName(kernel), args(a), sameAddressSpace(sameAddrSpace),
+        startingArgIdx(s) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
@@ -543,17 +546,24 @@ public:
           // Special case of a `cudaq::state*` which must be in the same address
           // space. This references a container to a set of simulation
           // amplitudes.
-          synthesizeRuntimeArgument<cudaq::state *>(
-              builder, argument, args, offset, sizeof(void *),
-              [=](OpBuilder &builder, cudaq::state **concrete) {
-                Value rawPtr = builder.create<arith::ConstantIntOp>(
-                    loc, reinterpret_cast<std::intptr_t>(*concrete),
-                    sizeof(void *) * 8);
-                auto stateTy = cudaq::cc::StateType::get(builder.getContext());
-                return builder.create<cudaq::cc::CastOp>(
-                    loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
-              });
-          continue;
+          if (sameAddressSpace) {
+            synthesizeRuntimeArgument<cudaq::state *>(
+                builder, argument, args, offset, sizeof(void *),
+                [=](OpBuilder &builder, cudaq::state **concrete) {
+                  Value rawPtr = builder.create<arith::ConstantIntOp>(
+                      loc, reinterpret_cast<std::intptr_t>(*concrete),
+                      sizeof(void *) * 8);
+                  auto stateTy =
+                      cudaq::cc::StateType::get(builder.getContext());
+                  return builder.create<cudaq::cc::CastOp>(
+                      loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
+                });
+            continue;
+          } else {
+            funcOp.emitOpError("synthesis: unsupported argument type for "
+                               "remote devices and simulators: state*");
+            signalPassFailure();
+          }
         }
         // N.B. Other pointers will not be materialized and may be in a
         // different address space.
@@ -763,6 +773,8 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 
 std::unique_ptr<mlir::Pass>
 cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, const void *a,
-                                   std::size_t startingArgIdx) {
-  return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx);
+                                   std::size_t startingArgIdx,
+                                   bool sameAddressSpace) {
+  return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx,
+                                            sameAddressSpace);
 }
