@@ -3,8 +3,6 @@ from numbers import Number
 from typing import Any, Callable, Iterable, Iterator
 from numpy.typing import NDArray
 
-class BuiltIns():
-    pass
 
 class ScalarOperator():
     pass
@@ -19,7 +17,6 @@ class OperatorSum():
     pass
 
 class OperatorSum:
-    _terms: list[ProductOperator]
 
     def __init__(self, terms: list[ProductOperator]):
         if len(terms) == 0:
@@ -63,7 +60,6 @@ class OperatorSum:
         return OperatorSum(self._terms + other._terms)
 
 class ProductOperator(OperatorSum):
-    _operators: list[ElementaryOperator]
 
     def __init__(self, operators : list[ElementaryOperator]):
         if len(operators) == 0:
@@ -144,26 +140,58 @@ class ProductOperator(OperatorSum):
         return self + operators.const(-1) * other
 
 class ElementaryOperator(ProductOperator):
-    _degrees: list[int]
-    _builtin_id: str
+    _ops = {}
 
-    def __init__(self, builtin_id: str, degrees: list[int]):
-        self._builtin_id = builtin_id
+    # The Callable `create` that is passed here may take any number and types of 
+    # arguments and must return a NDArray[complex]. Each argument must be passed
+    # as keyword arguments when concretizing any operator that involves this built-in.
+    # Note that the levels passed to the create function are automatically validated 
+    # against the expected/supported levels passed to `add_operator`. There is hence 
+    # no need to validate the levels as part of the `create` function. 
+    # A negative or zero value for one (or more) of the expected level indicates that 
+    # the matrix/operator is defined for any value of this level. If the operator
+    # definition depends on the level(s), then the `create` function must take an 
+    # argument called `levels`, or `level` if it is just one. The given list of levels,
+    # or its only entry if it is a list of length one, will then be automatically 
+    # forwarded as argument to `create`.
+    @classmethod
+    def define(cls, op_id: str, expected_levels: list[int], create: Callable):
+        def with_level_check(generator, levels: list[int], **kwargs) -> Callable:
+            # Passing a value 0 for one of the expected levels indicates that
+            # the generator can be invoked with any value for that level.
+            # The generator returns a function that, given some keyword arguments,
+            # returns a matrix (NDArray[complex]).
+            if any([expected > 0 and levels[i] != expected for i, expected in enumerate(expected_levels)]):
+                raise ValueError(f'no built-in operator {op_id} has been defined '\
+                                 f'for {len(levels)} degree(s) of freedom with level(s) {levels}')
+            if len(levels) == 1: kwargs["level"] = levels[0]
+            else: kwargs["levels"] = levels 
+            generator_args, remaining_kwargs = ScalarOperator._args_from_kwargs(generator, **kwargs)
+            evaluated = generator(*generator_args, **remaining_kwargs)
+            if not isinstance(evaluated, numpy.ndarray):
+                raise TypeError("operator concretization must return a 'NDArray[complex]'")
+            return evaluated
+        cls._ops[op_id] = lambda levels, **kwargs: with_level_check(create, levels, **kwargs)
+
+    def __init__(self, operator_id: str, degrees: list[int]):
+        if not operator_id in ElementaryOperator._ops:
+            raise ValueError(f"no built-in operator '{operator_id}' has been defined")
+        self._generator = ElementaryOperator._ops[operator_id]
         self._degrees = degrees
         self._degrees.sort() # sorting so that we have a unique ordering for builtin
         super().__init__([self])
 
     @property
     def parameter_names(self) -> set[str]:
-        # FIXME: implement
-        raise NotImplementedError("Cannot determine parameters for ElementaryOperator")
+        arg_spec = inspect.getfullargspec(self._generator)
+        return set([arg_name for arg_name in arg_spec.args + arg_spec.kwonlyargs])
 
     def concretize(self, levels: dict[int, int], **kwargs) -> NDArray[complex]:
         missing_degrees = [degree not in levels for degree in self._degrees]
         if any(missing_degrees):
             raise ValueError(f'missing levels for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
         relevant_levels = [levels[degree] for degree in self._degrees]
-        return BuiltIns.concretize(self._builtin_id, relevant_levels, **kwargs)
+        return self._generator(relevant_levels, **kwargs)
 
     def __mul__(self, other: ElementaryOperator):
         if not isinstance(other, OperatorSum):
@@ -189,8 +217,6 @@ class ElementaryOperator(ProductOperator):
         return self + operators.const(-1) * other
 
 class ScalarOperator(ProductOperator):
-    _degrees: list[int] # Always empty; here for consistency with other operators.
-    _generator: Callable # Can take any number and types of arguments, must return a number.
 
     # The given generator may take any number and types of arguments, 
     # and must return a numeric value. Each argument must be passed
@@ -284,49 +310,9 @@ class ScalarOperator(ProductOperator):
     def __sub__(self, other: ScalarOperator) -> ScalarOperator:
         return self + operators.const(-1) * other
 
-class BuiltIns:
-    _ops = {}
-
-    # The Callable `create` that is passed here may take any number and types of 
-    # arguments and must return a NDArray[complex]. Each argument must be passed
-    # as keyword arguments when concretizing any operator that involves this built-in.
-    # Note that the levels passed to the create function are automatically validated 
-    # against the expected/supported levels passed to `add_operator`. There is hence 
-    # no need to validate the levels as part of the `create` function. 
-    # A negative or zero value for one (or more) of the expected level indicates that 
-    # the matrix/operator is defined for any value of this level. If the operator
-    # definition depends on the level(s), then the `create` function must take an 
-    # argument called `levels`, or `level` if it is just one. The given list of levels,
-    # or its only entry if it is a list of length one, will then be automatically 
-    # forwarded as argument to `create`.
-    @classmethod
-    def add_operator(cls, op_id: str, expected_levels: list[int], create: Callable):
-        def with_level_check(generator, levels: list[int], **kwargs) -> Callable:
-            # Passing a value 0 for one of the expected levels indicates that
-            # the generator can be invoked with any value for that level.
-            # The generator returns a function that, given some keyword arguments,
-            # returns a matrix (NDArray[complex]).
-            if any([expected > 0 and levels[i] != expected for i, expected in enumerate(expected_levels)]):
-                raise ValueError(f'no built-in operator {op_id} has been defined '\
-                                 f'for {len(levels)} degree(s) of freedom with level(s) {levels}')
-            if len(levels) == 1: kwargs["level"] = levels[0]
-            else: kwargs["levels"] = levels 
-            generator_args, remaining_kwargs = ScalarOperator._args_from_kwargs(generator, **kwargs)
-            evaluated = generator(*generator_args, **remaining_kwargs)
-            if not isinstance(evaluated, numpy.ndarray):
-                raise TypeError("operator concretization must return a 'NDArray[complex]'")
-            return evaluated
-        cls._ops[op_id] = lambda levels, **kwargs: with_level_check(create, levels, **kwargs)
-
-    @classmethod
-    def concretize(cls, op_id: str, levels: list[int], **kwargs) -> Callable:
-        if not op_id in cls._ops:
-            raise ValueError(f'no built-in operator {op_id} has been defined')
-        return cls._ops[op_id](levels, **kwargs)
 
 # Operators as defined here: 
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
-
 class operators:
 
     def _create(level: int): 
@@ -346,16 +332,16 @@ class operators:
         term2 = squeezing * numpy.linalg.matrix_power(operators._create(level), 2)
         return scipy.linalg.expm(0.5 * (term1 - term2))
 
-    BuiltIns.add_operator("op_zero", [0], lambda level: numpy.zeros((level, level), dtype=complex))
-    BuiltIns.add_operator("op_identity", [0], lambda level: numpy.diag(numpy.ones(level, dtype=complex)))
-    BuiltIns.add_operator("op_create", [0], _create)
-    BuiltIns.add_operator("op_annihilate", [0], _annihilate)
-    BuiltIns.add_operator("op_number", [0], lambda level: numpy.diag(numpy.arange(level, dtype=complex)))
-    BuiltIns.add_operator("op_parity", [0], lambda level: numpy.diag([(-1.+0j)**i for i in range(level)]))
-    BuiltIns.add_operator("op_displace", [0], _displace)
-    BuiltIns.add_operator("op_squeeze", [0], _squeeze)
-    BuiltIns.add_operator("op_position", [0], _position)
-    BuiltIns.add_operator("op_momentum", [0], _momentum)
+    ElementaryOperator.define("op_zero", [0], lambda level: numpy.zeros((level, level), dtype=complex))
+    ElementaryOperator.define("op_identity", [0], lambda level: numpy.diag(numpy.ones(level, dtype=complex)))
+    ElementaryOperator.define("op_create", [0], _create)
+    ElementaryOperator.define("op_annihilate", [0], _annihilate)
+    ElementaryOperator.define("op_number", [0], lambda level: numpy.diag(numpy.arange(level, dtype=complex)))
+    ElementaryOperator.define("op_parity", [0], lambda level: numpy.diag([(-1.+0j)**i for i in range(level)]))
+    ElementaryOperator.define("op_displace", [0], _displace)
+    ElementaryOperator.define("op_squeeze", [0], _squeeze)
+    ElementaryOperator.define("op_position", [0], _position)
+    ElementaryOperator.define("op_momentum", [0], _momentum)
 
     @classmethod
     def const(cls, constant_value: complex) -> ScalarOperator:
@@ -392,12 +378,12 @@ class operators:
         return ElementaryOperator("op_momentum", [degree])
 
 class pauli:
-    BuiltIns.add_operator("pauli_x", [2], lambda: numpy.array([[0,1],[1,0]], dtype=complex))
-    BuiltIns.add_operator("pauli_y", [2], lambda: numpy.array([[0,1j],[-1j,0]], dtype=complex))
-    BuiltIns.add_operator("pauli_z", [2], lambda: numpy.array([[1,0],[0,-1]], dtype=complex))
-    BuiltIns.add_operator("pauli_i", [2], lambda: numpy.array([[1,0],[0,1]], dtype=complex))
-    BuiltIns.add_operator("pauli_plus", [2], lambda: numpy.array([[0,0],[1,0]], dtype=complex))
-    BuiltIns.add_operator("pauli_minus", [2], lambda: numpy.array([[0,1],[0,0]], dtype=complex))
+    ElementaryOperator.define("pauli_x", [2], lambda: numpy.array([[0,1],[1,0]], dtype=complex))
+    ElementaryOperator.define("pauli_y", [2], lambda: numpy.array([[0,1j],[-1j,0]], dtype=complex))
+    ElementaryOperator.define("pauli_z", [2], lambda: numpy.array([[1,0],[0,-1]], dtype=complex))
+    ElementaryOperator.define("pauli_i", [2], lambda: numpy.array([[1,0],[0,1]], dtype=complex))
+    ElementaryOperator.define("pauli_plus", [2], lambda: numpy.array([[0,0],[1,0]], dtype=complex))
+    ElementaryOperator.define("pauli_minus", [2], lambda: numpy.array([[0,1],[0,0]], dtype=complex))
 
     @classmethod
     def x(cls, degree: int) -> ElementaryOperator:
