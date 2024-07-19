@@ -13,6 +13,7 @@ Tutorials that give an in depth view of CUDA-Q and its applications in Python.
     /examples/python/tutorials/qaoa.ipynb
     /examples/python/tutorials/hadamard_test.ipynb
     /examples/python/tutorials/hybrid_qnns.ipynb
+    /examples/python/tutorials/maximum_vertex_weight_clique.ipynb
     /examples/python/tutorials/noisy_simulations.ipynb
     /examples/python/tutorials/readout_error_mitigation.ipynb
     /examples/python/tutorials/vqe_water_active_space.ipynb

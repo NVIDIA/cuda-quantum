@@ -524,6 +524,17 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createStatePreparation());
   }
   pm.addPass(createCanonicalizerPass());
+
+  // Run state preparation for quantum devices only.
+  // Simulators have direct implementation of state initialization
+  // in their runtime.
+  auto &platform = cudaq::get_platform();
+  if (!platform.is_simulator() || platform.is_emulated()) {
+    pm.addPass(cudaq::opt::createConstPropComplex());
+    pm.addPass(cudaq::opt::createLiftArrayAlloc());
+    pm.addPass(cudaq::opt::createStatePreparation());
+  }
+  pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());

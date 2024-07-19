@@ -30,6 +30,11 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         target = node.targets[0]
+        # Check if a variable is assigned from result(s) of measurement
+        if hasattr(node, 'value') and hasattr(
+                node.value, 'id') and node.value.id in self.measureResultsVars:
+            self.measureResultsVars.append(target.id)
+            return
         if not 'func' in node.value.__dict__:
             return
         creatorFunc = node.value.func

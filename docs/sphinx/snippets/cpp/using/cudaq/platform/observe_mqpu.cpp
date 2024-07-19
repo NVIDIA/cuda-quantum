@@ -8,7 +8,7 @@
 
 // Compile and run with:
 // ```
-// nvq++ observe_mqpu.cpp -o observe_mqpu.x -target nvidia-mqpu
+// nvq++ observe_mqpu.cpp -o observe_mqpu.x --target nvidia --target-option mqpu
 // && ./observe_mqpu.x
 // ```
 #include <cudaq.h>

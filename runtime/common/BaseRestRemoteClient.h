@@ -203,6 +203,9 @@ public:
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
 
+      // Note: do not run state preparation pass here since we are always
+      // using simulators.
+
       // Run client-side passes. `clientPasses` is empty right now, but the code
       // below accommodates putting passes into it.
       mlir::PassManager pm(&mlirContext);

@@ -1101,10 +1101,13 @@ class PyASTBridge(ast.NodeVisitor):
                     value.type):
                 self.symbolTable[varNames[i]] = value
             elif self.isMeasureResultType(value.type, value):
+                value = self.ifPointerThenLoad(value)
                 if varNames[i] in self.symbolTable:
-                    cc.StoreOp(value, self.symbolTable[varNames[i]])
-                else:
-                    self.symbolTable[varNames[i]] = value
+                    cc.StoreOp(
+                        value,
+                        self.ifNotPointerThenStore(
+                            self.symbolTable[varNames[i]]))
+                self.symbolTable[varNames[i]] = value
             elif varNames[i] in self.symbolTable:
                 if varNames[i] in self.capturedVars:
                     self.emitFatalError(

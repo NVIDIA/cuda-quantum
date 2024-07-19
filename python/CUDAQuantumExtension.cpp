@@ -69,7 +69,9 @@ PYBIND11_MODULE(_quakeDialects, m) {
           std::string key = py::str(keyPy);
           if (key == "emulate") {
             extraConfig.insert({"emulate", "true"});
-            break;
+          }
+          if (key == "option") {
+            extraConfig.insert({"option", py::str(valuePy)});
           }
         }
 

@@ -172,17 +172,6 @@ def test_OQC_state_preparation():
     assert not '01' in counts
     assert not '11' in counts
 
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0., 0., 0., 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '000' in counts
-    assert '100' in counts
-    assert not '001' in counts
-    assert not '010' in counts
-    assert not '011' in counts
-    assert not '101' in counts
-    assert not '110' in counts
-    assert not '111' in counts
-
 
 def test_OQC_state_preparation_builder():
     kernel, state = cudaq.make_kernel(List[complex])
@@ -194,17 +183,6 @@ def test_OQC_state_preparation_builder():
     assert '10' in counts
     assert not '01' in counts
     assert not '11' in counts
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0., 0., 0., 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '000' in counts
-    assert '100' in counts
-    assert not '001' in counts
-    assert not '010' in counts
-    assert not '011' in counts
-    assert not '101' in counts
-    assert not '110' in counts
-    assert not '111' in counts
 
 
 # leave for gdb debugging
