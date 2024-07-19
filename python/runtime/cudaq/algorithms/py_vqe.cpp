@@ -276,14 +276,14 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           const int shots = -1) {
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe()) {
+  if (platform.get_remote_capabilities().vqe) {
     if (firstArgIsCompatibleWithRemoteVQE(kernel))
       return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
                               /*gradient=*/nullptr, /*argumentMapper=*/nullptr,
                               n_params, shots);
     throwPerformanceError();
   }
-  if (platform.supports_remote_serialized_code())
+  if (platform.get_remote_capabilities().serializedCodeExec)
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer,
                         /*gradient=*/nullptr, /*argumentMapper=*/nullptr,
                         n_params, shots);
@@ -302,14 +302,14 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           py::function &argumentMapper, const int shots = -1) {
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe()) {
+  if (platform.get_remote_capabilities().vqe) {
     if (firstArgIsCompatibleWithRemoteVQE(kernel))
       return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
                               /*gradient=*/nullptr, &argumentMapper, n_params,
                               shots);
     throwPerformanceError();
   }
-  if (platform.supports_remote_serialized_code())
+  if (platform.get_remote_capabilities().serializedCodeExec)
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer,
                         /*gradient=*/nullptr, &argumentMapper, n_params, shots);
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
@@ -335,14 +335,14 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
   // to allow for the calculation of the gradient vector with the
   // provided gradient strategy.
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe()) {
+  if (platform.get_remote_capabilities().vqe) {
     if (firstArgIsCompatibleWithRemoteVQE(kernel))
       return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
                               &gradient,
                               /*argumentMapper=*/nullptr, n_params, shots);
     throwPerformanceError();
   }
-  if (platform.supports_remote_serialized_code())
+  if (platform.get_remote_capabilities().serializedCodeExec)
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer, &gradient,
                         /*argumentMapper=*/nullptr, n_params, shots);
   std::function<double(std::vector<double>)> get_expected_value =
@@ -374,13 +374,13 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
   // to allow for the calculation of the gradient vector with the
   // provided gradient strategy.
   auto &platform = cudaq::get_platform();
-  if (platform.supports_remote_vqe()) {
+  if (platform.get_remote_capabilities().vqe) {
     if (firstArgIsCompatibleWithRemoteVQE(kernel))
       return pyVQE_remote_cpp(platform, kernel, hamiltonian, optimizer,
                               &gradient, &argumentMapper, n_params, shots);
     throwPerformanceError();
   }
-  if (platform.supports_remote_serialized_code())
+  if (platform.get_remote_capabilities().serializedCodeExec)
     return pyVQE_remote(platform, kernel, hamiltonian, optimizer, &gradient,
                         &argumentMapper, n_params, shots);
   std::function<double(std::vector<double>)> get_expected_value =
