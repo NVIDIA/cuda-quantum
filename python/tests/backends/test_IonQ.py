@@ -39,7 +39,7 @@ def startUpMockServer():
 
     if not check_server_connection(port):
         p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.")
+        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
 
     yield "Server started."
 
