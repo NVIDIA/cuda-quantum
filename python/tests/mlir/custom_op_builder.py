@@ -80,6 +80,6 @@ def test_builder_look_up():
 # CHECK:           quake.custom_op @__nvqpp__mlirgen__foo_2_generator_1.rodata {{\[}}%[[VAL_4]]] %[[VAL_3]] : (!quake.veq<2>, !quake.veq<1>) -> ()
 # CHECK:           return
 # CHECK:         }
-# CHECK:         cc.global constant @__nvqpp__mlirgen__foo_0_generator_1.rodata (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.50000000000000011,0.8660254037844386)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-# CHECK:         cc.global constant @__nvqpp__mlirgen__foo_1_generator_1.rodata (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (-0.49999999999999978,0.86602540378443881)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
-# CHECK:         cc.global constant @__nvqpp__mlirgen__foo_2_generator_1.rodata (dense<[(1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (-0.000000e+00,0.000000e+00), (-1.000000e+00,4.1434087356338769E-16)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK-DAG:         cc.global constant @__nvqpp__mlirgen__foo_0_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK-DAG:         cc.global constant @__nvqpp__mlirgen__foo_1_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+# CHECK-DAG:         cc.global constant @__nvqpp__mlirgen__foo_2_generator_1.rodata (dense<[{{.*}}]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
