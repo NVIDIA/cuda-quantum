@@ -127,7 +127,7 @@ public:
     static thread_local cudaq::ExecutionContext defaultContext("sample",
                                                                /*shots=*/1);
     // This is a kernel invocation outside the CUDA-Q APIs (sample/observe).
-    const bool isDirectInvocation = executionContextPtr == nullptr;
+    const bool isDirectInvocation = !executionContextPtr;
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
 
