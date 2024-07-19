@@ -390,20 +390,20 @@ protected:
   // The raw pointer to the runtime arguments.
   const void *args;
 
-  // The program is executed in the same address space as the synthesis.
-  bool sameAddressSpace = false;
-
   // The starting argument index to synthesize. Typically 0 but may be >0 for
   // partial synthesis. If >0, it is assumed that the first argument(s) are NOT
   // in `args`.
   std::size_t startingArgIdx = 0;
 
+  // The program is executed in the same address space as the synthesis.
+  bool sameAddressSpace = false;
+
 public:
   QuakeSynthesizer() = default;
-  QuakeSynthesizer(std::string_view kernel, const void *a, bool sameAddrSpace,
-                   std::size_t s)
-      : kernelName(kernel), args(a), sameAddressSpace(sameAddrSpace),
-        startingArgIdx(s) {}
+  QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s,
+                   bool sameAddrSpace)
+      : kernelName(kernel), args(a), startingArgIdx(s),
+        sameAddressSpace(sameAddrSpace) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
