@@ -6,8 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // Note: change |& to 2>&1| if running in bash
 // RUN: nvq++ %cpp_std %s -o %t --target quantinuum --emulate && %t |& FileCheck %s
+// Note: change |& to 2>&1| if running in bash
+// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-url localhost:9999 %s -o %t && %t |& FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
