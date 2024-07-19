@@ -28,17 +28,12 @@ namespace cudaq::opt {
 } // namespace cudaq::opt
 
 namespace {
-[[maybe_unused]] bool isMeasureOp(Operation *op) {
-  return dyn_cast<quake::MxOp>(*op) || dyn_cast<quake::MyOp>(*op) ||
-         dyn_cast<quake::MzOp>(*op);
-}
-
-[[maybe_unused]] bool isBeginOp(Operation *op) {
+bool isBeginOp(Operation *op) {
   return dyn_cast<quake::UnwrapOp>(*op) || dyn_cast<quake::ExtractRefOp>(*op) ||
          dyn_cast<quake::NullWireOp>(*op);
 }
 
-[[maybe_unused]] bool isEndOp(Operation *op) {
+bool isEndOp(Operation *op) {
   return dyn_cast<quake::DeallocOp>(*op) || dyn_cast<quake::SinkOp>(*op);
 }
 
