@@ -1,4 +1,4 @@
-import inspect, itertools, numpy, os, scipy
+import inspect, itertools, numpy, os, re, scipy
 from numbers import Number
 from typing import Any, Callable, Iterable, Iterator
 from numpy.typing import NDArray
@@ -22,7 +22,36 @@ class _OperatorHelpers:
                 else: 
                     param_descriptions[key] = new_desc
         return param_descriptions
+    
+    def parameter_docs(param_name: str, docs: str):
+        if param_name is None or docs is None:
+            return ""
+        
+        # Using re.compile on the pattern before passing it to search
+        # seems to behave slightly differently than passing the string.
+        # Also, Python caches already used patterns, so compiling on
+        # the fly seems fine.
+        def keyword_pattern(word):
+            return r"(?:^\s*" + word + ":\s*\r?\n)"
+        def param_pattern(param_name): 
+            return r"(?:^\s*" + param_name + r"\s*(\(.*\))?:)\s*(.*)$"
 
+        param_docs = ""
+        try: # Make sure failing to retrieve docs never cases an error.
+            split = re.split(keyword_pattern("Args"), docs, flags=re.MULTILINE)
+            if len(split) > 1:
+                match = re.search(param_pattern(param_name), split[1], re.MULTILINE)
+                if match != None:
+                    param_docs = match.group(2) + split[1][match.end(2):]
+                    match = re.search(param_pattern("\S*?"), param_docs, re.MULTILINE)
+                    if match != None:
+                        param_docs = param_docs[:match.start(0)]
+                    param_docs = re.sub(r'\s+', ' ', param_docs)
+        except: pass
+        return param_docs.strip()
+
+    # Extracts the positional argument and keyword only arguments 
+    # for the given function from the passed kwargs. 
     def args_from_kwargs(fct, **kwargs):
         arg_spec = inspect.getfullargspec(fct)
         signature = inspect.signature(fct)
@@ -150,7 +179,7 @@ class ProductOperator(OperatorSum):
                     op_degrees.append(degree)
             # Need to permute the matrix such that the qubit ordering of all matrices is the same.
             if op_degrees != degrees:
-                # I'm sure there is a more efficient way, but needed something correct first.
+                # There may be a more efficient way, but I needed something correct first.
                 states = _OperatorHelpers.generate_all_states(degrees, dimensions)
                 indices = dict([(d, idx) for idx, d in enumerate(degrees)])
                 reordering = [indices[op_degree] for op_degree in op_degrees]
@@ -242,7 +271,7 @@ class ElementaryOperator(ProductOperator):
         arg_spec = inspect.getfullargspec(create)
         for pname in arg_spec.args + arg_spec.kwonlyargs:
             if not pname in forwarded:
-                parameters[pname] = "" # FIXME: extract parameter docs from create.__doc__
+                parameters[pname] = _OperatorHelpers.parameter_docs(pname, create.__doc__)
         cls._ops[op_id] = generator
         cls._parameter_info[op_id] = parameters
 
@@ -313,7 +342,7 @@ class ScalarOperator(ProductOperator):
             raise ValueError(f"generator for a '{type(self).__name__}' must not take *args")
         param_descriptions = {}
         for arg_name in arg_spec.args + arg_spec.kwonlyargs:
-            param_descriptions[arg_name] = "" # FIXME: extract parameter docs from generator.__doc__
+            param_descriptions[arg_name] = _OperatorHelpers.parameter_docs(arg_name, generator.__doc__)
         # We need to create a lambda to retrieve information about what
         # parameters are required to invoke the generator, to ensure that
         # the information accurately captures any updates to the generators
@@ -357,7 +386,7 @@ class ScalarOperator(ProductOperator):
         return self + operators.const(-1) * other
 
 
-# Operators as defined here: 
+# Operators as defined here (watch out of differences in convention): 
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
 class operators:
 
@@ -370,10 +399,20 @@ class operators:
     def _momentum(dimension: int):
         return 0.5j * (operators._create(dimension) - operators._annihilate(dimension))
     def _displace(dimension: int, displacement: complex):
+        """Connects to the next available port.
+        Args:
+            displacement: Amplitude of the displacement operator.
+                See also https://en.wikipedia.org/wiki/Displacement_operator.
+        """
         term1 = displacement * operators._create(dimension)
         term2 = numpy.conjugate(displacement) * operators._annihilate(dimension)
         return scipy.linalg.expm(term1 - term2)
     def _squeeze(dimension: int, squeezing: complex):
+        """Connects to the next available port.
+        Args:
+            squeezing: Amplitude of the squeezing operator.
+                See also https://en.wikipedia.org/wiki/Squeeze_operator.
+        """
         term1 = numpy.conjugate(squeezing) * numpy.linalg.matrix_power(operators._annihilate(dimension), 2)
         term2 = squeezing * numpy.linalg.matrix_power(operators._create(dimension), 2)
         return scipy.linalg.expm(0.5 * (term1 - term2))
@@ -612,3 +651,18 @@ so7.generator = lambda new_parameter: 1.0
 print(f'parameter descriptions: {so9.parameters}')
 so9.generator = lambda reset: reset
 print(f'parameter descriptions: {so9.parameters}')
+
+def all_zero(sure, args):
+    """Some documentation.
+    Args:
+
+      sure (:obj:`int`, optional): my docs for sure
+      args: Description of `args`. Multiple
+            lines are supported.
+    Returns:
+      Something that for sure is correct.
+    """
+    if sure: return 0
+    else: return 1
+
+print(f'parameter descriptions: {(ScalarOperator(all_zero)).parameters}')
