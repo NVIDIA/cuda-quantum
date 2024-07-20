@@ -295,8 +295,9 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
         Value bitElement = builder.create<cudaq::cc::LoadOp>(loc, eleAddr);
 
         // -bits[k]
-        bitElement = builder.create<arith::ExtUIOp>(loc, builder.getI32Type(),
-                                                    bitElement);
+        bitElement = builder.create<cudaq::cc::CastOp>(
+            loc, builder.getI32Type(), bitElement,
+            cudaq::cc::CastOpMode::Unsigned);
         bitElement = builder.create<arith::MulIOp>(loc, negOne, bitElement);
 
         // -bits[k] ^ i
@@ -326,38 +327,38 @@ static void castToSameType(OpBuilder builder, Location loc,
   auto rhsTy = rhs.getType();
   if (lhsTy.isa<IntegerType>() && rhsTy.isa<IntegerType>()) {
     if (lhsTy.getIntOrFloatBitWidth() < rhsTy.getIntOrFloatBitWidth()) {
-      if (lhsType && lhsType->isUnsignedIntegerOrEnumerationType())
-        lhs = builder.create<arith::ExtUIOp>(loc, rhs.getType(), lhs);
-      else
-        lhs = builder.create<arith::ExtSIOp>(loc, rhs.getType(), lhs);
+      auto mode = (lhsType && lhsType->isUnsignedIntegerOrEnumerationType())
+                      ? cudaq::cc::CastOpMode::Unsigned
+                      : cudaq::cc::CastOpMode::Signed;
+      lhs = builder.create<cudaq::cc::CastOp>(loc, rhs.getType(), lhs, mode);
       return;
     }
-    if (rhsType && rhsType->isUnsignedIntegerOrEnumerationType())
-      rhs = builder.create<arith::ExtUIOp>(loc, lhs.getType(), rhs);
-    else
-      rhs = builder.create<arith::ExtSIOp>(loc, lhs.getType(), rhs);
+    auto mode = (rhsType && rhsType->isUnsignedIntegerOrEnumerationType())
+                    ? cudaq::cc::CastOpMode::Unsigned
+                    : cudaq::cc::CastOpMode::Signed;
+    rhs = builder.create<cudaq::cc::CastOp>(loc, lhs.getType(), rhs, mode);
     return;
   }
   if (lhsTy.isa<FloatType>() && rhsTy.isa<FloatType>()) {
     if (lhsTy.getIntOrFloatBitWidth() < rhsTy.getIntOrFloatBitWidth()) {
-      lhs = builder.create<arith::ExtFOp>(loc, rhs.getType(), lhs);
+      lhs = builder.create<cudaq::cc::CastOp>(loc, rhs.getType(), lhs);
       return;
     }
-    rhs = builder.create<arith::ExtFOp>(loc, lhs.getType(), rhs);
+    rhs = builder.create<cudaq::cc::CastOp>(loc, lhs.getType(), rhs);
     return;
   }
   if (lhsTy.isa<FloatType>() && rhsTy.isa<IntegerType>()) {
-    if (rhsType && rhsType->isUnsignedIntegerOrEnumerationType())
-      rhs = builder.create<arith::UIToFPOp>(loc, lhs.getType(), rhs);
-    else
-      rhs = builder.create<arith::SIToFPOp>(loc, lhs.getType(), rhs);
+    auto mode = (rhsType && rhsType->isUnsignedIntegerOrEnumerationType())
+                    ? cudaq::cc::CastOpMode::Unsigned
+                    : cudaq::cc::CastOpMode::Signed;
+    rhs = builder.create<cudaq::cc::CastOp>(loc, lhs.getType(), rhs, mode);
     return;
   }
   if (lhsTy.isa<IntegerType>() && rhsTy.isa<FloatType>()) {
-    if (lhsType && lhsType->isUnsignedIntegerOrEnumerationType())
-      lhs = builder.create<arith::UIToFPOp>(loc, rhs.getType(), lhs);
-    else
-      lhs = builder.create<arith::SIToFPOp>(loc, rhs.getType(), lhs);
+    auto mode = (lhsType && lhsType->isUnsignedIntegerOrEnumerationType())
+                    ? cudaq::cc::CastOpMode::Unsigned
+                    : cudaq::cc::CastOpMode::Signed;
+    lhs = builder.create<cudaq::cc::CastOp>(loc, rhs.getType(), lhs, mode);
     return;
   }
   TODO_loc(loc, "conversion of operands in binary expression");
@@ -579,14 +580,8 @@ Value QuakeBridgeVisitor::floatingPointCoercion(Location loc, Type toType,
   auto fromType = value.getType();
   if (toType == fromType)
     return value;
-  if (fromType.isa<IntegerType>() && toType.isa<IntegerType>()) {
-    if (fromType.getIntOrFloatBitWidth() < toType.getIntOrFloatBitWidth())
-      return builder.create<arith::ExtFOp>(loc, toType, value);
-    if (fromType.getIntOrFloatBitWidth() > toType.getIntOrFloatBitWidth())
-      return builder.create<arith::TruncFOp>(loc, toType, value);
-    TODO_loc(loc, "floating point types are distinct and same size");
-  }
-  TODO_loc(loc, "Float conversion but not floating point types");
+  assert(fromType.isa<FloatType>() && toType.isa<FloatType>());
+  return builder.create<cudaq::cc::CastOp>(loc, toType, value);
 }
 
 Value QuakeBridgeVisitor::integerCoercion(Location loc,
@@ -596,17 +591,15 @@ Value QuakeBridgeVisitor::integerCoercion(Location loc,
   if (dstTy == fromTy)
     return srcVal;
 
-  if (fromTy.isa<IntegerType>() && dstTy.isa<IntegerType>()) {
-    if (fromTy.getIntOrFloatBitWidth() < dstTy.getIntOrFloatBitWidth()) {
-      if (clangTy->isUnsignedIntegerOrEnumerationType())
-        return builder.create<arith::ExtUIOp>(loc, dstTy, srcVal);
-      return builder.create<arith::ExtSIOp>(loc, dstTy, srcVal);
-    }
-    if (fromTy.getIntOrFloatBitWidth() > dstTy.getIntOrFloatBitWidth())
-      return builder.create<arith::TruncIOp>(loc, dstTy, srcVal);
-    TODO_loc(loc, "Types are not the same but have the same length");
+  assert(fromTy.isa<IntegerType>() && dstTy.isa<IntegerType>());
+  if (fromTy.getIntOrFloatBitWidth() < dstTy.getIntOrFloatBitWidth()) {
+    auto mode = (clangTy->isUnsignedIntegerOrEnumerationType())
+                    ? cudaq::cc::CastOpMode::Unsigned
+                    : cudaq::cc::CastOpMode::Signed;
+    return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal, mode);
   }
-  TODO_loc(loc, "Integer conversion but not integer types");
+  assert(fromTy.getIntOrFloatBitWidth() > dstTy.getIntOrFloatBitWidth());
+  return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal);
 }
 
 bool QuakeBridgeVisitor::TraverseCastExpr(clang::CastExpr *x,
@@ -654,9 +647,7 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
     assert(toType && fromType);
     if (toType == fromType)
       return pushValue(value);
-    if (fromType.getIntOrFloatBitWidth() < toType.getIntOrFloatBitWidth())
-      return pushValue(builder.create<arith::ExtFOp>(loc, toType, value));
-    return pushValue(builder.create<arith::TruncFOp>(loc, toType, value));
+    return pushValue(builder.create<cudaq::cc::CastOp>(loc, toType, value));
   }
   case clang::CastKind::CK_IntegralCast: {
     auto locSub = toLocation(x->getSubExpr());
@@ -672,18 +663,19 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
     return true;
   case clang::CastKind::CK_FloatingToIntegral: {
     auto qualTy = x->getType();
-    if (qualTy->isUnsignedIntegerOrEnumerationType())
-      return pushValue(
-          builder.create<arith::FPToUIOp>(loc, castToTy, popValue()));
+    auto mode = qualTy->isUnsignedIntegerOrEnumerationType()
+                    ? cudaq::cc::CastOpMode::Unsigned
+                    : cudaq::cc::CastOpMode::Signed;
     return pushValue(
-        builder.create<arith::FPToSIOp>(loc, castToTy, popValue()));
+        builder.create<cudaq::cc::CastOp>(loc, castToTy, popValue(), mode));
   }
   case clang::CastKind::CK_IntegralToFloating: {
-    if (x->getSubExpr()->getType()->isUnsignedIntegerOrEnumerationType())
-      return pushValue(
-          builder.create<arith::UIToFPOp>(loc, castToTy, popValue()));
+    auto mode =
+        (x->getSubExpr()->getType()->isUnsignedIntegerOrEnumerationType())
+            ? cudaq::cc::CastOpMode::Unsigned
+            : cudaq::cc::CastOpMode::Signed;
     return pushValue(
-        builder.create<arith::SIToFPOp>(loc, castToTy, popValue()));
+        builder.create<cudaq::cc::CastOp>(loc, castToTy, popValue(), mode));
   }
   case clang::CastKind::CK_IntegralToBoolean: {
     auto last = popValue();
@@ -1153,7 +1145,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     // Get the values involved
     auto peelIntToFloat = [&](Value v) {
-      if (auto op = v.getDefiningOp<arith::SIToFPOp>())
+      if (auto op = v.getDefiningOp<cudaq::cc::CastOp>())
         return op.getOperand();
       return v;
     };
@@ -1171,7 +1163,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                        base, x->getArg(1)->getType().getTypePtrOrNull(), power);
         auto ipow = builder.create<math::IPowIOp>(loc, base, power);
         if (isa<FloatType>(resTy))
-          return pushValue(builder.create<arith::SIToFPOp>(loc, resTy, ipow));
+          return pushValue(builder.create<cudaq::cc::CastOp>(
+              loc, resTy, ipow, cudaq::cc::CastOpMode::Signed));
         assert(resTy == ipow.getType());
         return pushValue(ipow);
       }
@@ -2228,7 +2221,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
                                                       ValueRange{indexVar});
       auto i1PtrTy = cc::PointerType::get(builder.getI1Type());
-      auto i1Cast = builder.create<arith::TruncIOp>(loc, i1PtrTy, eleAddr);
+      auto i1Cast = builder.create<cudaq::cc::CastOp>(loc, i1PtrTy, eleAddr);
       return replaceTOSValue(i1Cast);
     }
     TODO_loc(loc, "unhandled operator call for quake conversion");
