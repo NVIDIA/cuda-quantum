@@ -166,15 +166,14 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
 
   auto replaceLoads = [&](cudaq::cc::ComputePtrOp elePtrOp,
                           Value newVal) -> LogicalResult {
+    bool allLoadUsers = true;
     for (auto *u : elePtrOp->getUsers()) {
-      if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u)) {
+      if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u))
         loadOp.replaceAllUsesWith(newVal);
-        continue;
-      }
-      return elePtrOp.emitError(
-          "Unknown gep/load configuration for synthesis.");
+      else
+        allLoadUsers = false;
     }
-    return success();
+    return allLoadUsers ? success() : failure();
   };
 
   // Iterate over the users of this stdvec argument.
@@ -221,9 +220,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
               Value memArr = getArrayInMemory();
               builder.setInsertionPoint(elePtrOp);
               Value newComputedPtr = builder.create<cudaq::cc::ComputePtrOp>(
-                  argLoc, ptrEleTy, memArr,
-                  SmallVector<cudaq::cc::ComputePtrArg>{
-                      0, elePtrOp.getDynamicIndices()[0]});
+                  argLoc, ptrEleTy, memArr, elePtrOp.getDynamicIndices()[0]);
               elePtrOp.replaceAllUsesWith(newComputedPtr);
             }
             continue;
