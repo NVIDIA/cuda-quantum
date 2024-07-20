@@ -173,7 +173,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       else
         allLoadUsers = false;
     }
-    return allLoadUsers ? success() : failure();
+    return success(allLoadUsers);
   };
 
   // Iterate over the users of this stdvec argument.
