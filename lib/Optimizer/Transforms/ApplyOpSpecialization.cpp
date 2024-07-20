@@ -68,8 +68,14 @@ private:
       ApplyVariants variant;
       auto callee = lookupCallee(apply);
       auto iter = infoMap.find(callee);
-      if (iter != infoMap.end())
+      if (iter != infoMap.end()) {
         variant = iter->second;
+        /// NOTE: As per the `DenseMap` API  in
+        /// llvm/include/llvm/ADT/DenseMap.h, an `insert` operation doesn't
+        /// update the value if key is already in the map. Hence, remove it and
+        /// insert a new entry with updated key.
+        infoMap.erase(iter);
+      }
       if (apply.getIsAdj() && !apply.getControls().empty())
         variant.needsAdjointControlVariant = true;
       else if (apply.getIsAdj())
