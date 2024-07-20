@@ -196,8 +196,7 @@ class ProductOperator(OperatorSum):
         
         degrees = list(set([degree for op in self._operators for degree in op._degrees]))
         degrees.sort() # This sorting determines the qubit ordering of the final matrix.
-        # FIXME: make the overall degrees of the product op accessible?
-        # FIXME: check endianness ...
+        # FIXME: check endianness ... (in the sorting/states here, and in the matrix definitions)
         matrix = padded_matrix(self._operators[0], degrees)
         for op in self._operators[1:]:
             matrix = numpy.dot(matrix, padded_matrix(op, degrees))
@@ -653,7 +652,7 @@ so9.generator = lambda reset: reset
 print(f'parameter descriptions: {so9.parameters}')
 
 def all_zero(sure, args):
-    """Some documentation.
+    """Some args documentation.
     Args:
 
       sure (:obj:`int`, optional): my docs for sure
