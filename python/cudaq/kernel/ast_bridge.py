@@ -1151,6 +1151,7 @@ class PyASTBridge(ast.NodeVisitor):
                     for i, (k, _) in enumerate(userType.items()):
                         if k == memberName:
                             structIdx = i
+                            break
                     if structIdx == None:
                         self.emitFatalError(
                             f'Invalid struct member: {structName}.{memberName} (members={[k for k,_ in userType.items()]})'
