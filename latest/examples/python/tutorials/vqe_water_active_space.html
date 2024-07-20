@@ -544,14 +544,23 @@
 <h1>Water Molecule with Active Space (CPU vs. GPU)<a class="headerlink" href="#Water-Molecule-with-Active-Space-(CPU-vs.-GPU)" title="Permalink to this heading">¶</a></h1>
 <section id="A--Classical-simulation-as-a-reference:-CCSD">
 <h2>A- Classical simulation as a reference: CCSD<a class="headerlink" href="#A--Classical-simulation-as-a-reference:-CCSD" title="Permalink to this heading">¶</a></h2>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># You should install pyscf</span>
-<span class="c1"># pip install pyscf</span>
-
-<span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">mcscf</span><span class="p">,</span> <span class="n">cc</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install the relevant packages.</span>
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">openfermionpyscf</span><span class="o">==</span><span class="m">0</span>.5
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">mcscf</span><span class="p">,</span> <span class="n">cc</span>
 
 <span class="n">geometry</span> <span class="o">=</span><span class="s1">&#39;O 0.1173 0.0 0.0; H -0.4691 0.7570 0.0; H -0.4691 -0.7570 0.0&#39;</span>
 <span class="n">mol</span><span class="o">=</span><span class="n">gto</span><span class="o">.</span><span class="n">M</span><span class="p">(</span>
@@ -586,12 +595,12 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-converged SCF energy = -75.983975537279
+converged SCF energy = -75.9839755372789
 Total number of electrons =  10
 Total number of orbitals =  13
 ncore occupied orbitals =  3
-E(CCSD) = -75.98508980454687  E_corr = -0.001114267267875347
-Total CCSD energy for active space Hamiltonian =  -75.98508980454687
+E(CCSD) = -75.98508980454675  E_corr = -0.001114267267875617
+Total CCSD energy for active space Hamiltonian =  -75.98508980454675
 
 </pre></div></div>
 </div>
@@ -599,14 +608,10 @@ Total CCSD energy for active space Hamiltonian =  -75.98508980454687
 <section id="B--VQE-UCCSD:">
 <h2>B- VQE-UCCSD:<a class="headerlink" href="#B--VQE-UCCSD:" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># You should install:</span>
-<span class="c1"># pip install openfermion</span>
-<span class="c1"># pip install openfermionpyscf</span>
-
-<span class="kn">import</span> <span class="nn">openfermion</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">openfermion</span>
 <span class="kn">import</span> <span class="nn">openfermionpyscf</span>
 <span class="kn">from</span> <span class="nn">openfermion.transforms</span> <span class="kn">import</span> <span class="n">jordan_wigner</span><span class="p">,</span> <span class="n">get_fermion_operator</span>
 
@@ -698,9 +703,17 @@ Total CCSD energy for active space Hamiltonian =  -75.98508980454687
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[<span style="color: rgb(255,0,0)">warning</span>] Target <span style="color: rgb(0,0,255)">nvidia-fp64</span>: <span style="color: rgb(0,0,255)">This target is deprecating. Please use the &#39;nvidia&#39; target with option &#39;fp64&#39;.</span>
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/tmp/ipykernel_317959/2228520842.py:39: ComplexWarning: Casting complex values to real discards the imaginary part
+/tmp/ipykernel_23147/4290935201.py:35: ComplexWarning: Casting complex values to real discards the imaginary part
   spin_ham = cudaq.SpinOperator(qubit_hamiltonian)
 </pre></div></div>
 </div>
@@ -709,19 +722,19 @@ Total CCSD energy for active space Hamiltonian =  -75.98508980454687
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-UCCSD-VQE energy =   -75.98415928173226
-Pyscf-CCSD energy =  -75.98508980454687
+UCCSD-VQE energy =   -75.98415928173183
+Pyscf-CCSD energy =  -75.98508980454675
 Total number of qubits =  8
 Total number of parameters =  26
 Total number of terms in the spin hamiltonian =  105
-Total elapsed time (s) =  12.730307687073946
+Total elapsed time (s) =  28.929891359000067
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../../_images/examples_python_tutorials_vqe_water_active_space_3_2.png" src="../../../_images/examples_python_tutorials_vqe_water_active_space_3_2.png" />
+<img alt="../../../_images/examples_python_tutorials_vqe_water_active_space_4_3.png" src="../../../_images/examples_python_tutorials_vqe_water_active_space_4_3.png" />
 </div>
 </div>
 </section>
