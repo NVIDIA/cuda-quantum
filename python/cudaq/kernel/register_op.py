@@ -34,12 +34,10 @@ def register_operation(operation_name: str, unitary):
     if isinstance(unitary, Callable):
         raise RuntimeError("parameterized custom operations not yet supported.")
 
-    if isinstance(unitary, np.matrix):
+    if isinstance(unitary, np.matrix) or isinstance(unitary, List):
         matrix = np.array(unitary)
     elif isinstance(unitary, np.ndarray):
         matrix = unitary
-    elif isinstance(unitary, List):
-        matrix = np.array(unitary)
     else:
         raise RuntimeError("unknown type of unitary.")
 
