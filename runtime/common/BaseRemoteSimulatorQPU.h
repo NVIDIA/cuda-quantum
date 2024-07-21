@@ -152,6 +152,16 @@ public:
             "Unexpected result: return type size of " +
             std::to_string(executionContext.invocationResultBuffer.size()) +
             " bytes overflows the argument buffer.");
+      // Currently, we only support result buffer serialization on LittleEndian
+      // CPUs (x86, ARM, PPC64LE).
+      // Note: NVQC service will always be using LE. If
+      // the client (e.g., compiled from source) is built for big-endian, we
+      // will throw an error if result buffer data is returned.
+      if (llvm::sys::IsBigEndianHost)
+        throw std::runtime_error(
+            "Serializing the result buffer from a remote kernel invocation is "
+            "not supported for BigEndian CPU architectures.");
+
       char *resultBuf = reinterpret_cast<char *>(args) + resultOffset;
       // Copy the result data to the args buffer.
       std::memcpy(resultBuf, executionContext.invocationResultBuffer.data(),

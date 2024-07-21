@@ -266,3 +266,6 @@ language constructs within quantum kernels may not yet be fully supported.
      - `std::vector<std::vector<int>>`, `std::vector<cudaq::pauli_word>`, etc. 
      - Number of top-level elements (as a 64-bit integer) followed sizes in bytes of element vectors (as a contiguous array of 64-bit integers) then serialized data of the inner vectors.
      
+For CUDA-Q kernels that return a value, the remote platform supports returning simple data types of 
+`bool`, integral (e.g., `int` or `std::size_t`), and floating-point types (`float` or `double`) 
+when MLIR-based compilation is enabled (:code:`--enable-mlir`).

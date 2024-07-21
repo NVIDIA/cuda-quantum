@@ -564,6 +564,9 @@ protected:
         io_context.invocationResultBuffer.resize(sizeof(double));
         returnArg.push_back(io_context.invocationResultBuffer.data());
       } else if (returnTy.isInteger(1)) {
+        static_assert(sizeof(bool) == sizeof(char),
+                      "Incompatible boolean data type. CUDA-Q kernels expect "
+                      "sizeof(bool) == sizeof(char).");
         io_context.invocationResultBuffer.resize(sizeof(bool));
         returnArg.push_back(io_context.invocationResultBuffer.data());
       } else if (returnTy.isIntOrIndex()) {
