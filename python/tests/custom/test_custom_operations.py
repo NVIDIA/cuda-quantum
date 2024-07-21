@@ -179,7 +179,7 @@ def test_bad_attribute():
 
 
 def test_builder_mode():
-    """Builder-mode API """
+    """Builder-mode API"""
 
     kernel = cudaq.make_kernel()
     cudaq.register_operation("custom_h",
@@ -188,6 +188,19 @@ def test_builder_mode():
     qubits = kernel.qalloc(2)
     kernel.custom_h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
+
+    check_bell(kernel)
+
+
+def test_builder_mode_control():
+    """Controlled operation in builder-mode"""
+
+    kernel = cudaq.make_kernel()
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    qubits = kernel.qalloc(2)
+    kernel.h(qubits[0])
+    kernel.custom_x(qubits[0], qubits[1])
 
     check_bell(kernel)
 
