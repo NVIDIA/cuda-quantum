@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/TargetParser/Triple.h"
 #include "mlir/IR/Matchers.h"
+#include "mlir/Target/LLVMIR/TypeToLLVM.h"
 
 using namespace mlir;
 
@@ -565,4 +566,28 @@ Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
                                            zeroExtend ? unit : none);
 }
 
+
+std::pair<std::size_t, std::vector<std::size_t>>
+factory::getFunctionArgumentLayout(mlir::ModuleOp module, mlir::FunctionType funcTy) {
+  auto bufferTy =
+      cudaq::opt::factory::buildInvokeStructType(funcTy, 0);
+  mlir::StringRef dataLayoutSpec = "";
+  if (auto attr =module->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
+    dataLayoutSpec = cast<mlir::StringAttr>(attr);
+  auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+  // Convert bufferTy to llvm.
+  llvm::LLVMContext context;
+  mlir::LLVMTypeConverter converter(funcTy.getContext());
+  cudaq::opt::initializeTypeConversions(converter);
+  auto llvmDialectTy = converter.convertType(bufferTy);
+  mlir::LLVM::TypeToLLVMIRTranslator translator(context);
+  auto *llvmStructTy =
+      cast<llvm::StructType>(translator.translateType(llvmDialectTy));
+  auto *layout = dataLayout.getStructLayout(llvmStructTy);
+  auto strSize = layout->getSizeInBytes();
+  std::vector<std::size_t> fieldOffsets;
+  for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
+    fieldOffsets.emplace_back(layout->getElementOffset(i));
+  return {strSize, fieldOffsets};
+}
 } // namespace cudaq::opt

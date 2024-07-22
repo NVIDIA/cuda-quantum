@@ -404,6 +404,19 @@ def test_state_preparation_builder():
     assert not '11' in counts
 
 @skipIfPythonLessThan39
+def test_state_preparation_capture():
+    c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(c)
+
+    counts = cudaq.sample(kernel)
+
+    print(counts)
+    assert '00' in counts
+    assert '10' in counts
+
+@skipIfPythonLessThan39
 @pytest.mark.skip(reason="https://github.com/NVIDIA/cuda-quantum/issues/1924")
 def test_arbitrary_unitary_synthesis():
     cudaq.register_operation("custom_h",

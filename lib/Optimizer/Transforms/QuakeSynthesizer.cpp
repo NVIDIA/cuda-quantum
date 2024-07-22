@@ -116,19 +116,21 @@ static bool hasInitStateUse(BlockArgument argument) {
   return false;
 }
 
-template <typename T>
-std::vector<T> stateDataToVector(SimulationStateData &stateData) {
-  assert(sizeof(T) == stateData.elementSize &&
-         "incorrect element size in simulation data");
-  std::vector<T> result;
+// template <typename T>
+// std::vector<T> stateDataToVector(SimulationStateData &stateData) {
+//   assert(sizeof(T) == stateData.elementSize &&
+//          "incorrect element size in simulation data");
+//   std::vector<T> result;
 
-  for (std::size_t i = 0; i < stateData.size; i++) {
-    auto elePtr = reinterpret_cast<T *>(stateData.data) + i;
-    result.push_back(*elePtr);
-  }
+//   for (std::size_t i = 0; i < stateData.size; i++) {
+//     auto elePtr = reinterpret_cast<T *>(stateData.data) + i;
+//     result.push_back(*elePtr);
+//   }
 
-  return result;
-}
+//   return result;
+// }
+
+
 
 template <typename T>
 Value createGlobalArray(OpBuilder &builder, ModuleOp module, unsigned &counter,
@@ -194,19 +196,31 @@ LogicalResult synthesizeStateArgument(OpBuilder &builder, ModuleOp module,
   return success();
 }
 
+template <typename T>
+static LogicalResult synthesizeStateArgument(OpBuilder &builder,
+                                             ModuleOp module, unsigned &counter,
+                                             BlockArgument argument, Type eleTy,
+                                             void* data, std::size_t size) {
+  std::vector<T> vec;
+  for (std::size_t i = 0; i < size; i++) {
+    auto elePtr = reinterpret_cast<T *>(data) + i;
+    vec.push_back(*elePtr);
+  }
+  return synthesizeStateArgument(builder, module, counter, argument, eleTy, vec);
+}
+
 static LogicalResult synthesizeStateArgument(OpBuilder &builder,
                                              ModuleOp module, unsigned &counter,
                                              BlockArgument argument,
-                                             SimulationStateData &stateData) {
+                                             const SimulationStateDataStore* stateData, std::size_t idx) {
+  auto [data, size] = stateData->getData(idx);
 
-  if (stateData.elementSize == sizeof(std::complex<double>)) {
-    auto vec = stateDataToVector<std::complex<double>>(stateData);
-    return synthesizeStateArgument(builder, module, counter, argument,
-                                   ComplexType::get(builder.getF64Type()), vec);
-  } else if (stateData.elementSize == sizeof(std::complex<float>)) {
-    auto vec = stateDataToVector<std::complex<float>>(stateData);
-    return synthesizeStateArgument(builder, module, counter, argument,
-                                   ComplexType::get(builder.getF32Type()), vec);
+  if (stateData->getElementSize() == sizeof(std::complex<double>)) {
+    return synthesizeStateArgument<std::complex<double>>(builder, module, counter, argument,
+                                   ComplexType::get(builder.getF64Type()), data, size);
+  } else if (stateData->getElementSize() == sizeof(std::complex<float>)) {
+    return synthesizeStateArgument<std::complex<float>>(builder, module, counter, argument,
+                                   ComplexType::get(builder.getF32Type()), data, size);
   }
   module.emitError("unexpected element size in simulation state data");
   return failure();
@@ -486,8 +500,8 @@ protected:
   // in `args`.
   std::size_t startingArgIdx = 0;
 
-  // Function to read the state data, if any.
-  SimulationStateData::getDataFunc *getStateData = nullptr;
+  // The simulation state data, if available.
+  const SimulationStateDataStore* stateData = nullptr;
 
   // Is the simulation running in the same address space as synthesis?
   bool sameAddressSpace = false;
@@ -495,36 +509,11 @@ protected:
 public:
   QuakeSynthesizer() = default;
   QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s,
-                   SimulationStateData::getDataFunc *getData, bool sameSpace)
-      : kernelName(kernel), args(a), startingArgIdx(s), getStateData(getData),
+                   const SimulationStateDataStore* d, bool sameSpace)
+      : kernelName(kernel), args(a), startingArgIdx(s), stateData(d),
         sameAddressSpace(sameSpace) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
-
-  std::pair<std::size_t, std::vector<std::size_t>>
-  getTargetLayout(FunctionType funcTy) {
-    auto bufferTy =
-        cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
-    StringRef dataLayoutSpec = "";
-    if (auto attr =
-            getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
-      dataLayoutSpec = cast<StringAttr>(attr);
-    auto dataLayout = llvm::DataLayout(dataLayoutSpec);
-    // Convert bufferTy to llvm.
-    llvm::LLVMContext context;
-    LLVMTypeConverter converter(funcTy.getContext());
-    cudaq::opt::initializeTypeConversions(converter);
-    auto llvmDialectTy = converter.convertType(bufferTy);
-    LLVM::TypeToLLVMIRTranslator translator(context);
-    auto *llvmStructTy =
-        cast<llvm::StructType>(translator.translateType(llvmDialectTy));
-    auto *layout = dataLayout.getStructLayout(llvmStructTy);
-    auto strSize = layout->getSizeInBytes();
-    std::vector<std::size_t> fieldOffsets;
-    for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
-      fieldOffsets.emplace_back(layout->getElementOffset(i));
-    return {strSize, fieldOffsets};
-  }
 
   void runOnOperation() override final {
     auto module = getModule();
@@ -551,14 +540,26 @@ public:
     // We will remove these arguments and replace with constant ops
     auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
     auto arguments = funcOp.getArguments();
-    auto structLayout = getTargetLayout(funcOp.getFunctionType());
+    auto structLayout = cudaq::opt::factory::getFunctionArgumentLayout(getModule(), funcOp.getFunctionType());
     // Keep track of the stdVec sizes.
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
+
+    // Update to account for skipped state data
+    std::size_t stateDataOffset = 0;
+    for (std::size_t argNum = 0; argNum < startingArgIdx; argNum++) {
+      auto argument = arguments[argNum];
+      auto type = argument.getType();
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
+        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+          stateDataOffset++;
+        }
+      }
+    }
 
     for (std::size_t argNum = startingArgIdx, end = arguments.size();
          argNum < end; argNum++) {
       auto argument = arguments[argNum];
-      std::size_t offset = structLayout.second[argNum - startingArgIdx];
+      std::size_t offset = structLayout.second[argNum];
 
       // Get the argument type
       auto type = argument.getType();
@@ -652,16 +653,13 @@ public:
                   return builder.create<cudaq::cc::CastOp>(
                       loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
                 });
-          } else if (getStateData != nullptr) {
+          } else if (stateData != nullptr) {
             // Special case of running on a simulator in a different address
-            // space, when we know how to convert state to data.
-            cudaq::state *concrete;
-            std::memcpy(&concrete, ((const char *)args) + offset,
-                        sizeof(cudaq::state *));
-            auto stateData = getStateData(concrete);
+            // space, when we have converted state data.
             if (failed(synthesizeStateArgument(builder, module, counter,
-                                               argument, stateData)))
-              module.emitError("Failed to synthesize state*");
+                                               argument, stateData, stateDataOffset)))
+                funcOp.emitOpError("synthesis failed for state*");
+            stateDataOffset++;
           } else {
             // All other cases are not yet supported (i.e. quantum hardware).
             funcOp.emitOpError("synthesis: unsupported argument type on "
@@ -878,7 +876,7 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 
 std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer(
     std::string_view kernelName, const void *a, std::size_t startingArgIdx,
-    SimulationStateData::getDataFunc *getData, bool sameAddressSpace) {
+    const SimulationStateDataStore* stateData, bool sameAddressSpace) {
   return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx,
-                                            getData, sameAddressSpace);
+                                            stateData, sameAddressSpace);
 }

@@ -23,7 +23,6 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/SimulationData.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/qpu.h"

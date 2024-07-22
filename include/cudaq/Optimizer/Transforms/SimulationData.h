@@ -11,41 +11,35 @@
 #include <numbers>
 #include <vector>
 
-#include <iostream>
+/// Used to collect the simulation state data for a set of `cudaq::state`s.
+/// Assumes the data pointers stored are copied into a new memory, and takes
+/// ownership of that memory.
+class SimulationStateDataStore {
+  std::vector<std::tuple<void*, std::size_t>> states{};
+  std::size_t _elementSize;
 
-// cudaq::state is defined in the runtime. The compiler will never need to know
-// about its implementation and there should not be a circular build/library
-// dependence because of it. Simply forward declare it, as it is notional.
-namespace cudaq {
-class state;
-}
-
-/// Owns the data
-class SimulationStateData {
 public:
-  typedef SimulationStateData(getDataFunc)(cudaq::state *);
+  SimulationStateDataStore(std::size_t eSize = 0): _elementSize(eSize) {};
 
-  SimulationStateData(void *data, std::size_t size, std::size_t elementSize)
-      : data(data), size(size), elementSize(elementSize) {}
+  void setElementSize(std::size_t eSize) {
+    assert((_elementSize == 0 || _elementSize == eSize) && "Conflicting simulation data sizes in one collection");
+    _elementSize = eSize;
+  }
 
-  // template <typename T>
-  // std::vector<T> toVector() {
-  //   assert(sizeof(T) == elementSize && "incorrect element size in simulation
-  //   data"); std::vector<T> result;
+  std::size_t getElementSize() const {
+    return _elementSize;
+  }
 
-  //   std::cout << "SimulationStateData:" << std::endl;
-  //   for (std::size_t i = 0; i < size; i++) {
-  //     auto elePtr = reinterpret_cast<T*>(data) + i;
-  //     result.push_back(*elePtr);
-  //     std::cout << *elePtr << std::endl;
-  //   }
+  void addData(void *data, std::size_t size) {
+    states.push_back({data, size});
+  }
 
-  //   return result;
-  // }
+  std::tuple<void*, std::size_t> getData(std::size_t index) const {
+    return states[index];
+  }
 
-  ~SimulationStateData() { delete reinterpret_cast<int *>(data); }
-
-  void *data;
-  std::size_t size;
-  std::size_t elementSize;
+  ~SimulationStateDataStore() { 
+    for (auto [data, size]: states) 
+      delete reinterpret_cast<int *>(data);
+  }
 };

@@ -17,6 +17,7 @@
 #include "common/UnzipUtils.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
@@ -24,6 +25,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/SimulationData.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -92,26 +94,6 @@ protected:
                        });
   }
 
-  static SimulationStateData readSimulationStateData(cudaq::state *s) {
-    void *dataPtr = nullptr;
-    auto stateVector = s->get_tensor();
-    auto precision = s->get_precision();
-    auto numElements = stateVector.get_num_elements();
-    auto elementSize = 0;
-    if (precision == SimulationState::precision::fp32) {
-      elementSize = sizeof(std::complex<float>);
-      auto *hostData = new std::complex<float>[numElements];
-      s->to_host(hostData, numElements);
-      dataPtr = reinterpret_cast<void *>(hostData);
-    } else {
-      elementSize = sizeof(std::complex<double>);
-      auto *hostData = new std::complex<double>[numElements];
-      s->to_host(hostData, numElements);
-      dataPtr = reinterpret_cast<void *>(hostData);
-    }
-    return SimulationStateData(dataPtr, numElements, elementSize);
-  }
-
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
@@ -128,6 +110,49 @@ public:
     // Otherwise, just use the version defined in the code.
     return cudaq::RestRequest::REST_PAYLOAD_VERSION;
   }
+
+  /// Collect simulation state data from all `cudaq::state *` arguments.
+  SimulationStateDataStore readSimulationData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func, const void* args) {
+    SimulationStateDataStore dataStore;
+
+    auto arguments = func.getArguments();
+    auto offset = 0;
+    auto argumentLayout = cudaq::opt::factory::getFunctionArgumentLayout(moduleOp, func.getFunctionType());
+
+    for (std::size_t argNum = 0; argNum < arguments.size(); argNum++) {
+      auto argSize = argumentLayout.second[argNum];
+      auto argument = arguments[argNum];
+      auto type = argument.getType();
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
+        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+          cudaq::state* state;
+          std::memcpy(&state, ((const char *)args) + offset, sizeof(cudaq::state*));
+
+          void *dataPtr = nullptr;
+          auto stateVector = state->get_tensor();
+          auto precision = state->get_precision();
+          auto numElements = stateVector.get_num_elements();
+          auto elementSize = 0;
+          if (precision == SimulationState::precision::fp32) {
+            elementSize = sizeof(std::complex<float>);
+            auto *hostData = new std::complex<float>[numElements];
+            state->to_host(hostData, numElements);
+            dataPtr = reinterpret_cast<void *>(hostData);
+          } else {
+            elementSize = sizeof(std::complex<double>);
+            auto *hostData = new std::complex<double>[numElements];
+            state->to_host(hostData, numElements);
+            dataPtr = reinterpret_cast<void *>(hostData);
+          }
+          dataStore.setElementSize(elementSize);
+          dataStore.addData(dataPtr, numElements);
+        }
+      }
+      offset += argSize;
+    }
+    return dataStore;
+  }
+
 
   std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
                                      const std::string &name,
@@ -193,10 +218,10 @@ public:
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
         // For efficiency, we don't run state prep to convert states to gates on
-        // remote simulators, instead we synthesize states as vectors.
-        // Pass the data reader function to the synthesizer for this purpose.
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(
-            name, args, startingArgIdx, readSimulationStateData));
+        // remote simulators, instead we synthesize states as their simulation data vectors.
+        // Read the simulation state data and pass it to the synthesizer for this purpose.
+        SimulationStateDataStore dataStore = readSimulationData(moduleOp, func, args);
+        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx, &dataStore));
         pm.addPass(mlir::createCanonicalizerPass());
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
