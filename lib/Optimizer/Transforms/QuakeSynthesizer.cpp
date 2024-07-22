@@ -503,7 +503,7 @@ protected:
   // The simulation state data, if available.
   const SimulationStateDataStore* stateData = nullptr;
 
-  // Is the simulation running in the same address space as synthesis?
+  // The program is executed in the same address space as the synthesis.
   bool sameAddressSpace = false;
 
 public:

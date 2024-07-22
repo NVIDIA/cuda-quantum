@@ -310,7 +310,7 @@ struct VectorVectorBilingual {
 // CHECK:                     %[[VAL_29:.*]] = cc.stdvec_data %[[VAL_28]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
 // CHECK:                     %[[VAL_30:.*]] = cc.compute_ptr %[[VAL_29]][%[[VAL_27]]] : (!cc.ptr<!cc.array<i32 x ?>>, i64) -> !cc.ptr<i32>
 // CHECK:                     %[[VAL_31:.*]] = cc.load %[[VAL_30]] : !cc.ptr<i32>
-// CHECK:                     %[[VAL_32:.*]] = arith.sitofp %[[VAL_31]] : i32 to f64
+// CHECK:                     %[[VAL_32:.*]] = cc.cast signed %[[VAL_31]] : (i32) -> f64
 // CHECK:                     cc.store %[[VAL_32]], %[[VAL_26]] : !cc.ptr<f64>
 // CHECK:                     cc.continue
 // CHECK:                   } step {

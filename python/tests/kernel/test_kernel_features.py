@@ -1578,26 +1578,30 @@ def test_subtract():
 
     cudaq.sample(bug_subtract)
 
+
 def test_capture_opaque_kernel():
 
     def retFunc():
+
         @cudaq.kernel
-        def bell(i : int):
+        def bell(i: int):
             q = cudaq.qvector(i)
             h(q[0])
             x.ctrl(q[0], q[1])
-        
-        return bell 
+
+        return bell
 
     def retFunc2():
+
         @cudaq.kernel
         def super():
             q = cudaq.qubit()
             h(q)
-        
-        return super 
+
+        return super
 
     b = retFunc()
+
     @cudaq.kernel
     def k():
         b(2)
@@ -1605,6 +1609,7 @@ def test_capture_opaque_kernel():
     print(k)
 
     b = retFunc2()
+
     @cudaq.kernel
     def kd():
         b()
@@ -1612,11 +1617,11 @@ def test_capture_opaque_kernel():
     print(kd)
 
     counts = cudaq.sample(k)
-    assert len(counts) == 2 and '00' in counts and '11' in counts 
-    
+    assert len(counts) == 2 and '00' in counts and '11' in counts
+
     counts = cudaq.sample(kd)
-    assert len(counts) == 2 and '0' in counts and '1' in counts 
-    
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
 
 @skipIfPythonLessThan39
 def test_issue_9():
@@ -1669,6 +1674,27 @@ def test_issue_1641():
         print(invalid_ctrl)
     assert 'controlled operation requested without any control argument(s)' in repr(
         error)
+
+
+def test_control_then_adjoint():
+
+    @cudaq.kernel
+    def my_func(q: cudaq.qubit, theta: float):
+        ry(theta, q)
+        rz(theta, q)
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        ancilla = cudaq.qubit()
+        q = cudaq.qubit()
+
+        h(ancilla)
+        cudaq.control(my_func, ancilla, q, theta)
+        cudaq.adjoint(my_func, q, theta)
+
+    theta = 1.5
+    # test here is that this compiles and runs
+    cudaq.sample(kernel, theta).dump()
 
 
 # leave for gdb debugging

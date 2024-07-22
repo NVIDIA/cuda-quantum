@@ -24,7 +24,7 @@ struct T {
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_5:.*]] = arith.extsi %[[VAL_4]] : i32 to i64
+// CHECK:           %[[VAL_5:.*]] = cc.cast signed %[[VAL_4]] : (i32) -> i64
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {

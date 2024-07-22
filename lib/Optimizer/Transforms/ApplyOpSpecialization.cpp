@@ -76,7 +76,10 @@ private:
         variant.needsAdjointVariant = true;
       else if (!apply.getControls().empty())
         variant.needsControlVariant = true;
-      infoMap.insert(std::make_pair(callee.getOperation(), variant));
+      if (iter != infoMap.end())
+        infoMap[callee.getOperation()] = variant;
+      else
+        infoMap.insert(std::make_pair(callee.getOperation(), variant));
     });
 
     // Propagate the transitive closure over the call tree.
