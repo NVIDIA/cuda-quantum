@@ -124,5 +124,7 @@ int main() {
   auto energy =
       cudaq::observe(ansatz, H, init_params, n_qubits, n_layers).expectation();
   printf("energy %f\n", energy);
-  assert(std::abs(energy - -0.320848) < 1e-3);
+
+  bool isGood = std::abs(energy - -0.320848) < 1e-3;
+  return isGood ? 0 : 1;
 }
