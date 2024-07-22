@@ -15,7 +15,6 @@ from .kernel_builder import PyKernel, __generalCustomOperation
 
 
 def register_operation(operation_name: str, unitary):
-    global globalRegisteredOperations
     """
     Register a new quantum operation at runtime. Users must provide the unitary
     matrix as a 1D NumPy array in row-major format with MSB qubit ordering. 
@@ -28,7 +27,10 @@ def register_operation(operation_name: str, unitary):
             ...
     ```
     """
-    if operation_name == None:
+
+    global globalRegisteredOperations
+
+    if not operation_name or not operation_name.strip():
         raise RuntimeError("custom operation name not provided.")
 
     if isinstance(unitary, Callable):
@@ -42,9 +44,8 @@ def register_operation(operation_name: str, unitary):
         raise RuntimeError("unknown type of unitary.")
 
     matrix = matrix.flatten()
-    assert (
-        matrix.ndim == len(matrix.shape),
-        "provide a 1D array for the matrix representation in row-major format.")
+    assert matrix.ndim == len(matrix.shape), \
+        "provide a 1D array for the matrix representation in row-major format."
 
     # Size must be a power of 2
     assert (matrix.size != 0)
