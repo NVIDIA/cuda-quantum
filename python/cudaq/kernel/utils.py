@@ -260,7 +260,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             kwargs['argInstance'] = [np.complex128(0.0)]
         elif eleTyName == 'numpy.complex64':
             kwargs['argInstance'] = [np.complex64(0.0)]
-            
+
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
