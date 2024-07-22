@@ -525,15 +525,15 @@ struct DependencyAnalysisPass
       return false;
     }
 
-    if (dyn_cast<mlir::BranchOpInterface>(op)) {
-      op->emitOpError(
+    if (auto br = dyn_cast<mlir::BranchOpInterface>(op)) {
+      br.emitOpError(
           "branching operations not currently supported in dep-analysis");
       signalPassFailure();
       return false;
     }
 
-    if (dyn_cast<mlir::CallOpInterface>(op)) {
-      op->emitOpError("function calls not currently supported in dep-analysis");
+    if (auto call = dyn_cast<mlir::CallOpInterface>(op)) {
+      call.emitOpError("function calls not currently supported in dep-analysis");
       signalPassFailure();
       return false;
     }

@@ -65,6 +65,12 @@ std::optional<uint> findQid(Value v) {
   if (!defop)
     return std::nullopt;
 
+  if (defop->getRegions().size() != 0) {
+    defop->emitOpError(
+        "control flow operations not currently supported in assign-ids");
+    return std::nullopt;
+  }
+
   if (!isa<quake::WireType>(v.getType()))
     return std::nullopt;
 
@@ -100,8 +106,7 @@ public:
     auto qid = findQid(release.getOperand());
 
     if (!qid.has_value())
-      release->emitOpError(
-          "Corresponding null_wire not found for sink, illegal ops present");
+      return failure();
 
     rewriter.startRootUpdate(release);
     release->setAttr("qid", rewriter.getUI32IntegerAttr(qid.value()));
