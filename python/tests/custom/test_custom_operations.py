@@ -106,9 +106,7 @@ def test_three_qubit_op():
     assert counts["110"] == 1000
 
 
-# NOTE / [SKIP_TEST]: The following test crashes in the 'Validate Python wheel (amd64 / x86)'
-# stage on Ubuntu, RedHat and OpenSuse for 'tensornet' and 'tensornet-mps' backends
-# (works on Debian and Fedora, and on all for arm64 in CI, and locally).
+# NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
 @pytest.mark.parametrize("target", [
     'density-matrix-cpu', 'nvidia', 'nvidia-fp64', 'nvidia-mqpu',
     'nvidia-mqpu-fp64', 'qpp-cpu'
