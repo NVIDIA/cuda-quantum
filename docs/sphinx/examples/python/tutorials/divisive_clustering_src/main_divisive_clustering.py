@@ -14,7 +14,7 @@ from mpi4py import MPI
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from src.divisive_clustering import Coreset, DivisiveClustering
+from divisive_clustering import Coreset, DivisiveClustering
 
 warnings.filterwarnings("ignore")
 
