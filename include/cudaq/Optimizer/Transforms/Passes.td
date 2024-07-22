@@ -56,7 +56,7 @@ def AssignIDs : Pass<"assign-ids", "mlir::func::FuncOp"> {
   let dependentDialects = ["quake::QuakeDialect"];
 }
 
-def DependencyAnalysis : Pass<"dep-analysis", "mlir::func::FuncOp"> {
+def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
   let summary = "Generates qubit dependency graphs based on quake code.";
   let description = [{
     Work in progress.

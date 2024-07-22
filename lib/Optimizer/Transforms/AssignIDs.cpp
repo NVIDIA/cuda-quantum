@@ -8,6 +8,7 @@
 
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -41,10 +42,6 @@ inline bool hasClassicalInput(Operation *op) {
 inline bool isBeginOp(Operation *op) {
   return dyn_cast<quake::UnwrapOp>(*op) || dyn_cast<quake::ExtractRefOp>(*op) ||
          dyn_cast<quake::NullWireOp>(*op);
-}
-
-inline bool isEndOp(Operation *op) {
-  return dyn_cast<quake::DeallocOp>(*op) || dyn_cast<quake::SinkOp>(*op);
 }
 
 class NullWirePat : public OpRewritePattern<quake::NullWireOp> {
@@ -99,6 +96,8 @@ std::optional<uint> findQid(Value v) {
   if (isMeasureOp(defop))
     i = 0;
   else if (hasClassicalInput(defop))
+    i++;
+  else if (auto ccif = dyn_cast<cudaq::cc::IfOp>(defop))
     i++;
 
   return findQid(defop->getOperand(i));
