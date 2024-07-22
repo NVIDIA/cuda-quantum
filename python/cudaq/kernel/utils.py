@@ -14,6 +14,8 @@ from ..mlir.passmanager import *
 import numpy as np
 from typing import Callable, List
 import ast, sys, traceback
+import re
+from typing import get_origin
 
 State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
@@ -240,6 +242,25 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == State:
         return cc.PointerType.get(ctx, cc.StateType.get(ctx))
 
+    if get_origin(argType) == list:
+        result = re.search(r'ist\[(.*)\]', str(argType))
+        eleTyName = result.group(1)
+        argType = list
+        if eleTyName == 'int':
+            kwargs['argInstance'] = [int(0)]
+        elif eleTyName == 'float':
+            kwargs['argInstance'] = [float(0.0)]
+        elif eleTyName == 'bool':
+            kwargs['argInstance'] = [bool(False)]
+        elif eleTyName == 'complex':
+            kwargs['argInstance'] = [0j]
+        elif eleTyName == 'pauli_word':
+            kwargs['argInstance'] = [pauli_word('')]
+        elif eleTyName == 'numpy.complex128':
+            kwargs['argInstance'] = [np.complex128(0.0)]
+        elif eleTyName == 'numpy.complex64':
+            kwargs['argInstance'] = [np.complex64(0.0)]
+            
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
