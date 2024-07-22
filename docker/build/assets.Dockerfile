@@ -222,7 +222,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.
-RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.config)" ]; then \
+RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.yml)" ]; then \
         echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
         exit 1; \
     fi
