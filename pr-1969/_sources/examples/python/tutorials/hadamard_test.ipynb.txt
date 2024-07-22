@@ -256,7 +256,7 @@
     "\n",
     "result = []\n",
     "for i in range(4):  \n",
-    "    count = cudaq.sample_async(kernel, qubit_num, angle[i], theta[i], shots_count = shots, qpu_id = i)  \n",
+    "    count = cudaq.sample_async(kernel, qubit_num, angle[i], theta[i], shots_count = shots, qpu_id = i%qpu_count)  \n",
     "    result.append(count)  \n",
     "\n",
     "mean_val = np.zeros(len(angle))\n",
