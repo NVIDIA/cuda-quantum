@@ -173,12 +173,27 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hadamard_test.html">Hadamard Test</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/hadamard_test.html#A--Numerical-result-as-a-reference:">A- Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/hadamard_test.html#B--Using-sample-algorithmic-primitive-to-sample-the-ancilla-qubit-and-compute-the-expectation-value.">B- Using <code class="docutils literal notranslate"><span class="pre">sample</span></code> algorithmic primitive to sample the ancilla qubit and compute the expectation value.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/hadamard_test.html#C--Use-multi-GPUs-to-compute-the-matrix-elements">C- Use multi-GPUs to compute the matrix elements</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/tutorials/hadamard_test.html#Diagonalize-the-matrix-using-for-example-Numpy-or-CuPy.-In-this-example,-since-we-are-having-2x2-matrix,-we-use-numpy.">Diagonalize the matrix using for example Numpy or CuPy. In this example, since we are having 2x2 matrix, we use numpy.</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/maximum_vertex_weight_clique.html">Molecular docking via DC-QAOA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe_water_active_space.html">Water Molecule with Active Space (CPU vs. GPU)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/vqe_water_active_space.html#A--Classical-simulation-as-a-reference:-CCSD">A- Classical simulation as a reference: CCSD</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
 </ul>
@@ -413,6 +428,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -843,27 +859,39 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradientE">cudaq::gradient (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradient5cloneEv">cudaq::gradient::clone (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradient7computeERKNSt6vectorIdEERKNSt8functionIFdNSt6vectorIdEEEEEd">cudaq::gradient::compute (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradient7computeERKNSt6vectorIdEERNSt6vectorIdEERK7spin_opd">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq8gradient8gradientER7KernelTRR10ArgsMapper">cudaq::gradient::gradient (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq8gradient8gradientERR13QuantumKernelRR10ArgsMapper">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8gradient8gradientER7KernelT">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradient8gradientERRNSt8functionIFvNSt6vectorIdEEEEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradient8gradientEv">[4]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq8gradient8gradientER7KernelT">cudaq::gradient::gradient (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq8gradient8gradientER7KernelTRR10ArgsMapper">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq8gradient8gradientERR13QuantumKernelRR10ArgsMapper">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradient8gradientERRNSt8functionIFvNSt6vectorIdEEEEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradient8gradientEv">[4]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq8gradient7setArgsEvR13QuantumKernelDpRR4Args">cudaq::gradient::setArgs (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8gradient9setKernelEvR13QuantumKernel">cudaq::gradient::setKernel (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18central_differenceE">cudaq::gradients::central_difference (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18central_difference5cloneEv">cudaq::gradients::central_difference::clone (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18central_difference7computeERKNSt6vectorIdEERKNSt8functionIFdNSt6vectorIdEEEEEd">cudaq::gradients::central_difference::compute (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18central_difference7computeERKNSt6vectorIdEERNSt6vectorIdEERK7spin_opd">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18central_difference8gradientER7KernelTRR10ArgsMapper">cudaq::gradients::central_difference::gradient (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18central_difference8gradientERR13QuantumKernelRR10ArgsMapper">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq9gradients18central_difference8gradientER7KernelT">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18central_difference8gradientERRNSt8functionIFvNSt6vectorIdEEEEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18central_difference8gradientEv">[4]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18central_difference8gradientER7KernelT">cudaq::gradients::central_difference::gradient (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18central_difference8gradientER7KernelTRR10ArgsMapper">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18central_difference8gradientERR13QuantumKernelRR10ArgsMapper">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18central_difference8gradientERRNSt8functionIFvNSt6vectorIdEEEEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18central_difference8gradientEv">[4]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18forward_differenceE">cudaq::gradients::forward_difference (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18forward_difference5cloneEv">cudaq::gradients::forward_difference::clone (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18forward_difference7computeERKNSt6vectorIdEERKNSt8functionIFdNSt6vectorIdEEEEEd">cudaq::gradients::forward_difference::compute (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18forward_difference7computeERKNSt6vectorIdEERNSt6vectorIdEERK7spin_opd">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18forward_difference8gradientER7KernelTRR10ArgsMapper">cudaq::gradients::forward_difference::gradient (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18forward_difference8gradientERR13QuantumKernelRR10ArgsMapper">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq9gradients18forward_difference8gradientER7KernelT">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18forward_difference8gradientERRNSt8functionIFvNSt6vectorIdEEEEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18forward_difference8gradientEv">[4]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18forward_difference8gradientER7KernelT">cudaq::gradients::forward_difference::gradient (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18forward_difference8gradientER7KernelTRR10ArgsMapper">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients18forward_difference8gradientERR13QuantumKernelRR10ArgsMapper">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18forward_difference8gradientERRNSt8functionIFvNSt6vectorIdEEEEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients18forward_difference8gradientEv">[4]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients15parameter_shiftE">cudaq::gradients::parameter_shift (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients15parameter_shift5cloneEv">cudaq::gradients::parameter_shift::clone (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients15parameter_shift7computeERKNSt6vectorIdEERKNSt8functionIFdNSt6vectorIdEEEEEd">cudaq::gradients::parameter_shift::compute (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients15parameter_shift7computeERKNSt6vectorIdEERNSt6vectorIdEERK7spin_opd">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients15parameter_shift8gradientER7KernelTRR10ArgsMapper">cudaq::gradients::parameter_shift::gradient (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients15parameter_shift8gradientERR13QuantumKernelRR10ArgsMapper">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq9gradients15parameter_shift8gradientER7KernelT">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients15parameter_shift8gradientERRNSt8functionIFvNSt6vectorIdEEEEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients15parameter_shift8gradientEv">[4]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients15parameter_shift8gradientER7KernelT">cudaq::gradients::parameter_shift::gradient (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients15parameter_shift8gradientER7KernelTRR10ArgsMapper">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq9gradients15parameter_shift8gradientERR13QuantumKernelRR10ArgsMapper">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients15parameter_shift8gradientERRNSt8functionIFvNSt6vectorIdEEEEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq9gradients15parameter_shift8gradientEv">[4]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq14kernel_builderE">cudaq::kernel_builder (C++ class)</a>
 </li>
@@ -983,6 +1011,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12getNumQubitsEv">cudaq::QPU::getNumQubits (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv">cudaq::QPU::getRemoteCapabilities (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU10isEmulatedEv">cudaq::QPU::isEmulated (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU11isSimulatorEv">cudaq::QPU::isSimulator (C++ function)</a>
@@ -1004,8 +1034,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU8setShotsEi">cudaq::QPU::setShots (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU27supportsConditionalFeedbackEv">cudaq::QPU::supportsConditionalFeedback (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU28supportsRemoteSerializedCodeEv">cudaq::QPU::supportsRemoteSerializedCode (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUD0Ev">cudaq::QPU::~QPU (C++ function)</a>
 </li>
@@ -1077,6 +1105,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14get_num_qubitsENSt6size_tE">cudaq::quantum_platform::get_num_qubits (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14get_num_qubitsEv">[1]</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE">cudaq::quantum_platform::get_remote_capabilities (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9get_shotsEv">cudaq::quantum_platform::get_shots (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12getLogStreamEv">cudaq::quantum_platform::getLogStream (C++ function)</a>
@@ -1086,6 +1116,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9is_remoteEKNSt6size_tE">cudaq::quantum_platform::is_remote (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform12is_simulatorEKNSt6size_tE">cudaq::quantum_platform::is_simulator (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientEN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tE">cudaq::quantum_platform::launchVQE (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14list_platformsEv">cudaq::quantum_platform::list_platforms (C++ function)</a>
 </li>
@@ -1114,8 +1146,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16setTargetBackendERKNSt6stringE">cudaq::quantum_platform::setTargetBackend (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackEKNSt6size_tE">cudaq::quantum_platform::supports_conditional_feedback (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform31supports_remote_serialized_codeEKNSt6size_tE">cudaq::quantum_platform::supports_remote_serialized_code (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv">cudaq::quantum_platform::supports_task_distribution (C++ function)</a>
 </li>
@@ -1166,6 +1196,16 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8registryE">cudaq::registry (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8registry14RegisteredTypeE">cudaq::registry::RegisteredType (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilitiesE">cudaq::RemoteCapabilities (C++ struct)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb">cudaq::RemoteCapabilities::RemoteCapabilities (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities18serializedCodeExecE">cudaq::RemoteCapabilities::serializedCodeExec (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE">cudaq::RemoteCapabilities::stateOverlap (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities3vqeE">cudaq::RemoteCapabilities::vqe (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq21RemoteSimulationStateE">cudaq::RemoteSimulationState (C++ class)</a>
 </li>
@@ -1797,6 +1837,8 @@
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_sparse_matrix">to_sparse_matrix() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_string">to_string() (cudaq.SpinOperator method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.translate">translate() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.type_to_str">type_to_str() (cudaq.PyKernelDecorator static method)</a>
 </li>

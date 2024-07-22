@@ -10,7 +10,7 @@ import cudaq
 from cudaq import spin
 
 cudaq.mpi.initialize()
-cudaq.set_target("nvidia-mqpu")
+cudaq.set_target("nvidia", option="mqpu")
 
 
 # Define spin ansatz.
