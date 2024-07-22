@@ -511,7 +511,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
       getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
   PassManager pm(context);
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs));
+  pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, true));
   pm.addPass(createCanonicalizerPass());
 
   // Run state preparation for quantum devices only.

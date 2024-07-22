@@ -33,7 +33,7 @@ struct ghz {
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_5:.*]] = arith.extsi %[[VAL_4]] : i32 to i64
+// CHECK:           %[[VAL_5:.*]] = cc.cast signed %[[VAL_4]] : (i32) -> i64
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>[%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_6]][0] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           quake.h %[[VAL_7]] : (!quake.ref) -> ()
@@ -48,11 +48,11 @@ struct ghz {
 // CHECK:               cc.condition %[[VAL_12]]
 // CHECK:             } do {
 // CHECK:               %[[VAL_13:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_14:.*]] = arith.extsi %[[VAL_13]] : i32 to i64
+// CHECK:               %[[VAL_14:.*]] = cc.cast signed %[[VAL_13]] : (i32) -> i64
 // CHECK:               %[[VAL_15:.*]] = quake.extract_ref %[[VAL_6]][%[[VAL_14]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_1]] : i32
-// CHECK:               %[[VAL_18:.*]] = arith.extsi %[[VAL_17]] : i32 to i64
+// CHECK:               %[[VAL_18:.*]] = cc.cast signed %[[VAL_17]] : (i32) -> i64
 // CHECK:               %[[VAL_19:.*]] = quake.extract_ref %[[VAL_6]][%[[VAL_18]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:               quake.x [%[[VAL_15]]] %[[VAL_19]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:               cc.continue
