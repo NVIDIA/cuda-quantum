@@ -12,6 +12,7 @@ import cudaq
 
 import pytest
 
+
 def test_var_scope():
 
     @cudaq.kernel

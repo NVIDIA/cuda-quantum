@@ -6,6 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-NVQIR_SIMULATION_BACKEND="qpp"
-PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_SIMULATION_SCALAR_FP64"
-TARGET_DESCRIPTION="QPP-based CPU-only backend target"
+import socket
+import time
+
+
+def check_server_connection(port, retries=10, delay=1):
+    for _ in range(retries):
+        try:
+            with socket.create_connection(("localhost", port), timeout=1):
+                return True
+        except OSError:
+            time.sleep(delay)
+    return False

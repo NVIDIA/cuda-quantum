@@ -14,7 +14,7 @@ if cudaq.num_available_gpus() == 0:
     print("This example requires a GPU to run. No GPU detected.")
     exit(0)
 
-cudaq.set_target("nvidia-mqpu")
+cudaq.set_target("nvidia", option="mqpu")
 cudaq.mpi.initialize()
 
 qubit_count = 15

@@ -147,8 +147,35 @@ def test_conditional_on_measure():
 
     print(test10)
 
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test10() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test10() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    @cudaq.kernel
+    def test11():
+        data = cudaq.qubit()
+        res = mz(data)
+        flag = res
+
+        if flag:
+            h(data)
+
+    print(test11)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test11() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+
+    @cudaq.kernel
+    def test12():
+        data = cudaq.qubit()
+        res = mz(data)
+        flag1 = res
+        flag2 = flag1
+
+        if flag2 == False:
+            x(data)
+
+    print(test12)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test12() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

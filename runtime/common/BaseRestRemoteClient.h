@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/Environment.h"
 #include "common/JsonConvert.h"
 #include "common/Logger.h"
 #include "common/NvqcConfig.h"
@@ -92,6 +93,11 @@ protected:
                        });
   }
 
+  /// @brief Flag indicating whether we should enable MLIR printing before and
+  /// after each pass. This is similar to `-mlir-print-ir-before-all` and
+  /// `-mlir-print-ir-after-all` in `cudaq-opt`.
+  bool enablePrintMLIREachPass = false;
+
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
@@ -115,6 +121,9 @@ public:
                                      const void *args,
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx) {
+    enablePrintMLIREachPass =
+        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+
     if (cudaq::__internal__::isLibraryMode(name)) {
       // Library mode: retrieve the embedded bitcode in the executable.
       const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
@@ -175,6 +184,10 @@ public:
         pm.addPass(
             cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx));
         pm.addPass(mlir::createCanonicalizerPass());
+        if (enablePrintMLIREachPass) {
+          moduleOp.getContext()->disableMultithreading();
+          pm.enableIRPrinting();
+        }
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
@@ -192,6 +205,10 @@ public:
                           std::string(), [](const auto &ss, const auto &s) {
                             return ss.empty() ? s : ss + "," + s;
                           });
+      if (enablePrintMLIREachPass) {
+        moduleOp.getContext()->disableMultithreading();
+        pm.enableIRPrinting();
+      }
       if (failed(parsePassPipeline(pipeline, pm, os)))
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +

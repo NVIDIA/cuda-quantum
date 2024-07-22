@@ -6,4 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-LIBRARY_MODE_EXECUTION_MANAGER=photonics
+name: density-matrix-cpu
+description: "The Density Matrix CPU Target provides a simulated QPU via OpenMP-enabled, CPU-only density matrix emulation."
+config:
+  nvqir-simulation-backend: dm
+  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+
