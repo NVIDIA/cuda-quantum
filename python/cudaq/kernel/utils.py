@@ -17,6 +17,7 @@ import ast, sys, traceback
 
 State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
+qview = cudaq_runtime.qview
 qubit = cudaq_runtime.qubit
 pauli_word = cudaq_runtime.pauli_word
 qreg = qvector
@@ -36,6 +37,7 @@ globalAstRegistry = {}
 # Keep a global registry of all registered custom operations.
 globalRegisteredOperations = {}
 
+globalRegisteredTypes = {}
 
 class Color:
     YELLOW = '\033[93m'
@@ -200,6 +202,11 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if id == 'complex':
         return ComplexType.get(F64Type.get())
 
+    if id in globalRegisteredTypes:
+        _, memberTys = globalRegisteredTypes[id]
+        structTys = [mlirTypeFromPyType(v, ctx) for _,v in memberTys.items()]
+        return cc.StructType.getNamed(ctx, id, structTys)
+
     localEmitFatalError(
         f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
     )
@@ -273,7 +280,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
         emitFatalError(f'Invalid list element type ({argType})')
 
-    if argType == qvector or argType == qreg:
+    if argType == qvector or argType == qreg or argType == qview:
         return quake.VeqType.get(ctx)
     if argType == qubit:
         return quake.RefType.get(ctx)
@@ -284,6 +291,16 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
             return cc.CallableType.get(ctx, argInstance.argTypes)
+    else:
+        if argType == list[int]:
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
+        if argType == list[float]:
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+ 
+    for name, (customTys, memberTys) in globalRegisteredTypes.items():
+        if argType == customTys:
+            structTys = [mlirTypeFromPyType(v, ctx) for _,v in memberTys.items()]
+            return cc.StructType.getNamed(ctx, name, structTys)
 
     emitFatalError(
         f"Can not handle conversion of python type {argType} to MLIR type.")

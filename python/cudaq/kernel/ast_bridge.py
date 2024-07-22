@@ -13,7 +13,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
+from .utils import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType, globalRegisteredTypes
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -812,7 +812,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         # FIXME add more as we need them
         return ComplexType.isinstance(type) or F64Type.isinstance(
-            type) or F32Type.isinstance(type) or IntegerType.isinstance(type)
+            type) or F32Type.isinstance(type) or IntegerType.isinstance(
+                type) or cc.StructType.isinstance(type)
 
     def generic_visit(self, node):
         for field, value in reversed(list(ast.iter_fields(node))):
@@ -1139,6 +1140,33 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.value,
                       ast.Name) and node.value.id in self.symbolTable:
             value = self.symbolTable[node.value.id]
+            if cc.PointerType.isinstance(value.type):
+                eleType = cc.PointerType.getElementType(value.type)
+                if cc.StructType.isinstance(eleType):
+                    # Handle the case where we have a struct member extraction
+                    memberName = node.attr
+                    structName = cc.StructType.getName(eleType)
+                    structIdx = None
+                    _, userType = globalRegisteredTypes[structName]
+                    for i, (k, _) in enumerate(userType.items()):
+                        if k == memberName:
+                            structIdx = i
+                    if structIdx == None:
+                        self.emitFatalError(
+                            f'Invalid struct member: {structName}.{memberName} (members={[k for k,_ in userType.items()]})'
+                        )
+
+                    memberTy = mlirTypeFromPyType(userType[memberName],
+                                                  self.ctx)
+                    eleAddr = cc.ComputePtrOp(
+                        cc.PointerType.get(self.ctx, memberTy), value, [],
+                        DenseI32ArrayAttr.get([structIdx],
+                                              context=self.ctx)).result
+                    # We'll always have a pointer, and we always want to load it.
+                    eleAddr = cc.LoadOp(eleAddr).result
+                    self.pushValue(eleAddr)
+                    return
+
             if node.attr == 'append':
                 type = value.type
                 if cc.PointerType.isinstance(type):
@@ -1818,6 +1846,31 @@ class PyASTBridge(ast.NodeVisitor):
 
             elif node.func.id in ['print_i64', 'print_f64']:
                 self.__insertDbgStmt(self.popValue(), node.func.id)
+                return
+
+            elif node.func.id in globalRegisteredTypes:
+                # Handle User-Custom Struct Constructor
+                cls, annotations = globalRegisteredTypes[node.func.id]
+                # Alloca the struct
+                structTys = [
+                    mlirTypeFromPyType(v, self.ctx)
+                    for _, v in annotations.items()
+                ]
+                structTy = cc.StructType.getNamed(self.ctx, node.func.id,
+                                                  structTys)
+                stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
+                                        TypeAttr.get(structTy)).result
+
+                # loop over each type and compute_ptr / store
+                nArgs = len(self.valueStack)
+                ctorArgs = [self.popValue() for _ in range(nArgs)]
+                ctorArgs.reverse()
+                for i, ty in enumerate(structTys):
+                    eleAddr = cc.ComputePtrOp(
+                        cc.PointerType.get(self.ctx, ty), stackSlot, [],
+                        DenseI32ArrayAttr.get([i], context=self.ctx)).result
+                    cc.StoreOp(ctorArgs[i], eleAddr)
+                self.pushValue(stackSlot)
                 return
 
             else:
