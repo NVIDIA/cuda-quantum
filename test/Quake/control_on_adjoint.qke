@@ -8,35 +8,35 @@
 
 // RUN: cudaq-opt --apply-op-specialization --canonicalize %s | FileCheck %s
 
-module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
-  func.func @__nvqpp__mlirgen__my_func(%arg0: !quake.ref, %arg1: f64) {
-    %0 = cc.alloca f64
-    cc.store %arg1, %0 : !cc.ptr<f64>
-    %1 = cc.load %0 : !cc.ptr<f64>
-    quake.ry (%1) %arg0 : (f64, !quake.ref) -> ()
-    %2 = cc.load %0 : !cc.ptr<f64>
-    quake.rz (%2) %arg0 : (f64, !quake.ref) -> ()
-    return
-  }
-  func.func @__nvqpp__mlirgen__adj_func(%arg0: !quake.ref, %arg1: f64) {
-    %0 = cc.alloca f64
-    cc.store %arg1, %0 : !cc.ptr<f64>
-    %1 = cc.load %0 : !cc.ptr<f64>
-    quake.apply<adj> @__nvqpp__mlirgen__my_func %arg0, %1 : (!quake.ref, f64) -> ()
-    return
-  }
-  func.func @__nvqpp__mlirgen__kernel(%arg0: f64) attributes {"cudaq-entrypoint"} {
-    %0 = cc.alloca f64
-    cc.store %arg0, %0 : !cc.ptr<f64>
-    %1 = quake.alloca !quake.ref
-    %2 = quake.alloca !quake.ref
-    quake.h %1 : (!quake.ref) -> ()
-    %3 = cc.load %0 : !cc.ptr<f64>
-    quake.apply @__nvqpp__mlirgen__my_func [%1] %2, %3 : (!quake.ref, !quake.ref, f64) -> ()
-    %4 = cc.load %0 : !cc.ptr<f64>
-    quake.apply @__nvqpp__mlirgen__adj_func [%1] %2, %4 : (!quake.ref, !quake.ref, f64) -> ()
-    return
-  }
+func.func @__nvqpp__mlirgen__my_func(%arg0: !quake.ref, %arg1: f64) {
+  %0 = cc.alloca f64
+  cc.store %arg1, %0 : !cc.ptr<f64>
+  %1 = cc.load %0 : !cc.ptr<f64>
+  quake.ry (%1) %arg0 : (f64, !quake.ref) -> ()
+  %2 = cc.load %0 : !cc.ptr<f64>
+  quake.rz (%2) %arg0 : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @__nvqpp__mlirgen__adj_func(%arg0: !quake.ref, %arg1: f64) {
+  %0 = cc.alloca f64
+  cc.store %arg1, %0 : !cc.ptr<f64>
+  %1 = cc.load %0 : !cc.ptr<f64>
+  quake.apply<adj> @__nvqpp__mlirgen__my_func %arg0, %1 : (!quake.ref, f64) -> ()
+  return
+}
+
+func.func @__nvqpp__mlirgen__kernel(%arg0: f64) attributes {"cudaq-entrypoint"} {
+  %0 = cc.alloca f64
+  cc.store %arg0, %0 : !cc.ptr<f64>
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  %3 = cc.load %0 : !cc.ptr<f64>
+  quake.apply @__nvqpp__mlirgen__my_func [%1] %2, %3 : (!quake.ref, !quake.ref, f64) -> ()
+  %4 = cc.load %0 : !cc.ptr<f64>
+  quake.apply @__nvqpp__mlirgen__adj_func [%1] %2, %4 : (!quake.ref, !quake.ref, f64) -> ()
+  return
 }
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__adj_func.ctrl(
