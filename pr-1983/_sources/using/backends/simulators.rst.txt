@@ -213,6 +213,9 @@ the multi-node multi-GPU configuration.
   * - ``CUDAQ_MGPU_NQUBITS_THRESH``
     - positive integer
     - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
+  * - ``CUDAQ_MGPU_FUSE``
+    - positive integer
+    - The max number of qubits used for gate fusion. The default value is `6`.
   * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
     - positive integer
     - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
@@ -230,8 +233,8 @@ the multi-node multi-GPU configuration.
     The :code:`nvidia-mgpu` target, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
     is deprecated and will be removed in a future release.
 
-Using those environment variable configuration options,
-you can optimize/reduce your simulation runtimes. For example, one of the
+The above configuration options of the :code:`nvidia` backend 
+can be tuned to reduce your simulation runtimes. One of the
 performance improvements is to fuse multiple gates together during runtime. For
 example, :code:`x(qubit0)` and :code:`x(qubit1)` can be fused together into a
 single 4x4 matrix operation on the state vector rather than 2 separate 2x2
@@ -240,21 +243,21 @@ the GPU because the state vector is transferred into and out of memory fewer
 times. By default, up to 4 gates are fused together for single-GPU simulations,
 and up to 6 gates are fused together for multi-GPU simulations. The number of
 gates fused can **significantly** affect performance of some circuits, so users
-can override the default fusion level by setting the setting `CUDAQ_FUSION_MAX_QUBITS`
+can override the default fusion level by setting the setting `CUDAQ_MGPU_FUSE`
 environment variable to another integer value as shown below.
 
 .. tab:: Python
 
     .. code:: bash 
 
-        CUDAQ_FUSION_MAX_QUBITS=5 mpiexec -np 2 python3 program.py [...] --target nvidia --target-option mgpu,fp64
+        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 python3 program.py [...] --target nvidia --target-option mgpu,fp64
 
 .. tab:: C++
 
     .. code:: bash 
 
         nvq++ --target nvidia --target-option mgpu,fp64 program.cpp [...] -o program.x
-        CUDAQ_FUSION_MAX_QUBITS=5 mpiexec -np 2 ./program.x
+        CUDAQ_MGPU_FUSE=5 mpiexec -np 2 ./program.x
 
 .. _OpenMP CPU-only:
 

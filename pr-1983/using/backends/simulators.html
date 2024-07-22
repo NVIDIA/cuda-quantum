@@ -733,19 +733,23 @@ the multi-node multi-GPU configuration.</p>
 <td><p>positive integer</p></td>
 <td><p>The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_P2P_DEVICE_BITS</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code></p></td>
+<td><p>positive integer</p></td>
+<td><p>The max number of qubits used for gate fusion. The default value is <code class="code docutils literal notranslate"><span class="pre">6</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_P2P_DEVICE_BITS</span></code></p></td>
 <td><p>positive integer</p></td>
 <td><p>Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GPU_FABRIC</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GPU_FABRIC</span></code></p></td>
 <td><p><code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code> or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
 <td><p>Automatically set the number of P2P device bits based on the number of GPUs when multi-node NVLink (<code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code>) is selected or disable P2P (with <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code></p></td>
 <td><p>comma-separated list of positive integers</p></td>
 <td><p>Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this <code class="code docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code> environment variable can be set to <code class="code docutils literal notranslate"><span class="pre">3,2</span></code>. The first <code class="code docutils literal notranslate"><span class="pre">3</span></code> represents <strong>8</strong> nodes with fast communication and the second <code class="code docutils literal notranslate"><span class="pre">2</span></code> represents <strong>4</strong> 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_HOST_DEVICE_MIGRATION_LEVEL</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_HOST_DEVICE_MIGRATION_LEVEL</span></code></p></td>
 <td><p>positive integer</p></td>
 <td><p>Specify host-device memory migration w.r.t. the network structure.</p></td>
 </tr>
@@ -755,8 +759,8 @@ the multi-node multi-GPU configuration.</p>
 <p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target, which is equivalent to the multi-node multi-GPU double-precision option (<code class="code docutils literal notranslate"><span class="pre">mgpu,fp64</span></code>) of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>
 is deprecated and will be removed in a future release.</p>
 </div>
-<p>Using those environment variable configuration options,
-you can optimize/reduce your simulation runtimes. For example, one of the
+<p>The above configuration options of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend
+can be tuned to reduce your simulation runtimes. One of the
 performance improvements is to fuse multiple gates together during runtime. For
 example, <code class="code docutils literal notranslate"><span class="pre">x(qubit0)</span></code> and <code class="code docutils literal notranslate"><span class="pre">x(qubit1)</span></code> can be fused together into a
 single 4x4 matrix operation on the state vector rather than 2 separate 2x2
@@ -765,17 +769,17 @@ the GPU because the state vector is transferred into and out of memory fewer
 times. By default, up to 4 gates are fused together for single-GPU simulations,
 and up to 6 gates are fused together for multi-GPU simulations. The number of
 gates fused can <strong>significantly</strong> affect performance of some circuits, so users
-can override the default fusion level by setting the setting <code class="code docutils literal notranslate"><span class="pre">CUDAQ_FUSION_MAX_QUBITS</span></code>
+can override the default fusion level by setting the setting <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code>
 environment variable to another integer value as shown below.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_FUSION_MAX_QUBITS</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>mgpu,fp64
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_MGPU_FUSE</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>mgpu,fp64
 </pre></div>
 </div>
 </div>
 <input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>mgpu,fp64<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
-<span class="nv">CUDAQ_FUSION_MAX_QUBITS</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.x
+<span class="nv">CUDAQ_MGPU_FUSE</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.x
 </pre></div>
 </div>
 </div>
