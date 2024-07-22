@@ -582,7 +582,7 @@ protected:
     if (numTimes == 1 && !returnArg.empty()) {
       simulationStart = std::chrono::high_resolution_clock::now();
       llvm::Error error = engine->invokePacked(entryPointFunc, returnArg);
-      if (error) 
+      if (error)
         throw std::runtime_error("JIT invocation failed");
       if (postExecCallback)
         postExecCallback(0);
@@ -598,9 +598,8 @@ protected:
       for (std::size_t i = 0; i < numTimes; ++i) {
         // Invoke the kernel
         fn();
-        if (postExecCallback) 
+        if (postExecCallback)
           postExecCallback(i);
-        
       }
     }
   }
