@@ -69,10 +69,10 @@ struct VectorOfDynamicVeq {
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_6:.*]] = arith.extui %[[VAL_5]] : i32 to i64
+// CHECK:           %[[VAL_6:.*]] = cc.cast unsigned %[[VAL_5]] : (i32) -> i64
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>[%[[VAL_6]] : i64]
 // CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_9:.*]] = arith.extui %[[VAL_8]] : i32 to i64
+// CHECK:           %[[VAL_9:.*]] = cc.cast unsigned %[[VAL_8]] : (i32) -> i64
 // CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%[[VAL_9]] : i64]
 // CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_112:.*]] = quake.mz %[[VAL_4]], %[[VAL_7]], %[[VAL_10]], %[[VAL_11]] : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<!quake.measure>

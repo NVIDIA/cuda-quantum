@@ -749,14 +749,16 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     if (initValue.getType().getIntOrFloatBitWidth() <
         type.getIntOrFloatBitWidth()) {
       // FIXME: Use zero-extend if this is unsigned!
-      initValue = builder.create<arith::ExtSIOp>(loc, type, initValue);
+      initValue = builder.create<cudaq::cc::CastOp>(
+          loc, type, initValue, cudaq::cc::CastOpMode::Signed);
     } else if (initValue.getType().getIntOrFloatBitWidth() >
                type.getIntOrFloatBitWidth()) {
-      initValue = builder.create<arith::TruncIOp>(loc, type, initValue);
+      initValue = builder.create<cudaq::cc::CastOp>(loc, type, initValue);
     }
   } else if (isa<IntegerType>(initValue.getType()) && isa<FloatType>(type)) {
     // FIXME: Use UIToFP if this is unsigned!
-    initValue = builder.create<arith::SIToFPOp>(loc, type, initValue);
+    initValue = builder.create<cudaq::cc::CastOp>(
+        loc, type, initValue, cudaq::cc::CastOpMode::Signed);
   }
 
   if (auto initObject = initValue.getDefiningOp<cc::AllocaOp>()) {
