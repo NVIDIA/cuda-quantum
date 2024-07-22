@@ -215,7 +215,7 @@ the multi-node multi-GPU configuration.
     - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
   * - ``CUDAQ_MGPU_FUSE``
     - positive integer
-    - The max number of qubits used for gate fusion. The default value is `6`.
+    - The max number of qubits used for gate fusion. The default value is `6` if there are more than one MPI processes or `4` otherwise.
   * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
     - positive integer
     - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).

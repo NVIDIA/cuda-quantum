@@ -735,7 +735,7 @@ the multi-node multi-GPU configuration.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code></p></td>
 <td><p>positive integer</p></td>
-<td><p>The max number of qubits used for gate fusion. The default value is <code class="code docutils literal notranslate"><span class="pre">6</span></code>.</p></td>
+<td><p>The max number of qubits used for gate fusion. The default value is <code class="code docutils literal notranslate"><span class="pre">6</span></code> if there are more than one MPI processes or <code class="code docutils literal notranslate"><span class="pre">4</span></code> otherwise.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_P2P_DEVICE_BITS</span></code></p></td>
 <td><p>positive integer</p></td>
