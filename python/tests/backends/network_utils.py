@@ -6,19 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_cudaq_dialect_library(CCDialect
-  CCDialect.cpp
-  CCOps.cpp
-  CCTypes.cpp
+import socket
+import time
 
-  DEPENDS
-    CCDialectIncGen
-    CCOpsIncGen
-    CCTypesIncGen
 
-  LINK_LIBS
-    MLIRComplexDialect
-    MLIRFuncDialect
-    MLIRLLVMDialect
-    MLIRIR
-)
+def check_server_connection(port, retries=10, delay=1):
+    for _ in range(retries):
+        try:
+            with socket.create_connection(("localhost", port), timeout=1):
+                return True
+        except OSError:
+            time.sleep(delay)
+    return False
