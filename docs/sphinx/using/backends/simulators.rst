@@ -24,8 +24,8 @@ double (`fp64`) or single (`fp32`) precision. This option can be chosen for the 
 
 * Distributed simulation
 
-The :code:`nvidia` target supports distributing state vector simulations to multiple GPUs and multiple nodes (`mgpu` distribution)
-and multi-QPU (`mqpu`) distribution whereby each QPU is simulated via a single-GPU simulator instance.
+The :code:`nvidia` target supports distributing state vector simulations to multiple GPUs and multiple nodes (`mgpu` :ref:`distribution <nvidia-mgpu-backend>`)
+and multi-QPU (`mqpu` :ref:`platform <mqpu-platform>`) distribution whereby each QPU is simulated via a single-GPU simulator instance.
 
 
 * Host CPU memory utilization 
@@ -65,8 +65,27 @@ To execute a program on the :code:`nvidia` target, use the following commands:
 .. _nvidia-fp64-backend:
 
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
-switch to :code:`FP64`, specify the :code:`--target-option fp64` `nvq++` command line option for `C++` or 
-use `cudaq.set_target('nvidia', option='fp64')` for Python instead. 
+switch to :code:`FP64`, specify the :code:`--target-option fp64` `nvq++` command line option for `C++` and `Python` or 
+use `cudaq.set_target('nvidia', option='fp64')` for Python in-source target modification instead. 
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        python3 program.py [...] --target nvidia --target-option fp64
+
+    The precision of the :code:`nvidia` target can also be modified in the application code by calling
+
+    .. code:: python 
+
+        cudaq.set_target('nvidia', option='fp64')
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target nvidia --target-option fp64 program.cpp [...] -o program.x
+        ./program.x
 
 .. note:: 
 
@@ -97,10 +116,10 @@ In the single-GPU mode, the :code:`nvidia` target provides the following environ
     The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
     is deprecated and will be removed in a future release.
 
+.. _nvidia-mgpu-backend:
+
 Multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
-
-.. _nvidia-mgpu-backend:
 
 The NVIDIA target also provides a state vector simulator accelerated with 
 the :code:`cuStateVec` library with support for Multi-Node, Multi-GPU distribution of the 
@@ -202,11 +221,7 @@ the multi-node multi-GPU configuration.
     - Automatically set the number of P2P device bits based on the number of GPUs when multi-node NVLink (`MNNVL`) is selected or disable P2P (with `NONE`). 
   * - ``CUDAQ_GLOBAL_INDEX_BITS``
     - comma-separated list of positive integers
-    - Specify the inter-node network structure (faster to slower). 
-    For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, 
-    this `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`.  
-    The first `3` represents **8** nodes with fast communication and the second `2` represents **4** 8-node groups in those total 32 nodes. 
-    Default is an empty list (no customization based on network structure of the cluster).
+    - Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` represents **8** nodes with fast communication and the second `2` represents **4** 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).
   * - ``CUDAQ_HOST_DEVICE_MIGRATION_LEVEL``
     - positive integer
     - Specify host-device memory migration w.r.t. the network structure. 
