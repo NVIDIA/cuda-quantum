@@ -17,6 +17,7 @@ if (NOT CUDAQ_DISABLE_TOOLS)
     add_subdirectory(cudaq-quake)
     add_subdirectory(fixup-linkage)
     add_subdirectory(nvqpp)
+    add_subdirectory(cudaq-target-conf)
   endif()
 endif()
 

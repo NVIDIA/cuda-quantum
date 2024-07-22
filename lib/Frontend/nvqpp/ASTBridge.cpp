@@ -151,10 +151,12 @@ namespace {
 class QPUCodeFinder : public clang::RecursiveASTVisitor<QPUCodeFinder> {
 public:
   using Base = clang::RecursiveASTVisitor<QPUCodeFinder>;
-  explicit QPUCodeFinder(cudaq::EmittedFunctionsCollection &funcsToEmit,
-                         clang::CallGraph &cgb,
-                         clang::ItaniumMangleContext *mangler)
-      : functionsToEmit(funcsToEmit), callGraphBuilder(cgb), mangler(mangler) {}
+  explicit QPUCodeFinder(
+      cudaq::EmittedFunctionsCollection &funcsToEmit, clang::CallGraph &cgb,
+      clang::ItaniumMangleContext *mangler,
+      std::unordered_map<std::string, std::string> &customOperations)
+      : functionsToEmit(funcsToEmit), callGraphBuilder(cgb), mangler(mangler),
+        customOperationNames(customOperations) {}
 
   /// Add a kernel to the list of kernels to process.
   void processQpu(std::string &&kernelName, const clang::FunctionDecl *f) {
@@ -222,8 +224,21 @@ public:
     if (ignoreTemplate)
       return true;
     func = func->getDefinition();
+
     if (func) {
-      if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func)) {
+      bool runChecks = false;
+      if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+              func)) {
+        customOperationNames[func->getName().str()] =
+            cudaq::details::getTagNameOfFunctionDecl(func, mangler);
+        runChecks = true;
+      }
+      if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func))
+        runChecks = true;
+      else
+        quantumTypesNotAllowed = true;
+
+      if (runChecks) {
         quantumTypesNotAllowed = false;
         // Run semantics checks on the kernel class.
         if (isa<clang::CXXMethodDecl>(func)) {
@@ -232,8 +247,6 @@ public:
         }
         processQpu(cudaq::details::getTagNameOfFunctionDecl(func, mangler),
                    func);
-      } else {
-        quantumTypesNotAllowed = true;
       }
     }
     return true;
@@ -311,6 +324,7 @@ private:
   cudaq::EmittedFunctionsCollection &functionsToEmit;
   clang::CallGraph &callGraphBuilder;
   clang::ItaniumMangleContext *mangler;
+  std::unordered_map<std::string, std::string> &customOperationNames;
   // A class that is being visited. Need to run semantics checks on it if and
   // only if it has a quantum kernel.
   const clang::CXXRecordDecl *checkedClass = nullptr;
@@ -375,6 +389,9 @@ bool QuakeBridgeVisitor::generateFunctionDeclaration(
   if (!isa<clang::CXXMethodDecl>(x) || x->isStatic())
     fnPair.first->setAttr("no_this", builder.getUnitAttr());
   assert(typeStack.empty() && "expected type stack to be cleared");
+  // Retain the attribute for custom operation generator functions
+  if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(x))
+    fnPair.first->setAttr(cudaq::generatorAnnotation, builder.getUnitAttr());
   return true;
 }
 
@@ -389,7 +406,14 @@ bool ASTBridgeAction::ASTBridgeConsumer::isQuantum(
     const clang::FunctionDecl *decl) {
   // Quantum kernels are Functions that are annotated with "quantum"
   if (auto attr = decl->getAttr<clang::AnnotateAttr>())
-    return attr->getAnnotation().str() == "quantum";
+    return attr->getAnnotation().str() == cudaq::kernelAnnotation;
+  return false;
+}
+
+bool ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+    const clang::FunctionDecl *decl) {
+  if (auto attr = decl->getAttr<clang::AnnotateAttr>())
+    return attr->getAnnotation().str() == cudaq::generatorAnnotation;
   return false;
 }
 
@@ -516,9 +540,10 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
   llvm::SmallVector<clang::Decl *> reachableFuncs =
       listReachableFunctions(callGraphBuilder.getRoot());
   auto *ctx = module->getContext();
-  details::QuakeBridgeVisitor visitor(
-      &astContext, ctx, builder, module.get(), symbol_table, functionsToEmit,
-      reachableFuncs, cxx_mangled_kernel_names, ci, mangler);
+  details::QuakeBridgeVisitor visitor(&astContext, ctx, builder, module.get(),
+                                      symbol_table, functionsToEmit,
+                                      reachableFuncs, cxx_mangled_kernel_names,
+                                      ci, mangler, customOperationNames);
 
   // First generate declarations for all kernels.
   bool ok = true;
@@ -555,7 +580,9 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
-      if (!hasAnyQubitTypes(func.getFunctionType())) {
+      if ((!hasAnyQubitTypes(func.getFunctionType())) &&
+          (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+              fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.
         func->setAttr(entryPointAttrName, unitAttr);
         // Generate a declaration for the CPU C++ function.
@@ -587,7 +614,8 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
 
 bool ASTBridgeAction::ASTBridgeConsumer::HandleTopLevelDecl(
     clang::DeclGroupRef dg) {
-  QPUCodeFinder finder(functionsToEmit, callGraphBuilder, mangler);
+  QPUCodeFinder finder(functionsToEmit, callGraphBuilder, mangler,
+                       customOperationNames);
   // Loop over all decls, saving the function decls that are quantum kernels.
   for (const auto *decl : dg)
     finder.TraverseDecl(const_cast<clang::Decl *>(decl));

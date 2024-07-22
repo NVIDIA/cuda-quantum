@@ -8,7 +8,8 @@
 
 // Compile and run with:
 // ```
-// nvq++ get_state_async.cpp -o get_state_async.x -target nvidia-mqpu
+// nvq++ get_state_async.cpp -o get_state_async.x --target nvidia
+// --target-option mqpu
 // && ./get_state_async.x
 // ```
 #include <cudaq.h>

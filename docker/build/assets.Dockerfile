@@ -132,7 +132,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 
 # Validate that the nvidia backend was built.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
-    if [ -z "$(ls $CUDAQ_INSTALL_PREFIX/targets/nvidia.config)" ]; then \
+    if [ -z "$(ls $CUDAQ_INSTALL_PREFIX/targets/nvidia.yml)" ]; then \
         echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
         exit 1; \
     fi

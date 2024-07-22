@@ -64,7 +64,7 @@ static llvm::cl::opt<std::string> convertTo(
     llvm::cl::desc(
         "Specify the translation output to be created. [Default: \"qir\"]"),
     llvm::cl::value_desc("target dialect [\"qir\", \"qir-adaptive\", "
-                         "\"qir-base\", \"openqasm\", \"iqm\"]"),
+                         "\"qir-base\", \"openqasm2\", \"iqm\"]"),
     llvm::cl::init("qir"));
 
 static llvm::cl::opt<bool> emitLLVM(
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
              [&]() {
                cudaq::opt::addPipelineConvertToQIR(pm, convertTo.getValue());
              })
-      .Case("openqasm",
+      .Case("openqasm2",
             [&]() {
               targetUsesLlvm = false;
               cudaq::opt::addPipelineTranslateToOpenQASM(pm);

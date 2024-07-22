@@ -9,14 +9,17 @@
 import os
 import shutil
 import tempfile
-import time
+from typing import List
 from multiprocessing import Process
+import numpy as np
+from network_utils import check_server_connection
 
 import cudaq
 from cudaq import spin
 import pytest
 
 iqm_client = pytest.importorskip("iqm.iqm_client")
+
 try:
     from utils.mock_qpu.iqm import startServer
     from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
@@ -47,18 +50,20 @@ def assert_close(want, got, tolerance=1.0e-5) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     # Write a fake access tokens file
-    tmp_tokens_file = tempfile.NamedTemporaryFile(delete=False)
-    write_a_mock_tokens_file(tmp_tokens_file.name)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_tokens_file:
+        write_a_mock_tokens_file(tmp_tokens_file.name)
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
-    time.sleep(1)
+
+    if not check_server_connection(port):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    kwargs = dict()
-    kwargs["qpu-architecture"] = "Apollo"
+    kwargs = {"qpu-architecture": "Apollo"}
     if os.path.isdir(git_top):
         mapping_file = f"{git_top}/targettests/Apollo Variant.txt"
         kwargs["mapping_file"] = mapping_file
@@ -94,9 +99,7 @@ def test_iqm_ghz():
     assert assert_close(counts["11"], shots / 2, 2)
 
     future = cudaq.sample_async(kernel, shots_count=shots)
-
     futureAsString = str(future)
-
     futureReadIn = cudaq.AsyncSampleResult(futureAsString)
     counts = futureReadIn.get()
     assert assert_close(counts["00"], shots / 2, 2)
@@ -163,6 +166,34 @@ def test_iqm_u3_ctrl_decomposition():
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
 
     result = cudaq.sample(kernel)
+
+
+def test_IQM_state_preparation():
+    shots = 10000
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_IQM_state_preparation_builder():
+    shots = 10000
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 # leave for gdb debugging

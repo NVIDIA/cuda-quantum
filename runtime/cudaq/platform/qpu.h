@@ -14,11 +14,14 @@
 #include "common/Timing.h"
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
+#include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 
 #include <optional>
 
 namespace cudaq {
+class gradient;
+class optimizer;
 class SerializedCodeExecutionContext;
 
 /// Expose the function that will return the current ExecutionManager
@@ -136,9 +139,10 @@ public:
   /// @brief Return whether this QPU has conditional feedback support
   virtual bool supportsConditionalFeedback() { return false; }
 
-  /// @brief Return whether this QPU has support for remote serialized code
-  /// execution
-  virtual bool supportsRemoteSerializedCode() { return false; }
+  /// @brief Return the remote capabilities for this platform.
+  virtual RemoteCapabilities getRemoteCapabilities() const {
+    return RemoteCapabilities(/*initValues=*/false);
+  }
 
   /// Base class handling of shots is do-nothing,
   /// subclasses can handle as they wish
@@ -160,6 +164,11 @@ public:
   virtual void resetExecutionContext() = 0;
   virtual void setTargetBackend(const std::string &backend) {}
 
+  virtual void launchVQE(const std::string &name, const void *kernelArgs,
+                         cudaq::gradient *gradient, cudaq::spin_op H,
+                         cudaq::optimizer &optimizer, const int n_params,
+                         const std::size_t shots) {}
+
   /// Launch the kernel with given name (to extract its Quake representation).
   /// The raw function pointer is also provided, as are the runtime arguments,
   /// as a struct-packed void pointer and its corresponding size.
@@ -167,8 +176,7 @@ public:
                             void *args, std::uint64_t, std::uint64_t) = 0;
 
   /// Launch serialized code for remote execution. Subtypes that support this
-  /// should override this function and the supportsRemoteSerializedCode()
-  /// function.
+  /// should override this function.
   virtual void launchSerializedCodeExecution(
       const std::string &name,
       cudaq::SerializedCodeExecutionContext &serializeCodeExecutionObject) {}

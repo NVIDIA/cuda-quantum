@@ -110,7 +110,7 @@ int main() {
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i32
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_6:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
-// CHECK:           %[[VAL_7:.*]] = arith.trunci %[[VAL_6]] : i64 to i32
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (i64) -> i32
 // CHECK:           %[[VAL_8:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           cc.scope {
@@ -124,13 +124,13 @@ int main() {
 // CHECK:               cc.condition %[[VAL_13]]
 // CHECK:             } do {
 // CHECK:               %[[VAL_14:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_15:.*]] = arith.extsi %[[VAL_14]] : i32 to i64
-// CHECK:               %[[VAL_16:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_15]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:               %[[VAL_15:.*]] = cc.cast signed %[[VAL_14]] : (i32) -> i64
+// CHECK:               %[[VAL_16:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_15]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:               %[[VAL_17:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_18:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_19:.*]] = arith.subi %[[VAL_17]], %[[VAL_18]] : i32
 // CHECK:               %[[VAL_20:.*]] = arith.subi %[[VAL_19]], %[[VAL_3]] : i32
-// CHECK:               %[[VAL_21:.*]] = arith.extsi %[[VAL_20]] : i32 to i64
+// CHECK:               %[[VAL_21:.*]] = cc.cast signed %[[VAL_20]] : (i32) -> i64
 // CHECK:               %[[VAL_22:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_21]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:               quake.swap %[[VAL_16]], %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:               cc.continue
@@ -152,7 +152,7 @@ int main() {
 // CHECK:             } do {
 // CHECK:               cc.scope {
 // CHECK:                 %[[VAL_30:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i32>
-// CHECK:                 %[[VAL_31:.*]] = arith.extsi %[[VAL_30]] : i32 to i64
+// CHECK:                 %[[VAL_31:.*]] = cc.cast signed %[[VAL_30]] : (i32) -> i64
 // CHECK:                 %[[VAL_32:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_31]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:                 quake.h %[[VAL_32]] : (!quake.ref) -> ()
 // CHECK:                 %[[VAL_33:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i32>
@@ -178,10 +178,10 @@ int main() {
 // CHECK:                       cc.store %[[VAL_44]], %[[VAL_45]] : !cc.ptr<f64>
 // CHECK:                       %[[VAL_46:.*]] = cc.load %[[VAL_45]] : !cc.ptr<f64>
 // CHECK:                       %[[VAL_47:.*]] = cc.load %[[VAL_35]] : !cc.ptr<i32>
-// CHECK:                       %[[VAL_48:.*]] = arith.extsi %[[VAL_47]] : i32 to i64
+// CHECK:                       %[[VAL_48:.*]] = cc.cast signed %[[VAL_47]] : (i32) -> i64
 // CHECK:                       %[[VAL_49:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_48]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:                       %[[VAL_50:.*]] = cc.load %[[VAL_37]] : !cc.ptr<i32>
-// CHECK:                       %[[VAL_51:.*]] = arith.extsi %[[VAL_50]] : i32 to i64
+// CHECK:                       %[[VAL_51:.*]] = cc.cast signed %[[VAL_50]] : (i32) -> i64
 // CHECK:                       %[[VAL_52:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_51]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:                       quake.r1 (%[[VAL_46]]) {{\[}}%[[VAL_49]]] %[[VAL_52]] : (f64, !quake.ref, !quake.ref) -> ()
 // CHECK:                     }
@@ -202,7 +202,7 @@ int main() {
 // CHECK:           }
 // CHECK:           %[[VAL_57:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_58:.*]] = arith.subi %[[VAL_57]], %[[VAL_3]] : i32
-// CHECK:           %[[VAL_59:.*]] = arith.extsi %[[VAL_58]] : i32 to i64
+// CHECK:           %[[VAL_59:.*]] = cc.cast signed %[[VAL_58]] : (i32) -> i64
 // CHECK:           %[[VAL_60:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_59]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:           quake.h %[[VAL_60]] : (!quake.ref) -> ()
 // CHECK:           return
@@ -263,14 +263,14 @@ int main() {
 // CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_10]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_13:.*]] = cc.load %[[VAL_11]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_14:.*]] = arith.addi %[[VAL_12]], %[[VAL_13]] : i32
-// CHECK:           %[[VAL_15:.*]] = arith.extsi %[[VAL_14]] : i32 to i64
+// CHECK:           %[[VAL_15:.*]] = cc.cast signed %[[VAL_14]] : (i32) -> i64
 // CHECK:           %[[VAL_16:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_15]] : i64]
 // CHECK:           %[[VAL_17:.*]] = cc.load %[[VAL_10]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_18:.*]] = arith.extsi %[[VAL_17]] : i32 to i64
+// CHECK:           %[[VAL_18:.*]] = cc.cast signed %[[VAL_17]] : (i32) -> i64
 // CHECK:           %[[VAL_19:.*]] = arith.subi %[[VAL_18]], %[[VAL_6]] : i64
 // CHECK:           %[[VAL_20:.*]] = quake.subveq %[[VAL_16]], %[[VAL_7]], %[[VAL_19]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_11]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_22:.*]] = arith.extsi %[[VAL_21]] : i32 to i64
+// CHECK:           %[[VAL_22:.*]] = cc.cast signed %[[VAL_21]] : (i32) -> i64
 // CHECK:           %[[VAL_23:.*]] = quake.veq_size %[[VAL_16]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_24:.*]] = arith.subi %[[VAL_23]], %[[VAL_6]] : i64
 // CHECK:           %[[VAL_25:.*]] = arith.subi %[[VAL_23]], %[[VAL_22]] : i64
@@ -305,15 +305,15 @@ int main() {
 // CHECK:                   cc.store %[[VAL_5]], %[[VAL_40]] : !cc.ptr<i32>
 // CHECK:                   cc.loop while {
 // CHECK:                     %[[VAL_41:.*]] = cc.load %[[VAL_40]] : !cc.ptr<i32>
-// CHECK:                     %[[VAL_42:.*]] = arith.extsi %[[VAL_41]] : i32 to i64
+// CHECK:                     %[[VAL_42:.*]] = cc.cast signed %[[VAL_41]] : (i32) -> i64
 // CHECK:                     %[[VAL_43:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>
-// CHECK:                     %[[VAL_44:.*]] = arith.extsi %[[VAL_43]] : i32 to i64
+// CHECK:                     %[[VAL_44:.*]] = cc.cast signed %[[VAL_43]] : (i32) -> i64
 // CHECK:                     %[[VAL_45:.*]] = arith.shli %[[VAL_6]], %[[VAL_44]] : i64
 // CHECK:                     %[[VAL_46:.*]] = arith.cmpi ult, %[[VAL_42]], %[[VAL_45]] : i64
 // CHECK:                     cc.condition %[[VAL_46]]
 // CHECK:                   } do {
 // CHECK:                     %[[VAL_47:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>
-// CHECK:                     %[[VAL_48:.*]] = arith.extsi %[[VAL_47]] : i32 to i64
+// CHECK:                     %[[VAL_48:.*]] = cc.cast signed %[[VAL_47]] : (i32) -> i64
 // CHECK:                     %[[VAL_49:.*]] = quake.extract_ref %[[VAL_20]]{{\[}}%[[VAL_48]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:                     quake.apply @__nvqpp__mlirgen__tgate [%[[VAL_49]]] %[[VAL_26]] : (!quake.ref, !quake.veq<?>) -> ()
 // CHECK:                     cc.continue

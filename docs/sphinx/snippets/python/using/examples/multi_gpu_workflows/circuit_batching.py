@@ -16,7 +16,7 @@ if cudaq.num_available_gpus() == 0:
     exit(0)
 
 np.random.seed(1)
-cudaq.set_target("nvidia-mqpu")
+cudaq.set_target("nvidia", option="mqpu")
 
 qubit_count = 5
 sample_count = 10000
