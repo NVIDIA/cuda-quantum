@@ -938,9 +938,9 @@ jobs:
         shell: bash
         run: |
           backends_to_test=`\
-              for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
+              for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
               do
-                  if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then \
+                  if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
                     basename $file | cut -d "." -f 1; \
                   elif [ -n "$(basename $file | grep mqpu)" ]; then \
                     echo remote-mqpu; \

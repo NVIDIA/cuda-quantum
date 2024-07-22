@@ -188,7 +188,12 @@ def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
 
 def __generalCustomOperation(self, opName, *args):
     """
-    Utility function for adding a generic quantum operation to the MLIR representation for the PyKernel.
+    Utility function for adding a generic quantum operation to the MLIR 
+    representation for the PyKernel.
+
+    A controlled version can be invoked by passing additional arguments 
+    to the operation. For an N-qubit operation, the last N arguments are 
+    treated as `targets` and excess arguments as `controls`.
     """
 
     global globalRegisteredOperations
@@ -196,15 +201,27 @@ def __generalCustomOperation(self, opName, *args):
 
     numTargets = int(np.log2(np.sqrt(unitary.size)))
 
-    targets = []
+    qubits = []
     with self.insertPoint, self.loc:
         for arg in args:
             if isinstance(arg, QuakeValue):
-                targets.append(arg.mlirValue)
+                qubits.append(arg.mlirValue)
             else:
                 emitFatalError(f"invalid argument type passed to {opName}.")
 
-        assert (numTargets == len(targets))
+        targets = []
+        controls = []
+
+        if numTargets == len(qubits):
+            targets = qubits
+        elif numTargets < len(qubits):
+            numControls = len(qubits) - numTargets
+            targets = qubits[-numTargets:]
+            controls = qubits[:numControls]
+        else:
+            emitFatalError(
+                f"too few arguments passed to {opName}, expected ({numTargets})"
+            )
 
         globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
         currentST = SymbolTable(self.module.operation)
@@ -216,7 +233,7 @@ def __generalCustomOperation(self, opName, *args):
         quake.CustomUnitarySymbolOp([],
                                     generator=FlatSymbolRefAttr.get(globalName),
                                     parameters=[],
-                                    controls=[],
+                                    controls=controls,
                                     targets=targets,
                                     is_adj=False)
         return
@@ -1519,6 +1536,11 @@ class PyKernel(object):
                 processedArgs.append(arg)
 
         cudaq_runtime.pyAltLaunchKernel(self.name, self.module, *processedArgs)
+
+    def __getattr__(self, attr_name):
+        if hasattr(self, attr_name):
+            return getattr(self, attr_name)
+        raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
 
 
 setattr(PyKernel, 'h', partialmethod(__singleTargetOperation, 'h'))

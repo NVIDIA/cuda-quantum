@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -508,14 +509,16 @@ LogicalResult quake::ExtractRefOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::InitializeStateOp::verify() {
-  auto veqTy = cast<quake::VeqType>(getTargets().getType());
-  if (veqTy.hasSpecifiedSize())
-    if (!std::has_single_bit(veqTy.getSize()))
-      return emitOpError("initialize state vector must be power of 2, but is " +
-                         std::to_string(veqTy.getSize()) + " instead.");
   auto ptrTy = cast<cudaq::cc::PointerType>(getState().getType());
   Type ty = ptrTy.getElementType();
   if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
+    if (!arrTy.isUnknownSize()) {
+      std::size_t size = arrTy.getSize();
+      if (!std::has_single_bit(size))
+        return emitOpError(
+            "initialize state vector must be power of 2, but is " +
+            std::to_string(size) + " instead.");
+    }
     if (!isa<FloatType, ComplexType>(arrTy.getElementType()))
       return emitOpError("invalid data pointer type");
   } else if (!isa<FloatType, ComplexType, cudaq::cc::StateType>(ty)) {
@@ -544,6 +547,20 @@ struct ForwardAllocaTypePattern
                 initState.getLoc(), targTy, targ, initState.getState());
             rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(initState, isTy,
                                                             newInit);
+            return success();
+          }
+      }
+
+    // Remove any intervening cast to !cc.ptr<!cc.array<T x ?>> ops.
+    if (auto stateCast =
+            initState.getState().getDefiningOp<cudaq::cc::CastOp>())
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateCast.getType())) {
+        auto eleTy = ptrTy.getElementType();
+        if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy))
+          if (arrTy.isUnknownSize()) {
+            rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
+                initState, initState.getTargets().getType(),
+                initState.getTargets(), stateCast.getValue());
             return success();
           }
       }

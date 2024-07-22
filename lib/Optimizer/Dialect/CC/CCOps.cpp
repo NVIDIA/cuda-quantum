@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
@@ -36,6 +37,13 @@ std::optional<std::int64_t> cudaq::opt::factory::getIntIfConstant(Value value) {
   APInt constant;
   if (matchPattern(value, m_ConstantInt(&constant)))
     return {constant.getSExtValue()};
+  return {};
+}
+
+std::optional<APFloat> cudaq::opt::factory::getDoubleIfConstant(Value value) {
+  APFloat constant{0.0};
+  if (matchPattern(value, m_ConstantFloat(&constant)))
+    return {constant};
   return {};
 }
 
@@ -187,10 +195,100 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 // CastOp
 //===----------------------------------------------------------------------===//
 
-OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor) {
+OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
   // If cast is a nop, just forward the argument to the uses.
   if (getType() == getValue().getType())
     return getValue();
+  if (auto optConst = adaptor.getValue()) {
+    // Replace a constant + cast with a new constant of an updated type.
+    auto ty = getType();
+    OpBuilder builder(*this);
+    auto fltTy = builder.getF32Type();
+    auto dblTy = builder.getF64Type();
+    auto loc = getLoc();
+    if (auto attr = dyn_cast<IntegerAttr>(optConst)) {
+      auto val = attr.getInt();
+      if (isa<IntegerType>(ty)) {
+        auto width = ty.getIntOrFloatBitWidth();
+        return builder.create<arith::ConstantIntOp>(loc, val, width)
+            .getResult();
+      } else if (ty == fltTy) {
+        if (getZint()) {
+          APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
+          return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
+              .getResult();
+        }
+        if (getSint()) {
+          APFloat fval(static_cast<float>(val));
+          return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
+              .getResult();
+        }
+      } else if (ty == dblTy) {
+        if (getZint()) {
+          APFloat fval(static_cast<double>(static_cast<std::uint64_t>(val)));
+          return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
+              .getResult();
+        }
+        if (getSint()) {
+          APFloat fval(static_cast<double>(val));
+          return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
+              .getResult();
+        }
+      }
+    }
+    if (auto attr = dyn_cast<FloatAttr>(optConst)) {
+      auto val = attr.getValue();
+      if (isa<IntegerType>(ty)) {
+        auto width = ty.getIntOrFloatBitWidth();
+        if (getZint()) {
+          std::uint64_t v = val.convertToDouble();
+          return builder.create<arith::ConstantIntOp>(loc, v, width)
+              .getResult();
+        }
+        if (getSint()) {
+          std::int64_t v = val.convertToDouble();
+          return builder.create<arith::ConstantIntOp>(loc, v, width)
+              .getResult();
+        }
+      } else if (ty == fltTy) {
+        float f = val.convertToDouble();
+        APFloat fval(f);
+        return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
+            .getResult();
+      } else if (ty == dblTy) {
+        APFloat fval{val.convertToDouble()};
+        return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
+            .getResult();
+      }
+    }
+
+    // %5 = complex.constant ... -> complex<T>
+    // %6 = cc.cast %5 : (complex<T>) -> complex<U>
+    // ────────────────────────────────────────────
+    // %6 = complex.constant ... -> complex<U>
+    if (auto attr = dyn_cast<ArrayAttr>(optConst)) {
+      auto eleTy = cast<ComplexType>(ty).getElementType();
+      auto reFp = dyn_cast<FloatAttr>(attr[0]);
+      auto imFp = dyn_cast<FloatAttr>(attr[1]);
+      if (reFp && imFp) {
+        if (eleTy == fltTy) {
+          float reVal = reFp.getValue().convertToDouble();
+          float imVal = imFp.getValue().convertToDouble();
+          auto rePart = builder.getFloatAttr(eleTy, APFloat{reVal});
+          auto imPart = builder.getFloatAttr(eleTy, APFloat{imVal});
+          auto cv = builder.getArrayAttr({rePart, imPart});
+          return builder.create<complex::ConstantOp>(loc, ty, cv).getResult();
+        } else if (eleTy == dblTy) {
+          double reVal = reFp.getValue().convertToDouble();
+          double imVal = imFp.getValue().convertToDouble();
+          auto rePart = builder.getFloatAttr(eleTy, APFloat{reVal});
+          auto imPart = builder.getFloatAttr(eleTy, APFloat{imVal});
+          auto cv = builder.getArrayAttr({rePart, imPart});
+          return builder.create<complex::ConstantOp>(loc, ty, cv).getResult();
+        }
+      }
+    }
+  }
   return nullptr;
 }
 
@@ -253,6 +351,9 @@ LogicalResult cudaq::cc::CastOp::verify() {
   } else if (isa<cc::PointerType, LLVM::LLVMPointerType>(inTy) &&
              isa<cc::PointerType, LLVM::LLVMPointerType>(outTy)) {
     // ok, pointer casts: bitcast, nop
+  } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
+    // ok, type conversion of a complex value
+    // NB: use complex.re or complex.im to convert (extract) a fp value.
   } else {
     // Could support a bitcast of a float with pointer size bits to/from a
     // pointer, but that doesn't seem like it would be very common.
@@ -282,11 +383,62 @@ struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
     return success();
   }
 };
+
+// Ad hoc pattern to erase casts used by arith.cmpi.
+struct SimplifyIntegerCompare : public OpRewritePattern<arith::CmpIOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(arith::CmpIOp compare,
+                                PatternRewriter &rewriter) const override {
+    auto lhsCast = compare.getLhs().getDefiningOp<cudaq::cc::CastOp>();
+    auto rhsCast = compare.getRhs().getDefiningOp<cudaq::cc::CastOp>();
+    // %4 = cc.cast %2 ...
+    // %5 = cc.cast %3 ...
+    // %6 = arith.cmpi %4, %5 ...
+    //      and
+    // type(%2) == type(%3)
+    //      and
+    // %4 and %5 are compatible casts
+    // ──────────────────────────────
+    // %5 = arith.cmpi %2, %3 ...
+    if (lhsCast && rhsCast) {
+      auto lhsVal = lhsCast.getValue();
+      auto rhsVal = rhsCast.getValue();
+      if (lhsVal.getType() == rhsVal.getType() &&
+          lhsCast.getSint() == rhsCast.getSint() &&
+          lhsCast.getZint() == rhsCast.getZint())
+        rewriter.replaceOpWithNewOp<arith::CmpIOp>(
+            compare, compare.getType(), compare.getPredicate(), lhsVal, rhsVal);
+    }
+    return success();
+  }
+};
+
+// Ad hoc pattern to erase complex.create. (MLIR doesn't do this.)
+struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(complex::CreateOp create,
+                                PatternRewriter &rewriter) const override {
+    auto reVal = cudaq::opt::factory::getDoubleIfConstant(create.getReal());
+    auto imVal =
+        cudaq::opt::factory::getDoubleIfConstant(create.getImaginary());
+    if (reVal && imVal) {
+      auto eleTy = cast<ComplexType>(create.getType()).getElementType();
+      auto rePart = rewriter.getFloatAttr(eleTy, *reVal);
+      auto imPart = rewriter.getFloatAttr(eleTy, *imVal);
+      auto arrAttr = rewriter.getArrayAttr({rePart, imPart});
+      rewriter.replaceOpWithNewOp<complex::ConstantOp>(
+          create, ComplexType::get(eleTy), arrAttr);
+    }
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                     MLIRContext *context) {
-  patterns.add<FuseCastCascade>(context);
+  patterns.add<FuseCastCascade, SimplifyIntegerCompare, FuseComplexCreate>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//

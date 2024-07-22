@@ -11,6 +11,7 @@
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
@@ -24,6 +25,8 @@
 namespace cudaq {
 
 class QPU;
+class gradient;
+class optimizer;
 class SerializedCodeExecutionContext;
 
 /// Typedefs for defining the connectivity structure of a QPU
@@ -118,9 +121,8 @@ public:
   /// quantum kernels.
   void set_noise(const noise_model *model);
 
-  /// @brief Return whether the QPU has support for remote serialized code
-  /// execution
-  bool supports_remote_serialized_code(const std::size_t qpuId = 0) const;
+  /// @brief Get the remote capabilities (only applicable for remote platforms)
+  RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
 
   /// @brief Turn off any noise models.
   void reset_noise();
@@ -131,6 +133,12 @@ public:
 
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
+
+  /// @brief Launch a VQE operation on the platform.
+  void launchVQE(const std::string kernelName, const void *kernelArgs,
+                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::optimizer &optimizer, const int n_params,
+                 const std::size_t shots);
 
   // This method is the hook for the kernel rewrites to invoke
   // quantum kernels.

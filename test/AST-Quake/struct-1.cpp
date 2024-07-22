@@ -293,12 +293,12 @@ struct S6 {
 // CHECK:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.struct<"ArgumentThing" {i32, i32, f64} [128,8]>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_17:.*]] = cc.load %[[VAL_16]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_18:.*]] = arith.cmpi sgt, %[[VAL_17]], %[[VAL_1]] : i32
-// CHECK:           %[[VAL_19:.*]] = arith.extui %[[VAL_18]] : i1 to i16
+// CHECK:           %[[VAL_19:.*]] = cc.cast unsigned %[[VAL_18]] : (i1) -> i16
 // CHECK:           cc.store %[[VAL_19]], %[[VAL_15]] : !cc.ptr<i16>
 // CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_10]][3] : (!cc.ptr<!cc.struct<{i1, i32, i16, i32} [128,4]>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_3]][2] : (!cc.ptr<!cc.struct<"ArgumentThing" {i32, i32, f64} [128,8]>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_22:.*]] = cc.load %[[VAL_21]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_23:.*]] = arith.fptosi %[[VAL_22]] : f64 to i32
+// CHECK:           %[[VAL_23:.*]] = cc.cast signed %[[VAL_22]] : (f64) -> i32
 // CHECK:           cc.store %[[VAL_23]], %[[VAL_20]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_24:.*]] = cc.compute_ptr %[[VAL_10]][1] : (!cc.ptr<!cc.struct<{i1, i32, i16, i32} [128,4]>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_25:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.struct<"ArgumentThing" {i32, i32, f64} [128,8]>>) -> !cc.ptr<i32>

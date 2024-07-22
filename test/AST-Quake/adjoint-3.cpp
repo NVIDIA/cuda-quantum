@@ -95,9 +95,9 @@ struct run_circuit {
 // ADJOINT-DAG:       %[[VAL_6:.*]] = arith.constant 0 : i64
 // ADJOINT-DAG:       %[[VAL_7:.*]] = arith.constant 1 : i32
 // ADJOINT:           %[[VAL_8:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
-// ADJOINT:           %[[VAL_9:.*]] = arith.trunci %[[VAL_8]] : i64 to i32
+// ADJOINT:           %[[VAL_9:.*]] = cc.cast %[[VAL_8]] : (i64) -> i32
 // ADJOINT:           %[[VAL_10:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
-// ADJOINT:           %[[VAL_11:.*]] = arith.extsi %[[VAL_10]] : i32 to i64
+// ADJOINT:           %[[VAL_11:.*]] = cc.cast signed %[[VAL_10]] : (i32) -> i64
 // ADJOINT:           %[[VAL_12:.*]] = arith.subi %[[VAL_11]], %[[VAL_5]] : i64
 // ADJOINT:           %[[VAL_13:.*]] = quake.subveq %[[VAL_0]], %[[VAL_6]], %[[VAL_12]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // ADJOINT:           %[[VAL_14:.*]] = quake.veq_size %[[VAL_13]] : (!quake.veq<?>) -> i64
@@ -105,7 +105,7 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_18:.*]] = math.fpowi %[[VAL_2]], %[[VAL_16]] : f64, i32
 // ADJOINT:           %[[VAL_19:.*]] = arith.divf %[[VAL_1]], %[[VAL_18]] : f64
 // ADJOINT:           %[[VAL_20:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
-// ADJOINT:           %[[VAL_21:.*]] = arith.extsi %[[VAL_20]] : i32 to i64
+// ADJOINT:           %[[VAL_21:.*]] = cc.cast signed %[[VAL_20]] : (i32) -> i64
 // ADJOINT:           %[[VAL_22:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_21]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:           %[[VAL_23:.*]] = arith.constant 0 : i32
 // ADJOINT:           %[[VAL_24:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
@@ -131,10 +131,10 @@ struct run_circuit {
 // ADJOINT:             %[[VAL_50:.*]] = math.fpowi %[[VAL_2]], %[[VAL_48]] : f64, i32
 // ADJOINT:             %[[VAL_51:.*]] = arith.divf %[[VAL_1]], %[[VAL_50]] : f64
 // ADJOINT:             %[[VAL_52:.*]] = arith.subi %[[VAL_43]], %[[VAL_7]] : i32
-// ADJOINT:             %[[VAL_53:.*]] = arith.extsi %[[VAL_52]] : i32 to i64
+// ADJOINT:             %[[VAL_53:.*]] = cc.cast signed %[[VAL_52]] : (i32) -> i64
 // ADJOINT:             %[[VAL_54:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_53]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:             %[[VAL_55:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
-// ADJOINT:             %[[VAL_56:.*]] = arith.extsi %[[VAL_55]] : i32 to i64
+// ADJOINT:             %[[VAL_56:.*]] = cc.cast signed %[[VAL_55]] : (i32) -> i64
 // ADJOINT:             %[[VAL_57:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_56]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:             %[[VAL_58:.*]] = arith.negf %[[VAL_51]] : f64
 // ADJOINT:             quake.ry (%[[VAL_58]]) [%[[VAL_54]]] %[[VAL_57]] : (f64, !quake.ref, !quake.ref) -> ()

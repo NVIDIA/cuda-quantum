@@ -16,6 +16,7 @@ import numpy as np
 
 import cudaq
 from cudaq import spin
+import numpy as np
 
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
@@ -297,6 +298,31 @@ def test_complex_vqe_inline_lambda():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
+@skipIfPythonLessThan39
+def test_vqe_perf_warning():
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    @cudaq.kernel
+    def kernel(num_qubits: int, angles: list[float]):
+        qvector = cudaq.qvector(num_qubits)
+        x(qvector[0])
+        ry(angles[0], qvector[1])
+        x.ctrl(qvector[1], qvector[0])
+
+    optimizer = cudaq.optimizers.Adam()
+    grad = cudaq.gradients.CentralDifference()
+
+    num_qubits = 2
+    with pytest.raises(RuntimeError) as error:
+        energy, parameter = cudaq.vqe(kernel=kernel,
+                                      gradient_strategy=grad,
+                                      spin_operator=hamiltonian,
+                                      optimizer=optimizer,
+                                      argument_mapper=lambda x: (num_qubits, x),
+                                      parameter_count=1)
+
+
 # This is a helper function used by parameterized tests below.
 @pytest.mark.skip
 def test_complex_vqe_named_lambda(optimizer, gradient):
@@ -351,6 +377,31 @@ def test_complex_vqe_named_lambda_sweep_opt(optimizer):
 def test_complex_vqe_named_lambda_sweep_grad(gradient):
     test_complex_vqe_named_lambda(cudaq.optimizers.Adam(), gradient)
 
+@skipIfPythonLessThan39
+def test_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+@skipIfPythonLessThan39
+def test_state_preparation_builder():
+    kernel, state = cudaq.make_kernel(list[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 @skipIfPythonLessThan39
 @pytest.mark.skip(reason="https://github.com/NVIDIA/cuda-quantum/issues/1924")
