@@ -136,11 +136,18 @@ class OperatorSum:
         return sum([term.concretize(dimensions, **kwargs) for term in padded_terms])
 
     def __mul__(self: OperatorSum, other) -> OperatorSum:
-        if not isinstance(other, OperatorSum):
+        if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
         elif type(other) == OperatorSum:
             return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
         return OperatorSum([self_term * other for self_term in self._terms])
+
+    def __rmul__(self: OperatorSum, other) -> OperatorSum:
+        # We only need to handle multiplication with Numbers here, 
+        # since everything else is covered without right multiplication.
+        if isinstance(other, Number):
+            return OperatorSum([self_term * other for self_term in self._terms])
+        return NotImplemented
 
     def __add__(self: OperatorSum, other) -> OperatorSum:
         if not isinstance(other, OperatorSum):
@@ -198,13 +205,22 @@ class ProductOperator(OperatorSum):
         return matrix
 
     def __mul__(self: ProductOperator, other) -> ProductOperator | OperatorSum:
-        if not isinstance(other, OperatorSum):
+        if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
         elif type(other) == ProductOperator:
             return ProductOperator(self._operators + other._operators)
         elif type(other) == OperatorSum: # Only create OperatorSum if needed.
             return OperatorSum([self]) * other
+        elif isinstance(other, Number):
+            return ProductOperator(self._operators + [operators.const(other)])
         return self * ProductOperator([other])
+    
+    def __rmul__(self: ProductOperator, other) -> ProductOperator:
+        # We only need to handle multiplication with Numbers here, 
+        # since everything else is covered without right multiplication.
+        if isinstance(other, Number):
+            return ProductOperator([operators.const(other)] + self._operators)
+        return NotImplemented
 
     def __add__(self: ProductOperator, other) -> OperatorSum:
         if not isinstance(other, OperatorSum):
@@ -283,11 +299,18 @@ class ElementaryOperator(ProductOperator):
         return ElementaryOperator._ops[self._op_id](relevant_dimensions, **kwargs)
 
     def __mul__(self: ElementaryOperator, other) -> ProductOperator:
-        if not isinstance(other, OperatorSum):
+        if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
         elif type(other) == ElementaryOperator:
             return ProductOperator([self, other])
         return ProductOperator([self]) * other
+
+    def __rmul__(self: ElementaryOperator, other) -> ProductOperator:
+        # We only need to handle multiplication with Numbers here, 
+        # since everything else is covered without right multiplication.
+        if isinstance(other, Number):
+            return ProductOperator([self]) * other
+        return NotImplemented
 
     def __add__(self: ElementaryOperator, other) -> OperatorSum:
         if not isinstance(other, OperatorSum):
@@ -309,7 +332,7 @@ class ScalarOperator(ProductOperator):
     # this scalar operator.
     def __init__(self: ScalarOperator, generator: Callable):
         self._degrees = []
-        self.generator = generator # Don't set self._generator directly; the setter validates the value.
+        self.generator = generator # The setter validates the generator and sets _parameter_info.
         super().__init__([self])
 
     @property
@@ -347,15 +370,27 @@ class ScalarOperator(ProductOperator):
         return evaluated
 
     def __mul__(self: ScalarOperator, other) -> ScalarOperator | ProductOperator:
-        if not isinstance(other, OperatorSum):
+        if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
         elif type(other) == ScalarOperator:
             generator = lambda **kwargs: self.concretize(**kwargs) * other.concretize(**kwargs)
             operator = ScalarOperator(generator)
             operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
             return operator
+        elif isinstance(other, Number):
+            generator = lambda **kwargs: other * self.concretize(**kwargs)
+            operator = ScalarOperator(generator)
+            operator._parameter_info = self._parameter_info
+            return operator
         return ProductOperator([self]) * other
-    
+
+    def __rmul__(self: ScalarOperator, other) -> ProductOperator:
+        # We only need to handle multiplication with Numbers here, 
+        # since everything else is covered without right multiplication.
+        if isinstance(other, Number):
+            return self * other
+        return NotImplemented
+
     def __add__(self: ScalarOperator, other) -> ScalarOperator | OperatorSum:
         if not isinstance(other, OperatorSum):
             return NotImplemented
@@ -691,3 +726,30 @@ print(f"arithmetics: {((scop - elop) - scop).concretize(dims)}")
 print(f"arithmetics: {(scop - (scop - elop)).concretize(dims)}")
 print(f"arithmetics: {((scop - elop) - elop).concretize(dims)}")
 print(f"arithmetics: {(elop - (scop - elop)).concretize(dims)}")
+
+opprod = operators.create(0) * operators.annihilate(0)
+opsum = operators.create(0) + operators.annihilate(0)
+print(f"arithmetics: {(scop * 2).concretize(dims)}")
+print(f"arithmetics: {(scop * 2.5).concretize(dims)}")
+print(f"arithmetics: {(scop * 2j).concretize(dims)}")
+print(f"arithmetics: {(2 * scop).concretize(dims)}")
+print(f"arithmetics: {(2.5 * scop).concretize(dims)}")
+print(f"arithmetics: {(2j * scop).concretize(dims)}")
+print(f"arithmetics: {(elop * 2).concretize(dims)}")
+print(f"arithmetics: {(elop * 2.5).concretize(dims)}")
+print(f"arithmetics: {(elop * 2j).concretize(dims)}")
+print(f"arithmetics: {(2 * elop).concretize(dims)}")
+print(f"arithmetics: {(2.5 * elop).concretize(dims)}")
+print(f"arithmetics: {(2j * elop).concretize(dims)}")
+print(f"arithmetics: {(opprod * 2).concretize(dims)}")
+print(f"arithmetics: {(opprod * 2.5).concretize(dims)}")
+print(f"arithmetics: {(opprod * 2j).concretize(dims)}")
+print(f"arithmetics: {(2 * opprod).concretize(dims)}")
+print(f"arithmetics: {(2.5 * opprod).concretize(dims)}")
+print(f"arithmetics: {(2j * opprod).concretize(dims)}")
+print(f"arithmetics: {(opsum * 2).concretize(dims)}")
+print(f"arithmetics: {(opsum * 2.5).concretize(dims)}")
+print(f"arithmetics: {(opsum * 2j).concretize(dims)}")
+print(f"arithmetics: {(2 * opsum).concretize(dims)}")
+print(f"arithmetics: {(2.5 * opsum).concretize(dims)}")
+print(f"arithmetics: {(2j * opsum).concretize(dims)}")
