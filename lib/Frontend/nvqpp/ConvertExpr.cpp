@@ -2873,9 +2873,16 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
   }
 
-  // Struct construction handled elsewhere in the traversal
-  if (auto structTy = dyn_cast<cc::StructType>(ctorTy))
+  // Note we only screen for structs that contain data members.
+  // Revisit this if we ever enable Kernel structs with data members.
+  if (auto structTy = dyn_cast<cc::StructType>(ctorTy);
+      structTy && !structTy.getMembers().empty()) {
+    if (ctor->isDefaultConstructor())
+      return pushValue(builder.create<cc::AllocaOp>(loc, ctorTy));
+
+    // Struct construction handled elsewhere in the traversal.
     return true;
+  }
 
   // TODO: remove this when we can handle ctors more generally.
   if (!ctor->isDefaultConstructor()) {
