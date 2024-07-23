@@ -1480,9 +1480,15 @@ public:
   /// device kernel) cannot be called directly from C++ (classical) code. It
   /// must be called via other quantum code.
   bool hasLegalType(FunctionType funTy) {
-    for (auto ty : funTy.getInputs())
+    for (auto ty : funTy.getInputs()) {
       if (quake::isQuantumType(ty))
         return false;
+
+      if (auto structTy = dyn_cast<cudaq::cc::StructType>(ty))
+        for (auto memberTy : structTy.getMembers())
+          if (quake::isQuantumType(memberTy))
+            return false;
+    }
     for (auto ty : funTy.getResults())
       if (quake::isQuantumType(ty))
         return false;

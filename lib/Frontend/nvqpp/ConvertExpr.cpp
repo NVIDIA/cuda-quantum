@@ -1490,6 +1490,21 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           builder.create<quake::DiscriminateOp>(loc, resTy, measure));
     }
 
+    // We may have qubit values that come from struct members, in this
+    // case the value may be provided as a pointer, need to load it here.
+    SmallVector<Value> localArgs;
+    for (auto arg : args) {
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(arg.getType())) {
+        if (isa<quake::VeqType, quake::RefType>(ptrTy.getElementType())) {
+          localArgs.push_back(builder.create<cudaq::cc::LoadOp>(loc, arg));
+          continue;
+        }
+      }
+      localArgs.push_back(arg);
+    }
+
+    args = localArgs;
+
     // Handle the quantum gate set.
     auto reportNegateError = [&]() {
       reportClangError(x, mangler, "target qubit cannot be negated");
@@ -2179,6 +2194,24 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto idx_var = popValue();
       auto qreg_var = popValue();
 
+      // We could have the case where the qvector is coming from a struct
+      // and is not in the symbol table.
+      if (auto computePtrOp =
+              qreg_var.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+        if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(
+                computePtrOp.getBase().getType())) {
+          if (isa<cudaq::cc::StructType>(ptrTy.getElementType())) {
+            // This qreg is coming from a struct, it's not in the symbol table
+            if (isa<cudaq::cc::PointerType>(qreg_var.getType()))
+              qreg_var = builder.create<cudaq::cc::LoadOp>(loc, qreg_var);
+
+            auto address_qubit =
+                builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
+            return replaceTOSValue(address_qubit);
+          }
+        }
+      }
+
       // Get name of the qreg, e.g. qr, and use it to construct a name for the
       // element, which is intended to be qr%n when n is the index of the
       // accessed qubit.
@@ -2839,6 +2872,10 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     builder.create<cc::StoreOp>(loc, fromVal, copyObj);
     return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
   }
+
+  // Struct construction handled elsewhere in the traversal
+  if (auto structTy = dyn_cast<cc::StructType>(ctorTy))
+    return true;
 
   // TODO: remove this when we can handle ctors more generally.
   if (!ctor->isDefaultConstructor()) {
