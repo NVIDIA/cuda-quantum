@@ -95,13 +95,13 @@ def check_observe(entity):
 
 def test_observe():
     # Create the parameterized ansatz
-    kernel, theta = cudaq.make_kernel(float)
-    qreg = kernel.qalloc(2)
-    kernel.x(qreg[0])
-    kernel.ry(theta, qreg[1])
-    kernel.cx(qreg[1], qreg[0])
+    ansatz, phi = cudaq.make_kernel(float)
+    qreg = ansatz.qalloc(2)
+    ansatz.x(qreg[0])
+    ansatz.ry(phi, qreg[1])
+    ansatz.cx(qreg[1], qreg[0])
 
-    check_observe(kernel)
+    check_observe(ansatz)
 
 
 # Make sure spin_op serializes and deserializes correctly

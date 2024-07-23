@@ -1679,47 +1679,46 @@ def test_issue_1641():
 def test_control_then_adjoint():
 
     @cudaq.kernel
-    def my_func(q: cudaq.qubit, theta: float):
-        ry(theta, q)
-        rz(theta, q)
+    def my_func(q: cudaq.qubit, omega: float):
+        ry(omega, q)
+        rz(omega, q)
 
     @cudaq.kernel
-    def kernel(theta: float):
+    def other_kernel(delta: float):
         ancilla = cudaq.qubit()
         q = cudaq.qubit()
 
         h(ancilla)
-        cudaq.control(my_func, ancilla, q, theta)
-        cudaq.adjoint(my_func, q, theta)
+        cudaq.control(my_func, ancilla, q, delta)
+        cudaq.adjoint(my_func, q, delta)
 
     theta = 1.5
     # test here is that this compiles and runs
-    cudaq.sample(kernel, theta).dump()
+    cudaq.sample(other_kernel, theta).dump()
 
 
 def test_control_on_adjoint():
 
     @cudaq.kernel
-    def my_func(q: cudaq.qubit, theta: float):
-        ry(theta, q)
-        rz(theta, q)
+    def rot_y_z(q: cudaq.qubit, alpha: float):
+        ry(alpha, q)
+        rz(alpha, q)
 
     @cudaq.kernel
-    def adj_func(q: cudaq.qubit, theta: float):
-        cudaq.adjoint(my_func, q, theta)
+    def adj_func(q: cudaq.qubit, beta: float):
+        cudaq.adjoint(rot_y_z, q, beta)
 
     @cudaq.kernel
-    def kernel(theta: float):
+    def apply_control(gamma: float):
         ancilla = cudaq.qubit()
         q = cudaq.qubit()
 
         h(ancilla)
-        cudaq.control(my_func, ancilla, q, theta)
-        cudaq.control(adj_func, ancilla, q, theta)
+        cudaq.control(rot_y_z, ancilla, q, gamma)
+        cudaq.control(adj_func, ancilla, q, gamma)
 
-    theta = 1.5
     # test here is that this compiles and runs
-    cudaq.sample(kernel, theta).dump()
+    cudaq.sample(apply_control, 1.5).dump()
 
 
 # leave for gdb debugging
