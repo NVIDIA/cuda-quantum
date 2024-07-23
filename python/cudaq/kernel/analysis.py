@@ -53,10 +53,8 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
         return ''
 
     def checkForMeasureResult(self, value):
-        if self.isMeasureCallOp(value) or self.getVariableName(
-                value) in self.measureResultsVars:
-            return True
-        return False
+        return self.isMeasureCallOp(value) or self.getVariableName(
+            value) in self.measureResultsVars
 
     def visit_If(self, node):
         condition = node.test
