@@ -116,61 +116,56 @@ class OperatorSum:
 
 class OperatorSum:
 
-    def __init__(self, terms: list[ProductOperator]):
+    def __init__(self: OperatorSum, terms: list[ProductOperator]):
         if len(terms) == 0:
             raise ValueError("need at least one term")
         self._terms = terms
 
     @property
-    def parameters(self) -> dict[str, str]:
+    def parameters(self: OperatorSum) -> dict[str, str]:
         return _OperatorHelpers.aggregate_parameters([term.parameters for term in self._terms])
 
-    def concretize(self, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
+    def concretize(self: OperatorSum, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
         degrees = set([degree for term in self._terms for op in term._operators for degree in op._degrees])
         padded_terms = [] # We need to make sure all matrices are of the same size to sum them up.
         for term in self._terms:
             for degree in degrees:
-                if not degree in [degree for op in term._operators for degree in op._degrees]:
+                if not degree in [op_degree for op in term._operators for op_degree in op._degrees]:
                     term *= operators.identity(degree)
             padded_terms.append(term)
         return sum([term.concretize(dimensions, **kwargs) for term in padded_terms])
 
-    def __mul__(self, other: OperatorSum):
+    def __mul__(self: OperatorSum, other) -> OperatorSum:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
-        elif type(other) == ScalarOperator:
-            return self * OperatorSum([ProductOperator([other])])
-        elif type(other) == ElementaryOperator:
-            return self * OperatorSum([ProductOperator([other])])
-        elif type(other) == ProductOperator:
-            return self * OperatorSum([other])
-        return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
-    
-    def __add__(self, other: OperatorSum):
+            return NotImplemented
+        elif type(other) == OperatorSum:
+            return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
+        return OperatorSum([self_term * other for self_term in self._terms])
+
+    def __add__(self: OperatorSum, other) -> OperatorSum:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for +/-: '{type(self).__name__}' and '{type(other).__name__}'")
-        elif type(other) == ScalarOperator:
-            return self + OperatorSum([ProductOperator([other])])
-        elif type(other) == ElementaryOperator:
-            return self + OperatorSum([ProductOperator([other])])
-        elif type(other) == ProductOperator:
-            return self + OperatorSum([other])
-        return OperatorSum(self._terms + other._terms)
+            return NotImplemented        
+        elif type(other) == OperatorSum:
+            return OperatorSum(self._terms + other._terms)
+        return other + self # Operator addition is commutative.
+
+    def __sub__(self: OperatorSum, other) -> OperatorSum:
+        return self + operators.const(-1) * other
 
 class ProductOperator(OperatorSum):
 
-    def __init__(self, operators : list[ElementaryOperator]):
+    def __init__(self: ProductOperator, operators : list[ElementaryOperator | ScalarOperator]):
         if len(operators) == 0:
             raise ValueError("need at least one operator")
         self._operators = operators
         super().__init__([self])
 
     @property
-    def parameters(self) -> dict[str, str]:
+    def parameters(self: ProductOperator) -> dict[str, str]:
         return _OperatorHelpers.aggregate_parameters([operator.parameters for operator in self._operators])
 
-    def concretize(self, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
-        def padded_matrix(op: ElementaryOperator, degrees: list[int]):
+    def concretize(self: ProductOperator, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
+        def padded_matrix(op: ElementaryOperator | ScalarOperator, degrees: list[int]):
             op_matrix = op.concretize(dimensions, **kwargs)
             op_degrees = op._degrees.copy() # Determines the initial qubit ordering of op_matrix.
             for degree in degrees:
@@ -202,29 +197,23 @@ class ProductOperator(OperatorSum):
             matrix = numpy.dot(matrix, padded_matrix(op, degrees))
         return matrix
 
-    def __mul__(self, other: ProductOperator):
+    def __mul__(self: ProductOperator, other) -> ProductOperator | OperatorSum:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
-        elif type(other) == ScalarOperator:
-            return self * ProductOperator([other])
-        elif type(other) == ElementaryOperator:
-            return self * ProductOperator([other])
-        elif type(other) != ProductOperator:
+            return NotImplemented
+        elif type(other) == ProductOperator:
+            return ProductOperator(self._operators + other._operators)
+        elif type(other) == OperatorSum: # Only create OperatorSum if needed.
             return OperatorSum([self]) * other
-        return ProductOperator(self._operators + other._operators)
+        return self * ProductOperator([other])
 
-    def __add__(self, other: ProductOperator):
+    def __add__(self: ProductOperator, other) -> OperatorSum:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for +/-: '{type(self).__name__}' and '{type(other).__name__}'")
-        elif type(other) == ScalarOperator:
-            return self + ProductOperator([other])
-        elif type(other) == ElementaryOperator:
-            return self + OperatorSum([other])
-        elif type(other) != ProductOperator:
-            return OperatorSum([self]) + other
-        return OperatorSum([self, other])
+            return NotImplemented
+        elif type(other) == ProductOperator:
+            return OperatorSum([self, other])
+        return OperatorSum([self]) + other
 
-    def __sub__(self, other: ScalarOperator) -> ScalarOperator:
+    def __sub__(self: ProductOperator, other) -> OperatorSum:
         return self + operators.const(-1) * other
 
 class ElementaryOperator(ProductOperator):
@@ -274,7 +263,7 @@ class ElementaryOperator(ProductOperator):
         cls._ops[op_id] = generator
         cls._parameter_info[op_id] = parameters
 
-    def __init__(self, operator_id: str, degrees: list[int]):
+    def __init__(self: ElementaryOperator, operator_id: str, degrees: list[int]):
         if not operator_id in ElementaryOperator._ops:
             raise ValueError(f"no built-in operator '{operator_id}' has been defined")
         self._op_id = operator_id
@@ -283,37 +272,33 @@ class ElementaryOperator(ProductOperator):
         super().__init__([self])
 
     @property
-    def parameters(self) -> dict[str, str]:
+    def parameters(self: ElementaryOperator) -> dict[str, str]:
         return ElementaryOperator._parameter_info[self._op_id]
 
-    def concretize(self, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
+    def concretize(self: ElementaryOperator, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
         missing_degrees = [degree not in dimensions for degree in self._degrees]
         if any(missing_degrees):
             raise ValueError(f'missing dimensions for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
         relevant_dimensions = [dimensions[degree] for degree in self._degrees]
         return ElementaryOperator._ops[self._op_id](relevant_dimensions, **kwargs)
 
-    def __mul__(self, other: ElementaryOperator):
+    def __mul__(self: ElementaryOperator, other) -> ProductOperator:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
-        elif type(other) == ScalarOperator:
-            return ProductOperator([self]) * ProductOperator([other])
-        elif type(other) != ElementaryOperator:
-            return ProductOperator([self]) * other
-        return ProductOperator([self, other])
+            return NotImplemented
+        elif type(other) == ElementaryOperator:
+            return ProductOperator([self, other])
+        return ProductOperator([self]) * other
 
-    def __add__(self, other: ElementaryOperator):
+    def __add__(self: ElementaryOperator, other) -> OperatorSum:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for +/-: '{type(self).__name__}' and '{type(other).__name__}'")
-        elif type(other) == ScalarOperator:
-            return ProductOperator([self]) + ProductOperator([other])
-        elif type(other) != ElementaryOperator:
-            return ProductOperator([self]) + other
-        op1 = ProductOperator([self])
-        op2 = ProductOperator([other])
-        return OperatorSum([op1, op2])
+            return NotImplemented
+        elif type(other) == ElementaryOperator:
+            op1 = ProductOperator([self])
+            op2 = ProductOperator([other])
+            return OperatorSum([op1, op2])
+        return ProductOperator([self]) + other
 
-    def __sub__(self, other: ScalarOperator) -> ScalarOperator:
+    def __sub__(self: ElementaryOperator, other) -> OperatorSum:
         return self + operators.const(-1) * other
 
 class ScalarOperator(ProductOperator):
@@ -322,17 +307,17 @@ class ScalarOperator(ProductOperator):
     # and must return a numeric value. Each argument must be passed
     # as keyword arguments when concretizing any operator that involves
     # this scalar operator.
-    def __init__(self, generator: Callable):
+    def __init__(self: ScalarOperator, generator: Callable):
         self._degrees = []
         self.generator = generator # Don't set self._generator directly; the setter validates the value.
         super().__init__([self])
 
     @property
-    def generator(self):
+    def generator(self: ScalarOperator):
         return self._generator
 
     @generator.setter
-    def generator(self, generator: Callable):
+    def generator(self: ScalarOperator, generator: Callable):
         # A variable number of arguments (i.e. *args) cannot be supported
         # for generators; it would prevent proper argument handling while 
         # supporting additions and multiplication of all kinds of operators.
@@ -350,38 +335,38 @@ class ScalarOperator(ProductOperator):
         self._generator = generator
 
     @property
-    def parameters(self) -> dict[str, str]:
+    def parameters(self: ScalarOperator) -> dict[str, str]:
         return self._parameter_info()
 
     # The argument `dimensions` here is only passed for consistency with parent classes.
-    def concretize(self, dimensions: dict[int, int] = None, **kwargs):
+    def concretize(self: ScalarOperator, dimensions: dict[int, int] = None, **kwargs):
         generator_args, remaining_kwargs = _OperatorHelpers.args_from_kwargs(self._generator, **kwargs)
         evaluated = self._generator(*generator_args, **remaining_kwargs)
         if not isinstance(evaluated, Number):
             raise TypeError(f"generator of {type(self).__name__} must return a 'Number'")
         return evaluated
 
-    def __mul__(self, other: ScalarOperator) -> ScalarOperator:
+    def __mul__(self: ScalarOperator, other) -> ScalarOperator | ProductOperator:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
-        elif type(other) != ScalarOperator:
-            return ProductOperator([self]) * other
-        generator = lambda **kwargs: self.concretize(**kwargs) * other.concretize(**kwargs)
-        operator = ScalarOperator(generator)
-        operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
-        return operator
+            return NotImplemented
+        elif type(other) == ScalarOperator:
+            generator = lambda **kwargs: self.concretize(**kwargs) * other.concretize(**kwargs)
+            operator = ScalarOperator(generator)
+            operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
+            return operator
+        return ProductOperator([self]) * other
     
-    def __add__(self, other: ScalarOperator) -> ScalarOperator:
+    def __add__(self: ScalarOperator, other) -> ScalarOperator | OperatorSum:
         if not isinstance(other, OperatorSum):
-            raise TypeError(f"unsupported operand type(s) for +/-: '{type(self).__name__}' and '{type(other).__name__}'")
-        elif type(other) != ScalarOperator:
-            return ProductOperator([self]) + other
-        generator = lambda **kwargs: self.concretize(**kwargs) + other.concretize(**kwargs)
-        operator = ScalarOperator(generator)
-        operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
-        return operator
+            return NotImplemented
+        elif type(other) == ScalarOperator:
+            generator = lambda **kwargs: self.concretize(**kwargs) + other.concretize(**kwargs)
+            operator = ScalarOperator(generator)
+            operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
+            return operator
+        return ProductOperator([self]) + other
 
-    def __sub__(self, other: ScalarOperator) -> ScalarOperator:
+    def __sub__(self: ScalarOperator, other) -> ScalarOperator | OperatorSum:
         return self + operators.const(-1) * other
 
 
@@ -665,3 +650,44 @@ def all_zero(sure, args):
     else: return 1
 
 print(f'parameter descriptions: {(ScalarOperator(all_zero)).parameters}')
+
+#operators.const(1) * 5
+
+scop = operators.const(1)
+elop = operators.identity(1)
+print(f"arithmetics: {scop.concretize(dims)}")
+print(f"arithmetics: {elop.concretize(dims)}")
+print(f"arithmetics: {(scop * elop).concretize(dims)}")
+print(f"arithmetics: {(elop * scop).concretize(dims)}")
+print(f"arithmetics: {(scop + elop).concretize(dims)}")
+print(f"arithmetics: {(elop + scop).concretize(dims)}")
+print(f"arithmetics: {(scop - elop).concretize(dims)}")
+print(f"arithmetics: {(elop - scop).concretize(dims)}")
+print(f"arithmetics: {((scop * elop) * scop).concretize(dims)}")
+print(f"arithmetics: {(scop * (scop * elop)).concretize(dims)}")
+print(f"arithmetics: {((scop * elop) * elop).concretize(dims)}")
+print(f"arithmetics: {(elop * (scop * elop)).concretize(dims)}")
+print(f"arithmetics: {((scop * elop) + scop).concretize(dims)}")
+print(f"arithmetics: {(scop + (scop * elop)).concretize(dims)}")
+print(f"arithmetics: {((scop * elop) + elop).concretize(dims)}")
+print(f"arithmetics: {(elop + (scop * elop)).concretize(dims)}")
+print(f"arithmetics: {((scop * elop) - scop).concretize(dims)}")
+print(f"arithmetics: {(scop - (scop * elop)).concretize(dims)}")
+print(f"arithmetics: {((scop * elop) - elop).concretize(dims)}")
+print(f"arithmetics: {(elop - (scop * elop)).concretize(dims)}")
+print(f"arithmetics: {((scop + elop) * scop).concretize(dims)}")
+print(f"arithmetics: {(scop * (scop + elop)).concretize(dims)}")
+print(f"arithmetics: {((scop + elop) * elop).concretize(dims)}")
+print(f"arithmetics: {(elop * (scop + elop)).concretize(dims)}")
+print(f"arithmetics: {((scop - elop) * scop).concretize(dims)}")
+print(f"arithmetics: {(scop * (scop - elop)).concretize(dims)}")
+print(f"arithmetics: {((scop - elop) * elop).concretize(dims)}")
+print(f"arithmetics: {(elop * (scop - elop)).concretize(dims)}")
+print(f"arithmetics: {((scop + elop) + scop).concretize(dims)}")
+print(f"arithmetics: {(scop + (scop + elop)).concretize(dims)}")
+print(f"arithmetics: {((scop + elop) + elop).concretize(dims)}")
+print(f"arithmetics: {(elop + (scop + elop)).concretize(dims)}")
+print(f"arithmetics: {((scop - elop) - scop).concretize(dims)}")
+print(f"arithmetics: {(scop - (scop - elop)).concretize(dims)}")
+print(f"arithmetics: {((scop - elop) - elop).concretize(dims)}")
+print(f"arithmetics: {(elop - (scop - elop)).concretize(dims)}")
