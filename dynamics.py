@@ -1,6 +1,6 @@
 import inspect, itertools, numpy, os, re, scipy
 from numbers import Number
-from typing import Any, Callable, Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator, Optional
 from numpy.typing import NDArray
 
 class _OperatorHelpers:
@@ -397,42 +397,49 @@ class ScalarOperator(ProductOperator):
             raise TypeError(f"generator of {type(self).__name__} must return a 'Number'")
         return evaluated
 
+    def _compose(self: ScalarOperator, 
+                 fct: Callable[[Number], Number], 
+                 get_params: Optional[Callable[[], dict[str, str]]]) -> ScalarOperator:
+        generator = lambda **kwargs: fct(self.concretize(**kwargs), **kwargs)
+        operator = ScalarOperator(generator)
+        if get_params is None:
+            operator._parameter_info = self._parameter_info
+        else:
+            operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), get_params()])
+        return operator
+
     def __mul__(self: ScalarOperator, other) -> ScalarOperator | ProductOperator:
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
         elif type(other) == ScalarOperator:
-            generator = lambda **kwargs: self.concretize(**kwargs) * other.concretize(**kwargs)
-            operator = ScalarOperator(generator)
-            operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
-            return operator
+            fct = lambda value, **kwargs: value * other.concretize(**kwargs)
+            return self._compose(fct, other._parameter_info)
         elif isinstance(other, Number):
-            generator = lambda **kwargs: self.concretize(**kwargs) * other
-            operator = ScalarOperator(generator)
-            operator._parameter_info = self._parameter_info
-            return operator
+            fct = lambda value, **kwargs: value * other
+            return self._compose(fct, None)
         return ProductOperator([self]) * other
+    
+    def __truediv__(self: ScalarOperator, other) -> ScalarOperator:
+        if isinstance(other, Number):
+            fct = lambda value, **kwargs: value / other
+            return self._compose(fct, None)
+        return NotImplemented
 
     def __add__(self: ScalarOperator, other) -> ScalarOperator | OperatorSum:
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
         elif type(other) == ScalarOperator:
-            generator = lambda **kwargs: self.concretize(**kwargs) + other.concretize(**kwargs)
-            operator = ScalarOperator(generator)
-            operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), other._parameter_info()])
-            return operator
+            fct = lambda value, **kwargs: value + other.concretize(**kwargs)
+            return self._compose(fct, other._parameter_info)
         elif isinstance(other, Number):
-            generator = lambda **kwargs: self.concretize(**kwargs) + other
-            operator = ScalarOperator(generator)
-            operator._parameter_info = self._parameter_info
-            return operator
+            fct = lambda value, **kwargs: value + other
+            return self._compose(fct, None)
         return ProductOperator([self]) + other
 
     def __sub__(self: ScalarOperator, other) -> ScalarOperator | OperatorSum:
         if isinstance(other, Number):
-            generator = lambda **kwargs: self.concretize(**kwargs) - other
-            operator = ScalarOperator(generator)
-            operator._parameter_info = self._parameter_info
-            return operator
+            fct = lambda value, **kwargs: value - other
+            return self._compose(fct, None)
         return ProductOperator([self]) - other
 
     # We only need to right-handle arithmetics with Numbers, 
@@ -440,6 +447,12 @@ class ScalarOperator(ProductOperator):
 
     def __rmul__(self: ScalarOperator, other) -> ProductOperator:
         return self * other # Scalar multiplication is commutative.
+
+    def __rtruediv__(self: ScalarOperator, other) -> ScalarOperator:
+        if isinstance(other, Number):
+            fct = lambda value, **kwargs: other / value
+            return self._compose(fct, None)
+        return NotImplemented
 
     def __radd__(self: ElementaryOperator, other) -> OperatorSum:
         return self + other # Operator addition is commutative.
@@ -772,29 +785,22 @@ print(f"arithmetics: {(elop - (scop - elop)).concretize(dims)}")
 
 opprod = operators.create(0) * operators.annihilate(0)
 opsum = operators.create(0) + operators.annihilate(0)
-for op in [operator.add, operator.sub, operator.mul]:
-    print(f"testing {op}")
-    print(f"arithmetics: {op(scop, 2).concretize(dims)}")
-    print(f"arithmetics: {op(scop, 2.5).concretize(dims)}")
-    print(f"arithmetics: {op(scop, 2j).concretize(dims)}")
-    print(f"arithmetics: {op(2, scop).concretize(dims)}")
-    print(f"arithmetics: {op(2.5, scop).concretize(dims)}")
-    print(f"arithmetics: {op(2j, scop).concretize(dims)}")
-    print(f"arithmetics: {op(elop, 2).concretize(dims)}")
-    print(f"arithmetics: {op(elop, 2.5).concretize(dims)}")
-    print(f"arithmetics: {op(elop, 2j).concretize(dims)}")
-    print(f"arithmetics: {op(2, elop).concretize(dims)}")
-    print(f"arithmetics: {op(2.5, elop).concretize(dims)}")
-    print(f"arithmetics: {op(2j, elop).concretize(dims)}")
-    print(f"arithmetics: {op(opprod, 2).concretize(dims)}")
-    print(f"arithmetics: {op(opprod, 2.5).concretize(dims)}")
-    print(f"arithmetics: {op(opprod, 2j).concretize(dims)}")
-    print(f"arithmetics: {op(2, opprod).concretize(dims)}")
-    print(f"arithmetics: {op(2.5, opprod).concretize(dims)}")
-    print(f"arithmetics: {op(2j, opprod).concretize(dims)}")
-    print(f"arithmetics: {op(opsum, 2).concretize(dims)}")
-    print(f"arithmetics: {op(opsum, 2.5).concretize(dims)}")
-    print(f"arithmetics: {op(opsum, 2j).concretize(dims)}")
-    print(f"arithmetics: {op(2, opsum).concretize(dims)}")
-    print(f"arithmetics: {op(2.5, opsum).concretize(dims)}")
-    print(f"arithmetics: {op(2j, opsum).concretize(dims)}")
+for arith in [operator.add, operator.sub, operator.mul, operator.truediv]:
+    print(f"testing {arith} for ScalarOperator")
+    print(f"arithmetics: {arith(scop, 2).concretize(dims)}")
+    print(f"arithmetics: {arith(scop, 2.5).concretize(dims)}")
+    print(f"arithmetics: {arith(scop, 2j).concretize(dims)}")
+    print(f"arithmetics: {arith(2, scop).concretize(dims)}")
+    print(f"arithmetics: {arith(2.5, scop).concretize(dims)}")
+    print(f"arithmetics: {arith(2j, scop).concretize(dims)}")
+
+for op in [elop, opprod, opsum]:
+    for arith in [operator.add, operator.sub, operator.mul]:
+        print(f"testing {arith} for {type(op)}")
+        print(f"arithmetics: {arith(op, 2).concretize(dims)}")
+        print(f"arithmetics: {arith(op, 2.5).concretize(dims)}")
+        print(f"arithmetics: {arith(op, 2j).concretize(dims)}")
+        print(f"arithmetics: {arith(2, op).concretize(dims)}")
+        print(f"arithmetics: {arith(2.5, op).concretize(dims)}")
+        print(f"arithmetics: {arith(2j, op).concretize(dims)}")
+
