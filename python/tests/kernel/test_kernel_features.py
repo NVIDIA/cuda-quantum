@@ -1697,6 +1697,30 @@ def test_control_then_adjoint():
     cudaq.sample(kernel, theta).dump()
 
 
+def test_control_on_adjoint():
+
+    @cudaq.kernel
+    def my_func(q: cudaq.qubit, theta: float):
+        ry(theta, q)
+        rz(theta, q)
+
+    @cudaq.kernel
+    def adj_func(q: cudaq.qubit, theta: float):
+        cudaq.adjoint(my_func, q, theta)
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        ancilla = cudaq.qubit()
+        q = cudaq.qubit()
+
+        h(ancilla)
+        cudaq.control(my_func, ancilla, q, theta)
+        cudaq.control(adj_func, ancilla, q, theta)
+
+    theta = 1.5
+    # test here is that this compiles and runs
+    cudaq.sample(kernel, theta).dump()
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
