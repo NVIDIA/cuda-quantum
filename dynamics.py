@@ -408,6 +408,12 @@ class ScalarOperator(ProductOperator):
             operator._parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._parameter_info(), get_params()])
         return operator
 
+    def __pow__(self: ScalarOperator, other) -> ScalarOperator:
+        if isinstance(other, Number):
+            fct = lambda value, **kwargs: value ** other
+            return self._compose(fct, None)
+        return NotImplemented
+
     def __mul__(self: ScalarOperator, other) -> ScalarOperator | ProductOperator:
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
@@ -444,6 +450,12 @@ class ScalarOperator(ProductOperator):
 
     # We only need to right-handle arithmetics with Numbers, 
     # since everything else is covered by the left-hand arithmetics.
+
+    def __rpow__(self: ScalarOperator, other) -> ScalarOperator:
+        if isinstance(other, Number):
+            fct = lambda value, **kwargs: other ** value
+            return self._compose(fct, None)
+        return NotImplemented
 
     def __rmul__(self: ScalarOperator, other) -> ProductOperator:
         return self * other # Scalar multiplication is commutative.
@@ -744,7 +756,7 @@ print(f'parameter descriptions: {(ScalarOperator(all_zero)).parameters}')
 
 import operator
 
-scop = operators.const(1)
+scop = operators.const(2)
 elop = operators.identity(1)
 print(f"arithmetics: {scop.concretize(dims)}")
 print(f"arithmetics: {elop.concretize(dims)}")
@@ -785,7 +797,7 @@ print(f"arithmetics: {(elop - (scop - elop)).concretize(dims)}")
 
 opprod = operators.create(0) * operators.annihilate(0)
 opsum = operators.create(0) + operators.annihilate(0)
-for arith in [operator.add, operator.sub, operator.mul, operator.truediv]:
+for arith in [operator.add, operator.sub, operator.mul, operator.truediv, operator.pow]:
     print(f"testing {arith} for ScalarOperator")
     print(f"arithmetics: {arith(scop, 2).concretize(dims)}")
     print(f"arithmetics: {arith(scop, 2.5).concretize(dims)}")
