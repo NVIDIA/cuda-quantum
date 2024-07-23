@@ -128,9 +128,9 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     if (auto strTy = dyn_cast<cudaq::cc::StdvecType>(argTy))
       return cast<ELETY>(strTy.getElementType());
     // Force cast this to ELETY. This will only happen for CharspanType.
-    return cast<ELETY>(cudaq::opt::factory::getCharType(builder.getContext()));
+    return cast<ELETY>(cudaq::opt::factory::getCharType(ctx));
   }();
-  auto strTy = cudaq::cc::StdvecType::get(builder.getContext(), eleTy);
+  auto strTy = cudaq::cc::StdvecType::get(ctx, eleTy);
   builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
   auto conArray = builder.create<cudaq::cc::ConstantArrayOp>(
