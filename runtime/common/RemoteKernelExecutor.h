@@ -15,6 +15,7 @@
 #pragma once
 
 #include "common/Registry.h"
+#include "cudaq/remote_capabilities.h"
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -44,7 +45,7 @@ public:
   virtual void stop() = 0;
   // Return the version of the server implementation.
   // It's defined by the Json payload version that it can handle.
-  virtual int version() const = 0;
+  virtual std::pair<int, int> version() const = 0;
   // Handle incoming kernel execution requests.
   virtual void handleRequest(std::size_t reqId, ExecutionContext &io_context,
                              const std::string &backendSimName,
@@ -80,6 +81,9 @@ public:
   // Reset the random seed sequence using for remote execution.
   // This is triggered by a random seed value being set in CUDA-Q runtime.
   virtual void resetRemoteRandomSeed(std::size_t seed) = 0;
+
+  // Return the remote capabilities of the server.
+  virtual RemoteCapabilities getRemoteCapabilities() const = 0;
 
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and

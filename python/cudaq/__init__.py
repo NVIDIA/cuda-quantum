@@ -6,8 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os, numpy, platform
+import sys, os, numpy, platform, multiprocessing
 from ._packages import *
+
+# Set the multiprocessing start method to 'spawn' if not already set
+if multiprocessing.get_start_method(allow_none=True) is None:
+    multiprocessing.set_start_method('forkserver')
 
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
 # LinkedLibraryHolder.
@@ -183,6 +187,8 @@ if '-target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
 if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
+if '--target-option' in sys.argv:
+    initKwargs['option'] = sys.argv[sys.argv.index('--target-option') + 1]
 if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
 if not '--cudaq-full-stack-trace' in sys.argv:

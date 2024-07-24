@@ -26,6 +26,7 @@ config.cudaq_tools_dir = lit_config.substitute("@CUDAQ_TOOLS_DIR@")
 config.cudaq_intrinsic_modules_dir = "@CUDAQ_INTRINSIC_MODULES_DIR@"
 config.cudaq_llvm_tools_dir = "@CMAKE_BINARY_DIR@/bin"
 config.cudaq_lib_dir = "@CMAKE_BINARY_DIR@/lib"
+config.cudaq_target_dir = "@CMAKE_BINARY_DIR@/targets"
 config.cudaq_plugin_ext = "@LLVM_PLUGIN_EXT@"
 config.python_executable = "@PYTHON_EXECUTABLE@"
 config.cc = "@CMAKE_C_COMPILER@"

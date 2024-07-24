@@ -29,7 +29,7 @@ struct testCast {
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_10:.*]] = quake.discriminate %[[VAL_3]] :
-// CHECK:           %[[VAL_4:.*]] = arith.uitofp %[[VAL_10]] : i1 to f64
+// CHECK:           %[[VAL_4:.*]] = cc.cast unsigned %[[VAL_10]] : (i1) -> f64
 // CHECK:           %[[VAL_5:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>

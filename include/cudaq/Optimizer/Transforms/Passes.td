@@ -118,6 +118,14 @@ def CombineQuantumAllocations :
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
+def ConstPropComplex : Pass<"const-prop-complex", "mlir::ModuleOp"> {
+  let summary = "Create and propagate complex constants.";
+  let description = [{
+    Rewrite the complex.CreateOp to complex.ConstantOp when possible.
+    Replace array pointer casts with element pointer casts.
+  }];
+}
+
 def ConvertToDirectCalls :
     Pass<"indirect-to-direct-calls", "mlir::func::FuncOp"> {
   let summary = "Convert calls to direct calls to Quake routines.";
@@ -233,6 +241,9 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
     The target may only support measuring a single qubit however. This pass
     expands these ops in list format into a series of measurements (including
     loops) on individual qubits and into a single `std::vector<bool>` result.
+
+    The `reset` op can also take a veq argument and this pass will also expand
+    that to a series of `reset` operations on single qubits.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -609,6 +620,55 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   let options = [
     ListOption<"termBSF", "term-bsf", "unsigned",
       "The measurement bases as a Pauli tensor product represented in binary symplectic form.">
+  ];
+}
+
+def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
+  let summary =
+    "Convert state vector data into gates";
+  let description = [{
+    Convert quake representation that includes qubit initialization
+    from data into qubit initialization using gates.
+
+    For example:
+
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
+        %1 = quake.alloca !quake.veq<2>
+        %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+        return
+      }
+      cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+    }
+    ```
+    Will be rewritten to:
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = quake.alloca !quake.veq<2>
+        %c1_i64 = arith.constant 1 : i64
+        %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst = arith.constant 0.000000e+00 : f64
+        quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+        %c0_i64 = arith.constant 0 : i64
+        %2 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst_0 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_0) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        %cst_1 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_1) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        return
+      }
+    }
+    ```
+  }];
+
+  let options = [
+    Option<"phaseThreshold", "threshold", "double",
+      /*default=*/"1e-10", "Threshold to trigger phase equalization">,
   ];
 }
 

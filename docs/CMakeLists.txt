@@ -12,13 +12,17 @@
 #   SOURCE_LOCATION: location of the source file (relative to 'sphinx/examples/cpp' directory by default) 
 # Optional keyword args:
 #   TARGET <TARGET_NAME>: name of the target to use
+#   TARGET_OPTION <Option>: extra option for the target
 #   SOURCE_DIR <DIR>: the directory that SOURCE_LOCATION is relative to (if not the default)
 #   LAUNCH_COMMAND <COMMAND>: the command to launch the test (e.g., mpirun)
 function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
-  cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS" "" ${ARGN}) 
+  cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION" "" ${ARGN}) 
   set(NVQPP_COMPILE_ARGS "")
   if(PARSED_ARGS_TARGET)
     set(NVQPP_COMPILE_ARGS "${NVQPP_COMPILE_ARGS} --target ${PARSED_ARGS_TARGET}")
+    if (PARSED_ARGS_TARGET_OPTION)
+      set(NVQPP_COMPILE_ARGS "${NVQPP_COMPILE_ARGS} --${PARSED_ARGS_TARGET}-option ${PARSED_ARGS_TARGET_OPTION}")
+    endif()
   endif()
   if (NOT PARSED_ARGS_SOURCE_DIR)
     set(PARSED_ARGS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp")
@@ -68,9 +72,14 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_nvqpp_test(QuickStart_nvidia quick_start.cpp TARGET nvidia LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 
   # mqpu snippets need custatevec backend and optionally MPI
-  add_nvqpp_test(SampleAsync using/cudaq/platform/sample_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
-  add_nvqpp_test(ObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
-  add_nvqpp_test(StateAsyncMQPU using/cudaq/platform/get_state_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+  add_nvqpp_test(SampleAsync using/cudaq/platform/sample_async.cpp TARGET nvidia TARGET_OPTION mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+  add_nvqpp_test(ObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia TARGET_OPTION mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+  add_nvqpp_test(StateAsyncMQPU using/cudaq/platform/get_state_async.cpp TARGET nvidia TARGET_OPTION mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+
+  # Legacy check for the `nvidia-mqpu` target
+  add_nvqpp_test(LegacySampleAsync using/cudaq/platform/sample_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+  add_nvqpp_test(LegacyObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+  add_nvqpp_test(LegacyStateAsyncMQPU using/cudaq/platform/get_state_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 
   # Add the MPI test if MPI was found and there are more than 2 GPUs
   if (MPI_CXX_FOUND)
@@ -81,6 +90,11 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
       # Only build this test if we have more than 1 GPU
       if (${NGPUS} GREATER_EQUAL 2)
         add_nvqpp_test(ObserveMQPU_MPI using/cudaq/platform/observe_mqpu_mpi.cpp
+                        TARGET nvidia 
+                        TARGET_OPTION mqpu 
+                        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp 
+                        LAUNCH_COMMAND "${MPIEXEC} --allow-run-as-root -np 2")
+        add_nvqpp_test(LegacyObserveMQPU_MPI using/cudaq/platform/observe_mqpu_mpi.cpp
                         TARGET nvidia-mqpu 
                         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp 
                         LAUNCH_COMMAND "${MPIEXEC} --allow-run-as-root -np 2")

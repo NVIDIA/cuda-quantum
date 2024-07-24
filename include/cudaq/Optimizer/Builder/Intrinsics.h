@@ -86,13 +86,40 @@ public:
   }
 
   cc::GlobalOp
-  genVectorOfComplexConstant(mlir::Location loc, mlir::ModuleOp module,
-                             mlir::StringRef name,
-                             const std::vector<std::complex<double>> &values);
+  genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                       mlir::StringRef name,
+                       const std::vector<std::complex<double>> &values);
   cc::GlobalOp
-  genVectorOfComplexConstant(mlir::Location loc, mlir::ModuleOp module,
-                             mlir::StringRef name,
-                             const std::vector<std::complex<float>> &values);
+  genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                       mlir::StringRef name,
+                       const std::vector<std::complex<float>> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<double> &values);
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<float> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<std::int64_t> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<std::int32_t> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<std::int16_t> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<std::int8_t> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<bool> &values);
 
   /// Load an intrinsic into \p module. The intrinsic to load has name \p name.
   /// This will automatically load any intrinsics that \p name depends upon.

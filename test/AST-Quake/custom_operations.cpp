@@ -128,10 +128,10 @@ __qpu__ void kernel_6() {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_6._Z8kernel_6v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 3 : i64
-// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 3 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
 // CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_1]]) -> (i64)) {
 // CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_2]] : i64
 // CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i64)

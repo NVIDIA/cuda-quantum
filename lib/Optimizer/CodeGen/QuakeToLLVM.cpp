@@ -386,11 +386,10 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto parentModule = instOp->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
-    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     std::string instName = instOp->getName().stripDialect().str();
 
     // Get the reset QIR function name
-    auto qirFunctionName = qirQisPrefix + instName;
+    auto qirFunctionName = cudaq::opt::QIRQISPrefix + instName;
 
     // Create the qubit pointer type
     auto qirQubitPointerType = cudaq::opt::getQubitType(context);
