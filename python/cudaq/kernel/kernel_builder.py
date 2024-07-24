@@ -260,7 +260,7 @@ class PyKernel(object):
         cc.register_dialect(self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
 
-        self.metadata = {'conditionalOnMeasure': False}
+        self.conditionalOnMeasure = False
         self.regCounter = 0
         self.loc = Location.unknown(context=self.ctx)
         self.module = Module.create(loc=self.loc)
@@ -1346,7 +1346,7 @@ class PyKernel(object):
                 function()
                 self.insertPoint = tmpIp
                 cc.ContinueOp([])
-            self.metadata['conditionalOnMeasure'] = True
+            self.conditionalOnMeasure = True
 
     def for_loop(self, start, stop, function):
         """Add a for loop that starts from the given `start` index, 
