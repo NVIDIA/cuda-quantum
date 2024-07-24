@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Multi-GPU Workflows &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Hadamard Test &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Multiple Qubits" href="multiple_qubits.html" />
-    <link rel="prev" title="Hybrid Quantum Neural Networks" href="hybrid_qnns.html" /> 
+    <link rel="next" title="Hybrid Quantum Neural Networks" href="hybrid_qnns.html" />
+    <link rel="prev" title="Max-Cut with QAOA" href="qaoa.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -123,19 +123,44 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/vqe.html">   Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/cuquantum.html">   Simulations with cuQuantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/noisy_simulation.html">   Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#ionq">IonQ</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#iqm">IQM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#oqc">OQC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
@@ -143,48 +168,38 @@
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Sample">Sample</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Sample-Async">Sample Async</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Observe-Async">Observe Async</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Hadamard Test</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#A--Numerical-result-as-a-reference:">A- Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#B--Using-sample-algorithmic-primitive-to-sample-the-ancilla-qubit-and-compute-the-expectation-value.">B- Using <code class="docutils literal notranslate"><span class="pre">sample</span></code> algorithmic primitive to sample the ancilla qubit and compute the expectation value.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#C--Use-multi-GPUs-to-compute-the-matrix-elements">C- Use multi-GPUs to compute the matrix elements</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Diagonalize-the-matrix-using-for-example-Numpy-or-CuPy.-In-this-example,-since-we-are-having-2x2-matrix,-we-use-numpy.">Diagonalize the matrix using for example Numpy or CuPy. In this example, since we are having 2x2 matrix, we use numpy.</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Multiple-QPU's">Multiple QPU’s</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Asynchronous-data-collection-via-batching-Hamiltonian-terms">Asynchronous data collection via batching Hamiltonian terms</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="multiple_qubits.html">Multiple Qubits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="maximum_vertex_weight_clique.html">Molecular docking via DC-QAOA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Quantum Approximate Optimization Algorithm for Max Cut</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quantum_bits.html">Quantum Bits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit">Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-linearity">Gate linearity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
-<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vqe_water_active_space.html">Water Molecule with Active Space (CPU vs. GPU)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#A--Classical-simulation-as-a-reference:-CCSD">A- Classical simulation as a reference: CCSD</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
 </ul>
@@ -206,28 +221,34 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/backends/hardware.html">   Quantum Hardware</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#ionq">IonQ</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#submission-from-c">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id1">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id2">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#oqc">OQC</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id4">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id6">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id7">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id9">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id11">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id12">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -242,7 +263,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/backends/platform.html">   Multi-Processor Platforms</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
 </ul>
 </li>
@@ -408,6 +428,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -506,284 +527,226 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Multi-GPU Workflows</li>
+      <li class="breadcrumb-item active">Hadamard Test</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/examples/python/tutorials/multi_gpu_workflows.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/examples/python/tutorials/hadamard_test.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="hybrid_qnns.html" class="btn btn-neutral float-left" title="Hybrid Quantum Neural Networks" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="multiple_qubits.html" class="btn btn-neutral float-right" title="Multiple Qubits" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="qaoa.html" class="btn btn-neutral float-left" title="Max-Cut with QAOA" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hybrid_qnns.html" class="btn btn-neutral float-right" title="Hybrid Quantum Neural Networks" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Multi-GPU-Workflows">
-<h1>Multi-GPU Workflows<a class="headerlink" href="#Multi-GPU-Workflows" title="Permalink to this heading">¶</a></h1>
-<p>There are many backends available with CUDA-Q which enable seamless switching between GPUs, QPUs and CPUs and also allow for workflows involving multiple architectures working in tandem.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+  <section id="Hadamard-Test">
+<h1>Hadamard Test<a class="headerlink" href="#Hadamard-Test" title="Permalink to this heading">¶</a></h1>
+<p>Consider the observable <span class="math notranslate nohighlight">\(O\)</span> and two generic quantum states <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span>. We want to calculate the quantity</p>
+<div class="math notranslate nohighlight">
+\[\bra{\psi} O \ket{\phi}.\]</div>
+<p>where <span class="math notranslate nohighlight">\(O\)</span> is a Pauli operator.</p>
+<p>First of all we shall prepare the states <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span> using a quantum circuit for each of them. So we have</p>
+<div class="math notranslate nohighlight">
+\[\ket{\psi} = U_{\psi}\ket{0} \qquad \ket{\phi} = U_{\phi}\ket{0}\]</div>
+<p>Let’s define an observable we want to use:</p>
+<div class="math notranslate nohighlight">
+\[O = X_1X_2\]</div>
+<p>Now we can evaluate the matrix element using the following fact:</p>
+<div class="math notranslate nohighlight">
+\[\bra{\psi}O\ket{\phi} = \bra{0}U_\psi^\dagger O U_\phi\ket{0}\]</div>
+<p>This is just an expectation value which can be solved with a simple Hadamard test. The probability to measure <span class="math notranslate nohighlight">\(0\)</span> or <span class="math notranslate nohighlight">\(1\)</span> in the ancilla qubit is</p>
+<div class="math notranslate nohighlight">
+\[P(0) = \frac{1}{2} \left[ I + Re \bra{\psi} O \ket{\phi} \right]\]</div>
+<div class="math notranslate nohighlight">
+\[P(1) = \frac{1}{2} \left[ I - Re \bra{\psi} O \ket{\phi} \right]\]</div>
+<p>The difference between the probability of <span class="math notranslate nohighlight">\(0\)</span> and <span class="math notranslate nohighlight">\(1\)</span> gives</p>
+<div class="math notranslate nohighlight">
+\[P(0)-P(1) = Re \bra{\psi} O \ket{\phi}\]</div>
+<section id="A--Numerical-result-as-a-reference:">
+<h2>A- Numerical result as a reference:<a class="headerlink" href="#A--Numerical-result-as-a-reference:" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-
-<span class="n">targets</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_targets</span><span class="p">()</span>
-
-<span class="c1"># for target in targets:</span>
-<span class="c1">#     print(target)</span>
-</pre></div>
-</div>
-</div>
-<section id="Available-Targets">
-<h2>Available Targets<a class="headerlink" href="#Available-Targets" title="Permalink to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><strong>qpp-cpu</strong>: The qpp based CPU backend which is multithreaded to maximize the usage of available cores on your system.</p></li>
-<li><p><strong>nvidia</strong>: GPU based backend which accelerates quantum circuit simulation on NVIDIA GPUs powered by cuQuantum.</p></li>
-<li><p><strong>nvidia-mqpu</strong>: Enables users to program workflows utilizing multiple quantum processors enabled today by GPU emulation.</p></li>
-<li><p><strong>nvidia-mgpu</strong>: Allows for scaling circuit simulation beyond what is feasible with any QPU today.</p></li>
-<li><p><strong>density-matrix-cpu</strong>: Noisy simulations via density matrix calculations. CPU only for now with GPU support coming soon.</p></li>
-</ul>
-<p>Below we explore how to effectively utilize multi-GPU targets.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A function that will generate a variable sized GHZ state (`qubit_count`).&quot;&quot;&quot;</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-
-    <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-
-    <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-
-    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
-        <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-    <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
-
-    <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">result</span>
-</pre></div>
-</div>
-</div>
-</section>
-<section id="QPP-based-CPU-Backend">
-<h2>QPP-based CPU Backend<a class="headerlink" href="#QPP-based-CPU-Backend" title="Permalink to this heading">¶</a></h2>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cpu_result</span> <span class="o">=</span> <span class="n">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
-
-<span class="n">cpu_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{ 00:475 11:525 }
-</pre></div></div>
-</div>
-</section>
-<section id="Acceleration-via-NVIDIA-GPUs">
-<h2>Acceleration via NVIDIA GPUs<a class="headerlink" href="#Acceleration-via-NVIDIA-GPUs" title="Permalink to this heading">¶</a></h2>
-<p>Users will notice a <strong>200x speedup</strong> in executing the circuit below on NVIDIA GPUs vs CPUs.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gpu_result</span> <span class="o">=</span> <span class="n">ghz_state</span><span class="p">(</span><span class="n">qubit_count</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-
-<span class="n">gpu_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{ 0000000000000000000000000:510 1111111111111111111111111:490 }
-</pre></div></div>
-</div>
-</section>
-<section id="Multiple-NVIDIA-GPUs">
-<h2>Multiple NVIDIA GPUs<a class="headerlink" href="#Multiple-NVIDIA-GPUs" title="Permalink to this heading">¶</a></h2>
-<p>A <span class="math notranslate nohighlight">\(n\)</span> qubit quantum state has <span class="math notranslate nohighlight">\(2^n\)</span> complex amplitudes, each of which require 8 bytes of memory to store. Hence the total memory required to store a <span class="math notranslate nohighlight">\(n\)</span> qubit quantum state is <span class="math notranslate nohighlight">\(8\)</span> bytes <span class="math notranslate nohighlight">\(\times 2^n\)</span>. For <span class="math notranslate nohighlight">\(n = 30\)</span> qubits, this is roughly <span class="math notranslate nohighlight">\(8\)</span> GB but for <span class="math notranslate nohighlight">\(n = 40\)</span>, this exponentially increases to 8700 GB.</p>
-<p>If one incrementally increases the qubit count in their circuit, we reach a limit where the memory required is beyond the capabilities of a single GPU. The <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target allows for memory from additional GPUs to be pooled enabling qubit counts to be scaled.</p>
-<p>Execution on the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backed is enabled via <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>. Users need to create a <code class="docutils literal notranslate"><span class="pre">.py</span></code> file with their code and run the command below in terminal:</p>
-<p><code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">-np</span> <span class="pre">4</span> <span class="pre">python3</span> <span class="pre">test.py</span></code></p>
-<p>where 4 is the number of GPUs one has access to and <code class="docutils literal notranslate"><span class="pre">test</span></code> is the file name chosen.</p>
-</section>
-<section id="Multiple-QPU's">
-<h2>Multiple QPU’s<a class="headerlink" href="#Multiple-QPU's" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> backend allows for future workflows made possible via GPU simulation today.</p>
-</section>
-<section id="Asynchronous-data-collection-via-batching-Hamiltonian-terms">
-<h2>Asynchronous data collection via batching Hamiltonian terms<a class="headerlink" href="#Asynchronous-data-collection-via-batching-Hamiltonian-terms" title="Permalink to this heading">¶</a></h2>
-<p>Expectation value computations of multi-term hamiltonians can be asynchronously processed via the <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> platform.</p>
-<p><img alt="Alt Text" class="no-scaled-link" src="../../../_images/hsplit.png" style="width: 500px; height: 200px;" /></p>
-<p>For workflows involving multiple GPUs, save the code below in a <code class="docutils literal notranslate"><span class="pre">filename.py</span></code> file and execute via: <code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">-np</span> <span class="pre">n</span> <span class="pre">python3</span> <span class="pre">filename.py</span></code> where <code class="docutils literal notranslate"><span class="pre">n</span></code> is an integer specifying the number of GPUs you have access to.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
-<span class="n">num_ranks</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">num_ranks</span><span class="p">()</span>
-<span class="n">rank</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;mpi is initialized? &#39;</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">())</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;rank&#39;</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="s1">&#39;num_ranks&#39;</span><span class="p">,</span> <span class="n">num_ranks</span><span class="p">)</span>
-
-<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">15</span>
-<span class="n">term_count</span> <span class="o">=</span> <span class="mi">100000</span>
-
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
-    <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-<span class="c1"># We create a random hamiltonian</span>
-<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">,</span> <span class="n">term_count</span><span class="p">)</span>
-
-<span class="c1"># The observe calls allows us to calculate the expectation value of the Hamiltonian with respect to a specified kernel.</span>
-
-<span class="c1"># Single node, single GPU.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">)</span>
-<span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-
-<span class="c1"># If we have multiple GPUs/ QPUs available, we can parallelize the workflow with the addition of an argument in the observe call.</span>
-
-<span class="c1"># Single node, multi-GPU.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">execution</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">thread</span><span class="p">)</span>
-<span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-
-<span class="c1"># Multi-node, multi-GPU.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">execution</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">mpi</span><span class="p">)</span>
-<span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-mpi is initialized?  True
-rank 0 num_ranks 1
-</pre></div></div>
-</div>
-<p>Asynchronous data collection via circuit batching</p>
-<p>Execution of parameterized circuits with different parameters can be executed asynchronously via the <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> platform.</p>
-<p><img alt="Alt Text" class="no-scaled-link" src="../../../_images/circsplit.png" style="width: 500px; height: 200px;" /></p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
 
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">)</span>
+
+<span class="n">qubit_num</span> <span class="o">=</span> <span class="mi">2</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">psi</span><span class="p">(</span><span class="n">num</span><span class="p">:</span><span class="nb">int</span><span class="p">):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">phi</span><span class="p">(</span><span class="n">n</span><span class="p">:</span><span class="nb">int</span><span class="p">):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="n">psi_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Psi state: &#39;</span><span class="p">,</span> <span class="n">psi_state</span><span class="p">)</span>
+
+<span class="n">phi_state</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Phi state: &#39;</span><span class="p">,</span> <span class="n">phi_state</span><span class="p">)</span>
+
+<span class="n">ham</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ham_matrix</span> <span class="o">=</span> <span class="n">ham</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;hamiltonian: &#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ham_matrix</span><span class="p">),</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<span class="n">exp_val</span><span class="o">=</span><span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">psi_state</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">ham_matrix</span><span class="p">,</span> <span class="n">phi_state</span><span class="p">))</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Numerical expectation value: &#39;</span><span class="p">,</span> <span class="n">exp_val</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Psi state:  (0.707107,0)
+(0,0)
+(0.707107,0)
+(0,0)
+
+Phi state:  (0,0)
+(1,0)
+(0,0)
+(0,0)
+
+hamiltonian:  [[0.+0.j 0.+0.j 0.+0.j 1.+0.j]
+ [0.+0.j 0.+0.j 1.+0.j 0.+0.j]
+ [0.+0.j 1.+0.j 0.+0.j 0.+0.j]
+ [1.+0.j 0.+0.j 0.+0.j 0.+0.j]]
+
+Numerical expectation value:  (0.7071067690849304+0j)
+</pre></div></div>
+</div>
+</section>
+<section id="B--Using-sample-algorithmic-primitive-to-sample-the-ancilla-qubit-and-compute-the-expectation-value.">
+<h2>B- Using <code class="docutils literal notranslate"><span class="pre">sample</span></code> algorithmic primitive to sample the ancilla qubit and compute the expectation value.<a class="headerlink" href="#B--Using-sample-algorithmic-primitive-to-sample-the-ancilla-qubit-and-compute-the-expectation-value." title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">)</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">U_psi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">U_phi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">ham_cir</span><span class="p">(</span><span class="n">q</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">n</span><span class="p">:</span><span class="nb">int</span><span class="p">):</span>
+    <span class="n">ancilla</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_phi</span><span class="p">,</span><span class="n">ancilla</span><span class="p">,</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">ham_cir</span><span class="p">,</span><span class="n">ancilla</span><span class="p">,</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_psi</span><span class="p">,</span><span class="n">ancilla</span><span class="p">,</span><span class="n">q</span><span class="p">)</span>
+
+    <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+
+    <span class="n">mz</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+
+<span class="n">shots</span> <span class="o">=</span> <span class="mi">100000</span>
+<span class="n">qubit_num</span><span class="o">=</span><span class="mi">2</span>
+<span class="n">count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">shots_count</span> <span class="o">=</span> <span class="n">shots</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+
+<span class="n">mean_val</span> <span class="o">=</span> <span class="p">(</span><span class="n">count</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span><span class="o">-</span><span class="n">count</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">shots</span>
+<span class="n">error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span> <span class="n">count</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">count</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span> <span class="o">/</span> <span class="n">shots</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Observable QC: &#39;</span><span class="p">,</span> <span class="n">mean_val</span><span class="p">,</span><span class="s1">&#39;+ -&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Numerical result&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">exp_val</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{ 0:85356 1:14644 }
+
+Observable QC:  0.70712 + - 0.0015811092713661505
+Numerical result 0.7071067690849304
+</pre></div></div>
+</div>
+</section>
+<section id="C--Use-multi-GPUs-to-compute-the-matrix-elements">
+<h2>C- Use multi-GPUs to compute the matrix elements<a class="headerlink" href="#C--Use-multi-GPUs-to-compute-the-matrix-elements" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
 
-<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>
-<span class="n">sample_count</span> <span class="o">=</span> <span class="mi">10000</span>
-<span class="n">h</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">parameter_count</span> <span class="o">=</span> <span class="n">qubit_count</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
+<span class="n">qpu_count</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of QPUs:&quot;</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
 
-<span class="c1"># Below we run a circuit for 10000 different input parameters.</span>
-<span class="n">parameters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                                               <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                                               <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">sample_count</span><span class="p">,</span>
-                                                     <span class="n">parameter_count</span><span class="p">))</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">U_psi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
+    <span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-<span class="n">kernel</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">U_phi</span><span class="p">(</span><span class="n">q</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="n">rx</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-<span class="n">qubits_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">))</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">ham_cir</span><span class="p">(</span><span class="n">q</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
-    <span class="n">kernel</span><span class="o">.</span><span class="n">rx</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">timeit</span> result = cudaq.observe(kernel, h, parameters)   # Single GPU result.
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-31.7 s ± 990 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;We have&#39;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-      <span class="s1">&#39;parameters which we would like to execute&#39;</span><span class="p">)</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">n</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
+    <span class="n">ancilla</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_phi</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">ham_cir</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_psi</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">angle</span><span class="p">)</span>
 
-<span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-    <span class="n">parameters</span><span class="p">,</span>
-    <span class="mi">4</span><span class="p">)</span>  <span class="c1"># We split our parameters into 4 arrays since we have 4 GPUs available.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;We split this into&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">xi</span><span class="p">),</span> <span class="s1">&#39;batches of&#39;</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span>
-      <span class="n">xi</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-We have 10000 parameters which we would like to execute
-We split this into 4 batches of 2500 , 2500 , 2500 , 2500
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>it
+    <span class="n">mz</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
 
-<span class="c1"># Timing the execution on a single GPU vs 4 GPUs,</span>
-<span class="c1"># one will see a 4x performance improvement if 4 GPUs are available.</span>
+<span class="n">shots</span> <span class="o">=</span> <span class="mi">100000</span>
+<span class="n">angle</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span><span class="mf">3.14</span><span class="p">,</span><span class="mf">0.7</span><span class="p">]</span>
+<span class="n">theta</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">1.2</span> <span class="p">,</span><span class="mf">2.2</span> <span class="p">,</span><span class="mf">3.0</span><span class="p">]</span>
+<span class="n">qubit_num</span> <span class="o">=</span> <span class="mi">2</span>
 
-<span class="n">asyncresults</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">num_gpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">angle</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">shots_count</span> <span class="o">=</span> <span class="n">shots</span><span class="p">,</span> <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">i</span><span class="o">%</span><span class="k">qpu_count</span>)
+    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
 
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xi</span><span class="p">)):</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">xi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-        <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">num_gpus</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span>
-        <span class="n">asyncresults</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">,</span> <span class="p">:],</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">))</span>
-
-<span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">asyncresults</span><span class="p">]</span>
+<span class="n">mean_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angle</span><span class="p">))</span>
+<span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">i_result</span> <span class="o">=</span> <span class="n">count</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">i_result</span><span class="p">)</span>
+    <span class="n">mean_val</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">i_result</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">shots</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">i_result</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span> <span class="o">/</span> <span class="n">shots</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Observable QC: &#39;</span><span class="p">,</span>  <span class="n">mean_val</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="s1">&#39;+ -&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
 </pre></div>
 </div>
 </div>
@@ -792,9 +755,67 @@ We split this into 4 batches of 2500 , 2500 , 2500 , 2500
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-85.3 ms ± 2.36 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+Number of QPUs: 5
+0
+{ 0:63807 1:36193 }
+
+Observable QC:  0.27614 + - 0.0021491238917289066
+1
+{ 0:49929 1:50071 }
+
+Observable QC:  -0.00142 + - 0.0022360657230949183
+2
+{ 0:50041 1:49959 }
+
+Observable QC:  0.00082 + - 0.0022360672257336093
+3
+{ 0:50276 1:49724 }
+
+Observable QC:  0.00552 + - 0.0022360339102974265
 </pre></div></div>
 </div>
+<section id="Diagonalize-the-matrix-using-for-example-Numpy-or-CuPy.-In-this-example,-since-we-are-having-2x2-matrix,-we-use-numpy.">
+<h3>Diagonalize the matrix using for example Numpy or CuPy. In this example, since we are having 2x2 matrix, we use numpy.<a class="headerlink" href="#Diagonalize-the-matrix-using-for-example-Numpy-or-CuPy.-In-this-example,-since-we-are-having-2x2-matrix,-we-use-numpy." title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">my_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<span class="n">m</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+        <span class="n">my_mat</span><span class="p">[</span><span class="n">k</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean_val</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+        <span class="n">m</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">my_mat</span><span class="p">)</span>
+
+<span class="n">E</span><span class="p">,</span><span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">my_mat</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Eigen values: &#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">E</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Eigenvector: &#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[[ 0.27614 -0.00142]
+ [ 0.00082  0.00552]]
+Eigen values:
+[0.00551752 0.27614248]
+Eigenvector:
+[[ 0.00303004 -0.99999541]
+ [-0.99999541 -0.00303004]]
+</pre></div></div>
+</div>
+</section>
 </section>
 </section>
 
@@ -802,8 +823,8 @@ We split this into 4 batches of 2500 , 2500 , 2500 , 2500
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="hybrid_qnns.html" class="btn btn-neutral float-left" title="Hybrid Quantum Neural Networks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="multiple_qubits.html" class="btn btn-neutral float-right" title="Multiple Qubits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="qaoa.html" class="btn btn-neutral float-left" title="Max-Cut with QAOA" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hybrid_qnns.html" class="btn btn-neutral float-right" title="Hybrid Quantum Neural Networks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

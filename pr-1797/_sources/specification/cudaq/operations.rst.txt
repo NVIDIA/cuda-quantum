@@ -50,7 +50,7 @@ Here is an example of how one might modify an intrinsic operation for multi-cont
     t(q);
     // Apply Tdg operation
     t<cudaq::adj>(q);
-    // Apply control hadamard operation
+    // Apply control Hadamard operation
     h<cudaq::ctrl>(q,r,s);
     // Error, ctrl requires > 1 qubit operands
     // h<cudaq::ctrl>(r);
@@ -64,7 +64,7 @@ Here is an example of how one might modify an intrinsic operation for multi-cont
     t(q)
     # Apply Tdg operation
     t.adj(q)
-    # Apply control hadamard operation
+    # Apply control Hadamard operation
     h.ctrl(q,r,s)
     # Error, ctrl requires > 1 qubit operands
     # h.ctrl(r);
