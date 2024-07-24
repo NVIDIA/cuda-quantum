@@ -35,6 +35,7 @@ header:
     - 'docs/sphinx/examples'
     - 'docs/sphinx/_templates'
     - 'docs/sphinx/_static/cuda_quantum_icon.svg'
+    - 'docs/sphinx/using/examples/qubit_vizualization.ipynb'
     - 'docker/test/installer/mpi_cuda_check.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
 
