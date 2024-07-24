@@ -218,8 +218,14 @@ protected:
     if (hasCodeGen || isRoot() || isLeaf())
       return;
 
+    if (!quantumOp)
+      for (auto dependency : dependencies)
+        if (!dependency->hasCodeGen)
+          return;
+
     auto oldOp = associated;
     SmallVector<mlir::Value> operands(oldOp->getNumOperands());
+
     for (size_t i = 0; i < dependencies.size(); i++) {
       auto dependency = dependencies[i];
 
@@ -242,6 +248,11 @@ protected:
     associated->removeAttr("dnodeid");
     builder.insert(associated);
     hasCodeGen = true;
+
+    for (auto successor : successors)
+      // Ensure classical values are generated
+      if (!successor->quantumOp)
+        successor->codeGen(builder);
   }
 
   /// Replaces the null_wire op for \p qid with \p init
