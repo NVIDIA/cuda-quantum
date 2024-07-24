@@ -12,6 +12,137 @@ from ..mlir.dialects import cc
 from ..mlir.ir import *
 
 
+class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
+    """
+    The `MidCircuitMeasurementAnalyzer` is a utility class searches for 
+    common measurement - conditional patterns to indicate to the runtime 
+    that we have a circuit with mid-circuit measurement and subsequent conditional 
+    quantum operation application.
+    """
+
+    def __init__(self):
+        self.measureResultsVars = []
+        self.hasMidCircuitMeasures = False
+
+    def isMeasureCallOp(self, node):
+        return isinstance(
+            node, ast.Call) and node.__dict__['func'].id in ['mx', 'my', 'mz']
+
+    def visit_Assign(self, node):
+        target = node.targets[0]
+        # Check if a variable is assigned from result(s) of measurement
+        if hasattr(node, 'value') and hasattr(
+                node.value, 'id') and node.value.id in self.measureResultsVars:
+            self.measureResultsVars.append(target.id)
+            return
+        if not 'func' in node.value.__dict__:
+            return
+        creatorFunc = node.value.func
+        if 'id' in creatorFunc.__dict__ and creatorFunc.id in [
+                'mx', 'my', 'mz'
+        ]:
+            self.measureResultsVars.append(target.id)
+
+    # Get the variable name from a variable node.
+    # Returns an empty string if not something we know how to get a variable name from.
+    def getVariableName(self, node):
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Subscript):
+            return self.getVariableName(node.value)
+        return ''
+
+    def checkForMeasureResult(self, value):
+        return self.isMeasureCallOp(value) or self.getVariableName(
+            value) in self.measureResultsVars
+
+    def visit_If(self, node):
+        condition = node.test
+
+        # Catch `if mz(q)`, `if val`, where `val = mz(q)` or `if var[k]`, where `var = mz(qvec)`
+        if self.checkForMeasureResult(condition):
+            self.hasMidCircuitMeasures = True
+            return
+
+        # Compare: look at left expression.
+        # Catch `if var == True/False` and `if var[k] == True/False:` or `if mz(q) == True/False`
+        if isinstance(condition, ast.Compare) and self.checkForMeasureResult(
+                condition.left):
+            self.hasMidCircuitMeasures = True
+            return
+
+        # Catch `if UnaryOp mz(q)` or `if UnaryOp var` (`var = mz(q)`)
+        if isinstance(condition, ast.UnaryOp) and self.checkForMeasureResult(
+                condition.operand):
+            self.hasMidCircuitMeasures = True
+            return
+
+        # Catch `if something BoolOp mz(q)` or `something BoolOp var` (`var = mz(q)`)
+        if isinstance(condition, ast.BoolOp) and 'values' in condition.__dict__:
+
+            for value in condition.__dict__['values']:
+                if self.checkForMeasureResult(value):
+                    self.hasMidCircuitMeasures = True
+                    return
+                if isinstance(value,
+                              ast.Compare) and self.checkForMeasureResult(
+                                  value.left):
+                    self.hasMidCircuitMeasures = True
+                    return
+
+
+class RewriteMeasures(ast.NodeTransformer):
+    """
+    This `NodeTransformer` will analyze the AST for measurement 
+    nodes that do not provide a `register_name=` keyword. If found 
+    it will replace that node with one that sets the register_name to 
+    the variable name in the assignment. 
+    """
+
+    def visit_FunctionDef(self, node):
+        node.decorator_list.clear()
+        self.generic_visit(node)
+        return node
+
+    def visit_Assign(self, node):
+        # We only care about nodes with a Name target (`mz`,`my`,`mx`)
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            # The value has to be a Call node
+            if isinstance(node.value, ast.Call):
+                # The function we are calling should be Named
+                if not isinstance(node.value.func, ast.Name):
+                    return node
+
+                # Make sure we are only seeing measurements
+                if node.value.func.id not in ['mx', 'my', 'mz']:
+                    return node
+
+                # If we already have a register_name keyword
+                # then we don't have to do anything
+                if len(node.value.keywords):
+                    for keyword in node.value.keywords:
+                        if keyword.arg == 'register_name':
+                            return node
+
+                # If here, we have a measurement with no register name
+                # We'll add one here
+                newConstant = ast.Constant(value=node.targets[0].id)
+                newCall = ast.Call(func=node.value.func,
+                                   value=node.targets[0].id,
+                                   args=node.value.args,
+                                   keywords=[
+                                       ast.keyword(arg='register_name',
+                                                   value=newConstant)
+                                   ])
+                ast.copy_location(newCall, node.value)
+                ast.copy_location(newConstant, node.value)
+                ast.fix_missing_locations(newCall)
+                node.value = newCall
+                return node
+
+        return node
+
+
 class MatrixToRowMajorList(ast.NodeTransformer):
     """
     Convert 2D `np.array([[row0],[row1], ... ])` to a row-major 
