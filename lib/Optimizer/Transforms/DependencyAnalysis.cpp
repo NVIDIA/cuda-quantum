@@ -567,7 +567,7 @@ struct DependencyAnalysisPass
     if (func.getArguments().size() != 0) {
       func.emitError(
           "DependencyAnalysisPass cannot handle kernel arguments. "
-          "Did you pass quantum values ");
+          "Was quake synthesis run before this pass?");
       signalPassFailure();
       return false;
     }
@@ -769,4 +769,44 @@ struct DependencyAnalysisPass
   }
 };
 
+struct ManageQubitsPipelineOptions
+    : public PassPipelineOptions<ManageQubitsPipelineOptions> {
+  PassOptions::Option<bool> runQubitManagement{
+      *this, "run-qubit-management",
+      llvm::cl::desc(
+          "Runs qubit management pipeline. (default: true)"),
+      llvm::cl::init(true)};
+};
 } // namespace
+
+
+// TODO: ensure this is run only with BASE profile
+static void createQubitManagementPipeline(OpPassManager &pm, bool runQubitManagement) {
+  if (!runQubitManagement)
+    return;
+
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuantumMemToReg());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAssignIDs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDependencyAnalysis());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+}
+
+void cudaq::opt::registerQubitManagementPipeline() {
+  PassPipelineRegistration<ManageQubitsPipelineOptions>(
+      "qubit-management-pipeline",
+      "Map virtual qubits to physical qubits, minimizing the # of physical qubits.",
+      [](OpPassManager &pm, const ManageQubitsPipelineOptions &upo) {
+        createQubitManagementPipeline(pm, upo.runQubitManagement);
+      });
+}
