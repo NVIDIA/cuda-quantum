@@ -194,16 +194,20 @@ protected:
   size_t getResultIdx(size_t operand_idx) { return result_idxs[operand_idx]; }
 
   /// Recursively find nodes scheduled at a given cycle
-  SetVector<DependencyNode *> getNodesAtCycle(uint _cycle) {
+  SetVector<DependencyNode *> getNodesAtCycle(uint _cycle, SetVector<DependencyNode *> &seen) {
     SetVector<DependencyNode *> nodes;
 
-    if (cycle < _cycle)
+    if (cycle < _cycle || seen.contains(this))
       return nodes;
-    else if (cycle == _cycle && !isSkip())
+    else if (cycle == _cycle && !isSkip()) {
       nodes.insert(this);
+      return nodes;
+    }
+
+    seen.insert(this);
 
     for (auto dependency : dependencies)
-      nodes.set_union(dependency->getNodesAtCycle(_cycle));
+      nodes.set_union(dependency->getNodesAtCycle(_cycle, seen));
 
     return nodes;
   }
@@ -377,8 +381,9 @@ private:
 
   SetVector<DependencyNode *> getNodesAtCycle(uint cycle) {
     SetVector<DependencyNode *> nodes;
+    SetVector<DependencyNode *> seen;
     for (auto root : roots)
-      nodes.set_union(root->getNodesAtCycle(cycle));
+      nodes.set_union(root->getNodesAtCycle(cycle, seen));
     return nodes;
   }
 
