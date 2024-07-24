@@ -425,6 +425,34 @@ public:
     // Run the config-specified pass pipeline
     runPassPipeline(passPipelineConfig, moduleOp);
 
+    //-------------------- Qubit management passes --------------------
+    // TODO: proper flag or something
+    // TODO: ensure this is run only with BASE profile
+    if (getEnvBool("MANAGE_QUBITS", false)) {
+      cudaq::info("Running qubit management passes.\n");
+      mlir::PassManager pm(&context);
+      pm.addPass(mlir::createCanonicalizerPass());
+      pm.addPass(mlir::createCSEPass());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createExpandControlVeqs());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuantumMemToReg());
+      pm.addPass(mlir::createCanonicalizerPass());
+      pm.addPass(mlir::createCSEPass());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createAssignIDs());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createDependencyAnalysis());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createRegToMem());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
+      pm.addPass(mlir::createCanonicalizerPass());
+      pm.addPass(mlir::createCSEPass());
+      moduleOp.getContext()->disableMultithreading();
+      pm.enableIRPrinting();
+      if (failed(pm.run(moduleOp)))
+        throw std::runtime_error("Qubit management unsuccessful.");
+    }
+    //-----------------------------------------------------------------
+
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
         std::string("__nvqpp__mlirgen__") + kernelName);
     std::vector<std::size_t> mapping_reorder_idx;
