@@ -37,13 +37,21 @@ struct ApplyVariants {
   // any variants are added to this set.
   bool merge(ApplyVariants that) {
     bool rv = false;
+
     auto checkAndSet = [&](bool &bit0, bool bit1) {
       rv = !bit0 & bit1;
       bit0 = bit0 | bit1;
     };
+
     checkAndSet(needsControlVariant, that.needsControlVariant);
     checkAndSet(needsAdjointVariant, that.needsAdjointVariant);
-    checkAndSet(needsAdjointControlVariant, that.needsAdjointControlVariant);
+    // `that` has control and uses `this` which has adjoint, or `that` has
+    // adjoint and uses `this` which has control, so generate a `.adj.ctrl`
+    // variant for `this`, if not already present
+    checkAndSet(needsAdjointControlVariant,
+                that.needsAdjointControlVariant ||
+                    (that.needsControlVariant && needsAdjointVariant) ||
+                    (that.needsAdjointVariant && needsControlVariant));
     return rv;
   }
 };
@@ -76,10 +84,7 @@ private:
         variant.needsAdjointVariant = true;
       else if (!apply.getControls().empty())
         variant.needsControlVariant = true;
-      if (iter != infoMap.end())
-        infoMap[callee.getOperation()] = variant;
-      else
-        infoMap.insert(std::make_pair(callee.getOperation(), variant));
+      infoMap[callee.getOperation()] = variant;
     });
 
     // Propagate the transitive closure over the call tree.
