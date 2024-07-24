@@ -203,9 +203,9 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::func::FuncOp"> {
 
   let dependentDialects = ["quake::QuakeDialect"];
   let options = [
-    Option<"runQubitManagement", "run-qubit-management", "boolean", /*default=*/"true",
-      "Run qubit management pipeline. (default: true">,
-  ]
+    Option<"dumpNumQubits", "dump-num_qubits", "bool", /*default=*/"false",
+      "Dumps the number of physical qubits used to STDERR. (default: false)">,
+  ];
 }
 
 def EraseNopCalls : Pass<"erase-nop-calls", "mlir::func::FuncOp"> {

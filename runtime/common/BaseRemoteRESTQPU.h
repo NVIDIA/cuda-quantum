@@ -287,6 +287,28 @@ public:
     passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
                          allowEarlyExitSetting + "}," + passPipelineConfig;
 
+    if (getEnvBool("DISABLE_QUBIT_MANAGEMENT", false)) {
+      // Remove the qubit-management-pipeline if present
+      // TODO: what if run-qubit-management already set to false?
+      std::regex qubitManagement(
+          "(.*)qubit-management-pipeline(.*)");
+      std::string replacement("$1qubit-management-pipeline{run-qubit-management=false}$2");
+      passPipelineConfig =
+          std::regex_replace(passPipelineConfig, qubitManagement, replacement);
+      cudaq::info("disable_qubit_management option found, so updated lowering "
+                  "pipeline to {}",
+                  passPipelineConfig);
+    } else if (getEnvBool("DUMP_NUM_QUBITS", false)) {
+      std::regex qubitManagement(
+          "(.*)qubit-management-pipeline(.*)");
+      std::string replacement("$1qubit-management-pipeline{dump-num-qubits=true}$2");
+      passPipelineConfig =
+          std::regex_replace(passPipelineConfig, qubitManagement, replacement);
+      cudaq::info("dump-num-qubits option found, so updated lowering "
+                  "pipeline to {}",
+                  passPipelineConfig);
+    }
+
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
       // Replace the qubit-mapping{device=<>} with

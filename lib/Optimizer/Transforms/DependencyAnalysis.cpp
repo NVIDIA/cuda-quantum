@@ -706,6 +706,9 @@ struct DependencyAnalysisPass
       }
     }
 
+    if (dumpNumQubits)
+      llvm::dbgs() << "DependencyAnalysis used " << lifetimes.size() << " physical qubits\n";
+
     // Add teardown instructions
     for (auto sink : sinks)
       sink->addCleanUp(builder);
@@ -776,12 +779,18 @@ struct ManageQubitsPipelineOptions
       llvm::cl::desc(
           "Runs qubit management pipeline. (default: true)"),
       llvm::cl::init(true)};
+  PassOptions::Option<bool> dumpNumQubits{
+      *this, "dump-num-qubits",
+      llvm::cl::desc(
+          "Dumps the number of physical qubits used to STDERR. (default: false)"),
+      llvm::cl::init(false)};
 };
 } // namespace
 
 
 // TODO: ensure this is run only with BASE profile
-static void createQubitManagementPipeline(OpPassManager &pm, bool runQubitManagement) {
+static void createQubitManagementPipeline(OpPassManager &pm, bool runQubitManagement,
+                                          bool dumpNumQubits) {
   if (!runQubitManagement)
     return;
 
@@ -794,7 +803,8 @@ static void createQubitManagementPipeline(OpPassManager &pm, bool runQubitManage
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAssignIDs());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDependencyAnalysis());
+  cudaq::opt::DependencyAnalysisOptions dao{dumpNumQubits};
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDependencyAnalysis(dao));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
@@ -807,6 +817,6 @@ void cudaq::opt::registerQubitManagementPipeline() {
       "qubit-management-pipeline",
       "Map virtual qubits to physical qubits, minimizing the # of physical qubits.",
       [](OpPassManager &pm, const ManageQubitsPipelineOptions &upo) {
-        createQubitManagementPipeline(pm, upo.runQubitManagement);
+        createQubitManagementPipeline(pm, upo.runQubitManagement, upo.dumpNumQubits);
       });
 }
