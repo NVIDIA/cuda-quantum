@@ -38,10 +38,15 @@ set(CUDAQ_TEST_DEPENDS
 add_custom_target(nvqpp-targettest-depends DEPENDS ${CUDAQ_TEST_DEPENDS})
 set_target_properties(nvqpp-targettest-depends PROPERTIES FOLDER "TargetTests")
 
+# Limit the number of llvm-lit worker threads because running too many of these
+# tests in parallel can consume all the GPU resources.
+set(LIT_ARGS "-j 8")
+
 add_lit_testsuite(check-targets "Running the end-to-end target tests"
   ${CMAKE_CURRENT_BINARY_DIR}
   PARAMS ${CUDAQ_TEST_PARAMS}
   DEPENDS ${CUDAQ_TEST_DEPENDS}
+  ARGS ${LIT_ARGS}
 )
 set_target_properties(check-targets PROPERTIES FOLDER "TargetTests")
 
@@ -49,6 +54,7 @@ add_lit_testsuites(CUDAQ ${CMAKE_CURRENT_SOURCE_DIR}
   PARAMS ${CUDAQ_TEST_PARAMS}
   DEPENDS ${CUDAQ_TEST_DEPENDS}
   FOLDER "Tests/Subdirectories"
+  ARGS ${LIT_ARGS}
 )
 
 # Add nvqpp tests to the ctest suite

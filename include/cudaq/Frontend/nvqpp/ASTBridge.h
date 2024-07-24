@@ -144,18 +144,19 @@ class QuakeBridgeVisitor
   using Base = clang::RecursiveASTVisitor<QuakeBridgeVisitor>;
 
 public:
-  explicit QuakeBridgeVisitor(clang::ASTContext *astCtx,
-                              mlir::MLIRContext *mlirCtx, mlir::OpBuilder &bldr,
-                              mlir::ModuleOp module, SymbolTable &symTab,
-                              EmittedFunctionsCollection &funcsToEmit,
-                              llvm::ArrayRef<clang::Decl *> reachableFuncs,
-                              MangledKernelNamesMap &namesMap,
-                              clang::CompilerInstance &ci,
-                              clang::ItaniumMangleContext *mangler)
+  explicit QuakeBridgeVisitor(
+      clang::ASTContext *astCtx, mlir::MLIRContext *mlirCtx,
+      mlir::OpBuilder &bldr, mlir::ModuleOp module, SymbolTable &symTab,
+      EmittedFunctionsCollection &funcsToEmit,
+      llvm::ArrayRef<clang::Decl *> reachableFuncs,
+      MangledKernelNamesMap &namesMap, clang::CompilerInstance &ci,
+      clang::ItaniumMangleContext *mangler,
+      std::unordered_map<std::string, std::string> &customOperations)
       : astContext(astCtx), mlirContext(mlirCtx), builder(bldr), module(module),
         symbolTable(symTab), functionsToEmit(funcsToEmit),
         reachableFunctions(reachableFuncs), namesMap(namesMap),
-        compilerInstance(ci), mangler(mangler) {}
+        compilerInstance(ci), mangler(mangler),
+        customOperationNames(customOperations) {}
 
   /// `nvq++` renames quantum kernels to differentiate them from classical C++
   /// code. This renaming is done on function names. \p tag makes it easier
@@ -597,6 +598,7 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
+  std::unordered_map<std::string, std::string> &customOperationNames;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -683,6 +685,9 @@ public:
     // The mangler is constructed and owned by `this`.
     clang::ItaniumMangleContext *mangler;
 
+    // Keep track of user custom operation names.
+    std::unordered_map<std::string, std::string> customOperationNames;
+
     /// Add a placeholder definition to the module in \p visitor for the
     /// function, \p funcDecl. This is used for adding the host-side function
     /// corresponding to the kernel. The code for this function will be
@@ -713,6 +718,10 @@ public:
 
     // Return true if this FunctionDecl is a quantum kernel.
     static bool isQuantum(const clang::FunctionDecl *decl);
+
+    // Return true if this FunctionDecl is a generator function for custom
+    // operation
+    static bool isCustomOpGenerator(const clang::FunctionDecl *decl);
   };
 
 protected:

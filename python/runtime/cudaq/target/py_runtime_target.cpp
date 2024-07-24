@@ -51,13 +51,18 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       .def(
           "__str__",
           [](cudaq::RuntimeTarget &self) {
-            return fmt::format(
+            std::string targetInfo = fmt::format(
                 "Target {}\n\tsimulator={}\n\tplatform={}"
                 "\n\tdescription={}\n\tprecision={}\n",
                 self.name, self.simulatorName, self.platformName,
                 self.description,
                 self.get_precision() == simulation_precision::fp32 ? "fp32"
                                                                    : "fp64");
+            const std::string argHelperStr = self.get_target_args_help_string();
+            if (!argHelperStr.empty()) {
+              targetInfo += ("Supported Arguments:\n" + argHelperStr);
+            }
+            return targetInfo;
           },
           "Persist the information in this `cudaq.Target` to a string.");
 

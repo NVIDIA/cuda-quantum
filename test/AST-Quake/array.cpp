@@ -24,7 +24,7 @@ struct T {
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_5:.*]] = arith.extsi %[[VAL_4]] : i32 to i64
+// CHECK:           %[[VAL_5:.*]] = cc.cast signed %[[VAL_4]] : (i32) -> i64
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {
@@ -57,14 +57,14 @@ struct S {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i32
 // CHECK:           %[[VAL_2:.*]] = arith.constant 10 : i32
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<i32 x 3>
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_3]][2] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_6]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
-// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_9:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_9]]) : (i32) -> ()
 // CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
@@ -92,14 +92,14 @@ struct S1 {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i32
 // CHECK:           %[[VAL_2:.*]] = arith.constant 10 : i32
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<i32 x 3>
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_3]][2] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_6]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
-// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_9:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_9]]) : (i32) -> ()
 // CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>

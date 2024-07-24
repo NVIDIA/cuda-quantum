@@ -12,7 +12,10 @@
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
+#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
+#include "cudaq/algorithms/gradient.h"
+#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <fstream>
@@ -29,6 +32,16 @@ protected:
   std::unique_ptr<mlir::MLIRContext> m_mlirContext;
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
 
+  /// @brief Return a pointer to the execution context for this thread. It will
+  /// return `nullptr` if it was not found in `m_contexts`.
+  cudaq::ExecutionContext *getExecutionContextForMyThread() {
+    std::scoped_lock<std::mutex> lock(m_contextMutex);
+    const auto iter = m_contexts.find(std::this_thread::get_id());
+    if (iter == m_contexts.end())
+      return nullptr;
+    return iter->second;
+  }
+
 public:
   BaseRemoteSimulatorQPU()
       : QPU(),
@@ -43,6 +56,12 @@ public:
 
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
+
+  // By default, the remote capabilities are all enabled. Subtypes may override
+  // this.
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return RemoteCapabilities(/*initValues=*/true);
+  }
 
   virtual void setTargetBackend(const std::string &backend) override {
     auto parts = cudaq::split(backend, ';');
@@ -62,6 +81,31 @@ public:
     execution_queue->enqueue(task);
   }
 
+  void launchVQE(const std::string &name, const void *kernelArgs,
+                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::optimizer &optimizer, const int n_params,
+                 const std::size_t shots) override {
+    cudaq::ExecutionContext *executionContextPtr =
+        getExecutionContextForMyThread();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer")
+      return;
+
+    auto ctx = std::make_unique<ExecutionContext>("observe", shots);
+    ctx->kernelName = name;
+    ctx->spin = &H;
+    if (shots > 0)
+      ctx->shots = shots;
+
+    std::string errorMsg;
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, *executionContextPtr, /*serializedCodeContext=*/nullptr,
+        gradient, &optimizer, n_params, m_simName, name, /*kernelFunc=*/nullptr,
+        kernelArgs, /*argSize=*/0, &errorMsg);
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
+  }
+
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset) override {
@@ -71,13 +115,7 @@ public:
         name, qpu_id, m_simName);
 
     cudaq::ExecutionContext *executionContextPtr =
-        [&]() -> cudaq::ExecutionContext * {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        return nullptr;
-      return iter->second;
-    }();
+        getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
       return;
@@ -91,9 +129,44 @@ public:
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
     std::string errorMsg;
-    const bool requestOkay =
-        m_client->sendRequest(*m_mlirContext, executionContext, m_simName, name,
-                              kernelFunc, args, voidStarSize, &errorMsg);
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
+        m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+  }
+
+  void
+  launchSerializedCodeExecution(const std::string &name,
+                                cudaq::SerializedCodeExecutionContext
+                                    &serializeCodeExecutionObject) override {
+    cudaq::info(
+        "BaseRemoteSimulatorQPU: Launch remote code named '{}' remote QPU {} "
+        "(simulator = {})",
+        name, qpu_id, m_simName);
+
+    cudaq::ExecutionContext *executionContextPtr =
+        getExecutionContextForMyThread();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer") {
+      return;
+    }
+
+    // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
+    // was set before launching the kernel. Use a static variable per thread to
+    // set up a single-shot execution context for this case.
+    static thread_local cudaq::ExecutionContext defaultContext("sample",
+                                                               /*shots=*/1);
+    cudaq::ExecutionContext &executionContext =
+        executionContextPtr ? *executionContextPtr : defaultContext;
+
+    std::string errorMsg;
+    const bool requestOkay = m_client->sendRequest(
+        *m_mlirContext, executionContext, &serializeCodeExecutionObject,
+        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
+        m_simName, name, /*kernelFunc=*/nullptr, /*args=*/nullptr,
+        /*voidStarSize=*/0, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
@@ -182,15 +255,19 @@ public:
     m_client->setConfig(clientConfigs);
   }
 
+  // The NVCF version of this function needs to dynamically fetch the remote
+  // capabilities from the currently deployed servers.
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return m_client->getRemoteCapabilities();
+  }
+
 protected:
   // Helper to search NVQC config from environment variable or config file.
   NvcfConfig searchNvcfConfig() {
     NvcfConfig config;
     // Search from environment variable
-    if (auto apiKey = std::getenv("NVQC_API_KEY")) {
-      const auto key = std::string(apiKey);
-      config.apiKey = key;
-    }
+    if (auto apiKey = std::getenv("NVQC_API_KEY"))
+      config.apiKey = std::string(apiKey);
 
     if (auto funcIdEnv = std::getenv("NVQC_FUNCTION_ID"))
       config.functionId = std::string(funcIdEnv);

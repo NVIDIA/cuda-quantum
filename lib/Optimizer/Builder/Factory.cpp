@@ -62,11 +62,14 @@ Type factory::genArgumentBufferType(Type ty) {
   return genBufferType</*isOutput=*/false>(ty);
 }
 
-cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy) {
+cudaq::cc::StructType
+factory::buildInvokeStructType(FunctionType funcTy,
+                               std::size_t startingArgIdx) {
   auto *ctx = funcTy.getContext();
   SmallVector<Type> eleTys;
-  for (auto inTy : funcTy.getInputs())
-    eleTys.push_back(genBufferType</*isOutput=*/false>(inTy));
+  for (auto inTy : llvm::enumerate(funcTy.getInputs()))
+    if (inTy.index() >= startingArgIdx)
+      eleTys.push_back(genBufferType</*isOutput=*/false>(inTy.value()));
   for (auto outTy : funcTy.getResults())
     eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
   return cudaq::cc::StructType::get(ctx, eleTys);
@@ -356,8 +359,13 @@ static Type convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
-  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty))
-    return convertToHostSideType(factory::stlStringType(memrefTy.getContext()));
+  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty)) {
+    // `pauli_word` is an object with a std::vector in the header files at
+    // present. This data type *must* be updated if it becomes a std::string
+    // once again.
+    return convertToHostSideType(
+        factory::stlVectorType(IntegerType::get(ty.getContext(), 8)));
+  }
   auto *ctx = ty.getContext();
   if (auto structTy = dyn_cast<cc::StructType>(ty)) {
     SmallVector<Type> newMembers;
@@ -545,6 +553,21 @@ bool factory::isStdVecArg(Type type) {
 
   // This is a stdvec type to us.
   return true;
+}
+
+Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
+                          Value fromValue, bool signExtend, bool zeroExtend) {
+  if (signExtend && zeroExtend) {
+    emitError(loc, "cannot both sign and zero extend in a cast");
+    return fromValue;
+  }
+  if (fromValue.getType() == toType)
+    return fromValue;
+  auto unit = UnitAttr::get(builder.getContext());
+  UnitAttr none;
+  return builder.create<cudaq::cc::CastOp>(loc, toType, fromValue,
+                                           signExtend ? unit : none,
+                                           zeroExtend ? unit : none);
 }
 
 } // namespace cudaq::opt

@@ -35,6 +35,13 @@ function run() {
 	fi
 }
 
+function trim() {
+    local var="$*"
+    var="${var#"${var%%[![:space:]]*}"}"
+    var="${var%"${var##*[![:space:]]}"}"
+    echo "$var"
+}
+
 function add_pass_to_pipeline {
 	if [ -z "$1" ]; then
 		echo "$2"
@@ -97,22 +104,25 @@ function f_option_handling {
 }
 
 function list_targets {
-	ls -I *.cpp -1 ${install_dir}/targets/ | grep ".config$" | sed -e 's/\.config$//'
+	ls -I *.cpp -1 ${install_dir}/targets/ | grep ".yml$" | sed -e 's/\.yml$//'
 	exit 0
 }
 
 function list_simulators {
-	for file in $(grep -L "PLATFORM_QPU=" $(ls ${install_dir}/targets/*.config)) ; do
-		if ! grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then
+	for file in $(grep -L "platform-qpu" $(ls ${install_dir}/targets/*.yml)) ; do
+		if ! grep -q "library-mode-execution-manager" $file ; then
 			echo $(basename $file | cut -d "." -f 1)
 		fi
 	done
 }
 
 function get_simulation_backend {
-	config_file="${install_dir}/targets/$1.config"
+	config_file="${install_dir}/targets/$1.yml"
 	if [ -f "$config_file" ]; then
-    	line=$(grep "NVQIR_SIMULATION_BACKEND=" "$config_file")
+		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
+		run ${TOOLBIN}cudaq-target-conf -o ${OUT_CONFIG_FILENAME} $config_file
+		TMPFILES="${TMPFILES} ${OUT_CONFIG_FILENAME}"
+		line=$(grep "NVQIR_SIMULATION_BACKEND=" "${OUT_CONFIG_FILENAME}")
 		if [ $? -eq 0 ]; then
 			echo ${line#*=} | tr -d '"'
 		fi
@@ -352,6 +362,7 @@ gpu_found=$(query_gpu)
 if ${gpu_found} && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
 	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
 fi
+
 # Check environment variable - overrides the default
 if [[ ! -z "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
 	available_simulators=( $(list_simulators) )
@@ -397,8 +408,10 @@ done
 
 while [ $# -ne 0 ]; do
 	# Filter out any target-specific options.
+	# Note: we assume --<target-name>-<key> <value> or --target-option <value>
+	# are target-specific arguments (to be removed and forwarded to the target configuration handler).
 	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]]; then
-		if [[ "$1" = --${TARGET_CONFIG}-*=* ]]; then
+		if [[ "$1" = --${TARGET_CONFIG}-*=* ]] || [[ "$1" = --target-option=* ]]; then
 			# Separate the value of argument. Perform base64 encoding on
 			# the parameter value in case it has spaces. The runtime will be
 			# responsible for decoding the value.
@@ -407,7 +420,7 @@ while [ $# -ne 0 ]; do
 			TARGET_ARGS+=(${param%=*} $ESC2)
 			shift 1
 			continue
-		elif [[ "$1" = --${TARGET_CONFIG}-* ]]; then
+		elif [[ "$1" = --${TARGET_CONFIG}-* ]] || [[ "$1" = --target-option ]]; then
 			# Assume always has an additional value. Perform base64 encoding on
 			# the parameter value in case it has spaces. The runtime will be
 			# responsible for decoding the value.
@@ -621,27 +634,30 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			error_exit "Cannot use nvqc target from non-x86_64 client at this time"
 		fi
 	fi
-	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
-	if [ -f "${TARGET_CONFIG_FILE}" ]; then
-		GEN_TARGET_BACKEND=false
-		. "${TARGET_CONFIG_FILE}" "${TARGET_ARGS[@]}"
-
-		if ${GEN_TARGET_BACKEND}; then
-			# Add a function that will run before main and set the target
-			# backend on the quantum_platform
-			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
-			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
-			if [ -n "${MAPPING_FILE}" ]; then
-				TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
-			fi
-			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
-			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-			run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
-			OBJS_TO_MERGE="${OUTFILENAME}"
-			TMPFILES="${TMPFILES} ${OUTFILENAME}"
-		fi
+	TARGET_CONFIG_YML_FILE="${install_dir}/targets/${TARGET_CONFIG}.yml"
+	GEN_TARGET_BACKEND=false
+	if [ -f "${TARGET_CONFIG_YML_FILE}" ]; then
+		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
+		run ${TOOLBIN}cudaq-target-conf --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} ${TARGET_CONFIG_YML_FILE}
+		# Load the generated config variables
+		. "${OUT_CONFIG_FILENAME}"
+		TMPFILES="${TMPFILES} ${OUT_CONFIG_FILENAME}"
 	else
 		error_exit "Invalid Target: ($TARGET_CONFIG)"
+	fi
+	if ${GEN_TARGET_BACKEND}; then
+		# Add a function that will run before main and set the target
+		# backend on the quantum_platform
+		TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
+		TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
+		if [ -n "${MAPPING_FILE}" ]; then
+			TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
+		fi
+		TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
+		OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
+		run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
+		OBJS_TO_MERGE="${OUTFILENAME}"
+		TMPFILES="${TMPFILES} ${OUTFILENAME}"
 	fi
 fi
 
@@ -701,7 +717,7 @@ fi
 if ${ENABLE_DEVICE_CODE_LOADERS}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(quake-add-metadata)")
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "device-code-loader{use-quake=1}")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "const-prop-complex,lift-array-value,func.func(get-concrete-matrix),device-code-loader{use-quake=1}")
 fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
@@ -787,15 +803,22 @@ done
 if ${DO_LINK}; then
 	if ${LIBRARY_MODE}; then
 		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
-	fi 
+	fi
 
 	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified
 	NUMBER_SRCS=$( ( set -o noglob; set -- ${SRCS[0]}; echo "$#" ) )
-	if [ ! -z "${OUTPUTFILE}" ] && (($NUMBER_SRCS == 1)); then
-		run mv ${OBJS} ${OUTPUTFILE}
+	if (($NUMBER_SRCS == 1)); then
+		if [ -n "${OUTPUTFILE}" ]; then
+			OBJ=$(trim "${OBJS}")
+			if [ "${OBJ}" != "${OUTPUTFILE}" ]; then
+				run mv ${OBJ} ${OUTPUTFILE}
+			fi
+	    	fi
 	else
-		run ${LINKER_CXX} ${LINKER_PATH} ${LINKDIRS} -r ${OBJS} -o ${OUTPUTFILE}
+		if [ -n "${OUTPUTFILE}" ]; then
+			run ${LINKER_CXX} ${LINKER_PATH} ${LINKDIRS} -r ${OBJS} -o ${OUTPUTFILE}
+		fi
 	fi
 fi

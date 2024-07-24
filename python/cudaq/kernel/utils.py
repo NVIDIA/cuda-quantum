@@ -33,6 +33,9 @@ globalKernelRegistry = {}
 # and the source code location for the kernel.
 globalAstRegistry = {}
 
+# Keep a global registry of all registered custom operations.
+globalRegisteredOperations = {}
+
 
 class Color:
     YELLOW = '\033[93m'
@@ -331,6 +334,11 @@ def mlirTypeToPyType(argType):
             ty = complex if F64Type.isinstance(
                 ComplexType(eleTy).element_type) else np.complex64
             return getListType(ty)
+
+    if cc.PointerType.isinstance(argType):
+        valueTy = cc.PointerType.getElementType(argType)
+        if cc.StateType.isinstance(valueTy):
+            return State
 
     emitFatalError(
         f"Cannot infer CUDA-Q type from provided Python type ({argType})")

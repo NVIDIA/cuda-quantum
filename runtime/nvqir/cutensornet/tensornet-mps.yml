@@ -1,0 +1,15 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: tensornet-mps
+description: "cutensornet simulator backend target based on matrix product state representation"
+gpu-requirements: true
+
+config:
+  nvqir-simulation-backend: tensornet-mps
+  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]

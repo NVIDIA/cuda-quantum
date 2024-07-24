@@ -121,16 +121,15 @@ public:
                                     cudaq::opt::CudaqEMWriteToSpan,
                                     ValueRange{qspan, buffer, one});
     } else {
-
       Value sizeOperand;
       if (adaptor.getOperands().empty()) {
-        if (auto type = dyn_cast<quake::VeqType>(alloca.getType())) {
-          auto constantSize = type.getSize();
-          sizeOperand =
-              rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
-        }
+        auto type = cast<quake::VeqType>(alloca.getType());
+        assert(type.hasSpecifiedSize() && "veq must have a constant size");
+        auto constantSize = type.getSize();
+        sizeOperand =
+            rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
       } else if (auto intSizeTy =
-                     dyn_cast<IntegerType>(sizeOperand.getType())) {
+                     dyn_cast<IntegerType>(adaptor.getSize().getType())) {
         sizeOperand = adaptor.getSize();
         if (intSizeTy.getWidth() != 64)
           sizeOperand = rewriter.create<cudaq::cc::CastOp>(
@@ -210,10 +209,14 @@ public:
             loc, extract.getConstantIndex(), 64);
       return adaptor.getIndex();
     }();
+
+    // Create our types.
     auto i64Ty = rewriter.getI64Type();
-    auto ptrI64Ty =
-        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i64Ty));
-    auto ptrptrTy = cudaq::cc::PointerType::get(ptrI64Ty);
+    auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
+    auto arrI64Ty = cudaq::cc::ArrayType::get(i64Ty);
+    auto ptrArrTy = cudaq::cc::PointerType::get(arrI64Ty);
+    auto ptrptrTy = cudaq::cc::PointerType::get(ptrArrTy);
+
     auto qspan = adaptor.getVeq();
     auto qspanDataPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
         loc, ptrptrTy, qspan, ArrayRef<cudaq::cc::ComputePtrArg>{0});
@@ -223,9 +226,10 @@ public:
     auto qspanTy = cudaq::opt::getCudaqQubitSpanType(rewriter.getContext());
     Value newspan = rewriter.create<cudaq::cc::AllocaOp>(loc, qspanTy);
     auto one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+    auto buf1 = rewriter.create<cudaq::cc::CastOp>(loc, ptrArrTy, buffer);
     rewriter.create<func::CallOp>(loc, std::nullopt,
                                   cudaq::opt::CudaqEMWriteToSpan,
-                                  ValueRange{newspan, buffer, one});
+                                  ValueRange{newspan, buf1, one});
     rewriter.replaceOp(extract, newspan);
     return success();
   }
@@ -441,7 +445,6 @@ public:
 void cudaq::opt::populateQuakeToCCPatterns(TypeConverter &converter,
                                            RewritePatternSet &patterns) {
   auto *context = patterns.getContext();
-
   patterns.insert<AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite,
                   DiscriminateOpRewrite, ExtractRefOpRewrite, VeqSizeOpRewrite,
                   MzOpRewrite, ResetRewrite, SubveqOpRewrite,

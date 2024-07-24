@@ -252,7 +252,7 @@ struct Nesting {
 // CHECK:               %[[VAL_24:.*]] = cc.compute_ptr %[[VAL_17]]{{\[}}%[[VAL_22]]] : (!cc.ptr<!cc.array<f32 x ?>>, i64) -> !cc.ptr<f32>
 // CHECK-DAG:           %[[VAL_25:.*]] = cc.load %[[VAL_15]] : !cc.ptr<f64>
 // CHECK-DAG:           %[[VAL_26:.*]] = cc.load %[[VAL_24]] : !cc.ptr<f32>
-// CHECK:               %[[VAL_27:.*]] = arith.extf %[[VAL_26]] : f32 to f64
+// CHECK:               %[[VAL_27:.*]] = cc.cast %[[VAL_26]] : (f32) -> f64
 // CHECK:               %[[VAL_28:.*]] = arith.mulf %[[VAL_25]], %[[VAL_27]] : f64
 // CHECK:               %[[VAL_29:.*]] = cc.load %[[VAL_6]] : !cc.ptr<f64>
 // CHECK:               %[[VAL_30:.*]] = arith.addf %[[VAL_29]], %[[VAL_28]] : f64

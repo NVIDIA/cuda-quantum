@@ -61,11 +61,11 @@ int main() {
 // CHECK:               cc.condition %[[VAL_7]]
 // CHECK:             } do {
 // CHECK:               %[[VAL_8:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_9:.*]] = arith.extsi %[[VAL_8]] : i32 to i64
+// CHECK:               %[[VAL_9:.*]] = cc.cast signed %[[VAL_8]] : (i32) -> i64
 // CHECK:               %[[VAL_10:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_9]]] : (!quake.veq<5>, i64) -> !quake.ref
 // CHECK:               %[[VAL_11:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_0]] : i32
-// CHECK:               %[[VAL_13:.*]] = arith.extsi %[[VAL_12]] : i32 to i64
+// CHECK:               %[[VAL_13:.*]] = cc.cast signed %[[VAL_12]] : (i32) -> i64
 // CHECK:               %[[VAL_14:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_13]]] : (!quake.veq<5>, i64) -> !quake.ref
 // CHECK:               quake.x [%[[VAL_10]]] %[[VAL_14]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:               cc.continue
