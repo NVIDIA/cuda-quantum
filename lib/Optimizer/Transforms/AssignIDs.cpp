@@ -67,15 +67,16 @@ std::optional<uint> findQid(Value v) {
 
   if (defop->getRegions().size() != 0) {
     defop->emitOpError(
-        "control flow operations not currently supported in assign-ids");
+        "AssignIDsPass cannot handle non-function operations with regions."
+        " Do you have if statements in a Base Profile QIR program?");
     return std::nullopt;
   }
 
   if (!isa<quake::WireType>(v.getType()))
     return std::nullopt;
 
-  if (!quake::isLinearValueForm(defop))
-    defop->emitOpError("assign-ids requires operations to be in value form");
+  assert(quake::isLinearValueForm(defop) &&
+         "AssignIDsPass requires operations to be in value form");
 
   if (defop->hasAttr("qid")) {
     uint qid = defop->getAttr("qid").cast<IntegerAttr>().getUInt();
@@ -126,9 +127,12 @@ struct AssignIDsPass : public cudaq::opt::impl::AssignIDsBase<AssignIDsPass> {
   void runOnOperation() override {
     auto func = getOperation();
 
-    // Blocks will cause problems for assign-ids, ensure there's only one
-    if (func.getBlocks().size() != 1) {
-      func.emitOpError("multiple blocks not currently supported in assign-ids");
+    if (!func->hasAttr("cudaq-kernel") || func.getBlocks().empty())
+      return;
+
+    if (!func.getFunctionBody().hasOneBlock()) {
+      func.emitError("AssignIDsPass cannot handle multiple blocks. Do "
+                     "you have if statements in a Base Profile QIR program?");
       signalPassFailure();
       return;
     }
@@ -151,7 +155,7 @@ struct AssignIDsPass : public cudaq::opt::impl::AssignIDsBase<AssignIDsPass> {
         [&](quake::SinkOp sink) { return sink->hasAttr("qid"); });
     if (failed(applyPartialConversion(func.getOperation(), target,
                                       std::move(patterns)))) {
-      func.emitOpError("assigning qids failed");
+      func.emitOpError("Assigning qids failed");
       signalPassFailure();
     }
   }

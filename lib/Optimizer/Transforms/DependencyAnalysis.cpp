@@ -401,11 +401,6 @@ public:
     SetVector<DependencyNode *> seen;
     gatherRoots(seen, root);
     scheduleNodes();
-    qids = SetVector<size_t>();
-    for (auto root : roots) {
-      qids.set_union(root->qids);
-    }
-    assert(qids.size() == roots.size() && "Mismatched # of qubits and sinks");
   }
 
   SetVector<DependencyNode *> &getRoots() { return roots; }
@@ -506,34 +501,32 @@ struct DependencyAnalysisPass
     : public cudaq::opt::impl::DependencyAnalysisBase<DependencyAnalysisPass> {
   using DependencyAnalysisBase::DependencyAnalysisBase;
   SmallVector<DependencyNode *> perOp;
+  size_t qubits;
 
   /// Validates that \p op meets the assumptions:
   /// * control flow operations are not allowed
   bool validateOp(Operation *op) {
-    if (isQuakeOperation(op) && !quake::isLinearValueForm(op) &&
-        !dyn_cast<quake::DiscriminateOp>(op)) {
-      op->emitOpError(
-          "dep-analysis requires all quake operations to be in value form");
-      signalPassFailure();
-      return false;
-    }
+    assert((!isQuakeOperation(op) || quake::isLinearValueForm(op) ||
+      dyn_cast<quake::DiscriminateOp>(op)) && "DependencyAnalysisPass requires all quake operations to be in value form");
 
     if (op->getRegions().size() != 0) {
       op->emitOpError(
-          "control flow operations not currently supported in dep-analysis");
+        "DependencyAnalysisPass cannot handle non-function operations with regions."
+        " Do you have if statements in a Base Profile QIR program?");
       signalPassFailure();
       return false;
     }
 
     if (auto br = dyn_cast<mlir::BranchOpInterface>(op)) {
       br.emitOpError(
-          "branching operations not currently supported in dep-analysis");
+        "DependencyAnalysisPass cannot handle branching operations."
+        " Do you have if statements in a Base Profile QIR program?");
       signalPassFailure();
       return false;
     }
 
     if (auto call = dyn_cast<mlir::CallOpInterface>(op)) {
-      call.emitOpError("function calls not currently supported in dep-analysis");
+      call.emitOpError("DependencyAnalysisPass does not support function calls");
       signalPassFailure();
       return false;
     }
@@ -546,23 +539,26 @@ struct DependencyAnalysisPass
   /// * functions have no arguments
   /// * functions have no results
   bool validateFunc(func::FuncOp func) {
-    if (func.getBlocks().size() != 1) {
-      func.emitOpError(
-          "multiple blocks not currently supported in dep-analysis");
+    if (!func.getFunctionBody().hasOneBlock()) {
+      func.emitError("DependencyAnalysisPass cannot handle multiple blocks. Do "
+                     "you have if statements in a Base Profile QIR program?");
       signalPassFailure();
       return false;
     }
 
+    // TODO: I think synthesis and inlining should cover this
+    //       so it may make sense to turn into an assert
     if (func.getArguments().size() != 0) {
-      func.emitOpError(
-          "function arguments not currently supported in dep-analysis");
+      func.emitError(
+          "DependencyAnalysisPass cannot handle kernel arguments. "
+          "Did you pass quantum values ");
       signalPassFailure();
       return false;
     }
 
     if (func.getNumResults() != 0) {
-      func.emitOpError(
-          "non-void return types not currently supported in dep-analysis");
+      func.emitError(
+          "DependencyAnalysisPass cannot handle non-void return types for kernels");
       signalPassFailure();
       return false;
     }
@@ -701,9 +697,15 @@ struct DependencyAnalysisPass
 
   void runOnOperation() override {
     auto func = getOperation();
-    validateFunc(func);
+    // Ignore non-quantum functions
+    if (!func->hasAttr("cudaq-kernel") || func.getBlocks().empty())
+      return;
+
+    if (!validateFunc(func))
+      return;
 
     SetVector<DependencyNode *> roots;
+
     for (auto &op : func.front().getOperations()) {
       if (dyn_cast<func::ReturnOp>(op))
         continue;
@@ -715,9 +717,13 @@ struct DependencyAnalysisPass
         return;
       }
 
+      if (isBeginOp(&op))
+        qubits++;
       if (isEndOp(&op))
         roots.insert(node);
     }
+
+    assert(qubits == roots.size() && "Too few sinks for qubits -- was add-dealloc run?");
 
     // Construct graphs from roots
     SmallVector<DependencyGraph> graphs;
