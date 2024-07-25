@@ -1155,7 +1155,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable[varNames[i]] = value
             elif cc.StructType.isinstance(value.type) and isinstance(
                     value.owner.opview, cc.InsertValueOp):
-                # If we have a new struct from undef + insert_value, we don't
+                # If we have a new struct from `cc.undef` and `cc.insert_value`, we don't
                 # want to allocate new memory.
                 self.symbolTable[varNames[i]] = value
             else:
