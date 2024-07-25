@@ -539,7 +539,8 @@ jobs:
           # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
             # unsupport_args and compile_errors are compile error tests
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]]; then
+            # nested_vectors: Compiler fails to synthesize nested vector parameters (https://github.com/NVIDIA/cuda-quantum/issues/2001)
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
