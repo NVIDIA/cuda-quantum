@@ -186,6 +186,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/maximum_vertex_weight_clique.html">Molecular docking via DC-QAOA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
@@ -1281,6 +1282,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext10reorderIdxE">
 <span class="target" id="classcudaq_1_1ExecutionContext_1a33d991dd8e3d37e040eb8fc625228c19"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reorderIdx</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext10reorderIdxE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A vector containing information about how to reorder the global register after execution. Empty means no reordering. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a2cbc25e01de0353f7909f3e434cb2065"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invocationResultBuffer</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A buffer containing the return value of a kernel invocation. Note: this is only needed for invocation not able to return a <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref"><span class="pre">sample_result</span></span></a></code>. </p>
 </dd></dl>
 
 </div>
@@ -3130,15 +3137,9 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU17supportsRemoteVQEEv">
-<span class="target" id="classcudaq_1_1QPU_1a2b5d33a144aeb9e6ed32aeb08fb74e2a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supportsRemoteVQE</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU17supportsRemoteVQEEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return whether this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> has remote VQE execution support. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU28supportsRemoteSerializedCodeEv">
-<span class="target" id="classcudaq_1_1QPU_1a79b42ab9b4a6b3ca5f749fb101e5f1c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supportsRemoteSerializedCode</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU28supportsRemoteSerializedCodeEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return whether this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> has support for remote serialized code execution. </p>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv">
+<span class="target" id="classcudaq_1_1QPU_1ada538a4355a21ae9d4920238bed65f30"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getRemoteCapabilities</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU21getRemoteCapabilitiesEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the remote capabilities for this platform. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -3180,7 +3181,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU29launchSerializedCodeExecutionERKNSt6stringERN5cudaq30SerializedCodeExecutionContextE">
 <span class="target" id="classcudaq_1_1QPU_1a1d10a4aec2af11778d55f97cd959243f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">launchSerializedCodeExecution</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq30SerializedCodeExecutionContextE" title="cudaq::SerializedCodeExecutionContext"><span class="n"><span class="pre">SerializedCodeExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">serializeCodeExecutionObject</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU29launchSerializedCodeExecutionERKNSt6stringERN5cudaq30SerializedCodeExecutionContextE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Launch serialized code for remote execution. Subtypes that support this should override this function and the <a class="reference internal" href="#classcudaq_1_1QPU_1a79b42ab9b4a6b3ca5f749fb101e5f1c4"><span class="std std-ref">supportsRemoteSerializedCode()</span></a> function. </p>
+<dd><p>Launch serialized code for remote execution. Subtypes that support this should override this function. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -3324,21 +3325,15 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform19supports_remote_vqeEKNSt6size_tE">
-<span class="target" id="classcudaq_1_1quantum__platform_1a5b610c7abb2565586358e85c9040113e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supports_remote_vqe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpuId</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform19supports_remote_vqeEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return whether the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> has support for fully remote VQE execution. </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model">
 <span class="target" id="classcudaq_1_1quantum__platform_1a6e798c291d46aff40ce8fdad40e6fb90"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_noise</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">model</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the noise model for future invocations of quantum kernels. </p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform31supports_remote_serialized_codeEKNSt6size_tE">
-<span class="target" id="classcudaq_1_1quantum__platform_1aca328eae1eaeb351ffcee686334d8713"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supports_remote_serialized_code</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpuId</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform31supports_remote_serialized_codeEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return whether the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> has support for remote serialized code execution. </p>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE">
+<span class="target" id="classcudaq_1_1quantum__platform_1a1459a03708bb0236c804148fb6775cbf"></span><a class="reference internal" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="cudaq::RemoteCapabilities"><span class="n"><span class="pre">RemoteCapabilities</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_remote_capabilities</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpuId</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the remote capabilities (only applicable for remote platforms) </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -3407,6 +3402,42 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform14list_platformsEv">
 <span class="target" id="classcudaq_1_1quantum__platform_1a75f4168edb243d52ca8df2e78ad905f9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list_platforms</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform14list_platformsEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>List all available platforms. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilitiesE">
+<span class="target" id="structcudaq_1_1RemoteCapabilities"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemoteCapabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A structure of boolean fields to indicate whether a given remote server has specific capabilities. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb">
+<span class="target" id="structcudaq_1_1RemoteCapabilities_1a436f02286cef89972c62bc8e3cc98122"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemoteCapabilities</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">initValue</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructor that broadcasts <code class="docutils literal notranslate"><span class="pre">initValue</span></code> to all fields. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE">
+<span class="target" id="structcudaq_1_1RemoteCapabilities_1a534e4bef1df86badcf37620ec8e41aec"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stateOverlap</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>True if the remote can perform state overlap operations. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities18serializedCodeExecE">
+<span class="target" id="structcudaq_1_1RemoteCapabilities_1a59e51afc4c9baeefbad76528f0291857"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serializedCodeExec</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities18serializedCodeExecE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>True if the remote can perform serialized code execution (raw Python commands). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities3vqeE">
+<span class="target" id="structcudaq_1_1RemoteCapabilities_1a9747aef4cba0c08f8a8c762848663c64"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vqe</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities3vqeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>True if the remote can perform an entire VQE operation without and back-and-forth client/server communications. </p>
 </dd></dl>
 
 </div>

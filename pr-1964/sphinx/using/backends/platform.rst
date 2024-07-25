@@ -21,8 +21,8 @@ NVIDIA `MQPU` Platform
 
 .. _mqpu-platform:
 
-The NVIDIA `MQPU` target (:code:`nvidia-mqpu`) provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
-Each QPU is simulated via a `cuStateVec` simulator backend. For more information about using multiple GPUs 
+In the multi-QPU mode (:code:`mqpu` option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
+Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA target. For more information about using multiple GPUs 
 to simulate each virtual QPU, or using a different backend for virtual QPUs, please see :ref:`remote MQPU platform <remote-mqpu-platform>`.
 This target enables asynchronous parallel execution of quantum kernel tasks.
 
@@ -42,17 +42,17 @@ Here is a simple example demonstrating its usage.
         :end-before: [End Documentation]
 
 
-    One can specify the target multi-QPU architecture (:code:`nvidia-mqpu`) with the :code:`--target` flag:
+    One can specify the target multi-QPU architecture with the :code:`--target` flag:
     
     .. code-block:: console
 
-        nvq++ sample_async.cpp -target nvidia-mqpu
+        nvq++ sample_async.cpp --target nvidia --target-option mqpu
         ./a.out
 
 CUDA-Q exposes asynchronous versions of the default :code:`cudaq` algorithmic
 primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`sample_async` function in the above code snippets).
 
-Depending on the number of GPUs available on the system, the :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
+Depending on the number of GPUs available on the system, the :code:`nvidia` multi-QPU platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
 
 The results might look like the following 4 different random samplings:
@@ -67,15 +67,17 @@ The results might look like the following 4 different random samplings:
 
 .. note::
 
-  By default, the :code:`nvidia-mqpu` platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
+  By default, the :code:`nvidia` multi-QPU platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
   To specify the number QPUs to be instantiated, one can set the :code:`CUDAQ_MQPU_NGPUS` environment variable.
   For example, use :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
 
+.. deprecated:: 0.8
+    The :code:`nvidia-mqpu` and :code:`nvidia-mqpu-fp64` targets, which are equivalent to the multi-QPU options `mgpu,fp32` and `mgpu,fp64`, respectively, of the :code:`nvidia` target, are deprecated and will be removed in a future release.
 
 Parallel distribution mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The CUDA-Q :code:`nvidia-mqpu` platform supports two modes of parallel distribution of expectation value computation:
+The CUDA-Q :code:`nvidia` multi-QPU platform supports two modes of parallel distribution of expectation value computation:
 
 * MPI: distribute the expectation value computations across available MPI ranks and GPUs for each Hamiltonian term.
 * Thread: distribute the expectation value computations among available GPUs via standard C++ threads (each thread handles one GPU).
@@ -106,7 +108,7 @@ An example of MPI distribution mode usage in both C++ and Python is given below:
 
     .. code-block:: console
 
-        nvq++ file.cpp -target nvidia-mqpu
+        nvq++ file.cpp --target nvidia --target-option mqpu
         mpiexec -np <N> a.out
 
 In the above example, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.
@@ -119,7 +121,7 @@ Remote `MQPU` Platform
 
 .. _remote-mqpu-platform:
 
-As shown in the above examples, the :code:`nvidia-mqpu` platform enables
+As shown in the above examples, the multi-QPU NVIDIA platform enables
 multi-QPU distribution whereby each QPU is simulated by a :ref:`single NVIDIA GPU <cuQuantum single-GPU>`.
 To run multi-QPU workloads on different simulator backends, one can use the :code:`remote-mqpu` platform,
 which encapsulates simulated QPUs as independent HTTP REST server instances. 
@@ -201,7 +203,7 @@ With these invocations, each virtual QPU is locally addressable at the URL `loca
     Hence, please make sure to either (1) use a non-public TCP/IP port for internal use or 
     (2) use firewalls or other security mechanisms to manage user access. 
 
-User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the :code:`nvidia-mqpu` platform.
+User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the multi-QPU NVIDIA platform platform.
 
 .. tab:: Python
 
@@ -266,3 +268,6 @@ language constructs within quantum kernels may not yet be fully supported.
      - `std::vector<std::vector<int>>`, `std::vector<cudaq::pauli_word>`, etc. 
      - Number of top-level elements (as a 64-bit integer) followed sizes in bytes of element vectors (as a contiguous array of 64-bit integers) then serialized data of the inner vectors.
      
+For CUDA-Q kernels that return a value, the remote platform supports returning simple data types of 
+`bool`, integral (e.g., `int` or `std::size_t`), and floating-point types (`float` or `double`) 
+when MLIR-based compilation is enabled (:code:`--enable-mlir`).

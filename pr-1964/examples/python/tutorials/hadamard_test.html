@@ -189,6 +189,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maximum_vertex_weight_clique.html">Molecular docking via DC-QAOA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
@@ -733,7 +734,7 @@ Numerical result 0.7071067690849304
 
 <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
-    <span class="n">count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">angle</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">shots_count</span> <span class="o">=</span> <span class="n">shots</span><span class="p">,</span> <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">i</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">angle</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">shots_count</span> <span class="o">=</span> <span class="n">shots</span><span class="p">,</span> <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">i</span><span class="o">%</span><span class="k">qpu_count</span>)
     <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
 
 <span class="n">mean_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angle</span><span class="p">))</span>
