@@ -102,6 +102,9 @@ In the single-GPU mode, the :code:`nvidia` target provides the following environ
   * - ``CUDAQ_FUSION_MAX_QUBITS``
     - positive integer
     - The max number of qubits used for gate fusion. The default value is `4`.
+  * - ``CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS``
+    - integer greater than or equal to -1
+    - The max number of qubits used for diagonal gate fusion. The default value is set to `-1` and the fusion size will be automatically adjusted for the better performance. If 0, the gate fusion for diagonal gates is disabled.
   * - ``CUDAQ_FUSION_NUM_HOST_THREADS``
     - positive integer
     - Number of CPU threads used for circuit processing. The default value is `8`.
@@ -220,8 +223,8 @@ the multi-node multi-GPU configuration.
     - positive integer
     - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
   * - ``CUDAQ_GPU_FABRIC``
-    - `MNNVL` or `NONE`
-    - Automatically set the number of P2P device bits based on the number of GPUs when multi-node NVLink (`MNNVL`) is selected or disable P2P (with `NONE`). 
+    - `MNNVL`, `NVL`, or `NONE`
+    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`). 
   * - ``CUDAQ_GLOBAL_INDEX_BITS``
     - comma-separated list of positive integers
     - Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` represents **8** nodes with fast communication and the second `2` represents **4** 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).
