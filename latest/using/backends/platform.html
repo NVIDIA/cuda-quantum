@@ -941,6 +941,9 @@ language constructs within quantum kernels may not yet be fully supported.</p>
 </tr>
 </tbody>
 </table>
+<p>For CUDA-Q kernels that return a value, the remote platform supports returning simple data types of
+<code class="code docutils literal notranslate"><span class="pre">bool</span></code>, integral (e.g., <code class="code docutils literal notranslate"><span class="pre">int</span></code> or <code class="code docutils literal notranslate"><span class="pre">std::size_t</span></code>), and floating-point types (<code class="code docutils literal notranslate"><span class="pre">float</span></code> or <code class="code docutils literal notranslate"><span class="pre">double</span></code>)
+when MLIR-based compilation is enabled (<code class="code docutils literal notranslate"><span class="pre">--enable-mlir</span></code>).</p>
 </section>
 </section>
 </section>
