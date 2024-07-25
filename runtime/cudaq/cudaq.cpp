@@ -290,7 +290,7 @@ std::string get_quake_by_name(const std::string &kernelName,
   std::optional<std::string> result;
   std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
 
-  for (const auto &pair: quakeRegistry) {
+  for (const auto &pair : quakeRegistry) {
     if (pair.first == kernelName) {
       // Exact match. Return the code.
       return pair.second;
@@ -300,7 +300,8 @@ std::string get_quake_by_name(const std::string &kernelName,
       // Prefix match. Record it and make sure that it is a unique prefix.
       if (result.has_value()) {
         if (throwException) {
-          throw std::runtime_error("Quake code for '" + kernelName + "' has multiple matches.\n");
+          throw std::runtime_error("Quake code for '" + kernelName +
+                                   "' has multiple matches.\n");
         } else {
           result = pair.second;
         }
