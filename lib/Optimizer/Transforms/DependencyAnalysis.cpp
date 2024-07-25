@@ -517,7 +517,6 @@ struct DependencyAnalysisPass
     : public cudaq::opt::impl::DependencyAnalysisBase<DependencyAnalysisPass> {
   using DependencyAnalysisBase::DependencyAnalysisBase;
   SmallVector<DependencyNode *> perOp;
-  size_t qubits;
 
   /// Validates that \p op meets the assumptions:
   /// * control flow operations are not allowed
@@ -724,6 +723,7 @@ struct DependencyAnalysisPass
       return;
 
     SetVector<DependencyNode *> roots;
+    size_t qubits = 0;
 
     for (auto &op : func.front().getOperations()) {
       if (dyn_cast<func::ReturnOp>(op))
