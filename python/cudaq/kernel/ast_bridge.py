@@ -520,6 +520,25 @@ class PyASTBridge(ast.NodeVisitor):
         return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
                                arrSize).result
 
+    def getStructMemberIdx(self, memberName, structTy):
+        """
+        For the given struct type and member variable name, return 
+        the index of the variable in the struct and the specific 
+        MLIR type for the variable.
+        """
+        structName = cc.StructType.getName(structTy)
+        structIdx = None
+        _, userType = globalRegisteredTypes[structName]
+        for i, (k, _) in enumerate(userType.items()):
+            if k == memberName:
+                structIdx = i
+                break
+        if structIdx == None:
+            self.emitFatalError(
+                f'Invalid struct member: {structName}.{memberName} (members={[k for k,_ in userType.items()]})'
+            )
+        return structIdx, mlirTypeFromPyType(userType[memberName], self.ctx)
+
     # Create a new vector with source elements converted to the target element type if needed.
     def __copyVectorAndCastElements(self, source, targetEleType):
         if not cc.PointerType.isinstance(source.type):
@@ -1164,19 +1183,8 @@ class PyASTBridge(ast.NodeVisitor):
                     value.type) and self.isQuantumStructType(value.type):
                 # Here we have a quantum struct, need to use extract value instead
                 # of load from compute pointer.
-                memberName = node.attr
-                structName = cc.StructType.getName(value.type)
-                structIdx = None
-                _, userType = globalRegisteredTypes[structName]
-                for i, (k, _) in enumerate(userType.items()):
-                    if k == memberName:
-                        structIdx = i
-                        break
-                if structIdx == None:
-                    self.emitFatalError(
-                        f'Invalid struct member: {structName}.{memberName} (members={[k for k,_ in userType.items()]})'
-                    )
-                memberTy = mlirTypeFromPyType(userType[memberName], self.ctx)
+                structIdx, memberTy = self.getStructMemberIdx(
+                    node.attr, value.type)
                 self.pushValue(
                     cc.ExtractValueOp(
                         memberTy, value, [],
@@ -1188,21 +1196,8 @@ class PyASTBridge(ast.NodeVisitor):
                 eleType = cc.PointerType.getElementType(value.type)
                 if cc.StructType.isinstance(eleType):
                     # Handle the case where we have a struct member extraction, memory semantics
-                    memberName = node.attr
-                    structName = cc.StructType.getName(eleType)
-                    structIdx = None
-                    _, userType = globalRegisteredTypes[structName]
-                    for i, (k, _) in enumerate(userType.items()):
-                        if k == memberName:
-                            structIdx = i
-                            break
-                    if structIdx == None:
-                        self.emitFatalError(
-                            f'Invalid struct member: {structName}.{memberName} (members={[k for k,_ in userType.items()]})'
-                        )
-
-                    memberTy = mlirTypeFromPyType(userType[memberName],
-                                                  self.ctx)
+                    structIdx, memberTy = self.getStructMemberIdx(
+                        node.attr, eleType)
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(self.ctx, memberTy), value, [],
                         DenseI32ArrayAttr.get([structIdx],
@@ -1921,7 +1916,6 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(undefOp)
                     return
 
-                print("WE ARE HERE YALL")
                 stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
                                         TypeAttr.get(structTy)).result
 
