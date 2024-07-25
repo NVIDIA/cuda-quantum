@@ -834,7 +834,7 @@ class Dendrogram:
     @hierarchical_clustering_sequence.setter
     def hierarchical_clustering_sequence(
             self, hierarchical_clustering_sequence: List[Union[str,
-                                                              int]]) -> None:
+                                                               int]]) -> None:
         self.linkage_matrix = []
         self._hierarchial_clustering_sequence = hierarchical_clustering_sequence
 
@@ -1111,7 +1111,8 @@ class Dendrogram:
             `full_coreset_df` (`pd.DataFrame`): The full coreset data.
         """
         parent_clusters = [
-            parent_cluster for parent_cluster in hierarchical_clustering_sequence
+            parent_cluster
+            for parent_cluster in hierarchical_clustering_sequence
             if len(parent_cluster) > 1
         ]
         x_grid = int(np.sqrt(len(parent_clusters)))
