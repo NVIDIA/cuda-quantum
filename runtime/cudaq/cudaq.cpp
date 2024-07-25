@@ -36,98 +36,91 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
   // specific MPI implementation for compatibility. Rather, MPI functionalities
   // are encapsulated inside a runtime-loadable plugin.
   static std::unique_ptr<cudaq::MPIPlugin> g_plugin;
-  if (!g_plugin) {
-    // Search priority:
-    //  (1) Environment variable take precedence (e.g., by running the
-    // activation script)
-    //  (2) Previously-activated custom plugin at its default location
-    //  (3) Built-in comm plugin (e.g., docker container or build from source
-    // with MPI)
-    const char *mpiLibPath = std::getenv("CUDAQ_MPI_COMM_LIB");
-    if (mpiLibPath) {
-      // The user has set the environment variable.
-      cudaq::info("Load MPI comm plugin from CUDAQ_MPI_COMM_LIB environment "
-                  "variable at '{}'",
-                  mpiLibPath);
-      g_plugin = std::make_unique<cudaq::MPIPlugin>(mpiLibPath);
+  if (g_plugin)
+    return g_plugin.get();
+
+  // Search priority:
+  //  (1) Environment variable take precedence (e.g., by running the
+  // activation script)
+  //  (2) Previously-activated custom plugin at its default location
+  //  (3) Built-in comm plugin (e.g., docker container or build from source
+  // with MPI)
+  const char *mpiLibPath = std::getenv("CUDAQ_MPI_COMM_LIB");
+  if (mpiLibPath) {
+    // The user has set the environment variable.
+    cudaq::info("Load MPI comm plugin from CUDAQ_MPI_COMM_LIB environment "
+                "variable at '{}'",
+                mpiLibPath);
+    g_plugin = std::make_unique<cudaq::MPIPlugin>(mpiLibPath);
+  } else {
+    // Try locate MPI plugins in the install directory
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    // First, look for the previously-activated plugin in the
+    // `distributed_interfaces/` directory.
+    const auto distributedInterfacesDir =
+        cudaqLibPath.parent_path().parent_path() / "distributed_interfaces";
+    // Note: this file name must match the one defined in
+    // `activate_custom_mpi.sh`.
+    constexpr std::string_view activatedInterfaceLibFilename =
+        "libcudaq_distributed_interface_mpi.so";
+    const auto activatedInterfaceLibFile =
+        distributedInterfacesDir / activatedInterfaceLibFilename;
+    if (std::filesystem::exists(activatedInterfaceLibFile)) {
+      cudaq::info("Load MPI comm plugin from '{}'",
+                  activatedInterfaceLibFile.c_str());
+      g_plugin =
+          std::make_unique<cudaq::MPIPlugin>(activatedInterfaceLibFile.c_str());
     } else {
-      // Try locate MPI plugins in the install directory
-      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-      // First, look for the previously-activated plugin in the
-      // `distributed_interfaces/` directory.
-      const auto distributedInterfacesDir =
-          cudaqLibPath.parent_path().parent_path() / "distributed_interfaces";
-      // Note: this file name must match the one defined in
-      // `activate_custom_mpi.sh`.
-      constexpr std::string_view activatedInterfaceLibFilename =
-          "libcudaq_distributed_interface_mpi.so";
-      const auto activatedInterfaceLibFile =
-          distributedInterfacesDir / activatedInterfaceLibFilename;
-      if (std::filesystem::exists(activatedInterfaceLibFile)) {
-        cudaq::info("Load MPI comm plugin from '{}'",
-                    activatedInterfaceLibFile.c_str());
-        g_plugin = std::make_unique<cudaq::MPIPlugin>(
-            activatedInterfaceLibFile.c_str());
-      } else {
-        const auto pluginsPath = cudaqLibPath.parent_path() / "plugins";
+      const auto pluginsPath = cudaqLibPath.parent_path() / "plugins";
 #if defined(__APPLE__) && defined(__MACH__)
-        const std::string libSuffix = "dylib";
+      const std::string libSuffix = "dylib";
 #else
-        const std::string libSuffix = "so";
+      const std::string libSuffix = "so";
 #endif
-        // The builtin (native) plugin if present
-        const auto pluginLibFile =
-            pluginsPath / fmt::format("libcudaq-comm-plugin.{}", libSuffix);
-        if (std::filesystem::exists(pluginLibFile) &&
-            cudaq::MPIPlugin::isValidInterfaceLib(pluginLibFile.c_str())) {
-          cudaq::info("Load builtin MPI comm plugin at '{}'",
-                      pluginLibFile.c_str());
-          g_plugin = std::make_unique<cudaq::MPIPlugin>(pluginLibFile.c_str());
-        }
+      // The builtin (native) plugin if present
+      const auto pluginLibFile =
+          pluginsPath / fmt::format("libcudaq-comm-plugin.{}", libSuffix);
+      if (std::filesystem::exists(pluginLibFile) &&
+          cudaq::MPIPlugin::isValidInterfaceLib(pluginLibFile.c_str())) {
+        cudaq::info("Load builtin MPI comm plugin at '{}'",
+                    pluginLibFile.c_str());
+        g_plugin = std::make_unique<cudaq::MPIPlugin>(pluginLibFile.c_str());
       }
     }
   }
   if (!g_plugin) {
     if (unsafe)
       return nullptr;
-    else
-      throw std::runtime_error(
-          "No MPI support can be found when attempted to use cudaq::mpi APIs. "
-          "Please refer to the documentation for instructions to activate MPI "
-          "support.");
+    throw std::runtime_error(
+        "No MPI support can be found when attempted to use cudaq::mpi APIs. "
+        "Please refer to the documentation for instructions to activate MPI "
+        "support.");
   }
 
   return g_plugin.get();
 };
 
-bool available() {
-  auto *commPlugin = getMpiPlugin(/*unsafe=*/true);
-  return commPlugin != nullptr;
-}
+bool available() { return getMpiPlugin(/*unsafe=*/true) != nullptr; }
 
 void initialize() {
-  auto *commPlugin = getMpiPlugin();
-  commPlugin->initialize();
+  if (auto *commPlugin = getMpiPlugin()) {
+    commPlugin->initialize();
+  }
 }
 
 void initialize(int argc, char **argv) {
-  auto *commPlugin = getMpiPlugin();
-  commPlugin->initialize(argc, argv);
-  const auto pid = commPlugin->rank();
-  const auto np = commPlugin->num_ranks();
-  if (pid == 0)
-    cudaq::info("MPI Initialized, nRanks = {}", np);
+  if (auto *commPlugin = getMpiPlugin()) {
+    commPlugin->initialize(argc, argv);
+    const auto pid = commPlugin->rank();
+    const auto np = commPlugin->num_ranks();
+    if (pid == 0)
+      cudaq::info("MPI Initialized, nRanks = {}", np);
+  }
 }
 
-int rank() {
-  auto *commPlugin = getMpiPlugin();
-  return commPlugin->rank();
-}
+int rank() { return getMpiPlugin()->rank(); }
 
-int num_ranks() {
-  auto *commPlugin = getMpiPlugin();
-  return commPlugin->num_ranks();
-}
+int num_ranks() { return getMpiPlugin()->num_ranks(); }
 
 bool is_initialized() {
   // Allow to probe is_initialized even without MPI support (hence unsafe =
@@ -221,12 +214,12 @@ static std::vector<std::pair<std::string, std::string>> quakeRegistry;
 
 void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
-  for (auto &pair : quakeRegistry) {
-    if (pair.first == key) {
-      cudaq::info("Replacing code for kernel {}", key);
-      pair.second = code;
-      return;
-    }
+  auto it = std::find_if(quakeRegistry.begin(), quakeRegistry.end(),
+                         [&](const auto &pair) { return pair.first == key; });
+  if (it != quakeRegistry.end()) {
+    cudaq::info("Replacing code for kernel {}", key);
+    it->second = code;
+    return;
   }
   quakeRegistry.emplace_back(key, code);
 }
@@ -263,10 +256,8 @@ void cudaq::registry::cudaqRegisterLambdaName(const char *name,
 
 bool cudaq::__internal__::isKernelGenerated(const std::string &kernelName) {
   std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
-  for (auto regName : kernelRegistry)
-    if (kernelName == regName)
-      return true;
-  return false;
+  return std::find(kernelRegistry.begin(), kernelRegistry.end(), kernelName) !=
+         kernelRegistry.end();
 }
 
 bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
@@ -300,27 +291,31 @@ std::string get_quake_by_name(const std::string &kernelName,
   // Find the quake code
   std::optional<std::string> result;
   std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
-  for (auto [k, v] : quakeRegistry) {
-    if (k == kernelName) {
-      // Exact match. Return the code.
-      return v;
-    }
-    if (k.starts_with(kernelNamePrefix)) {
-      // Prefix match. Record it and make sure that it is a unique prefix.
-      if (result.has_value()) {
-        if (throwException)
-          throw std::runtime_error("Quake code for '" + kernelName +
-                                   "' has multiple matches.\n");
-      } else {
-        result = v;
-      }
-    }
-  }
+
+  std::find_if(
+      quakeRegistry.begin(), quakeRegistry.end(), [&](const auto &pair) {
+        if (pair.first == kernelName) {
+          result = pair.second;
+          return true;
+        }
+
+        if (pair.first.starts_with(kernelNamePrefix)) {
+          if (result.has_value()) {
+            if (throwException)
+              throw std::runtime_error("Quake code for '" + kernelName +
+                                       "' has multiple matches.\n");
+          } else {
+            result = pair.second;
+          }
+        }
+        return false;
+      });
+
   if (result.has_value())
     return *result;
-  auto msg = "Quake code not found for '" + kernelName + "'.\n";
   if (throwException)
-    throw std::runtime_error(msg);
+    throw std::runtime_error("Quake code not found for '" + kernelName +
+                             "'.\n");
   return {};
 }
 
