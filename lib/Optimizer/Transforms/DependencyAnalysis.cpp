@@ -342,6 +342,7 @@ class DependencyGraph {
 private:
   SetVector<DependencyNode *> roots;
   SetVector<size_t> qids;
+  SetVector<size_t> allocs;
   uint total_height;
   DenseMap<size_t, DependencyNode *> firstUses;
   bool isScheduled = false;
@@ -368,8 +369,11 @@ private:
     seen.insert(next);
     qids.set_union(next->qids);
 
-    if (next->isAlloc())
+    if (next->isLeaf() && next->isQuantumOp())
       firstUses.insert({next->qids.front(), next->successors.front()});
+
+    if (next->isAlloc())
+      allocs.set_union(next->qids);
 
     for (auto successor : next->successors)
       if (next->isQuantumDependent() || !successor->isQuantumDependent())
@@ -442,25 +446,25 @@ public:
   uint getHeight() { return total_height; }
 
   SmallVector<size_t> getFirstUsedAtCycle(uint cycle) {
-    SmallVector<size_t> cycles;
-    for (auto qid : qids) {
+    SmallVector<size_t> fresh;
+    for (auto qid : allocs) {
       auto first = getFirstUseOf(qid);
-      if (first && first->cycle == cycle)
-        cycles.push_back(qid);
+      if (first->cycle == cycle)
+        fresh.push_back(qid);
     }
 
-    return cycles;
+    return fresh;
   }
 
   SmallVector<size_t> getLastUsedAtCycle(uint cycle) {
-    SmallVector<size_t> cycles;
+    SmallVector<size_t> stale;
     for (auto qid : qids) {
       auto last = getLastUseOf(qid);
       if (last->cycle == cycle)
-        cycles.push_back(qid);
+        stale.push_back(qid);
     }
 
-    return cycles;
+    return stale;
   }
 
   /// Creates a new physical null wire to replace the
