@@ -811,6 +811,12 @@ class PyASTBridge(ast.NodeVisitor):
         function. 
         """
         # FIXME add more as we need them
+        if cc.StructType.isinstance(type):
+            if True in [
+                    self.isQuantumType(t) for t in cc.StructType.getTypes(type)
+            ]:
+                return False
+            return True
         return ComplexType.isinstance(type) or F64Type.isinstance(
             type) or F32Type.isinstance(type) or IntegerType.isinstance(
                 type) or cc.StructType.isinstance(type)
@@ -1118,7 +1124,11 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.StoreOp(value, self.symbolTable[varNames[i]])
             elif cc.PointerType.isinstance(value.type):
                 self.symbolTable[varNames[i]] = value
-
+            elif cc.StructType.isinstance(value.type) and isinstance(
+                    value.owner.opview, cc.InsertValueOp):
+                # If we have a new struct from undef + insert_value, we don't
+                # want to allocate new memory.
+                self.symbolTable[varNames[i]] = value
             else:
                 # We should allocate and store
                 alloca = cc.AllocaOp(cc.PointerType.get(self.ctx, value.type),
@@ -1140,10 +1150,32 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.value,
                       ast.Name) and node.value.id in self.symbolTable:
             value = self.symbolTable[node.value.id]
+            if cc.StructType.isinstance(value.type):
+                # We have a quantum struct, need to use extract value.
+                memberName = node.attr
+                structName = cc.StructType.getName(value.type)
+                structIdx = None
+                _, userType = globalRegisteredTypes[structName]
+                for i, (k, _) in enumerate(userType.items()):
+                    if k == memberName:
+                        structIdx = i
+                        break
+                if structIdx == None:
+                    self.emitFatalError(
+                        f'Invalid struct member: {structName}.{memberName} (members={[k for k,_ in userType.items()]})'
+                    )
+                memberTy = mlirTypeFromPyType(userType[memberName], self.ctx)
+                self.pushValue(
+                    cc.ExtractValueOp(
+                        memberTy, value, [],
+                        DenseI32ArrayAttr.get([structIdx],
+                                              context=self.ctx)).result)
+                return
+
             if cc.PointerType.isinstance(value.type):
                 eleType = cc.PointerType.getElementType(value.type)
                 if cc.StructType.isinstance(eleType):
-                    # Handle the case where we have a struct member extraction
+                    # Handle the case where we have a struct member extraction, memory semantics
                     memberName = node.attr
                     structName = cc.StructType.getName(eleType)
                     structIdx = None
@@ -1859,13 +1891,30 @@ class PyASTBridge(ast.NodeVisitor):
                 ]
                 structTy = cc.StructType.getNamed(self.ctx, node.func.id,
                                                   structTys)
+                nArgs = len(self.valueStack)
+                ctorArgs = [self.popValue() for _ in range(nArgs)]
+                ctorArgs.reverse()
+
+                if True in [self.isQuantumType(t) for t in structTys]:
+                    # If we have a struct with quantum types, we do not
+                    # want to allocate struct memory and load / store pointers
+                    # to quantum memory, so we'll instead use value semantics
+                    # with InsertValue
+                    undefOp = cc.UndefOp(structTy).result
+                    for i, arg in enumerate(ctorArgs):
+                        undefOp = cc.InsertValueOp(
+                            structTy, undefOp, arg,
+                            DenseI64ArrayAttr.get([i], context=self.ctx)).result
+
+                    self.pushValue(undefOp)
+                    return
+
+                print("WE ARE HERE YALL")
                 stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
                                         TypeAttr.get(structTy)).result
 
                 # loop over each type and `compute_ptr` / store
-                nArgs = len(self.valueStack)
-                ctorArgs = [self.popValue() for _ in range(nArgs)]
-                ctorArgs.reverse()
+
                 for i, ty in enumerate(structTys):
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(self.ctx, ty), stackSlot, [],

@@ -1622,7 +1622,7 @@ def test_capture_opaque_kernel():
     counts = cudaq.sample(kd)
     assert len(counts) == 2 and '0' in counts and '1' in counts 
     
-def test_custom_kernel_type():
+def test_custom_classical_kernel_type():
     from dataclasses import dataclass
 
     @dataclass
@@ -1663,40 +1663,7 @@ def test_custom_kernel_type():
     counts = cudaq.sample(test, instance)
     counts.dump()
     assert len(counts) == 2 and '00' in counts and '11' in counts 
-
-    @dataclass
-    class patch:
-        data : cudaq.qview 
-        ancx : cudaq.qview 
-        ancz : cudaq.qview 
     
-    @cudaq.kernel 
-    def logicalH(p : patch):
-        h(p.data)
-    
-    @cudaq.kernel 
-    def logicalX(p : patch):
-        x(p.ancx)
-
-    @cudaq.kernel 
-    def logicalZ(p : patch):
-        z(p.ancz)
-
-    @cudaq.kernel 
-    def run():
-        q = cudaq.qvector(2)
-        r = cudaq.qvector(2)
-        s = cudaq.qvector(2)
-        p = patch(q, r, s)
-
-        logicalH(p)
-        logicalX(p)
-        logicalZ(p)
-    
-    # Test here is that it compiles and runs successfully
-    print(run)
-    run()
-
     # Test that the class can be in a library 
     # and the paths all work out 
     from mock.hello import TestClass
@@ -1719,6 +1686,44 @@ def test_custom_kernel_type():
         test.compile()
 
 
+
+def test_custom_quantum_type():
+    from dataclasses import dataclass
+    @dataclass
+    class patch:
+        data : cudaq.qview 
+        ancx : cudaq.qview 
+        ancz : cudaq.qview 
+    
+    @cudaq.kernel
+    def logicalH(p : patch):
+        h(p.data)
+    
+    # print(logicalH)
+    @cudaq.kernel 
+    def logicalX(p : patch):
+        x(p.ancx)
+
+    @cudaq.kernel 
+    def logicalZ(p : patch):
+        z(p.ancz)
+
+    @cudaq.kernel# (verbose=True)
+    def run():
+        q = cudaq.qvector(2)
+        r = cudaq.qvector(2)
+        s = cudaq.qvector(2)
+        p = patch(q, r, s)
+
+        logicalH(p)
+        logicalX(p)
+        logicalZ(p)
+    
+    # Test here is that it compiles and runs successfully
+    print(run)
+    run()
+
+   
 @skipIfPythonLessThan39
 def test_issue_9():
 
