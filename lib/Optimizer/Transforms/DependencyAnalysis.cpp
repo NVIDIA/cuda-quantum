@@ -65,57 +65,114 @@ public:
     return std::max(begin, other->begin) - std::min(end, other->end);
   }
 
-  LifeTime *combine(LifeTime *other) {
-    return new LifeTime(std::min(begin, other->begin),
-                        std::max(end, other->end));
+  void combine(LifeTime *other) {
+    begin = std::min(begin, other->begin);
+    end = std::max(end, other->end);
   }
 
   uint getBegin() { return begin; }
   uint getEnd() { return end; }
 };
 
-class LifetimeSet {
+class LifeTimeSet {
 private:
   StringRef set;
-  SmallVector<LifeTime *> lifetimes;
-  SetVector<size_t> qids;
+  SmallVector<SmallVector<LifeTime *>> lifetimes;
+  SmallVector<SetVector<size_t>> frames;
+  size_t width;
+
+  bool isInCurrentFrame(size_t pqid) {
+    return frames.back().contains(pqid);
+  }
+
+  void combineOrAdd(size_t pqid, LifeTime *lifetime) {
+    if (isInCurrentFrame(pqid))
+      lifetimes[pqid].back()->combine(lifetime);
+    else
+      lifetimes[pqid].push_back(lifetime);
+  }
   
   /// Given a set of qubit lifetimes and a candidate lifetime,
-  /// tries to find a qubit to reuse.
-  /// The result either contains the optimal qubit to reuse,
-  /// or contains no value if no qubit can be reused
-  std::optional<size_t> findBestQubit(LifeTime *lifetime) {
-    std::optional<size_t> best;
+  /// tries to find a qubit to reuse, otherwise allocates a new qubit
+  size_t mapToPhysical(LifeTime *lifetime) {
+    std::optional<size_t> best_reuse = std::nullopt;
+    std::optional<size_t> empty = std::nullopt;
     uint best_distance = INT_MAX;
     for (uint i = 0; i < lifetimes.size(); i++) {
-      LifeTime *other = lifetimes[i];
+      if (lifetimes[i].empty()) {
+        empty = i;
+        continue;
+      }
+
+      LifeTime *other = lifetimes[i].back();
       auto distance = lifetime->distance(other);
       if (lifetime->isAfter(other) && distance < best_distance) {
-        best = i;
+        best_reuse = i;
         best_distance = distance;
       }
     }
 
-    return best;
+    // Reuse a qubit based on a lifetime in the same scope
+    if (best_reuse.has_value()) {
+      combineOrAdd(best_reuse.value(), lifetime);
+      return best_reuse.value();
+    }
+
+    // Reuse a qubit based on a lifetime in a different scope
+    if (empty.has_value()) {
+      lifetimes[empty.value()].push_back(lifetime);
+      return empty.value();
+    }
+
+    // Fall back: allocate a new qubit
+    lifetimes.push_back({lifetime});
+    if (lifetimes.size() > width)
+        width = lifetimes.size();
+    return lifetimes.size() - 1;
   }
 
 public:
-  LifetimeSet(StringRef set) : set(set), lifetimes(), qids() {}
+  LifeTimeSet(StringRef set) : set(set), lifetimes(), frames(), width(0) {}
 
   quake::BorrowWireOp genBorrow(LifeTime *lifetime, size_t qid, OpBuilder &builder) {
-    auto best = findBestQubit(lifetime);
-    auto phys = best.value_or(lifetimes.size());
-    qids.insert(qid);
-    if (!best.has_value())
-      lifetimes.push_back(lifetime);
+    auto phys = mapToPhysical(lifetime);
+    frames.back().insert(phys);
 
     auto wirety = quake::WireType::get(builder.getContext());
     return builder.create<quake::BorrowWireOp>(builder.getUnknownLoc(), wirety, set, phys);
   }
 
-  bool isInUse(size_t qid) {  return qids.contains(qid); }
+  void pushFrame() {
+    frames.push_back({});
+  }
 
-  size_t size() { return lifetimes.size(); }
+  SetVector<size_t> popFrame() {
+    auto pqids = frames.back();
+    frames.pop_back();
+    for (auto pqid : pqids) {
+      lifetimes[pqid].pop_back();
+    }
+    return pqids;
+  }
+
+  void addOpaque(SetVector<size_t> pqids, LifeTime *lifetime) {
+    for (auto pqid : pqids) {
+      combineOrAdd(pqid, lifetime);
+      frames.back().insert(pqid);
+    }
+  }
+
+  size_t getCount() { return width; }
+
+  void print() {
+    llvm::outs() << "# qubits: " << width << ", # frames: " << frames.size() << ", cycles: ";
+    for (size_t i = 0; i < lifetimes.size(); i++)
+      if (lifetimes[i].empty())
+        llvm::outs() << "E ";
+      else
+        llvm::outs() << lifetimes[i].back()->getEnd() << " ";
+    llvm::outs() << "\n";
+  }
 };
 
 class DependencyNode {
@@ -156,6 +213,7 @@ protected:
       dependency->printSubGraph(tabIndex + 1);
   }
 
+  virtual bool isAlloc() { return false; }
   virtual bool isRoot() { return successors.size() == 0; };
   virtual bool isLeaf() { return dependencies.size() == 0; };
   virtual bool isSkip() { return numTicks() == 0; };
@@ -167,7 +225,7 @@ protected:
   virtual Value getResult(uint resultidx) = 0;
   virtual ValueRange getResults() = 0;
   virtual ValueRange getOperands() = 0;
-  virtual void codeGen(OpBuilder &builder, LifetimeSet &set) = 0;
+  virtual void codeGen(OpBuilder &builder, LifeTimeSet &set) = 0;
   
   /// Returns the index of the result of the dependency corresponding to the
   /// \p operand_idx'th operand of this node
@@ -270,8 +328,12 @@ public:
 
   void print() { printSubGraph(0); }
 
-  virtual void addCleanUp(OpBuilder &builder, LifetimeSet &set) {
-    assert(false && "Called addCleanUp on a non root");
+  virtual void genReturnWire(OpBuilder &builder, LifeTimeSet &set) {
+    assert(false && "Called genReturnWire on a non root");
+  };
+
+  virtual void genTerminator(OpBuilder &builder, LifeTimeSet &set) {
+    assert(false && "Called genTerminator on a non terminator");
   };
 };
 
@@ -284,7 +346,7 @@ private:
   DenseMap<size_t, DependencyNode *> firstUses;
   bool isScheduled = false;
   DependencyNode *tallest = nullptr;
-  uint shift = 0;
+  uint shift;
 
   /// Starting from \p next, searches through \p next's family
   /// (excluding already seen nodes) to find all the interconnected roots
@@ -306,7 +368,7 @@ private:
     seen.insert(next);
     qids.set_union(next->qids);
 
-    if (next->isLeaf() && next->isQuantumOp())
+    if (next->isAlloc())
       firstUses.insert({next->qids.front(), next->successors.front()});
 
     for (auto successor : next->successors)
@@ -327,6 +389,7 @@ private:
 
 public:
   DependencyGraph(DependencyNode *root) {
+    shift = 0;
     total_height = 0;
     SetVector<DependencyNode *> seen;
     gatherRoots(seen, root);
@@ -369,7 +432,7 @@ public:
     return nullptr;
   }
 
-  void codeGenAt(uint cycle, OpBuilder &builder, LifetimeSet &set) {
+  void codeGenAt(uint cycle, OpBuilder &builder, LifeTimeSet &set) {
     SetVector<DependencyNode *> nodes = getNodesAtCycle(cycle);
 
     for (auto node : nodes)
@@ -382,7 +445,7 @@ public:
     SmallVector<size_t> cycles;
     for (auto qid : qids) {
       auto first = getFirstUseOf(qid);
-      if (first->cycle == cycle)
+      if (first && first->cycle == cycle)
         cycles.push_back(qid);
     }
 
@@ -415,13 +478,15 @@ public:
     llvm::outs() << "Graph End\n";
   }
 
-  void genReturn(size_t qid, OpBuilder &builder, LifetimeSet &set) {
+  void genReturn(size_t qid, OpBuilder &builder, LifeTimeSet &set) {
     assert(qids.contains(qid) && "Given qid not in dependency graph");
-    getRootForQID(qid)->addCleanUp(builder, set);
+    getRootForQID(qid)->genReturnWire(builder, set);
   }
 
   // TODO: Is there a better way to get lifetimes to align
-  void setCycle(uint cycle) { shift = cycle; }
+  void setCycle(uint cycle) {
+    this->shift = cycle;
+  }
 };
 
 class OpDependencyNode : public DependencyNode {
@@ -459,7 +524,7 @@ protected:
     return associated->getOperands();
   }
 
-  SmallVector<mlir::Value> gatherOperands(size_t num, OpBuilder &builder, LifetimeSet &set) {
+  SmallVector<mlir::Value> gatherOperands(size_t num, OpBuilder &builder, LifeTimeSet &set) {
     SmallVector<mlir::Value> operands(num);
     for (size_t i = 0; i < dependencies.size(); i++) {
       auto dependency = dependencies[i];
@@ -481,7 +546,7 @@ protected:
 
   /// Generates a new operation for this node in the dependency graph
   /// using the dependencies of the node as operands.
-  void codeGen(OpBuilder &builder, LifetimeSet &set) override {
+  void codeGen(OpBuilder &builder, LifeTimeSet &set) override {
     if (hasCodeGen)
       return;
 
@@ -558,6 +623,7 @@ protected:
     wire.dump();
   }
 
+  bool isAlloc() override { return true; }
   bool isQuantumDependent() override { return true; }
   uint numTicks() override { return 0; }
   bool isQuantumOp() override { return true; }
@@ -575,7 +641,7 @@ protected:
     return ValueRange({});
   }
 
-  void codeGen(OpBuilder &builder, LifetimeSet &set) override {}
+  void codeGen(OpBuilder &builder, LifeTimeSet &set) override {}
 
   /// Replaces the null_wire op for \p qid with \p init
   bool initializeWire(size_t qid, Value v) override {
@@ -608,7 +674,7 @@ protected:
     associated->dump();
   }
 
-  void codeGen(OpBuilder &builder, LifetimeSet &set) override {}
+  void codeGen(OpBuilder &builder, LifeTimeSet &set) override {}
 
 public:
   RootDependencyNode(quake::SinkOp op, SmallVector<DependencyNode *> dependencies)
@@ -623,7 +689,7 @@ public:
     qids.insert(qid);
   };
 
-  void addCleanUp(OpBuilder &builder, LifetimeSet &set) override {
+  void genReturnWire(OpBuilder &builder, LifeTimeSet &set) override {
     auto result_idx = getResultIdx(0);
     auto wire = dependencies[0]->getResult(result_idx);
     auto newOp = builder.create<quake::ReturnWireOp>(builder.getUnknownLoc(), wire);
@@ -659,7 +725,7 @@ protected:
     return ValueRange({});
   }
 
-  void codeGen(OpBuilder &builder, LifetimeSet &set) override { };
+  void codeGen(OpBuilder &builder, LifeTimeSet &set) override { };
 
 public:
   ArgDependencyNode(BlockArgument arg, DependencyNode *val)
@@ -673,19 +739,20 @@ public:
 class DependencyBlock {
 private:
   SmallVector<ArgDependencyNode *> argdnodes;
-  SmallVector<DependencyGraph> graphs;
+  SmallVector<DependencyGraph *> graphs;
   Block *block;
   DependencyNode *terminator;
   uint height;
+  SetVector<size_t> pqids;
 
 public:
   DependencyBlock(SmallVector<ArgDependencyNode *> argdnodes,
-                  SmallVector<DependencyGraph> graphs, Block *block, DependencyNode *terminator)
-    : argdnodes(argdnodes), graphs(graphs), block(block), terminator(terminator) {
+                  SmallVector<DependencyGraph *> graphs, Block *block, DependencyNode *terminator)
+    : argdnodes(argdnodes), graphs(graphs), block(block), terminator(terminator), pqids() {
     height = 0;
     for (auto graph : graphs)
-      if (graph.getHeight() > height)
-        height = graph.getHeight();
+      if (graph->getHeight() > height)
+        height = graph->getHeight();
   }
 
   uint getHeight() {
@@ -694,11 +761,12 @@ public:
 
   void setCycle(uint cycle) {
     for (auto graph : graphs)
-      graph.setCycle(cycle);
+      graph->setCycle(cycle);
   }
 
   /// Up to caller to move builder outside block after construction
-  Block *codeGen(OpBuilder &builder, Region *region, LifetimeSet &set) {
+  Block *codeGen(OpBuilder &builder, Region *region, LifeTimeSet &set) {
+    set.pushFrame();
     Block *newBlock = builder.createBlock(region);
     SmallVector<mlir::Location> locs;
     for (auto arg : block->getArguments())
@@ -714,34 +782,35 @@ public:
       for (auto graph : graphs) {
         // For every "new" qubit, try to find an existing out-of-use qubit
         // that we can reuse. Failing that, use a new qubit.
-        for (auto qid : graph.getFirstUsedAtCycle(cycle)) {
-          auto lifetime = graph.getLifeTimeForQID(qid);
+        for (auto qid : graph->getFirstUsedAtCycle(cycle)) {
+          auto lifetime = graph->getLifeTimeForQID(qid);
           LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
           LLVM_DEBUG(llvm::dbgs()
                       << " is in use from cycle " << lifetime->getBegin());
           LLVM_DEBUG(llvm::dbgs() << " through cycle " << lifetime->getEnd());
           LLVM_DEBUG(llvm::dbgs() << "\n\n");
 
-          // TODO: Kinda yucky way of handling the fact that block arguments
-          //       represent already allocated qubits
-          if (!set.isInUse(qid)) {
-            auto borrowOp = set.genBorrow(lifetime, qid, builder);
-            graph.initializeWire(qid, borrowOp.getResult());
-          }
+          auto borrowOp = set.genBorrow(lifetime, qid, builder);
+          graph->initializeWire(qid, borrowOp.getResult());
         }
 
-        graph.codeGenAt(cycle, builder, set);
+        graph->codeGenAt(cycle, builder, set);
 
-        for (auto qid : graph.getLastUsedAtCycle(cycle))
-          graph.genReturn(qid, builder, set);
+        for (auto qid : graph->getLastUsedAtCycle(cycle))
+          graph->genReturn(qid, builder, set);
       }
     }
 
-    terminator->addCleanUp(builder, set);
+    terminator->genTerminator(builder, set);
 
     block = newBlock;
+    pqids = set.popFrame();
 
     return newBlock;
+  }
+
+  SetVector<size_t> getPQids() {
+    return pqids;
   }
 
   void print() {
@@ -749,7 +818,7 @@ public:
     block->dump();
     llvm::outs() << "Block graphs:\n";
     for (auto graph : graphs)
-      graph.print();
+      graph->print();
     llvm::outs() << "End block\n";
   }
 };
@@ -781,7 +850,7 @@ protected:
     return numTicks() > 0;
   }
 
-  void codeGen(OpBuilder &builder, LifetimeSet &set) override {
+  void codeGen(OpBuilder &builder, LifeTimeSet &set) override {
     if (hasCodeGen)
       return;
 
@@ -794,8 +863,13 @@ protected:
     auto newif = builder.create<cudaq::cc::IfOp>(oldOp->getLoc(), oldOp->getResultTypes(), operands);
     auto *then_region = &newif.getThenRegion();
     then_block->codeGen(builder, then_region, set);
+
     auto *else_region = &newif.getElseRegion();
     else_block->codeGen(builder, else_region, set);
+
+    auto pqids = then_block->getPQids();
+    pqids.set_union(else_block->getPQids());
+    set.addOpaque(pqids, new LifeTime(cycle, cycle+numTicks()));
 
     associated = newif;
     builder.setInsertionPointAfter(associated);
@@ -839,10 +913,13 @@ public:
       assert(terminator->hasTrait<mlir::OpTrait::ReturnLike>() && "Invalid terminator");
     }
 
-  void addCleanUp(OpBuilder &builder, LifetimeSet &set) override {
-    // Cleanup is someone elses responsibility, just generate the code to terminate the block
-    codeGen(builder, set);
+  void genReturnWire(OpBuilder &builder, LifeTimeSet &set) override {
+    // Cleanup is someone elses responsibility
   };
+
+  void genTerminator(OpBuilder &builder, LifeTimeSet &set) override {
+    codeGen(builder, set);
+  }
 };
 
 /// Validates that \p op meets the assumptions:
@@ -934,10 +1011,10 @@ public:
       } 
     }
 
-    SmallVector<DependencyGraph> graphs;
+    SmallVector<DependencyGraph *> graphs;
     while (!roots.empty()) {
-      DependencyGraph new_graph(roots.front());
-      roots.set_subtract(new_graph.getRoots());
+      DependencyGraph *new_graph = new DependencyGraph(roots.front());
+      roots.set_subtract(new_graph->getRoots());
       graphs.push_back(new_graph);
     }
 
@@ -1038,10 +1115,10 @@ struct DependencyAnalysisPass
 
       OpBuilder builder(func);
       auto name = "wires";
-      LifetimeSet set(name);
+      LifeTimeSet set(name);
       body->codeGen(builder, &func.getRegion(), set);
       builder.setInsertionPointToStart(mod.getBody());
-      builder.create<quake::WireSetOp>(builder.getUnknownLoc(), name, set.size(), ElementsAttr{});
+      builder.create<quake::WireSetOp>(builder.getUnknownLoc(), name, set.getCount(), ElementsAttr{});
 
       // Replace old block
       oldBlock->erase();
