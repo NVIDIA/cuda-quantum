@@ -646,6 +646,19 @@ class PyASTBridge(ast.NodeVisitor):
 
         return retValues
 
+    def isQuantumStructType(self, structTy):
+        """
+        Return True if the given struct type has one or more quantum member variables.
+        """
+        if not cc.StructType.isinstance(structTy):
+            self.emitFatalError(
+                f'isQuantumStructType called on type that is not a struct ({structTy})'
+            )
+
+        return True in [
+            self.isQuantumType(t) for t in cc.StructType.getTypes(structTy)
+        ]
+
     def mlirTypeFromAnnotation(self, annotation):
         """
         Return the MLIR Type corresponding to the given kernel function argument type annotation.
@@ -811,12 +824,9 @@ class PyASTBridge(ast.NodeVisitor):
         function. 
         """
         # FIXME add more as we need them
-        if cc.StructType.isinstance(type):
-            if True in [
-                    self.isQuantumType(t) for t in cc.StructType.getTypes(type)
-            ]:
-                return False
-            return True
+        if cc.StructType.isinstance(type) and self.isQuantumStructType(type):
+            # If we have a quantum struct, we don't want to add a stack slot
+            return False
         return ComplexType.isinstance(type) or F64Type.isinstance(
             type) or F32Type.isinstance(type) or IntegerType.isinstance(
                 type) or cc.StructType.isinstance(type)
@@ -1150,8 +1160,10 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.value,
                       ast.Name) and node.value.id in self.symbolTable:
             value = self.symbolTable[node.value.id]
-            if cc.StructType.isinstance(value.type):
-                # We have a quantum struct, need to use extract value.
+            if cc.StructType.isinstance(
+                    value.type) and self.isQuantumStructType(value.type):
+                # Here we have a quantum struct, need to use extract value instead
+                # of load from compute pointer.
                 memberName = node.attr
                 structName = cc.StructType.getName(value.type)
                 structIdx = None
@@ -1895,7 +1907,7 @@ class PyASTBridge(ast.NodeVisitor):
                 ctorArgs = [self.popValue() for _ in range(nArgs)]
                 ctorArgs.reverse()
 
-                if True in [self.isQuantumType(t) for t in structTys]:
+                if self.isQuantumStructType(structTy):
                     # If we have a struct with quantum types, we do not
                     # want to allocate struct memory and load / store pointers
                     # to quantum memory, so we'll instead use value semantics
