@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Divisive Clustering With Corsets Using CUDA-Q &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Divisive Clustering With Coresets Using CUDA-Q &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -202,14 +202,14 @@
 <li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Divisive Clustering With Corsets Using CUDA-Q</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Data-preprocessing">Data preprocessing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Quantum-functions">Quantum functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#QAOA-Implementation">QAOA Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#QAOA-Implementation">QAOA Implementation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/backends/backends.html">   Backends</a><ul>
@@ -535,7 +535,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Divisive Clustering With Corsets Using CUDA-Q</li>
+      <li class="breadcrumb-item active">Divisive Clustering With Coresets Using CUDA-Q</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../../_sources/examples/python/tutorials/Divisive_clustering.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -548,12 +548,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Divisive-Clustering-With-Corsets-Using-CUDA-Q">
-<h1>Divisive Clustering With Corsets Using CUDA-Q<a class="headerlink" href="#Divisive-Clustering-With-Corsets-Using-CUDA-Q" title="Permalink to this heading">¶</a></h1>
+  <section id="Divisive-Clustering-With-Coresets-Using-CUDA-Q">
+<h1>Divisive Clustering With Coresets Using CUDA-Q<a class="headerlink" href="#Divisive-Clustering-With-Coresets-Using-CUDA-Q" title="Permalink to this heading">¶</a></h1>
 <p>This tutorial will explore a CUDA-Q implementation of recent research (ArXiv Paper: <a class="reference external" href="https://arxiv.org/pdf/2402.01529.pdf">https://arxiv.org/pdf/2402.01529.pdf</a>) performed by a team from the University of Edinburgh. This tutorial was jointly developed by NVIDIA and the authors so users can better understand their method and explore how CUDA-Q removed barriers to scaling.</p>
 <p>The code for this tutorial is based off the MIT licensed code found here: <a class="reference external" href="https://github.com/Boniface316/bigdata_vqa">https://github.com/Boniface316/bigdata_vqa</a></p>
 <p>Clustering is a common unsupervised learning technique aimed at grouping data with similar characteristics. The unique properties of quantum computers could allow for enhanced pattern finding in clustering applications and enable more reliable data analysis. However, quantum computers today are severely limited by qubit count and noise. Performing practical clustering applications would require far too many qubits. The Edinburgh team developed a new method (extending the work of Harrow) to
-leverage corsets for clustering applications on quantum computers and use far fewer qubits. This tutorial will walk through an example using this approach for divisive clustering and emphasize the utility of CUDA-Q for scaling quantum simulations.</p>
+leverage coresets for clustering applications on quantum computers and use far fewer qubits. This tutorial will walk through an example using this approach for divisive clustering and emphasize the utility of CUDA-Q for scaling quantum simulations.</p>
 <p>The goal of divisive clustering is to begin with all data points as one set, and iteratively bipartition the data until each point is its own cluster. The branching behavior of this process can be used to understand similarities in the data points.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
@@ -611,10 +611,10 @@ leverage corsets for clustering applications on quantum computers and use far fe
 </pre></div>
 </div>
 </div>
-<p>Given a data set $X = (x_1, x_2, <span class="math">\cdots</span>, x_N) <span class="math notranslate nohighlight">\(, a corset is weighted data set of much smaller size (\)</span>X’, w$) that represents <span class="math notranslate nohighlight">\(X\)</span> enough such that analysis of (<span class="math notranslate nohighlight">\(X', w\)</span>) can allow us to draw reasonable approximate conclusions about <span class="math notranslate nohighlight">\(X\)</span>. There are various approaches to build coresets. They can be found in Practical Coreset Construction for Machine Learning (<a class="reference external" href="https://arxiv.org/pdf/1703.06476.pdf">https://arxiv.org/pdf/1703.06476.pdf</a>) and New Streaming Algorithms for Coresets in Machine Learning
-(<a class="reference external" href="https://arxiv.org/pdf/1703.06476.pdf">https://arxiv.org/pdf/1703.06476.pdf</a>).</p>
-<p>Essentially, coreset construction boils down to finding the optimal corset size and weights given some error tolerance. Given the constraints of a quantum computer, in this work, a corset size is selected <span class="math notranslate nohighlight">\(a\)</span> <span class="math notranslate nohighlight">\(priori\)</span>, and the error is determined for each model.</p>
-<p>The following is an example <span class="math notranslate nohighlight">\(M=10\)</span> corset constructed from a 1000-point data set and loaded into a pandas data frame. See the image below where the corset is represented by the black stars, the size of which corresponds to the weights.</p>
+<p>Given a data set $X = (x_1, x_2, <span class="math">\cdots</span>, x_N) <span class="math notranslate nohighlight">\(, a coreset is weighted data set of much smaller size (\)</span>X’, w$) that represents <span class="math notranslate nohighlight">\(X\)</span> enough such that analysis of (<span class="math notranslate nohighlight">\(X', w\)</span>) can allow us to draw reasonable approximate conclusions about <span class="math notranslate nohighlight">\(X\)</span>. There are various approaches to build coresets. They can be found in Practical Coreset Construction for Machine Learning (<a class="reference external" href="https://arxiv.org/pdf/1703.06476.pdf">https://arxiv.org/pdf/1703.06476.pdf</a>) and New Streaming Algorithms for Coresets in Machine
+Learning (<a class="reference external" href="https://arxiv.org/pdf/1703.06476.pdf">https://arxiv.org/pdf/1703.06476.pdf</a>).</p>
+<p>Essentially, coreset construction boils down to finding the optimal coreset size and weights given some error tolerance. Given the constraints of a quantum computer, in this work, a coreset size is selected <span class="math notranslate nohighlight">\(a\)</span> <span class="math notranslate nohighlight">\(priori\)</span>, and the error is determined for each model.</p>
+<p>The following is an example <span class="math notranslate nohighlight">\(M=10\)</span> coreset constructed from a 1000-point data set and loaded into a pandas data frame. See the image below where the coreset is represented by the black stars, the size of which corresponds to the weights.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -841,9 +841,8 @@ q4 : ┤ ry(0.791) ├─┤ rz(0.003569) ├───────────�
 </div>
 </div>
 </section>
-</section>
 <section id="Divisive-Clustering-Function">
-<h1>Divisive Clustering Function<a class="headerlink" href="#Divisive-Clustering-Function" title="Permalink to this heading">¶</a></h1>
+<h2>Divisive Clustering Function<a class="headerlink" href="#Divisive-Clustering-Function" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">DivisiveClusteringVQA</span></code> class enables the procedure to iteratively bipartions the coreset points until each is its own cluster. If you wish to develop on top of this or see how the underlying code works, please see the <code class="docutils literal notranslate"><span class="pre">divisive_clustering.py</span></code> file in the src directory.</p>
 <p><code class="docutils literal notranslate"><span class="pre">run_divisive_clustering</span></code>, takes the current iteration’s coreset points that will be bipartitioned as inputs, extracts the appropriate weights and builds a graph <span class="math notranslate nohighlight">\(G\)</span>. The graph is then an input into the <code class="docutils literal notranslate"><span class="pre">get_counts_from_simulation</span></code> function.</p>
 <p><code class="docutils literal notranslate"><span class="pre">get_counts_from_simulation</span></code> handles preparation and execution of the quantum simulation. First, it takes <span class="math notranslate nohighlight">\(G\)</span> and from it builds a spin Hamiltonian. Second, it defines a cost function, which in this case is a lambda function that returns the expectation value of our parameterized quantum circuit and the Hamiltonian. This value is obtained using the CUDA-Q <code class="docutils literal notranslate"><span class="pre">observe</span></code> command, accelerated by GPUs. After the expectation value is minimized, the quantum circuit corresponding to the optimal
@@ -1094,7 +1093,7 @@ this task.</p>
 </div>
 </section>
 <section id="QAOA-Implementation">
-<h1>QAOA Implementation<a class="headerlink" href="#QAOA-Implementation" title="Permalink to this heading">¶</a></h1>
+<h2>QAOA Implementation<a class="headerlink" href="#QAOA-Implementation" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q is designed to be a flexible tools for developers so they can test different implementations of the same code. For example, one can perform the same analysis, instead using a QAOA approach. Only the kernel needs to be changed as is done below.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
@@ -1233,7 +1232,7 @@ q4 : ─────────────────────────
 </div>
 </section>
 <section id="Scaling-simulations-with-CUDA-Q">
-<h1>Scaling simulations with CUDA-Q<a class="headerlink" href="#Scaling-simulations-with-CUDA-Q" title="Permalink to this heading">¶</a></h1>
+<h2>Scaling simulations with CUDA-Q<a class="headerlink" href="#Scaling-simulations-with-CUDA-Q" title="Permalink to this heading">¶</a></h2>
 <p>The University of Edinburgh team quickly encountered scaling challenges when they were developing this method. By developing with CUDA-Q they were able to port their code to an HPC environment once GPUs became available. GPUs massively accelerated their development and testing and allowed them to produce the 25 qubit experiments presented in their publication. If you have a GPU available, run the following code examples and see how the times compare on your device. Each call executes the
 divisive clustering procedure using the QAOA method, 100000 simulated shots for each VQE loop, and maximum 75 VQE iterations.</p>
 <p>First, try a slightly larger N=18 problem using the CPU (<code class="docutils literal notranslate"><span class="pre">qpp-cpu</span></code>) backend.</p>
@@ -1335,7 +1334,7 @@ Total time for the execution: 67.61674502899999
 Total time spent on CUDA-Q: 21.439895901
 </pre></div></div>
 </div>
-<p>If we want to push the simulation to an <span class="math notranslate nohighlight">\(N=34\)</span> corset, a single GPU (assuming A100) will run out of memory. They the code below to see for yourself.</p>
+<p>If we want to push the simulation to an <span class="math notranslate nohighlight">\(N=34\)</span> coreset, a single GPU (assuming A100) will run out of memory. They the code below to see for yourself.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
@@ -1384,6 +1383,7 @@ Using BFL2 method to generate coresets
 </pre></div>
 </div>
 </div>
+</section>
 </section>
 
 

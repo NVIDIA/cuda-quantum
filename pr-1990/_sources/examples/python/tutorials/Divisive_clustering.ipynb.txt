@@ -4,7 +4,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Divisive Clustering With Corsets Using CUDA-Q"
+    "# Divisive Clustering With Coresets Using CUDA-Q"
    ]
   },
   {
@@ -25,7 +25,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "Clustering is a common unsupervised learning technique aimed at grouping data with similar characteristics. The unique properties of quantum computers could allow for enhanced pattern finding in clustering applications and enable more reliable data analysis. However, quantum computers today are severely limited by qubit count and noise.  Performing practical clustering applications would require far too many qubits.  The Edinburgh team developed a new method (extending the work of Harrow) to leverage corsets for clustering applications on quantum computers and use far fewer qubits.  This tutorial will walk through an example using this approach for divisive clustering and emphasize the utility of CUDA-Q for scaling quantum simulations.\n",
+    "Clustering is a common unsupervised learning technique aimed at grouping data with similar characteristics. The unique properties of quantum computers could allow for enhanced pattern finding in clustering applications and enable more reliable data analysis. However, quantum computers today are severely limited by qubit count and noise.  Performing practical clustering applications would require far too many qubits.  The Edinburgh team developed a new method (extending the work of Harrow) to leverage coresets for clustering applications on quantum computers and use far fewer qubits.  This tutorial will walk through an example using this approach for divisive clustering and emphasize the utility of CUDA-Q for scaling quantum simulations.\n",
     "\n",
     "The goal of divisive clustering is to begin with all data points as one set, and iteratively bipartition the data until each point is its own cluster.  The branching behavior of this process can be used to understand similarities in the data points.\n"
    ]
@@ -102,13 +102,13 @@
    "source": [
     "\n",
     "\n",
-    "Given a data set $X = (x_1, x_2, \\cdots, x_N) $, a corset is weighted data set of much smaller size ($X', w$) that represents $X$ enough such that analysis of ($X', w$) can allow us to draw reasonable approximate conclusions about $X$. There are various approaches to build coresets. They can be found in Practical Coreset Construction for Machine Learning (https://arxiv.org/pdf/1703.06476.pdf) and New Streaming Algorithms for Coresets in Machine Learning (https://arxiv.org/pdf/1703.06476.pdf).\n",
+    "Given a data set $X = (x_1, x_2, \\cdots, x_N) $, a coreset is weighted data set of much smaller size ($X', w$) that represents $X$ enough such that analysis of ($X', w$) can allow us to draw reasonable approximate conclusions about $X$. There are various approaches to build coresets. They can be found in Practical Coreset Construction for Machine Learning (https://arxiv.org/pdf/1703.06476.pdf) and New Streaming Algorithms for Coresets in Machine Learning (https://arxiv.org/pdf/1703.06476.pdf).\n",
     "\n",
     "\n",
-    "Essentially, coreset construction boils down to finding the optimal corset size and weights given some error tolerance.  Given the constraints of a quantum computer, in this work, a corset size is selected $a$ $priori$, and the error is determined for each model.\n",
+    "Essentially, coreset construction boils down to finding the optimal coreset size and weights given some error tolerance.  Given the constraints of a quantum computer, in this work, a coreset size is selected $a$ $priori$, and the error is determined for each model.\n",
     "\n",
     "\n",
-    "The following is an example $M=10$ corset constructed from a 1000-point data set and loaded into a pandas data frame. See the image below where the corset is represented by the black stars, the size of which corresponds to the weights.\n"
+    "The following is an example $M=10$ coreset constructed from a 1000-point data set and loaded into a pandas data frame. See the image below where the coreset is represented by the black stars, the size of which corresponds to the weights.\n"
    ]
   },
   {
@@ -392,7 +392,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Divisive Clustering Function"
+    "## Divisive Clustering Function"
    ]
   },
   {
@@ -720,7 +720,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# QAOA Implementation\n",
+    "## QAOA Implementation\n",
     "\n",
     "CUDA-Q is designed to be a flexible tools for developers so they can test different implementations of the same code. For example, one can perform the same analysis, instead using a QAOA approach. Only the kernel needs to be changed as is done below."
    ]
@@ -867,7 +867,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Scaling simulations with CUDA-Q\n",
+    "## Scaling simulations with CUDA-Q\n",
     "\n",
     "\n"
    ]
@@ -1010,7 +1010,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "If we want to push the simulation to an $N=34$ corset, a single GPU (assuming A100) will run out of memory.  They the code below to see for yourself. "
+    "If we want to push the simulation to an $N=34$ coreset, a single GPU (assuming A100) will run out of memory.  They the code below to see for yourself. "
    ]
   },
   {
