@@ -153,6 +153,9 @@ inline void to_json(json &j, const ExecutionContext &context) {
 
   if (context.amplitudeMaps.has_value())
     j["amplitudeMaps"] = context.amplitudeMaps.value();
+
+  if (!context.invocationResultBuffer.empty())
+    j["invocationResultBuffer"] = context.invocationResultBuffer;
 }
 
 inline void from_json(const json &j, ExecutionContext &context) {
@@ -214,6 +217,9 @@ inline void from_json(const json &j, ExecutionContext &context) {
 
   if (j.contains("amplitudeMaps"))
     context.amplitudeMaps = j["amplitudeMaps"];
+
+  if (j.contains("invocationResultBuffer"))
+    context.invocationResultBuffer = j["invocationResultBuffer"];
 }
 
 // Enum data to denote the payload format.

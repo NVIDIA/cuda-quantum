@@ -126,8 +126,17 @@ public:
     // set up a single-shot execution context for this case.
     static thread_local cudaq::ExecutionContext defaultContext("sample",
                                                                /*shots=*/1);
+    // This is a kernel invocation outside the CUDA-Q APIs (sample/observe).
+    const bool isDirectInvocation = !executionContextPtr;
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
+
+    // Populate the conditional feedback metadata if this is a direct
+    // invocation (not otherwise populated by cudaq::sample)
+    if (isDirectInvocation)
+      executionContext.hasConditionalsOnMeasureResults =
+          cudaq::kernelHasConditionalFeedback(name);
+
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
@@ -135,6 +144,30 @@ public:
         m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+    if (isDirectInvocation &&
+        !executionContext.invocationResultBuffer.empty()) {
+      if (executionContext.invocationResultBuffer.size() + resultOffset >
+          voidStarSize)
+        throw std::runtime_error(
+            "Unexpected result: return type size of " +
+            std::to_string(executionContext.invocationResultBuffer.size()) +
+            " bytes overflows the argument buffer.");
+      // Currently, we only support result buffer serialization on LittleEndian
+      // CPUs (x86, ARM, PPC64LE).
+      // Note: NVQC service will always be using LE. If
+      // the client (e.g., compiled from source) is built for big-endian, we
+      // will throw an error if result buffer data is returned.
+      if (llvm::sys::IsBigEndianHost)
+        throw std::runtime_error(
+            "Serializing the result buffer from a remote kernel invocation is "
+            "not supported for BigEndian CPU architectures.");
+
+      char *resultBuf = reinterpret_cast<char *>(args) + resultOffset;
+      // Copy the result data to the args buffer.
+      std::memcpy(resultBuf, executionContext.invocationResultBuffer.data(),
+                  executionContext.invocationResultBuffer.size());
+      executionContext.invocationResultBuffer.clear();
+    }
   }
 
   void
