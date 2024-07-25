@@ -103,19 +103,17 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
 bool available() { return getMpiPlugin(/*unsafe=*/true) != nullptr; }
 
 void initialize() {
-  if (auto *commPlugin = getMpiPlugin()) {
-    commPlugin->initialize();
-  }
+  auto *commPlugin = getMpiPlugin();
+  commPlugin->initialize();
 }
 
 void initialize(int argc, char **argv) {
-  if (auto *commPlugin = getMpiPlugin()) {
-    commPlugin->initialize(argc, argv);
-    const auto pid = commPlugin->rank();
-    const auto np = commPlugin->num_ranks();
-    if (pid == 0)
-      cudaq::info("MPI Initialized, nRanks = {}", np);
-  }
+  auto *commPlugin = getMpiPlugin();
+  commPlugin->initialize(argc, argv);
+  const auto pid = commPlugin->rank();
+  const auto np = commPlugin->num_ranks();
+  if (pid == 0)
+    cudaq::info("MPI Initialized, nRanks = {}", np);
 }
 
 int rank() { return getMpiPlugin()->rank(); }
@@ -292,24 +290,23 @@ std::string get_quake_by_name(const std::string &kernelName,
   std::optional<std::string> result;
   std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
 
-  std::find_if(
-      quakeRegistry.begin(), quakeRegistry.end(), [&](const auto &pair) {
-        if (pair.first == kernelName) {
-          result = pair.second;
-          return true;
-        }
+  for (const auto &pair: quakeRegistry) {
+    if (pair.first == kernelName) {
+      // Exact match. Return the code.
+      return pair.second;
+    }
 
-        if (pair.first.starts_with(kernelNamePrefix)) {
-          if (result.has_value()) {
-            if (throwException)
-              throw std::runtime_error("Quake code for '" + kernelName +
-                                       "' has multiple matches.\n");
-          } else {
-            result = pair.second;
-          }
+    if (pair.first.starts_with(kernelNamePrefix)) {
+      // Prefix match. Record it and make sure that it is a unique prefix.
+      if (result.has_value()) {
+        if (throwException) {
+          throw std::runtime_error("Quake code for '" + kernelName + "' has multiple matches.\n");
+        } else {
+          result = pair.second;
         }
-        return false;
-      });
+      }
+    }
+  }
 
   if (result.has_value())
     return *result;
