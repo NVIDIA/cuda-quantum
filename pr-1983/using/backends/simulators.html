@@ -626,15 +626,19 @@ use <code class="code docutils literal notranslate"><span class="pre">cudaq.set_
 <td><p>positive integer</p></td>
 <td><p>The max number of qubits used for gate fusion. The default value is <code class="code docutils literal notranslate"><span class="pre">4</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_NUM_HOST_THREADS</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS</span></code></p></td>
+<td><p>integer greater than or equal to -1</p></td>
+<td><p>The max number of qubits used for diagonal gate fusion. The default value is set to <code class="code docutils literal notranslate"><span class="pre">-1</span></code> and the fusion size will be automatically adjusted for the better performance. If 0, the gate fusion for diagonal gates is disabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_NUM_HOST_THREADS</span></code></p></td>
 <td><p>positive integer</p></td>
 <td><p>Number of CPU threads used for circuit processing. The default value is <code class="code docutils literal notranslate"><span class="pre">8</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MAX_CPU_MEMORY_GB</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MAX_CPU_MEMORY_GB</span></code></p></td>
 <td><p>non-negative integer, or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
 <td><p>CPU memory size (in GB) allowed for state-vector migration. <code class="code docutils literal notranslate"><span class="pre">NONE</span></code> means unlimited (up to physical memory constraints). Default is 0 (disabled).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MAX_GPU_MEMORY_GB</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MAX_GPU_MEMORY_GB</span></code></p></td>
 <td><p>positive integer, or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
 <td><p>GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. <code class="code docutils literal notranslate"><span class="pre">NONE</span></code> means unlimited (up to physical memory constraints). This is the default.</p></td>
 </tr>
@@ -742,8 +746,8 @@ the multi-node multi-GPU configuration.</p>
 <td><p>Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GPU_FABRIC</span></code></p></td>
-<td><p><code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code> or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
-<td><p>Automatically set the number of P2P device bits based on the number of GPUs when multi-node NVLink (<code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code>) is selected or disable P2P (with <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>).</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code>, <code class="code docutils literal notranslate"><span class="pre">NVL</span></code>, or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
+<td><p>Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (<code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code>) is selected; or the number of processes per node when NVLink (<code class="code docutils literal notranslate"><span class="pre">NVL</span></code>) is selected; or disable P2P (with <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code></p></td>
 <td><p>comma-separated list of positive integers</p></td>
