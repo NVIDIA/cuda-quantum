@@ -271,9 +271,8 @@ void setRandomSeed(std::size_t);
 namespace cudaq {
 
 void set_target_backend(const char *backend) {
-  std::string backendName(backend);
   auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendName);
+  platform.setTargetBackend(std::string(backend));
 }
 
 KernelArgsCreator getArgsCreator(const std::string &kernelName) {
@@ -299,12 +298,11 @@ std::string get_quake_by_name(const std::string &kernelName,
     if (pair.first.starts_with(kernelNamePrefix)) {
       // Prefix match. Record it and make sure that it is a unique prefix.
       if (result.has_value()) {
-        if (throwException) {
+        if (throwException)
           throw std::runtime_error("Quake code for '" + kernelName +
                                    "' has multiple matches.\n");
-        } else {
-          result = pair.second;
-        }
+      } else {
+        result = pair.second;
       }
     }
   }
@@ -357,7 +355,7 @@ void unset_noise() {
   platform.set_noise(nullptr);
 }
 
-thread_local static std::size_t cudaq_random_seed = 0;
+thread_local std::size_t cudaq_random_seed = 0;
 
 /// @brief Note: a seed value of 0 will cause broadcast operations to use
 /// std::random_device (or something similar) as a seed for the PRNGs, so this
