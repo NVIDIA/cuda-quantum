@@ -90,7 +90,7 @@ class Coreset:
         Get the best coreset vectors and weights for a given data.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: The coreset vectors and weights.
+            `Tuple[np.ndarray, np.ndarray]`: The coreset vectors and weights.
         """
 
         centroids = self.get_best_centroids()
@@ -122,10 +122,10 @@ class Coreset:
         Generates coreset vectors and weights using the BFL2 algorithm.
 
         Args:
-            centroids (List[np.ndarray]): The centroids to use for the coreset generation.
+            `centroids (List[np.ndarray])`: The centroids to use for the coreset generation.
 
         Returns:
-            Tuple[List[np.ndarray], List[np.ndarray]]: List of coreset vectors and weights.
+            `Tuple[List[np.ndarray], List[np.ndarray]]`: List of coreset vectors and weights.
         """
 
         coreset_vectors_list = []
@@ -184,7 +184,7 @@ class Coreset:
         Computes the sum of between each data points and each centroids.
 
         Args:
-            centroids (Union[List[np.ndarray], np.ndarray]): The centroids to evaluate.
+            `centroids (Union[List[np.ndarray], np.ndarray])`: The centroids to evaluate.
 
         Returns:
             float: The cost of the centroids.
@@ -204,8 +204,8 @@ class Coreset:
         Compute the distance between a data instance and the centroids.
 
         Args:
-            data_instance (np.ndarray): The data instance.
-            centroids (Union[List[np.ndarray], np.ndarray]): The centroids as a list or numpy array.
+            `data_instance (np.ndarray)`: The data instance.
+            `centroids (Union[List[np.ndarray], np.ndarray])`: The centroids as a list or `numpy` array.
 
         Returns:
             Tuple[float, int]: The minimum distance and the index of the closest centroid.
@@ -226,7 +226,7 @@ class Coreset:
         self, centroids: Union[List[np.ndarray], np.ndarray]
     ) -> Tuple[List[np.ndarray], List[float]]:
         """
-        Performs Algorithm 2 from https://arxiv.org/pdf/1612.00889.pdf [BFL2]. This will pick the coreset vectors and its corresponding weights.
+        Performs Algorithm 2 from https://arxiv.org/pdf/1612.00889.pdf BFL2. This will pick the coreset vectors and its corresponding weights.
 
         Args:
             centroids (List): The centroids to use for the coreset generation.
@@ -268,14 +268,14 @@ class Coreset:
                     coreset_vectors: np.ndarray,
                     sample_weight: Optional[np.ndarray] = None) -> float:
         """
-        Compute the cost of coreset vectors using kmeans clustering.
+        Compute the cost of coreset vectors using k-means clustering.
 
         Args:
-            coreset_vectors (np.ndarray): The coreset vectors.
-            sample_weight (np.ndarray): The sample weights.
+            `coreset_vectors (np.ndarray)`: The coreset vectors.
+            `sample_weight (np.ndarray)`: The sample weights.
 
         Returns:
-            float: The cost of the kmeans clustering.
+            float: The cost of the k-means clustering.
 
         """
 
@@ -287,11 +287,11 @@ class Coreset:
             self, coreset_vectors: List[np.ndarray],
             coreset_weights: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Get the best coreset using kmeans cost.
+        Get the best coreset using k-means cost.
 
         Args:
-            coreset_vectors (List[np.ndarray]): The coreset vectors.
-            coreset_weights (List[np.ndarray]): The coreset weights.
+            `coreset_vectors (List[np.ndarray])`: The coreset vectors.
+            `coreset_weights (List[np.ndarray])`: The coreset weights.
 
         Returns:
             Tuple: The best coreset vectors and coreset weights.
@@ -314,10 +314,10 @@ class Coreset:
         Generates coreset vectors and weights using Algorithm 2.
 
         Args:
-            centroids (List[np.ndarray]): The centroids to use for the coreset generation.
+            `centroids (List[np.ndarray])`: The centroids to use for the coreset generation.
 
         Returns:
-            Tuple[List[List[np.ndarray]], List[List[float]]]: The coreset vectors and coreset weights.
+            `Tuple[List[List[np.ndarray]], List[List[float]]]`: The coreset vectors and coreset weights.
         """
 
         coreset_vectors_list = []
@@ -337,10 +337,10 @@ class Coreset:
         Performs Algorithm 2 from  https://arxiv.org/pdf/1703.06476.pdf.
 
         Args:
-            centroids (List[np.ndarray]): The centroids to use for the coreset generation.
+            `centroids (List[np.ndarray])`: The centroids to use for the coreset generation.
 
         Returns:
-            Tuple[List, List]: The coreset vectors and coreset weights.
+            `Tuple[List, List]`: The coreset vectors and coreset weights.
         """
 
         alpha = 16 * (np.log2(self._k_value_for_BLK2) + 2)
@@ -396,13 +396,13 @@ class Coreset:
         Convert coreset vectors to a graph.
 
         Args:
-            coreset_vectors (np.ndarray): The coreset vectors.
-            coreset_weights (np.ndarray): The coreset weights.
-            metric (str, optional): The metric to use. Defaults to "dot".
-            number_of_qubits_representing_data (int, optional): The number of qubits representing the data. Defaults to 1.
+            `coreset_vectors (np.ndarray)`: The coreset vectors.
+            `coreset_weights (np.ndarray)`: The coreset weights.
+            `metric (str, optional)`: The metric to use. Defaults to "dot".
+            `number_of_qubits_representing_data (int, optional)`: The number of qubits representing the data. Defaults to 1.
 
         Returns:
-            nx.Graph: The graph.
+            `nx.Graph`: The graph.
         """
 
         coreset = [(w, v) for w, v in zip(coreset_weights, coreset_vectors)]
@@ -446,11 +446,11 @@ class Coreset:
         Normalize and centralize the array
 
         Args:
-            vectors (np.ndarray): The vectors to normalize
-            centralize (bool, optional): Centralize the array. Defaults to False.
+            `vectors (np.ndarray)`: The vectors to normalize
+            `centralize (bool, optional)`: Centralize the array. Defaults to False.
 
         Returns:
-            np.ndarray: The normalized array
+            `np.ndarray`: The normalized array
         """
 
         if centralize:
@@ -471,18 +471,18 @@ class Coreset:
         random_seed: Optional[int] = 10,
     ) -> np.ndarray:
         """
-        Create a dataset with the given parameters.
+        Create a data set with the given parameters.
 
         Args:
-            n_samples (float): The number of samples.
-            covariance_values (List[float], optional): The covariance values. Defaults to [-0.8, -0.8].
-            n_features (int, optional): The number of features. Defaults to 2.
-            number_of_samples_from_distribution (int, optional): The number of samples from the distribution. Defaults to 500.
-            mean_array (np.ndarray, optional): The mean array. Defaults to np.array([[0, 0], [7, 1]]).
-            random_seed (int, optional): The random seed. Defaults to 10.
+            `n_samples (float)`: The number of samples.
+            `covariance_values (List[float], optional)`: The covariance values. Defaults to [-0.8, -0.8].
+            `n_features (int, optional)`: The number of features. Defaults to 2.
+            `number_of_samples_from_distribution (int, optional)`: The number of samples from the distribution. Defaults to 500.
+            `mean_array (np.ndarray, optional)`: The mean array. Defaults to `np.array([[0, 0], [7, 1]])`.
+            `random_seed (int, optional)`: The random seed. Defaults to 10.
 
         Returns:
-            np.ndarray: The dataset created
+            `np.ndarray`: The data set created
         """
 
         random_seed = random_seed
@@ -540,10 +540,10 @@ class DivisiveClustering(ABC):
         Run the divisive clustering algorithm.
 
         Args:
-            coreset_vectors_df_for_iteration (pd.DataFrame): The coreset vectors for the iteration.
+            `coreset_vectors_df_for_iteration (pd.DataFrame)`: The coreset vectors for the iteration.
 
         Returns:
-            Union[List[str], List[int]]: The bitstring or the cluster. The return will depend on the name of the data point given.
+            `Union[List[str], List[int]]`: The bitstring or the cluster. The return will depend on the name of the data point given.
         """
 
         pass
@@ -557,8 +557,8 @@ class DivisiveClustering(ABC):
         Get the hierarchical clustering sequence.
 
         Args:
-            coreset_vectors_df_for_iteration (np.ndarray): The coreset vectors for the iteration.
-            hierarchial_sequence (List): The hierarchical sequence.
+            `coreset_vectors_df_for_iteration (np.ndarray)`: The coreset vectors for the iteration.
+            `hierarchial_sequence (List)`: The hierarchical sequence.
 
         """
 
@@ -574,10 +574,10 @@ class DivisiveClustering(ABC):
         Gets the iteration coreset vectors and weights.
 
         Args:
-            coreset_vectors_df_for_iteration (pd.DataFrame): The coreset vectors for the iteration.
+            `coreset_vectors_df_for_iteration (pd.DataFrame)`: The coreset vectors for the iteration.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: The coreset vectors and weights.
+            `Tuple[np.ndarray, np.ndarray]`: The coreset vectors and weights.
 
         """
 
@@ -650,9 +650,9 @@ class DivisiveClustering(ABC):
         Add children to the hierarchical clustering sequence.
 
         Args:
-            iteration_dataframe (pd.DataFrame): The iteration dataframe.
-            hierarchial_sequence (list): The hierarchical sequence.
-            bitstring (str): The bitstring.
+            `iteration_dataframe (pd.DataFrame)`: The iteration data frame.
+            `hierarchial_sequence (list)`: The hierarchical sequence.
+            `bitstring (str)`: The bitstring.
 
         Returns:
             list: The hierarchical sequence.
@@ -675,8 +675,8 @@ class DivisiveClustering(ABC):
         Get the cost of the divisive clustering at each iteration.
 
         Args:
-            hierarchical_clustering_sequence (List): The hierarchical clustering sequence.
-            coreset_data (pd.DataFrame): The coreset data.
+            `hierarchical_clustering_sequence (List)`: The hierarchical clustering sequence.
+            `coreset_data (pd.DataFrame)`: The coreset data.
 
         Returns:
             List[float]: The cost of the divisive clustering sequence.
@@ -724,11 +724,11 @@ class DivisiveClustering(ABC):
         From the simulator output, extract the best bitstring.
 
         Args:
-            counts (cudaq.SampleResult): The counts.
-            G (nx.Graph): The graph.
+            `counts (cudaq.SampleResult)`: The counts.
+            `G (nx.Graph)`: The graph.
 
         Returns:
-            str: The best bitstring.
+            `str`: The best bitstring.
         """
 
         counts_pd = pd.DataFrame(counts.items(),
@@ -770,52 +770,52 @@ class DivisiveClustering(ABC):
         Perform divisive clustering on the coreset data.
 
         Args:
-            full_coreset_df (pd.DataFrame): The full coreset data.
+            `full_coreset_df (pd.DataFrame)`: The full coreset data.
 
         Returns:
-            List[Union[str, int]]: The hierarchical clustering sequence.
+            `List[Union[str, int]]`: The hierarchical clustering sequence.
         """
 
         index_iteration_counter = 0
         single_clusters = 0
 
         index_values = list(range(len(full_coreset_df)))
-        hierarchial_clustering_sequence = [index_values]
+        hierarchical_clustering_sequence = [index_values]
 
         while single_clusters < len(index_values):
-            index_values_to_evaluate = hierarchial_clustering_sequence[
+            index_values_to_evaluate = hierarchical_clustering_sequence[
                 index_iteration_counter]
             if len(index_values_to_evaluate) == 1:
                 single_clusters += 1
 
             elif len(index_values_to_evaluate) == 2:
-                hierarchial_clustering_sequence.append(
+                hierarchical_clustering_sequence.append(
                     [index_values_to_evaluate[0]])
-                hierarchial_clustering_sequence.append(
+                hierarchical_clustering_sequence.append(
                     [index_values_to_evaluate[1]])
 
             else:
                 coreset_vectors_df_for_iteration = full_coreset_df.iloc[
                     index_values_to_evaluate]
 
-                hierarchial_clustering_sequence = self.get_hierarchical_clustering_sequence(
+                hierarchical_clustering_sequence = self.get_hierarchical_clustering_sequence(
                     coreset_vectors_df_for_iteration,
-                    hierarchial_clustering_sequence,
+                    hierarchical_clustering_sequence,
                 )
 
             index_iteration_counter += 1
 
-        return hierarchial_clustering_sequence
+        return hierarchical_clustering_sequence
 
 
 class Dendrogram:
 
     def __init__(
             self, coreset_data: pd.DataFrame,
-            hierarchial_clustering_sequence: List[Union[str, int]]) -> None:
+            hierarchical_clustering_sequence: List[Union[str, int]]) -> None:
         self._coreset_data = self.__create_coreset_data(coreset_data)
         self._hierarchial_clustering_sequence = self.__convert_numbers_to_name(
-            hierarchial_clustering_sequence, coreset_data)
+            hierarchical_clustering_sequence, coreset_data)
         self.linkage_matrix = []
 
     @property
@@ -828,15 +828,15 @@ class Dendrogram:
         self._coreset_data = coreset_data
 
     @property
-    def hierarchial_clustering_sequence(self) -> List[Union[str, int]]:
+    def hierarchical_clustering_sequence(self) -> List[Union[str, int]]:
         return self._hierarchial_clustering_sequence
 
-    @hierarchial_clustering_sequence.setter
-    def hierarchial_clustering_sequence(
-            self, hierarchial_clustering_sequence: List[Union[str,
+    @hierarchical_clustering_sequence.setter
+    def hierarchical_clustering_sequence(
+            self, hierarchical_clustering_sequence: List[Union[str,
                                                               int]]) -> None:
         self.linkage_matrix = []
-        self._hierarchial_clustering_sequence = hierarchial_clustering_sequence
+        self._hierarchial_clustering_sequence = hierarchical_clustering_sequence
 
     def __call__(self) -> List:
         if not self.linkage_matrix:
@@ -849,10 +849,10 @@ class Dendrogram:
         Creates coreset data that can be used for plotting.
 
         Args:
-            coreset_data (pd.DataFrame): The coreset data.
+            `coreset_data (pd.DataFrame)`: The coreset data.
 
         Returns:
-            pd.DataFrame: The coreset data.
+            `pd.DataFrame`: The coreset data.
         """
 
         _coreset_data = coreset_data.copy()
@@ -861,21 +861,21 @@ class Dendrogram:
         return _coreset_data.drop(columns=["Name", "weights"])
 
     def __convert_numbers_to_name(self,
-                                  hierarchial_clustering_sequence: List[int],
+                                  hierarchical_clustering_sequence: List[int],
                                   coreset_data: pd.DataFrame) -> List[str]:
         """
-        Converts the int in the hierarchial sequence into the instance name. This would be used to plot the leaves of the dendrogram.
+        Converts the int in the hierarchical sequence into the instance name. This would be used to plot the leaves of the dendrogram.
 
         Args:
-            hierarchial_clustering_sequence (List[int]): The hierarchical clustering sequence.
-            coreset_data (pd.DataFrame): The coreset data.
+            `hierarchical_clustering_sequence (List[int])`: The hierarchical clustering sequence.
+            `coreset_data (pd.DataFrame)`: The coreset data.
 
         Returns:
             List[str]: The converted hierarchical clustering sequence.
         """
 
         converted_hc = []
-        for hc in hierarchial_clustering_sequence:
+        for hc in hierarchical_clustering_sequence:
             converted_hc.append([coreset_data.Name[num] for num in hc])
 
         return converted_hc
@@ -893,12 +893,12 @@ class Dendrogram:
         Plots the dendrogram.
 
         Args:
-            plot_title (str, optional): The plot title. Defaults to "DIANA".
-            orientation (str, optional): The orientation of the dendrogram. Defaults to "top".
-            color_threshold (int, optional): The color threshold to convert hierarchial clustering into flat clustering. Defaults to None.
-            colors (List, optional): The colors for the leaves. Defaults to None.
-            clusters (np.ndarray, optional): Flat clustering results from applying threshold. Defaults to None.
-            link_color_func (Callable, optional): Function to colour the branches. Defaults to None.
+            `plot_title (str, optional)`: The plot title. Defaults to "DIANA".
+            `orientation (str, optional)`: The orientation of the dendrogram. Defaults to "top".
+            `color_threshold (int, optional)`: The color threshold to convert hierarchical clustering into flat clustering. Defaults to None.
+            `colors (List, optional)`: The colors for the leaves. Defaults to None.
+            `clusters (np.ndarray, optional)`: Flat clustering results from applying threshold. Defaults to None.
+            `link_color_func (Callable, optional)`: Function to color the branches. Defaults to None.
         """
 
         if not self.linkage_matrix:
@@ -944,7 +944,7 @@ class Dendrogram:
             threshold (float): The height threshold to convert.
 
         Returns:
-            np.ndarray: The flat cluster labels.
+            `np.ndarray`: The flat cluster labels.
         """
 
         if not self.linkage_matrix:
@@ -964,7 +964,7 @@ class Dendrogram:
             k (int): The number of clusters.
 
         Returns:
-            np.ndarray: The flat cluster labels.
+            `np.ndarray`: The flat cluster labels.
 
         """
         if not self.linkage_matrix:
@@ -985,10 +985,10 @@ class Dendrogram:
         Plot the flat clusters.
 
         Args:
-            clusters (np.ndarray): The flat clusters.
-            colors (List[str]): The colors for the clusters.
-            plot_title (str): The plot title.
-            show_annotation (bool, optional): Show annotation. Defaults to False.
+            `clusters (np.ndarray)`: The flat clusters.
+            `colors (List[str])`: The colors for the clusters.
+            `plot_title (str)`: The plot title.
+            `show_annotation (bool, optional)`: Show annotation. Defaults to False.
 
         """
         if len(colors) < len(set(clusters)):
@@ -1011,7 +1011,7 @@ class Dendrogram:
         Create the linkage matrix for the dendrogram and returns the index of the new branch.
 
         Args:
-            parent (List[str]): The parent cluster.
+            parent (`List[str]`): The parent cluster.
 
         Returns:
             List: The linkage matrix.
@@ -1072,27 +1072,27 @@ class Dendrogram:
     @staticmethod
     def find_children(
             parent: List[Union[str, int]],
-            hierarchial_clustering_sequence: List[Union[str, int]]) -> List:
+            hierarchical_clustering_sequence: List[Union[str, int]]) -> List:
         """
         Find the children of a given parent cluster.
 
         Args:
             parent (List): The parent cluster.
-            hierarchial_clustering_sequence (List): The hierarchical clustering sequence.
+            hierarchical_clustering_sequence (List): The hierarchical clustering sequence.
 
         Returns:
             List: The children of the parent cluster.
         """
 
-        parent_position = hierarchial_clustering_sequence.index(parent)
+        parent_position = hierarchical_clustering_sequence.index(parent)
 
         found = 0
         children = []
         for i in range(parent_position + 1,
-                       len(hierarchial_clustering_sequence)):
-            if any(item in hierarchial_clustering_sequence[i]
+                       len(hierarchical_clustering_sequence)):
+            if any(item in hierarchical_clustering_sequence[i]
                    for item in parent):
-                children.append(hierarchial_clustering_sequence[i])
+                children.append(hierarchical_clustering_sequence[i])
                 found += 1
                 if found == 2:
                     break
@@ -1101,17 +1101,17 @@ class Dendrogram:
 
     @staticmethod
     def plot_hierarchial_split(
-            hierarchial_clustering_sequence: List[Union[str, int]],
+            hierarchical_clustering_sequence: List[Union[str, int]],
             full_coreset_df: pd.DataFrame):
         """
         Plots the flat clusters at each iteration of the hierarchical clustering.
 
         Args:
-            hierarchial_clustering_sequence (List): The hierarchical clustering sequence.
-            full_coreset_df (pd.DataFrame): The full coreset data.
+            hierarchical_clustering_sequence (List): The hierarchical clustering sequence.
+            `full_coreset_df` (`pd.DataFrame`): The full coreset data.
         """
         parent_clusters = [
-            parent_cluster for parent_cluster in hierarchial_clustering_sequence
+            parent_cluster for parent_cluster in hierarchical_clustering_sequence
             if len(parent_cluster) > 1
         ]
         x_grid = int(np.sqrt(len(parent_clusters)))
@@ -1120,10 +1120,10 @@ class Dendrogram:
         fig, axs = plt.subplots(x_grid, y_grid, figsize=(12, 12))
 
         for i, parent_cluster in enumerate(parent_clusters):
-            parent_position = hierarchial_clustering_sequence.index(
+            parent_position = hierarchical_clustering_sequence.index(
                 parent_cluster)
             children = Dendrogram.find_children(
-                parent_cluster, hierarchial_clustering_sequence)
+                parent_cluster, hierarchical_clustering_sequence)
             coreset_for_parent_cluster = full_coreset_df.loc[parent_cluster]
             coreset_for_parent_cluster["cluster"] = 1
             coreset_for_parent_cluster.loc[children[0], "cluster"] = 0
