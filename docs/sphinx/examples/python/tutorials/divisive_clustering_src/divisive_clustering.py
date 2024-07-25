@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 
 class Coreset:
+
     def __init__(
         self,
         raw_data: np.ndarray,
@@ -67,11 +68,13 @@ class Coreset:
         self._coreset_size = coreset_size
 
     @number_of_coresets_to_evaluate.setter
-    def number_of_coresets_to_evaluate(self, number_of_coresets_to_evaluate: int) -> None:
+    def number_of_coresets_to_evaluate(
+            self, number_of_coresets_to_evaluate: int) -> None:
         self._number_of_coresets_to_evaluate = number_of_coresets_to_evaluate
 
     @number_of_sampling_for_centroids.setter
-    def number_of_sampling_for_centroids(self, number_of_sampling_for_centroids: int) -> None:
+    def number_of_sampling_for_centroids(
+            self, number_of_sampling_for_centroids: int) -> None:
         self._number_of_sampling_for_centroids = number_of_sampling_for_centroids
 
     @coreset_method.setter
@@ -94,17 +97,18 @@ class Coreset:
 
         if self._coreset_method == "BFL2":
             print("Using BFL2 method to generate coresets")
-            coreset_vectors, coreset_weights = self.get_coresets_using_BFL2(centroids)
+            coreset_vectors, coreset_weights = self.get_coresets_using_BFL2(
+                centroids)
 
         elif self._coreset_method == "BLK2":
             print("Using BLK2 method to generate coresets")
-            coreset_vectors, coreset_weights = self.get_coresets_using_BLK2(centroids)
+            coreset_vectors, coreset_weights = self.get_coresets_using_BLK2(
+                centroids)
         else:
             raise ValueError("Coreset method must be either BFL2 or BLK2.")
 
         coreset_vectors, coreset_weights = self.best_coreset_using_kmeans_cost(
-            coreset_vectors, coreset_weights
-        )
+            coreset_vectors, coreset_weights)
 
         self.coreset_vectors = coreset_vectors
         self.coreset_weights = coreset_weights
@@ -168,9 +172,10 @@ class Coreset:
         for _ in range(self.coreset_size - 1):
             p = np.zeros(len(data_vectors))
             for i, x in enumerate(data_vectors):
-                p[i] = self.distance_to_centroids(x, centroids)[0] ** 2
+                p[i] = self.distance_to_centroids(x, centroids)[0]**2
             p = p / sum(p)
-            centroids.append(data_vectors[np.random.choice(len(data_vectors), p=p)])
+            centroids.append(data_vectors[np.random.choice(len(data_vectors),
+                                                           p=p)])
 
         return centroids
 
@@ -188,12 +193,13 @@ class Coreset:
 
         cost = 0.0
         for x in self.raw_data:
-            cost += self.distance_to_centroids(x, centroids)[0] ** 2
+            cost += self.distance_to_centroids(x, centroids)[0]**2
         return cost
 
     def distance_to_centroids(
-        self, data_instance: np.ndarray, centroids: Union[List[np.ndarray], np.ndarray]
-    ) -> Tuple[float, int]:
+            self, data_instance: np.ndarray,
+            centroids: Union[List[np.ndarray],
+                             np.ndarray]) -> Tuple[float, int]:
         """
         Compute the distance between a data instance and the centroids.
 
@@ -208,7 +214,8 @@ class Coreset:
         minimum_distance = np.inf
         closest_index = -1
         for i, centroid in enumerate(centroids):
-            distance_between_data_instance_and_centroid = np.linalg.norm(data_instance - centroid)
+            distance_between_data_instance_and_centroid = np.linalg.norm(
+                data_instance - centroid)
             if distance_between_data_instance_and_centroid < minimum_distance:
                 minimum_distance = distance_between_data_instance_and_centroid
                 closest_index = i
@@ -228,10 +235,13 @@ class Coreset:
             Tuple[List, List]: The coreset vectors and coreset weights.
         """
 
-        number_of_data_points_close_to_a_cluster = {i: 0 for i in range(len(centroids))}
+        number_of_data_points_close_to_a_cluster = {
+            i: 0 for i in range(len(centroids))
+        }
         sum_distance_to_closest_cluster = 0.0
         for data_instance in self.raw_data:
-            min_dist, closest_index = self.distance_to_centroids(data_instance, centroids)
+            min_dist, closest_index = self.distance_to_centroids(
+                data_instance, centroids)
             number_of_data_points_close_to_a_cluster[closest_index] += 1
             sum_distance_to_closest_cluster += min_dist**2
 
@@ -240,22 +250,23 @@ class Coreset:
             min_dist, closest_index = self.distance_to_centroids(p, centroids)
             Prob[i] += min_dist**2 / (2 * sum_distance_to_closest_cluster)
             Prob[i] += 1 / (
-                2 * len(centroids) * number_of_data_points_close_to_a_cluster[closest_index]
-            )
+                2 * len(centroids) *
+                number_of_data_points_close_to_a_cluster[closest_index])
 
         if not (0.999 <= sum(Prob) <= 1.001):
             raise ValueError(
                 "sum(Prob) = %s; the algorithm should automatically "
-                "normalize Prob by construction" % sum(Prob)
-            )
-        chosen_indices = np.random.choice(len(self._raw_data), size=self._coreset_size, p=Prob)
+                "normalize Prob by construction" % sum(Prob))
+        chosen_indices = np.random.choice(len(self._raw_data),
+                                          size=self._coreset_size,
+                                          p=Prob)
         weights = [1 / (self._coreset_size * Prob[i]) for i in chosen_indices]
 
         return ([self._raw_data[i] for i in chosen_indices], weights)
 
-    def kmeans_cost(
-        self, coreset_vectors: np.ndarray, sample_weight: Optional[np.ndarray] = None
-    ) -> float:
+    def kmeans_cost(self,
+                    coreset_vectors: np.ndarray,
+                    sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Compute the cost of coreset vectors using kmeans clustering.
 
@@ -268,12 +279,13 @@ class Coreset:
 
         """
 
-        kmeans = KMeans(n_clusters=2).fit(coreset_vectors, sample_weight=sample_weight)
+        kmeans = KMeans(n_clusters=2).fit(coreset_vectors,
+                                          sample_weight=sample_weight)
         return self.get_cost(kmeans.cluster_centers_)
 
     def best_coreset_using_kmeans_cost(
-        self, coreset_vectors: List[np.ndarray], coreset_weights: List[np.ndarray]
-    ) -> Tuple[np.ndarray, np.ndarray]:
+            self, coreset_vectors: List[np.ndarray],
+            coreset_weights: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
         """
         Get the best coreset using kmeans cost.
 
@@ -289,8 +301,7 @@ class Coreset:
             self.kmeans_cost(
                 coreset_vectors=coreset_vectors[i],
                 sample_weight=coreset_weights[i],
-            )
-            for i in range(self._number_of_coresets_to_evaluate)
+            ) for i in range(self._number_of_coresets_to_evaluate)
         ]
 
         best_index = cost_coreset.index(np.min(cost_coreset))
@@ -337,34 +348,39 @@ class Coreset:
         B_i_totals = [0] * len(centroids)
         B_i = [np.empty_like(self._raw_data) for _ in range(len(centroids))]
         for data_instance in self._raw_data:
-            _, closest_index = self.distance_to_centroids(data_instance, centroids)
+            _, closest_index = self.distance_to_centroids(
+                data_instance, centroids)
             B_i[closest_index][B_i_totals[closest_index]] = data_instance
             B_i_totals[closest_index] += 1
 
-        c_phi = sum(
-            [
-                self.distance_to_centroids(data_instance, centroids)[0] ** 2
-                for data_instance in self._raw_data
-            ]
-        ) / len(self._raw_data)
+        c_phi = sum([
+            self.distance_to_centroids(data_instance, centroids)[0]**2
+            for data_instance in self._raw_data
+        ]) / len(self._raw_data)
 
         p = np.zeros(len(self._raw_data))
 
         sum_dist = {i: 0.0 for i in range(len(centroids))}
         for i, data_instance in enumerate(self._raw_data):
-            dist, closest_index = self.distance_to_centroids(data_instance, centroids)
+            dist, closest_index = self.distance_to_centroids(
+                data_instance, centroids)
             sum_dist[closest_index] += dist**2
 
         for i, data_instance in enumerate(self._raw_data):
-            p[i] = 2 * alpha * self.distance_to_centroids(data_instance, centroids)[0] ** 2 / c_phi
+            p[i] = 2 * alpha * self.distance_to_centroids(
+                data_instance, centroids)[0]**2 / c_phi
 
-            closest_index = self.distance_to_centroids(data_instance, centroids)[1]
-            p[i] += 4 * alpha * sum_dist[closest_index] / (B_i_totals[closest_index] * c_phi)
+            closest_index = self.distance_to_centroids(data_instance,
+                                                       centroids)[1]
+            p[i] += 4 * alpha * sum_dist[closest_index] / (
+                B_i_totals[closest_index] * c_phi)
 
             p[i] += 4 * len(self._raw_data) / B_i_totals[closest_index]
         p = p / sum(p)
 
-        chosen_indices = np.random.choice(len(self._raw_data), size=self._coreset_size, p=p)
+        chosen_indices = np.random.choice(len(self._raw_data),
+                                          size=self._coreset_size,
+                                          p=p)
         weights = [1 / (self._coreset_size * p[i]) for i in chosen_indices]
 
         return [self._raw_data[i] for i in chosen_indices], weights
@@ -392,17 +408,15 @@ class Coreset:
         coreset = [(w, v) for w, v in zip(coreset_weights, coreset_vectors)]
 
         vertices = len(coreset)
-        vertex_labels = [number_of_qubits_representing_data * int(i) for i in range(vertices)]
+        vertex_labels = [
+            number_of_qubits_representing_data * int(i) for i in range(vertices)
+        ]
         G = nx.Graph()
         G.add_nodes_from(vertex_labels)
-        edges = [
-            (
-                number_of_qubits_representing_data * i,
-                number_of_qubits_representing_data * j,
-            )
-            for i in range(vertices)
-            for j in range(i + 1, vertices)
-        ]
+        edges = [(
+            number_of_qubits_representing_data * i,
+            number_of_qubits_representing_data * j,
+        ) for i in range(vertices) for j in range(i + 1, vertices)]
 
         G.add_edges_from(edges)
 
@@ -426,7 +440,8 @@ class Coreset:
         return G
 
     @staticmethod
-    def normalize_array(vectors: np.ndarray, centralize: bool = False) -> np.ndarray:
+    def normalize_array(vectors: np.ndarray,
+                        centralize: bool = False) -> np.ndarray:
         """
         Normalize and centralize the array
 
@@ -477,21 +492,20 @@ class Coreset:
         for idx, val in enumerate(covariance_values):
             covariance_matrix = np.array([[1, val], [val, 1]])
 
-            distr = multivariate_normal(
-                cov=covariance_matrix, mean=mean_array[idx], seed=random_seed
-            )
+            distr = multivariate_normal(cov=covariance_matrix,
+                                        mean=mean_array[idx],
+                                        seed=random_seed)
 
             data = distr.rvs(size=number_of_samples_from_distribution)
 
-            X[
-                number_of_samples_from_distribution * idx : number_of_samples_from_distribution
-                * (idx + 1)
-            ][:] = data
+            X[number_of_samples_from_distribution *
+              idx:number_of_samples_from_distribution * (idx + 1)][:] = data
 
         return X
 
 
 class DivisiveClustering(ABC):
+
     def __init__(
         self,
         circuit_depth: int,
@@ -548,10 +562,10 @@ class DivisiveClustering(ABC):
 
         """
 
-        bitstring = self.run_divisive_clustering(coreset_vectors_df_for_iteration)
+        bitstring = self.run_divisive_clustering(
+            coreset_vectors_df_for_iteration)
         return self._add_children_to_hierarchial_clustering(
-            coreset_vectors_df_for_iteration, hierarchial_sequence, bitstring
-        )
+            coreset_vectors_df_for_iteration, hierarchial_sequence, bitstring)
 
     def _get_iteration_coreset_vectors_and_weights(
         self, coreset_vectors_df_for_iteration: pd.DataFrame
@@ -567,21 +581,23 @@ class DivisiveClustering(ABC):
 
         """
 
-        coreset_vectors_for_iteration = coreset_vectors_df_for_iteration[["X", "Y"]].to_numpy()
+        coreset_vectors_for_iteration = coreset_vectors_df_for_iteration[[
+            "X", "Y"
+        ]].to_numpy()
 
-        coreset_weights_for_iteration = coreset_vectors_df_for_iteration["weights"].to_numpy()
+        coreset_weights_for_iteration = coreset_vectors_df_for_iteration[
+            "weights"].to_numpy()
 
         if self.normalize_vectors:
             coreset_vectors_for_iteration = Coreset.normalize_array(
-                coreset_vectors_for_iteration, True
-            )
-            coreset_weights_for_iteration = Coreset.normalize_array(coreset_weights_for_iteration)
+                coreset_vectors_for_iteration, True)
+            coreset_weights_for_iteration = Coreset.normalize_array(
+                coreset_weights_for_iteration)
 
         return (coreset_vectors_for_iteration, coreset_weights_for_iteration)
 
-    def brute_force_cost_maxcut(
-        self, bitstrings: list[Union[str, int]], G: nx.graph
-    ) -> Dict[str, float]:
+    def brute_force_cost_maxcut(self, bitstrings: list[Union[str, int]],
+                                G: nx.graph) -> Dict[str, float]:
         """
         Cost function for brute force method
 
@@ -604,7 +620,8 @@ class DivisiveClustering(ABC):
 
         return cost_value
 
-    def _get_edge_cost(self, bitstring: str, i: int, j: int, edge_weight: float) -> float:
+    def _get_edge_cost(self, bitstring: str, i: int, j: int,
+                       edge_weight: float) -> float:
         """
         Get the edge cost using MaxCut cost function.
 
@@ -621,7 +638,7 @@ class DivisiveClustering(ABC):
         ai = int(bitstring[i])
         aj = int(bitstring[j])
 
-        return -1 * edge_weight * (1 - ((-1) ** ai) * ((-1) ** aj))
+        return -1 * edge_weight * (1 - ((-1)**ai) * ((-1)**aj))
 
     def _add_children_to_hierarchial_clustering(
         self,
@@ -644,16 +661,16 @@ class DivisiveClustering(ABC):
         iteration_dataframe["cluster"] = [int(bit) for bit in bitstring]
 
         for j in range(2):
-            idx = list(iteration_dataframe[iteration_dataframe["cluster"] == j].index)
+            idx = list(
+                iteration_dataframe[iteration_dataframe["cluster"] == j].index)
             if len(idx) > 0:
                 hierarchial_sequence.append(idx)
 
         return hierarchial_sequence
 
     @staticmethod
-    def get_divisive_cluster_cost(
-        hierarchical_clustering_sequence: List[Union[str, int]], coreset_data: pd.DataFrame
-    ) -> List[float]:
+    def get_divisive_cluster_cost(hierarchical_clustering_sequence: List[Union[
+        str, int]], coreset_data: pd.DataFrame) -> List[float]:
         """
         Get the cost of the divisive clustering at each iteration.
 
@@ -668,7 +685,8 @@ class DivisiveClustering(ABC):
         coreset_data = coreset_data.drop(["Name", "weights"], axis=1)
         cost_at_each_iteration = []
         for parent in hierarchical_clustering_sequence:
-            children_lst = Dendrogram.find_children(parent, hierarchical_clustering_sequence)
+            children_lst = Dendrogram.find_children(
+                parent, hierarchical_clustering_sequence)
 
             if not children_lst:
                 continue
@@ -683,20 +701,25 @@ class DivisiveClustering(ABC):
 
                 cost = 0
 
-                centroid_coords = parent_data_frame.groupby("cluster").mean()[["X", "Y"]]
+                centroid_coords = parent_data_frame.groupby("cluster").mean()[[
+                    "X", "Y"
+                ]]
                 centroid_coords = centroid_coords.to_numpy()
 
                 for idx, row in parent_data_frame.iterrows():
                     if row.cluster == 0:
-                        cost += np.linalg.norm(row[["X", "Y"]] - centroid_coords[0]) ** 2
+                        cost += np.linalg.norm(row[["X", "Y"]] -
+                                               centroid_coords[0])**2
                     else:
-                        cost += np.linalg.norm(row[["X", "Y"]] - centroid_coords[1]) ** 2
+                        cost += np.linalg.norm(row[["X", "Y"]] -
+                                               centroid_coords[1])**2
 
                 cost_at_each_iteration.append(cost)
 
         return cost_at_each_iteration
 
-    def _get_best_bitstring(self, counts: cudaq.SampleResult, G: nx.Graph) -> str:
+    def _get_best_bitstring(self, counts: cudaq.SampleResult,
+                            G: nx.Graph) -> str:
         """
         From the simulator output, extract the best bitstring.
 
@@ -708,12 +731,13 @@ class DivisiveClustering(ABC):
             str: The best bitstring.
         """
 
-        counts_pd = pd.DataFrame(counts.items(), columns=["bitstring", "counts"])
-        counts_pd["probability"] = counts_pd["counts"] / counts_pd["counts"].sum()
+        counts_pd = pd.DataFrame(counts.items(),
+                                 columns=["bitstring", "counts"])
+        counts_pd[
+            "probability"] = counts_pd["counts"] / counts_pd["counts"].sum()
         bitstring_probability_df = counts_pd.drop(columns=["counts"])
         bitstring_probability_df = bitstring_probability_df.sort_values(
-            "probability", ascending=self.sort_by_descending
-        )
+            "probability", ascending=self.sort_by_descending)
 
         unacceptable_bitstrings = [
             "".join("1" for _ in range(10)),
@@ -721,11 +745,12 @@ class DivisiveClustering(ABC):
         ]
 
         bitstring_probability_df = bitstring_probability_df[
-            ~bitstring_probability_df["bitstring"].isin(unacceptable_bitstrings)
-        ]
+            ~bitstring_probability_df["bitstring"].isin(unacceptable_bitstrings
+                                                       )]
 
         if len(bitstring_probability_df) > 10:
-            selected_rows = int(len(bitstring_probability_df) * self.threshold_for_maxcut)
+            selected_rows = int(
+                len(bitstring_probability_df) * self.threshold_for_maxcut)
         else:
             selected_rows = int(len(bitstring_probability_df) / 2)
 
@@ -733,11 +758,14 @@ class DivisiveClustering(ABC):
 
         bitstrings = bitstring_probability_df["bitstring"].tolist()
 
-        brute_force_cost_of_bitstrings = self.brute_force_cost_maxcut(bitstrings, G)
+        brute_force_cost_of_bitstrings = self.brute_force_cost_maxcut(
+            bitstrings, G)
 
-        return min(brute_force_cost_of_bitstrings, key=brute_force_cost_of_bitstrings.get)
+        return min(brute_force_cost_of_bitstrings,
+                   key=brute_force_cost_of_bitstrings.get)
 
-    def get_divisive_sequence(self, full_coreset_df: pd.DataFrame) -> List[Union[str, int]]:
+    def get_divisive_sequence(
+            self, full_coreset_df: pd.DataFrame) -> List[Union[str, int]]:
         """
         Perform divisive clustering on the coreset data.
 
@@ -755,16 +783,20 @@ class DivisiveClustering(ABC):
         hierarchial_clustering_sequence = [index_values]
 
         while single_clusters < len(index_values):
-            index_values_to_evaluate = hierarchial_clustering_sequence[index_iteration_counter]
+            index_values_to_evaluate = hierarchial_clustering_sequence[
+                index_iteration_counter]
             if len(index_values_to_evaluate) == 1:
                 single_clusters += 1
 
             elif len(index_values_to_evaluate) == 2:
-                hierarchial_clustering_sequence.append([index_values_to_evaluate[0]])
-                hierarchial_clustering_sequence.append([index_values_to_evaluate[1]])
+                hierarchial_clustering_sequence.append(
+                    [index_values_to_evaluate[0]])
+                hierarchial_clustering_sequence.append(
+                    [index_values_to_evaluate[1]])
 
             else:
-                coreset_vectors_df_for_iteration = full_coreset_df.iloc[index_values_to_evaluate]
+                coreset_vectors_df_for_iteration = full_coreset_df.iloc[
+                    index_values_to_evaluate]
 
                 hierarchial_clustering_sequence = self.get_hierarchical_clustering_sequence(
                     coreset_vectors_df_for_iteration,
@@ -777,13 +809,13 @@ class DivisiveClustering(ABC):
 
 
 class Dendrogram:
+
     def __init__(
-        self, coreset_data: pd.DataFrame, hierarchial_clustering_sequence: List[Union[str, int]]
-    ) -> None:
+            self, coreset_data: pd.DataFrame,
+            hierarchial_clustering_sequence: List[Union[str, int]]) -> None:
         self._coreset_data = self.__create_coreset_data(coreset_data)
         self._hierarchial_clustering_sequence = self.__convert_numbers_to_name(
-            hierarchial_clustering_sequence, coreset_data
-        )
+            hierarchial_clustering_sequence, coreset_data)
         self.linkage_matrix = []
 
     @property
@@ -801,8 +833,8 @@ class Dendrogram:
 
     @hierarchial_clustering_sequence.setter
     def hierarchial_clustering_sequence(
-        self, hierarchial_clustering_sequence: List[Union[str, int]]
-    ) -> None:
+            self, hierarchial_clustering_sequence: List[Union[str,
+                                                              int]]) -> None:
         self.linkage_matrix = []
         self._hierarchial_clustering_sequence = hierarchial_clustering_sequence
 
@@ -828,9 +860,9 @@ class Dendrogram:
 
         return _coreset_data.drop(columns=["Name", "weights"])
 
-    def __convert_numbers_to_name(
-        self, hierarchial_clustering_sequence: List[int], coreset_data: pd.DataFrame
-    ) -> List[str]:
+    def __convert_numbers_to_name(self,
+                                  hierarchial_clustering_sequence: List[int],
+                                  coreset_data: pd.DataFrame) -> List[str]:
         """
         Converts the int in the hierarchial sequence into the instance name. This would be used to plot the leaves of the dendrogram.
 
@@ -889,10 +921,12 @@ class Dendrogram:
 
         if colors is not None:
             if len(colors) < len(set(clusters)):
-                raise ValueError("Number of colors should be equal to number of clusters")
+                raise ValueError(
+                    "Number of colors should be equal to number of clusters")
             else:
                 colors_dict = {
-                    self._coreset_data.index[i]: colors[j] for i, j in enumerate(clusters)
+                    self._coreset_data.index[i]: colors[j]
+                    for i, j in enumerate(clusters)
                 }
 
                 ax = plt.gca()
@@ -916,7 +950,9 @@ class Dendrogram:
         if not self.linkage_matrix:
             self.get_linkage_matrix(self._hierarchial_clustering_sequence[0])
 
-        clusters = fcluster(self.linkage_matrix, threshold, criterion="distance")
+        clusters = fcluster(self.linkage_matrix,
+                            threshold,
+                            criterion="distance")
 
         return np.array(clusters) - 1
 
@@ -956,7 +992,8 @@ class Dendrogram:
 
         """
         if len(colors) < len(set(clusters)):
-            raise ValueError("Number of colors should be equal to number of clusters")
+            raise ValueError(
+                "Number of colors should be equal to number of clusters")
         coreset_data = self._coreset_data.copy()
         coreset_data["clusters"] = clusters
         for i in range(coreset_data.clusters.nunique()):
@@ -983,18 +1020,17 @@ class Dendrogram:
         if len(parent) < 2:
             index_of_parent = np.argwhere(self._coreset_data.index == parent[0])
             return index_of_parent[0][0]
-        children_1, children_2 = self.find_children(parent, self._hierarchial_clustering_sequence)
+        children_1, children_2 = self.find_children(
+            parent, self._hierarchial_clustering_sequence)
 
         index1 = self.get_linkage_matrix(children_1)
         index2 = self.get_linkage_matrix(children_2)
-        self.linkage_matrix.append(
-            [
-                index1,
-                index2,
-                self.distance(index1) + self.distance(index2),
-                self.cluster_len(index1) + self.cluster_len(index2),
-            ]
-        )
+        self.linkage_matrix.append([
+            index1,
+            index2,
+            self.distance(index1) + self.distance(index2),
+            self.cluster_len(index1) + self.cluster_len(index2),
+        ])
 
         return len(self.linkage_matrix) - 1 + len(self.coreset_data)
 
@@ -1012,7 +1048,8 @@ class Dendrogram:
         if i >= len(self._coreset_data):
             distance = self.linkage_matrix[i - len(self._coreset_data)][2]
         else:
-            distance = sum(self._coreset_data.iloc[i]) / (len(self.coreset_data) - 1)
+            distance = sum(
+                self._coreset_data.iloc[i]) / (len(self.coreset_data) - 1)
 
         return abs(distance)
 
@@ -1034,8 +1071,8 @@ class Dendrogram:
 
     @staticmethod
     def find_children(
-        parent: List[Union[str, int]], hierarchial_clustering_sequence: List[Union[str, int]]
-    ) -> List:
+            parent: List[Union[str, int]],
+            hierarchial_clustering_sequence: List[Union[str, int]]) -> List:
         """
         Find the children of a given parent cluster.
 
@@ -1051,8 +1088,10 @@ class Dendrogram:
 
         found = 0
         children = []
-        for i in range(parent_position + 1, len(hierarchial_clustering_sequence)):
-            if any(item in hierarchial_clustering_sequence[i] for item in parent):
+        for i in range(parent_position + 1,
+                       len(hierarchial_clustering_sequence)):
+            if any(item in hierarchial_clustering_sequence[i]
+                   for item in parent):
                 children.append(hierarchial_clustering_sequence[i])
                 found += 1
                 if found == 2:
@@ -1062,8 +1101,8 @@ class Dendrogram:
 
     @staticmethod
     def plot_hierarchial_split(
-        hierarchial_clustering_sequence: List[Union[str, int]], full_coreset_df: pd.DataFrame
-    ):
+            hierarchial_clustering_sequence: List[Union[str, int]],
+            full_coreset_df: pd.DataFrame):
         """
         Plots the flat clusters at each iteration of the hierarchical clustering.
 
@@ -1072,8 +1111,7 @@ class Dendrogram:
             full_coreset_df (pd.DataFrame): The full coreset data.
         """
         parent_clusters = [
-            parent_cluster
-            for parent_cluster in hierarchial_clustering_sequence
+            parent_cluster for parent_cluster in hierarchial_clustering_sequence
             if len(parent_cluster) > 1
         ]
         x_grid = int(np.sqrt(len(parent_clusters)))
@@ -1082,8 +1120,10 @@ class Dendrogram:
         fig, axs = plt.subplots(x_grid, y_grid, figsize=(12, 12))
 
         for i, parent_cluster in enumerate(parent_clusters):
-            parent_position = hierarchial_clustering_sequence.index(parent_cluster)
-            children = Dendrogram.find_children(parent_cluster, hierarchial_clustering_sequence)
+            parent_position = hierarchial_clustering_sequence.index(
+                parent_cluster)
+            children = Dendrogram.find_children(
+                parent_cluster, hierarchial_clustering_sequence)
             coreset_for_parent_cluster = full_coreset_df.loc[parent_cluster]
             coreset_for_parent_cluster["cluster"] = 1
             coreset_for_parent_cluster.loc[children[0], "cluster"] = 0
@@ -1106,6 +1146,7 @@ class Dendrogram:
 
 
 class Voironi_Tessalation:
+
     def __init__(
         self,
         coreset_df: pd.DataFrame,
@@ -1128,7 +1169,9 @@ class Voironi_Tessalation:
 
         self.voronoi = Voronoi(points)
 
-    def voronoi_finite_polygons_2d(self, radius: Optional[float] = None) -> Tuple[List, np.ndarray]:
+    def voronoi_finite_polygons_2d(self,
+                                   radius: Optional[float] = None
+                                  ) -> Tuple[List, np.ndarray]:
         """
         Creates the Voronoi regions and vertices for 2D data.
 
@@ -1150,7 +1193,8 @@ class Voironi_Tessalation:
             radius = self.voronoi.points.ptp().max()
 
         all_ridges = {}
-        for (p1, p2), (v1, v2) in zip(self.voronoi.ridge_points, self.voronoi.ridge_vertices):
+        for (p1, p2), (v1, v2) in zip(self.voronoi.ridge_points,
+                                      self.voronoi.ridge_vertices):
             all_ridges.setdefault(p1, []).append((p2, v1, v2))
             all_ridges.setdefault(p2, []).append((p1, v1, v2))
 

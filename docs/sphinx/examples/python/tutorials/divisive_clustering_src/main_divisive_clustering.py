@@ -24,7 +24,8 @@ argparser.add_argument(
     "--target",
     type=str,
     choices=["qpp-cpu", "nvidia", "nvidia-mgpu"],
-    help="Quantum simulator backend. Default is qpp-cpu. See https://nvidia.github.io/cuda-quantum/0.6.0/using/simulators.html for more options.",
+    help=
+    "Quantum simulator backend. Default is qpp-cpu. See https://nvidia.github.io/cuda-quantum/0.6.0/using/simulators.html for more options.",
 )
 argparser.add_argument(
     "-d",
@@ -33,13 +34,21 @@ argparser.add_argument(
     default=1,
     help="Depth of the QAOA circuit. Default is 1.",
 )
-argparser.add_argument(
-    "-i", "--max_iterations", type=int, default=75, help="Max iterations for the optimizer."
-)
-argparser.add_argument(
-    "-s", "--max_shots", type=int, default=100000, help="Max shots for the simulation."
-)
-argparser.add_argument("-m", "--M", type=int, default=10, help="Size of the coreset.")
+argparser.add_argument("-i",
+                       "--max_iterations",
+                       type=int,
+                       default=75,
+                       help="Max iterations for the optimizer.")
+argparser.add_argument("-s",
+                       "--max_shots",
+                       type=int,
+                       default=100000,
+                       help="Max shots for the simulation.")
+argparser.add_argument("-m",
+                       "--M",
+                       type=int,
+                       default=10,
+                       help="Size of the coreset.")
 
 args = argparser.parse_args()
 
@@ -51,6 +60,7 @@ max_shots = args.max_shots
 
 
 class DivisiveClusteringVQA(DivisiveClustering):
+
     def __init__(
         self,
         circuit_depth: int,
@@ -83,8 +93,8 @@ class DivisiveClusteringVQA(DivisiveClustering):
         coreset_vectors_df_for_iteration: pd.DataFrame,
     ):
         coreset_vectors_for_iteration_np, coreset_weights_for_iteration_np = (
-            self._get_iteration_coreset_vectors_and_weights(coreset_vectors_df_for_iteration)
-        )
+            self._get_iteration_coreset_vectors_and_weights(
+                coreset_vectors_df_for_iteration))
 
         G = Coreset.coreset_to_graph(
             coreset_vectors_for_iteration_np,
@@ -101,18 +111,21 @@ class DivisiveClusteringVQA(DivisiveClustering):
 
         return self._get_best_bitstring(counts, G)
 
-    def get_counts_from_simulation(self, G, circuit_depth, max_iterations, max_shots):
+    def get_counts_from_simulation(self, G, circuit_depth, max_iterations,
+                                   max_shots):
         qubits = len(G.nodes)
         Hamiltonian = self.create_Hamiltonian(G)
         optimizer, parameter_count, initial_params = self.optimizer_function(
-            self.optimizer, max_iterations, qubits=qubits, circuit_depth=circuit_depth
-        )
+            self.optimizer,
+            max_iterations,
+            qubits=qubits,
+            circuit_depth=circuit_depth)
 
         kernel = self.create_circuit(qubits, circuit_depth)
 
-        def objective_function(
-            parameter_vector: list[float], hamiltonian=Hamiltonian, kernel=kernel
-        ) -> tuple[float, list[float]]:
+        def objective_function(parameter_vector: list[float],
+                               hamiltonian=Hamiltonian,
+                               kernel=kernel) -> tuple[float, list[float]]:
             get_result = lambda parameter_vector: cudaq.observe(
                 kernel, hamiltonian, parameter_vector, qubits, circuit_depth
             ).expectation()
@@ -124,8 +137,7 @@ class DivisiveClusteringVQA(DivisiveClustering):
         t0 = time.process_time()
 
         energy, optimal_parameters = optimizer.optimize(
-            dimensions=parameter_count, function=objective_function
-        )
+            dimensions=parameter_count, function=objective_function)
 
         counts = cudaq.sample(
             kernel,
@@ -152,6 +164,7 @@ def get_K2_Hamiltonian(G: nx.Graph) -> cudaq.SpinOperator:
 
 
 def get_QAOA_circuit(number_of_qubits, circuit_depth):
+
     @cudaq.kernel
     def kernel(thetas: list[float], number_of_qubits: int, circuit_depth: int):
         qubits = cudaq.qvector(number_of_qubits)
@@ -169,9 +182,11 @@ def get_QAOA_circuit(number_of_qubits, circuit_depth):
     return kernel
 
 
-def get_optimizer(optimizer: cudaq.optimizers.optimizer, max_iterations, **kwargs):
+def get_optimizer(optimizer: cudaq.optimizers.optimizer, max_iterations,
+                  **kwargs):
     parameter_count = 4 * kwargs["circuit_depth"] * kwargs["qubits"]
-    initial_params = np.random.uniform(-np.pi / 8.0, np.pi / 8.0, parameter_count)
+    initial_params = np.random.uniform(-np.pi / 8.0, np.pi / 8.0,
+                                       parameter_count)
     optimizer.initial_parameters = initial_params
 
     optimizer.max_iterations = max_iterations
@@ -196,13 +211,11 @@ def create_coreset_df(
 
     coreset_vectors, coreset_weights = coreset.get_best_coresets()
 
-    coreset_df = pd.DataFrame(
-        {
-            "X": coreset_vectors[:, 0],
-            "Y": coreset_vectors[:, 1],
-            "weights": coreset_weights,
-        }
-    )
+    coreset_df = pd.DataFrame({
+        "X": coreset_vectors[:, 0],
+        "Y": coreset_vectors[:, 1],
+        "weights": coreset_weights,
+    })
     coreset_df["Name"] = [chr(i + 65) for i in coreset_df.index]
 
     return coreset_df
@@ -237,7 +250,8 @@ if __name__ == "__main__":
 
     t0 = time.process_time()
 
-    hierarchial_clustering_sequence = divisive_clustering.get_divisive_sequence(coreset_df)
+    hierarchial_clustering_sequence = divisive_clustering.get_divisive_sequence(
+        coreset_df)
     tf = time.process_time()
 
     print(f"Total time for the execution: {tf - t0}")
