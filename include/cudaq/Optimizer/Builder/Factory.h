@@ -252,6 +252,7 @@ bool isAArch64(mlir::ModuleOp);
 bool structUsesTwoArguments(mlir::Type ty);
 
 std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
+std::optional<llvm::APFloat> getDoubleIfConstant(mlir::Value value);
 
 /// Create a `cc.cast` operation, if it is needed.
 mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,

@@ -8,8 +8,8 @@
 
 // Compile and run with:
 // ```
-// nvq++ observe_mqpu_mpi.cpp -o observe_mqpu_mpi.x -target nvidia-mqpu
-// mpirun -np <N> ./observe_mqpu_mpi.x
+// nvq++ observe_mqpu_mpi.cpp -o observe_mqpu_mpi.x --target nvidia
+// --target-option mqpu mpirun -np <N> ./observe_mqpu_mpi.x
 // ```
 #include "cudaq.h"
 

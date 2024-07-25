@@ -79,7 +79,7 @@ __qpu__ void foo3() {
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_8:.*]]: i32):
 // CHECK:             %[[VAL_9:.*]] = arith.muli %[[VAL_8]], %[[VAL_2]] : i32
-// CHECK:             %[[VAL_10:.*]] = arith.extsi %[[VAL_9]] : i32 to i64
+// CHECK:             %[[VAL_10:.*]] = cc.cast signed %[[VAL_9]] : (i32) -> i64
 // CHECK:             %[[VAL_11:.*]] = quake.extract_ref %{{.*}}[%[[VAL_10]]] : (!quake.veq<10>, i64) -> !quake.ref
 // CHECK:             cc.continue %[[VAL_8]] : i32
 // CHECK:           } step {
@@ -104,7 +104,7 @@ __qpu__ void foo4() {
 // CHECK:           ^bb0(%[[VAL_9:.*]]: i32):
 // CHECK:             %[[VAL_10:.*]] = arith.muli %[[VAL_9]], %[[VAL_3]] : i32
 // CHECK:             %[[VAL_11:.*]] = arith.subi %[[VAL_0]], %[[VAL_10]]  : i32
-// CHECK:             %[[VAL_12:.*]] = arith.extsi %[[VAL_11]] : i32 to i64
+// CHECK:             %[[VAL_12:.*]] = cc.cast signed %[[VAL_11]] : (i32) -> i64
 // CHECK:             %[[VAL_13:.*]] = quake.extract_ref %{{.*}}[%[[VAL_12]]] : (!quake.veq<10>, i64) -> !quake.ref
 // CHECK:           ^bb0(%[[VAL_14:.*]]: i32):
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_2]] : i32
@@ -394,7 +394,7 @@ __qpu__ void linear_expr6() {
 // CHECK:           ^bb0(%[[VAL_9:.*]]: i32):
 // CHECK:             %[[VAL_10:.*]] = arith.muli %[[VAL_9]], %[[VAL_2]] : i32
 // CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : i32
-// CHECK:             %[[VAL_12:.*]] = arith.extsi %[[VAL_11]] : i32 to i64
+// CHECK:             %[[VAL_12:.*]] = cc.cast signed %[[VAL_11]] : (i32) -> i64
 // CHECK:             %[[VAL_13:.*]] = quake.extract_ref %{{.*}}[%[[VAL_12]]] :
 // CHECK:             cc.continue %[[VAL_9]] : i32
 // CHECK:           } step {

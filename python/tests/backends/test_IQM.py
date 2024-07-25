@@ -8,8 +8,10 @@
 
 import os
 import tempfile
-import time
+from typing import List
 from multiprocessing import Process
+import numpy as np
+from network_utils import check_server_connection
 
 import cudaq
 from cudaq import spin
@@ -41,7 +43,10 @@ def startUpMockServer():
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
-    time.sleep(1)
+
+    if not check_server_connection(port):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
@@ -156,6 +161,34 @@ def test_iqm_u3_ctrl_decomposition():
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
 
     result = cudaq.sample(kernel)
+
+
+def test_IQM_state_preparation():
+    shots = 10000
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_IQM_state_preparation_builder():
+    shots = 10000
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 # leave for gdb debugging

@@ -129,8 +129,9 @@ public:
         m_simHandle(DEFAULT_NVQIR_SIMULATION_BACKEND,
                     loadNvqirSimLib(DEFAULT_NVQIR_SIMULATION_BACKEND)) {}
 
-  virtual int version() const override {
-    return cudaq::RestRequest::REST_PAYLOAD_VERSION;
+  virtual std::pair<int, int> version() const override {
+    return std::make_pair(cudaq::RestRequest::REST_PAYLOAD_VERSION,
+                          cudaq::RestRequest::REST_PAYLOAD_MINOR_VERSION);
   }
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
@@ -419,7 +420,7 @@ public:
           io_context.hasConditionalsOnMeasureResults) {
         // Need to run simulation shot-by-shot
         cudaq::sample_result counts;
-        invokeMlirKernel(m_mlirContext, ir, requestInfo.passes,
+        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
                          std::string(kernelName), io_context.shots,
                          [&](std::size_t i) {
                            // Reset the context and get the single
@@ -435,7 +436,7 @@ public:
         io_context.result = counts;
         platform.set_exec_ctx(&io_context);
       } else {
-        invokeMlirKernel(m_mlirContext, ir, requestInfo.passes,
+        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
                          std::string(kernelName));
       }
     }
@@ -536,7 +537,8 @@ protected:
   }
 
   void
-  invokeMlirKernel(std::unique_ptr<MLIRContext> &contextPtr,
+  invokeMlirKernel(cudaq::ExecutionContext &io_context,
+                   std::unique_ptr<MLIRContext> &contextPtr,
                    std::string_view irString,
                    const std::vector<std::string> &passes,
                    const std::string &entryPointFn, std::size_t numTimes = 1,
@@ -548,21 +550,56 @@ protected:
     if (!module)
       throw std::runtime_error("Failed to parse the input MLIR code");
     auto engine = jitMlirCode(*module, passes);
+    llvm::SmallVector<void *> returnArg;
     const std::string entryPointFunc =
         std::string(cudaq::runtime::cudaqGenPrefixName) + entryPointFn;
-    auto fnPtr =
-        getValueOrThrow(engine->lookup(entryPointFunc),
-                        "Failed to look up entry-point function symbol");
-    if (!fnPtr)
-      throw std::runtime_error("Failed to get entry function");
+    if (auto funcOp = module->lookupSymbol<LLVM::LLVMFuncOp>(entryPointFunc)) {
+      auto funcTy = funcOp.getFunctionType();
+      auto returnTy = funcTy.getReturnType();
+      // These are the returned types that we support.
+      if (returnTy.isF32()) {
+        io_context.invocationResultBuffer.resize(sizeof(float));
+        returnArg.push_back(io_context.invocationResultBuffer.data());
+      } else if (returnTy.isF64()) {
+        io_context.invocationResultBuffer.resize(sizeof(double));
+        returnArg.push_back(io_context.invocationResultBuffer.data());
+      } else if (returnTy.isInteger(1)) {
+        static_assert(sizeof(bool) == sizeof(char),
+                      "Incompatible boolean data type. CUDA-Q kernels expect "
+                      "sizeof(bool) == sizeof(char).");
+        io_context.invocationResultBuffer.resize(sizeof(bool));
+        returnArg.push_back(io_context.invocationResultBuffer.data());
+      } else if (returnTy.isIntOrIndex()) {
+        io_context.invocationResultBuffer.resize(
+            (returnTy.getIntOrFloatBitWidth() + 7) / 8);
+        returnArg.push_back(io_context.invocationResultBuffer.data());
+      }
+    }
 
-    auto fn = reinterpret_cast<void (*)()>(fnPtr);
-    simulationStart = std::chrono::high_resolution_clock::now();
-    for (std::size_t i = 0; i < numTimes; ++i) {
-      // Invoke the kernel
-      fn();
-      if (postExecCallback) {
-        postExecCallback(i);
+    // Note: currently, we only return data from kernel on single-shot
+    // execution. Once we enable arbitrary sample return type, we can run this
+    // in a loop and return a vector of return type.
+    if (numTimes == 1 && !returnArg.empty()) {
+      simulationStart = std::chrono::high_resolution_clock::now();
+      llvm::Error error = engine->invokePacked(entryPointFunc, returnArg);
+      if (error)
+        throw std::runtime_error("JIT invocation failed");
+      if (postExecCallback)
+        postExecCallback(0);
+    } else {
+      auto fnPtr =
+          getValueOrThrow(engine->lookup(entryPointFunc),
+                          "Failed to look up entry-point function symbol");
+      if (!fnPtr)
+        throw std::runtime_error("Failed to get entry function");
+
+      auto fn = reinterpret_cast<void (*)()>(fnPtr);
+      simulationStart = std::chrono::high_resolution_clock::now();
+      for (std::size_t i = 0; i < numTimes; ++i) {
+        // Invoke the kernel
+        fn();
+        if (postExecCallback)
+          postExecCallback(i);
       }
     }
   }
@@ -650,11 +687,11 @@ protected:
       // server is expecting, throw an error. Note: we don't support
       // automatically versioning the payload (converting payload between
       // different versions) at the moment.
-      if (static_cast<int>(request.version) != version())
+      if (static_cast<int>(request.version) != version().first)
         throw std::runtime_error(fmt::format(
             "Incompatible REST payload version detected: supported version {}, "
             "got version {}.",
-            version(), request.version));
+            version().first, request.version));
 
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);

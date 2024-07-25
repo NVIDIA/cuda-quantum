@@ -258,8 +258,7 @@ void bindRegisterDialects(py::module &mod) {
              const std::vector<std::complex<double>> &values) {
             ModuleOp modOp = unwrap(module);
             cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
-            builder.genVectorOfComplexConstant(unwrap(loc), modOp, name,
-                                               values);
+            builder.genVectorOfConstants(unwrap(loc), modOp, name, values);
           });
 }
 } // namespace cudaq

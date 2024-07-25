@@ -30,6 +30,11 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         target = node.targets[0]
+        # Check if a variable is assigned from result(s) of measurement
+        if hasattr(node, 'value') and hasattr(
+                node.value, 'id') and node.value.id in self.measureResultsVars:
+            self.measureResultsVars.append(target.id)
+            return
         if not 'func' in node.value.__dict__:
             return
         creatorFunc = node.value.func
@@ -47,38 +52,43 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
             return self.getVariableName(node.value)
         return ''
 
+    def checkForMeasureResult(self, value):
+        return self.isMeasureCallOp(value) or self.getVariableName(
+            value) in self.measureResultsVars
+
     def visit_If(self, node):
         condition = node.test
-        # catch `if mz(q)`
-        if self.isMeasureCallOp(condition):
+
+        # Catch `if mz(q)`, `if val`, where `val = mz(q)` or `if var[k]`, where `var = mz(qvec)`
+        if self.checkForMeasureResult(condition):
             self.hasMidCircuitMeasures = True
             return
-        # Catch `if val`, where `val = mz(q)` or `if var[k]`, where `var = mz(qvec)`
-        if self.getVariableName(condition) in self.measureResultsVars:
+
+        # Compare: look at left expression.
+        # Catch `if var == True/False` and `if var[k] == True/False:` or `if mz(q) == True/False`
+        if isinstance(condition, ast.Compare) and self.checkForMeasureResult(
+                condition.left):
             self.hasMidCircuitMeasures = True
-        elif isinstance(condition, ast.Compare):
-            # Compare: look at left expression.
-            # Handle: `if var == True/False` and `if var[k] == True/False:`
-            if self.getVariableName(condition.left) in self.measureResultsVars:
-                self.hasMidCircuitMeasures = True
-            elif self.isMeasureCallOp(condition.left):
-                # Handle: `if mz(q) == True/False`
-                self.hasMidCircuitMeasures = True
+            return
+
         # Catch `if UnaryOp mz(q)` or `if UnaryOp var` (`var = mz(q)`)
-        elif isinstance(condition, ast.UnaryOp):
-            self.hasMidCircuitMeasures = self.isMeasureCallOp(
-                condition.operand) or (self.getVariableName(condition.operand)
-                                       in self.measureResultsVars)
+        if isinstance(condition, ast.UnaryOp) and self.checkForMeasureResult(
+                condition.operand):
+            self.hasMidCircuitMeasures = True
+            return
+
         # Catch `if something BoolOp mz(q)` or `something BoolOp var` (`var = mz(q)`)
-        elif isinstance(condition,
-                        ast.BoolOp) and 'values' in condition.__dict__:
-            for node in condition.__dict__['values']:
-                if self.isMeasureCallOp(node):
+        if isinstance(condition, ast.BoolOp) and 'values' in condition.__dict__:
+
+            for value in condition.__dict__['values']:
+                if self.checkForMeasureResult(value):
                     self.hasMidCircuitMeasures = True
-                    break
-                elif self.getVariableName(node) in self.measureResultsVars:
+                    return
+                if isinstance(value,
+                              ast.Compare) and self.checkForMeasureResult(
+                                  value.left):
                     self.hasMidCircuitMeasures = True
-                    break
+                    return
 
 
 class RewriteMeasures(ast.NodeTransformer):

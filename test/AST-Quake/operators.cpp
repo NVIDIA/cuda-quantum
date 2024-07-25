@@ -104,22 +104,22 @@ struct short_test {
 // CHECK:           %[[VAL_6:.*]] = cc.alloca i16
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_6]] : !cc.ptr<i16>
 // CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i16>
-// CHECK:           %[[VAL_8:.*]] = arith.extsi %[[VAL_7]] : i16 to i32
+// CHECK:           %[[VAL_8:.*]] = cc.cast signed %[[VAL_7]] : (i16) -> i32
 // CHECK:           %[[VAL_9:.*]] = arith.shrsi %[[VAL_8]], %[[VAL_4]] : i32
 // CHECK:           %[[VAL_10:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_10]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i16>
-// CHECK:           %[[VAL_12:.*]] = arith.extui %[[VAL_11]] : i16 to i32
+// CHECK:           %[[VAL_12:.*]] = cc.cast unsigned %[[VAL_11]] : (i16) -> i32
 // CHECK:           %[[VAL_13:.*]] = arith.shrsi %[[VAL_12]], %[[VAL_4]] : i32
 // CHECK:           %[[VAL_14:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_13]], %[[VAL_14]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_15:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i16>
-// CHECK:           %[[VAL_16:.*]] = arith.extsi %[[VAL_15]] : i16 to i32
+// CHECK:           %[[VAL_16:.*]] = cc.cast signed %[[VAL_15]] : (i16) -> i32
 // CHECK:           %[[VAL_17:.*]] = arith.shli %[[VAL_16]], %[[VAL_3]] : i32
 // CHECK:           %[[VAL_18:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_17]], %[[VAL_18]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_19:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i16>
-// CHECK:           %[[VAL_20:.*]] = arith.extui %[[VAL_19]] : i16 to i32
+// CHECK:           %[[VAL_20:.*]] = cc.cast unsigned %[[VAL_19]] : (i16) -> i32
 // CHECK:           %[[VAL_21:.*]] = arith.shli %[[VAL_20]], %[[VAL_2]] : i32
 // CHECK:           %[[VAL_22:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_21]], %[[VAL_22]] : !cc.ptr<i32>
@@ -184,17 +184,17 @@ struct fp_test {
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f32>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f32>
 // CHECK:           %[[VAL_6:.*]] = arith.addf %[[VAL_4]], %[[VAL_5]] : f32
-// CHECK:           %[[VAL_7:.*]] = arith.extf %[[VAL_6]] : f32 to f64
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (f32) -> f64
 // CHECK:           %[[VAL_8:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_9:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f32>
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f32>
 // CHECK:           %[[VAL_11:.*]] = arith.mulf %[[VAL_9]], %[[VAL_10]] : f32
-// CHECK:           %[[VAL_12:.*]] = arith.extf %[[VAL_11]] : f32 to f64
+// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (f32) -> f64
 // CHECK:           %[[VAL_13:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_12]], %[[VAL_13]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_14:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f32>
-// CHECK:           %[[VAL_15:.*]] = arith.extf %[[VAL_14]] : f32 to f64
+// CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_14]] : (f32) -> f64
 // CHECK:           %[[VAL_16:.*]] = cc.load %[[VAL_13]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_17:.*]] = arith.subf %[[VAL_15]], %[[VAL_16]] : f64
 // CHECK:           %[[VAL_18:.*]] = cc.alloca f64

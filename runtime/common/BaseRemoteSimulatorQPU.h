@@ -22,27 +22,6 @@
 
 namespace cudaq {
 
-static inline bool getEnvVarBool(const char *envVarName) {
-  if (auto envVal = std::getenv(envVarName)) {
-    std::string tmp(envVal);
-    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-      return true;
-  }
-  return false;
-}
-
-// TODO - Remove this once the public NVQC deployment supports this capability.
-static inline bool remoteVQEExecOverride() {
-  return getEnvVarBool("CUDAQ_REMOTE_VQE");
-}
-
-// TODO - Remove this once the public NVQC deployment supports this capability.
-static inline bool serializedCodeExecOverride() {
-  return getEnvVarBool("CUDAQ_SER_CODE_EXEC");
-}
-
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
 class BaseRemoteSimulatorQPU : public cudaq::QPU {
@@ -78,14 +57,10 @@ public:
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
 
-  // VQE is executed fully on the server without the need to go back and forth
-  // in between observe calls
-  virtual bool supportsRemoteVQE() override { return true; }
-
-  // Remote serializable code is executed fully on the server without the need
-  // to go back and forth in between observe calls (see
-  // launchSerializedCodeExecution).
-  virtual bool supportsRemoteSerializedCode() override { return true; }
+  // Get the capabilities from the client.
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return m_client->getRemoteCapabilities();
+  }
 
   virtual void setTargetBackend(const std::string &backend) override {
     auto parts = cudaq::split(backend, ';');
@@ -150,8 +125,17 @@ public:
     // set up a single-shot execution context for this case.
     static thread_local cudaq::ExecutionContext defaultContext("sample",
                                                                /*shots=*/1);
+    // This is a kernel invocation outside the CUDA-Q APIs (sample/observe).
+    const bool isDirectInvocation = !executionContextPtr;
     cudaq::ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
+
+    // Populate the conditional feedback metadata if this is a direct
+    // invocation (not otherwise populated by cudaq::sample)
+    if (isDirectInvocation)
+      executionContext.hasConditionalsOnMeasureResults =
+          cudaq::kernelHasConditionalFeedback(name);
+
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
@@ -159,6 +143,30 @@ public:
         m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
+    if (isDirectInvocation &&
+        !executionContext.invocationResultBuffer.empty()) {
+      if (executionContext.invocationResultBuffer.size() + resultOffset >
+          voidStarSize)
+        throw std::runtime_error(
+            "Unexpected result: return type size of " +
+            std::to_string(executionContext.invocationResultBuffer.size()) +
+            " bytes overflows the argument buffer.");
+      // Currently, we only support result buffer serialization on LittleEndian
+      // CPUs (x86, ARM, PPC64LE).
+      // Note: NVQC service will always be using LE. If
+      // the client (e.g., compiled from source) is built for big-endian, we
+      // will throw an error if result buffer data is returned.
+      if (llvm::sys::IsBigEndianHost)
+        throw std::runtime_error(
+            "Serializing the result buffer from a remote kernel invocation is "
+            "not supported for BigEndian CPU architectures.");
+
+      char *resultBuf = reinterpret_cast<char *>(args) + resultOffset;
+      // Copy the result data to the args buffer.
+      std::memcpy(resultBuf, executionContext.invocationResultBuffer.data(),
+                  executionContext.invocationResultBuffer.size());
+      executionContext.invocationResultBuffer.clear();
+    }
   }
 
   void
@@ -279,17 +287,10 @@ public:
     m_client->setConfig(clientConfigs);
   }
 
-  // VQE is executed fully on the server without the need to go back and forth
-  // in between observe calls (see launchVQE).
-  // TODO - set this to true when NVQC supports this.
-  virtual bool supportsRemoteVQE() override { return remoteVQEExecOverride(); }
-
-  // Remote serializable code is executed fully on the server without the need
-  // to go back and forth in between observe calls (see
-  // launchSerializedCodeExecution).
-  // TODO - set this to true when NVQC supports this.
-  virtual bool supportsRemoteSerializedCode() override {
-    return serializedCodeExecOverride();
+  // The NVCF version of this function needs to dynamically fetch the remote
+  // capabilities from the currently deployed servers.
+  virtual RemoteCapabilities getRemoteCapabilities() const override {
+    return m_client->getRemoteCapabilities();
   }
 
 protected:
@@ -297,10 +298,8 @@ protected:
   NvcfConfig searchNvcfConfig() {
     NvcfConfig config;
     // Search from environment variable
-    if (auto apiKey = std::getenv("NVQC_API_KEY")) {
-      const auto key = std::string(apiKey);
-      config.apiKey = key;
-    }
+    if (auto apiKey = std::getenv("NVQC_API_KEY"))
+      config.apiKey = std::string(apiKey);
 
     if (auto funcIdEnv = std::getenv("NVQC_FUNCTION_ID"))
       config.functionId = std::string(funcIdEnv);

@@ -78,8 +78,8 @@ function(add_cudaq_translation_library name)
 endfunction()
 
 function(add_target_config name)
-  install(FILES ${name}.config DESTINATION targets)
-  configure_file(${name}.config ${CMAKE_BINARY_DIR}/targets/${name}.config COPYONLY)
+  install(FILES ${name}.yml DESTINATION targets)
+  configure_file(${name}.yml ${CMAKE_BINARY_DIR}/targets/${name}.yml COPYONLY)
 endfunction()
 
 function(add_target_mapping_arch providerName name)
