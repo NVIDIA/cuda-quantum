@@ -251,11 +251,15 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          ATTR arrayAttr, MAKER makeElementValue) {
   auto *ctx = builder.getContext();
   auto argTy = argument.getType();
-
-  assert(isa<cudaq::cc::StdvecType>(argTy));
-  auto strTy = cast<cudaq::cc::StdvecType>(argTy);
-  auto eleTy = cast<ELETY>(strTy.getElementType());
-
+  assert(isa<cudaq::cc::StdvecType>(argTy) ||
+         isa<cudaq::cc::CharspanType>(argTy));
+  ELETY eleTy = [&]() -> ELETY {
+    if (auto strTy = dyn_cast<cudaq::cc::StdvecType>(argTy))
+      return cast<ELETY>(strTy.getElementType());
+    // Force cast this to ELETY. This will only happen for CharspanType.
+    return cast<ELETY>(cudaq::opt::factory::getCharType(ctx));
+  }();
+  auto strTy = cudaq::cc::StdvecType::get(ctx, eleTy);
   builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
   auto conArray = builder.create<cudaq::cc::ConstantArrayOp>(
@@ -289,15 +293,14 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
 
   auto replaceLoads = [&](cudaq::cc::ComputePtrOp elePtrOp,
                           Value newVal) -> LogicalResult {
+    bool allLoadUsers = true;
     for (auto *u : elePtrOp->getUsers()) {
-      if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u)) {
+      if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u))
         loadOp.replaceAllUsesWith(newVal);
-        continue;
-      }
-      return elePtrOp.emitError(
-          "Unknown gep/load configuration for synthesis.");
+      else
+        allLoadUsers = false;
     }
-    return success();
+    return success(allLoadUsers);
   };
 
   // Iterate over the users of this stdvec argument.
@@ -344,9 +347,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
               Value memArr = getArrayInMemory();
               builder.setInsertionPoint(elePtrOp);
               Value newComputedPtr = builder.create<cudaq::cc::ComputePtrOp>(
-                  argLoc, ptrEleTy, memArr,
-                  SmallVector<cudaq::cc::ComputePtrArg>{
-                      0, elePtrOp.getDynamicIndices()[0]});
+                  argLoc, ptrEleTy, memArr, elePtrOp.getDynamicIndices()[0]);
               elePtrOp.replaceAllUsesWith(newComputedPtr);
             }
             continue;
@@ -729,6 +730,19 @@ public:
         auto rawSize =
             *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
+        continue;
+      }
+
+      if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(type)) {
+        const char *ptrToSizeInBuffer =
+            static_cast<const char *>(args) + offset;
+        auto sizeFromBuffer =
+            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
+        std::size_t bytesInType = sizeof(char);
+        auto vectorSize = sizeFromBuffer / bytesInType;
+        stdVecInfo.emplace_back(
+            argNum, cudaq::opt::factory::getCharType(builder.getContext()),
+            vectorSize);
         continue;
       }
 

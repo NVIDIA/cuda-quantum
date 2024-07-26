@@ -73,7 +73,7 @@ struct VerifyNVQIRCallOpsPass
         passFailed = true;
         return WalkResult::interrupt();
       } else if (!isa<LLVM::AddressOfOp, LLVM::AllocaOp, LLVM::BitcastOp,
-                      LLVM::ExtractValueOp, LLVM::GEPOp, LLVM::IntToPtrOp,
+                      LLVM::ExtractValueOp, LLVM::GEPOp, LLVM::IntToPtrOp, LLVM::InsertValueOp,
                       LLVM::LoadOp, LLVM::StoreOp>(op)) {
         // No pointers allowed except for the above operations.
         for (auto oper : op->getOperands()) {

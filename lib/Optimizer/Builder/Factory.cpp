@@ -362,8 +362,13 @@ static Type convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
-  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty))
-    return convertToHostSideType(factory::stlStringType(memrefTy.getContext()));
+  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty)) {
+    // `pauli_word` is an object with a std::vector in the header files at
+    // present. This data type *must* be updated if it becomes a std::string
+    // once again.
+    return convertToHostSideType(
+        factory::stlVectorType(IntegerType::get(ty.getContext(), 8)));
+  }
   auto *ctx = ty.getContext();
   if (auto structTy = dyn_cast<cc::StructType>(ty)) {
     SmallVector<Type> newMembers;

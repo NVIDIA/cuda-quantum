@@ -9,10 +9,14 @@
 // REQUIRES: remote-sim
 
 // clang-format off
+// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
-#include "remote_test_assert.h"
+// Note: this is similar to the vqe_h2.cpp example file, but it uses
+// cudaq::observe instead of cudaq::vqe in order to exercise quake-synth on
+// vector parameters with complicated usage patterns (like cudaq::slice_vector).
+
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 #include <cudaq/builder.h>
@@ -109,43 +113,18 @@ int main() {
   int n_params = n_layers * 6 * n_blocks_per_layer;
   printf("%d qubit Hamiltonian -> %d parameters\n", n_qubits, n_params);
 
-  // Define the initial parameters and ansatz.
-  auto init_params =
-      cudaq::random_vector(-1, 1, n_params, std::mt19937::default_seed);
+  // Define the initial parameters and ansatz. For this test, make a linear ramp
+  // from -1 to 1.
+  std::vector<double> init_params(n_params);
+  for (int i = 0; i < n_params; i++)
+    init_params[i] = -1 + i * (2.0 / n_params);
 
   so4_fabric ansatz;
 
-  // Run VQE with lbfgs + central_difference
-  {
-    cudaq::optimizers::lbfgs optimizer;
-    optimizer.initial_parameters = init_params;
-    optimizer.max_eval = 20;
-    optimizer.max_line_search_trials = 10;
-    cudaq::gradients::central_difference gradient;
-    auto [opt_val, opt_params] = cudaq::vqe(ansatz, gradient, H, optimizer,
-                                            n_params, n_qubits, n_layers);
-    printf("Optimal value = %.16lf\n", opt_val);
-    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.1164613629294273) < 1e-3);
-  }
-  // Run VQE with cobyla
-  {
-    cudaq::optimizers::cobyla optimizer;
-    optimizer.initial_parameters = init_params;
-    optimizer.max_eval = 100;
-    auto [opt_val, opt_params] =
-        cudaq::vqe(ansatz, H, optimizer, n_params, n_qubits, n_layers);
-    printf("Optimal value = %.16lf\n", opt_val);
-    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.0769400650758392) < 1e-3);
-  }
-  // Run VQE with cobyla with fixed number of shots
-  {
-    cudaq::optimizers::cobyla optimizer;
-    optimizer.initial_parameters = init_params;
-    optimizer.max_eval = 100;
-    auto [opt_val, opt_params] = cudaq::vqe(
-        /*shots=*/1000, ansatz, H, optimizer, n_params, n_qubits, n_layers);
-    printf("Optimal value = %.16lf\n", opt_val);
-    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.0769400650758392) < 1e-3);
-  }
-  return 0;
+  auto energy =
+      cudaq::observe(ansatz, H, init_params, n_qubits, n_layers).expectation();
+  printf("energy %f\n", energy);
+
+  bool isGood = std::abs(energy - -0.320848) < 1e-3;
+  return isGood ? 0 : 1;
 }

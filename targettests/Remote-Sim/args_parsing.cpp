@@ -12,6 +12,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
 struct hGateTest {
@@ -27,7 +28,7 @@ int main() {
   // H == Rx(pi)Ry(pi/2) (up to a global phase)
   auto counts = cudaq::sample(hGateTest{}, std::vector<double>{M_PI_2, M_PI});
   counts.dump();
-  assert(counts.size() == 1);
-  assert(counts.begin()->first == "0");
+  REMOTE_TEST_ASSERT(counts.size() == 1);
+  REMOTE_TEST_ASSERT(counts.begin()->first == "0");
   return 0;
 }

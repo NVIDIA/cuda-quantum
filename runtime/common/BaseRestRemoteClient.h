@@ -496,9 +496,12 @@ public:
   }
 
   // The remote-mqpu backend (this class) returns true for all remote
-  // capabilities.
+  // capabilities unless overridden by environment variable.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
-    return RemoteCapabilities(/*initValues=*/true);
+    // Default to all true, but allow the user to override to all false.
+    if (getEnvBool("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE", true))
+      return RemoteCapabilities(/*initValues=*/true);
+    return RemoteCapabilities(/*initValues=*/false);
   }
 };
 
@@ -924,15 +927,9 @@ public:
   // The NVCF version of this function needs to dynamically determine the remote
   // capabilities based on the servers currently deployed.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
-    // If an environment variable override is activated, then enable all remote
-    // capabilities.
-    if (auto *envVal = std::getenv("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE")) {
-      std::string tmp(envVal);
-      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        return RemoteCapabilities(/*initValues=*/true);
-    }
+    // Allow the user to override to all true.
+    if (getEnvBool("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE", false))
+      return RemoteCapabilities(/*initValues=*/true);
     // Else determine capabilities based on server deployment info.
     RemoteCapabilities capabilities(/*initValues=*/false);
     if (!m_availableFuncs.contains(m_functionId)) {
