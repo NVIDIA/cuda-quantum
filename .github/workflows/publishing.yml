@@ -458,7 +458,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Configure validation
-        uses: cloudposse/github-action-matrix-outputs-write@0.5.0
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
@@ -709,7 +709,7 @@ jobs:
     steps:
       - name: Get matrix job output
         id: read_json
-        uses: cloudposse/github-action-matrix-outputs-read@0.1.2
+        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         with:
           matrix-step-name: docker_images
 
