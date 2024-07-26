@@ -42,8 +42,11 @@ Attributes:
           "dump", [](sample_result &self) { self.dump(); },
           "Print a string of the raw measurement counts data to the "
           "terminal.\n")
-      .def("serialize", &sample_result::serialize, "")
-      .def("deserialize", &sample_result::deserialize, "")
+      .def("serialize", &sample_result::serialize,
+           "Serialize this SampleResult to a vector of integer encoding.")
+      .def("deserialize", &sample_result::deserialize,
+           "Deserialize this SampleResult from an existing vector of integers "
+           "adhering to the implicit encoding.")
       .def(
           "__str__",
           [](sample_result &self) {
