@@ -106,7 +106,8 @@ target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
 )
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
-    cudaq-common 
+    cudaq-common
+    nvqir
     cudaq-em-default
     fmt::fmt-header-only
     unzip_util

@@ -12,7 +12,7 @@
 // These transforms can generally be thought of as "optimizations" or "rewrites"
 // on the IR.
 
-#include "SimulationData.h"
+#include "cudaq/Optimizer/Transforms/SimulationDataStore.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"

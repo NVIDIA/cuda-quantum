@@ -15,7 +15,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/SimulationData.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -25,6 +24,8 @@
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
+
+#include <iostream>
 
 #define DEBUG_TYPE "quake-synthesizer"
 
@@ -64,6 +65,8 @@ void synthesizeRuntimeArgument(
   ConcreteType concrete;
   // Copy the void* struct member into that concrete instance
   std::memcpy(&concrete, ((const char *)args) + offset, typeSize);
+
+  std::cout << "Runtime argument:" << concrete << std::endl;
 
   // Generate the MLIR Value (arith constant for example)
   auto runtimeArg = opGenerator(builder, &concrete);
@@ -181,6 +184,20 @@ LogicalResult synthesizeStateArgument(OpBuilder &builder, ModuleOp module,
     }
   }
 
+  // TODO: only use a global if we want to run state prep after?
+
+    // if (hasInitStateUse(argument)) {
+    //   buffer =
+    //       createGlobalArray(builder, module, counter, argument, arrTy, vec);
+    // } else {
+    //   builder.setInsertionPointAfter(conArray);
+    //   buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
+    //   builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
+    // }
+
+    // auto ptrArrEleTy =
+    //     cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
+    // Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrArrEleTy, buffer);
   OpBuilder::InsertionGuard guard(builder);
   auto buffer =
       createGlobalArray(builder, module, counter, argument, arrTy, vec);
@@ -212,13 +229,14 @@ static LogicalResult synthesizeStateArgument(OpBuilder &builder,
 static LogicalResult synthesizeStateArgument(OpBuilder &builder,
                                              ModuleOp module, unsigned &counter,
                                              BlockArgument argument,
-                                             const SimulationStateDataStore* stateData, std::size_t idx) {
-  auto [data, size] = stateData->getData(idx);
+                                             const cudaq::opt::SimulationStateDataStore &stateData,
+                                             std::size_t idx) {
+  auto [data, size, elementSize] = stateData.getData(idx);
 
-  if (stateData->getElementSize() == sizeof(std::complex<double>)) {
+  if (elementSize == sizeof(std::complex<double>)) {
     return synthesizeStateArgument<std::complex<double>>(builder, module, counter, argument,
                                    ComplexType::get(builder.getF64Type()), data, size);
-  } else if (stateData->getElementSize() == sizeof(std::complex<float>)) {
+  } else if (elementSize == sizeof(std::complex<float>)) {
     return synthesizeStateArgument<std::complex<float>>(builder, module, counter, argument,
                                    ComplexType::get(builder.getF32Type()), data, size);
   }
@@ -500,8 +518,9 @@ protected:
   // in `args`.
   std::size_t startingArgIdx = 0;
 
-  // The simulation state data, if available.
-  const SimulationStateDataStore* stateData = nullptr;
+  // The simulation state data.
+  // Empty if the scenario does not require converting state data.
+  const cudaq::opt::SimulationStateDataStore *stateData;
 
   // The program is executed in the same address space as the synthesis.
   bool sameAddressSpace = false;
@@ -509,7 +528,7 @@ protected:
 public:
   QuakeSynthesizer() = default;
   QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s,
-                   const SimulationStateDataStore* d, bool sameSpace)
+                   const cudaq::opt::SimulationStateDataStore *d, bool sameSpace)
       : kernelName(kernel), args(a), startingArgIdx(s), stateData(d),
         sameAddressSpace(sameSpace) {}
 
@@ -540,26 +559,16 @@ public:
     // We will remove these arguments and replace with constant ops
     auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
     auto arguments = funcOp.getArguments();
-    auto structLayout = cudaq::opt::factory::getFunctionArgumentLayout(getModule(), funcOp.getFunctionType());
+    auto structLayout = cudaq::opt::factory::getFunctionArgumentLayout(getModule(), funcOp, nullptr, startingArgIdx);
     // Keep track of the stdVec sizes.
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
-
-    // Update to account for skipped state data
     std::size_t stateDataOffset = 0;
-    for (std::size_t argNum = 0; argNum < startingArgIdx; argNum++) {
-      auto argument = arguments[argNum];
-      auto type = argument.getType();
-      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
-        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
-          stateDataOffset++;
-        }
-      }
-    }
 
     for (std::size_t argNum = startingArgIdx, end = arguments.size();
          argNum < end; argNum++) {
       auto argument = arguments[argNum];
-      std::size_t offset = structLayout.second[argNum];
+      assert(structLayout.second.size() > argNum -startingArgIdx &&  "not enough args in struct layout");
+      std::size_t offset = structLayout.second[argNum -startingArgIdx];
 
       // Get the argument type
       auto type = argument.getType();
@@ -653,11 +662,11 @@ public:
                   return builder.create<cudaq::cc::CastOp>(
                       loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
                 });
-          } else if (stateData != nullptr) {
+          } else if (stateData != nullptr && !stateData->isEmpty()) {
             // Special case of running on a simulator in a different address
             // space, when we have converted state data.
             if (failed(synthesizeStateArgument(builder, module, counter,
-                                               argument, stateData, stateDataOffset)))
+                                               argument, *stateData, stateDataOffset)))
                 funcOp.emitOpError("synthesis failed for state*");
             stateDataOffset++;
           } else {
@@ -744,6 +753,11 @@ public:
       auto doVector = [&]<typename T>(T) {
         auto *ptr = reinterpret_cast<const T *>(bufferAppendix);
         std::vector<T> v(ptr, ptr + vecLength);
+        std::cout << "Synthesizing vector: ";
+        for (auto e: v) {
+          std::cout << e << ", ";
+        }
+        std::cout << std::endl;
         if (failed(synthesizeVectorArgument(builder, module, counter,
                                             arguments[idx], v)))
           funcOp.emitOpError("synthesis failed for vector<T>");
@@ -876,7 +890,7 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 
 std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer(
     std::string_view kernelName, const void *a, std::size_t startingArgIdx,
-    const SimulationStateDataStore* stateData, bool sameAddressSpace) {
+    const SimulationStateDataStore *stateData, bool sameAddressSpace) {
   return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx,
                                             stateData, sameAddressSpace);
 }

@@ -8,38 +8,47 @@
 
 #pragma once
 
+#include <cassert>
 #include <numbers>
+#include <tuple>
 #include <vector>
+
+namespace cudaq::opt {
 
 /// Used to collect the simulation state data for a set of `cudaq::state`s.
 /// Assumes the data pointers stored are copied into a new memory, and takes
 /// ownership of that memory.
 class SimulationStateDataStore {
-  std::vector<std::tuple<void*, std::size_t>> states{};
-  std::size_t _elementSize;
+  using DataDeleter = std::function<void(void *)>;
+
+  std::vector<std::tuple<void*, std::size_t, std::size_t>> states{};
+  std::vector<DataDeleter> cleanup{};
 
 public:
-  SimulationStateDataStore(std::size_t eSize = 0): _elementSize(eSize) {};
 
-  void setElementSize(std::size_t eSize) {
-    assert((_elementSize == 0 || _elementSize == eSize) && "Conflicting simulation data sizes in one collection");
-    _elementSize = eSize;
+  SimulationStateDataStore() = default;
+
+  template <typename T>
+  void addData(T* data, std::size_t size, std::size_t elementSize, DataDeleter deleter) {
+    states.push_back({data, size, elementSize});
+    cleanup.push_back(deleter);
   }
 
-  std::size_t getElementSize() const {
-    return _elementSize;
-  }
-
-  void addData(void *data, std::size_t size) {
-    states.push_back({data, size});
-  }
-
-  std::tuple<void*, std::size_t> getData(std::size_t index) const {
+  std::tuple<void*, std::size_t, std::size_t> getData(std::size_t index) const {
     return states[index];
   }
 
+  constexpr bool isEmpty() const {
+    return states.empty();
+  }
+
   ~SimulationStateDataStore() { 
-    for (auto [data, size]: states) 
-      delete reinterpret_cast<int *>(data);
+    for (std::size_t i = 0; i < states.size(); i++) {
+      auto [data, size, elementSize] = states[i];
+      cleanup[i](data);
+    }
+    states.clear();
+    cleanup.clear();
   }
 };
+} // namespace cudaq::opt 

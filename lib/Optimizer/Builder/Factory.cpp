@@ -14,6 +14,8 @@
 #include "mlir/IR/Matchers.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
 
+#include <iostream>
+
 using namespace mlir;
 
 namespace cudaq::opt {
@@ -568,11 +570,13 @@ Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
 
 
 std::pair<std::size_t, std::vector<std::size_t>>
-factory::getFunctionArgumentLayout(mlir::ModuleOp module, mlir::FunctionType funcTy) {
+factory::getFunctionArgumentLayout(mlir::ModuleOp module, mlir::func::FuncOp func, bool filter(mlir::Type arg), std::size_t startingArgIdx) {
+  auto arguments = func.getArguments();
+  auto funcTy = func.getFunctionType();
   auto bufferTy =
-      cudaq::opt::factory::buildInvokeStructType(funcTy, 0);
+      cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
   mlir::StringRef dataLayoutSpec = "";
-  if (auto attr =module->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
+  if (auto attr = module->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
     dataLayoutSpec = cast<mlir::StringAttr>(attr);
   auto dataLayout = llvm::DataLayout(dataLayoutSpec);
   // Convert bufferTy to llvm.
@@ -587,7 +591,12 @@ factory::getFunctionArgumentLayout(mlir::ModuleOp module, mlir::FunctionType fun
   auto strSize = layout->getSizeInBytes();
   std::vector<std::size_t> fieldOffsets;
   for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
-    fieldOffsets.emplace_back(layout->getElementOffset(i));
+    if (filter == nullptr || filter(arguments[i].getType())) {
+      std::cout << "Adding offset: " << layout->getElementOffset(i);
+      arguments[i].getType().dump();
+      fieldOffsets.emplace_back(layout->getElementOffset(i));
+    }
   return {strSize, fieldOffsets};
 }
+
 } // namespace cudaq::opt

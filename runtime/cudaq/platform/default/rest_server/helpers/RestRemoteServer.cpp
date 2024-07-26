@@ -51,6 +51,8 @@
 #include <fstream>
 #include <streambuf>
 
+#include <iostream>
+
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 }
@@ -543,6 +545,7 @@ protected:
                    const std::string &entryPointFn, std::size_t numTimes = 1,
                    std::function<void(std::size_t)> postExecCallback = {}) {
     llvm::SourceMgr sourceMgr;
+    std::cout << "Module running on the server: " << irString << std::endl;
     sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(irString),
                                  llvm::SMLoc());
     auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());

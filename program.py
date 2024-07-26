@@ -10,60 +10,64 @@ import cudaq
 from cudaq import spin
 import numpy as np
 
-cudaq.set_target("remote-mqpu", url="localhost:3030")
 
-def test_complex_vqe_named_lambda(optimizer, gradient):
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+def test_vector():
+    cudaq.reset_target()
+    cudaq.set_target("remote-mqpu", url="localhost:3030")
+    #cudaq.set_target("quantinuum", emulate=True)
+
+    c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
 
     @cudaq.kernel
-    def kernel(angles: list[float], num_qubits: int):
-        qvector = cudaq.qvector(num_qubits)
-        x(qvector[0])
-        ry(angles[0], qvector[1])
-        x.ctrl(qvector[1], qvector[0])
+    def kernel(r: int):
+        q = cudaq.qvector(c)
 
-    num_qubits = 2
-    arg_mapper = lambda x: (x, num_qubits)
-    energy, parameter = cudaq.vqe(kernel=kernel,
-                                  gradient_strategy=gradient,
-                                  spin_operator=hamiltonian,
-                                  optimizer=optimizer,
-                                  argument_mapper=arg_mapper,
-                                  parameter_count=1)
+    synthesized = cudaq.synthesize(kernel, 0)
+    counts = cudaq.sample(synthesized)
+    print(counts)
 
-    print(f"\nminimized <H> = {round(energy,16)}")
-    print(f"optimal theta = {round(parameter[0],16)}")
-    want_expectation_value = -1.7487948611472093
-    want_optimal_parameters = [0.59]
+test_vector()
+
+def test_state_from_data():
+    cudaq.reset_target()
+    cudaq.set_target("remote-mqpu", url="localhost:3030")
+    #cudaq.set_target("quantinuum", emulate=True)
 
 
-# @pytest.mark.parametrize("optimizer", [
-#     cudaq.optimizers.LBFGS(),
-#     cudaq.optimizers.Adam(),
-#     cudaq.optimizers.GradientDescent(),
-#     cudaq.optimizers.SGD(),
-# ])
-def test_complex_vqe_named_lambda_sweep_opt(optimizer):
-    test_complex_vqe_named_lambda(optimizer,
-                                  cudaq.gradients.CentralDifference())
+    c = np.array([1. / np.sqrt(2.),  1. / np.sqrt(2.), 0., 0.],
+                    dtype=complex)
+    print(cudaq.complex())
+    state = cudaq.State.from_data(c)
 
-test_complex_vqe_named_lambda_sweep_opt(cudaq.optimizers.LBFGS())
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
 
-# cudaq.reset_target()
-# #cudaq.set_target("remote-mqpu", url="localhost:3030")#
-# cudaq.set_target("quantinuum")
+    counts = cudaq.sample(kernel, state)
+    print(counts)
 
-# c = np.ndarray([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=np.complex128)
+test_state_from_data()
 
-# @cudaq.kernel
-# def kernel():
-#     q = cudaq.qvector(c)
+def test_state_from_another_kernel():
+    cudaq.reset_target()
+    cudaq.set_target("remote-mqpu", url="localhost:3030")
+    #cudaq.set_target("quantinuum", emulate=True)
 
-# counts = cudaq.sample(kernel)
+    @cudaq.kernel
+    def initState(n: int):
+        q = cudaq.qvector(n)
+        ry(np.pi/2, q[0])
 
-# print(counts)
+    state = cudaq.get_state(initState, 2)
 
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+
+    counts = cudaq.sample(kernel, state)
+    print(counts)
+
+test_state_from_another_kernel()
 
 #################################################
 # @cudaq.kernel
