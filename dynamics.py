@@ -1,7 +1,8 @@
-import inspect, itertools, numpy, os, re, scipy
+import inspect, itertools, numpy, os, operator, re, scipy
 from numbers import Number
-from typing import Any, Callable, Iterable, Iterator, Optional
+from typing import Any, Callable, Generic, Iterable, Iterator, Optional, Tuple, Type, TypeVar
 from numpy.typing import NDArray
+
 
 class _OperatorHelpers:
 
@@ -23,7 +24,10 @@ class _OperatorHelpers:
                     param_descriptions[key] = new_desc
         return param_descriptions
     
-    def parameter_docs(param_name: str, docs: str):
+    # Given the function documentation, tries to find the documentation for a 
+    # specific parameter. Expects Google docs style to be used.
+    # Returns the documentation or an empty string if it failed to find it.
+    def parameter_docs(param_name: str, docs: Optional[str]):
         if param_name is None or docs is None:
             return ""
         
@@ -101,18 +105,129 @@ class _OperatorHelpers:
             states = [current + [new] for current, new in prod]
         return [''.join(state) for state in states]
 
+    # Permutes the given matrix according to the given permutation.
+    # If states is the current order of vector entries on which the given matrix
+    # acts, and permuted_states is the desired order of an array on which the
+    # permuted matrix should act, then the permutation is defined as the list for
+    # which [states[i] for i in permutation] produces permuted_states.
+    def permute_matrix(matrix: NDArray[complex], permutation: list[int]) -> NDArray[complex]:
+        for i in range(numpy.size(matrix, 1)):
+            matrix[:,i] = matrix[permutation,i]
+        for i in range(numpy.size(matrix, 0)):
+            matrix[i,:] = matrix[i,permutation]
+        return matrix
 
-class ScalarOperator:
-    pass
 
-class ElementaryOperator:
-    pass
+TEval = TypeVar('TEval')
+class ScalarOperator: pass
+class ElementaryOperator: pass
+class ProductOperator: pass
+class OperatorSum: pass
+class MatrixArithmetics: 
+    class Evaluated:
+        pass
 
-class ProductOperator:
-    pass
+# This class serves as a monad base class for computing arbitrary values 
+# during operator evaluation.
+class OperatorArithmetics(Generic[TEval]):
+    
+    def __init__(self,
+                 evaluate: Callable[[ElementaryOperator | ScalarOperator], TEval],
+                 add: Callable[[TEval, TEval], TEval], 
+                 mul: Callable[[TEval, TEval], TEval],
+                 tensor: Callable[[TEval, TEval], TEval]):
+        self._evaluate = evaluate
+        self._add = add
+        self._mul = mul
+        self._tensor = tensor
 
-class OperatorSum:
-    pass
+    @property
+    def evaluate(self): return self._evaluate
+    @property
+    def add(self): return self._add
+    @property
+    def mul(self): return self._mul
+    @property
+    def tensor(self): return self._tensor
+
+class MatrixArithmetics(OperatorArithmetics[MatrixArithmetics.Evaluated]):
+
+    class Evaluated:
+        def __init__(self, degrees: list[int], value: TEval):
+            self._degrees = degrees
+            self._value = value
+
+        @property
+        def matrix(self) -> NDArray[complex]: return self._value
+
+    def __init__(self, dimensions: dict[int, int], **kwargs): 
+
+        def _canonicalize(op_matrix: NDArray[complex], op_degrees: list[int]) -> Tuple[NDArray[complex], list[int]]:
+            # FIXME: check endianness ... (in the sorting/states here, and in the matrix definitions)
+            canon_degrees = sorted(op_degrees)
+            if op_degrees != canon_degrees:
+                # There may be a more efficient way, but I needed something correct first.
+                states = _OperatorHelpers.generate_all_states(canon_degrees, dimensions)
+                indices = dict([(d, idx) for idx, d in enumerate(canon_degrees)])
+                reordering = [indices[op_degree] for op_degree in op_degrees]
+                # [degrees[i] for i in reordering] produces op_degrees
+                op_states = [''.join([state[i] for i in reordering]) for state in states]
+                state_indices = dict([(state, idx) for idx, state in enumerate(states)])
+                permutation = [state_indices[op_state] for op_state in op_states]
+                # [states[i] for i in permutation] produces op_states
+                return _OperatorHelpers.permute_matrix(op_matrix, permutation), canon_degrees
+            return op_matrix, canon_degrees
+
+        def tensor(op1: MatrixArithmetics.Evaluated, op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
+            if len(set(op1._degrees).intersection(op2._degrees)) > 0:
+                raise ValueError("Kronecker product can only be computed if operators do not share common degrees of freedom")
+            op_degrees = op1._degrees + op2._degrees
+            op_matrix = numpy.kron(op1._value, op2._value)
+            new_matrix, new_degrees = _canonicalize(op_matrix, op_degrees)
+            return MatrixArithmetics.Evaluated(new_degrees, new_matrix)
+
+        def mul(op1: MatrixArithmetics.Evaluated, op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
+            # Elementary operators have sorted degrees such that we have a unique convention 
+            # for how to define the matrix. Tensor products permute the computed matrix if 
+            # necessary to guarantee that all operators always have sorted degrees.
+            assert op1._degrees == op2._degrees, "Operators should have the same order of degrees."
+            return MatrixArithmetics.Evaluated(op1._degrees, numpy.dot(op1._value, op2._value))
+
+        def add(op1: MatrixArithmetics.Evaluated, op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
+            # Elementary operators have sorted degrees such that we have a unique convention 
+            # for how to define the matrix. Tensor products permute the computed matrix if 
+            # necessary to guarantee that all operators always have sorted degrees.
+            assert op1._degrees == op2._degrees, "Operators should have the same order of degrees."
+            return MatrixArithmetics.Evaluated(op1._degrees, op1._value + op2._value)
+
+        def evaluate(op: ElementaryOperator | ScalarOperator): 
+            matrix = op.to_matrix(dimensions, **kwargs)
+            return MatrixArithmetics.Evaluated(op._degrees, matrix)
+        super().__init__(evaluate, add, mul, tensor)
+
+class PrettyPrint(OperatorArithmetics[str]):
+
+    def __init__(self):
+        
+        def tensor(op1: str, op2: str) -> str:
+            def add_parens(str_value: str):
+                outer_str = re.sub(r'(.+)', '', str_value)
+                if "+" in outer_str or "*" in outer_str: return f"({str_value})"
+                else: return str_value
+            return f"{add_parens(op1)} x {add_parens(op2)}"
+
+        def mul(op1: str, op2: str) -> str:
+            def add_parens(str_value: str):
+                outer_str = re.sub(r'(.+)', '', str_value)
+                if "+" in outer_str or "x" in outer_str: return f"({str_value})"
+                else: return str_value
+            return f"{add_parens(op1)} * {add_parens(op2)}"
+
+        def add(op1: str, op2: str) -> str:
+            return f"{op1} + {op2}"
+
+        def evaluate(op: ElementaryOperator | ScalarOperator): return str(op)
+        super().__init__(evaluate, add, mul, tensor)
 
 
 class OperatorSum:
@@ -126,7 +241,7 @@ class OperatorSum:
     def parameters(self: OperatorSum) -> dict[str, str]:
         return _OperatorHelpers.aggregate_parameters([term.parameters for term in self._terms])
 
-    def concretize(self: OperatorSum, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
+    def _evaluate(self: OperatorSum, arithmetics : OperatorArithmetics[TEval]) -> TEval:
         degrees = set([degree for term in self._terms for op in term._operators for degree in op._degrees])
         padded_terms = [] # We need to make sure all matrices are of the same size to sum them up.
         for term in self._terms:
@@ -134,7 +249,16 @@ class OperatorSum:
                 if not degree in [op_degree for op in term._operators for op_degree in op._degrees]:
                     term *= operators.identity(degree)
             padded_terms.append(term)
-        return sum([term.concretize(dimensions, **kwargs) for term in padded_terms])
+        sum = padded_terms[0]._evaluate(arithmetics)
+        for term in padded_terms[1:]:
+            sum = arithmetics.add(sum, term._evaluate(arithmetics))
+        return sum
+
+    def to_matrix(self: OperatorSum, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
+        return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
+
+    def __str__(self: OperatorSum) -> str:
+        return self._evaluate(PrettyPrint())
 
     def __mul__(self: OperatorSum, other) -> OperatorSum:
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
@@ -183,38 +307,29 @@ class ProductOperator(OperatorSum):
     def parameters(self: ProductOperator) -> dict[str, str]:
         return _OperatorHelpers.aggregate_parameters([operator.parameters for operator in self._operators])
 
-    def concretize(self: ProductOperator, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
-        def padded_matrix(op: ElementaryOperator | ScalarOperator, degrees: list[int]):
-            op_matrix = op.concretize(dimensions, **kwargs)
-            op_degrees = op._degrees.copy() # Determines the initial qubit ordering of op_matrix.
+    def _evaluate(self: ProductOperator, arithmetics : OperatorArithmetics[TEval]) -> TEval:
+        def padded_op(op: ElementaryOperator | ScalarOperator, degrees: list[int]):
+            evaluated_ops = [] # Creating the tensor product with op being last is most efficient.
             for degree in degrees:
                 if not degree in [d for d in op._degrees]:
-                    op_matrix = numpy.kron(op_matrix, operators.identity(degree).concretize(dimensions, **kwargs))
-                    op_degrees.append(degree)
-            # Need to permute the matrix such that the qubit ordering of all matrices is the same.
-            if op_degrees != degrees:
-                # There may be a more efficient way, but I needed something correct first.
-                states = _OperatorHelpers.generate_all_states(degrees, dimensions)
-                indices = dict([(d, idx) for idx, d in enumerate(degrees)])
-                reordering = [indices[op_degree] for op_degree in op_degrees]
-                # [degrees[i] for i in reordering] produces op_degrees
-                op_states = [''.join([state[i] for i in reordering]) for state in states]
-                state_indices = dict([(state, idx) for idx, state in enumerate(states)])
-                permutation = [state_indices[op_state] for op_state in op_states]
-                # [states[i] for i in permutation] produces op_states
-                for i in range(numpy.size(op_matrix, 1)):
-                    op_matrix[:,i] = op_matrix[permutation,i]
-                for i in range(numpy.size(op_matrix, 0)):
-                    op_matrix[i,:] = op_matrix[i,permutation]
-            return op_matrix
-        
-        degrees = list(set([degree for op in self._operators for degree in op._degrees]))
-        degrees.sort() # This sorting determines the qubit ordering of the final matrix.
-        # FIXME: check endianness ... (in the sorting/states here, and in the matrix definitions)
-        matrix = padded_matrix(self._operators[0], degrees)
+                    evaluated_ops.append(operators.identity(degree)._evaluate(arithmetics))
+            evaluated_ops.append(op._evaluate(arithmetics))
+            padded = evaluated_ops[0]
+            for value in evaluated_ops[1:]:
+                padded = arithmetics.tensor(padded, value)
+            return padded
+        # Sorting the degrees to avoid unnecessary permutations during the padding.
+        degrees = sorted(set([degree for op in self._operators for degree in op._degrees]))
+        evaluated = padded_op(self._operators[0], degrees)
         for op in self._operators[1:]:
-            matrix = numpy.dot(matrix, padded_matrix(op, degrees))
-        return matrix
+            evaluated = arithmetics.mul(evaluated, padded_op(op, degrees))
+        return evaluated
+
+    def to_matrix(self: OperatorSum, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
+        return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
+
+    def __str__(self: OperatorSum) -> str:
+        return self._evaluate(PrettyPrint())
 
     def __mul__(self: ProductOperator, other) -> ProductOperator | OperatorSum:
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
@@ -253,12 +368,19 @@ class ProductOperator(OperatorSum):
 
 
 class ElementaryOperator(ProductOperator):
-    _ops = {} # Contains the generator for each defined ElementaryOperator.
-    _parameter_info = {} # Information about all required parameters for each ElementaryOperator.
+    # Contains the generator for each defined ElementaryOperator.
+    # The generator takes a dictionary defining the dimensions for each degree of freedom,
+    # as well as arbitrary keyword arguments. In C++ keyword arguments may be limited to be of type complex.
+    # FIXME: ELIMINATE DEGREES IN THE FUNCTION BELOW
+    _ops : dict[str, Callable[[dict[int, int], ...], NDArray[complex]]] = {}
+    # Contains information about all required parameters for each ElementaryOperator.
+    # The dictionary keys are the parameter names, and the values are their documentation.
+    _parameter_info : dict[str, str] = {}
 
     # The Callable `create` that is passed here may take any number and types of 
     # arguments and must return a NDArray[complex]. Each argument must be passed
     # as keyword arguments when concretizing any operator that involves this built-in.
+    # The given degrees must be sorted, and the matrix must match that ordering.
     # Note that the dimensions passed to the create function are automatically validated 
     # against the expected/supported dimensions passed to `add_operator`. There is hence 
     # no need to validate the dimensions as part of the `create` function. 
@@ -266,15 +388,13 @@ class ElementaryOperator(ProductOperator):
     # that the matrix/operator is defined for any dimension of the corresponding degree 
     # of freedom. If the operator definition depends on the dimensions, then the 
     # `create` function must take an argument called `dimensions` (or `dims` for short),
-    # or `dimension` (or `dim` for short) if it is just one. The given list of dimensions, 
-    # or its only entry if it is a list of length one, will then be automatically 
+    # or `dimension` (or `dim` for short) if it is just one. The given dimensions, 
+    # or its only value if there is only one, will then be automatically 
     # forwarded as argument to `create`.
     @classmethod
     def define(cls, op_id: str, expected_dimensions: list[int], create: Callable):
         forwarded_as_kwarg = [["dimensions", "dims"], ["dimension", "dim"]]
-        def with_dimension_check(creation: Callable, dimensions: list[int], **kwargs) -> Callable:
-            # Passing a value 0 for one of the expected dimensions indicates that
-            # the creation function can be invoked with any value for that dimension.
+        def with_dimension_check(creation: Callable, dimensions: list[int], **kwargs) -> NDArray[complex]:
             if any([expected > 0 and dimensions[i] != expected for i, expected in enumerate(expected_dimensions)]):
                 raise ValueError(f'no built-in operator {op_id} has been defined '\
                                  f'for {len(dimensions)} degree(s) of freedom with dimension(s) {dimensions}')
@@ -303,20 +423,25 @@ class ElementaryOperator(ProductOperator):
         if not operator_id in ElementaryOperator._ops:
             raise ValueError(f"no built-in operator '{operator_id}' has been defined")
         self._op_id = operator_id
-        self._degrees = degrees
-        self._degrees.sort() # sorting so that we have a unique ordering for builtin
+        self._degrees = sorted(degrees) # Sorting so that order matches the elementary operation definition.
         super().__init__([self])
 
     @property
     def parameters(self: ElementaryOperator) -> dict[str, str]:
         return ElementaryOperator._parameter_info[self._op_id]
 
-    def concretize(self: ElementaryOperator, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
+    def _evaluate(self: ElementaryOperator, arithmetics: OperatorArithmetics[TEval]) -> TEval:
+        return arithmetics.evaluate(self)
+
+    def to_matrix(self: OperatorSum, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
         missing_degrees = [degree not in dimensions for degree in self._degrees]
         if any(missing_degrees):
             raise ValueError(f'missing dimensions for degree(s) {[self._degrees[i] for i, x in enumerate(missing_degrees) if x]}')
-        relevant_dimensions = [dimensions[degree] for degree in self._degrees]
+        relevant_dimensions = [dimensions[d] for d in self._degrees]
         return ElementaryOperator._ops[self._op_id](relevant_dimensions, **kwargs)
+
+    def __str__(self: OperatorSum) -> str:
+        return f"{self._op_id}{self._degrees}"
 
     def __mul__(self: ElementaryOperator, other) -> ProductOperator:
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
@@ -389,18 +514,28 @@ class ScalarOperator(ProductOperator):
     def parameters(self: ScalarOperator) -> dict[str, str]:
         return self._parameter_info()
 
-    # The argument `dimensions` here is only passed for consistency with parent classes.
-    def concretize(self: ScalarOperator, dimensions: dict[int, int] = None, **kwargs):
+    def _invoke(self: ScalarOperator, **kwargs) -> Number:
         generator_args, remaining_kwargs = _OperatorHelpers.args_from_kwargs(self._generator, **kwargs)
         evaluated = self._generator(*generator_args, **remaining_kwargs)
         if not isinstance(evaluated, Number):
             raise TypeError(f"generator of {type(self).__name__} must return a 'Number'")
         return evaluated
 
+    def _evaluate(self: ScalarOperator, arithmetics: OperatorArithmetics[TEval]) -> TEval:
+        return arithmetics.evaluate(self)
+
+    # The argument `dimensions` here is only passed for consistency with parent classes.
+    def to_matrix(self: OperatorSum, dimensions: dict[int, int] = {}, **kwargs) -> Number:
+        return self._invoke(**kwargs)
+
+    def __str__(self: OperatorSum) -> str:
+        parameter_names = ", ".join(self.parameters)
+        return f"f({parameter_names})"
+
     def _compose(self: ScalarOperator, 
                  fct: Callable[[Number], Number], 
                  get_params: Optional[Callable[[], dict[str, str]]]) -> ScalarOperator:
-        generator = lambda **kwargs: fct(self.concretize(**kwargs), **kwargs)
+        generator = lambda **kwargs: fct(self._invoke(**kwargs), **kwargs)
         operator = ScalarOperator(generator)
         if get_params is None:
             operator._parameter_info = self._parameter_info
@@ -418,7 +553,7 @@ class ScalarOperator(ProductOperator):
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
         elif type(other) == ScalarOperator:
-            fct = lambda value, **kwargs: value * other.concretize(**kwargs)
+            fct = lambda value, **kwargs: value * other._invoke(**kwargs)
             return self._compose(fct, other._parameter_info)
         elif isinstance(other, Number):
             fct = lambda value, **kwargs: value * other
@@ -435,7 +570,7 @@ class ScalarOperator(ProductOperator):
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
             return NotImplemented
         elif type(other) == ScalarOperator:
-            fct = lambda value, **kwargs: value + other.concretize(**kwargs)
+            fct = lambda value, **kwargs: value + other._invoke(**kwargs)
             return self._compose(fct, other._parameter_info)
         elif isinstance(other, Number):
             fct = lambda value, **kwargs: value + other
@@ -607,100 +742,100 @@ class Schedule:
 
 dims = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
-print(f'pauliX(1): {pauli.x(1).concretize(dims)}')
-print(f'pauliY(2): {pauli.y(2).concretize(dims)}')
+print(f'pauliX(1): {pauli.x(1).to_matrix(dims)}')
+print(f'pauliY(2): {pauli.y(2).to_matrix(dims)}')
 
-print(f'pauliZ(0) * pauliZ(0): {(pauli.z(0) * pauli.z(0)).concretize(dims)}')
-print(f'pauliZ(0) * pauliZ(1): {(pauli.z(0) * pauli.z(1)).concretize(dims)}')
-print(f'pauliZ(0) * pauliY(1): {(pauli.z(0) * pauli.y(1)).concretize(dims)}')
+print(f'pauliZ(0) * pauliZ(0): {(pauli.z(0) * pauli.z(0)).to_matrix(dims)}')
+print(f'pauliZ(0) * pauliZ(1): {(pauli.z(0) * pauli.z(1)).to_matrix(dims)}')
+print(f'pauliZ(0) * pauliY(1): {(pauli.z(0) * pauli.y(1)).to_matrix(dims)}')
 
 op1 = ProductOperator([pauli.x(0), pauli.i(1)])
 op2 = ProductOperator([pauli.i(0), pauli.x(1)])
-print(f'pauliX(0) + pauliX(1): {op1.concretize(dims) + op2.concretize(dims)}')
+print(f'pauliX(0) + pauliX(1): {op1.to_matrix(dims) + op2.to_matrix(dims)}')
 op3 = ProductOperator([pauli.x(1), pauli.i(0)])
 op4 = ProductOperator([pauli.i(1), pauli.x(0),])
-print(f'pauliX(1) + pauliX(0): {op1.concretize(dims) + op2.concretize(dims)}')
+print(f'pauliX(1) + pauliX(0): {op1.to_matrix(dims) + op2.to_matrix(dims)}')
 
-print(f'pauliX(0) + pauliX(1): {(pauli.x(0) + pauli.x(1)).concretize(dims)}')
-print(f'pauliX(0) * pauliX(1): {(pauli.x(0) * pauli.x(1)).concretize(dims)}')
-print(f'pauliX(0) * pauliI(1) * pauliI(0) * pauliX(1): {(op1 * op2).concretize(dims)}')
+print(f'pauliX(0) + pauliX(1): {(pauli.x(0) + pauli.x(1)).to_matrix(dims)}')
+print(f'pauliX(0) * pauliX(1): {(pauli.x(0) * pauli.x(1)).to_matrix(dims)}')
+print(f'pauliX(0) * pauliI(1) * pauliI(0) * pauliX(1): {(op1 * op2).to_matrix(dims)}')
 
-print(f'pauliX(0) * pauliI(1): {op1.concretize(dims)}')
-print(f'pauliI(0) * pauliX(1): {op2.concretize(dims)}')
-print(f'pauliX(0) * pauliI(1) + pauliI(0) * pauliX(1): {(op1 + op2).concretize(dims)}')
+print(f'pauliX(0) * pauliI(1): {op1.to_matrix(dims)}')
+print(f'pauliI(0) * pauliX(1): {op2.to_matrix(dims)}')
+print(f'pauliX(0) * pauliI(1) + pauliI(0) * pauliX(1): {(op1 + op2).to_matrix(dims)}')
 
 op5 = pauli.x(0) * pauli.x(1)
 op6 = pauli.z(0) * pauli.z(1)
-print(f'pauliX(0) * pauliX(1): {op5.concretize(dims)}')
-print(f'pauliZ(0) * pauliZ(1): {op6.concretize(dims)}')
-print(f'pauliX(0) * pauliX(1) + pauliZ(0) * pauliZ(1): {(op5 + op6).concretize(dims)}')
+print(f'pauliX(0) * pauliX(1): {op5.to_matrix(dims)}')
+print(f'pauliZ(0) * pauliZ(1): {op6.to_matrix(dims)}')
+print(f'pauliX(0) * pauliX(1) + pauliZ(0) * pauliZ(1): {(op5 + op6).to_matrix(dims)}')
 
 op7 = pauli.x(0) + pauli.x(1)
 op8 = pauli.z(0) + pauli.z(1)
-print(f'pauliX(0) + pauliX(1): {op7.concretize(dims)}')
-print(f'pauliZ(0) + pauliZ(1): {op8.concretize(dims)}')
-print(f'pauliX(0) + pauliX(1) + pauliZ(0) + pauliZ(1): {(op7 + op8).concretize(dims)}')
-print(f'(pauliX(0) + pauliX(1)) * (pauliZ(0) + pauliZ(1)): {(op7 * op8).concretize(dims)}')
+print(f'pauliX(0) + pauliX(1): {op7.to_matrix(dims)}')
+print(f'pauliZ(0) + pauliZ(1): {op8.to_matrix(dims)}')
+print(f'pauliX(0) + pauliX(1) + pauliZ(0) + pauliZ(1): {(op7 + op8).to_matrix(dims)}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(0) + pauliZ(1)): {(op7 * op8).to_matrix(dims)}')
 
-print(f'pauliX(0) * (pauliZ(0) + pauliZ(1)): {(pauli.x(0) * op8).concretize(dims)}')
-print(f'(pauliZ(0) + pauliZ(1)) * pauliX(0): {(op8 * pauli.x(0)).concretize(dims)}')
+print(f'pauliX(0) * (pauliZ(0) + pauliZ(1)): {(pauli.x(0) * op8).to_matrix(dims)}')
+print(f'(pauliZ(0) + pauliZ(1)) * pauliX(0): {(op8 * pauli.x(0)).to_matrix(dims)}')
 
 op9 = pauli.z(1) + pauli.z(2)
-print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {numpy.kron(op7.concretize(dims), pauli.i(2).concretize(dims))}')
-print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(op7 * pauli.i(2)).concretize(dims)}')
-print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(pauli.i(2) * op7).concretize(dims)}')
-print(f'pauliI(0) * (pauliZ(1) + pauliZ(2)): {numpy.kron(pauli.i(0).concretize(dims), op9.concretize(dims))}')
-print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(op7 * op9).concretize(dims)}')
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {numpy.kron(op7.to_matrix(dims), pauli.i(2).to_matrix(dims))}')
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(op7 * pauli.i(2)).to_matrix(dims)}')
+print(f'(pauliX(0) + pauliX(1)) * pauliI(2): {(pauli.i(2) * op7).to_matrix(dims)}')
+print(f'pauliI(0) * (pauliZ(1) + pauliZ(2)): {numpy.kron(pauli.i(0).to_matrix(dims), op9.to_matrix(dims))}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(op7 * op9).to_matrix(dims)}')
 
 so0 = ScalarOperator(lambda: 1.0j)
-print(f'Scalar op (t -> 1.0)(): {so0.concretize()}')
+print(f'Scalar op (t -> 1.0)(): {so0.to_matrix()}')
 
 so1 = ScalarOperator(lambda t: t)
-print(f'Scalar op (t -> t)(1.): {so1.concretize(t = 1.0)}')
-print(f'Trivial prod op (t -> t)(1.): {(ProductOperator([so1])).concretize({}, t = 1.)}')
-print(f'Trivial prod op (t -> t)(2.): {(ProductOperator([so1])).concretize({}, t = 2.)}')
+print(f'Scalar op (t -> t)(1.): {so1.to_matrix(t = 1.0)}')
+print(f'Trivial prod op (t -> t)(1.): {(ProductOperator([so1])).to_matrix({}, t = 1.)}')
+print(f'Trivial prod op (t -> t)(2.): {(ProductOperator([so1])).to_matrix({}, t = 2.)}')
 
-print(f'(t -> t)(1j) * pauliX(0): {(so1 * pauli.x(0)).concretize(dims, t = 1j)}')
-print(f'pauliX(0) * (t -> t)(1j): {(pauli.x(0) * so1).concretize(dims, t = 1j)}')
-print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).concretize(dims, t = 1j)}')
-print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).concretize(dims, t = 1j)}')
-print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).concretize(dims, t = 1j)}')
-print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).concretize(dims, t = 1j)}')
-print(f'(t -> t)(2.) * (pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(so1 * op7 * op9).concretize(dims, t = 2.)}')
-print(f'(pauliX(0) + pauliX(1)) * (t -> t)(2.) * (pauliZ(1) + pauliZ(2)): {(op7 * so1 * op9).concretize(dims, t = 2.)}')
-print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)) * (t -> t)(2.): {(op7 * op9 * so1).concretize(dims, t = 2.)}')
+print(f'(t -> t)(1j) * pauliX(0): {(so1 * pauli.x(0)).to_matrix(dims, t = 1j)}')
+print(f'pauliX(0) * (t -> t)(1j): {(pauli.x(0) * so1).to_matrix(dims, t = 1j)}')
+print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).to_matrix(dims, t = 1j)}')
+print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).to_matrix(dims, t = 1j)}')
+print(f'pauliX(0) + (t -> t)(1j): {(pauli.x(0) + so1).to_matrix(dims, t = 1j)}')
+print(f'(t -> t)(1j) + pauliX(0): {(so1 + pauli.x(0)).to_matrix(dims, t = 1j)}')
+print(f'(t -> t)(2.) * (pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)): {(so1 * op7 * op9).to_matrix(dims, t = 2.)}')
+print(f'(pauliX(0) + pauliX(1)) * (t -> t)(2.) * (pauliZ(1) + pauliZ(2)): {(op7 * so1 * op9).to_matrix(dims, t = 2.)}')
+print(f'(pauliX(0) + pauliX(1)) * (pauliZ(1) + pauliZ(2)) * (t -> t)(2.): {(op7 * op9 * so1).to_matrix(dims, t = 2.)}')
 
 op10 = so1 * pauli.x(0)
 so1.generator = lambda t: 1./t
-print(f'(t -> 1/t)(2) * pauliX(0): {op10.concretize(dims, t = 2.)}')
+print(f'(t -> 1/t)(2) * pauliX(0): {op10.to_matrix(dims, t = 2.)}')
 so1_gen2 = so1.generator
 so1.generator = lambda t: so1_gen2(2*t)
-print(f'(t -> 1/(2t))(2) * pauliX(0): {op10.concretize(dims, t = 2.)}')
+print(f'(t -> 1/(2t))(2) * pauliX(0): {op10.to_matrix(dims, t = 2.)}')
 so1.generator = lambda t: so1_gen2(t)
-print(f'(t -> 1/t)(2) * pauliX(0): {op10.concretize(dims, t = 2.)}')
+print(f'(t -> 1/t)(2) * pauliX(0): {op10.to_matrix(dims, t = 2.)}')
 
 so2 = ScalarOperator(lambda t: t**2)
 op11 = pauli.z(1) * so2
-print(f'pauliZ(0) * (t -> t^2)(2.): {op11.concretize(dims, t = 2.)}')
+print(f'pauliZ(0) * (t -> t^2)(2.): {op11.to_matrix(dims, t = 2.)}')
 
 so3 = ScalarOperator(lambda t: 1./t)
 so4 = ScalarOperator(lambda t: t**2)
-print(f'((t -> 1/t) * (t -> t^2))(2.): {(so3 * so4).concretize(t = 2.)}')
+print(f'((t -> 1/t) * (t -> t^2))(2.): {(so3 * so4).to_matrix(t = 2.)}')
 so5 = so3 + so4
 so3.generator = lambda field: 1./field
-print(f'((f -> 1/f) + (t -> t^2))(f=2, t=1.): {so5.concretize(t = 1., field = 2)}')
+print(f'((f -> 1/f) + (t -> t^2))(f=2, t=1.): {so5.to_matrix(t = 1., field = 2)}')
 
 def generator(field, **kwargs):
     print(f'generator got kwargs: {kwargs}')
     return field
 
 so3.generator = generator
-print(f'((f -> f) + (t -> t^2))(f=3, t=2): {so5.concretize(field = 3, t = 2, dummy = 10)}')
+print(f'((f -> f) + (t -> t^2))(f=3, t=2): {so5.to_matrix(field = 3, t = 2, dummy = 10)}')
 
 so6 = ScalarOperator(lambda foo, *, bar: foo * bar)
-print(f'((f,t) -> f*t)(f=3, t=2): {so6.concretize(foo = 3, bar = 2, dummy = 10)}')
+print(f'((f,t) -> f*t)(f=3, t=2): {so6.to_matrix(foo = 3, bar = 2, dummy = 10)}')
 so7 = ScalarOperator(lambda foo, *, bar, **kwargs: foo * bar)
-print(f'((f,t) -> f*t)(f=3, t=2): {so6.concretize(foo = 3, bar = 2, dummy = 10)}')
+print(f'((f,t) -> f*t)(f=3, t=2): {so6.to_matrix(foo = 3, bar = 2, dummy = 10)}')
 
 def get_parameter_value(parameter_name: str, time: float):
     match parameter_name:
@@ -711,22 +846,22 @@ def get_parameter_value(parameter_name: str, time: float):
 schedule = Schedule([0.0, 0.5, 1.0], so6.parameters, get_parameter_value)
 for parameters in schedule:
     print(f'step {schedule.current_step}')
-    print(f'((f,t) -> f*t)({parameters}): {so6.concretize(**parameters)}')
+    print(f'((f,t) -> f*t)({parameters}): {so6.to_matrix(**parameters)}')
 
-print(f'(pauliX(0) + i*pauliY(0))/2: {0.5 * (pauli.x(0) + operators.const(1j) * pauli.y(0)).concretize(dims)}')
-print(f'pauli+(0): {pauli.plus(0).concretize(dims)}')
-print(f'(pauliX(0) - i*pauliY(0))/2: {0.5 * (pauli.x(0) - operators.const(1j) * pauli.y(0)).concretize(dims)}')
-print(f'pauli-(0): {pauli.minus(0).concretize(dims)}')
+print(f'(pauliX(0) + i*pauliY(0))/2: {0.5 * (pauli.x(0) + operators.const(1j) * pauli.y(0)).to_matrix(dims)}')
+print(f'pauli+(0): {pauli.plus(0).to_matrix(dims)}')
+print(f'(pauliX(0) - i*pauliY(0))/2: {0.5 * (pauli.x(0) - operators.const(1j) * pauli.y(0)).to_matrix(dims)}')
+print(f'pauli-(0): {pauli.minus(0).to_matrix(dims)}')
 
 op12 = operators.squeeze(0) + operators.displace(0)
-print(f'create<3>(0): {operators.create(0).concretize({0:3})}')
-print(f'annihilate<3>(0): {operators.annihilate(0).concretize({0:3})}')
-print(f'squeeze<3>(0)[squeezing = 0.5]: {operators.squeeze(0).concretize({0:3}, squeezing=0.5)}')
-print(f'displace<3>(0)[displacement = 0.5]: {operators.displace(0).concretize({0:3}, displacement=0.5)}')
-print(f'(squeeze<3>(0) + displace<3>(0))[squeezing = 0.5, displacement = 0.5]: {op12.concretize({0:3}, displacement=0.5, squeezing=0.5)}')
-print(f'squeeze<4>(0)[squeezing = 0.5]: {operators.squeeze(0).concretize({0:4}, squeezing=0.5)}')
-print(f'displace<4>(0)[displacement = 0.5]: {operators.displace(0).concretize({0:4}, displacement=0.5)}')
-print(f'(squeeze<4>(0) + displace<4>(0))[squeezing = 0.5, displacement = 0.5]: {op12.concretize({0:4}, displacement=0.5, squeezing=0.5)}')
+print(f'create<3>(0): {operators.create(0).to_matrix({0:3})}')
+print(f'annihilate<3>(0): {operators.annihilate(0).to_matrix({0:3})}')
+print(f'squeeze<3>(0)[squeezing = 0.5]: {operators.squeeze(0).to_matrix({0:3}, squeezing=0.5)}')
+print(f'displace<3>(0)[displacement = 0.5]: {operators.displace(0).to_matrix({0:3}, displacement=0.5)}')
+print(f'(squeeze<3>(0) + displace<3>(0))[squeezing = 0.5, displacement = 0.5]: {op12.to_matrix({0:3}, displacement=0.5, squeezing=0.5)}')
+print(f'squeeze<4>(0)[squeezing = 0.5]: {operators.squeeze(0).to_matrix({0:4}, squeezing=0.5)}')
+print(f'displace<4>(0)[displacement = 0.5]: {operators.displace(0).to_matrix({0:4}, displacement=0.5)}')
+print(f'(squeeze<4>(0) + displace<4>(0))[squeezing = 0.5, displacement = 0.5]: {op12.to_matrix({0:4}, displacement=0.5, squeezing=0.5)}')
 
 so8 = ScalarOperator(lambda my_param: my_param - 1)
 so9 = so7 * so8
@@ -754,65 +889,64 @@ def all_zero(sure, args):
 
 print(f'parameter descriptions: {(ScalarOperator(all_zero)).parameters}')
 
-import operator
-
 scop = operators.const(2)
 elop = operators.identity(1)
-print(f"arithmetics: {scop.concretize(dims)}")
-print(f"arithmetics: {elop.concretize(dims)}")
-print(f"arithmetics: {(scop * elop).concretize(dims)}")
-print(f"arithmetics: {(elop * scop).concretize(dims)}")
-print(f"arithmetics: {(scop + elop).concretize(dims)}")
-print(f"arithmetics: {(elop + scop).concretize(dims)}")
-print(f"arithmetics: {(scop - elop).concretize(dims)}")
-print(f"arithmetics: {(elop - scop).concretize(dims)}")
-print(f"arithmetics: {((scop * elop) * scop).concretize(dims)}")
-print(f"arithmetics: {(scop * (scop * elop)).concretize(dims)}")
-print(f"arithmetics: {((scop * elop) * elop).concretize(dims)}")
-print(f"arithmetics: {(elop * (scop * elop)).concretize(dims)}")
-print(f"arithmetics: {((scop * elop) + scop).concretize(dims)}")
-print(f"arithmetics: {(scop + (scop * elop)).concretize(dims)}")
-print(f"arithmetics: {((scop * elop) + elop).concretize(dims)}")
-print(f"arithmetics: {(elop + (scop * elop)).concretize(dims)}")
-print(f"arithmetics: {((scop * elop) - scop).concretize(dims)}")
-print(f"arithmetics: {(scop - (scop * elop)).concretize(dims)}")
-print(f"arithmetics: {((scop * elop) - elop).concretize(dims)}")
-print(f"arithmetics: {(elop - (scop * elop)).concretize(dims)}")
-print(f"arithmetics: {((scop + elop) * scop).concretize(dims)}")
-print(f"arithmetics: {(scop * (scop + elop)).concretize(dims)}")
-print(f"arithmetics: {((scop + elop) * elop).concretize(dims)}")
-print(f"arithmetics: {(elop * (scop + elop)).concretize(dims)}")
-print(f"arithmetics: {((scop - elop) * scop).concretize(dims)}")
-print(f"arithmetics: {(scop * (scop - elop)).concretize(dims)}")
-print(f"arithmetics: {((scop - elop) * elop).concretize(dims)}")
-print(f"arithmetics: {(elop * (scop - elop)).concretize(dims)}")
-print(f"arithmetics: {((scop + elop) + scop).concretize(dims)}")
-print(f"arithmetics: {(scop + (scop + elop)).concretize(dims)}")
-print(f"arithmetics: {((scop + elop) + elop).concretize(dims)}")
-print(f"arithmetics: {(elop + (scop + elop)).concretize(dims)}")
-print(f"arithmetics: {((scop - elop) - scop).concretize(dims)}")
-print(f"arithmetics: {(scop - (scop - elop)).concretize(dims)}")
-print(f"arithmetics: {((scop - elop) - elop).concretize(dims)}")
-print(f"arithmetics: {(elop - (scop - elop)).concretize(dims)}")
+print(f"arithmetics: {scop.to_matrix(dims)}")
+print(f"arithmetics: {elop.to_matrix(dims)}")
+print(f"arithmetics: {(scop * elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop * scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop + elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop + scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop - elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop - scop).to_matrix(dims)}")
+print(f"arithmetics: {((scop * elop) * scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop * (scop * elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop * elop) * elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop * (scop * elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop * elop) + scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop + (scop * elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop * elop) + elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop + (scop * elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop * elop) - scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop - (scop * elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop * elop) - elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop - (scop * elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop + elop) * scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop * (scop + elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop + elop) * elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop * (scop + elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop - elop) * scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop * (scop - elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop - elop) * elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop * (scop - elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop + elop) + scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop + (scop + elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop + elop) + elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop + (scop + elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop - elop) - scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop - (scop - elop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop - elop) - elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop - (scop - elop)).to_matrix(dims)}")
 
 opprod = operators.create(0) * operators.annihilate(0)
 opsum = operators.create(0) + operators.annihilate(0)
 for arith in [operator.add, operator.sub, operator.mul, operator.truediv, operator.pow]:
     print(f"testing {arith} for ScalarOperator")
-    print(f"arithmetics: {arith(scop, 2).concretize(dims)}")
-    print(f"arithmetics: {arith(scop, 2.5).concretize(dims)}")
-    print(f"arithmetics: {arith(scop, 2j).concretize(dims)}")
-    print(f"arithmetics: {arith(2, scop).concretize(dims)}")
-    print(f"arithmetics: {arith(2.5, scop).concretize(dims)}")
-    print(f"arithmetics: {arith(2j, scop).concretize(dims)}")
+    print(f"arithmetics: {arith(scop, 2).to_matrix(dims)}")
+    print(f"arithmetics: {arith(scop, 2.5).to_matrix(dims)}")
+    print(f"arithmetics: {arith(scop, 2j).to_matrix(dims)}")
+    print(f"arithmetics: {arith(2, scop).to_matrix(dims)}")
+    print(f"arithmetics: {arith(2.5, scop).to_matrix(dims)}")
+    print(f"arithmetics: {arith(2j, scop).to_matrix(dims)}")
 
 for op in [elop, opprod, opsum]:
     for arith in [operator.add, operator.sub, operator.mul]:
         print(f"testing {arith} for {type(op)}")
-        print(f"arithmetics: {arith(op, 2).concretize(dims)}")
-        print(f"arithmetics: {arith(op, 2.5).concretize(dims)}")
-        print(f"arithmetics: {arith(op, 2j).concretize(dims)}")
-        print(f"arithmetics: {arith(2, op).concretize(dims)}")
-        print(f"arithmetics: {arith(2.5, op).concretize(dims)}")
-        print(f"arithmetics: {arith(2j, op).concretize(dims)}")
+        print(f"arithmetics: {arith(op, 2).to_matrix(dims)}")
+        print(f"arithmetics: {arith(op, 2.5).to_matrix(dims)}")
+        print(f"arithmetics: {arith(op, 2j).to_matrix(dims)}")
+        print(f"arithmetics: {arith(2, op).to_matrix(dims)}")
+        print(f"arithmetics: {arith(2.5, op).to_matrix(dims)}")
+        print(f"arithmetics: {arith(2j, op).to_matrix(dims)}")
 
+print(operators.squeeze(0) * operators.displace(1))
