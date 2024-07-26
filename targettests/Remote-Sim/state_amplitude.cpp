@@ -13,6 +13,7 @@
 // RUN: nvq++ %cpp_std --target remote-mqpu %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
 struct cat_state {
@@ -30,9 +31,9 @@ int main() {
   const std::vector<int> basisStateAll1(numQubits, 1);
   auto state = cudaq::get_state(cat_state{}, numQubits);
   const auto amplitudes = state.amplitudes({basisStateAll0, basisStateAll1});
-  assert(amplitudes.size() == 2);
-  assert(std::abs(M_SQRT1_2 - amplitudes[0]) < 1e-3);
-  assert(std::abs(M_SQRT1_2 - amplitudes[1]) < 1e-3);
+  REMOTE_TEST_ASSERT(amplitudes.size() == 2);
+  REMOTE_TEST_ASSERT(std::abs(M_SQRT1_2 - amplitudes[0]) < 1e-3);
+  REMOTE_TEST_ASSERT(std::abs(M_SQRT1_2 - amplitudes[1]) < 1e-3);
 
   return 0;
 }
