@@ -57,10 +57,9 @@ public:
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
 
-  // By default, the remote capabilities are all enabled. Subtypes may override
-  // this.
+  // Get the capabilities from the client.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
-    return RemoteCapabilities(/*initValues=*/true);
+    return m_client->getRemoteCapabilities();
   }
 
   virtual void setTargetBackend(const std::string &backend) override {

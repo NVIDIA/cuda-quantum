@@ -84,6 +84,7 @@ struct returnInt {
 };
 
 int main() {
+  cudaq::set_random_seed(123);
   int n_iterations = 24;
   double mu = 0.7951, sigma = 0.6065;
   auto phase = rwpe{}(n_iterations, mu, sigma);
@@ -93,9 +94,9 @@ int main() {
   assert(returnTrue{}());
 
   assert(!returnFalse{}());
-  cudaq::set_random_seed(123);
   const int oneCount = returnInt{}(1000);
   std::cout << "One count = " << oneCount << "\n";
   // We expect ~ 50% one.
   assert(oneCount > 100);
+  return 0;
 }
