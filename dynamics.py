@@ -211,15 +211,15 @@ class PrettyPrint(OperatorArithmetics[str]):
         
         def tensor(op1: str, op2: str) -> str:
             def add_parens(str_value: str):
-                outer_str = re.sub(r'(.+)', '', str_value)
-                if "+" in outer_str or "*" in outer_str: return f"({str_value})"
+                outer_str = re.sub(r'\(.+?\)', '', str_value)
+                if " + " in outer_str or " * " in outer_str: return f"({str_value})"
                 else: return str_value
             return f"{add_parens(op1)} x {add_parens(op2)}"
 
         def mul(op1: str, op2: str) -> str:
             def add_parens(str_value: str):
-                outer_str = re.sub(r'(.+)', '', str_value)
-                if "+" in outer_str or "x" in outer_str: return f"({str_value})"
+                outer_str = re.sub(r'\(.+?\)', '', str_value)
+                if " + " in outer_str or " x " in outer_str: return f"({str_value})"
                 else: return str_value
             return f"{add_parens(op1)} * {add_parens(op2)}"
 
@@ -236,6 +236,9 @@ class OperatorSum:
         if len(terms) == 0:
             raise ValueError("need at least one term")
         self._terms = terms
+
+    def __eq__(self: OperatorSum, other: Any):
+        return type(other) == OperatorSum and self._terms == other._terms
 
     @property
     def parameters(self: OperatorSum) -> dict[str, str]:
@@ -303,6 +306,9 @@ class ProductOperator(OperatorSum):
         self._operators = operators
         super().__init__([self])
 
+    def __eq__(self: ProductOperator, other: Any):
+        return type(other) == ProductOperator and self._operators == other._operators
+
     @property
     def parameters(self: ProductOperator) -> dict[str, str]:
         return _OperatorHelpers.aggregate_parameters([operator.parameters for operator in self._operators])
@@ -322,7 +328,8 @@ class ProductOperator(OperatorSum):
         degrees = sorted(set([degree for op in self._operators for degree in op._degrees]))
         evaluated = padded_op(self._operators[0], degrees)
         for op in self._operators[1:]:
-            evaluated = arithmetics.mul(evaluated, padded_op(op, degrees))
+            if len(op._degrees) != 1 or op != operators.identity(op._degrees[0]):
+                evaluated = arithmetics.mul(evaluated, padded_op(op, degrees))
         return evaluated
 
     def to_matrix(self: OperatorSum, dimensions: dict[int, int], **kwargs) -> NDArray[complex]:
@@ -426,6 +433,9 @@ class ElementaryOperator(ProductOperator):
         self._degrees = sorted(degrees) # Sorting so that order matches the elementary operation definition.
         super().__init__([self])
 
+    def __eq__(self: ElementaryOperator, other: Any):
+        return type(other) == ElementaryOperator and self._op_id == other._op_id and self._degrees == other._degrees
+
     @property
     def parameters(self: ElementaryOperator) -> dict[str, str]:
         return ElementaryOperator._parameter_info[self._op_id]
@@ -441,7 +451,9 @@ class ElementaryOperator(ProductOperator):
         return ElementaryOperator._ops[self._op_id](relevant_dimensions, **kwargs)
 
     def __str__(self: OperatorSum) -> str:
-        return f"{self._op_id}{self._degrees}"
+        parameter_names = ", ".join(self.parameters)
+        if parameter_names != "": parameter_names = f"({parameter_names})"
+        return f"{self._op_id}{parameter_names}{self._degrees}"
 
     def __mul__(self: ElementaryOperator, other) -> ProductOperator:
         if not (isinstance(other, OperatorSum) or isinstance(other, Number)):
@@ -488,6 +500,9 @@ class ScalarOperator(ProductOperator):
         self.generator = generator # The setter validates the generator and sets _parameter_info.
         super().__init__([self])
 
+    def __eq__(self: ScalarOperator, other: Any):
+        return type(other) == ScalarOperator and self._generator == other._generator
+
     @property
     def generator(self: ScalarOperator):
         return self._generator
@@ -530,7 +545,9 @@ class ScalarOperator(ProductOperator):
 
     def __str__(self: OperatorSum) -> str:
         parameter_names = ", ".join(self.parameters)
-        return f"f({parameter_names})"
+        if parameter_names == "":
+            return str(self._invoke())
+        return f"{self._generator.__name__ or 'f'}({parameter_names})"
 
     def _compose(self: ScalarOperator, 
                  fct: Callable[[Number], Number], 
@@ -949,4 +966,15 @@ for op in [elop, opprod, opsum]:
         print(f"arithmetics: {arith(2.5, op).to_matrix(dims)}")
         print(f"arithmetics: {arith(2j, op).to_matrix(dims)}")
 
+print(operators.const(2))
+print(ScalarOperator(lambda alpha: 2*alpha))
+print(ScalarOperator(all_zero))
+print(pauli.x(0))
+print(2 * pauli.x(0))
+print(pauli.x(0) + 2)
+print(operators.squeeze(0))
 print(operators.squeeze(0) * operators.displace(1))
+print(operators.squeeze(0) + operators.displace(1) * 5)
+print(pauli.x(0) - 2)
+print(pauli.x(0) - pauli.y(1))
+
