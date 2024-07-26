@@ -355,7 +355,7 @@ void unset_noise() {
   platform.set_noise(nullptr);
 }
 
-thread_local std::size_t cudaq_random_seed = 0;
+thread_local static std::size_t cudaq_random_seed = 0;
 
 /// @brief Note: a seed value of 0 will cause broadcast operations to use
 /// std::random_device (or something similar) as a seed for the PRNGs, so this
