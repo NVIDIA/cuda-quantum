@@ -13,6 +13,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 4 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
 struct simpleX {
@@ -27,7 +28,7 @@ int main() {
   auto &platform = cudaq::get_platform();
   auto num_qpus = platform.num_qpus();
   printf("Number of QPUs: %zu\n", num_qpus);
-  assert(num_qpus == 4);
+  REMOTE_TEST_ASSERT(num_qpus == 4);
   std::vector<cudaq::async_sample_result> countFutures;
   // sample_async API with default shots
   for (std::size_t i = 0; i < num_qpus; i++) {
@@ -45,8 +46,8 @@ int main() {
          {countFutures[i].get(), countFuturesWithShots[i].get()}) {
       counts.dump();
       const std::string expectedBitStr(i + 1, '1');
-      assert(counts.size() == 1);
-      assert(counts.begin()->first == expectedBitStr);
+      REMOTE_TEST_ASSERT(counts.size() == 1);
+      REMOTE_TEST_ASSERT(counts.begin()->first == expectedBitStr);
     }
   }
   return 0;

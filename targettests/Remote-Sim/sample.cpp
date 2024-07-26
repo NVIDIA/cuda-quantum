@@ -14,6 +14,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
 template <std::size_t N>
@@ -33,7 +34,7 @@ int main() {
     auto kernel = ghz<10>{};
     auto counts = cudaq::sample(kernel);
     counts.dump();
-    assert(counts.size() == 2);
+    REMOTE_TEST_ASSERT(counts.size() == 2);
   }
   {
     // Kernels as lambda functions
@@ -47,7 +48,7 @@ int main() {
     };
     auto counts = cudaq::sample(ghz, 3);
     counts.dump();
-    assert(counts.size() == 2);
+    REMOTE_TEST_ASSERT(counts.size() == 2);
   }
   return 0;
 }
