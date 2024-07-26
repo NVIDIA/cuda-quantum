@@ -221,6 +221,7 @@ struct S5 {
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           call @_Z15debug_the_thingiid(%[[VAL_6]], %[[VAL_8]], %[[VAL_10]]) : (i32, i32, f64) -> ()
 // CHECK:           %[[VAL_11:.*]] = cc.alloca !cc.struct<"ResultThing" {i1, i1, i1, i32} [64,4]>
+// CHECK:           call @_ZN11ResultThingC1Ev(%[[VAL_11]]) : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32} [64,4]>>) -> ()
 // CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32} [64,4]>>) -> !cc.ptr<i1>
 // CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.struct<"ArgumentThing" {i32, i32, f64} [128,8]>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_14:.*]] = cc.load %[[VAL_13]] : !cc.ptr<i32>
@@ -282,6 +283,7 @@ struct S6 {
 // CHECK:           %[[VAL_9:.*]] = cc.load %[[VAL_8]] : !cc.ptr<f64>
 // CHECK:           call @_Z15debug_the_thingiid(%[[VAL_5]], %[[VAL_7]], %[[VAL_9]]) : (i32, i32, f64) -> ()
 // CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.struct<{i1, i32, i16, i32} [128,4]>
+// CHECK:           call @_ZN2S61TC1Ev(%[[VAL_10]]) : (!cc.ptr<!cc.struct<{i1, i32, i16, i32} [128,4]>>) -> ()
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.struct<{i1, i32, i16, i32} [128,4]>>) -> !cc.ptr<i1>
 // CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.struct<"ArgumentThing" {i32, i32, f64} [128,8]>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_13:.*]] = cc.load %[[VAL_12]] : !cc.ptr<i32>
@@ -309,4 +311,3 @@ struct S6 {
 // CHECK:           return %[[VAL_30]] : !cc.struct<{i1, i32, i16, i32} [128,4]>
 // CHECK:         }
 // clang-format on
-

@@ -1109,16 +1109,23 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
   if (auto *field = dyn_cast<clang::FieldDecl>(x->getMemberDecl())) {
     auto loc = toLocation(x->getSourceRange());
     auto object = popValue(); // DeclRefExpr
-    auto eleTy = cast<cc::PointerType>(object.getType()).getElementType();
     SmallVector<cc::ComputePtrArg> offsets;
-    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
-      if (arrTy.isUnknownSize())
-        offsets.push_back(0);
     std::int32_t offset = field->getFieldIndex();
-    offsets.push_back(offset);
     auto ty = popType();
-    return pushValue(builder.create<cc::ComputePtrOp>(
-        loc, cc::PointerType::get(ty), object, offsets));
+    if (auto ptrStructTy = dyn_cast<cc::PointerType>(object.getType())) {
+      auto eleTy = cast<cc::PointerType>(object.getType()).getElementType();
+      if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+        if (arrTy.isUnknownSize())
+          offsets.push_back(0);
+      offsets.push_back(offset);
+
+      return pushValue(builder.create<cc::ComputePtrOp>(
+          loc, cc::PointerType::get(ty), object, offsets));
+    }
+    // We have a struct value
+    offsets.push_back(offset);
+    return pushValue(
+        builder.create<cc::ExtractValueOp>(loc, ty, object, offsets));
   }
   return true;
 }
@@ -1489,21 +1496,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return pushValue(
           builder.create<quake::DiscriminateOp>(loc, resTy, measure));
     }
-
-    // We may have qubit values that come from struct members, in this
-    // case the value may be provided as a pointer, need to load it here.
-    SmallVector<Value> localArgs;
-    for (auto arg : args) {
-      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(arg.getType())) {
-        if (isa<quake::VeqType, quake::RefType>(ptrTy.getElementType())) {
-          localArgs.push_back(builder.create<cudaq::cc::LoadOp>(loc, arg));
-          continue;
-        }
-      }
-      localArgs.push_back(arg);
-    }
-
-    args = localArgs;
 
     // Handle the quantum gate set.
     auto reportNegateError = [&]() {
@@ -2194,42 +2186,30 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto idx_var = popValue();
       auto qreg_var = popValue();
 
-      // We could have the case where the qvector is coming from a struct
-      // and is not in the symbol table.
-      if (auto computePtrOp =
-              qreg_var.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
-        if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(
-                computePtrOp.getBase().getType())) {
-          if (isa<cudaq::cc::StructType>(ptrTy.getElementType())) {
-            // This qreg is coming from a struct, it's not in the symbol table
-            if (isa<cudaq::cc::PointerType>(qreg_var.getType()))
-              qreg_var = builder.create<cudaq::cc::LoadOp>(loc, qreg_var);
+      if (isa<clang::DeclRefExpr>(x->getArg(0))) {
+        // Get name of the qreg, e.g. qr, and use it to construct a name for the
+        // element, which is intended to be qr%n when n is the index of the
+        // accessed qubit.
+        StringRef qregName = getNamedDecl(x->getArg(0))->getName();
+        auto name = getQubitSymbolTableName(qregName, idx_var);
+        char *varName = strdup(name.c_str());
 
-            auto address_qubit =
-                builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
-            return replaceTOSValue(address_qubit);
-          }
-        }
+        // If the name exists in the symbol table, return its stored value.
+        if (symbolTable.count(name))
+          return replaceTOSValue(symbolTable.lookup(name));
+
+        // Otherwise create an operation to access the qubit, store that value
+        // in the symbol table, and return the AddressQubit operation's
+        // resulting value.
+        auto address_qubit =
+            builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
+
+        symbolTable.insert(StringRef(varName), address_qubit);
+        return replaceTOSValue(address_qubit);
       }
 
-      // Get name of the qreg, e.g. qr, and use it to construct a name for the
-      // element, which is intended to be qr%n when n is the index of the
-      // accessed qubit.
-      StringRef qregName = getNamedDecl(x->getArg(0))->getName();
-      auto name = getQubitSymbolTableName(qregName, idx_var);
-      char *varName = strdup(name.c_str());
-
-      // If the name exists in the symbol table, return its stored value.
-      if (symbolTable.count(name))
-        return replaceTOSValue(symbolTable.lookup(name));
-
-      // Otherwise create an operation to access the qubit, store that value in
-      // the symbol table, and return the AddressQubit operation's resulting
-      // value.
       auto address_qubit =
           builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
-
-      symbolTable.insert(StringRef(varName), address_qubit);
       return replaceTOSValue(address_qubit);
     }
     if (typeName == "vector") {
@@ -2471,6 +2451,19 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     auto globalInit = builder.create<cc::AddressOfOp>(loc, ptrTy, name);
     return pushValue(globalInit);
   }
+
+  // If quantum, use value semantics with cc insert / extract value.
+  if (isQuantumStructType(eleTy)) {
+    Value undefOpRes = builder.create<cc::UndefOp>(loc, eleTy);
+    for (auto iter : llvm::enumerate(last)) {
+      std::int32_t i = iter.index();
+      auto v = iter.value();
+      undefOpRes =
+          builder.create<cc::InsertValueOp>(loc, eleTy, undefOpRes, v, i);
+    }
+    return pushValue(undefOpRes);
+  }
+
   Value alloca = (numEles > 1)
                      ? builder.create<cc::AllocaOp>(loc, eleTy, arrSize)
                      : builder.create<cc::AllocaOp>(loc, eleTy);
@@ -2873,16 +2866,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
   }
 
-  // Note we only screen for structs that contain data members.
-  // Revisit this if we ever enable Kernel structs with data members.
-  if (auto structTy = dyn_cast<cc::StructType>(ctorTy);
-      structTy && !structTy.getMembers().empty()) {
-    if (ctor->isDefaultConstructor())
-      return pushValue(builder.create<cc::AllocaOp>(loc, ctorTy));
-
-    // Struct construction handled elsewhere in the traversal.
+  // Just walk through copy constructors for quantum struct types.
+  if (ctor->isCopyOrMoveConstructor() && isQuantumStructType(ctorTy))
     return true;
-  }
 
   // TODO: remove this when we can handle ctors more generally.
   if (!ctor->isDefaultConstructor()) {
