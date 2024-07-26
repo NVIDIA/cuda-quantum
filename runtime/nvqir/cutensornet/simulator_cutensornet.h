@@ -96,6 +96,7 @@ protected:
   // Note: cutensornet sample API uses an internal random engine that doesn't
   // support random seed. This engine only affects the mid-circuit measurements
   // whereby this simulator generates a random probability value.
+  // See also: https://github.com/NVIDIA/cuda-quantum/issues/895
   std::mt19937 m_randomEngine;
 };
 
