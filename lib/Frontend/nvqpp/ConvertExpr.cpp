@@ -2208,6 +2208,9 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         return replaceTOSValue(address_qubit);
       }
 
+      // We have a quantum value that is not in the symbol table.
+      // Here we will just extract the qubit. This is likely
+      // coming from a quantum struct member.
       auto address_qubit =
           builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
       return replaceTOSValue(address_qubit);

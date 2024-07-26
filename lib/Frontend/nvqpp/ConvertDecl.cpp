@@ -791,14 +791,14 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     return pushValue(cast);
   }
 
-  // Initialization expression resulted in a value. Create a variable and save
-  // that value to the variable's memory address.
-
   // Don't allocate memory for a quantum or value-semantic struct.
   if (auto insertValOp = initValue.getDefiningOp<cc::InsertValueOp>()) {
     symbolTable.insert(x->getName(), initValue);
     return pushValue(initValue);
   }
+
+  // Initialization expression resulted in a value. Create a variable and save
+  // that value to the variable's memory address.
   Value alloca = builder.create<cc::AllocaOp>(loc, type);
   builder.create<cc::StoreOp>(loc, initValue, alloca);
   symbolTable.insert(x->getName(), alloca);
