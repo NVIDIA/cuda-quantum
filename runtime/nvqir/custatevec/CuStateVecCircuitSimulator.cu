@@ -290,6 +290,7 @@ protected:
         initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
             reinterpret_cast<CudaDataType *>(deviceStateVector),
             stateDimension);
+        HANDLE_CUDA_ERROR(cudaGetLastError());
         return;
       }
 
@@ -323,6 +324,7 @@ protected:
     if (state == nullptr) {
       initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
           reinterpret_cast<CudaDataType *>(otherState), (1UL << count));
+      HANDLE_CUDA_ERROR(cudaGetLastError());
     } else {
 
       // FIXME Handle case where data is already on GPU
@@ -482,6 +484,7 @@ protected:
         (stateDimension + threads_per_block - 1) / threads_per_block;
     initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
         reinterpret_cast<CudaDataType *>(deviceStateVector), stateDimension);
+    HANDLE_CUDA_ERROR(cudaGetLastError());
   }
 
 public:

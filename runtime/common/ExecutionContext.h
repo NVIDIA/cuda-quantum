@@ -100,6 +100,11 @@ public:
   /// register after execution. Empty means no reordering.
   std::vector<std::size_t> reorderIdx;
 
+  /// @brief A buffer containing the return value of a kernel invocation.
+  /// Note: this is only needed for invocation not able to return a
+  /// `sample_result`.
+  std::vector<char> invocationResultBuffer;
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}
