@@ -142,10 +142,16 @@ int main() {
     cudaq::optimizers::cobyla optimizer;
     optimizer.initial_parameters = init_params;
     optimizer.max_eval = 100;
+    cudaq::set_random_seed(13);
     auto [opt_val, opt_params] = cudaq::vqe(
         /*shots=*/1000, ansatz, H, optimizer, n_params, n_qubits, n_layers);
     printf("Optimal value = %.16lf\n", opt_val);
-    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.0769400650758392) < 1e-3);
+
+    // Increase the error tolerance for the shots-based test because this test
+    // needs to sometimes run against a server without the remote VQE
+    // capability, so the handling of RNG seeds for back-and-forth iterations of
+    // observe's behave slightly differently than a fully remote VQE.
+    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.0906868832471321) < 0.015);
   }
   return 0;
 }
