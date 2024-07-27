@@ -8,13 +8,36 @@ The simulation backends that are currently available in CUDA-Q are as follows.
 State Vector Simulators
 ==================================
 
+The :code:`nvidia` target provides a state vector simulator accelerated with 
+the :code:`cuStateVec` library. 
+
+The :code:`nvidia` target supports multiple configurable options.
+
+Features 
++++++++++
+
+* Floating-point precision configuration 
+
+The floating point precision of the state vector data can be configured to either 
+double (`fp64`) or single (`fp32`) precision. This option can be chosen for the optimal performance and accuracy.
+
+
+* Distributed simulation
+
+The :code:`nvidia` target supports distributing state vector simulations to multiple GPUs and multiple nodes (`mgpu` :ref:`distribution <nvidia-mgpu-backend>`)
+and multi-QPU (`mqpu` :ref:`platform <mqpu-platform>`) distribution whereby each QPU is simulated via a single-GPU simulator instance.
+
+
+* Host CPU memory utilization 
+
+Host CPU memory can be leveraged in addition to GPU memory to accommodate the state vector 
+(i.e., maximizing the number of qubits to be simulated).
+
 .. _cuQuantum single-GPU:
+
 
 Single-GPU 
 ++++++++++++++++++++++++++++++++++
-
-The :code:`nvidia` target provides a state vector simulator accelerated with 
-the :code:`cuStateVec` library. 
 
 To execute a program on the :code:`nvidia` target, use the following commands:
 
@@ -42,24 +65,67 @@ To execute a program on the :code:`nvidia` target, use the following commands:
 .. _nvidia-fp64-backend:
 
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
-switch to :code:`FP64`, specify the :code:`--target-option fp64` `nvq++` command line option for `C++` or 
-use `cudaq.set_target('nvidia', option='fp64')` for Python instead. 
+switch to :code:`FP64`, specify the :code:`--target-option fp64` `nvq++` command line option for `C++` and `Python` or 
+use `cudaq.set_target('nvidia', option='fp64')` for Python in-source target modification instead. 
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        python3 program.py [...] --target nvidia --target-option fp64
+
+    The precision of the :code:`nvidia` target can also be modified in the application code by calling
+
+    .. code:: python 
+
+        cudaq.set_target('nvidia', option='fp64')
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target nvidia --target-option fp64 program.cpp [...] -o program.x
+        ./program.x
 
 .. note:: 
 
   This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
+In the single-GPU mode, the :code:`nvidia` target provides the following environment variable options.
+
+.. list-table:: **Environment variable options supported in single-GPU mode**
+  :widths: 20 30 50
+
+  * - Option
+    - Value
+    - Description
+  * - ``CUDAQ_FUSION_MAX_QUBITS``
+    - positive integer
+    - The max number of qubits used for gate fusion. The default value is `4`.
+  * - ``CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS``
+    - integer greater than or equal to -1
+    - The max number of qubits used for diagonal gate fusion. The default value is set to `-1` and the fusion size will be automatically adjusted for the better performance. If 0, the gate fusion for diagonal gates is disabled.
+  * - ``CUDAQ_FUSION_NUM_HOST_THREADS``
+    - positive integer
+    - Number of CPU threads used for circuit processing. The default value is `8`.
+  * - ``CUDAQ_MAX_CPU_MEMORY_GB``
+    - non-negative integer, or `NONE`
+    - CPU memory size (in GB) allowed for state-vector migration. `NONE` means unlimited (up to physical memory constraints). Default is 0 (disabled). 
+  * - ``CUDAQ_MAX_GPU_MEMORY_GB``
+    - positive integer, or `NONE`
+    - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default. 
+
 .. deprecated:: 0.8
     The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
     is deprecated and will be removed in a future release.
 
+.. _nvidia-mgpu-backend:
+
 Multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
-.. _nvidia-mgpu-backend:
-
-The multi-node multi-GPU NVIDIA target provides a state vector simulator accelerated with 
-the :code:`cuStateVec` library but with support for Multi-Node, Multi-GPU distribution of the 
+The NVIDIA target also provides a state vector simulator accelerated with 
+the :code:`cuStateVec` library with support for Multi-Node, Multi-GPU distribution of the 
 state vector, in addition to a single GPU.
 
 The multi-node multi-GPU simulator expects to run within an MPI context.
@@ -125,13 +191,53 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 .. note:: 
 
   This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter either an error stating `invalid simulator requested` (missing CUDA libraries), or an error along the lines of `failed to launch kernel` (missing MPI installation). See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+  
+  The number of processes and nodes should be always power-of-2. 
+
+  Host-device state vector migration is also supported in the multi-node multi-GPU configuration. 
+
+
+In addition to those environment variable options supported in the single-GPU mode,
+the :code:`nvidia` target provides the following environment variable options particularly for 
+the multi-node multi-GPU configuration.
+
+.. list-table:: **Additional environment variable options for multi-node multi-GPU mode**
+  :widths: 20 30 50
+
+  * - Option
+    - Value
+    - Description
+  * - ``CUDAQ_MGPU_LIB_MPI``
+    - string
+    - The shared library name for inter-process communication. The default value is `libmpi.so`.
+  * - ``CUDAQ_MGPU_COMM_PLUGIN_TYPE``
+    - `AUTO`, `EXTERNAL`, `OpenMPI`, or `MPICH` 
+    - Selecting :code:`cuStateVec` `CommPlugin` for inter-process communication. The default is `AUTO`. If `EXTERNAL` is selected, `CUDAQ_MGPU_LIB_MPI` should point to an implementation of :code:`cuStateVec` `CommPlugin` interface.
+  * - ``CUDAQ_MGPU_NQUBITS_THRESH``
+    - positive integer
+    - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
+  * - ``CUDAQ_MGPU_FUSE``
+    - positive integer
+    - The max number of qubits used for gate fusion. The default value is `6` if there are more than one MPI processes or `4` otherwise.
+  * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
+    - positive integer
+    - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
+  * - ``CUDAQ_GPU_FABRIC``
+    - `MNNVL`, `NVL`, or `NONE`
+    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`). 
+  * - ``CUDAQ_GLOBAL_INDEX_BITS``
+    - comma-separated list of positive integers
+    - Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` represents **8** nodes with fast communication and the second `2` represents **4** 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).
+  * - ``CUDAQ_HOST_DEVICE_MIGRATION_LEVEL``
+    - positive integer
+    - Specify host-device memory migration w.r.t. the network structure. 
 
 .. deprecated:: 0.8
     The :code:`nvidia-mgpu` target, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
     is deprecated and will be removed in a future release.
 
-The :code:`nvidia` backend has additional performance improvements to
-help reduce your simulation runtimes, even on a single GPU. One of the
+The above configuration options of the :code:`nvidia` backend 
+can be tuned to reduce your simulation runtimes. One of the
 performance improvements is to fuse multiple gates together during runtime. For
 example, :code:`x(qubit0)` and :code:`x(qubit1)` can be fused together into a
 single 4x4 matrix operation on the state vector rather than 2 separate 2x2
