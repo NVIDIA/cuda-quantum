@@ -9,6 +9,7 @@ Examples that illustrate how to use CUDA-Q for application development are avail
 
       Introduction <introduction.rst>
       Quantum Operations <quantum_operations.rst>
+      Qubit Visualization <qubit_vizualization.ipynb>
       Computing Expectation Values <expectation_values.rst>
       Multi-Control Synthesis <multi_control.rst>
       Multi-GPU Workflows <multi_gpu_workflows.rst>
