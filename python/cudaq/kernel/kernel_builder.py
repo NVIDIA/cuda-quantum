@@ -7,8 +7,6 @@
 # ============================================================================ #
 
 from functools import partialmethod
-import hashlib
-import uuid
 import random
 import re
 import string
@@ -17,7 +15,7 @@ import numpy as np
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli, globalRegisteredOperations
+from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType, emitErrorIfInvalidPauli, globalRegisteredOperations
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
 from .captured_data import CapturedDataStorage
@@ -35,10 +33,7 @@ kDynamicPtrIndex: int = -2147483648
 ## [PYTHON_VERSION_FIX]
 ## Refer: https://peps.python.org/pep-0616/
 def remove_prefix(inputStr: str, prefix: str) -> str:
-    if inputStr.startswith(prefix):
-        return inputStr[len(prefix):]
-    else:
-        return inputStr[:]
+    return inputStr[len(prefix):] if inputStr.startswith(prefix) else inputStr
 
 
 qvector = cudaq_runtime.qvector
@@ -86,13 +81,12 @@ def __generalOperation(self,
 
 
 def get_parameter_value(self, parameter):
-    paramVal = parameter
     if isinstance(parameter, float):
         fty = mlirTypeFromPyType(float, self.ctx)
-        paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
+        return arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
     elif isinstance(parameter, QuakeValue):
-        paramVal = parameter.mlirValue
-    return paramVal
+        return parameter.mlirValue
+    return parameter
 
 
 def __singleTargetOperation(self, opName, target, isAdj=False):
@@ -178,6 +172,31 @@ def __singleTargetSingleParameterControlOperation(self,
                            context=self.ctx)
 
 
+def __targetOperation(self, opName, parameters, controls, target, isAdj=False):
+    with self.insertPoint, self.loc:
+        if isinstance(controls, list):
+            fwdControls = [c.mlirValue for c in controls]
+        elif quake.RefType.isinstance(
+                controls.mlirValue.type) or quake.VeqType.isinstance(
+                    controls.mlirValue.type):
+            fwdControls = [controls.mlirValue]
+        else:
+            emitFatalError(f"invalid control type for {opName}.")
+
+        parameters = [get_parameter_value(self, p) for p in parameters]
+
+        if not isinstance(target, QuakeValue):
+            emitFatalError(f"invalid target type for {opName}.")
+
+        __generalOperation(self,
+                           opName,
+                           parameters,
+                           fwdControls,
+                           target,
+                           isAdj=isAdj,
+                           context=self.ctx)
+
+
 def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
     argEleTy = cc.StdvecType.getElementType(mlirType)
     eleTy = cc.StdvecType.getElementType(otherTy)
@@ -209,23 +228,17 @@ def __generalCustomOperation(self, opName, *args):
             else:
                 emitFatalError(f"invalid argument type passed to {opName}.")
 
-        targets = []
-        controls = []
-
-        if numTargets == len(qubits):
-            targets = qubits
-        elif numTargets < len(qubits):
-            numControls = len(qubits) - numTargets
-            targets = qubits[-numTargets:]
-            controls = qubits[:numControls]
-        else:
+        if numTargets > len(qubits):
             emitFatalError(
                 f"too few arguments passed to {opName}, expected ({numTargets})"
             )
 
+        targets = qubits[-numTargets:]
+        controls = qubits[:-numTargets] if numTargets < len(qubits) else []
+
         globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
         currentST = SymbolTable(self.module.operation)
-        if not globalName in currentST:
+        if globalName not in currentST:
             with InsertionPoint(self.module.body):
                 gen_vector_of_complex_constant(self.loc, self.module,
                                                globalName, unitary.tolist())
@@ -429,9 +442,8 @@ class PyKernel(object):
         If the given value is of pointer type, load the pointer
         and return that new value.
         """
-        if cc.PointerType.isinstance(value.type):
-            return cc.LoadOp(value).result
-        return value
+        return cc.LoadOp(value).result if cc.PointerType.isinstance(
+            value.type) else value
 
     def ifNotPointerThenStore(self, value):
         """
@@ -471,7 +483,7 @@ class PyKernel(object):
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
                 operand = arith.ExtFOp(ty, operand).result
-            if IntegerType.isinstance(operand.type):
+            elif IntegerType.isinstance(operand.type):
                 operand = arith.SIToFPOp(ty, operand).result
 
         if F32Type.isinstance(ty):
@@ -515,7 +527,7 @@ class PyKernel(object):
             def body(idx):
                 eleAddr = cc.ComputePtrOp(
                     cc.PointerType.get(self.ctx, eleTy), alloca, [idx],
-                    DenseI32ArrayAttr.get([-2147483648],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 element = arg[body.counter]
                 elementVal = None
@@ -553,8 +565,8 @@ class PyKernel(object):
         """
         Create an invariant loop using the CC dialect. 
         """
-        startVal = self.getConstantInt(0) if startVal == None else startVal
-        stepVal = self.getConstantInt(1) if stepVal == None else stepVal
+        startVal = self.getConstantInt(0) if startVal is None else startVal
+        stepVal = self.getConstantInt(1) if stepVal is None else stepVal
 
         iTy = self.getIntegerType()
         inputs = [startVal]
@@ -743,10 +755,12 @@ class PyKernel(object):
                         "invalid initializer for qalloc (np.ndarray must be 1D, vector-like)"
                     )
 
-                if initializer.dtype not in [
-                        complex, np.complex128, np.complex64, float, np.float64,
-                        np.float32, int
-                ]:
+                dtype_set = {
+                    complex, np.complex128, np.complex64, float, np.float64,
+                    np.float32, int
+                }
+
+                if initializer.dtype not in dtype_set:
                     raise RuntimeError(
                         "invalid initializer for qalloc (must be int, float, or complex dtype)"
                     )
@@ -771,8 +785,7 @@ class PyKernel(object):
                     )
 
                 # check state is normalized
-                norm = sum([np.conj(a) * a for a in initializer])
-                if np.abs(norm.imag) > 1e-4 or np.abs(1. - norm.real) > 1e-4:
+                if not np.isclose(np.sum(np.abs(initializer)**2), 1.0):
                     raise RuntimeError(
                         "invalid input state for qalloc (not normalized)")
 
@@ -839,7 +852,7 @@ class PyKernel(object):
                         return self.__createQuakeValue(init)
 
             # If no initializer, create a single qubit
-            if initializer == None:
+            if initializer is None:
                 qubitTy = quake.RefType.get(self.ctx)
                 return self.__createQuakeValue(quake.AllocaOp(qubitTy).result)
 
@@ -1543,41 +1556,33 @@ class PyKernel(object):
         raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
 
 
-setattr(PyKernel, 'h', partialmethod(__singleTargetOperation, 'h'))
-setattr(PyKernel, 'x', partialmethod(__singleTargetOperation, 'x'))
-setattr(PyKernel, 'y', partialmethod(__singleTargetOperation, 'y'))
-setattr(PyKernel, 'z', partialmethod(__singleTargetOperation, 'z'))
-setattr(PyKernel, 's', partialmethod(__singleTargetOperation, 's'))
-setattr(PyKernel, 't', partialmethod(__singleTargetOperation, 't'))
-setattr(PyKernel, 'sdg', partialmethod(__singleTargetOperation, 's',
-                                       isAdj=True))
-setattr(PyKernel, 'tdg', partialmethod(__singleTargetOperation, 't',
-                                       isAdj=True))
+setattr(PyKernel, 'h', partialmethod(__targetOperation, 'h', [], []))
+setattr(PyKernel, 'x', partialmethod(__targetOperation, 'x', [], []))
+setattr(PyKernel, 'y', partialmethod(__targetOperation, 'y', [], []))
+setattr(PyKernel, 'z', partialmethod(__targetOperation, 'z', [], []))
+setattr(PyKernel, 's', partialmethod(__targetOperation, 's', [], []))
+setattr(PyKernel, 't', partialmethod(__targetOperation, 't', [], []))
+setattr(PyKernel, 'sdg',
+        partialmethod(__targetOperation, 's', [], [], isAdj=True))
+setattr(PyKernel, 'tdg',
+        partialmethod(__targetOperation, 't', [], [], isAdj=True))
 
-setattr(PyKernel, 'ch', partialmethod(__singleTargetControlOperation, 'h'))
-setattr(PyKernel, 'cx', partialmethod(__singleTargetControlOperation, 'x'))
-setattr(PyKernel, 'cy', partialmethod(__singleTargetControlOperation, 'y'))
-setattr(PyKernel, 'cz', partialmethod(__singleTargetControlOperation, 'z'))
-setattr(PyKernel, 'cs', partialmethod(__singleTargetControlOperation, 's'))
-setattr(PyKernel, 'ct', partialmethod(__singleTargetControlOperation, 't'))
+setattr(PyKernel, 'ch', partialmethod(__targetOperation, 'h', [], True))
+setattr(PyKernel, 'cx', partialmethod(__targetOperation, 'x', [], True))
+setattr(PyKernel, 'cy', partialmethod(__targetOperation, 'y', [], True))
+setattr(PyKernel, 'cz', partialmethod(__targetOperation, 'z', [], True))
+setattr(PyKernel, 'cs', partialmethod(__targetOperation, 's', [], True))
+setattr(PyKernel, 'ct', partialmethod(__targetOperation, 't', [], True))
 
-setattr(PyKernel, 'rx',
-        partialmethod(__singleTargetSingleParameterOperation, 'rx'))
-setattr(PyKernel, 'ry',
-        partialmethod(__singleTargetSingleParameterOperation, 'ry'))
-setattr(PyKernel, 'rz',
-        partialmethod(__singleTargetSingleParameterOperation, 'rz'))
-setattr(PyKernel, 'r1',
-        partialmethod(__singleTargetSingleParameterOperation, 'r1'))
+setattr(PyKernel, 'rx', partialmethod(__targetOperation, 'rx', [], []))
+setattr(PyKernel, 'ry', partialmethod(__targetOperation, 'ry', [], []))
+setattr(PyKernel, 'rz', partialmethod(__targetOperation, 'rz', [], []))
+setattr(PyKernel, 'r1', partialmethod(__targetOperation, 'r1', [], []))
 
-setattr(PyKernel, 'crx',
-        partialmethod(__singleTargetSingleParameterControlOperation, 'rx'))
-setattr(PyKernel, 'cry',
-        partialmethod(__singleTargetSingleParameterControlOperation, 'ry'))
-setattr(PyKernel, 'crz',
-        partialmethod(__singleTargetSingleParameterControlOperation, 'rz'))
-setattr(PyKernel, 'cr1',
-        partialmethod(__singleTargetSingleParameterControlOperation, 'r1'))
+setattr(PyKernel, 'crx', partialmethod(__targetOperation, 'rx', [], True))
+setattr(PyKernel, 'cry', partialmethod(__targetOperation, 'ry', [], True))
+setattr(PyKernel, 'crz', partialmethod(__targetOperation, 'rz', [], True))
+setattr(PyKernel, 'cr1', partialmethod(__targetOperation, 'r1', [], True))
 
 
 def make_kernel(*args):
