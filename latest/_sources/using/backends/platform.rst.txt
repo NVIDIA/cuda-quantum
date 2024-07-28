@@ -15,11 +15,10 @@ QPUs for asynchronous CUDA-Q kernel and :code:`cudaq::` function invocations.
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.
 
+.. _mqpu-platform:
 
 NVIDIA `MQPU` Platform
 ++++++++++++++++++++++
-
-.. _mqpu-platform:
 
 In the multi-QPU mode (:code:`mqpu` option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
 Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA target. For more information about using multiple GPUs 
