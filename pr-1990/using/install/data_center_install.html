@@ -212,6 +212,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../backends/simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
@@ -851,7 +852,8 @@ python3<span class="w"> </span>-m<span class="w"> </span>auditwheel<span class="
 <span class="w">    </span>--exclude<span class="w"> </span>libcutensor.so.2<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcutensornet.so.2<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcustatevec.so.1<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--exclude<span class="w"> </span>libcudart.so.11.0<span class="w"> </span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcudart.so.11.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libnvidia-ml.so.1
 </pre></div>
 </div>
 <p>The command above will create a new wheel in the <code class="code docutils literal notranslate"><span class="pre">wheelhouse</span></code> folder. This wheel can be

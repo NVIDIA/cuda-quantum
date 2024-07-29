@@ -32,32 +32,34 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 1,
    "metadata": {},
    "outputs": [],
    "source": [
     "# If you are running outside of a CUDA-Q container or CUDA-Q directory tree, you may need to uncomment these lines to fetch the files.\n",
     "# If you are running inside a CUDA-Q tree, then this step can be skipped.\n",
-    "# !wget https://raw.githubusercontent.com/NVIDIA/cuda-quantum/main/docs/sphinx/examples/python/tutorials/divisive_clustering_src/divisive_clustering.py\n",
-    "# !wget https://raw.githubusercontent.com/NVIDIA/cuda-quantum/main/docs/sphinx/examples/python/tutorials/divisive_clustering_src/main_divisive_clustering.py"
+    "# !mkdir divisive_clustering_src\n",
+    "# !wget -P divisive_clustering_src https://raw.githubusercontent.com/NVIDIA/cuda-quantum/main/docs/sphinx/examples/python/tutorials/divisive_clustering_src/divisive_clustering.py\n",
+    "# !wget -P divisive_clustering_src https://raw.githubusercontent.com/NVIDIA/cuda-quantum/main/docs/sphinx/examples/python/tutorials/divisive_clustering_src/main_divisive_clustering.py"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 4,
+   "execution_count": null,
    "metadata": {},
    "outputs": [],
    "source": [
     "# Install the relevant packages.\n",
+    "!pip install mpi4py==3.1.6\n",
     "!pip install networkx==2.8.8\n",
-    "!pip install pandas==1.5.3\n",
-    "!pip install scikit-learn==1.2.2\n",
+    "!pip install pandas==2.2.2\n",
+    "!pip install scikit-learn==1.4.2\n",
     "!pip install tqdm==4.66.2"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 1,
+   "execution_count": 3,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -87,7 +89,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 3,
+   "execution_count": 4,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -113,7 +115,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 2,
+   "execution_count": 5,
    "metadata": {},
    "outputs": [
     {
@@ -157,7 +159,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 4,
+   "execution_count": 6,
    "metadata": {},
    "outputs": [
     {
@@ -205,7 +207,7 @@
     "\n",
     "$e_{ij} = w_iw_jd_{ij}$ where $d_{ij}$ is the Euclidian distance between points $i$ and $j$. \n",
     "\n",
-    "This process is handled by `Coreset.corest_to_graph()`. The function returns a fully connected graph $G$ with edge weights."
+    "This process is handled by `Coreset.coreset_to_graph()`. The function returns a fully connected graph $G$ with edge weights."
    ]
   },
   {
@@ -224,7 +226,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 5,
+   "execution_count": 7,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -254,7 +256,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 6,
+   "execution_count": 8,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -310,7 +312,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 7,
+   "execution_count": 9,
    "metadata": {},
    "outputs": [
     {
@@ -363,7 +365,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 8,
+   "execution_count": 10,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -411,7 +413,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 9,
+   "execution_count": 11,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -520,17 +522,17 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "An instance of the `DivisiveClusteringVQA` class is mostly constructed from variables previously discussed like the functions for building the Hamiltonians and quantum circuits. Parameters related tot he quantum simulation can alsp be specified here such as `circuit_depth` and `max_shots`.  The ` threshold_for_max_cut` parameter specifies what percent of the sample results from the quantum computer are checked for the best bitstring value.\n",
+    "An instance of the `DivisiveClusteringVQA` class is mostly constructed from variables previously discussed like the functions for building the Hamiltonians and quantum circuits. Parameters related tot he quantum simulation can also be specified here such as `circuit_depth` and `max_shots`.  The ` threshold_for_max_cut` parameter specifies what percent of the sample results from the quantum computer are checked for the best bitstring value.\n",
     "\n",
     "The other options specify advanced features like if the data is normalized and how the graph weights are computed.\n",
     "\n",
     "\n",
-    "Finally, the `get_divisive_sequence` method performas the iterations and produces the clustering data which we will analyze below. Note that this postprocessing code is not exposed int his tutorial but can be found in the source code. \n"
+    "Finally, the `get_divisive_sequence` method performs the iterations and produces the clustering data which we will analyze below. Note that this postprocessing code is not exposed int his tutorial but can be found in the source code. \n"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 10,
+   "execution_count": 12,
    "metadata": {},
    "outputs": [
     {
@@ -569,12 +571,12 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "The data can be nicely visualized with a Dendrogram which maps where the bipartitionings occured. Early splits are generally mark divisions between the least like data."
+    "The data can be nicely visualized with a Dendrogram which maps where the bipartitionings occurred. Early splits are generally mark divisions between the least like data."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 15,
+   "execution_count": 13,
    "metadata": {},
    "outputs": [
     {
@@ -602,7 +604,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 16,
+   "execution_count": 14,
    "metadata": {},
    "outputs": [
     {
@@ -624,12 +626,12 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "The heirarchial clustering can be converted to flat clustering by drawing a line perpendicular to the branches. Any data point that intersects the line is considered to be in the same cluster. The function below performs this task at threshold height of 1.5. If you want to use the number of clusters instead of height, you can use `dendo.get_clusters_using_k()` method. You pass the number of desired clusters as an argument. Figure below shows the clusters that are formed at threshold height of 1.5."
+    "The hierarchical clustering can be converted to flat clustering by drawing a line perpendicular to the branches. Any data point that intersects the line is considered to be in the same cluster. The function below performs this task at threshold height of 1.5. If you want to use the number of clusters instead of height, you can use `dendo.get_clusters_using_k()` method. You pass the number of desired clusters as an argument. Figure below shows the clusters that are formed at threshold height of 1.5."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 17,
+   "execution_count": 15,
    "metadata": {},
    "outputs": [
     {
@@ -664,7 +666,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 18,
+   "execution_count": 16,
    "metadata": {},
    "outputs": [
     {
@@ -697,7 +699,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 19,
+   "execution_count": 17,
    "metadata": {},
    "outputs": [
     {
@@ -727,7 +729,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 20,
+   "execution_count": 18,
    "metadata": {},
    "outputs": [
     {
@@ -800,7 +802,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 21,
+   "execution_count": 19,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -827,7 +829,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 22,
+   "execution_count": 20,
    "metadata": {},
    "outputs": [
     {
@@ -888,19 +890,12 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 23,
+   "execution_count": null,
    "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "ModuleNotFoundError: No module named 'src.divisive_clustering'\n"
-     ]
-    }
-   ],
+   "outputs": [],
    "source": [
-    "!python divisive_clustering_src/main_divisive_clustering.py --target qpp-cpu --M 18"
+    "# Uncomment the following line if you want to explicitly execute this step on your system.\n",
+    "# !python3 divisive_clustering_src/main_divisive_clustering.py --target qpp-cpu --M 18"
    ]
   },
   {
@@ -912,7 +907,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 26,
+   "execution_count": 25,
    "metadata": {},
    "outputs": [
     {
@@ -936,7 +931,7 @@
     }
    ],
    "source": [
-    "!python divisive_clustering_src/main_divisive_clustering.py --target nvidia --M 18"
+    "!python3 divisive_clustering_src/main_divisive_clustering.py --target nvidia --M 18"
    ]
   },
   {
@@ -948,21 +943,13 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 10,
+   "execution_count": null,
    "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "^C\n",
-      " CTRL-C caught in cudaq runtime.\n"
-     ]
-    }
-   ],
+   "outputs": [],
    "source": [
     "# target = 'qpp-cpu'\n",
-    "!python divisive_clustering_src/main_divisive_clustering.py --target qpp-cpu --M 25"
+    "# Uncomment the following line if you want to explicitly execute this step on your system.\n",
+    "# !python3 divisive_clustering_src/main_divisive_clustering.py --target qpp-cpu --M 25"
    ]
   },
   {
@@ -974,7 +961,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 4,
+   "execution_count": 27,
    "metadata": {},
    "outputs": [
     {
@@ -1003,19 +990,19 @@
    ],
    "source": [
     "# target = 'nvidia'\n",
-    "!python divisive_clustering_src/main_divisive_clustering.py --target nvidia --M 25"
+    "!python3 divisive_clustering_src/main_divisive_clustering.py --target nvidia --M 25"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "If we want to push the simulation to an $N=34$ coreset, a single GPU (assuming A100) will run out of memory.  They the code below to see for yourself. "
+    "If we want to push the simulation to an $N=34$ coreset, a single GPU (assuming A100) will run out of memory.  Run the code below to see for yourself. "
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 7,
+   "execution_count": 28,
    "metadata": {},
    "outputs": [
     {
@@ -1029,7 +1016,7 @@
    ],
    "source": [
     "# target = 'nvidia'\n",
-    "!python divisive_clustering_src/main_divisive_clustering.py --target nvidia --M 34"
+    "!python3 divisive_clustering_src/main_divisive_clustering.py --target nvidia --M 34"
    ]
   },
   {
@@ -1041,7 +1028,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 27,
+   "execution_count": 30,
    "metadata": {},
    "outputs": [
     {
@@ -1058,7 +1045,15 @@
    ],
    "source": [
     "# target = 'nvidia-mgpu'\n",
-    "!mpirun -np 4 python divisive_clustering_src/main_divisive_clustering.py --target nvidia-mgpu --M 34"
+    "gpu_count = !nvidia-smi -L | wc -l\n",
+    "try:\n",
+    "    gpu_count = int(gpu_count[0])\n",
+    "except:\n",
+    "    gpu_count = 0    \n",
+    "if gpu_count >= 4:\n",
+    "    !mpirun -np 4 python3 divisive_clustering_src/main_divisive_clustering.py --target nvidia-mgpu --M 34\n",
+    "else:\n",
+    "    print(f'Not enough GPUs found on this system ({gpu_count}) to run this step')"
    ]
   },
   {
