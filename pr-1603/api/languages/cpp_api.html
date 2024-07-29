@@ -204,6 +204,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
@@ -1288,6 +1289,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext10reorderIdxE">
 <span class="target" id="classcudaq_1_1ExecutionContext_1a33d991dd8e3d37e040eb8fc625228c19"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reorderIdx</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext10reorderIdxE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A vector containing information about how to reorder the global register after execution. Empty means no reordering. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a2cbc25e01de0353f7909f3e434cb2065"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invocationResultBuffer</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A buffer containing the return value of a kernel invocation. Note: this is only needed for invocation not able to return a <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref"><span class="pre">sample_result</span></span></a></code>. </p>
 </dd></dl>
 
 </div>
