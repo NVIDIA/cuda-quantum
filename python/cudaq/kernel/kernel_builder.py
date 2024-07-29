@@ -172,31 +172,6 @@ def __singleTargetSingleParameterControlOperation(self,
                            context=self.ctx)
 
 
-def __targetOperation(self, opName, parameters, controls, target, isAdj=False):
-    with self.insertPoint, self.loc:
-        if isinstance(controls, list):
-            fwdControls = [c.mlirValue for c in controls]
-        elif quake.RefType.isinstance(
-                controls.mlirValue.type) or quake.VeqType.isinstance(
-                    controls.mlirValue.type):
-            fwdControls = [controls.mlirValue]
-        else:
-            emitFatalError(f"invalid control type for {opName}.")
-
-        parameters = [get_parameter_value(self, p) for p in parameters]
-
-        if not isinstance(target, QuakeValue):
-            emitFatalError(f"invalid target type for {opName}.")
-
-        __generalOperation(self,
-                           opName,
-                           parameters,
-                           fwdControls,
-                           target,
-                           isAdj=isAdj,
-                           context=self.ctx)
-
-
 def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
     argEleTy = cc.StdvecType.getElementType(mlirType)
     eleTy = cc.StdvecType.getElementType(otherTy)
@@ -755,11 +730,11 @@ class PyKernel(object):
                         "invalid initializer for qalloc (np.ndarray must be 1D, vector-like)"
                     )
 
-                dtype_set = {
+                dtype_set = [
                     complex, np.complex128, np.complex64, float, np.float64,
                     np.float32, int
-                }
-
+                ]
+                print(initializer.dtype)
                 if initializer.dtype not in dtype_set:
                     raise RuntimeError(
                         "invalid initializer for qalloc (must be int, float, or complex dtype)"
@@ -1556,33 +1531,41 @@ class PyKernel(object):
         raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
 
 
-setattr(PyKernel, 'h', partialmethod(__targetOperation, 'h', [], []))
-setattr(PyKernel, 'x', partialmethod(__targetOperation, 'x', [], []))
-setattr(PyKernel, 'y', partialmethod(__targetOperation, 'y', [], []))
-setattr(PyKernel, 'z', partialmethod(__targetOperation, 'z', [], []))
-setattr(PyKernel, 's', partialmethod(__targetOperation, 's', [], []))
-setattr(PyKernel, 't', partialmethod(__targetOperation, 't', [], []))
-setattr(PyKernel, 'sdg',
-        partialmethod(__targetOperation, 's', [], [], isAdj=True))
-setattr(PyKernel, 'tdg',
-        partialmethod(__targetOperation, 't', [], [], isAdj=True))
+setattr(PyKernel, 'h', partialmethod(__singleTargetOperation, 'h'))
+setattr(PyKernel, 'x', partialmethod(__singleTargetOperation, 'x'))
+setattr(PyKernel, 'y', partialmethod(__singleTargetOperation, 'y'))
+setattr(PyKernel, 'z', partialmethod(__singleTargetOperation, 'z'))
+setattr(PyKernel, 's', partialmethod(__singleTargetOperation, 's'))
+setattr(PyKernel, 't', partialmethod(__singleTargetOperation, 't'))
+setattr(PyKernel, 'sdg', partialmethod(__singleTargetOperation, 's',
+                                       isAdj=True))
+setattr(PyKernel, 'tdg', partialmethod(__singleTargetOperation, 't',
+                                       isAdj=True))
 
-setattr(PyKernel, 'ch', partialmethod(__targetOperation, 'h', [], True))
-setattr(PyKernel, 'cx', partialmethod(__targetOperation, 'x', [], True))
-setattr(PyKernel, 'cy', partialmethod(__targetOperation, 'y', [], True))
-setattr(PyKernel, 'cz', partialmethod(__targetOperation, 'z', [], True))
-setattr(PyKernel, 'cs', partialmethod(__targetOperation, 's', [], True))
-setattr(PyKernel, 'ct', partialmethod(__targetOperation, 't', [], True))
+setattr(PyKernel, 'ch', partialmethod(__singleTargetControlOperation, 'h'))
+setattr(PyKernel, 'cx', partialmethod(__singleTargetControlOperation, 'x'))
+setattr(PyKernel, 'cy', partialmethod(__singleTargetControlOperation, 'y'))
+setattr(PyKernel, 'cz', partialmethod(__singleTargetControlOperation, 'z'))
+setattr(PyKernel, 'cs', partialmethod(__singleTargetControlOperation, 's'))
+setattr(PyKernel, 'ct', partialmethod(__singleTargetControlOperation, 't'))
 
-setattr(PyKernel, 'rx', partialmethod(__targetOperation, 'rx', [], []))
-setattr(PyKernel, 'ry', partialmethod(__targetOperation, 'ry', [], []))
-setattr(PyKernel, 'rz', partialmethod(__targetOperation, 'rz', [], []))
-setattr(PyKernel, 'r1', partialmethod(__targetOperation, 'r1', [], []))
+setattr(PyKernel, 'rx',
+        partialmethod(__singleTargetSingleParameterOperation, 'rx'))
+setattr(PyKernel, 'ry',
+        partialmethod(__singleTargetSingleParameterOperation, 'ry'))
+setattr(PyKernel, 'rz',
+        partialmethod(__singleTargetSingleParameterOperation, 'rz'))
+setattr(PyKernel, 'r1',
+        partialmethod(__singleTargetSingleParameterOperation, 'r1'))
 
-setattr(PyKernel, 'crx', partialmethod(__targetOperation, 'rx', [], True))
-setattr(PyKernel, 'cry', partialmethod(__targetOperation, 'ry', [], True))
-setattr(PyKernel, 'crz', partialmethod(__targetOperation, 'rz', [], True))
-setattr(PyKernel, 'cr1', partialmethod(__targetOperation, 'r1', [], True))
+setattr(PyKernel, 'crx',
+        partialmethod(__singleTargetSingleParameterControlOperation, 'rx'))
+setattr(PyKernel, 'cry',
+        partialmethod(__singleTargetSingleParameterControlOperation, 'ry'))
+setattr(PyKernel, 'crz',
+        partialmethod(__singleTargetSingleParameterControlOperation, 'rz'))
+setattr(PyKernel, 'cr1',
+        partialmethod(__singleTargetSingleParameterControlOperation, 'r1'))
 
 
 def make_kernel(*args):

@@ -13,6 +13,7 @@ import pytest
 import random
 import numpy as np
 import sys
+import os
 from typing import List
 
 import cudaq
@@ -1432,7 +1433,7 @@ def test_issue_9():
 
 
 def test_issue_670():
-    
+
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(1)
     kernel.ry(0.1, qubits)
