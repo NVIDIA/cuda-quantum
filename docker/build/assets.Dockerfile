@@ -284,13 +284,16 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         # The tests is marked correctly as requiring nvcc, but since nvcc
         # is available during the build we need to filter it manually.
-        filtered=" --filter-out MixedLanguage/cuda-1|TargetConfig/check_compile"; \
+        filtered=" --filter-out MixedLanguage/cuda-1"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
         --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
     filtered=" --filter-out Kernel/inline-qpu-func" && \
+    if [ ! -x "$(command -v nvcc)" ]; then \
+        filtered+="|TargetConfig/check_compile"; \
+    fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
