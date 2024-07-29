@@ -19,7 +19,7 @@ def to_cupy(state, dtype=None):
         print('to_cupy not supported, CuPy not available. Please install CuPy.')
 
     if dtype is None:
-        # Determine the correct dtype based on the cudaq target's precision
+        # Determine the correct data type based on the cudaq target's precision
         target = cudaq_runtime.get_target()
         precision = target.get_precision()
         dtype = cp.complex128 if precision == cudaq_runtime.SimulationPrecision.fp64 else cp.complex64
