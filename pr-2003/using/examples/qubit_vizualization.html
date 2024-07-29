@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Qubit visualizations &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Qubit Visualization &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -127,7 +127,6 @@
 <li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#measurements">Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#state-visualization">State Visualization</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Qubit Visualization</a></li>
@@ -208,6 +207,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../backends/simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
@@ -528,7 +528,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="examples.html">CUDA-Q by Example</a></li>
-      <li class="breadcrumb-item active">Qubit visualizations</li>
+      <li class="breadcrumb-item active">Qubit Visualization</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/using/examples/qubit_vizualization.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -541,16 +541,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Qubit-visualizations">
-<h1>Qubit visualizations<a class="headerlink" href="#Qubit-visualizations" title="Permalink to this heading">¶</a></h1>
-<p>What are the possible states our qubit can be in and how can we build up a visual cue to help us make sense of quantum states and their evolution?</p>
-<p>We know our qubit can have 2 distinct states: <span class="math notranslate nohighlight">\(\ket{0}\)</span> and <span class="math notranslate nohighlight">\(\ket{1}\)</span>. Maybe we need a 1 dimensional line whose vertices can represent each of the aforementioned states.</p>
-<p>We also know that qubits’ can be in an equal superposition states: <span class="math notranslate nohighlight">\(\ket{+}\)</span> and <span class="math notranslate nohighlight">\(\ket{-}\)</span>. This now forces us to extend our 1-D line to a 2-D cartesian coordinate system.</p>
-<p>Later, we will learn the existence of states that can be represented with <span class="math notranslate nohighlight">\(\ket{+i}\)</span> and <span class="math notranslate nohighlight">\(\ket{-i}\)</span>, this calls for a 3-D extension.</p>
-<p>It turns out that a sphere is able to depict all the possible states of a single qubit as shown in figure below:</p>
+  <section id="Qubit-Visualization">
+<h1>Qubit Visualization<a class="headerlink" href="#Qubit-Visualization" title="Permalink to this heading">¶</a></h1>
+<p>What are the possible states a qubit can be in and how can we build up a visual cue to help us make sense of quantum states and their evolution?</p>
+<p>We know our qubit can have two distinct states: <span class="math notranslate nohighlight">\(\ket{0}\)</span> and <span class="math notranslate nohighlight">\(\ket{1}\)</span>. Maybe we need a one-dimensional line whose vertices can represent each of the states. We also know that qubits can be in an equal superposition states: <span class="math notranslate nohighlight">\(\ket{+}\)</span> and <span class="math notranslate nohighlight">\(\ket{-}\)</span>. This now forces us to extend our 1D line to a 2D Cartesian coordinate system. If you dive deeper you will learn about the existence of states like <span class="math notranslate nohighlight">\(\ket{+i}\)</span> and <span class="math notranslate nohighlight">\(\ket{-i}\)</span>, this calls for a 3D extension.</p>
+<p>It turns out that a sphere is able to depict all the possible states of a single qubit. This is called a Bloch sphere.</p>
 <p><img alt="Bloch Sphere" class="no-scaled-link" src="../../_images/Bloch_sphere.png" style="width: 300px; height: 300px;" /></p>
-<p>Let us try to showcase the functionality to render such a 3D representation with CUDA-Q.</p>
-<p>First, let us define a single-qubit kernel that returns a different state each time. This kernel uses random rotations.</p>
+<p>Unfortunately, there is no such handy visualization for multi-qubit states. In particular, a multi-qubit state cannot be visualized as multiple Bloch spheres due to the nature of entanglement that makes quantum computing so powerful.</p>
+<p>Let us try to showcase the functionality to render such a 3D representation with CUDA-Q. First, let us define a single-qubit kernel that returns a different state each time. This kernel uses random rotations.</p>
 <p>Note: CUDA-Q uses the <a class="reference external" href="https://qutip.org">QuTiP</a> library to render Bloch spheres. The following code will throw an error if QuTiP is not installed.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
@@ -586,18 +584,18 @@
 Tools not found, installing. Please restart your kernel after this is done.
 Collecting qutip&gt;=5
   Downloading qutip-5.0.3.post1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (28.0 MB)
-     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">15.6 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">63.1 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
 Requirement already satisfied: matplotlib&gt;=3.5 in /usr/local/lib/python3.10/dist-packages (3.9.1)
-Requirement already satisfied: scipy&gt;=1.9 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.10.1)
 Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (24.1)
 Requirement already satisfied: numpy&gt;=1.22 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.26.4)
-Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.5)
-Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.2)
+Requirement already satisfied: scipy&gt;=1.9 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.10.1)
 Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (2.9.0.post0)
 Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (4.53.1)
-Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.2.1)
-Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (10.4.0)
 Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
+Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.2.1)
+Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.2)
+Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (10.4.0)
+Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.5)
 Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib&gt;=3.5) (1.16.0)
 Installing collected packages: qutip
 Successfully installed qutip-5.0.3.post1
@@ -653,7 +651,7 @@ New libraries have been installed. Please restart your kernel!
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/using_examples_qubit_vizualization_8_0.png" src="../../_images/using_examples_qubit_vizualization_8_0.png" />
+<img alt="../../_images/using_examples_qubit_vizualization_7_0.png" src="../../_images/using_examples_qubit_vizualization_7_0.png" />
 </div>
 </div>
 <p>We can also show multiple Bloch spheres side by side - simply set the <code class="docutils literal notranslate"><span class="pre">nrows</span></code> and <code class="docutils literal notranslate"><span class="pre">ncols</span></code> in the call to <code class="docutils literal notranslate"><span class="pre">cudaq.show()</span></code> accordingly. Make sure to have more spaces than spheres in your list, else it will throw an error! Let us show two spheres in a row:</p>
@@ -669,7 +667,7 @@ New libraries have been installed. Please restart your kernel!
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/using_examples_qubit_vizualization_10_0.png" src="../../_images/using_examples_qubit_vizualization_10_0.png" />
+<img alt="../../_images/using_examples_qubit_vizualization_9_0.png" src="../../_images/using_examples_qubit_vizualization_9_0.png" />
 </div>
 </div>
 <p>We can show them in a column too, if we want! Simply set the <code class="docutils literal notranslate"><span class="pre">nrows</span> <span class="pre">=</span> <span class="pre">2</span></code> and <code class="docutils literal notranslate"><span class="pre">ncols</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
@@ -685,7 +683,7 @@ New libraries have been installed. Please restart your kernel!
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/using_examples_qubit_vizualization_12_0.png" src="../../_images/using_examples_qubit_vizualization_12_0.png" />
+<img alt="../../_images/using_examples_qubit_vizualization_11_0.png" src="../../_images/using_examples_qubit_vizualization_11_0.png" />
 </div>
 </div>
 <p>Can we show the entire list of 4 Bloch spheres we created? Absolutely!</p>
@@ -701,7 +699,7 @@ New libraries have been installed. Please restart your kernel!
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/using_examples_qubit_vizualization_14_0.png" src="../../_images/using_examples_qubit_vizualization_14_0.png" />
+<img alt="../../_images/using_examples_qubit_vizualization_13_0.png" src="../../_images/using_examples_qubit_vizualization_13_0.png" />
 </div>
 </div>
 <p>What if we had to add multiple vectors to a single Bloch sphere? CUDA-Q uses the <a class="reference external" href="https://www.qutip.org">QuTiP</a> toolbox to construct Bloch spheres. We can then add multiple states to the same Bloch sphere by passing the sphere object as an argument to <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code>.</p>
@@ -732,7 +730,7 @@ New libraries have been installed. Please restart your kernel!
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/using_examples_qubit_vizualization_18_0.png" src="../../_images/using_examples_qubit_vizualization_18_0.png" />
+<img alt="../../_images/using_examples_qubit_vizualization_17_0.png" src="../../_images/using_examples_qubit_vizualization_17_0.png" />
 </div>
 </div>
 </section>

@@ -5,34 +5,26 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Qubit visualizations\n",
+    "# Qubit Visualization\n",
     "\n",
+    "What are the possible states a qubit can be in and how can we build up a visual cue to help us make sense of quantum states and their evolution?\n",
     "\n",
-    "What are the possible states our qubit can be in and how can we build up a visual cue to help us make sense of quantum states and their evolution?\n",
+    "We know our qubit can have two distinct states: $\\ket{0}$ and $\\ket{1}$. Maybe we need a one-dimensional line whose vertices can\n",
+    "represent each of the states. We also know that qubits can be in an equal superposition states: $\\ket{+}$ and $\\ket{-}$. This now forces us to extend our 1D line to a 2D Cartesian coordinate system. If you dive deeper you will learn about the existence of states like \n",
+    "$\\ket{+i}$ and $\\ket{-i}$, this calls for a 3D extension.\n",
     "\n",
-    "We know our qubit can have 2 distinct states: $\\ket{0}$ and $\\ket{1}$. Maybe we need a 1 dimensional line whose vertices can represent each of the aforementioned states. \n",
-    "\n",
-    "We also know that qubits' can be in an equal superposition states: $\\ket{+}$ and $\\ket{-}$. This now forces us to extend our 1-D line to a 2-D cartesian coordinate system. \n",
-    "\n",
-    "Later, we will learn the existence of states that can be represented with $\\ket{+i}$ and $\\ket{-i}$, this calls for a 3-D extension. \n",
-    "\n",
-    "It turns out that a sphere is able to depict all the possible states of a single qubit as shown in figure below: \n",
+    "It turns out that a sphere is able to depict all the possible states of a single qubit. This is called a Bloch sphere. \n",
     "\n",
     "<img src=\"images/Bloch_sphere.png\" alt=\"Bloch Sphere\" width=\"300\" height=\"300\">\n",
-    "\n"
+    "\n",
+    "Unfortunately, there is no such handy visualization for multi-qubit states. In particular, a multi-qubit state cannot be visualized as multiple Bloch  spheres due to the nature of entanglement that makes quantum computing so powerful. "
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "Let us try to showcase the functionality to render such a 3D representation with CUDA-Q."
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
+    "Let us try to showcase the functionality to render such a 3D representation with CUDA-Q. \n",
     "First, let us define a single-qubit kernel that returns a different state each time. This kernel uses random rotations.\n",
     "\n",
     "Note: CUDA-Q uses the [QuTiP](https://qutip.org) library to render Bloch spheres. The following code will throw an error if QuTiP is not installed. "
