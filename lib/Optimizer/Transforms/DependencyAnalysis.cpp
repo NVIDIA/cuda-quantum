@@ -665,9 +665,9 @@ struct DependencyAnalysisPass
   void codeGen(SmallVector<DependencyGraph> &graphs, OpBuilder &builder) {
     SmallVector<LifeTime *> lifetimes;
     SmallVector<DependencyNode *> sinks;
-    uint cycles = getTotalCycles(graphs);
+    numCycles = getTotalCycles(graphs);
 
-    for (uint cycle = 0; cycle < cycles; cycle++) {
+    for (uint cycle = 0; cycle < numCycles; cycle++) {
       for (auto graph : graphs) {
         // For every "new" qubit, try to find an existing out-of-use qubit
         // that we can reuse. Failing that, use a new qubit.
@@ -677,7 +677,7 @@ struct DependencyAnalysisPass
           LLVM_DEBUG(llvm::dbgs()
                      << " is in use from cycle " << lifetime->getBegin());
           LLVM_DEBUG(llvm::dbgs() << " through cycle " << lifetime->getEnd());
-          LLVM_DEBUG(llvm::dbgs() << "\n\n");
+          LLVM_DEBUG(llvm::dbgs() << "\n");
 
           auto new_qid = findBestQubit(lifetimes, lifetime);
           if (!new_qid) {
@@ -687,6 +687,7 @@ struct DependencyAnalysisPass
             sinks.push_back(graph.getRootForQID(qid));
             // Initialize the qubit with a null wire op
             graph.initializeWire(qid, builder);
+            numPhysicalQubits++;
           } else {
             // We found a qubit we can reuse!
             lifetimes[new_qid.value()] =
@@ -699,14 +700,14 @@ struct DependencyAnalysisPass
             graph.initializeWireFromRoot(qid, last_user);
             sinks[new_qid.value()] = graph.getRootForQID(qid);
           }
+          
+          LLVM_DEBUG(llvm::dbgs() << "It is mapped to physical qubit ");
+          LLVM_DEBUG(llvm::dbgs() << new_qid.value() << "\n\n");
         }
 
         graph.codeGenAt(cycle, builder);
       }
     }
-
-    if (dumpNumQubits)
-      llvm::dbgs() << "DependencyAnalysis used " << lifetimes.size() << " physical qubits\n";
 
     // Add teardown instructions
     for (auto sink : sinks)
@@ -723,7 +724,6 @@ struct DependencyAnalysisPass
       return;
 
     SetVector<DependencyNode *> roots;
-    size_t qubits = 0;
 
     for (auto &op : func.front().getOperations()) {
       if (dyn_cast<func::ReturnOp>(op))
@@ -737,12 +737,12 @@ struct DependencyAnalysisPass
       }
 
       if (isBeginOp(&op))
-        qubits++;
+        numVirtualQubits++;
       if (isEndOp(&op))
         roots.insert(node);
     }
 
-    assert(qubits == roots.size() && "Too few sinks for qubits -- was add-dealloc run?");
+    assert(numVirtualQubits == roots.size() && "Too few sinks for qubits -- was add-dealloc run?");
 
     // Construct graphs from roots
     SmallVector<DependencyGraph> graphs;
@@ -767,6 +767,7 @@ struct DependencyAnalysisPass
     // Generate optimized instructions in new block
     codeGen(graphs, builder);
     builder.create<func::ReturnOp>(builder.getUnknownLoc());
+
     // Replace old block
     oldBlock->erase();
   }
@@ -789,11 +790,7 @@ struct ManageQubitsPipelineOptions
 
 
 // TODO: ensure this is run only with BASE profile
-static void createQubitManagementPipeline(OpPassManager &pm, bool runQubitManagement,
-                                          bool dumpNumQubits) {
-  if (!runQubitManagement)
-    return;
-
+static void createQubitManagementPipeline(OpPassManager &pm) {
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
@@ -803,8 +800,7 @@ static void createQubitManagementPipeline(OpPassManager &pm, bool runQubitManage
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAssignIDs());
-  cudaq::opt::DependencyAnalysisOptions dao{dumpNumQubits};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDependencyAnalysis(dao));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDependencyAnalysis());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
@@ -817,6 +813,6 @@ void cudaq::opt::registerQubitManagementPipeline() {
       "qubit-management-pipeline",
       "Map virtual qubits to physical qubits, minimizing the # of physical qubits.",
       [](OpPassManager &pm, const ManageQubitsPipelineOptions &upo) {
-        createQubitManagementPipeline(pm, upo.runQubitManagement, upo.dumpNumQubits);
+        createQubitManagementPipeline(pm);
       });
 }

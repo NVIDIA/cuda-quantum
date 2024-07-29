@@ -202,9 +202,14 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::func::FuncOp"> {
   }];
 
   let dependentDialects = ["quake::QuakeDialect"];
-  let options = [
-    Option<"dumpNumQubits", "dump-num_qubits", "bool", /*default=*/"false",
-      "Dumps the number of physical qubits used to STDERR. (default: false)">,
+
+  let statistics = [
+    Statistic<"numVirtualQubits", "num-virtual-qubits",
+              "Number of virtual qubits used">,
+    Statistic<"numPhysicalQubits", "num-physical-qubits",
+              "Number of phyiscal qubits used">,
+    Statistic<"numCycles", "num-cycles",
+              "Length of kernel in cycles">,
   ];
 }
 

@@ -33,9 +33,15 @@ bool isMeasureOp(Operation *op) {
          dyn_cast<quake::MzOp>(*op);
 }
 
-bool hasClassicalInput(Operation *op) {
-  return dyn_cast<quake::RxOp>(*op) || dyn_cast<quake::RyOp>(*op) ||
-         dyn_cast<quake::RzOp>(*op);
+int numClassicalInput(Operation *op) {
+  if (dyn_cast<quake::RxOp>(*op) || dyn_cast<quake::RyOp>(*op) ||
+      dyn_cast<quake::RzOp>(*op))
+    return 1;
+
+  if (dyn_cast<quake::PhasedRxOp>(*op))
+    return 2;
+
+  return 0;
 }
 
 class NullWirePat : public OpRewritePattern<quake::NullWireOp> {
@@ -89,11 +95,20 @@ std::optional<uint> findQid(Value v) {
     if (defop->getResult(i) == v)
       break;
 
-  // Special cases where result # != operand #
-  if (isMeasureOp(defop))
+  // Special cases where result # != operand #:
+  // Wire is second output but sole input
+  if (isMeasureOp(defop)) {
     i = 0;
-  else if (hasClassicalInput(defop))
-    i++;
+    auto qid = findQid(defop->getOperand(i));
+    rewriter.startRootUpdate(defop);
+    defop->setAttr("qid", rewriter.getUI32IntegerAttr(qid.value()));
+    rewriter.finalizeRootUpdate(defop);
+  }
+  // Classical values preceding wires as input are consumed and not part of the results
+  i += numClassicalInput(defop);
+  // Swap op swaps wires
+  if (dyn_cast<quake::SwapOp>(defop))
+    i = (i == 1 ? 0 : 1);
 
   return findQid(defop->getOperand(i));
 }

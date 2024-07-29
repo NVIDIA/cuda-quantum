@@ -562,7 +562,7 @@ std::string getQIR(const std::string &name, MlirModule module,
   if (profile.empty())
     cudaq::opt::addPipelineConvertToQIR(pm);
   else
-    cudaq::opt::addPipelineConvertToQIR(pm, profile);
+    cudaq::opt::addPipelineConvertToQIR(pm, profile, false);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer

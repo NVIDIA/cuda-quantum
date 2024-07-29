@@ -25,12 +25,12 @@ namespace cudaq::opt {
 /// Adds the common pipeline (with or without a profile specifier) but without
 /// the final QIR profile lowering passes.
 void commonPipelineConvertToQIR(
-    mlir::PassManager &pm, const std::optional<mlir::StringRef> &convertTo);
+    mlir::PassManager &pm, const std::optional<mlir::StringRef> &convertTo, bool runQM);
 
 /// \brief Pipeline builder to convert Quake to QIR.
 /// Does not specify a particular QIR profile.
 inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
-  commonPipelineConvertToQIR(pm, std::nullopt);
+  commonPipelineConvertToQIR(pm, std::nullopt, false);
 }
 
 /// \brief Pipeline builder to convert Quake to QIR.
@@ -38,8 +38,8 @@ inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
 /// \p pm Pass manager to append passes to
 /// \p convertTo name of QIR profile (e.g., `qir-base`, `qir-adaptive`, ...)
 inline void addPipelineConvertToQIR(mlir::PassManager &pm,
-                                    mlir::StringRef convertTo) {
-  commonPipelineConvertToQIR(pm, convertTo);
+                                    mlir::StringRef convertTo, bool runQM) {
+  commonPipelineConvertToQIR(pm, convertTo, runQM);
   addQIRProfilePipeline(pm, convertTo);
 }
 

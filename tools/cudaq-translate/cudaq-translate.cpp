@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
       .Case("qir", [&]() { cudaq::opt::addPipelineConvertToQIR(pm); })
       .Cases("qir-adaptive", "qir-base",
              [&]() {
-               cudaq::opt::addPipelineConvertToQIR(pm, convertTo.getValue());
+               cudaq::opt::addPipelineConvertToQIR(pm, convertTo.getValue(), false);
              })
       .Case("openqasm2",
             [&]() {

@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: DUMP_NUM_QUBITS=true nvq++ %cpp_std --target ionq --emulate %s -o %t && %t |& FileCheck %s
-// RUN: DUMP_NUM_QUBITS=true nvq++ %cpp_std --target oqc  --emulate %s -o %t && %t |& FileCheck %s
+// RUN: CUDAQ_MLIR_PASS_STATISTICS=true nvq++ %cpp_std --target ionq --emulate %s -o %t && %t |& FileCheck %s
+// RUN: CUDAQ_MLIR_PASS_STATISTICS=true nvq++ %cpp_std --target oqc  --emulate %s -o %t && %t |& FileCheck %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 
 #include <cudaq.h>
@@ -35,4 +35,6 @@ int main() {
   return 0;
 }
 
-// CHECK: DependencyAnalysis used 3 physical qubits
+// CHECK: (S) 6 num-cycles
+// CHECK: (S) 3 num-physical-qubits
+// CHECK: (S) 3 num-virtual-qubits
