@@ -218,7 +218,8 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
         --exclude libcudart.so.11.0 \
-        --exclude libnvToolsExt.so.1
+        --exclude libnvToolsExt.so.1 \
+        --exclude libnvidia-ml.so.1
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.

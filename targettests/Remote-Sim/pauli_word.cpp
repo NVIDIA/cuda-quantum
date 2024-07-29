@@ -10,8 +10,10 @@
 
 // clang-format off
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
+// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 #include <iostream>
@@ -53,7 +55,7 @@ int main() {
         cudaq::observe(kernelSingle{}, h, cudaq::pauli_word{"XXXY"}, 0.11);
     std::cout << "e = " << e << "\n";
     constexpr double expectedVal = -1.13;
-    assert(std::abs(e - expectedVal) < 0.1);
+    REMOTE_TEST_ASSERT(std::abs(e - expectedVal) < 0.1);
   }
   {
     // Vector of three terms (same values)
@@ -61,7 +63,7 @@ int main() {
     const double e = cudaq::observe(kernelVector{}, h, paulis, 0.11);
     std::cout << "e = " << e << "\n";
     constexpr double expectedVal = -1.13;
-    assert(std::abs(e - expectedVal) < 0.1);
+    REMOTE_TEST_ASSERT(std::abs(e - expectedVal) < 0.1);
   }
   return 0;
 }

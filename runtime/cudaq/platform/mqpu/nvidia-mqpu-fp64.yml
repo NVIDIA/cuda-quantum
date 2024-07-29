@@ -8,7 +8,7 @@
 
 name: nvidia-mqpu-fp64
 description: "The NVIDIA MQPU FP64 Target provides a simulated QPU for every available CUDA GPU on the underlying system. Each QPU is simulated via cuStateVec FP64."
-warning: "This target is deprecating. Please use the 'nvidia' target with option 'mqpu,fp64'."
+warning: "This target is deprecating. Please use the 'nvidia' target with option 'mqpu,fp64' by adding the command line option '--target-option mqpu,fp64' or passing it as cudaq.set_target('nvidia', option='mqpu,fp64') in Python. Please refer to CUDA-Q \e]8;;https://nvidia.github.io/cuda-quantum/latest/using/backends/platform.html#nvidia-mqpu-platform\e\\documentation\e]8;;\e\\ for more information."
 gpu-requirements: true
 
 config:

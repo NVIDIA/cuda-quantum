@@ -15,11 +15,10 @@ QPUs for asynchronous CUDA-Q kernel and :code:`cudaq::` function invocations.
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.
 
+.. _mqpu-platform:
 
 NVIDIA `MQPU` Platform
 ++++++++++++++++++++++
-
-.. _mqpu-platform:
 
 In the multi-QPU mode (:code:`mqpu` option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
 Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA target. For more information about using multiple GPUs 
@@ -268,3 +267,6 @@ language constructs within quantum kernels may not yet be fully supported.
      - `std::vector<std::vector<int>>`, `std::vector<cudaq::pauli_word>`, etc. 
      - Number of top-level elements (as a 64-bit integer) followed sizes in bytes of element vectors (as a contiguous array of 64-bit integers) then serialized data of the inner vectors.
      
+For CUDA-Q kernels that return a value, the remote platform supports returning simple data types of 
+`bool`, integral (e.g., `int` or `std::size_t`), and floating-point types (`float` or `double`) 
+when MLIR-based compilation is enabled (:code:`--enable-mlir`).

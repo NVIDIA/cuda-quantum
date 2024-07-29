@@ -14,6 +14,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 #include <cudaq/builder.h>
@@ -37,7 +38,7 @@ int main() {
     // Simple `cudaq::observe` test
     double energy = cudaq::observe(ansatz{}, h, .59);
     printf("Energy is %lf\n", energy);
-    assert(std::abs(energy + 1.748794) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(energy + 1.748794) < 1e-3);
   }
   {
     // Full VQE test with gradients
@@ -56,7 +57,7 @@ int main() {
           return e;
         });
     printf("Optimal value = %.16lf\n", opt_val);
-    assert(std::abs(opt_val + 1.748794) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(opt_val + 1.748794) < 1e-3);
   }
   return 0;
 }

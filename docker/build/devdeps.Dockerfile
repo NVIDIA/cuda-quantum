@@ -151,12 +151,12 @@ ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 # We must use h5py<3.11 because 3.11 doesn't include aarch64 Linux wheels.
 # https://github.com/h5py/h5py/issues/2408
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ninja-build file \
+        git gdb ninja-build file lldb \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir \
         lit==18.1.4 pytest==8.2.0 numpy==1.26.4 requests==2.31.0 \
         fastapi==0.111.0 uvicorn==0.29.0 pydantic==2.7.1 llvmlite==0.42.0 \
-        pyspelling==2.10 pymdown-extensions==10.8.1 \
+        pyspelling==2.10 pymdown-extensions==10.8.1 yapf \
         scipy==1.10.1 openfermionpyscf==0.5 'h5py<3.11' \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
