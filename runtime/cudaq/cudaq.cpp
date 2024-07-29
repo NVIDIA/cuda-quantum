@@ -100,7 +100,7 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
   return g_plugin.get();
 };
 
-bool available() { return static_cast<bool>(getMpiPlugin(/*unsafe=*/true)); }
+bool available() { return getMpiPlugin(/*unsafe=*/true); }
 
 void initialize() {
   auto *commPlugin = getMpiPlugin();
