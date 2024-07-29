@@ -5,6 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 def to_cupy(state, dtype=None):
@@ -17,8 +18,11 @@ def to_cupy(state, dtype=None):
     except ImportError:
         print('to_cupy not supported, CuPy not available. Please install CuPy.')
 
-    if dtype == None:
-        dtype = cp.complex64
+    if dtype is None:
+        # Determine the correct dtype based on the cudaq target's precision
+        target = cudaq_runtime.get_target()
+        precision = target.get_precision()
+        dtype = cp.complex128 if precision == cudaq_runtime.SimulationPrecision.fp64 else cp.complex64
 
     if not state.is_on_gpu():
         raise RuntimeError(
