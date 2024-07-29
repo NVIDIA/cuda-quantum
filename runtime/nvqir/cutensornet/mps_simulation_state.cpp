@@ -220,7 +220,7 @@ std::complex<double> MPSSimulationState::computeOverlap(
   HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(m_tnConfig));
   HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(m_tnDescr));
 
-  return overlap;
+  return std::abs(overlap);
 }
 
 std::complex<double>

@@ -47,11 +47,10 @@ struct QppState : public cudaq::SimulationState {
     std::span<std::complex<double>> otherState(
         reinterpret_cast<std::complex<double> *>(other.getTensor().data),
         other.getTensor().extents[0]);
-    return std::inner_product(
-               state.begin(), state.end(), otherState.begin(), complex{0., 0.},
-               [](auto a, auto b) { return a + b; },
-               [](auto a, auto b) { return std::abs(a * std::conj(b)); })
-        .real();
+    return std::abs(std::inner_product(
+        state.begin(), state.end(), otherState.begin(), complex{0., 0.},
+        [](auto a, auto b) { return a + b; },
+        [](auto a, auto b) { return a * std::conj(b); }));
   }
 
   std::complex<double>

@@ -46,7 +46,7 @@ struct AdotConjB
                                      ThrustComplex<T>> {
   __host__ __device__ ThrustComplex<T> operator()(ThrustComplex<T> a,
                                                   ThrustComplex<T> b) {
-    return thrust::abs(a * thrust::conj(b));
+    return a * thrust::conj(b);
   };
 };
 
@@ -132,11 +132,11 @@ private:
 
     // Here we explicitly copy the data to the GPU
     thrust::device_vector<ThrustComplex<T>> otherDevPtr(other);
-    return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                 otherDevPtr.begin(), ThrustComplex<T>(0.0),
-                                 thrust::plus<ThrustComplex<T>>(),
-                                 AdotConjB<T>())
-        .real();
+    // return: |<this|other>|
+    return thrust::abs(thrust::inner_product(
+        thrustDevPtrABegin, thrustDevPtrAEnd, otherDevPtr.begin(),
+        ThrustComplex<T>(0.0), thrust::plus<ThrustComplex<T>>(),
+        AdotConjB<T>()));
   }
 
   /// @brief Internal utility method for computing overlap from
