@@ -411,8 +411,52 @@ def test_state_preparation_capture():
         q = cudaq.qvector(c)
 
     counts = cudaq.sample(kernel)
+    assert '00' in counts
+    assert '10' in counts
 
-    print(counts)
+@skipIfPythonLessThan39
+def test_vector():
+    c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+
+    @cudaq.kernel
+    def kernel(r: int):
+        q = cudaq.qvector(c)
+
+    synthesized = cudaq.synthesize(kernel, 0)
+    counts = cudaq.sample(synthesized)
+    assert '00' in counts
+    assert '10' in counts
+
+@skipIfPythonLessThan39
+def test_state_from_data():
+    c = np.array([1. / np.sqrt(2.),  1. / np.sqrt(2.), 0., 0.],
+                    dtype=complex)
+    print(cudaq.complex())
+    state = cudaq.State.from_data(c)
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+
+
+@skipIfPythonLessThan39
+def test_state_from_another_kernel():
+    @cudaq.kernel
+    def initState(n: int):
+        q = cudaq.qvector(n)
+        ry(np.pi/2, q[0])
+
+    state = cudaq.get_state(initState, 2)
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+
+    counts = cudaq.sample(kernel, state)
     assert '00' in counts
     assert '10' in counts
 

@@ -28,6 +28,8 @@
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <cxxabi.h>
 
+#include <iostream>
+
 #define DEBUG_TYPE "cudaq-qpud"
 
 namespace cudaq {
@@ -35,7 +37,7 @@ std::unique_ptr<llvm::orc::LLJIT>
 invokeWrappedKernel(std::string_view irString, const std::string &entryPointFn,
                     void *args, std::uint64_t argsSize, std::size_t numTimes,
                     std::function<void(std::size_t)> postExecCallback) {
-
+  std::cout << "IR:" << irString << std::endl;
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
   // Parse bitcode
   llvm::SMDiagnostic Err;
@@ -78,6 +80,7 @@ invokeWrappedKernel(std::string_view irString, const std::string &entryPointFn,
           abi::__cxa_demangle(func.getName().data(), nullptr, nullptr, nullptr);
       if (demangledPtr) {
         std::string demangledName(demangledPtr);
+        std::cout << demangledName << ", " << funcName << std::endl;
         if (demangledName.rfind(wrappedKernelSymbol, 0) == 0 &&
             demangledName.find(templatedTypeName) != std::string::npos) {
           LLVM_DEBUG(llvm::dbgs() << "Found symbol " << func.getName()
@@ -96,6 +99,8 @@ invokeWrappedKernel(std::string_view irString, const std::string &entryPointFn,
     return std::make_pair(mangledKernel, mangledWrapper);
   }();
 
+  std::cout << "mangledKernelNames.first" << mangledKernelNames.first <<std::endl;
+  std::cout << "mangledKernelNames.second" << mangledKernelNames.second <<std::endl;
   if (mangledKernelNames.first.empty() || mangledKernelNames.second.empty())
     throw std::runtime_error("Failed to locate symbols from the IR");
 

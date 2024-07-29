@@ -259,11 +259,10 @@ mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
                        mlir::Type toType, mlir::Value fromValue,
                        bool signExtend = false, bool zeroExtend = false);
 
-
 std::pair<std::size_t, std::vector<std::size_t>>
-getFunctionArgumentLayout(mlir::ModuleOp module,
-                          mlir::func::FuncOp func, 
-                          bool filter(mlir::Type) = nullptr, std::size_t startingArgIdx = 0);
+getFunctionArgumentLayout(mlir::ModuleOp module, mlir::func::FuncOp func,
+                          bool filter(mlir::Type) = nullptr,
+                          std::size_t startingArgIdx = 0);
 } // namespace factory
 } // namespace opt
 } // namespace cudaq

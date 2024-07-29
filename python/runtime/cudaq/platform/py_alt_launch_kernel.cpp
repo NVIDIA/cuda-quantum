@@ -500,27 +500,31 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
 }
 
 /// Collect simulation state data from all `cudaq::state *` arguments.
-static cudaq::opt::SimulationStateDataStore readSimulationStateData(
-  mlir::ModuleOp moduleOp, mlir::func::FuncOp func, const void* args, std::size_t startingArgIdx = 0) {
+static cudaq::opt::SimulationStateDataStore
+readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
+                        const void *args, std::size_t startingArgIdx = 0) {
   cudaq::opt::SimulationStateDataStore dataStore;
 
   std::cout << "Reading simulation data" << std::endl;
   auto filterStatePtr = [](Type type) {
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
       auto res = isa<cudaq::cc::StateType>(ptrTy.getElementType());
-      if (res) std::cout << "found state arg" << std::endl;
+      if (res)
+        std::cout << "found state arg" << std::endl;
       return res;
     }
     return false;
   };
   std::cout << "Getting argument layout" << std::endl;
-  auto argumentLayout = cudaq::opt::factory::getFunctionArgumentLayout(moduleOp, func, filterStatePtr, startingArgIdx);
+  auto argumentLayout = cudaq::opt::factory::getFunctionArgumentLayout(
+      moduleOp, func, filterStatePtr, startingArgIdx);
   return cudaq::runtime::readSimulationStateData(argumentLayout, args);
   // for (std::size_t argNum = 0; argNum < argumentLayout.first; argNum++) {
   //   auto offset = argumentLayout.second[argNum];
-    
+
   //   cudaq::state* state;
-  //   std::memcpy(&state, ((const char *)args) + offset, sizeof(cudaq::state*));
+  //   std::memcpy(&state, ((const char *)args) + offset,
+  //   sizeof(cudaq::state*));
 
   //   auto copyData = [&] <typename T>() {
   //     auto numElements = state->get_tensor().get_num_elements();
@@ -529,13 +533,14 @@ static cudaq::opt::SimulationStateDataStore readSimulationStateData(
   //     state->to_host(hostData, numElements);
   //     void *dataPtr = static_cast<void *>(hostData);
   //     dataStore.setElementSize(elementSize);
-  //     dataStore.addData(dataPtr, numElements, [](void* ptr) { delete static_cast<T*>(ptr); } );
+  //     dataStore.addData(dataPtr, numElements, [](void* ptr) { delete
+  //     static_cast<T*>(ptr); } );
   //   };
 
   //   auto precision = state->get_precision();
   //   if (precision == SimulationState::precision::fp32)
   //     copyData.template operator()<std::complex<float>>();
-  //   else 
+  //   else
   //     copyData.template operator()<std::complex<double>>();
   // }
   // return dataStore;
@@ -560,21 +565,28 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   PassManager pm(context);
   auto kernelNameInQuake = cudaq::runtime::cudaqGenPrefixName + name;
   auto funcOp = cloned.lookupSymbol<func::FuncOp>(kernelNameInQuake);
-  if (!funcOp) 
-    cloned.emitOpError("The kernel '" + name + "' was not found in the module.");
-    
-  auto &platform = cudaq::get_platform();
-  auto isRemoteSimulator = platform.get_remote_capabilities().serializedCodeExec;
-  auto isSameAddressSpace = platform.is_simulator() && !platform.is_emulated() && !isRemoteSimulator;
-  std::cout << "Simulator:" << platform.is_simulator() << ", emulated: " << platform.is_emulated() << ", remote: " << platform.is_remote() << std::endl;
-  std::cout << "isRemoteSimulator: " << isRemoteSimulator << ", isSameAddressSpace: " << isSameAddressSpace << std::endl;
-  
-  auto stateData = isRemoteSimulator
-    ? readSimulationStateData(cloned, funcOp, runtimeArgs.data())
-    : cudaq::opt::SimulationStateDataStore();
+  if (!funcOp)
+    cloned.emitOpError("The kernel '" + name +
+                       "' was not found in the module.");
 
-  pm.addPass(
-      cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, &stateData, isSameAddressSpace));
+  auto &platform = cudaq::get_platform();
+  auto isRemoteSimulator =
+      platform.get_remote_capabilities().serializedCodeExec;
+  auto isSameAddressSpace =
+      platform.is_simulator() && !platform.is_emulated() && !isRemoteSimulator;
+  std::cout << "Simulator:" << platform.is_simulator()
+            << ", emulated: " << platform.is_emulated()
+            << ", remote: " << platform.is_remote() << std::endl;
+  std::cout << "isRemoteSimulator: " << isRemoteSimulator
+            << ", isSameAddressSpace: " << isSameAddressSpace << std::endl;
+
+  auto stateData =
+      isRemoteSimulator
+          ? readSimulationStateData(cloned, funcOp, runtimeArgs.data())
+          : cudaq::opt::SimulationStateDataStore();
+
+  pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, &stateData,
+                                                isSameAddressSpace));
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());

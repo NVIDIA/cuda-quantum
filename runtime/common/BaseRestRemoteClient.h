@@ -76,23 +76,27 @@ private:
 };
 } // namespace
 
-  
 // /// Collect simulation state data from all `cudaq::state *` arguments.
 // static cudaq::opt::SimulationStateDataStore readSimulationData(
-//   mlir::ModuleOp moduleOp, mlir::func::FuncOp func, const void* args, std::size_t startingArgIdx = 0) {
-//   cudaq::opt::SimulationStateDataStore dataStore;
+//   mlir::ModuleOp moduleOp, mlir::func::FuncOp func, const void* args,
+//   std::size_t startingArgIdx = 0) { cudaq::opt::SimulationStateDataStore
+//   dataStore;
 
 //   auto arguments = func.getArguments();
-//   auto argumentLayout = cudaq::opt::factory::getFunctionArgumentLayout(moduleOp, func.getFunctionType(), startingArgIdx);
+//   auto argumentLayout =
+//   cudaq::opt::factory::getFunctionArgumentLayout(moduleOp,
+//   func.getFunctionType(), startingArgIdx);
 
-//   for (std::size_t argNum = startingArgIdx; argNum < arguments.size(); argNum++) {
+//   for (std::size_t argNum = startingArgIdx; argNum < arguments.size();
+//   argNum++) {
 //     auto offset = argumentLayout.second[argNum - startingArgIdx];
 //     auto argument = arguments[argNum];
 //     auto type = argument.getType();
 //     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
 //       if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
 //         cudaq::state* state;
-//         std::memcpy(&state, ((const char *)args) + offset, sizeof(cudaq::state*));
+//         std::memcpy(&state, ((const char *)args) + offset,
+//         sizeof(cudaq::state*));
 
 //         void *dataPtr = nullptr;
 //         auto stateVector = state->get_tensor();
@@ -104,13 +108,15 @@ private:
 //           auto *hostData = new std::complex<float>[numElements];
 //           state->to_host(hostData, numElements);
 //           dataPtr = reinterpret_cast<void *>(hostData);
-//           dataStore.addData(dataPtr, numElements, [](void* ptr) { delete reinterpret_cast<std::complex<float>*>(ptr); } );
+//           dataStore.addData(dataPtr, numElements, [](void* ptr) { delete
+//           reinterpret_cast<std::complex<float>*>(ptr); } );
 //         } else {
 //           elementSize = sizeof(std::complex<double>);
 //           auto *hostData = new std::complex<double>[numElements];
 //           state->to_host(hostData, numElements);
 //           dataPtr = reinterpret_cast<void *>(hostData);
-//           dataStore.addData(dataPtr, numElements, [](void* ptr) { delete reinterpret_cast<std::complex<double>*>(ptr); } );
+//           dataStore.addData(dataPtr, numElements, [](void* ptr) { delete
+//           reinterpret_cast<std::complex<double>*>(ptr); } );
 //         }
 //         dataStore.setElementSize(elementSize);
 //         //dataStore.addData(dataPtr, numElements, [](void* ptr) { } );
@@ -121,17 +127,19 @@ private:
 // }
 
 /// Collect simulation state data from all `cudaq::state *` arguments.
-static cudaq::opt::SimulationStateDataStore readSimulationStateData(
-  mlir::ModuleOp moduleOp, mlir::func::FuncOp func, const void* args, std::size_t startingArgIdx = 0) {
+static cudaq::opt::SimulationStateDataStore
+readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
+                        const void *args, std::size_t startingArgIdx = 0) {
   cudaq::opt::SimulationStateDataStore dataStore;
 
   auto filterStatePtr = [](mlir::Type type) {
-    if (auto ptrTy = llvm::dyn_cast<cudaq::cc::PointerType>(type)) 
-      return llvm::isa<cudaq::cc::StateType>(ptrTy.getElementType()); 
+    if (auto ptrTy = llvm::dyn_cast<cudaq::cc::PointerType>(type))
+      return llvm::isa<cudaq::cc::StateType>(ptrTy.getElementType());
     return false;
   };
 
-  auto argumentLayout = cudaq::opt::factory::getFunctionArgumentLayout(moduleOp, func, filterStatePtr, startingArgIdx);
+  auto argumentLayout = cudaq::opt::factory::getFunctionArgumentLayout(
+      moduleOp, func, filterStatePtr, startingArgIdx);
   return cudaq::runtime::readSimulationStateData(argumentLayout, args);
 }
 
@@ -244,10 +252,13 @@ public:
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
         // For efficiency, we don't run state prep to convert states to gates on
-        // remote simulators, instead we synthesize states as their simulation data vectors.
-        // Read the simulation state data and pass it to the synthesizer for this purpose.
-        auto stateData = readSimulationStateData(moduleOp, func, args, startingArgIdx);
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx, &stateData));
+        // remote simulators, instead we synthesize states as their simulation
+        // data vectors. Read the simulation state data and pass it to the
+        // synthesizer for this purpose.
+        auto stateData =
+            readSimulationStateData(moduleOp, func, args, startingArgIdx);
+        pm.addPass(cudaq::opt::createQuakeSynthesizer(
+            name, args, startingArgIdx, &stateData));
         pm.addPass(mlir::createCanonicalizerPass());
         if (enablePrintMLIREachPass) {
           moduleOp.getContext()->disableMultithreading();

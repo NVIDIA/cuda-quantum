@@ -133,8 +133,6 @@ static bool hasInitStateUse(BlockArgument argument) {
 //   return result;
 // }
 
-
-
 template <typename T>
 Value createGlobalArray(OpBuilder &builder, ModuleOp module, unsigned &counter,
                         BlockArgument argument, Type arrTy,
@@ -186,18 +184,18 @@ LogicalResult synthesizeStateArgument(OpBuilder &builder, ModuleOp module,
 
   // TODO: only use a global if we want to run state prep after?
 
-    // if (hasInitStateUse(argument)) {
-    //   buffer =
-    //       createGlobalArray(builder, module, counter, argument, arrTy, vec);
-    // } else {
-    //   builder.setInsertionPointAfter(conArray);
-    //   buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
-    //   builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
-    // }
+  // if (hasInitStateUse(argument)) {
+  //   buffer =
+  //       createGlobalArray(builder, module, counter, argument, arrTy, vec);
+  // } else {
+  //   builder.setInsertionPointAfter(conArray);
+  //   buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
+  //   builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
+  // }
 
-    // auto ptrArrEleTy =
-    //     cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
-    // Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrArrEleTy, buffer);
+  // auto ptrArrEleTy =
+  //     cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
+  // Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrArrEleTy, buffer);
   OpBuilder::InsertionGuard guard(builder);
   auto buffer =
       createGlobalArray(builder, module, counter, argument, arrTy, vec);
@@ -217,28 +215,31 @@ template <typename T>
 static LogicalResult synthesizeStateArgument(OpBuilder &builder,
                                              ModuleOp module, unsigned &counter,
                                              BlockArgument argument, Type eleTy,
-                                             void* data, std::size_t size) {
+                                             void *data, std::size_t size) {
   std::vector<T> vec;
   for (std::size_t i = 0; i < size; i++) {
     auto elePtr = reinterpret_cast<T *>(data) + i;
     vec.push_back(*elePtr);
   }
-  return synthesizeStateArgument(builder, module, counter, argument, eleTy, vec);
+  return synthesizeStateArgument(builder, module, counter, argument, eleTy,
+                                 vec);
 }
 
-static LogicalResult synthesizeStateArgument(OpBuilder &builder,
-                                             ModuleOp module, unsigned &counter,
-                                             BlockArgument argument,
-                                             const cudaq::opt::SimulationStateDataStore &stateData,
-                                             std::size_t idx) {
+static LogicalResult
+synthesizeStateArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
+                        BlockArgument argument,
+                        const cudaq::opt::SimulationStateDataStore &stateData,
+                        std::size_t idx) {
   auto [data, size, elementSize] = stateData.getData(idx);
 
   if (elementSize == sizeof(std::complex<double>)) {
-    return synthesizeStateArgument<std::complex<double>>(builder, module, counter, argument,
-                                   ComplexType::get(builder.getF64Type()), data, size);
+    return synthesizeStateArgument<std::complex<double>>(
+        builder, module, counter, argument,
+        ComplexType::get(builder.getF64Type()), data, size);
   } else if (elementSize == sizeof(std::complex<float>)) {
-    return synthesizeStateArgument<std::complex<float>>(builder, module, counter, argument,
-                                   ComplexType::get(builder.getF32Type()), data, size);
+    return synthesizeStateArgument<std::complex<float>>(
+        builder, module, counter, argument,
+        ComplexType::get(builder.getF32Type()), data, size);
   }
   module.emitError("unexpected element size in simulation state data");
   return failure();
@@ -529,7 +530,8 @@ protected:
 public:
   QuakeSynthesizer() = default;
   QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s,
-                   const cudaq::opt::SimulationStateDataStore *d, bool sameSpace)
+                   const cudaq::opt::SimulationStateDataStore *d,
+                   bool sameSpace)
       : kernelName(kernel), args(a), startingArgIdx(s), stateData(d),
         sameAddressSpace(sameSpace) {}
 
@@ -556,20 +558,27 @@ public:
       return;
     }
 
+    module.dump();
+
     // Create the builder and get the function arguments.
     // We will remove these arguments and replace with constant ops
     auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
     auto arguments = funcOp.getArguments();
-    auto structLayout = cudaq::opt::factory::getFunctionArgumentLayout(getModule(), funcOp, nullptr, startingArgIdx);
+    auto structLayout = cudaq::opt::factory::getFunctionArgumentLayout(
+        getModule(), funcOp, nullptr, startingArgIdx);
     // Keep track of the stdVec sizes.
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
     std::size_t stateDataOffset = 0;
 
+    std::cout << "StartingArgIdx: " << startingArgIdx <<std::endl;
+    std::cout << "Number of args: " << arguments.size() <<std::endl;
+    std::cout << "Struct size: " << structLayout.second.size() <<std::endl;
     for (std::size_t argNum = startingArgIdx, end = arguments.size();
          argNum < end; argNum++) {
       auto argument = arguments[argNum];
-      assert(structLayout.second.size() > argNum -startingArgIdx &&  "not enough args in struct layout");
-      std::size_t offset = structLayout.second[argNum -startingArgIdx];
+      assert(structLayout.second.size() > argNum - startingArgIdx &&
+             "not enough args in struct layout");
+      std::size_t offset = structLayout.second[argNum - startingArgIdx];
 
       // Get the argument type
       auto type = argument.getType();
@@ -667,8 +676,9 @@ public:
             // Special case of running on a simulator in a different address
             // space, when we have converted state data.
             if (failed(synthesizeStateArgument(builder, module, counter,
-                                               argument, *stateData, stateDataOffset)))
-                funcOp.emitOpError("synthesis failed for state*");
+                                               argument, *stateData,
+                                               stateDataOffset)))
+              funcOp.emitOpError("synthesis failed for state*");
             stateDataOffset++;
           } else {
             // All other cases are not yet supported (i.e. quantum hardware).
@@ -768,7 +778,7 @@ public:
         auto *ptr = reinterpret_cast<const T *>(bufferAppendix);
         std::vector<T> v(ptr, ptr + vecLength);
         std::cout << "Synthesizing vector: ";
-        for (auto e: v) {
+        for (auto e : v) {
           std::cout << e << ", ";
         }
         std::cout << std::endl;

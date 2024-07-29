@@ -573,15 +573,18 @@ Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
                                            zeroExtend ? unit : none);
 }
 
-
 std::pair<std::size_t, std::vector<std::size_t>>
-factory::getFunctionArgumentLayout(mlir::ModuleOp module, mlir::func::FuncOp func, bool filter(mlir::Type arg), std::size_t startingArgIdx) {
+factory::getFunctionArgumentLayout(mlir::ModuleOp module,
+                                   mlir::func::FuncOp func,
+                                   bool filter(mlir::Type arg),
+                                   std::size_t startingArgIdx) {
   auto arguments = func.getArguments();
   auto funcTy = func.getFunctionType();
   auto bufferTy =
       cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
   mlir::StringRef dataLayoutSpec = "";
-  if (auto attr = module->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
+  if (auto attr =
+          module->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
     dataLayoutSpec = cast<mlir::StringAttr>(attr);
   auto dataLayout = llvm::DataLayout(dataLayoutSpec);
   // Convert bufferTy to llvm.

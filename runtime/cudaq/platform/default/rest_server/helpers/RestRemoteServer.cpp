@@ -342,7 +342,7 @@ public:
                              std::string_view ir, std::string_view kernelName,
                              void *kernelArgs, std::uint64_t argsSize,
                              std::size_t seed) override {
-
+    std::cout << "IR: " << ir << std::endl;
     // If we're changing the backend, load the new simulator library from file.
     if (m_simHandle.name != backendSimName) {
       if (m_simHandle.libHandle)
