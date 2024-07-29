@@ -293,6 +293,7 @@ done
 
 if [ -n "$(find $(pwd) -name '*.ipynb')" ]; then
     echo "Validating notebooks:"
+    export OMP_NUM_THREADS=8 
     echo "$available_backends" | python3 notebook_validation.py
     if [ $? -eq 0 ]; then 
         let "passed+=1"
