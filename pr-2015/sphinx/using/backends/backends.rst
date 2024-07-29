@@ -31,5 +31,5 @@ CUDA-Q Backends
 
 .. deprecated:: 0.8
    The `nvidia-fp64`, `nvidia-mgpu`, `nvidia-mqpu`, and `nvidia-mqpu-fp64` targets can be 
-   enabled as extensions of the unified `nvidia` target.
+   enabled as extensions of the unified `nvidia` target (see `nvidia` :ref:`target documentation <nvidia-backend>`).
    These target names might be removed in a future release.
