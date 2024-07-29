@@ -269,6 +269,10 @@ public:
                                 std::size_t seed) override {
     cudaq::optimization_result result;
 
+    // Treat the shots as a signed number, and if it is <= 0, then shots-based
+    // sampling is disabled. This is standard VQE/observe behavior.
+    std::int64_t shots = *reinterpret_cast<std::int64_t *>(&io_context.shots);
+
     // If we're changing the backend, load the new simulator library from file.
     if (m_simHandle.name != backendSimName) {
       if (m_simHandle.libHandle)
@@ -324,7 +328,8 @@ public:
 
       result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                                 std::vector<double> &grad_vec) {
-        double e = cudaq::observe(fnWrapper, theSpin, x);
+        double e = shots <= 0 ? cudaq::observe(fnWrapper, theSpin, x)
+                              : cudaq::observe(shots, fnWrapper, theSpin, x);
         if (requiresGrad)
           gradient->compute(x, grad_vec, theSpin, e);
         return e;
