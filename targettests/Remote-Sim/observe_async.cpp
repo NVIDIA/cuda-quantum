@@ -14,6 +14,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
 struct ansatz {
@@ -43,13 +44,13 @@ int main() {
       (2 * shift);
   printf("Energy is %lf\n", energy);
   printf("Gradient is %lf\n", gradient);
-  assert(std::abs(energy + 1.748794) < 1e-3);
+  REMOTE_TEST_ASSERT(std::abs(energy + 1.748794) < 1e-3);
   // Shots-based observe async. API
   cudaq::set_random_seed(13);
   auto energyFutureShots =
       cudaq::observe_async(/*shots=*/8192, /*qpu_id=*/0, ansatz{}, h, .59);
   const auto energyShots = energyFutureShots.get().expectation();
   printf("Energy (shots) is %lf\n", energyShots);
-  assert(std::abs(energyShots + 1.748794) < 0.1);
+  REMOTE_TEST_ASSERT(std::abs(energyShots + 1.748794) < 0.1);
   return 0;
 }

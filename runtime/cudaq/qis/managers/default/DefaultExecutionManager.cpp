@@ -56,16 +56,32 @@ protected:
                        const void *state,
                        cudaq::simulation_precision precision) override {
     // Here we have qubits in requestedAllocations
-    // want to allocate and set state
+    // want to allocate and set state.
     // There could be previous 'default' allocations whereby we just cached them
     // in requestedAllocations.
     // These default allocations need to be dispatched separately.
-    // FIXME: this assumes no qubit reuse, aka the qubits in targets are the
-    // last ones to be allocated. This is consistent with the Kronecker product
-    // assumption in CircuitSimulator.
     if (!requestedAllocations.empty() &&
         targets.size() != requestedAllocations.size()) {
       assert(targets.size() < requestedAllocations.size());
+      // This assumes no qubit reuse, aka the qubits are allocated in order.
+      // This is consistent with the Kronecker product assumption in
+      // CircuitSimulator.
+      for (std::size_t i = 0; i < requestedAllocations.size() - 1; ++i) {
+        // Verify this assumption to make sure the simulator set
+        // the state of appropriate qubits.
+        const auto &thisAlloc = requestedAllocations[i];
+        const auto &nextAlloc = requestedAllocations[i + 1];
+        if (nextAlloc.id != (thisAlloc.id + 1)) {
+          std::stringstream errorMsg;
+          errorMsg << "Out of order allocation detected. This is not supported "
+                      "by simulator backends. Qubit allocations: [ ";
+          for (const auto &alloc : requestedAllocations) {
+            errorMsg << alloc.id << " ";
+          }
+          errorMsg << "]";
+          throw std::logic_error(errorMsg.str());
+        }
+      }
       const auto numDefaultAllocs =
           requestedAllocations.size() - targets.size();
       simulator()->allocateQubits(numDefaultAllocs);

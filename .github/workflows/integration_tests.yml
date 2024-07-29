@@ -511,6 +511,11 @@ jobs:
           export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVQC_FUNCTION_ID="$NVQC_FUNCTION_ID"
           export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
+          # When overriding the NVQC_FUNCTION_ID to a function that doesn't
+          # follow the production naming convenvtions, we need to set the
+          # following environment variable to tell the client that the server
+          # has all the remote capabilities.
+          export CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE=1
           set +e # Allow script to keep going through errors
           test_err_sum=0
           # Test all NVQPP execution tests
@@ -539,9 +544,8 @@ jobs:
           # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
             # unsupport_args and compile_errors are compile error tests
-            # pauli_word: https://github.com/NVIDIA/cuda-quantum/issues/1957
-            # nested_vectors: related to vector of pauli_words (https://github.com/NVIDIA/cuda-quantum/issues/1957)
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"pauli_word"* ]]; then
+            # nested_vectors: Compiler fails to synthesize nested vector parameters (https://github.com/NVIDIA/cuda-quantum/issues/2001)
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
