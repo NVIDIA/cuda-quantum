@@ -787,11 +787,17 @@ def cc_AllocaOp : CCOp<"alloca", [
     MemoryEffects<[MemAlloc<AutomaticAllocationScopeResource>]>]> {
   let summary = "Allocate a dynamic block of memory on the stack.";
   let description = [{
-    The AllocaOp is similar to the C library `alloca()` function. The number of
-    bytes to be allocated is computed by the size of the `elementType` (which
-    may not have a non-positive size) times `seqSize` if present or `1` if
-    `seqSize` is omitted. This returns a pointer to the first element in the
-    allocated sequence of `seqSize` elements of `elementType`.
+    The AllocaOp is similar to the C library `alloca()` function. It allocates
+    a block of memory on the stack. The memory is undefined/poison until it is
+    explicitly initialized.
+
+    The number of bytes to be allocated is computed by the size of the
+    `elementType` (which may not have a non-positive size) times `seqSize` if
+    present or `1` if `seqSize` is omitted.
+
+    The result is a pointer to the first element in the allocated sequence of
+    `seqSize` elements of `elementType`. Each subsequent element (if any) will
+    be at the next succeeding naturally aligned memory location.
   }];
 
   let arguments = (ins

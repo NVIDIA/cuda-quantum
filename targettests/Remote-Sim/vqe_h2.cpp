@@ -12,6 +12,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 #include <cudaq/builder.h>
@@ -124,7 +125,7 @@ int main() {
     auto [opt_val, opt_params] = cudaq::vqe(ansatz, gradient, H, optimizer,
                                             n_params, n_qubits, n_layers);
     printf("Optimal value = %.16lf\n", opt_val);
-    assert(std::abs(opt_val - -1.1164613629294273) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.1164613629294273) < 1e-3);
   }
   // Run VQE with cobyla
   {
@@ -134,16 +135,23 @@ int main() {
     auto [opt_val, opt_params] =
         cudaq::vqe(ansatz, H, optimizer, n_params, n_qubits, n_layers);
     printf("Optimal value = %.16lf\n", opt_val);
-    assert(std::abs(opt_val - -1.0769400650758392) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.0769400650758392) < 1e-3);
   }
   // Run VQE with cobyla with fixed number of shots
   {
     cudaq::optimizers::cobyla optimizer;
     optimizer.initial_parameters = init_params;
     optimizer.max_eval = 100;
+    cudaq::set_random_seed(13);
     auto [opt_val, opt_params] = cudaq::vqe(
         /*shots=*/1000, ansatz, H, optimizer, n_params, n_qubits, n_layers);
     printf("Optimal value = %.16lf\n", opt_val);
-    assert(std::abs(opt_val - -1.0769400650758392) < 1e-3);
+
+    // Increase the error tolerance for the shots-based test because this test
+    // needs to sometimes run against a server without the remote VQE
+    // capability, so the handling of RNG seeds for back-and-forth iterations of
+    // observe's behave slightly differently than a fully remote VQE.
+    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.0906868832471321) < 0.015);
   }
+  return 0;
 }

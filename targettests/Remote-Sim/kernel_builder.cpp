@@ -13,6 +13,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
 int main() {
@@ -35,7 +36,7 @@ int main() {
     // parameters for the kernel
     double energy = cudaq::observe(ansatz, h, .59);
     printf("Energy is %lf\n", energy);
-    assert(std::abs(energy + 1.748794) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(energy + 1.748794) < 1e-3);
   }
   {
     auto [ansatz, thetas] = cudaq::make_kernel<std::vector<double>>();
@@ -49,7 +50,7 @@ int main() {
     ansatz.x<cudaq::ctrl>(q[1], q[0]);
     double energy = cudaq::observe(ansatz, h, std::vector<double>{.59});
     printf("Energy is %lf\n", energy);
-    assert(std::abs(energy + 1.748794) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(energy + 1.748794) < 1e-3);
   }
 
   {

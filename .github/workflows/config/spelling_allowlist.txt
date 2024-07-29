@@ -28,6 +28,7 @@ Fortran
 Fourier
 GHCR
 GPU
+GPUDirect
 GPUs
 GitHub
 HPC
@@ -58,6 +59,7 @@ Max-Cut
 MyST
 NGC
 NVIDIA
+NVLink
 NVQC
 NVQIR
 OQC
