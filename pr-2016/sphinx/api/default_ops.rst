@@ -610,4 +610,5 @@ multi-qubit operations, the matrix is interpreted with MSB qubit ordering.
 
 .. note:: 
 
-  Custom operations are currently supported in simulation only.
+  Custom operations are currently supported only on :doc:`../using/backends/simulators`.
+  Attempt to use with a hardware backend will result in runtime error.

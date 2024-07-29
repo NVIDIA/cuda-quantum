@@ -204,6 +204,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../using/backends/backends.html">   Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../using/backends/simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../using/backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
@@ -1112,7 +1113,8 @@ representation.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Custom operations are currently supported in simulation only.</p>
+<p>Custom operations are currently supported only on <a class="reference internal" href="../using/backends/simulators.html"><span class="doc">CUDA-Q Simulation Backends</span></a>.
+Attempt to use with a hardware backend will result in runtime error.</p>
 </div>
 </section>
 </section>

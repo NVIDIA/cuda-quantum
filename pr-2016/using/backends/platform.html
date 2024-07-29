@@ -204,6 +204,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="backends.html">   Backends</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
@@ -555,8 +556,8 @@ QPUs for asynchronous CUDA-Q kernel and <code class="code docutils literal notra
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.</p>
 <section id="nvidia-mqpu-platform">
-<h2>NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#nvidia-mqpu-platform" title="Permalink to this heading">¶</a></h2>
-<p id="mqpu-platform">In the multi-QPU mode (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system.
+<span id="mqpu-platform"></span><h2>NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#nvidia-mqpu-platform" title="Permalink to this heading">¶</a></h2>
+<p>In the multi-QPU mode (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system.
 Each QPU is simulated via a <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> simulator backend as defined by the NVIDIA target. For more information about using multiple GPUs
 to simulate each virtual QPU, or using a different backend for virtual QPUs, please see <a class="reference internal" href="#id1"><span class="std std-ref">remote MQPU platform</span></a>.
 This target enables asynchronous parallel execution of quantum kernel tasks.</p>
