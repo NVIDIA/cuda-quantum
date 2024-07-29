@@ -13,6 +13,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 #include <iostream>
 
@@ -89,14 +90,14 @@ int main() {
   double mu = 0.7951, sigma = 0.6065;
   auto phase = rwpe{}(n_iterations, mu, sigma);
 
-  assert(std::abs(phase - 0.49) < 0.05);
+  REMOTE_TEST_ASSERT(std::abs(phase - 0.49) < 0.05);
 
-  assert(returnTrue{}());
+  REMOTE_TEST_ASSERT(returnTrue{}());
 
-  assert(!returnFalse{}());
+  REMOTE_TEST_ASSERT(!returnFalse{}());
   const int oneCount = returnInt{}(1000);
   std::cout << "One count = " << oneCount << "\n";
   // We expect ~ 50% one.
-  assert(oneCount > 100);
+  REMOTE_TEST_ASSERT(oneCount > 100);
   return 0;
 }

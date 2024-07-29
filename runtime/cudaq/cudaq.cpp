@@ -73,9 +73,9 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
     } else {
       const auto pluginsPath = cudaqLibPath.parent_path() / "plugins";
 #if defined(__APPLE__) && defined(__MACH__)
-      const std::string libSuffix = "dylib";
+      constexpr std::string_view libSuffix = "dylib";
 #else
-      const std::string libSuffix = "so";
+      constexpr std::string_view libSuffix = "so";
 #endif
       // The builtin (native) plugin if present
       const auto pluginLibFile =
@@ -100,7 +100,7 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
   return g_plugin.get();
 };
 
-bool available() { return getMpiPlugin(/*unsafe=*/true) != nullptr; }
+bool available() { return getMpiPlugin(/*unsafe=*/true); }
 
 void initialize() {
   auto *commPlugin = getMpiPlugin();
