@@ -39,8 +39,8 @@ __qpu__ void kernel_1() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1RKSt6vectorIdSaIdEE %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_cnot_generator_2._Z23custom_cnot_generator_2RKSt6vectorIdSaIdEE %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_{{.*}}vectorId{{.*}} %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_cnot_generator_2._Z23custom_cnot_generator_{{.*}}vectorId{{.*}} %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -53,8 +53,8 @@ __qpu__ void kernel_2() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_2._Z8kernel_2v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1RKSt6vectorIdSaIdEE %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_x_generator_1._Z20custom_x_generator_1RKSt6vectorIdSaIdEE {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_{{.*}}vectorId{{.*}} %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_x_generator_1._Z20custom_x_generator_{{.*}}vectorId{{.*}} {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -68,7 +68,7 @@ __qpu__ void kernel_3() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_swap_generator_2._Z23custom_swap_generator_2RKSt6vectorIdSaIdEE %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_swap_generator_2._Z23custom_swap_generator_{{.*}}vectorId{{.*}} %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -102,7 +102,7 @@ __qpu__ void kernel_4() {
 // CHECK:           %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_4]][2] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_4]][3] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_swap_generator_2._Z23custom_swap_generator_2RKSt6vectorIdSaIdEE {{\[}}%[[VAL_13]], %[[VAL_14]]] %[[VAL_15]], %[[VAL_16]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_swap_generator_2._Z23custom_swap_generator_{{.*}}vectorId{{.*}} {{\[}}%[[VAL_13]], %[[VAL_14]]] %[[VAL_15]], %[[VAL_16]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -116,8 +116,8 @@ __qpu__ void kernel_5() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_5._Z8kernel_5v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_1RKSt6vectorIdSaIdEE %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_1RKSt6vectorIdSaIdEE<adj> %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_{{.*}}vectorId{{.*}} %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_{{.*}}vectorId{{.*}}<adj> %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -148,6 +148,6 @@ __qpu__ void kernel_6() {
 // CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_3]][2] : (!quake.veq<3>) -> !quake.ref
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_toffoli_generator_3._Z19toffoli_generator_3RKSt6vectorIdSaIdEE %[[VAL_11]], %[[VAL_12]], %[[VAL_13]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_toffoli_generator_3._Z19toffoli_generator_{{.*}}vectorId{{.*}} %[[VAL_11]], %[[VAL_12]], %[[VAL_13]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
