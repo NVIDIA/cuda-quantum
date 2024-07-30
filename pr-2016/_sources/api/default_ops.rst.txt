@@ -544,15 +544,14 @@ This is a non-linear transformation, and no template overloads are available.
         my(qubit);
 
 
-User-defined Custom Operations
+User-Defined Custom Operations
 ==============================
 
 Users can define a custom quantum operation by its unitary matrix. First use 
 the API to register a custom operation, outside of a CUDA-Q kernel. Then the 
 operation can be used within a CUDA-Q kernel like any of the built-in operations
 defined above.
-Custom operations are supported on qubits only (`qudit` with `level = 2`). For 
-multi-qubit operations, the matrix is interpreted with MSB qubit ordering.
+Custom operations are supported on qubits only (`qudit` with `level = 2`).
 
 .. tab:: Python
 
@@ -607,6 +606,56 @@ multi-qubit operations, the matrix is interpreted with MSB qubit ordering.
                 printf("%s\n", bits.data());
             }
         }
+
+
+For multi-qubit operations, the matrix is interpreted with MSB qubit ordering, i.e. big-endian convention.
+
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        import cudaq
+        import numpy as np
+        
+        cudaq.register_operation("my_cnot", np.array([1, 0, 0, 0, 
+                                                      0, 1, 0, 0, 
+                                                      0, 0, 0, 1, 
+                                                      0, 0, 1, 0]))
+
+
+        @cudaq.kernel
+        def bell_pair():
+            qubits = cudaq.qvector(2)
+            h(qubits[0])
+            my_cnot(qubits[0], qubits[1]) # my_cnot(control, target)
+
+
+        cudaq.sample(bell_pair).dump()
+
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+            #include <cudaq.h>
+
+            CUDAQ_REGISTER_OPERATION(MyCNOT, 2, 0,
+                                     {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0});
+
+            __qpu__ void bell_pair() {
+                cudaq::qubit q, r;
+                h(q);
+                MyCNOT(q, r);   // MyCNOT(control, target)
+            }
+
+            int main() {
+                auto counts = cudaq::sample(bell_pair);
+                for (auto &[bits, count] : counts) {
+                    printf("%s\n", bits.data());
+                }
+            }
+
 
 .. note:: 
 
