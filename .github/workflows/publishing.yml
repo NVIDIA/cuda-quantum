@@ -791,16 +791,16 @@ jobs:
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
 
-          #GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          #bash -l scripts/validate_container.sh | tee /tmp/validation.out
+          GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
+          bash -l scripts/validate_container.sh | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
-          #relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
-          #tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
-          #if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-          #  echo "::error::Missing tests for nvidia-mgpu backend."
-          #  exit 1
-          #fi
+          relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
+          tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
+          if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
+            echo "::error::Missing tests for nvidia-mgpu backend."
+            exit 1
+          fi
 
       - name: Side-by-side installation of Python wheels
         shell: bash
@@ -832,7 +832,6 @@ jobs:
 
   wheel_validation:
     name: Python wheel instructions validation
-    if: false
     needs: [assets, cudaq_wheels]
 
     runs-on: linux-amd64-gpu-v100-latest-1
@@ -878,7 +877,6 @@ jobs:
   
   wheel_validation_x86_simple:
     name: Simple Python wheel installation validation
-    if: false
     needs: [assets, cudaq_wheels]
 
     runs-on: linux-amd64-gpu-v100-latest-1
@@ -930,7 +928,6 @@ jobs:
   
   image_validation:
     name: Docker image validation
-    if: false
     needs: [assets, config]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
