@@ -176,6 +176,7 @@ eigenvalue
 eigenvalues
 eigenvector
 eigenvectors
+endian
 enqueue
 enqueues
 enqueuing
