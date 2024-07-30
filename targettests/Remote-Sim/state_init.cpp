@@ -58,9 +58,9 @@ int main() {
 
   {
     auto state = cudaq::get_state(test_init_state);
-    std::cout << "State sim precision: " << (state.get_precision() == cudaq::SimulationState::precision::fp32) << std::endl;
-    //auto counts = cudaq::sample(test_state_param, &state);
-    //printCounts(counts);
+    //std::cout << "State sim precision: " << (state.get_precision() == cudaq::SimulationState::precision::fp32) << std::endl;
+    auto counts = cudaq::sample(test_state_param, &state);
+    printCounts(counts);
   }
 }
 
