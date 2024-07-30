@@ -97,13 +97,8 @@ std::optional<uint> findQid(Value v) {
 
   // Special cases where result # != operand #:
   // Wire is second output but sole input
-  if (isMeasureOp(defop)) {
+  if (isMeasureOp(defop))
     i = 0;
-    auto qid = findQid(defop->getOperand(i));
-    rewriter.startRootUpdate(defop);
-    defop->setAttr("qid", rewriter.getUI32IntegerAttr(qid.value()));
-    rewriter.finalizeRootUpdate(defop);
-  }
   // Classical values preceding wires as input are consumed and not part of the results
   i += numClassicalInput(defop);
   // Swap op swaps wires
