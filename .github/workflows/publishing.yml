@@ -809,14 +809,14 @@ jobs:
         run: |
           PYTHON="python3.$(ls /tmp/install/cuda_quantum*.whl | grep -o cp3[0-9]* | cut -c 4- | head -1)"
           if [ -x "$(command -v apt-get)" ]; then
-            sudo apt-get update && sudo apt-get install -y --no-install-recommends $PYTHON $PYTHON-venv
+            apt-get update && apt-get install -y --no-install-recommends $PYTHON $PYTHON-venv
             $PYTHON -m venv "$HOME/.venv" && PATH="$HOME/.venv/bin:$PATH"
           elif [ -x "$(command -v dnf)" ]; then
-            sudo dnf install -y --nobest --setopt=install_weak_deps=False $(echo $PYTHON | tr -d .)
+            dnf install -y --nobest --setopt=install_weak_deps=False $(echo $PYTHON | tr -d .)
             $PYTHON -m ensurepip --upgrade
           elif [ -x "$(command -v zypper)" ]; then
-            sudo zypper --non-interactive up --no-recommends
-            sudo zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
+            zypper --non-interactive up --no-recommends
+            zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
             $PYTHON -m ensurepip --upgrade            
           fi
 
