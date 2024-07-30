@@ -44,3 +44,4 @@
 [submodule "tpls/Crow"]
 	path = tpls/Crow
 	url = https://github.com/CrowCpp/Crow.git
+	ignore = dirty

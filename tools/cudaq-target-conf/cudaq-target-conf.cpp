@@ -24,6 +24,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include <fstream>
 #include <sstream>
+#include <unistd.h>
 
 using namespace llvm;
 #define DEBUG_TYPE "target-config"

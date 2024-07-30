@@ -155,7 +155,7 @@ protected:
     std::vector<double> result;
     if constexpr (std::is_same_v<StateType, qpp::ket>) {
       result.resize(stateDimension);
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel for
 #endif
       for (std::size_t i = 0; i < stateDimension; ++i)
@@ -163,7 +163,7 @@ protected:
     } else if constexpr (std::is_same_v<StateType, qpp::cmat>) {
       Eigen::VectorXcd diag = state.diagonal();
       result.resize(state.rows());
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel for
 #endif
       for (Eigen::Index i = 0; i < state.rows(); ++i)

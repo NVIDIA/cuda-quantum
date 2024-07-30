@@ -70,8 +70,8 @@ fi
 if $gen_cpp_coverage; then
   # Detect toolchain
   use_llvm_cov=false
-  toolchain_contents=$(cat /opt/llvm/bootstrap/cc)
-  if [[ $toolchain_contents == *"/opt/llvm/bin/clang"* ]]; then
+  toolchain_contents=$(cat "$LLVM_INSTALL_PREFIX/bootstrap/cc")
+  if [[ $toolchain_contents == *"$LLVM_INSTALL_PREFIX/bin/clang"* ]]; then
     use_llvm_cov=true
   else
     echo "Currently not supported, running tests using llvm-lit fails"
@@ -82,11 +82,11 @@ if $gen_cpp_coverage; then
   python3 -m pip install iqm-client==16.1
   ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-nvqpp -E ctest-targettests
   ctest_status=$?
-  /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
+  $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
   lit_status=$?
-  /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/targettests/lit.site.cfg.py ${repo_root}/build/targettests
+  $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/targettests/lit.site.cfg.py ${repo_root}/build/targettests
   targ_status=$?
-  /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/python/tests/mlir/lit.site.cfg.py ${repo_root}/build/python/tests/mlir
+  $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/python/tests/mlir/lit.site.cfg.py ${repo_root}/build/python/tests/mlir
   pymlir_status=$?
   if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
     echo "::error C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, \
