@@ -91,16 +91,26 @@ std::string get_kernel_template_member_name() {
 }
 
 /// Get the name of a plain old function that is marked as a quantum kernel.
-inline std::string get_kernel_function_name(std::string name) {
+inline std::string get_kernel_function_name(std::string &&name) {
   return "function_" + std::move(name);
+}
+
+inline std::string get_kernel_function_name(const std::string &name) {
+  return "function_" + name;
 }
 
 /// Get the name of a template function (not a class member) that is marked as a
 /// quantum kernel. The template arguments must be supplied as `Args`.
 template <typename... Args>
-std::string get_kernel_template_function_name(std::string funcName) {
+std::string get_kernel_template_function_name(std::string &&funcName) {
   std::string name = internal::expand_parameter_pack<Args...>();
   return "instance_function_" + std::move(funcName) + name;
+}
+
+template <typename... Args>
+std::string get_kernel_template_function_name(const std::string &funcName) {
+  std::string name = internal::expand_parameter_pack<Args...>();
+  return "instance_function_" + funcName + name;
 }
 
 /// These get_quake overloads can be used for introspection, to look up the
