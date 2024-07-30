@@ -19,7 +19,7 @@
 #include <cstring>
 #include <functional>
 
-#define __qpu__ __attribute__((annotate("quantum")))
+#define __qpu__ __attribute__((annotate(cudaq::kernelAnnotation)))
 
 // This file describes the API for a default qubit logical instruction
 // set for CUDA-Q kernels.
@@ -1184,7 +1184,7 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
 
 } // namespace cudaq::details
 
-#define __qop__ __attribute__((annotate("user_custom_quantum_operation")))
+#define __qop__ __attribute__((annotate(cudaq::generatorAnnotation)))
 
 /// Register a new custom unitary operation providing a unique name,
 /// the number of target qubits, the number of rotation parameters (can be 0),
