@@ -189,10 +189,18 @@ jobs:
         # When a new REST version is introduced, NVQC_REST_PAYLOAD_VERSION needs to be updated in lockstep with the new nightly CUDA Quantum image. 
         # Otherwise, deployment of the test function will fail.
         run: |
+          # We run with CUDAQ_SER_CODE_EXEC set. The final NVQC deployment may
+          # or may not have this set, but since we run the client with
+          # CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE=1 (below), we need to run
+          # the CI with CUDAQ_SER_CODE_EXEC=1. If we ever remove
+          # CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE=1 below, we can consider
+          # removing CUDAQ_SER_CODE_EXEC=1.
           create_function_result=$(ngc-cli/ngc cloud-function function create \
             --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly \
             --container-environment-variable NUM_GPUS:1 \
             --container-environment-variable NVQC_REST_PAYLOAD_VERSION:1.1 \
+            --container-environment-variable RUN_AS_NOBODY:1 \
+            --container-environment-variable CUDAQ_SER_CODE_EXEC:1 \
             --api-body-format CUSTOM \
             --inference-port 3030 \
             --health-uri / \
