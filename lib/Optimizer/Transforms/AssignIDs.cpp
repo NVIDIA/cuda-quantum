@@ -96,9 +96,15 @@ std::optional<uint> findQid(Value v) {
   if (isMeasureOp(defop))
     i = 0;
   else if (hasClassicalInput(defop))
-    i++;
+    for (auto type : defop->getOperandTypes()) {
+      if (quake::isQuantumType(type))
+        break;
+      i++;
+    }
   else if (auto ccif = dyn_cast<cudaq::cc::IfOp>(defop))
     i++;
+  else if (dyn_cast<quake::SwapOp>(defop))
+    i = (i == 1 ? 0 : 1);
 
   return findQid(defop->getOperand(i));
 }
