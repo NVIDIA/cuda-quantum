@@ -215,6 +215,9 @@ public:
     } else {
       // Get the quake representation of the kernel
       auto quakeCode = cudaq::get_quake_by_name(name);
+
+      std::cout << "Kernel name: " << name << std::endl;
+      std::cout << "Quake: " << quakeCode <<std::endl;
       auto module = parseSourceString<mlir::ModuleOp>(quakeCode, &mlirContext);
       if (!module)
         throw std::runtime_error("module cannot be parsed");
@@ -266,6 +269,9 @@ public:
         }
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
+      } else {
+        cudaq::info("Not Run Quake Synth.\n");
+        moduleOp.dump();
       }
 
       // Note: do not run state preparation pass here since we are always

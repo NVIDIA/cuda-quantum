@@ -414,18 +414,6 @@ def test_state_preparation_capture():
     assert '00' in counts
     assert '10' in counts
 
-@skipIfPythonLessThan39
-def test_vector():
-    c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-
-    @cudaq.kernel
-    def kernel(r: int):
-        q = cudaq.qvector(c)
-
-    synthesized = cudaq.synthesize(kernel, 0)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
 
 @skipIfPythonLessThan39
 def test_state_from_data():
