@@ -509,6 +509,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 </ul>
 </li>
 </ul>
@@ -1057,6 +1058,146 @@ This is a non-linear transformation, and no template overloads are available.</p
 </div>
 </div>
 </section>
+</section>
+<section id="user-defined-custom-operations">
+<h2>User-Defined Custom Operations<a class="headerlink" href="#user-defined-custom-operations" title="Permalink to this heading">¶</a></h2>
+<p>Users can define a custom quantum operation by its unitary matrix. First use
+the API to register a custom operation, outside of a CUDA-Q kernel. Then the
+operation can be used within a CUDA-Q kernel like any of the built-in operations
+defined above.
+Custom operations are supported on qubits only (<code class="code docutils literal notranslate"><span class="pre">qudit</span></code> with <code class="code docutils literal notranslate"><span class="pre">level</span> <span class="pre">=</span> <span class="pre">2</span></code>).</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--17-input--1" name="tab-set--17" type="radio"><label class="tab-label" for="tab-set--17-input--1">Python</label><div class="tab-content docutils">
+<p>The <code class="code docutils literal notranslate"><span class="pre">cudaq.register_operation</span></code> API accepts an identifier string for
+the custom operation and its unitary matrix. The matrix can be a <code class="code docutils literal notranslate"><span class="pre">list</span></code> or
+<code class="code docutils literal notranslate"><span class="pre">numpy</span></code> array of complex numbers. A 1D matrix is interpreted as row-major.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;custom_h&quot;</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;custom_x&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">bell</span><span class="p">():</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">custom_h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">custom_x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--17-input--2" name="tab-set--17" type="radio"><label class="tab-label" for="tab-set--17-input--2">C++</label><div class="tab-content docutils">
+<p>The macro <code class="code docutils literal notranslate"><span class="pre">CUDAQ_REGISTER_OPERATION</span></code> accepts a unique name for the
+operation, the number of target qubits, the number of rotation parameters
+(can be 0), and the unitary matrix as a 1D row-major <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;complex&gt;</span></code>
+representation.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="n">CUDAQ_REGISTER_OPERATION</span><span class="p">(</span><span class="n">custom_h</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                        </span><span class="p">{</span><span class="n">M_SQRT1_2</span><span class="p">,</span><span class="w"> </span><span class="n">M_SQRT1_2</span><span class="p">,</span><span class="w"> </span><span class="n">M_SQRT1_2</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">M_SQRT1_2</span><span class="p">})</span>
+
+<span class="n">CUDAQ_REGISTER_OPERATION</span><span class="p">(</span><span class="n">custom_x</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">})</span>
+
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">bell_pair</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">;</span>
+<span class="w">    </span><span class="n">custom_h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="n">custom_x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">counts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>For multi-qubit operations, the matrix is interpreted with MSB qubit ordering,
+i.e. big-endian convention. The following example shows two different custom
+operations, each operating on 2 qubits.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--18-input--1" name="tab-set--18" type="radio"><label class="tab-label" for="tab-set--18-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># Create and test a custom CNOT operation.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;my_cnot&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                                              <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                                              <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                                              <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">bell_pair</span><span class="p">():</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">my_cnot</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># `my_cnot(control, target)`</span>
+
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span> <span class="c1"># prints { 11:500 00:500 } (exact numbers will be random)</span>
+
+
+<span class="c1"># Construct a custom unitary matrix for X on the first qubit and Y</span>
+<span class="c1"># on the second qubit.</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">1</span> <span class="p">],</span> <span class="p">[</span><span class="mi">1</span> <span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="n">j</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+<span class="n">XY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+<span class="c1"># Register the custom operation</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;my_XY&quot;</span><span class="p">,</span> <span class="n">XY</span><span class="p">)</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">custom_xy_test</span><span class="p">():</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">my_XY</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">y</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># undo the prior Y gate on qubit 1</span>
+
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">custom_xy_test</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span> <span class="c1"># prints { 10:1000 }</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--18-input--2" name="tab-set--18" type="radio"><label class="tab-label" for="tab-set--18-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="n">CUDAQ_REGISTER_OPERATION</span><span class="p">(</span><span class="n">MyCNOT</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                         </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">});</span>
+
+<span class="n">CUDAQ_REGISTER_OPERATION</span><span class="p">(</span>
+<span class="w">    </span><span class="n">MyXY</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">-1</span><span class="p">},</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">-1</span><span class="p">},</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">});</span>
+
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">bell_pair</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">;</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="n">MyCNOT</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">);</span><span class="w"> </span><span class="c1">// MyCNOT(control, target)</span>
+<span class="p">}</span>
+
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">custom_xy_test</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">;</span>
+<span class="w">  </span><span class="n">MyXY</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">);</span>
+<span class="w">  </span><span class="n">y</span><span class="p">(</span><span class="n">r</span><span class="p">);</span><span class="w"> </span><span class="c1">// undo the prior Y gate on qubit 1</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">);</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span><span class="w"> </span><span class="c1">// prints { 11:500 00:500 } (exact numbers will be random)</span>
+
+<span class="w">  </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">custom_xy_test</span><span class="p">);</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span><span class="w"> </span><span class="c1">// prints { 10:1000 }</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Custom operations are currently supported only on <a class="reference internal" href="../using/backends/simulators.html"><span class="doc">CUDA-Q Simulation Backends</span></a>.
+Attempt to use with a hardware backend will result in runtime error.</p>
+</div>
 </section>
 </section>
 
