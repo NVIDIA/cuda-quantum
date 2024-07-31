@@ -12,22 +12,22 @@ import cudaq
 import numpy as np
 
 # Create and test a custom CNOT operation.
-cudaq.register_operation("my_cnot", np.array([1, 0, 0, 0, 
-                                              0, 1, 0, 0, 
-                                              0, 0, 0, 1, 
+cudaq.register_operation("my_cnot", np.array([1, 0, 0, 0,
+                                              0, 1, 0, 0,
+                                              0, 0, 0, 1,
                                               0, 0, 1, 0]))
 
 @cudaq.kernel
 def bell_pair():
     qubits = cudaq.qvector(2)
     h(qubits[0])
-    my_cnot(qubits[0], qubits[1]) # my_cnot(control, target)
+    my_cnot(qubits[0], qubits[1]) # `my_cnot(control, target)`
 
 
 cudaq.sample(bell_pair).dump() # prints { 11:500 00:500 } (exact numbers will be random)
 
 
-# Construct a custom unitary matrix for X on the first qubit and Y 
+# Construct a custom unitary matrix for X on the first qubit and Y
 # on the second qubit.
 X = np.array([[0,  1 ], [1 , 0]])
 Y = np.array([[0, -1j], [1j, 0]])
