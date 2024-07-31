@@ -230,10 +230,8 @@ cudaq::opt::getFunctionArgumentLayout(mlir::ModuleOp module,
   auto strSize = layout->getSizeInBytes();
   std::vector<std::size_t> fieldOffsets;
   for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
-    if (filter == nullptr || filter(arguments[i].getType())) {
-      arguments[i].getType().dump();
+    if (filter == nullptr || filter(arguments[i].getType()))
       fieldOffsets.emplace_back(layout->getElementOffset(i));
-    }
   return {strSize, fieldOffsets};
 }
 

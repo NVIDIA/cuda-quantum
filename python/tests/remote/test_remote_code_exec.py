@@ -419,7 +419,6 @@ def test_state_preparation_capture():
 def test_state_from_data():
     c = np.array([1. / np.sqrt(2.),  1. / np.sqrt(2.), 0., 0.],
                     dtype=complex)
-    print(cudaq.complex())
     state = cudaq.State.from_data(c)
 
     @cudaq.kernel

@@ -46,7 +46,8 @@ def startUpMockServer():
 
     if not check_server_connection(port):
         p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
+        pytest.exit("Mock server did not start in time, skipping tests.",
+                    returncode=1)
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name

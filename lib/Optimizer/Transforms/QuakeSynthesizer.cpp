@@ -524,8 +524,6 @@ public:
       return;
     }
 
-    module.dump();
-
     // Create the builder and get the function arguments.
     // We will remove these arguments and replace with constant ops
     auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());

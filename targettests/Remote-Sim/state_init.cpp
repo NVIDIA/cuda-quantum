@@ -37,18 +37,18 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
-  // std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0., 0., 0., 0., 0.};
-  // std::vector<cudaq::complex> vec1{0., 0.,  0., 0., 0., 0., M_SQRT1_2, M_SQRT1_2};
-  // auto state = cudaq::state::from_data(vec);
-  // auto state1 = cudaq::state::from_data(vec1);
-  // {
-  //     // Passing state data as argument (kernel mode)
-  //     auto counts = cudaq::sample(test_state_param, &state);
-  //     printCounts(counts);
+  std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0., 0., 0., 0., 0.};
+  std::vector<cudaq::complex> vec1{0., 0.,  0., 0., 0., 0., M_SQRT1_2, M_SQRT1_2};
+  auto state = cudaq::state::from_data(vec);
+  auto state1 = cudaq::state::from_data(vec1);
+  {
+      // Passing state data as argument (kernel mode)
+      auto counts = cudaq::sample(test_state_param, &state);
+      printCounts(counts);
 
-  //     counts = cudaq::sample(test_state_param, &state1);
-  //     printCounts(counts);
-  // }
+      counts = cudaq::sample(test_state_param, &state1);
+      printCounts(counts);
+  }
 
 // CHECK: 000
 // CHECK: 100
