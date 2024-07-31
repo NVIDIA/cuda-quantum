@@ -562,7 +562,7 @@ std::string getQIR(const std::string &name, MlirModule module,
   if (profile.empty())
     cudaq::opt::addPipelineConvertToQIR(pm);
   else
-    cudaq::opt::addPipelineConvertToQIR(pm, profile);
+    cudaq::opt::addPipelineConvertToQIR(pm, profile, std::nullopt);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
@@ -602,7 +602,7 @@ std::string getASM(const std::string &name, MlirModule module,
 
   PassManager pm(context);
   pm.addPass(cudaq::opt::createLambdaLiftingPass());
-  cudaq::opt::addPipelineTranslateToOpenQASM(pm);
+  cudaq::opt::addPipelineTranslateToOpenQASM(pm, std::nullopt);
 
   if (failed(pm.run(cloned)))
     throw std::runtime_error("getASM: code generation failed.");

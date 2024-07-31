@@ -69,6 +69,10 @@ struct BackendEndConfigEntry {
   std::optional<bool> LibraryMode;
   /// IR lowering configuration (hardware REST QPU)
   std::string PlatformLoweringConfig;
+  /// Target gate set
+  std::string GateSet;
+  /// Mapping arguments
+  std::string QubitMapping;
   /// Codegen emission configuration (hardware REST QPU)
   std::string CodegenEmission;
   /// Post code generation IR passes configuration (hardware REST QPU)

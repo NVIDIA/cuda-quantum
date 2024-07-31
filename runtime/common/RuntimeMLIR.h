@@ -28,9 +28,10 @@ namespace cudaq {
 /// @param additionalPasses Additional passes to run at the end
 /// @param printIR Print IR to `stderr`
 /// @param printIntermediateMLIR Print IR in between each pass
+/// @param qubitMapping Optional value for qubit mapping
 using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
     mlir::Operation *, llvm::raw_string_ostream &, const std::string &, bool,
-    bool)>;
+    bool, std::optional<llvm::StringRef>)>;
 
 /// @brief Initialize MLIR with CUDA-Q dialects and return the
 /// MLIRContext.
@@ -46,7 +47,8 @@ void optimizeLLVM(llvm::Module *);
 /// and return an ExecutionEngine pointer for JIT function pointer
 /// execution. Clients are responsible for deleting this pointer.
 mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo);
+                                          llvm::StringRef convertTo,
+                                          const std::optional<llvm::StringRef> &mapping);
 
 class Translation {
 public:
@@ -62,9 +64,10 @@ public:
                                  llvm::raw_string_ostream &output,
                                  const std::string &additionalPasses,
                                  bool printIR,
-                                 bool printIntermediateMLIR) const {
+                                 bool printIntermediateMLIR,
+                                 std::optional<llvm::StringRef> mapping) const {
     return function(op, output, additionalPasses, printIR,
-                    printIntermediateMLIR);
+                    printIntermediateMLIR, mapping);
   }
 
 private:

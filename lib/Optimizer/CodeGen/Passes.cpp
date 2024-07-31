@@ -16,44 +16,29 @@ using namespace mlir;
 
 static void addOQCPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
-  std::string basis[] = {
-      // TODO: make this our native gate set
-      "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
-  };
   BasisConversionPassOptions options;
-  options.basis = basis;
+  options.basis = OQCbasis;
   pm.addPass(createBasisConversionPass(options));
 }
 
 static void addQuantinuumPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
-  std::string basis[] = {
-      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
-  };
   BasisConversionPassOptions options;
-  options.basis = basis;
+  options.basis = Quantinuumbasis;
   pm.addPass(createBasisConversionPass(options));
 }
 
 static void addIQMPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
-  std::string basis[] = {
-      "phased_rx",
-      "z(1)",
-  };
   BasisConversionPassOptions options;
-  options.basis = basis;
+  options.basis = IQMbasis;
   pm.addPass(createBasisConversionPass(options));
 }
 
 static void addIonQPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
-  std::string basis[] = {
-      "h",  "s", "t", "rx", "ry",
-      "rz", "x", "y", "z",  "x(1)", // TODO set to ms, gpi, gpi2
-  };
   BasisConversionPassOptions options;
-  options.basis = basis;
+  options.basis = IonQbasis;
   pm.addPass(createBasisConversionPass(options));
 }
 

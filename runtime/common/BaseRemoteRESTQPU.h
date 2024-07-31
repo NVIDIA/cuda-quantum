@@ -19,6 +19,7 @@
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -66,6 +67,14 @@ protected:
   /// @brief The Pass pipeline string, configured by the
   /// QPU configuration file in the platform path.
   std::string passPipelineConfig = "canonicalize";
+
+  /// @brief The name of the gate set for basis conversion
+  /// (e.g, `oqc`, `iqm`, `quantinuum`, `ionq`)
+  std::string gateSet = "";
+
+  /// @brief The name of the gate set for basis conversion
+  /// (e.g, `oqc`, `iqm`, `quantinuum`, `ionq`)
+  std::optional<std::string> qubitMapping = std::nullopt;
 
   /// @brief The name of the QPU being targeted
   std::string qpuName;
@@ -271,6 +280,16 @@ public:
         passPipelineConfig +=
             "," + config.BackendConfig->PlatformLoweringConfig;
       }
+      if (!config.BackendConfig->GateSet.empty()) {
+        cudaq::info("Set gate set: {}",
+                    config.BackendConfig->GateSet);
+        gateSet = config.BackendConfig->GateSet;
+      }
+      if (!config.BackendConfig->QubitMapping.empty()) {
+        cudaq::info("Set qubit mapping: {}",
+                    config.BackendConfig->QubitMapping);
+        qubitMapping = config.BackendConfig->QubitMapping;
+      }
       if (!config.BackendConfig->CodegenEmission.empty()) {
         cudaq::info("Set codegen translation: {}",
                     config.BackendConfig->CodegenEmission);
@@ -289,18 +308,8 @@ public:
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
-      // Replace the qubit-mapping{device=<>} with
-      // qubit-mapping{device=bypass} to effectively disable the qubit-mapping
-      // pass. Use $1 - $4 to make sure any other pass options are left
-      // untouched.
-      std::regex qubitMapping(
-          "(.*)qubit-mapping\\{(.*)device=[^,\\}]+(.*)\\}(.*)");
-      std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
-      passPipelineConfig =
-          std::regex_replace(passPipelineConfig, qubitMapping, replacement);
-      cudaq::info("disable_qubit_mapping option found, so updated lowering "
-                  "pipeline to {}",
-                  passPipelineConfig);
+      // Disable qubit mapping
+      qubitMapping = std::nullopt;
     }
 
     // Set the qpu name
@@ -309,7 +318,10 @@ public:
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
     serverHelper->initialize(backendConfig);
+    // TODO: updateMapping function instead
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
+    if (qubitMapping)
+      serverHelper->updatePassPipeline(platformPath, *qubitMapping);
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
@@ -398,6 +410,7 @@ public:
         moduleOpIn.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
         pm.enableIRPrinting();
+      cudaq::opt::commonLoweringPipeline(pm, gateSet, codegenTranslation);
       if (failed(pm.run(moduleOpIn)))
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
@@ -483,7 +496,7 @@ public:
       for (auto &[name, module] : modules) {
         auto clonedModule = module.clone();
         jitEngines.emplace_back(
-            cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
+            cudaq::createQIRJITEngine(clonedModule, codegenTranslation, qubitMapping));
       }
     }
 
@@ -499,7 +512,7 @@ public:
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
-                               enablePrintMLIREachPass)))
+                               enablePrintMLIREachPass, qubitMapping)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }

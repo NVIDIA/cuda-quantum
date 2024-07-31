@@ -15,8 +15,8 @@ config:
   gen-target-backend: true
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
-  # Define the lowering pipeline
-  platform-lowering-config: "const-prop-complex,canonicalize,cse,lift-array-value,state-prep,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),quantinuum-gate-set-mapping"
+  # Specify the gate set to use
+  gate-set: quantinuum
   # Tell the rest-qpu that we are generating Adaptive QIR.
   codegen-emission: qir-adaptive
   # Library mode is only for simulators, physical backends must turn this off

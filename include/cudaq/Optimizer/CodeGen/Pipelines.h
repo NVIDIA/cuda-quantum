@@ -21,16 +21,20 @@
 
 namespace cudaq::opt {
 
+/// Adds the common pipeline lowering passes.
+void commonLoweringPipeline(
+    mlir::PassManager &pm, const mlir::StringRef &gateset, const std::optional<mlir::StringRef> &convertTo);
+
 /// The common pipeline.
 /// Adds the common pipeline (with or without a profile specifier) but without
 /// the final QIR profile lowering passes.
 void commonPipelineConvertToQIR(
-    mlir::PassManager &pm, const std::optional<mlir::StringRef> &convertTo);
+    mlir::PassManager &pm, const std::optional<mlir::StringRef> &convertTo, const std::optional<mlir::StringRef> &mapping);
 
 /// \brief Pipeline builder to convert Quake to QIR.
 /// Does not specify a particular QIR profile.
 inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
-  commonPipelineConvertToQIR(pm, std::nullopt);
+  commonPipelineConvertToQIR(pm, std::nullopt, std::nullopt);
 }
 
 /// \brief Pipeline builder to convert Quake to QIR.
@@ -38,14 +42,15 @@ inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
 /// \p pm Pass manager to append passes to
 /// \p convertTo name of QIR profile (e.g., `qir-base`, `qir-adaptive`, ...)
 inline void addPipelineConvertToQIR(mlir::PassManager &pm,
-                                    mlir::StringRef convertTo) {
-  commonPipelineConvertToQIR(pm, convertTo);
+                                    mlir::StringRef convertTo,
+                                    const std::optional<mlir::StringRef> &mapping) {
+  commonPipelineConvertToQIR(pm, convertTo, mapping);
   addQIRProfilePipeline(pm, convertTo);
 }
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
-void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
-void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
+void addPipelineTranslateToOpenQASM(mlir::PassManager &pm, const std::optional<mlir::StringRef> &mapping);
+void addPipelineTranslateToIQMJson(mlir::PassManager &pm, const std::optional<mlir::StringRef> &mapping);
 
 } // namespace cudaq::opt

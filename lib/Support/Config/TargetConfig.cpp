@@ -303,6 +303,8 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
   io.mapOptional("library-mode", info.LibraryMode);
   io.mapOptional("platform-lowering-config", info.PlatformLoweringConfig);
   io.mapOptional("codegen-emission", info.CodegenEmission);
+  io.mapOptional("gate-set", info.GateSet);
+  io.mapOptional("qubit-mapping", info.QubitMapping);
   io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
   io.mapOptional("platform-library", info.PlatformLibrary);
   io.mapOptional("library-mode-execution-manager",

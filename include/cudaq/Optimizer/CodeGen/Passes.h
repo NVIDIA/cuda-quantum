@@ -37,6 +37,25 @@ void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
+static std::string OQCbasis[] = {
+      // TODO: make this our native gate set
+      "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+};
+
+static std::string IQMbasis[] = {
+    "phased_rx",
+    "z(1)",
+};
+
+static std::string Quantinuumbasis[] = {
+    "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+};
+
+static std::string IonQbasis[] = {
+    "h",  "s", "t", "rx", "ry",
+    "rz", "x", "y", "z",  "x(1)", // TODO set to ms, gpi, gpi2
+};
+
 /// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions
 /// or in the provided allowed list.
 std::unique_ptr<mlir::Pass>
