@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# fmt: off
 #[Begin Docs]
 import cudaq
 import numpy as np
@@ -44,3 +45,4 @@ def custom_xy_test():
 
 cudaq.sample(custom_xy_test).dump() # prints { 10:1000 }
 #[End Docs]
+# fmt: on
