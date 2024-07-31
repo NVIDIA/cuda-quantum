@@ -192,10 +192,9 @@ struct AdotConjB
     : public thrust::binary_function<thrust::complex<ScalarType>, 
                                      thrust::complex<ScalarType>,
                                      thrust::complex<ScalarType>> {
-  __host__ __device__ thrust::complex<ScalarType> operator()(
-      thrust::complex<ScalarType> a,
-      thrust::complex<ScalarType> b) {
-    return thrust::abs(a * thrust::conj(b));
+  __host__ __device__ thrust::complex<ScalarType>
+  operator()(thrust::complex<ScalarType> a, thrust::complex<ScalarType> b) {
+    return a * thrust::conj(b);
   };
 };
 
