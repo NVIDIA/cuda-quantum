@@ -32,7 +32,7 @@ void printCounts(cudaq::sample_result& result) {
 int main() {
   std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
   auto state = cudaq::state::from_data(vec);
-  { 
+  {
     auto counts = cudaq::sample(test, &state);
     printCounts(counts);
   }

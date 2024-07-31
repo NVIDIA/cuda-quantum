@@ -258,6 +258,7 @@ std::optional<llvm::APFloat> getDoubleIfConstant(mlir::Value value);
 mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
                        mlir::Type toType, mlir::Value fromValue,
                        bool signExtend = false, bool zeroExtend = false);
+
 } // namespace factory
 } // namespace opt
 } // namespace cudaq

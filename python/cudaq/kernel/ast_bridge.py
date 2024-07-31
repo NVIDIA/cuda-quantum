@@ -909,7 +909,6 @@ class PyASTBridge(ast.NodeVisitor):
                 blockArgs = self.entry.arguments
                 for i, b in enumerate(blockArgs):
                     if self.needsStackSlot(b.type):
-                        print(f"Needs stack slot: {b} ({b.type})")
                         stackSlot = cc.AllocaOp(
                             cc.PointerType.get(self.ctx, b.type),
                             TypeAttr.get(b.type)).result

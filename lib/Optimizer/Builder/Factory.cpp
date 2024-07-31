@@ -14,8 +14,6 @@
 #include "mlir/IR/Matchers.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
 
-#include <iostream>
-
 using namespace mlir;
 
 namespace cudaq::opt {
@@ -572,4 +570,5 @@ Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
                                            signExtend ? unit : none,
                                            zeroExtend ? unit : none);
 }
+
 } // namespace cudaq::opt
