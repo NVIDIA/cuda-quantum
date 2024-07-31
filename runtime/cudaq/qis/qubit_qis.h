@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/MeasureCounts.h"
+#include "cudaq/constants.h"
 #include "cudaq/host_config.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"

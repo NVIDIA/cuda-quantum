@@ -17,7 +17,7 @@
 #include "common/RuntimeMLIR.h"
 #include "common/UnzipUtils.h"
 #include "cudaq.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/constants.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
