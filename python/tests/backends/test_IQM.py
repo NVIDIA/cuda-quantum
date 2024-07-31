@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import os
+import shutil
 import tempfile
 from typing import List
 from multiprocessing import Process
@@ -28,6 +29,18 @@ except:
 
 # Define the port for the mock server
 port = 62443
+
+# If we're in a git repo, test that we can provide a filename with spaces.
+# If we are not in a git repo, then simply test without overriding
+# mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
+# that isn't the main point of these tests.)
+with os.popen("git rev-parse --show-toplevel") as f:
+    git_top = f.read().strip()
+    if os.path.isdir(git_top):
+        target_config_origin = os.path.join(f"{git_top}", "runtime/cudaq/platform/default/rest/helpers/iqm")
+        target_config_dest = os.path.join(f"{git_top}", "targettests")
+        shutil.copy(os.path.join(target_config_origin, "Adonis.txt"), os.path.join(target_config_dest, "Adonis Variant.txt"))
+        shutil.copy(os.path.join(target_config_origin, "Apollo.txt"), os.path.join(target_config_dest, "Apollo Variant.txt"))
 
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
@@ -52,15 +65,9 @@ def startUpMockServer():
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
     kwargs = {"qpu-architecture": "Apollo"}
-    # If we're in a git repo, test that we can provide a filename with spaces.
-    # If we are not in a git repo, then simply test without overriding
-    # mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
-    # that isn't the main point of these tests.)
-    with os.popen("git rev-parse --show-toplevel") as f:
-        git_top = f.read().strip()
-        if os.path.isdir(git_top):
-            mapping_file = f"{git_top}/targettests/Supplemental/Apollo Variant.txt"
-            kwargs["mapping_file"] = mapping_file
+    if os.path.isdir(git_top):
+        mapping_file = f"{git_top}/targettests/Apollo Variant.txt"
+        kwargs["mapping_file"] = mapping_file
     cudaq.set_target("iqm", url="http://localhost:{}".format(port), **kwargs)
 
     yield "Running the tests."
@@ -102,8 +109,6 @@ def test_iqm_ghz():
     assert assert_close(counts["11"], shots / 2, 2)
 
 
-# FIXME: This test relies on the mock server to return the correct
-# expectation value. IQM Mock server doesn't do it yet.
 def test_iqm_observe():
     # Create the parameterized ansatz
     shots = 100000
