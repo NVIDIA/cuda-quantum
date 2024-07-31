@@ -30,7 +30,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Extending CUDA-Q with a new Simulator" href="nvqir_simulator.html" />
-    <link rel="prev" title="CUDA-Q and CMake" href="../integration/cmake_app.html" /> 
+    <link rel="prev" title="Integrating with Third-Party Libraries" href="../integration/libraries.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -204,6 +204,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../backends/simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
@@ -316,8 +317,8 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../install/data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../install/data_center_install.html#mpi">MPI</a></li>
@@ -328,8 +329,14 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../integration/cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">   Extending</a><ul>
@@ -528,7 +535,7 @@
             <a href="../../_sources/using/extending/extending.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="../integration/cmake_app.html" class="btn btn-neutral float-left" title="CUDA-Q and CMake" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../integration/libraries.html" class="btn btn-neutral float-left" title="Integrating with Third-Party Libraries" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="nvqir_simulator.html" class="btn btn-neutral float-right" title="Extending CUDA-Q with a new Simulator" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -551,7 +558,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../integration/cmake_app.html" class="btn btn-neutral float-left" title="CUDA-Q and CMake" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../integration/libraries.html" class="btn btn-neutral float-left" title="Integrating with Third-Party Libraries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="nvqir_simulator.html" class="btn btn-neutral float-right" title="Extending CUDA-Q with a new Simulator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
