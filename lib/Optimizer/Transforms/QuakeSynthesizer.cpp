@@ -25,8 +25,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
 
-#include <iostream>
-
 #define DEBUG_TYPE "quake-synthesizer"
 
 using namespace mlir;
@@ -65,8 +63,6 @@ void synthesizeRuntimeArgument(
   ConcreteType concrete;
   // Copy the void* struct member into that concrete instance
   std::memcpy(&concrete, ((const char *)args) + offset, typeSize);
-
-  std::cout << "Runtime argument:" << concrete << std::endl;
 
   // Generate the MLIR Value (arith constant for example)
   auto runtimeArg = opGenerator(builder, &concrete);
@@ -119,20 +115,6 @@ static bool hasInitStateUse(BlockArgument argument) {
   return false;
 }
 
-// template <typename T>
-// std::vector<T> stateDataToVector(SimulationStateData &stateData) {
-//   assert(sizeof(T) == stateData.elementSize &&
-//          "incorrect element size in simulation data");
-//   std::vector<T> result;
-
-//   for (std::size_t i = 0; i < stateData.size; i++) {
-//     auto elePtr = reinterpret_cast<T *>(stateData.data) + i;
-//     result.push_back(*elePtr);
-//   }
-
-//   return result;
-// }
-
 template <typename T>
 Value createGlobalArray(OpBuilder &builder, ModuleOp module, unsigned &counter,
                         BlockArgument argument, Type arrTy,
@@ -182,21 +164,6 @@ LogicalResult synthesizeStateArgument(OpBuilder &builder, ModuleOp module,
     }
   }
 
-  // TODO: only use a global if we want to run state prep after?
-
-  // if (hasInitStateUse(argument)) {
-  //   buffer =
-  //       createGlobalArray(builder, module, counter, argument, arrTy, vec);
-  // } else {
-  //   builder.setInsertionPointAfter(conArray);
-  //   buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
-  //   builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
-  // }
-
-  // auto ptrArrEleTy =
-  //     cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
-  // Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrArrEleTy, buffer);
-  OpBuilder::InsertionGuard guard(builder);
   auto buffer =
       createGlobalArray(builder, module, counter, argument, arrTy, vec);
   auto ptrArrEleTy =
@@ -228,7 +195,7 @@ static LogicalResult synthesizeStateArgument(OpBuilder &builder,
 static LogicalResult
 synthesizeStateArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                         BlockArgument argument,
-                        const cudaq::opt::SimulationStateDataStore &stateData,
+                        const cudaq::opt::ArgumentDataStore &stateData,
                         std::size_t idx) {
   auto [data, size, elementSize] = stateData.getData(idx);
 
@@ -522,7 +489,7 @@ protected:
 
   // The simulation state data.
   // Empty if the scenario does not require converting state data.
-  const cudaq::opt::SimulationStateDataStore *stateData;
+  const cudaq::opt::ArgumentDataStore *stateData;
 
   // The program is executed in the same address space as the synthesis.
   bool sameAddressSpace = false;
@@ -530,8 +497,7 @@ protected:
 public:
   QuakeSynthesizer() = default;
   QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s,
-                   const cudaq::opt::SimulationStateDataStore *d,
-                   bool sameSpace)
+                   const cudaq::opt::ArgumentDataStore *d, bool sameSpace)
       : kernelName(kernel), args(a), startingArgIdx(s), stateData(d),
         sameAddressSpace(sameSpace) {}
 
@@ -564,15 +530,11 @@ public:
     // We will remove these arguments and replace with constant ops
     auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
     auto arguments = funcOp.getArguments();
-    auto structLayout = cudaq::opt::factory::getFunctionArgumentLayout(
+    auto structLayout = cudaq::opt::getFunctionArgumentLayout(
         getModule(), funcOp, nullptr, startingArgIdx);
     // Keep track of the stdVec sizes.
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
     std::size_t stateDataOffset = 0;
-
-    std::cout << "StartingArgIdx: " << startingArgIdx <<std::endl;
-    std::cout << "Number of args: " << arguments.size() <<std::endl;
-    std::cout << "Struct size: " << structLayout.second.size() <<std::endl;
     for (std::size_t argNum = startingArgIdx, end = arguments.size();
          argNum < end; argNum++) {
       auto argument = arguments[argNum];
@@ -777,11 +739,6 @@ public:
       auto doVector = [&]<typename T>(T) {
         auto *ptr = reinterpret_cast<const T *>(bufferAppendix);
         std::vector<T> v(ptr, ptr + vecLength);
-        std::cout << "Synthesizing vector: ";
-        for (auto e : v) {
-          std::cout << e << ", ";
-        }
-        std::cout << std::endl;
         if (failed(synthesizeVectorArgument(builder, module, counter,
                                             arguments[idx], v)))
           funcOp.emitOpError("synthesis failed for vector<T>");
@@ -914,7 +871,7 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 
 std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer(
     std::string_view kernelName, const void *a, std::size_t startingArgIdx,
-    const SimulationStateDataStore *stateData, bool sameAddressSpace) {
+    const ArgumentDataStore *stateData, bool sameAddressSpace) {
   return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx,
                                             stateData, sameAddressSpace);
 }

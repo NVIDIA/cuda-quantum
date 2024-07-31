@@ -12,7 +12,7 @@
 // These transforms can generally be thought of as "optimizations" or "rewrites"
 // on the IR.
 
-#include "cudaq/Optimizer/Transforms/SimulationDataStore.h"
+#include "cudaq/Optimizer/Transforms/ArgumentDataStore.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
@@ -45,7 +45,7 @@ std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
 std::unique_ptr<mlir::Pass>
 createQuakeSynthesizer(std::string_view, const void *,
                        std::size_t startingArgIdx = 0,
-                       const SimulationStateDataStore *stateData = nullptr,
+                       const ArgumentDataStore *stateData = nullptr,
                        bool sameAddressSpace = false);
 std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();

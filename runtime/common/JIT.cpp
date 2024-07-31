@@ -99,8 +99,10 @@ invokeWrappedKernel(std::string_view irString, const std::string &entryPointFn,
     return std::make_pair(mangledKernel, mangledWrapper);
   }();
 
-  std::cout << "mangledKernelNames.first" << mangledKernelNames.first <<std::endl;
-  std::cout << "mangledKernelNames.second" << mangledKernelNames.second <<std::endl;
+  std::cout << "mangledKernelNames.first" << mangledKernelNames.first
+            << std::endl;
+  std::cout << "mangledKernelNames.second" << mangledKernelNames.second
+            << std::endl;
   if (mangledKernelNames.first.empty() || mangledKernelNames.second.empty())
     throw std::runtime_error("Failed to locate symbols from the IR");
 

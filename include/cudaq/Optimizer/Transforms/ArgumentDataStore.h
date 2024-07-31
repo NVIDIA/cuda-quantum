@@ -15,17 +15,17 @@
 
 namespace cudaq::opt {
 
-/// Used to collect the simulation state data for a set of `cudaq::state`s.
-/// Assumes the data pointers stored are copied into a new memory, and takes
-/// ownership of that memory.
-class SimulationStateDataStore {
+/// Stores argument values.
+/// Stores data, element size, and number of elements for each argument.
+/// If the data pointer is owned, cleans up the data on destruction.
+class ArgumentDataStore {
   using DataDeleter = std::function<void(void *)>;
 
   std::vector<std::tuple<void *, std::size_t, std::size_t>> states{};
   std::vector<DataDeleter> cleanup{};
 
 public:
-  SimulationStateDataStore() = default;
+  ArgumentDataStore() = default;
 
   template <typename T>
   void addData(T *data, std::size_t size, std::size_t elementSize,
@@ -41,7 +41,7 @@ public:
 
   constexpr bool isEmpty() const { return states.empty(); }
 
-  ~SimulationStateDataStore() {
+  ~ArgumentDataStore() {
     for (std::size_t i = 0; i < states.size(); i++) {
       auto [data, size, elementSize] = states[i];
       cleanup[i](data);

@@ -16,11 +16,12 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/Transforms/ArgumentDataStore.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/SimulationDataStore.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "utils/OpaqueArguments.h"
@@ -38,8 +39,6 @@
 #include <fmt/core.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
-
-#include <iostream>
 
 namespace py = pybind11;
 using namespace mlir;
@@ -500,50 +499,18 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
 }
 
 /// Collect simulation state data from all `cudaq::state *` arguments.
-static cudaq::opt::SimulationStateDataStore
+static cudaq::opt::ArgumentDataStore
 readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
                         const void *args, std::size_t startingArgIdx = 0) {
-  cudaq::opt::SimulationStateDataStore dataStore;
-
-  std::cout << "Reading simulation data" << std::endl;
+  cudaq::opt::ArgumentDataStore dataStore;
   auto filterStatePtr = [](Type type) {
-    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
-      auto res = isa<cudaq::cc::StateType>(ptrTy.getElementType());
-      if (res)
-        std::cout << "found state arg" << std::endl;
-      return res;
-    }
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type))
+      return isa<cudaq::cc::StateType>(ptrTy.getElementType());
     return false;
   };
-  std::cout << "Getting argument layout" << std::endl;
-  auto argumentLayout = cudaq::opt::factory::getFunctionArgumentLayout(
+  auto argumentLayout = cudaq::opt::getFunctionArgumentLayout(
       moduleOp, func, filterStatePtr, startingArgIdx);
   return cudaq::runtime::readSimulationStateData(argumentLayout, args);
-  // for (std::size_t argNum = 0; argNum < argumentLayout.first; argNum++) {
-  //   auto offset = argumentLayout.second[argNum];
-
-  //   cudaq::state* state;
-  //   std::memcpy(&state, ((const char *)args) + offset,
-  //   sizeof(cudaq::state*));
-
-  //   auto copyData = [&] <typename T>() {
-  //     auto numElements = state->get_tensor().get_num_elements();
-  //     auto elementSize = sizeof(T);
-  //     auto *hostData = new std::complex<float>[numElements];
-  //     state->to_host(hostData, numElements);
-  //     void *dataPtr = static_cast<void *>(hostData);
-  //     dataStore.setElementSize(elementSize);
-  //     dataStore.addData(dataPtr, numElements, [](void* ptr) { delete
-  //     static_cast<T*>(ptr); } );
-  //   };
-
-  //   auto precision = state->get_precision();
-  //   if (precision == SimulationState::precision::fp32)
-  //     copyData.template operator()<std::complex<float>>();
-  //   else
-  //     copyData.template operator()<std::complex<double>>();
-  // }
-  // return dataStore;
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
@@ -574,16 +541,11 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
       platform.get_remote_capabilities().serializedCodeExec;
   auto isSameAddressSpace =
       platform.is_simulator() && !platform.is_emulated() && !isRemoteSimulator;
-  std::cout << "Simulator:" << platform.is_simulator()
-            << ", emulated: " << platform.is_emulated()
-            << ", remote: " << platform.is_remote() << std::endl;
-  std::cout << "isRemoteSimulator: " << isRemoteSimulator
-            << ", isSameAddressSpace: " << isSameAddressSpace << std::endl;
 
   auto stateData =
       isRemoteSimulator
           ? readSimulationStateData(cloned, funcOp, runtimeArgs.data())
-          : cudaq::opt::SimulationStateDataStore();
+          : cudaq::opt::ArgumentDataStore();
 
   pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, &stateData,
                                                 isSameAddressSpace));

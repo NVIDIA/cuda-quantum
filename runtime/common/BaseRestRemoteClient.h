@@ -23,11 +23,12 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Transforms/ArgumentDataStore.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/SimulationDataStore.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -76,61 +77,11 @@ private:
 };
 } // namespace
 
-// /// Collect simulation state data from all `cudaq::state *` arguments.
-// static cudaq::opt::SimulationStateDataStore readSimulationData(
-//   mlir::ModuleOp moduleOp, mlir::func::FuncOp func, const void* args,
-//   std::size_t startingArgIdx = 0) { cudaq::opt::SimulationStateDataStore
-//   dataStore;
-
-//   auto arguments = func.getArguments();
-//   auto argumentLayout =
-//   cudaq::opt::factory::getFunctionArgumentLayout(moduleOp,
-//   func.getFunctionType(), startingArgIdx);
-
-//   for (std::size_t argNum = startingArgIdx; argNum < arguments.size();
-//   argNum++) {
-//     auto offset = argumentLayout.second[argNum - startingArgIdx];
-//     auto argument = arguments[argNum];
-//     auto type = argument.getType();
-//     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
-//       if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
-//         cudaq::state* state;
-//         std::memcpy(&state, ((const char *)args) + offset,
-//         sizeof(cudaq::state*));
-
-//         void *dataPtr = nullptr;
-//         auto stateVector = state->get_tensor();
-//         auto precision = state->get_precision();
-//         auto numElements = stateVector.get_num_elements();
-//         auto elementSize = 0;
-//         if (precision == cudaq::SimulationState::precision::fp32) {
-//           elementSize = sizeof(std::complex<float>);
-//           auto *hostData = new std::complex<float>[numElements];
-//           state->to_host(hostData, numElements);
-//           dataPtr = reinterpret_cast<void *>(hostData);
-//           dataStore.addData(dataPtr, numElements, [](void* ptr) { delete
-//           reinterpret_cast<std::complex<float>*>(ptr); } );
-//         } else {
-//           elementSize = sizeof(std::complex<double>);
-//           auto *hostData = new std::complex<double>[numElements];
-//           state->to_host(hostData, numElements);
-//           dataPtr = reinterpret_cast<void *>(hostData);
-//           dataStore.addData(dataPtr, numElements, [](void* ptr) { delete
-//           reinterpret_cast<std::complex<double>*>(ptr); } );
-//         }
-//         dataStore.setElementSize(elementSize);
-//         //dataStore.addData(dataPtr, numElements, [](void* ptr) { } );
-//       }
-//     }
-//   }
-//   return dataStore;
-// }
-
 /// Collect simulation state data from all `cudaq::state *` arguments.
-static cudaq::opt::SimulationStateDataStore
+static cudaq::opt::ArgumentDataStore
 readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
                         const void *args, std::size_t startingArgIdx = 0) {
-  cudaq::opt::SimulationStateDataStore dataStore;
+  cudaq::opt::ArgumentDataStore dataStore;
 
   auto filterStatePtr = [](mlir::Type type) {
     if (auto ptrTy = llvm::dyn_cast<cudaq::cc::PointerType>(type))
@@ -138,7 +89,7 @@ readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
     return false;
   };
 
-  auto argumentLayout = cudaq::opt::factory::getFunctionArgumentLayout(
+  auto argumentLayout = cudaq::opt::getFunctionArgumentLayout(
       moduleOp, func, filterStatePtr, startingArgIdx);
   return cudaq::runtime::readSimulationStateData(argumentLayout, args);
 }
@@ -215,9 +166,6 @@ public:
     } else {
       // Get the quake representation of the kernel
       auto quakeCode = cudaq::get_quake_by_name(name);
-
-      std::cout << "Kernel name: " << name << std::endl;
-      std::cout << "Quake: " << quakeCode <<std::endl;
       auto module = parseSourceString<mlir::ModuleOp>(quakeCode, &mlirContext);
       if (!module)
         throw std::runtime_error("module cannot be parsed");
@@ -269,9 +217,6 @@ public:
         }
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
-      } else {
-        cudaq::info("Not Run Quake Synth.\n");
-        moduleOp.dump();
       }
 
       // Note: do not run state preparation pass here since we are always

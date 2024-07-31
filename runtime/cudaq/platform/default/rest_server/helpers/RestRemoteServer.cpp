@@ -347,7 +347,6 @@ public:
                              std::string_view ir, std::string_view kernelName,
                              void *kernelArgs, std::uint64_t argsSize,
                              std::size_t seed) override {
-    std::cout << "IR: " << ir << std::endl;
     // If we're changing the backend, load the new simulator library from file.
     if (m_simHandle.name != backendSimName) {
       if (m_simHandle.libHandle)
@@ -551,7 +550,6 @@ protected:
                    const std::string &entryPointFn, std::size_t numTimes = 1,
                    std::function<void(std::size_t)> postExecCallback = {}) {
     llvm::SourceMgr sourceMgr;
-    std::cout << "Module running on the server: " << irString << std::endl;
     sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(irString),
                                  llvm::SMLoc());
     auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
