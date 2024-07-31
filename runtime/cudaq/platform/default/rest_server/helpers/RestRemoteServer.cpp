@@ -52,7 +52,6 @@
 #include <fstream>
 #include <streambuf>
 
-
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 }
@@ -274,7 +273,6 @@ public:
     // Treat the shots as a signed number, and if it is <= 0, then shots-based
     // sampling is disabled. This is standard VQE/observe behavior.
     std::int64_t shots = *reinterpret_cast<std::int64_t *>(&io_context.shots);
-
 
     // If we're changing the backend, load the new simulator library from file.
     if (m_simHandle.name != backendSimName) {
