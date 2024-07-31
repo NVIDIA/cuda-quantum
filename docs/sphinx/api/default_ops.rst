@@ -615,85 +615,18 @@ operations, each operating on 2 qubits.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        import cudaq
-        import numpy as np
-        
-        # Create and test a custom CNOT operation.
-        cudaq.register_operation("my_cnot", np.array([1, 0, 0, 0, 
-                                                      0, 1, 0, 0, 
-                                                      0, 0, 0, 1, 
-                                                      0, 0, 1, 0]))
-
-
-        @cudaq.kernel
-        def bell_pair():
-            qubits = cudaq.qvector(2)
-            h(qubits[0])
-            my_cnot(qubits[0], qubits[1]) # my_cnot(control, target)
-
-
-        cudaq.sample(bell_pair).dump()
-
-        # Construct a custom unitary matrix for X on the first qubit and Y 
-        # on the second qubit.
-        X = np.array([[0,  1 ], [1 , 0]])
-        Y = np.array([[0, -1j], [1j, 0]])
-        XY = np.kron(X, Y)
-        XY_flat = np.ndarray.flatten(XY)
-
-        # Demonstrate that the flattened array is the same as the hard-coded one
-        # below (simply for demonstration purposes).
-        XY_flat_manual = np.array([0,   0,   0, -1j,
-                                   0,   0,  1j,   0,
-                                   0, -1j,   0,   0,
-                                   1j,  0,   0,   0])
-        assert np.array_equal(XY_flat, XY_flat_manual)
-
-        # Register the custom operation
-        cudaq.register_operation("my_XY", XY_flat_manual)
-
-        @cudaq.kernel
-        def custom_xy_test():
-            qubits = cudaq.qvector(2)
-            my_XY(qubits[0], qubits[1])
-            y(qubits[1]) # undo the prior Y gate on qubit 1
-
-
-        cudaq.sample(custom_xy_test).dump() # prints { 10:1000 }
+    .. literalinclude:: ../snippets/python/using/examples/two_qubit_custom_op.py
+      :language: python
+      :start-after: [Begin Docs]
+      :end-before: [End Docs]
 
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-            #include <cudaq.h>
-
-            CUDAQ_REGISTER_OPERATION(MyCNOT, 2, 0,
-                                     {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0});
-            CUDAQ_REGISTER_OPERATION(MyXY, 2, 0,
-                {0, 0, 0, {0, -1}, 0, 0, {0, 1}, 0, 0, {0, -1}, 0, 0, {0, 1}, 0, 0, 0});
-
-            __qpu__ void bell_pair() {
-                cudaq::qubit q, r;
-                h(q);
-                MyCNOT(q, r);   // MyCNOT(control, target)
-            }
-
-            __qpu__ void custom_xy_test() {
-                cudaq::qubit q, r;
-                MyXY(q, r);
-                y(r); // undo the prior Y gate on qubit 1
-            }
-
-            int main() {
-                auto counts = cudaq::sample(bell_pair);
-                counts.dump(); // prints { 11:500 00:500 } (exact numbers will be random)
-                
-                counts = cudaq::sample(custom_xy_test);
-                counts.dump(); // prints { 10:1000 }
-            }
+    .. literalinclude:: ../snippets/cpp/using/two_qubit_custom_op.cpp
+      :language: cpp
+      :start-after: [Begin Docs]
+      :end-before: [End Docs]
 
 
 .. note:: 
