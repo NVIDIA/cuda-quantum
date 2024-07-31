@@ -39,7 +39,7 @@ public:
     return states[index];
   }
 
-  constexpr bool isEmpty() const { return states.empty(); }
+  bool isEmpty() const noexcept { return states.empty(); }
 
   ~ArgumentDataStore() {
     for (std::size_t i = 0; i < states.size(); i++) {
