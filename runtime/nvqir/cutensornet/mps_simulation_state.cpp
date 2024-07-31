@@ -501,9 +501,12 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
 MPSSettings::MPSSettings() {
   if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
     const std::string maxBondStr(maxBondEnvVar);
-    auto [ptr, ec] = std::from_chars(
-        maxBondStr.data(), maxBondStr.data() + maxBondStr.size(), maxBond);
-    if (ec != std::errc{} || maxBond < 1)
+    const char *nptr = maxBondStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    maxBond = strtol(nptr, &endptr, 10);
+
+    if (nptr == endptr || errno != 0 || maxBond < 1)
       throw std::runtime_error("Invalid CUDAQ_MPS_MAX_BOND setting. Expected "
                                "a positive number. Got: " +
                                maxBondStr);
@@ -513,10 +516,12 @@ MPSSettings::MPSSettings() {
   // Cutoff values
   if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
     const std::string absCutoffStr(absCutoffEnvVar);
-    auto [ptr, ec] =
-        std::from_chars(absCutoffStr.data(),
-                        absCutoffStr.data() + absCutoffStr.size(), absCutoff);
-    if (ec != std::errc{} || absCutoff <= 0.0 || absCutoff >= 1.0)
+    const char *nptr = absCutoffStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    absCutoff = strtod(nptr, &endptr);
+
+    if (nptr == endptr || errno != 0 || absCutoff <= 0.0 || absCutoff >= 1.0)
       throw std::runtime_error("Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
                                "a number in range (0.0, 1.0). Got: " +
                                absCutoffStr);
@@ -525,10 +530,12 @@ MPSSettings::MPSSettings() {
   }
   if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
     const std::string relCutoffStr(relCutoffEnvVar);
-    auto [ptr, ec] =
-        std::from_chars(relCutoffStr.data(),
-                        relCutoffStr.data() + relCutoffStr.size(), relCutoff);
-    if (ec != std::errc{} || relCutoff <= 0.0 || relCutoff >= 1.0)
+    const char *nptr = relCutoffStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    relCutoff = strtod(nptr, &endptr);
+
+    if (nptr == endptr || errno != 0 || relCutoff <= 0.0 || relCutoff >= 1.0)
       throw std::runtime_error(
           "Invalid CUDAQ_MPS_RELATIVE_CUTOFF setting. Expected "
           "a number in range (0.0, 1.0). Got: " +

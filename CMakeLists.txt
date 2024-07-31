@@ -97,8 +97,8 @@ endif()
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-if(NOT CUDAQ_LLVM_VERSION)
-  set(CUDAQ_LLVM_VERSION 16)
+if(NOT LLVM_VERSION_MAJOR)
+  set(LLVM_VERSION_MAJOR 16)
 endif()
 
 find_package(Git QUIET)
@@ -124,12 +124,12 @@ endif()
 # ==============================================================================
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
 option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
-option(CUDAQ_BUILD_RELOCATABLE_PACKAGE "Make CUDA Quantum install tree relocatable, system headers included." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
-option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
+option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA-Q runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
-option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
-option(CUDAQ_ENABLE_CC "Enable CUDA Quantum code coverage generation." OFF)
+option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Frontend." OFF)
+option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
+option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -187,23 +187,26 @@ if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
   SET(CUDAQ_ENABLE_STATIC_LINKING $ENV{CUDAQ_ENABLE_STATIC_LINKING})
 endif()
 if (CUDAQ_ENABLE_STATIC_LINKING)
-  # Using -static-libgcc -static-libstdc++ offers more fine grained control here if needed.
+  # Using -static-libgcc -static-libstdc++ offers more fine grained control here
+  # then using -static (for exe) and -staic-pie (for linker).
   # At the time of writing, there wasn't any benefit to using those over -static.
-  # However, while this so far seems to be working reasonably well, this will
-  # unfortunately also link glibc statically, which in general is likely to cause
-  # issues sooner or later. A better option might be to include the required GNU C Library
-  # and have the nvq++ compiler dynamically pick the newer one of the included or system one.
+  # When we only link libstdc++ and libgcc statically, we still have a dependency
+  # on GLIBC on the target system, but linking it statically is likely to cause issues. 
+  # A better option might be to include the required GNU C Library and have the nvq++
+  # compiler dynamically pick the newer one of the included or system one.
   # See also these posts:
   # - https://blog.gibson.sh/2017/11/26/creating-portable-linux-binaries/
   # - https://www.jertype.com/upgrading-glibc/
   # If the final application loads multiple dynamic libraries, and two or more
   # of those dynamic libraries are linked to different versions of the same static
-  # libraries, then the different copies of those static libraries will conflict
-  # with each other. If we keep linking everything statically, we should at least set 
-  # CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN to 1, 
-  # to avoid some of these issues.
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-pie")
+  # libraries, then the different copies of those static libraries will conflict with
+  # each other. If we were to link everything statically, it is probably advisable to 
+  # set CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN 
+  # to 1, to avoid some of these issues.
+  # We don't set these configurations here, since the LLVM runtime libraries that we 
+  # build from source are already configured to hide symbols and include dependencies.
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   SET(OPENSSL_USE_STATIC_LIBS TRUE)
   SET(ZLIB_USE_STATIC_LIBS TRUE)
   set(CURL_STATICLIB ON)
@@ -227,10 +230,10 @@ endif()
 # The user can specify the path to LLVM cmake directory using
 # `-DLLVM_DIR=path/to/cmake/llvm`.  If this definition is not provided, we look
 # for `llvm-config` tool.  The user can also provide a LLVM version to look for
-# using `CUDAQ_LLVM_VERSION`, e.g. "-DCUDAQ_LLVM_VERSION=15".  Note that this
+# using `LLVM_VERSION_MAJOR`, e.g. "-LLVM_VERSION_MAJOR=16".  Note that this
 # version variable is set to the latest LLVM version by default, and setting it
 # to an older version might break the project.
-find_package(LLVM ${CUDAQ_LLVM_VERSION} CONFIG QUIET)
+find_package(LLVM ${LLVM_VERSION_MAJOR} CONFIG QUIET)
 
 if(NOT LLVM_DIR)
   message(STATUS "LLVM_DIR not found, will try with llvm-config executable.")
@@ -262,19 +265,19 @@ if(NOT LLVM_DIR)
   endmacro()
 
   # First we try to find llvm-config in the llvm submodule.
-  find_llvm_config(llvm-config ${CUDAQ_LLVM_VERSION}
+  find_llvm_config(llvm-config ${LLVM_VERSION_MAJOR}
     "${CMAKE_CURRENT_SOURCE_DIR}/tpls/llvm/build/bin")
 
   # Try to find a system llvm-config and make sure it is the correct version.
   if(NOT LLVM_CONFIG)
-    find_llvm_config(llvm-config ${CUDAQ_LLVM_VERSION})
+    find_llvm_config(llvm-config ${LLVM_VERSION_MAJOR})
   endif()
 
   # If it is not the correct version, try finding llvm-config-VERSION
   if(NOT LLVM_CONFIG)
-    find_llvm_config(llvm-config-${CUDAQ_LLVM_VERSION} ${CUDAQ_LLVM_VERSION})
+    find_llvm_config(llvm-config-${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MAJOR})
     if (LLVM_CONFIG)
-      set(NVQPP_LLVM_EXECUTABLE_SUFFIX -${CUDAQ_LLVM_VERSION})
+      set(NVQPP_LLVM_EXECUTABLE_SUFFIX -${LLVM_VERSION_MAJOR})
     endif()
   endif()
 
@@ -288,10 +291,10 @@ if(NOT LLVM_DIR)
 
   if(LLVM_CONFIG_RESULT)
     message(FATAL_ERROR
-      "Could not find suitable llvm-config(-${CUDAQ_LLVM_VERSION}).\
+      "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
       \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
   else()
-    find_package(LLVM ${CUDAQ_LLVM_VERSION} REQUIRED CONFIG
+    find_package(LLVM ${LLVM_VERSION_MAJOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
   endif()
 endif()
@@ -327,7 +330,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
 include(TableGen)
 include(AddLLVM)
 include(AddMLIR)
-include(HandleLLVMOptions)
 
 # Add LLVM, Clang and MLIR headers to the include path
 include_directories(SYSTEM
@@ -365,6 +367,7 @@ set(CUDAQ_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
 include(AddCUDAQ)
+include(BuildHelpers)
 
 # Add CUDA Quantum files to the include path
 include_directories(BEFORE
@@ -376,39 +379,6 @@ include_directories(BEFORE
 add_custom_target(cudaq-headers)
 set_target_properties(cudaq-headers PROPERTIES FOLDER "Misc")
 add_custom_target(cudaq-doc)
-
-# Install
-# ==============================================================================
-
-# If building normally, this will add the required 
-# system headers to the cudaq-quake include paths.
-if (NOT CUDAQ_BUILD_RELOCATABLE_PACKAGE)
-  foreach(dir ${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES})
-    set(CUDAQ_CXX_NVQPP_LINK_STR "${CUDAQ_CXX_NVQPP_LINK_STR} -L${dir}")
-  endforeach()
-else()
-  # If we are building the relocatable package, 
-  # we need to do a bit more for Apple Mac
-  if (APPLE) 
-    foreach(dir ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
-      if (${dir} MATCHES ".*/c.*/v1") 
-        # Copy the bundled c++ includes from theClang install to ours
-        file(COPY ${dir} DESTINATION include/c++/)
-        # We want the driver to include the bundled C++ headers from Clang
-        set(CUDAQ_CXX_NVQPP_INCLUDE_STR "${CUDAQ_CXX_NVQPP_INCLUDE_STR} -I include/c++/v1")
-      elseif(${dir} MATCHES ".*sdk/usr/include") 
-        # We want the driver to include the SDK/usr/include dir
-        set(CUDAQ_CXX_NVQPP_INCLUDE_STR "${CUDAQ_CXX_NVQPP_INCLUDE_STR} -I ${dir}")
-      endif()  
-    endforeach()
-  endif() 
-endif()
-
-configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
-  "${CUDAQ_BINARY_DIR}/include/nvqpp_config.h")
-
-install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
-  DESTINATION include/nvqpp)
 
 # Version
 # ==============================================================================
@@ -433,9 +403,8 @@ configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
 
 # Check optional dependencies
 # ==============================================================================
-find_package(OpenMP)
-find_package(OpenSSL)
 
+find_package(OpenSSL)
 if (NOT CUDAQ_SKIP_MPI)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
@@ -500,9 +469,7 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   set_target_properties(libqpp
     PROPERTIES
       INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
-  if (OpenMP_CXX_FOUND)
-    target_compile_definitions(libqpp INTERFACE HAS_OPENMP)
-  endif()
+  add_openmp_interface_definitions(libqpp)
 endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
@@ -567,6 +534,23 @@ add_subdirectory(cmake)
 add_subdirectory(include)
 add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
+  # Crow suffers from this issue when using libc++:
+  # https://github.com/CrowCpp/Crow/issues/576
+  # A workaround is applied depending on operating system rather then standard library specific.
+  # Instead of OS specific fix, detect in code whether _LIBCPP_VERSION is defined and apply fix.
+  # Only apply the patch if not already applied.
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/Crow/ apply ../customizations/Crow/json.h.diff --ignore-whitespace --reverse --check
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT
+                  ERROR_QUIET)
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/Crow/ apply ../customizations/Crow/json.h.diff --ignore-whitespace
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT)
+  endif()
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+  endif()
   add_subdirectory(runtime)
 endif()
 add_subdirectory(tools)
@@ -590,11 +574,14 @@ if (CUDAQ_ENABLE_PYTHON)
     message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
   endif()
   
+  # Regarding the use of PyBind, we need to be careful that the same STL is used for any 
+  # Python bindings generated as part of the CUDA-Q build and bindings generated for 
+  # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
   add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
 
-if(CUDAQ_BUILD_TESTS)
+if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
@@ -619,21 +606,7 @@ if(CUDAQ_BUILD_TESTS)
   umbrella_lit_testsuite_end(check-all)
 endif()
 
-if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 
-  # Grab the Clang system headers / resource-dir
-  install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION lib/clang)
-
-  # Install the executables we need
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/lld DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/ld.lld DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
-endif()
-
 if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
-  include(WheelBuildHelpers)
   while(CUDAQ_EXTERNAL_NVQIR_SIMS)
     list(POP_FRONT CUDAQ_EXTERNAL_NVQIR_SIMS LIB_SO_OR_CONFIG_FILE)
     add_target_libs_to_wheel(${LIB_SO_OR_CONFIG_FILE})
