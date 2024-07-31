@@ -32,7 +32,7 @@ config.name = 'CUDAQ'
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 
 # A list of file extensions to treat as test files.
-config.suffixes = ['.cpp', '.ll', '.mlir', '.qke', '.config']
+config.suffixes = ['.cpp', '.ll', '.mlir', '.qke']
 
 config.substitutions.append(('%PATH%', config.environment['PATH']))
 config.substitutions.append(('%llvmshlibdir', config.llvm_shlib_dir))
