@@ -14,13 +14,16 @@ on how to do that. Our installation guide also contains instructions for how to
 :ref:`connect an IDE <local-development-with-vscode>` to a running container.
 
 If you do not want use a container runtime, we also provide pre-built binaries
-for using CUDA-Q with C++. These binaries are built following the instructions 
+for using CUDA-Q with C++, and Python wheels for using CUDA-Q with Python. 
+These binaries and wheels are built following the instructions 
 in this guide and should work for you as long as your system meets the compatibility 
 requirements listed under :ref:`Prerequisites <compatibility-prebuilt-binaries>`. 
-To install them, please follow the instructions :ref:`here <install-prebuilt-binaries>`.
+To install the pre-built binaries, please follow the instructions 
+:ref:`here <install-prebuilt-binaries>`. To install the Python wheels, please 
+follow the instructions :ref:`here <install-python-wheels>`.
 
-If our pre-built packages are not a good option for you, e.g. because you would 
-like to use CUDA-Q on an operating system that is not officially supported, 
+If your system is not listed as supported by our official packages, e.g. because you would 
+like to use CUDA-Q on an operating system that uses an older C standard library, 
 please follow this guide carefully without skipping any steps to build and install
 CUDA-Q from source. The rest of this guide details system requirements 
 during the build and after installation, and walks through the installation steps.
@@ -145,10 +148,12 @@ CUDA
 ~~~~~~~~~~
 
 Building CUDA-Q requires a full installation of the CUDA toolkit.
+**You can install the CUDA toolkit and use the CUDA compiler without having a GPU.**
 The instructions are tested using version 11.8, but any CUDA 11 or 12 version
-should work, as long as the installed driver on the host 
+should work, as long as the CUDA runtime version on the host system matches the 
+CUDA version used for the build, and the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
-that is supported by your driver.
+that is supported by the driver on the host system.
 
 Download a suitable `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__
 following the installation guide for your platform in the online documentation
@@ -166,13 +171,10 @@ install CUDA 11.8:
 Toolchain
 ~~~~~~~~~~
 
-The compiler toolchain used for the build needs to support C++20 and must be a supported 
+The compiler toolchain used for the build must be a supported 
 `CUDA host compiler <https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers>`__
 for the installed CUDA version.
-The following instructions have been tested with
-`GCC-11 <https://gcc.gnu.org/index.html>`__ as your toolchain for building CUDA-Q.
-If you use a different compiler, we recommend using an OpenMP-enabled compiler. At this
-time, we actively test building with GCC 11 and 12, as well as with Clang 16. 
+The following instructions have been tested with `GCC-11 <https://gcc.gnu.org/index.html>`__.
 Other toolchains may be supported but have not been tested.
 
 Within the tested AlmaLinux 8 environment, for example, the following commands
@@ -194,12 +196,9 @@ environment variables to point to the respective compilers on your build system:
     :end-before: [<ToolchainConfiguration]
 
 - The variables `CC` and `CXX` *must* be set for the CUDA-Q build.
-- A Fortran compiler is needed (only) to build the OpenSSL dependency; 
-  if you have an existing OpenSSL installation that you set the
-  `OPENSSL_INSTALL_PREFIX` variable to, you can omit setting the `FC` 
-  environment variable.
 - To use GPU-acceleration in CUDA-Q, make sure to set `CUDACXX` to 
-  your CUDA compiler. If the CUDA compiler is not found when building
+  your CUDA compiler, and `CUDAHOSTCXX` to the CUDA compatible host 
+  compiler you are using. If the CUDA compiler is not found when building
   CUDA-Q, some components and backends will be omitted automatically 
   during the build.
 
@@ -216,11 +215,10 @@ and merely downloading the source code as ZIP archive hence will not work.
 
 Please follow the instructions in the respective subsection(s) to build the necessary 
 components for using CUDA-Q from C++ and/or Python.
-After the build, check the build log printed to the console to confirm that all desired 
+After the build, check that the GPU-accelerated components have been built by confirming
+that the file `nvidia.config` exists in the `$CUDAQ_INSTALL_PREFIX/targets` folder.
+We also recommend checking the build log printed to the console to confirm that all desired 
 components have been built. 
-In particular, look for a line "Looking for CUDA compiler" in the build output, 
-and confirm that it found the installed CUDA compiler, and the correct host compiler 
-is used.
 
 .. note::
 
@@ -231,42 +229,6 @@ is used.
   instructions for installing the necessary prerequisites and build dependencies, 
   and have set the necessary environment variables as described in this document.
 
-.. _cudaq-cpp-from-source:
-
-C++ Support
-+++++++++++++++++++++++++++++++
-
-From within the folder where you cloned the CUDA-Q repository, run the following
-command to build CUDA-Q:
-
-.. literalinclude:: ../../../../docker/build/assets.Dockerfile
-    :language: bash
-    :dedent:
-    :start-after: [>CUDAQuantumCppBuild]
-    :end-before: [<CUDAQuantumCppBuild]
-
-Note that `lld` is primarily needed when the build or host system does not already have an existing default linker on its path; CUDA-Q supports the same linkers as `clang` does.
-
-To easily migrate the built binaries to the host system, we recommend creating a
-`self-extracting archive <https://makeself.io/>`__. To do so, download the 
-`makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
-files to install into a separate folder using the command
-
-.. literalinclude:: ../../../../docker/release/installer.Dockerfile
-    :language: bash
-    :dedent:
-    :start-after: [>CUDAQuantumAssets]
-    :end-before: [<CUDAQuantumAssets]
-
-You can then create a self-extracting archive with the command
-
-.. code-block:: bash
-
-    ./makeself.sh --gzip --sha256 --license cuda_quantum_assets/cudaq/LICENSE \
-        cuda_quantum_assets install_cuda_quantum.$(uname -m) \
-        "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
-        bash cudaq/migrate_assets.sh -t /opt/nvidia/cudaq
-
 .. _cudaq-python-from-source:
 
 Python Support
@@ -276,7 +238,7 @@ The most convenient way to enable Python support within CUDA-Q is to build
 a `wheel <https://pythonwheels.com/>`__ that can then easily be installed
 using `pip`. To ensure the wheel can be installed on the host system, make sure to
 use the same Python version for the build as the one that is installed on the host system.
-To build the CUDA-Q Python wheel, you will need to install the following additional 
+To build a CUDA-Q Python wheel, you will need to install the following additional 
 Python-specific tools:
 
 - Python development headers: The development headers for your Python version are installed
@@ -327,19 +289,59 @@ installed on any `compatible platform <https://packaging.python.org/en/latest/sp
   checking that the wheel tag (i.e. the file name ending of the `.whl` file) is listed under
   "Compatible Tags" when running the command `python3 -m pip debug --verbose` on the host.
 
+.. _cudaq-cpp-from-source:
+
+C++ Support
++++++++++++++++++++++++++++++++
+
+From within the folder where you cloned the CUDA-Q repository, run the following
+command to build CUDA-Q:
+
+.. literalinclude:: ../../../../docker/build/assets.Dockerfile
+    :language: bash
+    :dedent:
+    :start-after: [>CUDAQuantumCppBuild]
+    :end-before: [<CUDAQuantumCppBuild]
+
+Note that `lld` is primarily needed when the build or host system does not already
+have an existing default linker on its path; CUDA-Q supports the same linkers as
+`clang` does.
+
+To easily migrate the built binaries to the host system, we recommend creating a
+`self-extracting archive <https://makeself.io/>`__. To do so, download the 
+`makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
+files to install into a separate folder using the command
+
+.. literalinclude:: ../../../../docker/release/installer.Dockerfile
+    :language: bash
+    :dedent:
+    :start-after: [>CUDAQuantumAssets]
+    :end-before: [<CUDAQuantumAssets]
+
+You can then create a self-extracting archive with the command
+
+.. code-block:: bash
+
+    ./makeself.sh --gzip --sha256 --license cuda_quantum_assets/cudaq/LICENSE \
+        cuda_quantum_assets install_cuda_quantum.$(uname -m) \
+        "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
+        bash cudaq/migrate_assets.sh -t /opt/nvidia/cudaq
 
 Installation on the Host
 ++++++++++++++++++++++++++++++++++++
 
 Make sure your host system satisfies the `Prerequisites`_ listed above.
 
-- To use CUDA-Q with C++, you should also make sure that the
-  `C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__ 
-  is installed and discoverable on your host system.
-  CUDA-Q supports the GNU C++ standard library (`libstdc++`), 
-  version 11 or newer. Other libraries may work but can cause issues in certain cases.
 - To use CUDA-Q with Python, you should have a working
   Python installation on the host system, including the `pip` package manager.
+- To use CUDA-Q with C++, you should make sure that you have the necessary development
+  headers of the C standard library installed. You can check this by searching for
+  `features.h`, commonly found in `/usr/include/`. You can install the necessary headers
+  via package manager (usually the package name is called something like `glibc-devel`
+  or `libc6-devel`). These headers are also included with any installation of GCC.
+
+To use CUDA-Q with Python, you should have a working
+Python installation on the host system, including the `pip` package manager.
 
 If you followed the instructions for building the 
 :ref:`CUDA-Q Python wheel <cudaq-python-from-source>`,
@@ -377,21 +379,25 @@ the `/etc/profile` file:
       . /opt/nvidia/cudaq/set_env.sh
     fi
 
-.. note:: 
-
-  CUDA-Q includes its own linker, specifically the `LLD <https://lld.llvm.org/>`__ 
-  linker. You can customize which linker the `nvq++` compiler uses by setting the
-  `NVQPP_LD_PATH` environment variable; for example `export NVQPP_LD_PATH=ld`.
+.. note::
+  CUDA-Q as built following the instructions above includes and uses the LLVM
+  C++ standard library. This will not interfere with any other C++ standard library
+  you may have on your system. Pre-built external libraries, you may want to use with 
+  CUDA-Q, such as specific optimizers for example, have a C API to ensure compatibility
+  across different versions of the C++ standard library and will work with CUDA-Q without 
+  issues. The same is true for all distributed CUDA libraries. To build you own CUDA 
+  libraries that can be used with CUDA-Q, please take a look at :doc:`../integration/cuda_gpu`.
 
 The remaining sections in this document list additional runtime dependencies 
 that are not included in the migrated assets and are needed to use some of the 
 CUDA-Q features and components.
 
 CUDA Runtime Libraries
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To use GPU-acceleration in CUDA-Q you will need to install the necessary 
-CUDA runtime libraries. While not necessary, we recommend installing 
+CUDA runtime libraries. Their version (at least the version major) needs to match the version
+used for the build. While not necessary, we recommend installing 
 the complete CUDA toolkit like you did for the CUDA-Q build.
 If you prefer to only install the minimal set of runtime libraries, the following 
 commands, for example, install the necessary packages for the AlmaLinux 8 environment:

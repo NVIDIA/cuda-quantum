@@ -317,8 +317,8 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l4"><a class="reference internal" href="data_center_install.html#mpi">MPI</a></li>
@@ -329,8 +329,14 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../integration/cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
@@ -735,13 +741,15 @@ sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </spa
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on <a class="reference internal" href="#cuda-dependencies-prebuilt-binaries"><span class="std std-ref">Additional CUDA Tools</span></a>.</p>
+<p>To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries.
+For more information see the corresponding section on
+<a class="reference internal" href="#cuda-dependencies-prebuilt-binaries"><span class="std std-ref">Additional CUDA Tools</span></a>.</p>
 </div>
 <p>The installation ensures that the necessary environment variables for
 using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command is found. If it is not, please make sure
 to set the environment variables defined by the <code class="code docutils literal notranslate"><span class="pre">set_env.sh</span></code> script in the
-CUDA-Q installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
+CUDA-Q installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/usr/local/cudaq</span></code> or <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
 <p>If an MPI installation is available in the directory defined by <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code>,
 the installer automatically enables MPI support in CUDA-Q.
 If you do not have MPI installed on your system, you can simply
@@ -753,20 +761,18 @@ executing the commands</p>
 <span class="go">bash &quot;${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
 </pre></div>
 </div>
-<p id="local-development-with-vscode">To develop C++ code, you most likely also want to install the
-<a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>.
-CUDA-Q supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
-version 11 or newer. Other libraries may work but can cause issues in certain cases.
-The C++ standard library, including development headers, is almost certainly
-available via the package manager for your system. To ensure the libraries and headers
-are discoverable, the easiest option is usually to install the complete GCC toolchain.
-Note that for certain distributions, you may need to manually enable that version
-after installation by running a script called <code class="code docutils literal notranslate"><span class="pre">enable</span></code>. You can search for such a
-script with the command <code class="code docutils literal notranslate"><span class="pre">find</span> <span class="pre">/</span> <span class="pre">-path</span> <span class="pre">'*gcc*'</span> <span class="pre">-name</span> <span class="pre">enable</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Please make sure that you have the necessary development headers of the C standard
+library installed. You can check this by searching for <code class="code docutils literal notranslate"><span class="pre">features.h</span></code>, commonly found
+in <code class="code docutils literal notranslate"><span class="pre">/usr/include/</span></code>. You can install the necessary headers via package manager
+(usually the package name is called something like <code class="code docutils literal notranslate"><span class="pre">glibc-devel</span></code> or <code class="code docutils literal notranslate"><span class="pre">libc6-dev</span></code>).
+These headers are also included with any installation of GCC.</p>
+</div>
 </section>
 </section>
 <section id="development-with-vs-code">
-<h2>Development with VS Code<a class="headerlink" href="#development-with-vs-code" title="Permalink to this heading">¶</a></h2>
+<span id="local-development-with-vscode"></span><h2>Development with VS Code<a class="headerlink" href="#development-with-vs-code" title="Permalink to this heading">¶</a></h2>
 <p>To facilitate application development with, for example, debugging, code completion, hover information, and so on,
 we recommend using <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>. VS Code provides a seamless
 development experience on all platforms, and is also available without installation via web browser.
@@ -1086,7 +1092,7 @@ the container with Docker and the <code class="code docutils literal notranslate
 <section id="installing-pre-built-binaries">
 <span id="cuda-dependencies-prebuilt-binaries"></span><h3>Installing Pre-built Binaries<a class="headerlink" href="#installing-pre-built-binaries" title="Permalink to this heading">¶</a></h3>
 <p>If you installed pre-built binaries for CUDA-Q, you will need to install
-the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q.
+the necessary CUDA 11 runtime libraries to use GPU-acceleration in CUDA-Q.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for RHEL 8:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
@@ -1103,8 +1109,8 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 </pre></div>
 </div>
 <p>More detailed instructions for your platform can be found in the online documentation
-of your selected <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>.
-Please make sure to install CUDA version 11.8 or newer, and confirm that your
+linked for that <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>.
+Please make sure to install CUDA version 11.8, and confirm that your
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">GPU driver</a> supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q,
 we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-11-8</span></code>) that also
