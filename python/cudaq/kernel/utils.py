@@ -55,7 +55,7 @@ def emitFatalError(msg):
         # Raise the exception so we can get the
         # stack trace to inspect
         raise RuntimeError(msg)
-    except RuntimeError as e:
+    except RuntimeError:
         # Immediately grab the exception and
         # analyze the stack trace, get the source location
         # and construct a new error diagnostic
@@ -79,7 +79,7 @@ def emitWarning(msg):
         # Raise the exception so we can get the
         # stack trace to inspect
         raise RuntimeError(msg)
-    except RuntimeError as e:
+    except RuntimeError:
         # Immediately grab the exception and
         # analyze the stack trace, get the source location
         # and construct a new error diagnostic
