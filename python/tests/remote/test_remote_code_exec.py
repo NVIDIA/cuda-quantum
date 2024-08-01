@@ -377,6 +377,7 @@ def test_complex_vqe_named_lambda_sweep_opt(optimizer):
 def test_complex_vqe_named_lambda_sweep_grad(gradient):
     test_complex_vqe_named_lambda(cudaq.optimizers.Adam(), gradient)
 
+
 @skipIfPythonLessThan39
 def test_state_preparation():
 
@@ -391,6 +392,7 @@ def test_state_preparation():
     assert not '01' in counts
     assert not '11' in counts
 
+
 @skipIfPythonLessThan39
 def test_state_preparation_builder():
     kernel, state = cudaq.make_kernel(list[complex])
@@ -403,9 +405,11 @@ def test_state_preparation_builder():
     assert not '01' in counts
     assert not '11' in counts
 
+
 @skipIfPythonLessThan39
 def test_state_preparation_capture():
     c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(c)
@@ -417,8 +421,7 @@ def test_state_preparation_capture():
 
 @skipIfPythonLessThan39
 def test_state_from_data():
-    c = np.array([1. / np.sqrt(2.),  1. / np.sqrt(2.), 0., 0.],
-                    dtype=complex)
+    c = np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex)
     state = cudaq.State.from_data(c)
 
     @cudaq.kernel
@@ -432,10 +435,11 @@ def test_state_from_data():
 
 @skipIfPythonLessThan39
 def test_state_from_another_kernel():
+
     @cudaq.kernel
     def initState(n: int):
         q = cudaq.qvector(n)
-        ry(np.pi/2, q[0])
+        ry(np.pi / 2, q[0])
 
     state = cudaq.get_state(initState, 2)
 
@@ -446,6 +450,7 @@ def test_state_from_another_kernel():
     counts = cudaq.sample(kernel, state)
     assert '00' in counts
     assert '10' in counts
+
 
 @skipIfPythonLessThan39
 @pytest.mark.skip(reason="https://github.com/NVIDIA/cuda-quantum/issues/1924")
