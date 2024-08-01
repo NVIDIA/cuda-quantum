@@ -75,8 +75,9 @@ public:
     SmallVector<Operation *> cleanUps;
     getOperation().walk([&](cudaq::cc::ConstantArrayOp carr) {
       // If there is a constant array, then we expect that it is involved in
-      // a stdvec initializer expression. So look for the pattern and expand
-      // the store into a series of scalar stores.
+      // 1. a stdvec initializer expression.
+      //   So look for the pattern and expand
+      //   the store into a series of scalar stores.
       //
       //   %100 = cc.const_array [c1, c2, ... cN] : ...
       //   %110 = cc.alloca ...
@@ -88,11 +89,28 @@ public:
       //   ...
       //   cc.store cN, %110[N-1]
 
-      // Are all uses the value to a store?
+      // 2. Synthesis of vector arguments.
+      //   Replace all `extract_value` by corresponding constants from the
+      //   array.
+
+      //   %0 = cc.const_array [c1, c2, ... cN] : ...
+      //   %40 = cc.extract_value %0[0]: ...
+      //   %41 = complex.re %40: ...
+      //   ...
+      //   __________________________
+      //
+      //   %cst_0 = complex.constant [c0, c1] : ...
+      //   %38 = complex.re %cst_0 : ...
+      //   ...
+
+      // Are all uses of the value in a store or an `extract_value`?
       if (!std::all_of(carr->getUsers().begin(), carr->getUsers().end(),
                        [&](auto *op) {
-                         auto st = dyn_cast<cudaq::cc::StoreOp>(op);
-                         return st && st.getValue() == carr.getResult();
+                         if (auto st = dyn_cast<cudaq::cc::StoreOp>(op))
+                           return st.getValue() == carr.getResult();
+                         if (auto st = dyn_cast<cudaq::cc::ExtractValueOp>(op))
+                           return st.getOperand(0) == carr.getResult();
+                         return false;
                        })) {
         ok = false;
         return;
@@ -102,35 +120,46 @@ public:
       auto ptrTy = cudaq::cc::PointerType::get(eleTy);
       auto loc = carr.getLoc();
 
+      auto constValue = [&](OpBuilder &builder, ArrayAttr constantValues,
+                            int idx) -> Value {
+        auto val = constantValues[idx];
+        if (auto fTy = dyn_cast<FloatType>(eleTy))
+          return builder.create<arith::ConstantFloatOp>(
+              loc, cast<FloatAttr>(val).getValue(), fTy);
+        if (auto iTy = dyn_cast<IntegerType>(eleTy))
+          return builder.create<arith::ConstantIntOp>(
+              loc, cast<IntegerAttr>(val).getInt(), iTy);
+        auto cTy = cast<ComplexType>(eleTy);
+        auto complexVal = builder.getArrayAttr(
+            {cast<FloatAttr>(val), cast<FloatAttr>(constantValues[idx + 1])});
+        return builder.create<complex::ConstantOp>(loc, cTy, complexVal);
+      };
+
       for (auto *user : carr->getUsers()) {
-        auto origStore = cast<cudaq::cc::StoreOp>(user);
-        OpBuilder builder(origStore);
-        auto buffer = origStore.getPtrvalue();
         const std::int32_t numConstants = carr.getConstantValues().size();
         auto constantValues = carr.getConstantValues();
         const bool isComplex = isa<ComplexType>(eleTy);
-        for (std::int32_t idx = 0; idx < numConstants;
-             idx += isComplex ? 2 : 1) {
-          auto v = [&]() -> Value {
-            auto val = constantValues[idx];
-            if (auto fTy = dyn_cast<FloatType>(eleTy))
-              return builder.create<arith::ConstantFloatOp>(
-                  loc, cast<FloatAttr>(val).getValue(), fTy);
-            if (auto iTy = dyn_cast<IntegerType>(eleTy))
-              return builder.create<arith::ConstantIntOp>(
-                  loc, cast<IntegerAttr>(val).getInt(), iTy);
-            auto cTy = cast<ComplexType>(eleTy);
-            auto complexVal = builder.getArrayAttr(
-                {cast<FloatAttr>(val),
-                 cast<FloatAttr>(constantValues[idx + 1])});
-            return builder.create<complex::ConstantOp>(loc, cTy, complexVal);
-          }();
-          std::int32_t vidx = isComplex ? (idx / 2) : idx;
-          Value arrWithOffset = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{vidx});
-          builder.create<cudaq::cc::StoreOp>(loc, v, arrWithOffset);
+        if (auto origStore = dyn_cast<cudaq::cc::StoreOp>(user)) {
+          OpBuilder builder(origStore);
+          auto buffer = origStore.getPtrvalue();
+          for (std::int32_t idx = 0; idx < numConstants;
+               idx += isComplex ? 2 : 1) {
+            auto v = constValue(builder, constantValues, idx);
+            std::int32_t vidx = isComplex ? (idx / 2) : idx;
+            Value arrWithOffset = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{vidx});
+            builder.create<cudaq::cc::StoreOp>(loc, v, arrWithOffset);
+          }
+          cleanUps.push_back(user);
+        } else if (auto origLoad = dyn_cast<cudaq::cc::ExtractValueOp>(user)) {
+          OpBuilder builder(origLoad);
+          for (auto vidx : origLoad.getRawConstantIndices()) {
+            auto idx = isComplex ? vidx * 2 : vidx;
+            auto v = constValue(builder, constantValues, idx);
+            origLoad.replaceAllUsesWith(v);
+          }
+          cleanUps.push_back(user);
         }
-        cleanUps.push_back(user);
       }
       cleanUps.push_back(carr.getOperation());
     });
