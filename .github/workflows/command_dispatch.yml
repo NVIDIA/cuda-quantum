@@ -7,6 +7,7 @@ name: Slash command dispatch
 jobs:
   preprocessing:
     name: Check for slash command
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     permissions:
       # keep this limited to read permissions for the content only!

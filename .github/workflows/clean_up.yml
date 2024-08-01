@@ -22,7 +22,7 @@ name: Clean up
 jobs:
   bot_branches:
     name: Delete temporary bot/* branches
-    if: github.event_name == 'workflow_dispatch' && inputs.delete_temp_branches
+    if: (${{ ! github.event.repository.fork }} && github.event_name == 'workflow_dispatch' && inputs.delete_temp_branches)
     runs-on: ubuntu-latest
 
     steps:
@@ -46,7 +46,7 @@ jobs:
 
   draft_releases:
     name: Delete draft release
-    if: github.event_name == 'workflow_dispatch' && inputs.delete_draft_releases
+    if: (${{ ! github.event.repository.fork }} && github.event_name == 'workflow_dispatch' && inputs.delete_draft_releases)
     runs-on: ubuntu-latest
 
     steps:
@@ -67,6 +67,7 @@ jobs:
 
   ghcr_images:
     name: Clean up GHCR images
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -146,6 +147,7 @@ jobs:
   # See also https://github.com/actions/runner/issues/2120
   deployments:
     name: Deployments
+    if: ${{ ! github.event.repository.fork }}
     runs-on: ubuntu-latest
     permissions:
       deployments: write
@@ -177,7 +179,7 @@ jobs:
 
   pr_cleanup:
     name: Clean up documentation previews
-    if: github.event_name == 'pull_request_target'
+    if: (${{ ! github.event.repository.fork }} && github.event_name == 'pull_request_target')
     runs-on: ubuntu-latest
 
     permissions:

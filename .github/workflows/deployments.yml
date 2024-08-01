@@ -52,7 +52,7 @@ concurrency:
 jobs:
   metadata:
     name: Prepare build
-    if: github.event_name != 'push' || github.event.created
+    if: (${{ ! github.event.repository.fork }} && (github.event_name != 'push' || github.event.created))
     runs-on: ubuntu-latest
     permissions:
       contents: read
