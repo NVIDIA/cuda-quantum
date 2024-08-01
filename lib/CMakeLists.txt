@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+include(HandleLLVMOptions)
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(Frontend)
 endif()
