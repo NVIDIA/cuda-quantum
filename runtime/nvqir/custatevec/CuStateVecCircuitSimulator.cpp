@@ -210,22 +210,22 @@ protected:
 
           // Perform device to device copy
           HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
-                                    stateDimension * sizeof(CudaDataType),
-                                    cudaMemcpyDeviceToDevice));
+                                       stateDimension * sizeof(CudaDataType),
+                                       cudaMemcpyDeviceToDevice));
 
           // Restore the current device
           HANDLE_CUDA_ERROR(cudaSetDevice(currentDevice));
         } else {
           // Memory is on the same GPU
           HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
-                                    stateDimension * sizeof(CudaDataType),
-                                    cudaMemcpyDeviceToDevice));
+                                       stateDimension * sizeof(CudaDataType),
+                                       cudaMemcpyDeviceToDevice));
         }
       } else {
         // Else, copy from host to device
         HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
-                                   stateDimension * sizeof(CudaDataType),
-                                   cudaMemcpyHostToDevice));
+                                     stateDimension * sizeof(CudaDataType),
+                                     cudaMemcpyHostToDevice));
       }
       return;
     }
@@ -263,8 +263,8 @@ protected:
 
           // Perform device to device copy
           HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
-                                    stateDimension * sizeof(CudaDataType),
-                                    cudaMemcpyDeviceToDevice));
+                                       stateDimension * sizeof(CudaDataType),
+                                       cudaMemcpyDeviceToDevice));
 
           // Restore the current device
           HANDLE_CUDA_ERROR(cudaSetDevice(currentDevice));
@@ -272,8 +272,8 @@ protected:
       } else {
         // Else, copy from host to device
         HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
-                                   (1UL << count) * sizeof(CudaDataType),
-                                   cudaMemcpyHostToDevice));
+                                     (1UL << count) * sizeof(CudaDataType),
+                                     cudaMemcpyHostToDevice));
       }
     }
 
