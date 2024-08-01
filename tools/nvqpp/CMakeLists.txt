@@ -6,26 +6,22 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(CUDAQ_RELOCATABLE_BOOL "false")
-if(CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
-  set(CUDAQ_RELOCATABLE_BOOL "true")
-endif()
-
 set(CUDAQ_IS_APPLE "false")
 if (APPLE) 
   set(CUDAQ_IS_APPLE "true")
 endif()
 
 add_custom_target(nvq++)
-
 configure_file("nvq++.in"
                "${CUDAQ_BINARY_DIR}/bin/nvq++" 
                FILE_PERMISSIONS
-	        OWNER_READ OWNER_WRITE OWNER_EXECUTE
-	        GROUP_READ GROUP_EXECUTE
-	        WORLD_READ WORLD_EXECUTE
+	              OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	              GROUP_READ GROUP_EXECUTE
+	              WORLD_READ WORLD_EXECUTE
                @ONLY)
 
+install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
+        DESTINATION include/nvqpp)
 install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/nvq++
         DESTINATION bin)
 install(FILES backendConfig.cpp DESTINATION targets/)
