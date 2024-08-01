@@ -124,7 +124,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/visualization.html">   Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/visualization.html#Qubit-Visualization">Qubit Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -318,8 +322,8 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/data_center_install.html#mpi">MPI</a></li>
@@ -330,8 +334,14 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/integration/cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/integration/libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/integration/libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/integration/libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/extending/extending.html">   Extending</a><ul>
@@ -504,6 +514,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 </ul>
 </li>
 </ul>
@@ -2800,7 +2811,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state7overlapERK5state">
 <span class="target" id="classcudaq_1_1state_1ac52a47246232d55fff20665e2d8139da"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">overlap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5stateE" title="cudaq::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state7overlapERK5state" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Compute the overlap of this state with the other one. </p>
+<dd><p>Compute the overlap of this state with the other one. For state vectors (pure states), it is computed as <code class="docutils literal notranslate"><span class="pre">|&lt;this</span> <span class="pre">|</span> <span class="pre">other&gt;|</span></code>. </p>
 </dd></dl>
 
 <dl class="cpp function">
