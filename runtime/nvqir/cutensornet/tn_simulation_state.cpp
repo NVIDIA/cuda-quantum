@@ -161,7 +161,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   HANDLE_CUTN_ERROR(cutensornetDestroyAccessor(accessor));
   HANDLE_CUTN_ERROR(cutensornetDestroyState(tempQuantumState));
 
-  return h_overlap;
+  return std::abs(h_overlap);
 }
 
 std::complex<double>

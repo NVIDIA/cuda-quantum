@@ -366,7 +366,8 @@ def check_overlap_param(entity):
         state2 = cudaq.get_state(entity, angle2)
         state2.dump()
         overlap = state1.overlap(state2)
-        expected = np.abs(np.cos(angle1 / 2) * np.cos(angle2 / 2)) + np.abs(
+        expected = np.abs(
+            np.cos(angle1 / 2) * np.cos(angle2 / 2) +
             np.sin(angle1 / 2) * np.sin(angle2 / 2))
         assert assert_close(overlap, expected)
 
