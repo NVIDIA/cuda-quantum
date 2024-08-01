@@ -12,7 +12,6 @@
 #include "cudaq/qis/state.h"
 
 #include <cstdlib>
-#include <iostream>
 
 namespace cudaq::runtime {
 
@@ -28,13 +27,7 @@ cudaq::opt::ArgumentDataStore readSimulationStateData(
     cudaq::state *state;
     std::memcpy(&state, ((const char *)args) + offset, sizeof(cudaq::state *));
 
-    std::cout << " getting precision" << std::endl;
     auto precision = state->get_precision();
-    std::cout << "simutation precision: "
-              << (precision == cudaq::SimulationState::precision::fp32
-                      ? "32bit"
-                      : "64bit")
-              << std::endl;
     auto stateVector = state->get_tensor();
     auto numElements = stateVector.get_num_elements();
     auto elementSize = stateVector.element_size();

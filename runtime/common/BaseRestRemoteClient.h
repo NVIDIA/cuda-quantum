@@ -82,8 +82,6 @@ private:
 static cudaq::opt::ArgumentDataStore
 readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
                         const void *args, std::size_t startingArgIdx = 0) {
-  cudaq::opt::ArgumentDataStore dataStore;
-
   auto filterStatePtr = [](mlir::Type type) {
     if (auto ptrTy = llvm::dyn_cast<cudaq::cc::PointerType>(type))
       return llvm::isa<cudaq::cc::StateType>(ptrTy.getElementType());

@@ -502,7 +502,6 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
 static cudaq::opt::ArgumentDataStore
 readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
                         const void *args, std::size_t startingArgIdx = 0) {
-  cudaq::opt::ArgumentDataStore dataStore;
   auto filterStatePtr = [](Type type) {
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type))
       return isa<cudaq::cc::StateType>(ptrTy.getElementType());

@@ -42,7 +42,7 @@ int main() {
   auto state = cudaq::state::from_data(vec);
   auto state1 = cudaq::state::from_data(vec1);
   {
-      // Passing state data as argument (kernel mode)
+      // Passing state created from data as argument (kernel mode)
       auto counts = cudaq::sample(test_state_param, &state);
       printCounts(counts);
 
@@ -57,6 +57,7 @@ int main() {
 // CHECK: 111
 
   {
+    // Passing state from another kernel as argument (kernel mode)
     auto state = cudaq::get_state(test_init_state);
     auto counts = cudaq::sample(test_state_param, &state);
     printCounts(counts);

@@ -12,7 +12,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/TargetParser/Triple.h"
 #include "mlir/IR/Matchers.h"
-#include "mlir/Target/LLVMIR/TypeToLLVM.h"
 
 using namespace mlir;
 
