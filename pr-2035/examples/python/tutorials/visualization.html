@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Noisy Simulation &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Visualization &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Readout Error Mitigation" href="readout_error_mitigation.html" />
-    <link rel="prev" title="Molecular docking via DC-QAOA" href="maximum_vertex_weight_clique.html" /> 
+    <link rel="next" title="Computing Expectation Values" href="../../../using/examples/expectation_values.html" />
+    <link rel="prev" title="Quantum Computing 101" href="../../../using/examples/quantum_operations.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -121,7 +121,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/introduction.html">   Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
@@ -129,9 +129,9 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">   Visualization</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="visualization.html#Qubit-Visualization">Qubit Visualization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Qubit-Visualization">Qubit Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -163,7 +163,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -194,7 +194,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="maximum_vertex_weight_clique.html">Molecular docking via DC-QAOA</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
@@ -538,140 +538,240 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Noisy Simulation</li>
+          <li class="breadcrumb-item"><a href="../../../using/examples/examples.html">CUDA-Q by Example</a></li>
+      <li class="breadcrumb-item active">Visualization</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/examples/python/tutorials/noisy_simulations.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/examples/python/tutorials/visualization.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="maximum_vertex_weight_clique.html" class="btn btn-neutral float-left" title="Molecular docking via DC-QAOA" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="readout_error_mitigation.html" class="btn btn-neutral float-right" title="Readout Error Mitigation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../../../using/examples/quantum_operations.html" class="btn btn-neutral float-left" title="Quantum Computing 101" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/examples/expectation_values.html" class="btn btn-neutral float-right" title="Computing Expectation Values" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Noisy-Simulation">
-<h1>Noisy Simulation<a class="headerlink" href="#Noisy-Simulation" title="Permalink to this heading">¶</a></h1>
-<p>Quantum noise can be characterized into coherent and incoherent sources of errors that arise during a computation. Coherent noise is commonly due to systematic errors originating from device miscalibrations, for example, gates implementing a rotation <span class="math notranslate nohighlight">\(\theta + \epsilon\)</span> instead of <span class="math notranslate nohighlight">\(\theta\)</span>.</p>
-<p>Incoherent noise has its origins in quantum states being entangled with the environment due to decoherence. This leads to mixed states which are probability distributions over pure states and are described by employing the density matrix formalism.</p>
-<p>We can model incoherent noise via quantum channels which are linear, completely positive, and trace preserving maps. These maps are called Kraus operators, <span class="math notranslate nohighlight">\(\{ K_i \}\)</span>, which satisfy the condition <span class="math notranslate nohighlight">\(\sum_{i} K_i^\dagger K_i = \mathbb{I}\)</span>.</p>
-<p>The bit-flip channel flips the qubit with probability <span class="math notranslate nohighlight">\(p\)</span> and leaves it unchanged with probability <span class="math notranslate nohighlight">\(1-p\)</span>. This can be represented by employing Kraus operators:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}K_0 = \sqrt{1-p} \begin{pmatrix}
-    1 &amp; 0 \\
-    0 &amp; 1
-\end{pmatrix}\end{split}\]</div>
-<div class="math notranslate nohighlight">
-\[\begin{split}K_1 = \sqrt{p} \begin{pmatrix}
-  0 &amp; 1 \\
-  1 &amp; 0
-\end{pmatrix}\end{split}\]</div>
-<p>Let’s implement the bit-flip channel using CUDA-Q:</p>
-<div class="nbinput nblast docutils container">
+  <section id="Visualization">
+<h1>Visualization<a class="headerlink" href="#Visualization" title="Permalink to this heading">¶</a></h1>
+<section id="Qubit-Visualization">
+<h2>Qubit Visualization<a class="headerlink" href="#Qubit-Visualization" title="Permalink to this heading">¶</a></h2>
+<p>What are the possible states a qubit can be in and how can we build up a visual cue to help us make sense of quantum states and their evolution?</p>
+<p>We know our qubit can have two distinct states: <span class="math notranslate nohighlight">\(\ket{0}\)</span> and <span class="math notranslate nohighlight">\(\ket{1}\)</span>. Maybe we need a one-dimensional line whose vertices can represent each of the states. We also know that qubits can be in an equal superposition states: <span class="math notranslate nohighlight">\(\ket{+}\)</span> and <span class="math notranslate nohighlight">\(\ket{-}\)</span>. This now forces us to extend our 1D line to a 2D Cartesian coordinate system. If you dive deeper you will learn about the existence of states like <span class="math notranslate nohighlight">\(\ket{+i}\)</span> and <span class="math notranslate nohighlight">\(\ket{-i}\)</span>, this calls for a 3D extension.</p>
+<p>It turns out that a sphere is able to depict all the possible states of a single qubit. This is called a Bloch sphere.</p>
+<p><img alt="Bloch Sphere" class="no-scaled-link" src="../../../_images/Bloch_sphere.png" style="width: 300px; height: 300px;" /></p>
+<p>Let us try to showcase the functionality to render such a 3D representation with CUDA-Q. First, let us define a single-qubit kernel that returns a different state each time. This kernel uses random rotations.</p>
+<p>Note: CUDA-Q uses the <a class="reference external" href="https://qutip.org">QuTiP</a> library to render Bloch spheres. The following code will throw an error if QuTiP is not installed.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># install `qutip` in the current Python kernel. Skip this if `qutip` is already installed.</span>
+<span class="c1"># `matplotlib` is required for all visualization tasks.</span>
+<span class="c1"># Make sure to restart your kernel if you execute this!</span>
+<span class="c1"># In a Jupyter notebook, go to the menu bar &gt; Kernel &gt; Restart Kernel.</span>
+<span class="c1"># In VSCode, click on the Restart button in the Jupyter toolbar.</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="c1"># The &#39;\&#39; before the &#39;&gt;&#39; operator is so that the shell does not misunderstand</span>
+<span class="c1"># the &#39;&gt;&#39; qualifier for the bash pipe operation.</span>
 
-<span class="c1"># To model quantum noise, we need to utilize the density matrix simulator target.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
-</pre></div>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="kn">import</span> <span class="nn">qutip</span>
+
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Tools not found, installing. Please restart your kernel after this is done.&quot;</span><span class="p">)</span>
+    <span class="o">!{</span>sys.executable<span class="o">}</span><span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>qutip<span class="se">\&gt;</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>matplotlib<span class="se">\&gt;</span><span class="o">=</span><span class="m">3</span>.5
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">New libraries have been installed. Please restart your kernel!&quot;</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
-<div class="nbinput docutils container">
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Tools not found, installing. Please restart your kernel after this is done.
+Collecting qutip&gt;=5
+  Downloading qutip-5.0.3.post1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (28.0 MB)
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">58.0 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+Requirement already satisfied: matplotlib&gt;=3.5 in /usr/local/lib/python3.10/dist-packages (3.9.1)
+Requirement already satisfied: numpy&gt;=1.22 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.26.4)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (24.1)
+Requirement already satisfied: scipy&gt;=1.9 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.10.1)
+Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (10.4.0)
+Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (2.9.0.post0)
+Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.2.1)
+Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.5)
+Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
+Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.2)
+Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (4.53.1)
+Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib&gt;=3.5) (1.16.0)
+Installing collected packages: qutip
+Successfully installed qutip-5.0.3.post1
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>
+New libraries have been installed. Please restart your kernel!
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Let&#39;s define a simple kernel that we will add noise to.</span>
-<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1">## Retry the subsequent cells by setting the target to density matrix simulator.</span>
+<span class="c1"># cudaq.set_target(&quot;density-matrix-cpu&quot;)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
-
-
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">))</span>
-</pre></div>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">angles</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">rz</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubit</span><span class="p">)</span>
+    <span class="n">rx</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qubit</span><span class="p">)</span>
+    <span class="n">rz</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">qubit</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-     ╭───╮
-q0 : ┤ x ├
-     ├───┤
-q1 : ┤ x ├
-     ╰───╯
-
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
+<p>Next, we instantiate a random number generator, so we can get random outputs. We then create 4 random single-qubit states by using <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code> on the output state obtained from the random kernel.</p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># In the ideal noiseless case, we get |11&gt; 100% of the time.</span>
-
-<span class="n">ideal_counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-<span class="n">ideal_counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
-</pre></div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<span class="n">blochSphereList</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+    <span class="n">angleList</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">sph</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">add_to_bloch_sphere</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">angleList</span><span class="p">))</span>
+    <span class="n">blochSphereList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sph</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{ 11:1000 }
-</pre></div></div>
-</div>
+<p>We can display the spheres with <code class="docutils literal notranslate"><span class="pre">cudaq.show()</span></code>. Show the first sphere:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># First, we will define an out of the box noise channel. In this case,</span>
-<span class="c1"># we choose depolarization noise. This depolarization will result in</span>
-<span class="c1"># the qubit state decaying into a mix of the basis states, |0&gt; and |1&gt;,</span>
-<span class="c1"># with our provided probability.</span>
-<span class="n">error_probability</span> <span class="o">=</span> <span class="mf">0.1</span>
-<span class="n">depolarization_channel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="n">error_probability</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_7_0.png" src="../../../_images/examples_python_tutorials_visualization_7_0.png" />
+</div>
+</div>
+<p>We can also show multiple Bloch spheres side by side - simply set the <code class="docutils literal notranslate"><span class="pre">nrows</span></code> and <code class="docutils literal notranslate"><span class="pre">ncols</span></code> in the call to <code class="docutils literal notranslate"><span class="pre">cudaq.show()</span></code> accordingly. Make sure to have more spaces than spheres in your list, else it will throw an error! Let us show two spheres in a row:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_9_0.png" src="../../../_images/examples_python_tutorials_visualization_9_0.png" />
+</div>
+</div>
+<p>We can show them in a column too, if we want! Simply set the <code class="docutils literal notranslate"><span class="pre">nrows</span> <span class="pre">=</span> <span class="pre">2</span></code> and <code class="docutils literal notranslate"><span class="pre">ncols</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_11_0.png" src="../../../_images/examples_python_tutorials_visualization_11_0.png" />
+</div>
+</div>
+<p>Can we show the entire list of 4 Bloch spheres we created? Absolutely!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_13_0.png" src="../../../_images/examples_python_tutorials_visualization_13_0.png" />
+</div>
+</div>
+<p>What if we had to add multiple vectors to a single Bloch sphere? CUDA-Q uses the <a class="reference external" href="https://www.qutip.org">QuTiP</a> toolbox to construct Bloch spheres. We can then add multiple states to the same Bloch sphere by passing the sphere object as an argument to <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">qutip</span>
 
-<span class="c1"># We can also define our own, custom noise channels through</span>
-<span class="c1"># Kraus operators. Here we will define two operators representing</span>
-<span class="c1"># bit flip errors.</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">47</span><span class="p">)</span>
+<span class="n">blochSphere</span> <span class="o">=</span> <span class="n">qutip</span><span class="o">.</span><span class="n">Bloch</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">angleList</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">sph</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">add_to_bloch_sphere</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">angleList</span><span class="p">),</span> <span class="n">blochSphere</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<p>This created a single Bloch sphere with 10 random vectors. Let us see how it looks.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">blochSphere</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_17_0.png" src="../../../_images/examples_python_tutorials_visualization_17_0.png" />
+</div>
+</div>
+<p>Unfortunately, there is no such handy visualization for multi-qubit states. In particular, a multi-qubit state cannot be visualized as multiple Bloch spheres due to the nature of entanglement that makes quantum computing so powerful.</p>
+</section>
+<section id="Kernel-Visualization">
+<h2>Kernel Visualization<a class="headerlink" href="#Kernel-Visualization" title="Permalink to this heading">¶</a></h2>
+<p>A CUDA-Q kernel can be visualized using the <code class="docutils literal notranslate"><span class="pre">cudaq.draw</span></code> API which returns a string representing the drawing of the execution path, in the specified format. ASCII (default) and LaTeX formats are supported.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel_to_draw</span><span class="p">():</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">z</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 
-<span class="c1"># Define the Kraus Error Operator as a complex ndarray.</span>
-<span class="n">kraus_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">error_probability</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]],</span>
-                                                    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
-<span class="n">kraus_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">error_probability</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]],</span>
-                                                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 
-<span class="c1"># Add the Kraus Operator to create a quantum channel.</span>
-<span class="n">bitflip_channel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">KrausChannel</span><span class="p">([</span><span class="n">kraus_0</span><span class="p">,</span> <span class="n">kraus_1</span><span class="p">])</span>
+    <span class="n">r1</span><span class="p">(</span><span class="mf">3.14159</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">tdg</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">s</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 
-<span class="c1"># Add the two channels to our Noise Model.</span>
-<span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-
-<span class="c1"># Apply the depolarization channel to any X-gate on the 0th qubit.</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">depolarization_channel</span><span class="p">)</span>
-<span class="c1"># Apply the bitflip channel to any X-gate on the 1st qubit.</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bitflip_channel</span><span class="p">)</span>
-
-<span class="c1"># Due to the impact of noise, our measurements will no longer be uniformly</span>
-<span class="c1"># in the |11&gt; state.</span>
-<span class="n">noisy_counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
-                            <span class="n">qubit_count</span><span class="p">,</span>
-                            <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
-                            <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-<span class="n">noisy_counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="n">circuit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel_to_draw</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -680,43 +780,27 @@ q1 : ┤ x ├
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{ 11:850 10:88 01:56 00:6 }
+     ╭───╮                  ╭───────────╮
+q0 : ┤ h ├──●────●────╳───╳─┤ r1(3.142) ├───────
+     ├───┤╭─┴─╮  │    │   │ ╰───────────╯╭─────╮
+q1 : ┤ h ├┤ x ├──●────╳───┼───────╳──────┤ tdg ├
+     ├───┤╰───╯╭─┴─╮╭───╮ │       │      ╰┬───┬╯
+q2 : ┤ h ├─────┤ y ├┤ z ├─┼───────╳───────┤ s ├─
+     ├───┤     ╰───╯╰───╯ │               ╰───╯
+q3 : ┤ h ├────────────────╳─────────────────────
+     ╰───╯
+
 </pre></div></div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We can also use noise models with the observe function</span>
-
-<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-
-<span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
-                             <span class="n">hamiltonian</span><span class="p">,</span>
-                             <span class="n">qubit_count</span><span class="p">,</span>
-                             <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">)</span>
-
-<span class="n">noisy_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
--0.8666666666666666
-</pre></div></div>
-</div>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="maximum_vertex_weight_clique.html" class="btn btn-neutral float-left" title="Molecular docking via DC-QAOA" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="readout_error_mitigation.html" class="btn btn-neutral float-right" title="Readout Error Mitigation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../../../using/examples/quantum_operations.html" class="btn btn-neutral float-left" title="Quantum Computing 101" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/examples/expectation_values.html" class="btn btn-neutral float-right" title="Computing Expectation Values" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
