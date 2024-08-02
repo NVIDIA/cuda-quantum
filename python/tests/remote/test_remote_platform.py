@@ -416,7 +416,7 @@ def test_math_exp():
         iqft(counting_qubits)
         mz(counting_qubits)
 
-    count = cudaq.sample(exp_kernel)
+    cudaq.sample(exp_kernel)
 
 
 def test_arbitrary_unitary_synthesis():
