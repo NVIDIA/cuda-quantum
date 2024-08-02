@@ -7,18 +7,11 @@
 # ============================================================================ #
 
 import os
-import platform
-import re
-import subprocess
-import sys
 import shutil
 import bisect
 
 import lit.util
 from lit.llvm import llvm_config
-from lit.llvm.subst import ToolSubst
-from lit.llvm.subst import FindTool
-
 import lit.formats
 
 # The name of this test suite.
