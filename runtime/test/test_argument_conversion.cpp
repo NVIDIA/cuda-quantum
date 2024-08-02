@@ -49,6 +49,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "i1", v);
   }
+  // clang-format off
 // CHECK-LABEL: Source module:
 // CHECK:         func.func private @callee(i1)
 // CHECK:       Substitution module:
@@ -56,11 +57,13 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant true
 // CHECK:         }
+  // clang-format on
   {
     char x = 'X';
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "i8", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(i8)
 // CHECK:       Substitution module:
@@ -68,11 +71,13 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 88 : i8
 // CHECK:         }
+  // clang-format on
   {
     std::int16_t x = 103;
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "i16", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(i16)
 // CHECK:       Substitution module:
@@ -80,11 +85,13 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 103 : i16
 // CHECK:         }
+  // clang-format on
   {
     std::int32_t x = 14581;
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "i32", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(i32)
 // CHECK:       Substitution module:
@@ -92,11 +99,13 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 14581 : i32
 // CHECK:         }
+  // clang-format on
   {
     std::int64_t x = 78190214;
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "i64", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(i64)
 // CHECK:       Substitution module:
@@ -104,12 +113,14 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 78190214 : i64
 // CHECK:         }
+  // clang-format on
 
   {
     float x = 974.17244;
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "f32", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(f32)
 // CHECK:       Substitution module:
@@ -117,11 +128,13 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 974.172424 : f32
 // CHECK:         }
+  // clang-format on
   {
     double x = 77.4782348;
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "f64", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(f64)
 // CHECK:       Substitution module:
@@ -129,12 +142,14 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 77.478234799999996 : f64
 // CHECK:         }
+  // clang-format on
 
   {
     std::string x = "Hi, there!";
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.charspan", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(!cc.charspan)
 // CHECK:       Substitution module:
@@ -146,6 +161,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_2]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:         }
 // CHECK:         llvm.mlir.global private constant @cstr.48692C2074686572652100("Hi, there!\00") {addr_space = 0 : i32}
+  // clang-format on
 }
 
 void test_vectors(mlir::MLIRContext *ctx) {
@@ -154,6 +170,7 @@ void test_vectors(mlir::MLIRContext *ctx) {
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.stdvec<i32>", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(!cc.stdvec<i32>)
 // CHECK:       Substitution module:
@@ -175,6 +192,7 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_9:.*]] = arith.constant 4 : i64
 // CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_9]] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.stdvec<i32>
 // CHECK:         }
+  // clang-format on
 }
 
 void test_aggregates(mlir::MLIRContext *ctx) {
@@ -190,6 +208,7 @@ void test_aggregates(mlir::MLIRContext *ctx) {
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.struct<{i32,f64,i8,i16}>", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(!cc.struct<{i32, f64, i8, i16}>)
 // CHECK:       Substitution module:
@@ -205,6 +224,7 @@ void test_aggregates(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_7:.*]] = arith.constant -1314 : i16
 // CHECK:           %[[VAL_8:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_6]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
 // CHECK:         }
+  // clang-format on
 }
 
 void test_recursive(mlir::MLIRContext *ctx) {
@@ -223,6 +243,7 @@ void test_recursive(mlir::MLIRContext *ctx) {
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.stdvec<!cc.struct<{i32,f64,i8,i16}>>", v);
   }
+  // clang-format off
 // CHECK:       Source module:
 // CHECK:         func.func private @callee(!cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>)
 // CHECK:       Substitution module:
@@ -265,6 +286,7 @@ void test_recursive(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_31:.*]] = arith.constant 3 : i64
 // CHECK:           %[[VAL_32:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_31]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>, i64) -> !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:         }
+  // clang-format on
 }
 
 int main() {
