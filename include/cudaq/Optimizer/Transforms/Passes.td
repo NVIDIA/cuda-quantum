@@ -279,6 +279,11 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Generate the kernel execution thunks. The kernel execution thunks allow
     the control side (C++ code) to launch quantum kernels. This pass
     generates the required glue code.
+
+    Specifying the alt-launch=2 option will generate different code that makes
+    use of library side argument conversion and the argument synthesis pass.
+    More generally, this option can be used when JIT compiling kernels on the
+    client/host/local processor.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -288,11 +293,14 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
       /*default=*/"\"-\"", "Name of output file.">,
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
+    Option<"altLaunchVersion", "alt-launch", "std::size_t", /*default=*/"1",
+      "Specify the version of altLaunchKernel to be used.">
   ];
 }
 
 def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
-  let summary = "Replace the unitary matrix generator function with concrete matrix.";
+  let summary =
+    "Replace the unitary matrix generator function with concrete matrix.";
   let description = [{
     Given a custom operation whose generator attribute is another function 
     within the module, such that if `LiftArrayAlloc` pass has run, there will
