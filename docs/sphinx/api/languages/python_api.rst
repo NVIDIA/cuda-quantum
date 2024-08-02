@@ -56,6 +56,12 @@ Program Construction
     :members:
     :special-members: __str__, __call__
 
+
+.. autoclass:: PhotonicsKernel
+    
+    .. automethod:: __call__
+
+
 .. autofunction:: kernel
     
 Kernel Execution
@@ -228,3 +234,15 @@ MPI Submodule
 .. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
 .. automethod:: cudaq.mpi::finalize
+
+ORCA Submodule
+=============================
+
+.. automethod:: cudaq.orca::sample
+
+Photonics Submodule
+=============================
+
+.. automethod:: cudaq.photonics::allocate_qudit
+.. automethod:: cudaq.photonics::apply_operation
+.. automethod:: cudaq.photonics::measure

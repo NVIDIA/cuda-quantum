@@ -23,7 +23,7 @@
 #include <sstream>
 #include <stack>
 
-namespace {
+namespace cudaq {
 
 class SimpleQuditExecutionManager : public cudaq::BasicExecutionManager {
 private:
@@ -131,6 +131,6 @@ public:
   void resetQudit(const cudaq::QuditInfo &id) override {}
 };
 
-} // namespace
+} // namespace cudaq
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(SimpleQuditExecutionManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(SimpleQuditExecutionManager, simple)
