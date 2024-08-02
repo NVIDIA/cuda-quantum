@@ -394,6 +394,20 @@ QuakeValue QuakeValue::operator-(QuakeValue other) {
   return QuakeValue(opBuilder, subtracted);
 }
 
+// QuakeValue QuakeValue::operator*() {
+//   auto v = value->asMLIR();
+  
+//   if (!isa<cc::PointerType>(v.getType()))
+//     throw std::runtime_error("Can only dereference state* QuakeValues.");
+
+//   auto ty = cast<cc::PointerType>(v.getType()).getElementType();
+//   if (!isa<cc::StateType>(ty))
+//     throw std::runtime_error("Can only dereference state* QuakeValues.");
+
+//   Value dereferenced = opBuilder.create<cc::LoadOp>(ty, v);
+//   return QuakeValue(opBuilder, dereferenced);
+// }
+
 QuakeValue QuakeValue::inverse() const {
   auto v = value->asMLIR();
   if (!v.getType().isIntOrFloat())

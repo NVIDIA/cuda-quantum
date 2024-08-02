@@ -109,7 +109,10 @@ state::~state() {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
-  return obj->get_num_qubits();
+  std::cout << "called __nvqpp_cudaq_state_numberOfQubits on "<< reinterpret_cast<std::size_t>(obj) <<std::endl;
+  auto ret = obj->get_num_qubits();
+  std::cout << "num qubits: " <<ret << std::endl;
+  return ret;
 }
 }
 

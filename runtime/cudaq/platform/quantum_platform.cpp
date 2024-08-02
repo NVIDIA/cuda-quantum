@@ -160,6 +160,7 @@ void quantum_platform::launchKernel(std::string kernelName,
     qpu_id = iter->second;
 
   auto &qpu = platformQPUs[qpu_id];
+  cudaq::debug("launching on qpu");
   qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset);
 }
 
@@ -198,6 +199,8 @@ void cudaq::altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
   ScopedTraceWithContext("altLaunchKernel", kernelName, argsSize);
   auto &platform = *cudaq::getQuantumPlatformInternal();
   std::string kernName = kernelName;
+
+  cudaq::debug("launching");
   platform.launchKernel(kernName, kernelFunc, kernelArgs, argsSize,
                         resultOffset);
 }

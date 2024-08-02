@@ -488,6 +488,12 @@ public:
                            simulation_precision::fp32);
   }
 
+  // // Overload for `cudaq::state`
+  // QuakeValue qalloc(const cudaq::state *state) {
+  //   return details::qalloc(*opBuilder.get(), const_cast<cudaq::state *>(state),
+  //                          stateVectorStorage);
+  // }
+
   // Overload for `cudaq::state`
   QuakeValue qalloc(const cudaq::state &state) {
     return details::qalloc(*opBuilder.get(), const_cast<cudaq::state *>(&state),
