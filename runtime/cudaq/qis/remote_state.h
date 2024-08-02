@@ -102,6 +102,21 @@ public:
   /// @brief Destroy the state representation, frees all associated memory.
   void destroyState() override;
 
+  /// @brief Return true if this `SimulationState` wraps data on the GPU.
+  bool isDeviceData() const override;
+
+  /// @brief Transfer data from device to host, return the data
+  /// to the pointer provided by the client. Clients must specify the number of
+  /// elements.
+  void toHost(std::complex<double> *clientAllocatedData,
+              std::size_t numElements) const override;
+
+  /// @brief Transfer data from device to host, return the data
+  /// to the pointer provided by the client. Clients must specify the number of
+  /// elements.
+  void toHost(std::complex<float> *clientAllocatedData,
+              std::size_t numElements) const override;
+
 private:
   /// @brief Return the qubit count threshold where the full remote state should
   /// be flattened and returned.
