@@ -11,7 +11,7 @@
 using namespace mlir;
 
 void cudaq::opt::commonPipelineConvertToQIR(
-    PassManager &pm, const std::optional<StringRef> &convertTo, bool runQM) {
+    PassManager &pm, const std::optional<StringRef> &convertTo) {
   pm.addNestedPass<func::FuncOp>(createApplyControlNegations());
   addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
@@ -34,22 +34,6 @@ void cudaq::opt::commonPipelineConvertToQIR(
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  if (runQM && convertTo && convertTo->equals("qir-base")) {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
-    pm.addPass(createCanonicalizerPass());
-    pm.addPass(createCSEPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuantumMemToReg());
-    pm.addPass(createCanonicalizerPass());
-    pm.addPass(createCSEPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createAssignIDs());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDependencyAnalysis());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
-    pm.addPass(createCanonicalizerPass());
-    pm.addPass(createCSEPass());
-  }
   if (convertTo && convertTo->equals("qir-base"))
     pm.addNestedPass<func::FuncOp>(createDelayMeasurementsPass());
   pm.addPass(createConvertMathToFuncs());

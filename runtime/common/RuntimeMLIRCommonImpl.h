@@ -373,7 +373,7 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
     pm.enableStatistics();
   std::string errMsg;
   llvm::raw_string_ostream errOs(errMsg);
-  cudaq::opt::addPipelineConvertToQIR(pm, qirProfile, true);
+  cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&
       failed(parsePassPipeline(additionalPasses, pm, errOs)))
@@ -577,7 +577,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     // Even though we're not lowering all the way to a real QIR profile for this
     // emulated path, we need to pass in the `convertTo` in order to mimic what
     // the non-emulated path would do.
-    cudaq::opt::commonPipelineConvertToQIR(pm, convertTo, true);
+    cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
     mlir::DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
