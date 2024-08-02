@@ -33,12 +33,12 @@ from typing import List
 # This is because the CPU-only backend has difficulty handling
 # 30+ qubit simulations.
 
-spins = 2  # set to around 25 qubits for `nvidia` target
-steps = 3  # set to around 100 for `nvidia` target
+spins = 11  # set to around 25 qubits for `nvidia` target
+steps = 10  # set to around 100 for `nvidia` target
 # ```
 # cudaq.set_target("nvidia")
 # ```
-cudaq.set_target("remote-mqpu", url="localhost:3030")
+
 
 # Alternating up/down spins
 @cudaq.kernel
