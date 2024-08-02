@@ -40,13 +40,14 @@ if not "CUDAQ_DYNLIBS" in os.environ:
         pass
 
 from .display import display_trace
-from .kernel.kernel_decorator import kernel, PyKernelDecorator
-from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
+from .handlers import PhotonicsKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
-from .runtime.sample import sample
-from .runtime.observe import observe
-from .runtime.state import to_cupy
+from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
+from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.register_op import register_operation
+from .runtime.observe import observe
+from .runtime.sample import sample
+from .runtime.state import to_cupy
 
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -132,6 +133,7 @@ testing = cudaq_runtime.testing
 
 # target-specific
 orca = cudaq_runtime.orca
+photonics = cudaq_runtime.photonics
 
 
 def synthesize(kernel, *args):

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "execution_manager.h"
+#include "common/PluginUtils.h"
 #include "cudaq/platform.h"
 
 bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
@@ -16,3 +17,19 @@ bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
     ctx->registerNames.push_back("");
   return result == 1;
 }
+
+namespace cudaq {
+static ExecutionManager *execution_manager;
+
+void setExecutionManagerInternal(ExecutionManager *em) {
+  cudaq::info("external caller setting the execution manager.");
+  execution_manager = em;
+}
+
+void resetExecutionManagerInternal() {
+  cudaq::info("external caller clearing the execution manager.");
+  execution_manager = nullptr;
+}
+
+ExecutionManager *getExecutionManagerInternal() { return execution_manager; }
+} // namespace cudaq
