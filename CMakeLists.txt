@@ -534,23 +534,6 @@ add_subdirectory(cmake)
 add_subdirectory(include)
 add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
-  # Crow suffers from this issue when using libc++:
-  # https://github.com/CrowCpp/Crow/issues/576
-  # A workaround is applied depending on operating system rather then standard library specific.
-  # Instead of OS specific fix, detect in code whether _LIBCPP_VERSION is defined and apply fix.
-  # Only apply the patch if not already applied.
-  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/Crow/ apply ../customizations/Crow/json.h.diff --ignore-whitespace --reverse --check
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_PATCH_RESULT
-                  ERROR_QUIET)
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/Crow/ apply ../customizations/Crow/json.h.diff --ignore-whitespace
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
-  endif()
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
-  endif()
   add_subdirectory(runtime)
 endif()
 add_subdirectory(tools)
