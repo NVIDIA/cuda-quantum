@@ -198,14 +198,14 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
   auto eleTy = vecTy.getElementType();
   auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
   auto eleSize = cudaq::opt::getDataSize(layout, eleTy);
-  assert(eleSize);
+  assert(eleSize && "element must have a size");
   auto loc = builder.getUnknownLoc();
-  std::size_t vecSize = delta / eleSize;
+  std::int32_t vecSize = delta / eleSize;
   auto eleArrTy =
       cudaq::cc::ArrayType::get(builder.getContext(), eleTy, vecSize);
   auto buffer = builder.create<cudaq::cc::AllocaOp>(loc, eleArrTy);
   const char *cursor = (*vecPtr)[0];
-  for (std::size_t i = 0; i < vecSize; ++i) {
+  for (std::int32_t i = 0; i < vecSize; ++i) {
     if (Value val = dispatchSubtype(
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
             substMod, layout)) {
