@@ -671,7 +671,9 @@ struct DependencyAnalysisPass
       for (auto graph : graphs) {
         // For every "new" qubit, try to find an existing out-of-use qubit
         // that we can reuse. Failing that, use a new qubit.
-        for (auto qid : graph.getFirstUsedAtCycle(cycle)) {
+        auto qids = graph.getFirstUsedAtCycle(cycle);
+        std::sort(qids.begin(), qids.end());
+        for (auto qid : qids) {
           auto lifetime = graph.getLifeTimeForQID(qid);
           LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
           LLVM_DEBUG(llvm::dbgs()
