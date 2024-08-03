@@ -106,7 +106,7 @@ public:
         allowMeasurementMapping(false) {}
 
   /// Main entry point into SabreRouter routing algorithm
-  void route(Block &block, ArrayRef<quake::NullWireOp> sources);
+  void route(Block &block, ArrayRef<Operation *> sources);
 
   /// After routing, this contains the final values for all the qubits
   ArrayRef<Value> getPhyToWire() { return phyToWire; }
@@ -215,7 +215,7 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
   if (failed(quake::setQuantumOperands(virtOp.op, newOpWires)))
     return failure();
 
-  if (isa<quake::SinkOp>(virtOp.op))
+  if (isa<quake::SinkOp, quake::ReturnWireOp>(virtOp.op))
     return success();
 
   // Update the mapping between device qubits and wires.
@@ -352,7 +352,7 @@ SabreRouter::Swap SabreRouter::chooseSwap() {
   return candidates[minIdx];
 }
 
-void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
+void SabreRouter::route(Block &block, ArrayRef<Operation *> sources) {
 #ifndef NDEBUG
   constexpr char logLineComment[] =
       "//===-------------------------------------------===//\n";
@@ -364,15 +364,15 @@ void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
     logger.startLine() << "Mapping front layer:\n";
     logger.indent();
     for (auto virtOp : sources)
-      logger.startLine() << "* " << virtOp << " --> SUCCESS\n";
+      logger.startLine() << "* " << *virtOp << " --> SUCCESS\n";
     logger.unindent();
     logger.startLine() << logLineComment;
   });
 
   // The source ops can always be mapped.
-  for (quake::NullWireOp nullWire : sources) {
+  for (auto *nullWire : sources) {
     visitUsers(nullWire->getUsers(), frontLayer);
-    Value wire = nullWire.getResult();
+    Value wire = nullWire->getResult(0);
     auto phy = placement.getPhy(wireToVirtualQ[wire]);
     phyToWire[phy.index] = wire;
   }
@@ -557,17 +557,37 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
     // Sanity checks and create a wire to virtual qubit mapping.
     Block &block = *blocks.begin();
-    SmallVector<quake::NullWireOp> sources;
+    auto mod = block.getParentOp()->getParentOfType<ModuleOp>();
+    SmallVector<Operation *> sources;
     SmallVector<Operation *> sinksToRemove;
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
     SmallVector<std::size_t> userQubitsMeasured;
     DenseMap<std::size_t, Value> finalQubitWire;
+    StringRef wireSetName;
+    std::uint32_t wireSetCardinality = 0;
+    llvm::SmallSet<std::uint32_t, 32> unusedWireIDs;
     for (Operation &op : block.getOperations()) {
-      if (auto qop = dyn_cast<quake::NullWireOp>(op)) {
+      if (isa<quake::NullWireOp, quake::BorrowWireOp>(op)) {
         // Assign a new virtual qubit to the resulting wire.
-        wireToVirtualQ[qop.getResult()] = Placement::VirtualQ(sources.size());
-        finalQubitWire[sources.size()] = qop.getResult();
-        sources.push_back(qop);
+        wireToVirtualQ[op.getResult(0)] = Placement::VirtualQ(sources.size());
+        finalQubitWire[sources.size()] = op.getResult(0);
+        sources.push_back(&op);
+        if (auto borrowOp = dyn_cast<quake::BorrowWireOp>(op)) {
+          auto thisSetName = borrowOp.getSetName();
+          if (wireSetName.empty()) {
+            wireSetName = thisSetName; // save for future checks
+            auto wires = mod.lookupSymbol<quake::WireSetOp>(thisSetName);
+            if (!wires)
+              func.emitOpError("wire set could not be found");
+            wireSetCardinality = wires.getCardinality();
+            for (std::uint32_t i = 0; i < wireSetCardinality; i++)
+              unusedWireIDs.insert(i);
+          } else if (wireSetName != thisSetName) {
+            func.emitOpError("function cannot use multiple WireSets");
+          }
+          auto id = borrowOp.getIdentity();
+          unusedWireIDs.erase(id);
+        }
       } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
         if (!quake::isLinearValueForm(&op)) {
@@ -584,7 +604,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
         // Since `quake.sink` operations do not generate new wires, we don't
         // need to further analyze.
-        if (isa<quake::SinkOp>(op)) {
+        if (isa<quake::SinkOp, quake::ReturnWireOp>(op)) {
           sinksToRemove.push_back(&op);
           continue;
         }
@@ -699,17 +719,27 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       return WalkResult::advance();
     });
 
-    // Create auxillary qubits if needed. Place them after the last allocated
-    // qubit
+    // Create or borrow auxillary qubits if needed. Place them after the last
+    // allocated qubit.
     unsigned numOrigQubits = sources.size();
     OpBuilder builder(&block, block.begin());
     builder.setInsertionPointAfter(sources[sources.size() - 1]);
     for (unsigned i = sources.size(); i < d.getNumQubits(); i++) {
-      auto nullWireOp = builder.create<quake::NullWireOp>(
-          builder.getUnknownLoc(), quake::WireType::get(builder.getContext()));
-      wireToVirtualQ[nullWireOp.getResult()] =
+      Operation *nullOrBorrowOp = nullptr;
+      if (unusedWireIDs.empty()) {
+        nullOrBorrowOp = builder.create<quake::NullWireOp>(
+            builder.getUnknownLoc(),
+            quake::WireType::get(builder.getContext()));
+      } else {
+        auto id = *unusedWireIDs.begin();
+        unusedWireIDs.erase(id);
+        nullOrBorrowOp = builder.create<quake::BorrowWireOp>(
+            builder.getUnknownLoc(), quake::WireType::get(builder.getContext()),
+            wireSetName, id);
+      }
+      wireToVirtualQ[nullOrBorrowOp->getResult(0)] =
           Placement::VirtualQ(sources.size());
-      sources.push_back(nullWireOp);
+      sources.push_back(nullOrBorrowOp);
     }
 
     // Place
@@ -745,11 +775,19 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         break;
       }
     }
-    // Add sinks where needed
+    // Add sinks or return_wire's where needed
     builder.setInsertionPoint(block.getTerminator());
     auto phyToWire = router.getPhyToWire();
-    for (unsigned i = 0; i < numRemaining; i++)
-      builder.create<quake::SinkOp>(phyToWire[i].getLoc(), phyToWire[i]);
+    bool createSinks = llvm::any_of(
+        sources, [](Operation *op) { return isa<quake::NullWireOp>(op); });
+    if (createSinks) {
+      for (unsigned i = 0; i < numRemaining; i++)
+        builder.create<quake::SinkOp>(phyToWire[i].getLoc(), phyToWire[i]);
+    } else {
+      for (unsigned i = 0; i < numRemaining; i++)
+        builder.create<quake::ReturnWireOp>(phyToWire[i].getLoc(),
+                                            phyToWire[i]);
+    }
 
     // Populate mapping_v2p attribute on this function such that:
     // - mapping_v2p[v] contains the final physical qubit placement for virtual
