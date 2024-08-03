@@ -349,6 +349,14 @@ struct ArgumentValidator<std::vector<T>> {
   }
 };
 
+/// @brief Return a pointer to store in argument array.
+template <typename T>
+void *getArgPointer(T *arg) {
+  if constexpr (std::is_pointer_v<T>)
+    return *arg;
+  return arg;
+}
+
 /// @brief The `kernel_builder_base` provides a base type for the templated
 /// kernel builder so that we can get a single handle on an instance within the
 /// runtime.
@@ -487,12 +495,6 @@ public:
                            details::StateVectorVariant{&state},
                            simulation_precision::fp32);
   }
-
-  // // Overload for `cudaq::state`
-  // QuakeValue qalloc(const cudaq::state *state) {
-  //   return details::qalloc(*opBuilder.get(), const_cast<cudaq::state *>(state),
-  //                          stateVectorStorage);
-  // }
 
   // Overload for `cudaq::state`
   QuakeValue qalloc(const cudaq::state &state) {
@@ -895,7 +897,7 @@ public:
     [[maybe_unused]] std::size_t argCounter = 0;
     (details::ArgumentValidator<Args>::validate(argCounter, arguments, args),
      ...);
-    void *argsArr[sizeof...(Args)] = {&args...};
+    void *argsArr[sizeof...(Args)] = {details::getArgPointer(&args)...};
     return operator()(argsArr);
   }
 

@@ -514,22 +514,19 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     auto eleTy = statePtrTy.getElementType();
     if (auto stateTy = dyn_cast<cc::StateType>(eleTy)) {
       // get the number of qubits
-      IRBuilder irBuilder(builder.getContext());
-      auto *context = builder.getContext();
-      auto mod =
-            builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
-      auto result =
-            irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
+      IRBuilder irBuilder(context);
+      auto mod = builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+      auto result = irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
       assert(succeeded(result) && "loading intrinsic should never fail");
       auto numQubits = builder.create<func::CallOp>(
-              builder.getI64Type(), getNumQubitsFromCudaqState, ValueRange{value});
-      value.dump();
+          builder.getI64Type(), getNumQubitsFromCudaqState, ValueRange{value});
       // allocate the number of qubits we need
       auto veqTy = quake::VeqType::getUnsized(context);
-      Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits.getResult(0));
+      Value qubits =
+          builder.create<quake::AllocaOp>(veqTy, numQubits.getResult(0));
       // Add the initialize state op
-      qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
-                                                        value);
+      qubits = builder.create<quake::InitializeStateOp>(qubits.getType(),
+                                                        qubits, value);
       return QuakeValue(builder, qubits);
     }
   }
@@ -1073,16 +1070,15 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                 StateVectorStorage &storage) {
 
   assert(jit != nullptr && "JIT ExecutionEngine was null.");
-  cudaq::info("kernel_builder invoke kernel with args." + kernelName);
+  cudaq::info("kernel_builder invoke kernel with args.");
 
   // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR for the following we
   // want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
-  cudaq::info("proper name: " + properName);
+
   // Incoming Args... have been converted to void **, now we convert to void *
   // altLaunchKernel args.
   auto argCreatorName = properName + ".argsCreator";
-  cudaq::info("looking up args creator.");
   auto expectedPtr = jit->lookup(argCreatorName);
   if (!expectedPtr) {
     throw std::runtime_error(
@@ -1091,11 +1087,9 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto argsCreator =
       reinterpret_cast<std::size_t (*)(void **, void **)>(*expectedPtr);
   void *rawArgs = nullptr;
-  cudaq::info("creating args.");
   [[maybe_unused]] auto size = argsCreator(argsArray, &rawArgs);
 
   //  Extract the entry point, which we named.
-  cudaq::info("looking up thunk");
   auto thunkName = properName + ".thunk";
   auto thunkPtr = jit->lookup(thunkName);
   if (!thunkPtr) {
@@ -1104,11 +1098,9 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   // Invoke and free the args memory.
   auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
-  cudaq::info("running thunk");
+
   altLaunchKernel(properName.data(), thunk, rawArgs, size);
-  cudaq::info("freeing args.");
   std::free(rawArgs);
-  cudaq::info("done.");
   // TODO: any return values are dropped on the floor here.
 }
 

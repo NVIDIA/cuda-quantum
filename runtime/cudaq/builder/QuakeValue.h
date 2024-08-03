@@ -136,9 +136,6 @@ public:
   /// @brief Subtract the given QuakeValue from this QuakeValue
   QuakeValue operator-(QuakeValue other);
 
-  // /// @brief Dereference this QuakeValue
-  // QuakeValue operator*();
-
   /// @brief Return the inverse (1/x) of this QuakeValue
   QuakeValue inverse() const;
 };

@@ -36,7 +36,6 @@ public:
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t, std::uint64_t) override {
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
-    cudaq::info("DefaultQPU launching");
     kernelFunc(args);
   }
 
