@@ -105,6 +105,10 @@ protected:
   /// `-mlir-print-ir-after-all` in `cudaq-opt`.
   bool enablePrintMLIREachPass = false;
 
+  /// @brief Flag indicating whether we should enable MLIR pass statistics
+  /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
+  bool enablePassStatistics = false;
+
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
   std::vector<mlir::ExecutionEngine *> jitEngines;
@@ -245,6 +249,8 @@ public:
         getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
     enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+    enablePassStatistics =
+        getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", enablePassStatistics);
 
     // If the very verbose enablePrintMLIREachPass flag is set, then
     // multi-threading must be disabled.
@@ -286,6 +292,19 @@ public:
         (codegenTranslation == "qir-adaptive") ? "1" : "0";
     passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
                          allowEarlyExitSetting + "}," + passPipelineConfig;
+
+    if (getEnvBool("DISABLE_QUBIT_MANAGEMENT", false)) {
+      // Remove the qubit-management-pipeline if present
+      // TODO: what if run-qubit-management already set to false?
+      std::regex qubitManagement(
+          "(.*)qubit-management-pipeline(.*)");
+      std::string replacement("$1qubit-management-pipeline{run-qubit-management=false}$2");
+      passPipelineConfig =
+          std::regex_replace(passPipelineConfig, qubitManagement, replacement);
+      cudaq::info("disable_qubit_management option found, so updated lowering "
+                  "pipeline to {}",
+                  passPipelineConfig);
+    }
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
@@ -499,7 +518,7 @@ public:
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
-                               enablePrintMLIREachPass)))
+                               enablePrintMLIREachPass, enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
