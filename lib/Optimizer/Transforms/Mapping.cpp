@@ -528,6 +528,39 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       addOpAndUsersToList(user, opsToMoveToEnd);
   }
 
+  /// Create an adjacency matrix attribute for a WireSetOp.
+  SparseElementsAttr getAdjacencyFromDevice(Device &d, MLIRContext *ctx) {
+    int numEdges = 0;
+    unsigned int qubitCardinality = static_cast<unsigned int>(d.getNumQubits());
+
+    SmallVector<APInt, 32> edgeVector;
+    for (unsigned int i = 0; i < qubitCardinality; i++) {
+      auto neighbors = d.getNeighbours(Device::Qubit(i));
+      numEdges += neighbors.size();
+      for (auto neighbor : neighbors) {
+        edgeVector.emplace_back(64, i);
+        edgeVector.emplace_back(64, neighbor.index);
+      }
+    }
+
+    IntegerType boolTy = IntegerType::get(ctx, /*width=*/1);
+    ShapedType tensorI1 =
+        RankedTensorType::get({qubitCardinality, qubitCardinality}, boolTy);
+    auto indicesType =
+        RankedTensorType::get({numEdges, 2}, IntegerType::get(ctx, 64));
+    auto indices = DenseIntElementsAttr::get(indicesType, edgeVector);
+    auto intValue = mlir::DenseIntElementsAttr::get(
+        mlir::RankedTensorType::get({static_cast<int64_t>(numEdges)}, boolTy),
+        true);
+    auto sparseInt = SparseElementsAttr::get(tensorI1, indices, intValue);
+    sparseInt.dump();
+
+    Device anotherDevice = Device::attr(sparseInt);
+    anotherDevice.dump();
+
+    return sparseInt;
+  }
+
   void runOnOperation() override {
 
     // Allow enabling debug via pass option `debug`
@@ -671,6 +704,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       signalPassFailure();
       return;
     }
+
+    getAdjacencyFromDevice(d, func.getContext());
 
     LLVM_DEBUG({ d.dump(); });
 

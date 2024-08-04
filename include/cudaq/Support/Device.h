@@ -164,6 +164,50 @@ public:
     return device;
   }
 
+  /// Create a device from a `mlir::SparseElementsAttr`, which might come from
+  /// the adjacency attribute of a `WireSetOp`.
+  static Device attr(const mlir::SparseElementsAttr &attr) {
+    Device device;
+    auto tensorType = attr.getType().dyn_cast<mlir::RankedTensorType>();
+    if (!tensorType || tensorType.getRank() != 2 ||
+         tensorType.getShape()[0] != tensorType.getShape()[1] ||
+        !tensorType.getElementType().isInteger(1)) {
+      llvm::errs() << "Attribute is not an NxN tensor of i1\n";
+      return device;
+    }
+
+    // Create nodes
+    auto numQubits = tensorType.getShape()[0];
+    for (decltype(numQubits) i = 0; i < numQubits; i++)
+      device.topology.createNode();
+
+    // Now create the edges
+    auto indices = attr.getIndices();
+    auto values = attr.getValues();
+
+    // Ensure indices and values match the number of non-zero elements
+    if (indices.size() != 2 * values.size()) {
+      llvm::errs() << "Mismatch between indices size (" << indices.size()
+                   << ") and values size (" << values.size() << ")\n";
+      return device;
+    }
+
+    // Traverse the sparse elements
+    auto indicesIt = indices.value_begin<mlir::APInt>();
+    auto valuesIt = values.value_begin<mlir::APInt>();
+
+    for (std::int64_t i = 0, e = indices.getNumElements() / 2; i < e; i++) {
+      auto row = (*(indicesIt++)).getSExtValue();
+      auto col = (*(indicesIt++)).getSExtValue();
+      bool value = (*(valuesIt++)).getBoolValue();
+      if (value)
+        device.topology.addEdge(Qubit(row), Qubit(col), /*undirected=*/false);
+    }
+
+    device.computeAllPairShortestPaths();
+    return device;
+  }
+
   /// TODO: Implement a method to load device info from a file.
 
   /// Returns the number of physical qubits in the device.
