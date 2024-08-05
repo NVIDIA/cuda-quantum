@@ -7,7 +7,6 @@
 # ============================================================================ #
 import json
 import sys
-from datetime import datetime
 
 
 def write_a_mock_tokens_file(tokens_file_path):

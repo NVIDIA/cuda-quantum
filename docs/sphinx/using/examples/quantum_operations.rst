@@ -173,30 +173,3 @@ where the probability of measuring :math:`x = 00, 01, 10, 11` occurs
 with probability :math:`\lvert \alpha_{x} \rvert ^2` with the
 normalization condition that
 :math:`\sum_{x \in \{ 0,1 \}^2} \lvert \alpha_{x} \rvert ^2 = 1`.
-
-
-State Visualization
------------------------------
-
-What are the possible states a qubit can be in and how can we build up
-a visual cue to help us make sense of quantum states and their
-evolution?
-
-We know our qubit can have two distinct states: :math:`\ket{0}` and
-:math:`\ket{1}`. Maybe we need a one-dimensional line whose vertices can
-represent each of the aforementioned states.
-We also know that qubits can be in an equal superposition states:
-:math:`\ket{+}` and :math:`\ket{-}`. This now forces us to extend our
-1D line to a 2D Cartesian coordinate system.
-If you dive deeper you will learn about the existence of states like 
-:math:`\ket{+i}` and :math:`\ket{-i}`, this calls for a 3D
-extension.
-
-It turns out that a sphere is able to depict all the possible states of
-a single qubit. This is called a Bloch sphere. 
-
-Unfortunately, there is no such handy visualization for multi-qubit states.
-In particular, a multi-qubit state cannot be visualized as multiple Bloch 
-spheres due to the nature of entanglement that makes quantum computing so powerful. 
-
-

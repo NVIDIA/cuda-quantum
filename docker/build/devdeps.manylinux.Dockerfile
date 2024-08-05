@@ -16,7 +16,7 @@
 # The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with. 
 # The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
 # CUDA-Q. This image sets the CC and CXX environment variables to use that toolchain. 
-# Currently, clang15 and gcc11 are supported.
+# Currently, clang16 and gcc11, gcc12, and gcc13 are supported.
 
 # There are currently no multi-platform manylinux images available.
 # See https://github.com/pypa/manylinux/issues/1306.
@@ -44,15 +44,19 @@ RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project
 # a wrapper script so that the path that we set CC and CXX to is independent 
 # on the installed toolchain. Unfortunately, a symbolic link won't work.
 # Using update-alternatives for c++ and cc could maybe be a better option.
-ENV LLVM_INSTALL_PREFIX=/opt/llvm
-RUN if [ "$toolchain" == 'gcc11' ]; then \
-        dev_tools=gcc-toolset-11 && CC=$(which gcc | sed 's/[0-9]\{1,2\}/11/g') && CXX=$(which g++ | sed 's/[0-9]\{1,2\}/11/g'); \
-    elif [ "$toolchain" == 'clang15' ]; then \
-        dev_tools=clang && CC=$(which clang-15) && CXX=$(which clang++-15); \
+ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
+RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
+        gcc_version=`echo $toolchain | grep -o '[0-9]*'` && \
+        if [ -z "$(which gcc 2> /dev/null | grep $gcc_version)" ]; then \
+            dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-$gcc_version && \
+            enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"; \
+        fi && \
+        CC="$(which gcc)" && CXX="$(which g++)"; \
+    elif [ "$toolchain" == 'clang16' ]; then \
+        dnf install -y --nobest --setopt=install_weak_deps=False clang-16.0.6 && \
+        CC="$(which clang-16)" && CXX="$(which clang++-16)"; \
     else echo "Toolchain not supported." && exit 1; \
-    fi \
-    && dnf install -y --nobest --setopt=install_weak_deps=False $dev_tools.$(uname -m) \
-    && dnf clean all \
+    fi && dnf clean all \
     && mkdir -p "$LLVM_INSTALL_PREFIX/bootstrap" \
     && echo -e '#!/bin/bash\n"'$CC'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
     && echo -e '#!/bin/bash\n"'$CXX'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cxx" \
@@ -70,10 +74,8 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && python3 -m ensurepip --upgrade && python3 -m pip install pytest \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" -DPYBIND11_TEST=False \
     && cmake --build . --target install --config Release \
-    && python3 -m pip uninstall -y pytest \
     && cd / && rm -rf /pybind11-project
 
 RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -o cmake-install.sh \
@@ -82,8 +84,10 @@ RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.2
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
-RUN LLVM_PROJECTS='clang;mlir' \
-    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v
+ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
+RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
+    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
+    bash /scripts/build_llvm.sh -c Release -v
     # No clean up of the build or source directory,
     # since we need to re-build llvm for each python version to get the bindings.
 
@@ -93,9 +97,7 @@ ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
-RUN dnf install -y --nobest --setopt=install_weak_deps=False glibc-static \
-    && bash /scripts/install_prerequisites.sh \
-    && rm -rf /scripts/install_prerequisites.sh
+RUN bash /scripts/install_prerequisites.sh
 
 # Install CUDA 11.8.
 

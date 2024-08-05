@@ -86,6 +86,7 @@ public:
   void dump(std::ostream &os) const;
 
   /// @brief Compute the overlap of this state with the other one.
+  /// For state vectors (pure states), it is computed as `|<this | other>|`.
   std::complex<double> overlap(const state &other);
 
   /// @brief Return the amplitude of the given computational basis state

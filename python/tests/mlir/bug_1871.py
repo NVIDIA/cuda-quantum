@@ -10,7 +10,6 @@
 
 import cudaq
 
-import pytest
 
 
 def test_control_on_adjoint():

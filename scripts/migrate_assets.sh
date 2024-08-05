@@ -34,7 +34,6 @@
 # files are compatible or functional after moving them.
 
 # Process command line arguments
-(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":c:s:t:" opt; do
@@ -46,7 +45,7 @@ while getopts ":c:s:t:" opt; do
     t) target="$OPTARG"
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
   esac
 done
@@ -130,8 +129,8 @@ function move_artifacts {
     for symlink in `find -L $2 -xtype l`;
     do
         if [ ! -e "$symlink" ] ; then
-            echo "Error: broken symbolic link $symlink pointing to $(readlink -f $symlink)." 1>&2;
-            exit 1
+            echo -e "\e[01;31mError: Broken symbolic link $symlink pointing to $(readlink -f $symlink).\e[0m" >&2
+            (return 0 2>/dev/null) && return 1 || exit 1
         fi
     done
     echo '  rmdir -p "'$2'" 2> /dev/null || true' >> "$remove_assets"
@@ -192,7 +191,7 @@ if $install; then
     # Note: Generally, the idea is to set the necessary environment variables
     # to make CUDA-Q discoverable in login shells and for all users. 
     # Non-login shells should inherit them from the original login shell. 
-    # If we cannot modify /etc/profile, we instead modify ~/.bashrc, which 
+    # If we cannot modify /etc/profile, we instead modify $HOME/.bashrc, which 
     # is always executed by all interactive non-login shells.
     # The reason for this is that bash is a bit particular when it comes to user
     # level profiles for login-shells in the sense that there isn't one specific
@@ -203,7 +202,7 @@ if $install; then
     if [ -f /etc/profile ] && [ -w /etc/profile ]; then
         update_profile /etc/profile
     else
-        update_profile ~/.bashrc
+        update_profile $HOME/.bashrc
     fi
     if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then
         update_profile /etc/zprofile

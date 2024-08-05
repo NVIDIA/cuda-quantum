@@ -181,16 +181,36 @@ void registerCCDialectAndTypes(py::module &m) {
 
             return wrap(cudaq::cc::StructType::get(unwrap(ctx), inTys));
           })
-      .def_classmethod("getTypes", [](py::object cls, MlirType structTy) {
+      .def_classmethod(
+          "getNamed",
+          [](py::object cls, MlirContext ctx, const std::string &name,
+             py::list aggregateTypes) {
+            SmallVector<Type> inTys;
+            for (auto &t : aggregateTypes)
+              inTys.push_back(unwrap(t.cast<MlirType>()));
+
+            return wrap(cudaq::cc::StructType::get(unwrap(ctx), name, inTys));
+          })
+      .def_classmethod(
+          "getTypes",
+          [](py::object cls, MlirType structTy) {
+            auto ty = dyn_cast<cudaq::cc::StructType>(unwrap(structTy));
+            if (!ty)
+              throw std::runtime_error(
+                  "invalid type passed to StructType.getTypes(), must be a "
+                  "cc.struct");
+            std::vector<MlirType> ret;
+            for (auto &t : ty.getMembers())
+              ret.push_back(wrap(t));
+            return ret;
+          })
+      .def_classmethod("getName", [](py::object cls, MlirType structTy) {
         auto ty = dyn_cast<cudaq::cc::StructType>(unwrap(structTy));
         if (!ty)
           throw std::runtime_error(
-              "invalid type passed to StructType.getTypes(), must be a "
+              "invalid type passed to StructType.getName(), must be a "
               "cc.struct");
-        std::vector<MlirType> ret;
-        for (auto &t : ty.getMembers())
-          ret.push_back(wrap(t));
-        return ret;
+        return ty.getName().getValue().str();
       });
 
   mlir_type_subclass(

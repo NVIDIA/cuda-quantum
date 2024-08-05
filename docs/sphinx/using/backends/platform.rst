@@ -270,3 +270,47 @@ language constructs within quantum kernels may not yet be fully supported.
 For CUDA-Q kernels that return a value, the remote platform supports returning simple data types of 
 `bool`, integral (e.g., `int` or `std::size_t`), and floating-point types (`float` or `double`) 
 when MLIR-based compilation is enabled (:code:`--enable-mlir`).
+
+Accessing Simulated Quantum State
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The remote `MQPU` platform supports accessing simulator backend's state vector via the 
+`cudaq::get_state` (C++) or `cudaq.get_state` (Python) APIs, similar to local simulator backends.
+
+State data can be retrieved as a full state vector or as individual basis states' amplitudes.
+The later is designed for large quantum states, which incurred data transfer overheads.
+
+.. tab:: Python
+
+    .. code:: python 
+        
+        state = cudaq.get_state(kernel)
+        amplitudes = state.amplitudes(['0000', '1111'])
+        
+.. tab:: C++
+
+    .. code-block:: cpp
+        
+        auto state = cudaq::get_state(kernel)
+        auto amplitudes = state.amplitudes({{0, 0, 0, 0}, {1, 1, 1, 1}});
+
+In the above example, the amplitudes of the two requested states are returned.
+
+For C++ quantum kernels [*]_ compiled with the CUDA-Q MLIR-based compiler and Python kernels,
+state accessor is evaluated in a just-in-time/on-demand manner, and hence can be customize to
+users' need.
+
+For instance, in the above amplitude access example, if the state vector is very large, e.g.,
+multi-GPU distributed state vectors or tensor-network encoded quantum states, the full state vector
+will not be retrieved when `get_state` is called. Instead, when the `amplitudes` accessor is called,
+a specific amplitude calculation request will be sent to the server. 
+Thus, only the amplitudes of those basis states will be computed and returned. 
+
+Similarly, for state overlap calculation, if deferred state evaluation is available (Python/MLIR-based compiler)
+for both of the operand quantum states, a custom overlap calculation request will be constructed and sent to the server.
+Only the final overlap result will be returned, thereby eliminating back-and-forth state data transfers. 
+
+.. [*] Only C++ quantum kernels whose names are available via run-time type information (RTTI) are supported.
+    For example, quantum kernels expressed as named `struct` are supported but not standalone functions.
+    Kernels that do not have deferred state evaluation support will perform synchronous `get_state`, whereby the full state
+    vector is returned from the server immediately.   

@@ -70,6 +70,8 @@ public:
   void swap(const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
             const std::size_t tgtIdx) override;
 
+  void setRandomSeed(std::size_t randomSeed) override;
+
 protected:
   // Sub-type need to implement
   virtual void prepareQubitTensorState() = 0;
@@ -91,6 +93,11 @@ protected:
   std::unique_ptr<TensorNetState> m_state;
   std::unordered_map<std::string, void *> m_gateDeviceMemCache;
   ScratchDeviceMem scratchPad;
+  // Note: cutensornet sample API uses an internal random engine that doesn't
+  // support random seed. This engine only affects the mid-circuit measurements
+  // whereby this simulator generates a random probability value.
+  // See also: https://github.com/NVIDIA/cuda-quantum/issues/895
+  std::mt19937 m_randomEngine;
 };
 
 } // end namespace nvqir

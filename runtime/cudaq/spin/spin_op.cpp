@@ -12,7 +12,7 @@
 #include <cudaq/spin_op.h>
 #include <stdint.h>
 #include <unsupported/Eigen/KroneckerProduct>
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #include <omp.h>
 #endif
 #include <algorithm>
@@ -199,7 +199,7 @@ complex_matrix spin_op::to_matrix() const {
   complex_matrix A(dim, dim);
   A.set_zero();
   auto rawData = A.data();
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel for shared(rawData)
 #endif
   for (std::size_t rowIdx = 0; rowIdx < dim; rowIdx++) {
@@ -447,7 +447,7 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
     } else
       theirRow++;
   }
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
   // Threshold to start OpenMP parallelization.
   // 16 ~ 4-term * 4-term
   constexpr std::size_t spin_op_omp_threshold = 16;

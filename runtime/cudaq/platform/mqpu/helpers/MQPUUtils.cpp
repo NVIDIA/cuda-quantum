@@ -134,7 +134,7 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
                     "http://localhost:{} (PID {}) after {} milliseconds.",
                     port.value(), processInfo.Pid, totalWaitTimeMs);
         return;
-      } catch (std::exception &e) {
+      } catch (...) {
         // Wait and retry
         const auto delay = throttledDelay(i);
         totalWaitTimeMs += delay;

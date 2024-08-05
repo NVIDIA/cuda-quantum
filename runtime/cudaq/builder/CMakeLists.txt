@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+include(HandleLLVMOptions)
 set(LIBRARY_NAME cudaq-builder)
 
 add_library(cudaq-builder SHARED kernel_builder.cpp QuakeValue.cpp kernels.cpp)

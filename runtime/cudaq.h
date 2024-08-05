@@ -22,7 +22,13 @@ extern bool globalFalse;
 } // namespace __internal__
 
 /// @brief Given a string kernel name, return the corresponding Quake code
+// This will throw if the kernel name is unknown to the quake code registry.
 std::string get_quake_by_name(const std::string &kernelName);
+/// @brief Given a string kernel name, return the corresponding Quake code.
+// If `throwException` is set, it will throw if the kernel name is unknown to
+// the quake code registry. Otherwise, return an empty string in that case.
+std::string get_quake_by_name(const std::string &kernelName,
+                              bool throwException);
 
 // Simple test to see if the QuantumKernel template
 // type is a `cudaq::builder` with `operator()(Args...)`

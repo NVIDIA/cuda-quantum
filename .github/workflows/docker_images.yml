@@ -56,7 +56,7 @@ jobs:
         run: |
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
-            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
             is_versioned=${{ github.ref_type == 'tag' || github.ref_name == 'main' || startsWith(github.ref_name, 'releases/') }}
             is_experimental=${{ startsWith(github.ref_name, 'experimental/') }}
@@ -787,7 +787,8 @@ jobs:
             echo "::error::Validation failed; see job summary for more details."
             exit 1
           elif ${{ inputs.ompidev_image != '' }} && [ "$(cat /tmp/validation.out | grep '^nvidia$')" != "nvidia" ]; then
-            echo "Missing installation for nvidia backend." && exit 1
+            echo "Missing installation for nvidia backend."
+            exit 1
           fi
 
       - name: Create job summary

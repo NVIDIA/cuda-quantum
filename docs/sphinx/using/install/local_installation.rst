@@ -251,13 +251,15 @@ To install CUDA-Q, execute the command
 
 .. note:: 
 
-  To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on :ref:`Additional CUDA Tools <cuda-dependencies-prebuilt-binaries>`.
+  To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. 
+  For more information see the corresponding section on 
+  :ref:`Additional CUDA Tools <cuda-dependencies-prebuilt-binaries>`.
 
 The installation ensures that the necessary environment variables for
 using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the `nvq++` command is found. If it is not, please make sure 
 to set the environment variables defined by the `set_env.sh` script in the 
-CUDA-Q installation folder (usually `/opt/nvidia/cudaq`).
+CUDA-Q installation folder (usually `/usr/local/cudaq` or `/opt/nvidia/cudaq`).
 
 If an MPI installation is available in the directory defined by `MPI_PATH`, 
 the installer automatically enables MPI support in CUDA-Q.
@@ -272,18 +274,15 @@ executing the commands
     MPI_PATH=/usr/local/openmpi # update this path as needed
     bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
-.. _local-development-with-vscode:
+.. note::
 
-To develop C++ code, you most likely also want to install the
-`C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__.
-CUDA-Q supports the GNU C++ standard library (`libstdc++`), 
-version 11 or newer. Other libraries may work but can cause issues in certain cases.
-The C++ standard library, including development headers, is almost certainly 
-available via the package manager for your system. To ensure the libraries and headers
-are discoverable, the easiest option is usually to install the complete GCC toolchain.
-Note that for certain distributions, you may need to manually enable that version 
-after installation by running a script called `enable`. You can search for such a 
-script with the command `find / -path '*gcc*' -name enable`.
+  Please make sure that you have the necessary development headers of the C standard 
+  library installed. You can check this by searching for `features.h`, commonly found
+  in `/usr/include/`. You can install the necessary headers via package manager 
+  (usually the package name is called something like `glibc-devel` or `libc6-dev`). 
+  These headers are also included with any installation of GCC.
+
+.. _local-development-with-vscode:
 
 Development with VS Code
 ------------------------------------
@@ -687,7 +686,7 @@ Installing Pre-built Binaries
 ++++++++++++++++++++++++++++++++++++
 
 If you installed pre-built binaries for CUDA-Q, you will need to install 
-the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q. 
+the necessary CUDA 11 runtime libraries to use GPU-acceleration in CUDA-Q. 
 If you prefer to only install the minimal set of runtime libraries, the following 
 commands, for example, install the necessary packages for RHEL 8:
 
@@ -698,8 +697,8 @@ commands, for example, install the necessary packages for RHEL 8:
     :end-before: [<CUDARTInstall]
 
 More detailed instructions for your platform can be found in the online documentation
-of your selected `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
-Please make sure to install CUDA version 11.8 or newer, and confirm that your 
+linked for that `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
+Please make sure to install CUDA version 11.8, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-11-8`) that also 

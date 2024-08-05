@@ -167,11 +167,14 @@ function show_help {
 --platform=<lib> | -platform=<lib>
 	Set the platform library name to <lib>.
 
---cmake-host-compiler=<cc>
-	Set the host C++ compiler to <cc>.
-
 -g
 	Enable debugging output.
+
+-static-libstdc++
+	Statically link the CUDA-Q C++ standard library to create a CUDA-Q binary that can be linked with another standard library.
+
+-shared
+	Create a shared library during linking.
 
 --enable-mlir
 	Enable and generate MLIR code for CUDA-Q kernels.
@@ -254,15 +257,9 @@ llvm_install_dir="@LLVM_BINARY_DIR@"
 llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
-IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 # Full version string of this nvq++ script.
 NVQPP_VERSION_STRING="nvq++ Version @CUDA_QUANTUM_VERSION@ (https://github.com/NVIDIA/cuda-quantum @CUDA_QUANTUM_COMMIT_SHA@)"
-# If we are a relocatable package, then we
-# want to re-divert llvm_install_dir to the install_dir
-if ${IS_RELOCATABLE_INSTALL}; then
-	llvm_install_dir="${install_dir}"
-fi
 
 # Ensure that we have cudaq.h and we know where the include path is
 CUDAQ_INCLUDE_PATH="${install_dir}/include"
@@ -281,21 +278,9 @@ ECHO=false
 TOOLBIN="${install_dir}/bin/"
 LLVMBIN="${llvm_install_dir}/bin/"
 
-if [ -d "${llvm_install_dir}/bin" -a \
-	-x "${llvm_install_dir}/bin/llc${llvm_suffix}" -a \
-	-x "${llvm_install_dir}/bin/clang++${llvm_suffix}" ]; then
-	LLVMBIN="${llvm_install_dir}/bin/"
-fi
-
 # Compiler and linker flags
 COMPILER_FLAGS="-I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
-# If we are a relocatable package, we want to
-# add compiler flags that will point clang to our repackaged
-# clang / gcc system headers.
-if ${IS_RELOCATABLE_INSTALL}; then
-	CLANG_RESOURCE_DIR="-resource-dir ${install_dir}/lib/clang/@CUDAQ_LLVM_VERSION@"
-fi
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
 LINKER_PATH=
@@ -382,8 +367,6 @@ fi
 LIBRARY_MODE=true
 
 CXX=${LLVMBIN}clang++${llvm_suffix}
-LINKER_CXX=${CXX}
-CMAKE_FALLBACK_HOST_CXX=${CXX}
 TARGET_ARGS=()
 HOST_TARGET=$(${LLVMBIN}llc${llvm_suffix} --version | grep "Default target" | head -1 | cut -d':' -f2 | tr -d ' ')
 
@@ -491,13 +474,6 @@ while [ $# -ne 0 ]; do
 	--load=* | -load=*)
 		LINKLIBS="${LINKLIBS} -lcudaq-${arg#*=}"
 		;;
-	--cmake-host-compiler)
-		CMAKE_FALLBACK_HOST_CXX="$2"
-		shift
-		;;
-	--cmake-host-compiler=*)
-		CMAKE_FALLBACK_HOST_CXX="${arg#*=}"
-		;;
 	-g)
 		COMPILER_FLAGS="${COMPILER_FLAGS} -g"
 		LINKER_FLAGS="${LINKER_FLAGS} -g"
@@ -505,6 +481,12 @@ while [ $# -ne 0 ]; do
 		CUDAQ_TRANSLATE_ARGS="${CUDAQ_TRANSLATE_ARGS} --mlir-print-debuginfo"
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -g"
 		LLC_FLAGS="${LLC_FLAGS} --dwarf64"
+		;;
+	-static-libstdc++)
+		LINKER_FLAGS="${LINKER_FLAGS} -static-libstdc++"
+		;;
+	-shared)
+		LINKER_FLAGS="${LINKER_FLAGS} -shared"
 		;;
 	--enable-mlir)
 		LIBRARY_MODE=false
@@ -668,12 +650,6 @@ NVQIR_LIBS="${NVQIR_LIBS}${NVQIR_SIMULATION_BACKEND}"
 LINKLIBS="${LINKLIBS} -lcudaq-em-${LIBRARY_MODE_EXECUTION_MANAGER}"
 LINKLIBS="${LINKLIBS} -lcudaq-platform-${PLATFORM_LIBRARY}"
 LINKLIBS="${LINKLIBS} ${NVQIR_LIBS}"
-
-if ${CUDAQ_IS_APPLE}; then
-	if [ "@CMAKE_CXX_COMPILER_ID@" == "GNU" ]; then
-		LINKER_CXX=@CMAKE_CXX_COMPILER@
-	fi
-fi
 LLC=${LLVMBIN}llc${llvm_suffix}
 
 if ${LIBRARY_MODE}; then
@@ -745,7 +721,7 @@ for i in ${SRCS}; do
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CMAKE_FALLBACK_HOST_CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
+		run ${CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
 		OBJS="${OBJS} ${file}.o"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there
@@ -796,7 +772,7 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	run ${LINKER_CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
+	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
@@ -805,7 +781,7 @@ if ${DO_LINK}; then
 		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
 	fi
 
-	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
+	run ${CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified
 	NUMBER_SRCS=$( ( set -o noglob; set -- ${SRCS[0]}; echo "$#" ) )

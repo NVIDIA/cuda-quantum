@@ -9,11 +9,9 @@
 # RUN: PYTHONPATH=../../.. python3 %s
 # RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate
 
-import sys
 import numpy as np
 
 import cudaq
-from cudaq import spin
 
 
 @cudaq.kernel

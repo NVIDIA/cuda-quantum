@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+include(HandleLLVMOptions)
 add_llvm_pass_plugin(CustomPassPlugin CustomPassPlugin.cpp)
 # Depends on QuakeDialect TableGen to use the generated `.h.inc` files.
 add_dependencies(CustomPassPlugin QuakeDialect)

@@ -5,7 +5,7 @@ index 996588243..63ab385be 100644
 @@ -679,6 +679,15 @@ static LogicalResult mergeIdenticalBlocks(RewriterBase &rewriter,
        if (hasNonEmptyRegion)
          continue;
-
+ 
 +      // Don't allow merging if this block's arguments are used outside of the
 +      // original block.
 +      bool argHasExternalUsers = llvm::any_of(
@@ -18,3 +18,4 @@ index 996588243..63ab385be 100644
        // Try to add this block to an existing cluster.
        bool addedToCluster = false;
        for (auto &cluster : clusters)
+ 

@@ -91,6 +91,39 @@ cudaq::SimulationState::precision RemoteSimulationState::getPrecision() const {
 
 void RemoteSimulationState::destroyState() { state.reset(); }
 
+bool RemoteSimulationState::isDeviceData() const {
+  execute();
+  return state->isDeviceData();
+}
+
+void RemoteSimulationState::toHost(std::complex<double> *clientAllocatedData,
+                                   std::size_t numElements) const {
+  execute();
+  // For remote state, performs data conversion matching the expected data type.
+  if (state->getPrecision() == cudaq::SimulationState::precision::fp64) {
+    state->toHost(clientAllocatedData, numElements);
+  } else {
+    cudaq::info("[RemoteSimulationState] Perform data conversion in toHost");
+    std::vector<std::complex<float>> temp(numElements);
+    state->toHost(temp.data(), numElements);
+    std::copy(temp.begin(), temp.end(), clientAllocatedData);
+  }
+}
+
+void RemoteSimulationState::toHost(std::complex<float> *clientAllocatedData,
+                                   std::size_t numElements) const {
+  execute();
+  // For remote state, performs data conversion matching the expected data type.
+  if (state->getPrecision() == cudaq::SimulationState::precision::fp32) {
+    state->toHost(clientAllocatedData, numElements);
+  } else {
+    cudaq::info("[RemoteSimulationState] Perform data conversion in toHost");
+    std::vector<std::complex<double>> temp(numElements);
+    state->toHost(temp.data(), numElements);
+    std::copy(temp.begin(), temp.end(), clientAllocatedData);
+  }
+}
+
 std::tuple<std::string, void *, std::size_t>
 RemoteSimulationState::getKernelInfo() const {
   return std::make_tuple(kernelName, static_cast<void *>(argsBuffer.data()),
@@ -135,6 +168,14 @@ RemoteSimulationState::getAmplitude(const std::vector<int> &basisState) {
 
 std::complex<double>
 RemoteSimulationState::overlap(const cudaq::SimulationState &other) {
+  if (!dynamic_cast<const RemoteSimulationState *>(&other)) {
+    // The other state is not a remote state.
+    // This could be the case whereby we're unable to lazily evaluate that
+    // state, e.g., due to quake code retrieval by name.
+    execute();
+    return state->overlap(other);
+  }
+
   const auto &otherState = dynamic_cast<const RemoteSimulationState &>(other);
   auto &platform = cudaq::get_platform();
   ExecutionContext context("state-overlap");

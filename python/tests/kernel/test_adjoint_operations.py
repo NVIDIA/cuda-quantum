@@ -6,12 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
-import random
-import numpy as np
-import sys
-from typing import List
-
 import cudaq
 from cudaq import spin
 

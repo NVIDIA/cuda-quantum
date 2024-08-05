@@ -14,8 +14,6 @@ set(CUDAQ_SPIN_SRC
   spin_op.cpp matrix.cpp
 )
 
-find_package(OpenMP)
-
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_SPIN_SRC})
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_include_directories(${LIBRARY_NAME} 
@@ -25,12 +23,11 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE .)
 
-if (OpenMP_CXX_FOUND)
-  target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_OPENMP)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only OpenMP::OpenMP_CXX)
-else()
-  target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only)
-endif()
+set (SPIN_DEPENDENCIES "")
+list(APPEND SPIN_DEPENDENCIES fmt::fmt-header-only)
+add_openmp_configurations(${LIBRARY_NAME} SPIN_DEPENDENCIES)
+
+target_link_libraries(${LIBRARY_NAME} PRIVATE ${SPIN_DEPENDENCIES})
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-spin-targets DESTINATION lib)
 

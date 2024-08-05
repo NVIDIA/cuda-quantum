@@ -8,7 +8,6 @@
 
 import os, pytest, importlib
 import cudaq
-import numpy as np
 
 skipIfUnsupported = pytest.mark.skipif(importlib.util.find_spec('mpi4py')
                                        is None,

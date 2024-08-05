@@ -9,10 +9,7 @@
 # RUN: PYTHONPATH=../../.. python3 %s | FileCheck %s
 # RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate | FileCheck %s
 
-import os
 
-import pytest
-import numpy as np
 
 import cudaq
 

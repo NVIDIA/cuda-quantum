@@ -1,3 +1,4 @@
+ABI
 API
 APIs
 AST
@@ -117,6 +118,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+archiver
 arity
 auxillary
 backend
@@ -174,6 +176,7 @@ eigenvalue
 eigenvalues
 eigenvector
 eigenvectors
+endian
 enqueue
 enqueues
 enqueuing
@@ -189,6 +192,7 @@ expressivity
 extensibility
 extremal
 fermionic
+fmt
 frontend
 frontends
 homogenous

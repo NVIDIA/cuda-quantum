@@ -118,7 +118,7 @@ ENV PATH="$PATH:/home/cudaq/.local/bin"
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
 ADD ./docker/release/README.md /home/cudaq/README.md
-RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorial \
+RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorials \
     && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 
 USER cudaq

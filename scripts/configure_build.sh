@@ -94,26 +94,25 @@ if [ "$1" == "install-gcc" ]; then
     GCC_VERSION=11
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
+    # Enabling the toolchain globally is only needed for debug builds
+    # to ensure that the correct assembler is picked to process debug symbols.
+    enable_script=`find / -path '*gcc*' -path '*'$GCC_VERSIONS'*' -name enable`
+    if [ -n "$enable_script" ]; then
+        . "$enable_script"
+    fi
 # [<gccInstall]
 fi
 
 # [>ToolchainConfiguration]
-GCC_INSTALL_PREFIX=/opt/rh/gcc-toolset-11
-export CXX="${GCC_INSTALL_PREFIX}/root/usr/bin/g++"
-export CC="${GCC_INSTALL_PREFIX}/root/usr/bin/gcc"
-export FC="${GCC_INSTALL_PREFIX}/root/usr/bin/gfortran"
+export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
+export CXX="${GCC_TOOLCHAIN}/bin/g++"
+export CC="${GCC_TOOLCHAIN}/bin/gcc"
 export CUDACXX=/usr/local/cuda/bin/nvcc
+export CUDAHOSTCXX="${GCC_TOOLCHAIN}/bin/g++"
 # [<ToolchainConfiguration]
 
-if [ "$1" == "install-prereqs" ]; then
-    export LDFLAGS="-static-libgcc -static-libstdc++"
-    export LLVM_PROJECTS='clang;lld;mlir'
-    this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-    bash "$this_file_dir/install_prerequisites.sh"
-fi
-
 if [ "$1" == "build-openmpi" ]; then
-    source $GCC_INSTALL_PREFIX/enable
+    source "${GCC_TOOLCHAIN}/../../enable"
 
 # [>OpenMPIBuild]
     OPENMPI_VERSION=4.1.4
