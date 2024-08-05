@@ -45,7 +45,6 @@ createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
 // Use the addQIRProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass>
 createQIRToQIRProfilePass(llvm::StringRef convertTo);
-std::unique_ptr<mlir::Pass> verifyQIRProfilePass(llvm::StringRef convertTo);
 std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
 std::unique_ptr<mlir::Pass>
 createConvertToQIRFuncPass(llvm::StringRef convertTo);

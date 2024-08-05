@@ -28,6 +28,7 @@ add_cudaq_library(OptCodeGen
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
   VerifyNVQIRCalls.cpp
+  VerifyQIRProfile.cpp
 
   DEPENDS
     CCDialect

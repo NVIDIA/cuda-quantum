@@ -526,76 +526,6 @@ std::unique_ptr<Pass> cudaq::opt::createQIRProfilePreparationPass() {
 
 //===----------------------------------------------------------------------===//
 
-namespace {
-/// Verify that the specific profile QIR code is sane. For now, this simply
-/// checks that the QIR doesn't have any "bonus" calls to arbitrary code that is
-/// not possibly defined in the QIR standard.
-struct VerifyQIRProfilePass
-    : public cudaq::opt::VerifyQIRProfileBase<VerifyQIRProfilePass> {
-  explicit VerifyQIRProfilePass(llvm::StringRef convertTo_)
-      : VerifyQIRProfileBase() {
-    convertTo.setValue(convertTo_.str());
-  }
-
-  void runOnOperation() override {
-    LLVM::LLVMFuncOp func = getOperation();
-    bool passFailed = false;
-    if (!func->hasAttr(cudaq::entryPointAttrName))
-      return;
-    auto *ctx = &getContext();
-    bool isBaseProfile = convertTo.getValue() == "qir-base";
-    func.walk([&](Operation *op) {
-      if (auto call = dyn_cast<LLVM::CallOp>(op)) {
-        auto funcName = call.getCalleeAttr().getValue();
-        if (!funcName.startswith("__quantum_") ||
-            funcName.equals(cudaq::opt::QIRCustomOp)) {
-          call.emitOpError("unexpected call in QIR base profile");
-          passFailed = true;
-          return WalkResult::advance();
-        }
-
-        // Check that qubits are unique values.
-        const std::size_t numOpnds = call.getNumOperands();
-        auto qubitTy = cudaq::opt::getQubitType(ctx);
-        if (numOpnds > 0)
-          for (std::size_t i = 0; i < numOpnds - 1; ++i)
-            if (call.getOperand(i).getType() == qubitTy)
-              for (std::size_t j = i + 1; j < numOpnds; ++j)
-                if (call.getOperand(j).getType() == qubitTy) {
-                  auto i1 =
-                      call.getOperand(i).getDefiningOp<LLVM::IntToPtrOp>();
-                  auto j1 =
-                      call.getOperand(j).getDefiningOp<LLVM::IntToPtrOp>();
-                  if (i1 && j1 && i1.getOperand() == j1.getOperand()) {
-                    call.emitOpError("uses same qubit as multiple operands");
-                    passFailed = true;
-                    return WalkResult::interrupt();
-                  }
-                }
-        return WalkResult::advance();
-      }
-      if (isBaseProfile && isa<LLVM::BrOp, LLVM::CondBrOp, LLVM::ResumeOp,
-                               LLVM::UnreachableOp, LLVM::SwitchOp>(op)) {
-        op->emitOpError("QIR base profile does not support control-flow");
-        passFailed = true;
-      }
-      return WalkResult::advance();
-    });
-    if (passFailed) {
-      emitError(func.getLoc(),
-                "function " + func.getName() +
-                    " not compatible with the QIR base profile.");
-      signalPassFailure();
-    }
-  }
-};
-} // namespace
-
-std::unique_ptr<Pass>
-cudaq::opt::verifyQIRProfilePass(llvm::StringRef convertTo) {
-  return std::make_unique<VerifyQIRProfilePass>(convertTo);
-}
-
 // The various passes defined here should be added as a pass pipeline.
 
 void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
@@ -604,5 +534,6 @@ void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
   pm.addPass(createQIRProfilePreparationPass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
   pm.addPass(createQIRToQIRProfilePass(convertTo));
-  pm.addNestedPass<LLVM::LLVMFuncOp>(verifyQIRProfilePass(convertTo));
+  VerifyQIRProfileOptions vqpo = {convertTo.str()};
+  pm.addNestedPass<LLVM::LLVMFuncOp>(createVerifyQIRProfile(vqpo));
 }

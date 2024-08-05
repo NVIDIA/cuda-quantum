@@ -89,21 +89,6 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createQIRProfilePreparationPass()";
 }
 
-def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
-  let summary = "Verify that the output conforms to the specific profile";
-  let description = [{
-    This pass scans over functions in the LLVM-IR dialect to make sure they
-    conform to the QIR specific profile.
-  }];
-
-  let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">
-  ];
-
-  let constructor = "cudaq::opt::verifyQIRProfilePass(\"qir-base\")";
-}
-
 def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
@@ -177,6 +162,19 @@ def VerifyNVQIRCallOps :
   ];
 
   let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass({})";
+}
+
+def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
+  let summary = "Verify that the output conforms to the specific profile";
+  let description = [{
+    This pass scans over functions in the LLVM-IR dialect to make sure they
+    conform to the QIR specific profile.
+  }];
+
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES
