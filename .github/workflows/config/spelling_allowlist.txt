@@ -1,4 +1,5 @@
 AFQMC
+ABI
 API
 APIs
 AST
@@ -29,6 +30,7 @@ Fortran
 Fourier
 GHCR
 GPU
+GPUDirect
 GPUs
 GitHub
 HPC
@@ -61,6 +63,7 @@ Max-Cut
 MyST
 NGC
 NVIDIA
+NVLink
 NVQC
 NVQIR
 OQC
@@ -118,6 +121,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+archiver
 arity
 auxillary
 backend
@@ -176,6 +180,7 @@ eigenvalue
 eigenvalues
 eigenvector
 eigenvectors
+endian
 enqueue
 enqueues
 enqueuing
@@ -191,6 +196,7 @@ expressivity
 extensibility
 extremal
 fermionic
+fmt
 frontend
 frontends
 homogenous

@@ -542,3 +542,94 @@ This is a non-linear transformation, and no template overloads are available.
 
         cudaq::qubit qubit;
         my(qubit);
+
+
+User-Defined Custom Operations
+==============================
+
+Users can define a custom quantum operation by its unitary matrix. First use 
+the API to register a custom operation, outside of a CUDA-Q kernel. Then the 
+operation can be used within a CUDA-Q kernel like any of the built-in operations
+defined above.
+Custom operations are supported on qubits only (`qudit` with `level = 2`).
+
+.. tab:: Python
+
+    The :code:`cudaq.register_operation` API accepts an identifier string for 
+    the custom operation and its unitary matrix. The matrix can be a `list` or
+    `numpy` array of complex numbers. A 1D matrix is interpreted as row-major.
+    
+
+    .. code-block:: python
+
+        import cudaq
+        import numpy as np
+
+        cudaq.register_operation("custom_h", 1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+
+        cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+        @cudaq.kernel
+        def bell():
+            qubits = cudaq.qvector(2)
+            custom_h(qubits[0])
+            custom_x.ctrl(qubits[0], qubits[1])
+
+        cudaq.sample(bell).dump()
+
+        
+.. tab:: C++
+
+    The macro :code:`CUDAQ_REGISTER_OPERATION` accepts a unique name for the 
+    operation, the number of target qubits, the number of rotation parameters 
+    (can be 0), and the unitary matrix as a 1D row-major `std::vector<complex>` 
+    representation.
+    
+    .. code-block:: cpp
+
+        #include <cudaq.h>
+
+        CUDAQ_REGISTER_OPERATION(custom_h, 1, 0,
+                                {M_SQRT1_2, M_SQRT1_2, M_SQRT1_2, -M_SQRT1_2})
+
+        CUDAQ_REGISTER_OPERATION(custom_x, 1, 0, {0, 1, 1, 0})
+
+        __qpu__ void bell_pair() {
+            cudaq::qubit q, r;
+            custom_h(q);
+            custom_x<cudaq::ctrl>(q, r);
+        }
+
+        int main() {
+            auto counts = cudaq::sample(bell_pair);
+            for (auto &[bits, count] : counts) {
+                printf("%s\n", bits.data());
+            }
+        }
+
+
+For multi-qubit operations, the matrix is interpreted with MSB qubit ordering,
+i.e. big-endian convention. The following example shows two different custom
+operations, each operating on 2 qubits.
+
+
+.. tab:: Python
+
+    .. literalinclude:: ../snippets/python/using/examples/two_qubit_custom_op.py
+      :language: python
+      :start-after: [Begin Docs]
+      :end-before: [End Docs]
+
+
+.. tab:: C++
+
+    .. literalinclude:: ../snippets/cpp/using/two_qubit_custom_op.cpp
+      :language: cpp
+      :start-after: [Begin Docs]
+      :end-before: [End Docs]
+
+
+.. note:: 
+
+  Custom operations are currently supported only on :doc:`../using/backends/simulators`.
+  Attempt to use with a hardware backend will result in runtime error.

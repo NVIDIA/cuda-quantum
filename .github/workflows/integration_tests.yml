@@ -189,10 +189,18 @@ jobs:
         # When a new REST version is introduced, NVQC_REST_PAYLOAD_VERSION needs to be updated in lockstep with the new nightly CUDA Quantum image. 
         # Otherwise, deployment of the test function will fail.
         run: |
+          # We run with CUDAQ_SER_CODE_EXEC set. The final NVQC deployment may
+          # or may not have this set, but since we run the client with
+          # CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE=1 (below), we need to run
+          # the CI with CUDAQ_SER_CODE_EXEC=1. If we ever remove
+          # CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE=1 below, we can consider
+          # removing CUDAQ_SER_CODE_EXEC=1.
           create_function_result=$(ngc-cli/ngc cloud-function function create \
             --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly \
             --container-environment-variable NUM_GPUS:1 \
             --container-environment-variable NVQC_REST_PAYLOAD_VERSION:1.1 \
+            --container-environment-variable RUN_AS_NOBODY:1 \
+            --container-environment-variable CUDAQ_SER_CODE_EXEC:1 \
             --api-body-format CUSTOM \
             --inference-port 3030 \
             --health-uri / \
@@ -511,6 +519,11 @@ jobs:
           export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVQC_FUNCTION_ID="$NVQC_FUNCTION_ID"
           export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
+          # When overriding the NVQC_FUNCTION_ID to a function that doesn't
+          # follow the production naming convenvtions, we need to set the
+          # following environment variable to tell the client that the server
+          # has all the remote capabilities.
+          export CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE=1
           set +e # Allow script to keep going through errors
           test_err_sum=0
           # Test all NVQPP execution tests
@@ -539,9 +552,8 @@ jobs:
           # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
             # unsupport_args and compile_errors are compile error tests
-            # pauli_word: https://github.com/NVIDIA/cuda-quantum/issues/1957
-            # nested_vectors: related to vector of pauli_words (https://github.com/NVIDIA/cuda-quantum/issues/1957)
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"pauli_word"* ]]; then
+            # nested_vectors: Compiler fails to synthesize nested vector parameters (https://github.com/NVIDIA/cuda-quantum/issues/2001)
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs

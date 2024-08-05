@@ -72,7 +72,7 @@ struct ctrlHeisenberg {
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_4:.*]] = arith.extsi %[[VAL_3]] : i32 to i64
+// CHECK:           %[[VAL_4:.*]] = cc.cast signed %[[VAL_3]] : (i32) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_4]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.concat %[[VAL_2]] : (!quake.ref) -> !quake.veq<?>
 // CHECK:           call @__nvqpp__mlirgen__function_magic_func.{{.*}}.ctrl(%[[VAL_6]], %[[VAL_5]]) : (!quake.veq<?>, !quake.veq<?>) -> ()

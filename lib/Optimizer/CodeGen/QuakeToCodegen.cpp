@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
 
 using namespace mlir;
 
@@ -39,10 +40,32 @@ public:
     return success();
   }
 };
+
+class ExpandComplexCast : public OpRewritePattern<cudaq::cc::CastOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
+                                PatternRewriter &rewriter) const override {
+    auto complexTy = dyn_cast<ComplexType>(castOp.getType());
+    if (!complexTy)
+      return failure();
+    auto loc = castOp.getLoc();
+    auto ty = cast<ComplexType>(castOp.getValue().getType()).getElementType();
+    Value rePart = rewriter.create<complex::ReOp>(loc, ty, castOp.getValue());
+    Value imPart = rewriter.create<complex::ImOp>(loc, ty, castOp.getValue());
+    auto eleTy = complexTy.getElementType();
+    auto reCast = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, rePart);
+    auto imCast = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, imPart);
+    rewriter.replaceOpWithNewOp<complex::CreateOp>(castOp, complexTy, reCast,
+                                                   imCast);
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::codegen::populateQuakeToCodegenPatterns(
     mlir::RewritePatternSet &patterns) {
   auto *ctx = patterns.getContext();
-  patterns.insert<CodeGenRAIIPattern>(ctx);
+  patterns.insert<CodeGenRAIIPattern, ExpandComplexCast>(ctx);
 }

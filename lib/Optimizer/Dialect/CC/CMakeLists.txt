@@ -12,12 +12,13 @@ add_cudaq_dialect_library(CCDialect
   CCTypes.cpp
 
   DEPENDS
-  CCDialectIncGen
-  CCOpsIncGen
-  CCTypesIncGen
+    CCDialectIncGen
+    CCOpsIncGen
+    CCTypesIncGen
 
   LINK_LIBS
-  MLIRFuncDialect
-  MLIRLLVMDialect
-  MLIRIR
+    MLIRComplexDialect
+    MLIRFuncDialect
+    MLIRLLVMDialect
+    MLIRIR
 )

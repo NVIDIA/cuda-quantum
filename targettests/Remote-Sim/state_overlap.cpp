@@ -13,6 +13,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
 struct bellCircuit {
@@ -37,6 +38,6 @@ int main() {
   auto state1 = cudaq::get_state(bellCircuit{});
   auto state2 = cudaq::get_state(noOpCircuit{});
   const auto overlap = state1.overlap(state2);
-  assert(std::abs(M_SQRT1_2 - overlap) < 1e-3);
+  REMOTE_TEST_ASSERT(std::abs(M_SQRT1_2 - overlap) < 1e-3);
   return 0;
 }
