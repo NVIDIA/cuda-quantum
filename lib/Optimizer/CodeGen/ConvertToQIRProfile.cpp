@@ -469,14 +469,12 @@ struct QIRProfilePreparationPass
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
 
-    // Add cnot declaration as it may be
-    // referenced after peepholes run.
+    // Add cnot declaration as it may be referenced after peepholes run.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRCnot, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getQubitType(ctx)}, module);
 
-    // Add measure_body as it has a different
-    // signature than measure.
+    // Add measure_body as it has a different signature than measure.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRMeasureBody, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getResultType(ctx)},
@@ -486,16 +484,13 @@ struct QIRProfilePreparationPass
         cudaq::opt::QIRReadResultBody, IntegerType::get(ctx, 1),
         {cudaq::opt::getResultType(ctx)}, module);
 
-    // Add record functions for any
-    // measurements.
+    // Add record functions for any measurements.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRRecordOutput, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getResultType(ctx), cudaq::opt::getCharPointerType(ctx)},
         module);
 
-    // Add functions
-    // `__quantum__qis__*__body` for all
-    // functions matching
+    // Add functions `__quantum__qis__*__body` for all functions matching
     // `__quantum__qis__*` that are found.
     for (auto &global : module)
       if (auto func = dyn_cast<LLVM::LLVMFuncOp>(global))
@@ -508,7 +503,7 @@ struct QIRProfilePreparationPass
     // Apply irreversible attribute to measurement functions
     for (auto &funcName : measurementFunctionNames) {
       Operation *op = SymbolTable::lookupSymbolIn(module, funcName);
-      auto funcOp = llvm::dyn_cast_or_null<LLVM::LLVMFuncOp>(op);
+      auto funcOp = llvm::dyn_cast_if_present<LLVM::LLVMFuncOp>(op);
       if (funcOp) {
         auto builder = OpBuilder(op);
         auto arrAttr = builder.getArrayAttr(
