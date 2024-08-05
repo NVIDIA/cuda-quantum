@@ -7,18 +7,11 @@
 # ============================================================================ #
 
 import os
-import platform
-import re
-import subprocess
-import sys
 import shutil
 import bisect
 
 import lit.util
 from lit.llvm import llvm_config
-from lit.llvm.subst import ToolSubst
-from lit.llvm.subst import FindTool
-
 import lit.formats
 
 # The name of this test suite.
@@ -27,7 +20,7 @@ config.name = 'CUDAQ-Target'
 # `testFormat`: The test format to use to interpret tests.
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 
-config.suffixes = ['.cpp']
+config.suffixes = ['.cpp', '.config']
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.
@@ -41,6 +34,8 @@ config.substitutions.append(('%pluginext', config.llvm_plugin_ext))
 config.substitutions.append(('%llvmInclude', config.llvm_install + "/include"))
 config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
+config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
+config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
 
 llvm_config.use_default_substitutions()
 
