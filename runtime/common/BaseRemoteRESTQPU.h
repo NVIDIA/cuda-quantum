@@ -296,9 +296,9 @@ public:
     if (getEnvBool("DISABLE_QUBIT_MANAGEMENT", false)) {
       // Remove the qubit-management-pipeline if present
       // TODO: what if run-qubit-management already set to false?
-      std::regex qubitManagement(
-          "(.*)qubit-management-pipeline(.*)");
-      std::string replacement("$1qubit-management-pipeline{run-qubit-management=false}$2");
+      std::regex qubitManagement("(.*)qubit-management-pipeline(.*)");
+      std::string replacement(
+          "$1qubit-management-pipeline{run-qubit-management=false}$2");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, qubitManagement, replacement);
       cudaq::info("disable_qubit_management option found, so updated lowering "
@@ -479,8 +479,7 @@ public:
         // Create the pass manager, add the quake observe ansatz pass
         // and run it followed by the canonicalizer
         mlir::PassManager pm(&context);
-        mlir::OpPassManager &optPM = pm.nest<mlir::func::FuncOp>();
-        optPM.addPass(
+        pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
         if (disableMLIRthreading || enablePrintMLIREachPass)
           tmpModuleOp.getContext()->disableMultithreading();
