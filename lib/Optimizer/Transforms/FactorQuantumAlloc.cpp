@@ -67,8 +67,6 @@ public:
           for (auto *subUser : subveq->getUsers())
             if (failed(rewriteOpUsers(subUser, lowInt)))
               return failure();
-          llvm::errs() << "BMH erasing subveq\n";
-          subveq.dump();
           rewriter.eraseOp(subveq);
           continue;
         }
