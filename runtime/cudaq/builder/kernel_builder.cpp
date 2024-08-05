@@ -927,21 +927,20 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   {
     PassManager pm(context);
-    OpPassManager &optPM = pm.nest<func::FuncOp>();
-    optPM.addPass(cudaq::opt::createUnwindLoweringPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
-    optPM.addPass(cudaq::opt::createClassicalMemToReg());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addPass(cudaq::opt::createLoopNormalize());
     pm.addPass(cudaq::opt::createLoopUnroll());
     pm.addPass(createCanonicalizerPass());
-    optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
-    optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-    optPM.addPass(createCanonicalizerPass());
-    optPM.addPass(createCSEPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     if (failed(pm.run(module)))
@@ -953,17 +952,17 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     // rewrites before lowering to a raw CFG form. Loop unrolling depends on the
     // cc.loop op and GKE generates new code which may have cc.loop ops, etc.
     PassManager pm(context);
-    OpPassManager &optPM = pm.nest<func::FuncOp>();
-    optPM.addPass(cudaq::opt::createLowerToCFGPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
     // We want quantum allocations to stay where they are if
     // we are simulating and have user-provided state vectors.
     // This check could be better / smarter probably, in tandem
     // with some synth strategy to rewrite initState with circuit
     // synthesis result
     if (stateVectorStorage.empty())
-      optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-    optPM.addPass(createCanonicalizerPass());
-    optPM.addPass(createCSEPass());
+      pm.addNestedPass<func::FuncOp>(
+          cudaq::opt::createCombineQuantumAllocations());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createConvertToQIR());
     pm.addPass(createCanonicalizerPass());
 
