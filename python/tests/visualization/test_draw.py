@@ -109,6 +109,33 @@ q3 : ┤ h ├──────────────────────
     assert expected_str == produced_string
 
 
+def test_draw_hw_target():
+
+    @cudaq.kernel
+    def hw_kernel():
+        q = cudaq.qvector(3)
+        h(q[0])
+        x.ctrl(q[0], q[1], q[2])
+
+    cudaq.set_target('ionq', emulate=True)
+    # fmt: on
+    expected_str = R"""
+     ╭───╮                                       ╭───╮╭─────╮╭───╮╭───╮
+q0 : ┤ h ├──●─────────────────────●──────────────┤ x ├┤ tdg ├┤ x ├┤ t ├
+     ╰───╯  │                     │              ╰─┬─╯╰─────╯╰─┬─╯├───┤
+q1 : ───────┼───────────●─────────┼───────────●────●───────────●──┤ t ├
+     ╭───╮╭─┴─╮╭─────╮╭─┴─╮╭───╮╭─┴─╮╭─────╮╭─┴─╮╭───╮ ╭───╮      ╰───╯
+q2 : ┤ h ├┤ x ├┤ tdg ├┤ x ├┤ t ├┤ x ├┤ tdg ├┤ x ├┤ t ├─┤ h ├───────────
+     ╰───╯╰───╯╰─────╯╰───╯╰───╯╰───╯╰─────╯╰───╯╰───╯ ╰───╯           
+"""
+    # fmt: off
+    # Extra newline added for convenience to match the cleanly formatted expected_str above.
+    produced_string = '\n' + cudaq.draw(hw_kernel)
+    print(produced_string)
+    assert expected_str == produced_string
+    cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
