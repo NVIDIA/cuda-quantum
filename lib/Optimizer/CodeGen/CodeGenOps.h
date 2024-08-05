@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Common/Traits.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"

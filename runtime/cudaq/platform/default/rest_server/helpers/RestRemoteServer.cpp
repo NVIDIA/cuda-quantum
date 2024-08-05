@@ -47,6 +47,7 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
+#include <cxxabi.h>
 #include <filesystem>
 #include <fstream>
 #include <streambuf>
@@ -74,6 +75,14 @@ T getValueOrThrow(llvm::Expected<T> valOrErr,
     LLVMConsumeError(llvm::wrap(valOrErr.takeError()));
     throw std::runtime_error(errorMsgToThrow);
   }
+}
+
+// Clear any registered operations in the ExecutionManager and then destroy the
+// JIT. This needs to be called when the registered operations may contain
+// pointers into the code objects inside the JIT.
+void clearRegOpsAndDestroyJIT(std::unique_ptr<llvm::orc::LLJIT> &jit) {
+  cudaq::getExecutionManager()->clearRegisteredOperations();
+  jit.release();
 }
 
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
@@ -121,8 +130,9 @@ public:
         m_simHandle(DEFAULT_NVQIR_SIMULATION_BACKEND,
                     loadNvqirSimLib(DEFAULT_NVQIR_SIMULATION_BACKEND)) {}
 
-  virtual int version() const override {
-    return cudaq::RestRequest::REST_PAYLOAD_VERSION;
+  virtual std::pair<int, int> version() const override {
+    return std::make_pair(cudaq::RestRequest::REST_PAYLOAD_VERSION,
+                          cudaq::RestRequest::REST_PAYLOAD_MINOR_VERSION);
   }
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
@@ -251,6 +261,85 @@ public:
   // Stop the server.
   virtual void stop() override { m_server->stop(); }
 
+  virtual void handleVQERequest(std::size_t reqId,
+                                cudaq::ExecutionContext &io_context,
+                                const std::string &backendSimName,
+                                std::string_view ir, cudaq::gradient *gradient,
+                                cudaq::optimizer &optimizer, const int n_params,
+                                std::string_view kernelName,
+                                std::size_t seed) override {
+    cudaq::optimization_result result;
+
+    // Treat the shots as a signed number, and if it is <= 0, then shots-based
+    // sampling is disabled. This is standard VQE/observe behavior.
+    std::int64_t shots = *reinterpret_cast<std::int64_t *>(&io_context.shots);
+
+    // If we're changing the backend, load the new simulator library from file.
+    if (m_simHandle.name != backendSimName) {
+      if (m_simHandle.libHandle)
+        dlclose(m_simHandle.libHandle);
+
+      m_simHandle =
+          SimulatorHandle(backendSimName, loadNvqirSimLib(backendSimName));
+    }
+
+    if (seed != 0)
+      cudaq::set_random_seed(seed);
+    simulationStart = std::chrono::high_resolution_clock::now();
+
+    auto &requestInfo = m_codeTransform[reqId];
+    if (requestInfo.format == cudaq::CodeFormat::LLVM) {
+      throw std::runtime_error("CodeFormat::LLVM is not supported with VQE. "
+                               "Use CodeFormat::MLIR instead.");
+    } else {
+      llvm::SourceMgr sourceMgr;
+      sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(ir),
+                                   llvm::SMLoc());
+      auto module = parseSourceFile<ModuleOp>(sourceMgr, m_mlirContext.get());
+      if (!module)
+        throw std::runtime_error("Failed to parse the input MLIR code");
+      auto engine = jitMlirCode(*module, requestInfo.passes);
+      const std::string entryPointFunc =
+          std::string(cudaq::runtime::cudaqGenPrefixName) +
+          std::string(kernelName);
+      auto fnPtr =
+          getValueOrThrow(engine->lookup(entryPointFunc),
+                          "Failed to look up entry-point function symbol");
+      if (!fnPtr)
+        throw std::runtime_error("Failed to get entry function");
+
+      // quake-to-qir translates cc.stdvec<f64> to !llvm.struct<(ptr<f64>,
+      // i64)>, so we need to provide the inputs in this format. Make a lambda
+      // to convert between the two formats.
+      struct stdvec_struct {
+        const double *ptr;
+        std::size_t size;
+      };
+      auto fn = reinterpret_cast<void (*)(stdvec_struct)>(fnPtr);
+      auto fnWrapper = [fn](const std::vector<double> &x) {
+        fn({x.data(), x.size()});
+      };
+
+      // Construct the gradient object.
+      if (gradient)
+        gradient->setKernel(fnWrapper);
+
+      bool requiresGrad = optimizer.requiresGradients();
+      auto theSpin = **io_context.spin;
+
+      result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
+                                                std::vector<double> &grad_vec) {
+        double e = shots <= 0 ? cudaq::observe(fnWrapper, theSpin, x)
+                              : cudaq::observe(shots, fnWrapper, theSpin, x);
+        if (requiresGrad)
+          gradient->compute(x, grad_vec, theSpin, e);
+        return e;
+      });
+    }
+    simulationEnd = std::chrono::high_resolution_clock::now();
+    io_context.optResult = result;
+  }
+
   virtual void handleRequest(std::size_t reqId,
                              cudaq::ExecutionContext &io_context,
                              const std::string &backendSimName,
@@ -270,14 +359,19 @@ public:
       cudaq::set_random_seed(seed);
     auto &platform = cudaq::get_platform();
     auto &requestInfo = m_codeTransform[reqId];
+
+    // The lifetime of this pointer should be just as long as `platform` because
+    // any calls to `platform` functions could invoke code that relies on the
+    // JIT being present.
+    std::unique_ptr<llvm::orc::LLJIT> llvmJit;
     if (requestInfo.format == cudaq::CodeFormat::LLVM) {
       if (io_context.name == "sample") {
         // In library mode (LLVM), check to see if we have mid-circuit measures
         // by tracing the kernel function.
         cudaq::ExecutionContext context("tracer");
         platform.set_exec_ctx(&context);
-        cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                   argsSize);
+        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                             kernelArgs, argsSize);
         platform.reset_exec_ctx();
         // In trace mode, if we have a measure result
         // that is passed to an if statement, then
@@ -291,32 +385,40 @@ public:
           // Need to run simulation shot-by-shot
           cudaq::sample_result counts;
           platform.set_exec_ctx(&io_context);
+          // Since registered operations may contain pointers to classes defined
+          // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
+          // deleted.
+          clearRegOpsAndDestroyJIT(llvmJit);
           // If it has conditionals, loop over individual circuit executions
-          cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                     argsSize, io_context.shots,
-                                     [&](std::size_t i) {
-                                       // Reset the context and get the single
-                                       // measure result, add it to the
-                                       // sample_result and clear the context
-                                       // result
-                                       platform.reset_exec_ctx();
-                                       counts += io_context.result;
-                                       io_context.result.clear();
-                                       if (i != (io_context.shots - 1))
-                                         platform.set_exec_ctx(&io_context);
-                                     });
+          llvmJit = cudaq::invokeWrappedKernel(
+              ir, std::string(kernelName), kernelArgs, argsSize,
+              io_context.shots, [&](std::size_t i) {
+                // Reset the context and get the single
+                // measure result, add it to the
+                // sample_result and clear the context
+                // result
+                platform.reset_exec_ctx();
+                counts += io_context.result;
+                io_context.result.clear();
+                if (i != (io_context.shots - 1))
+                  platform.set_exec_ctx(&io_context);
+              });
           io_context.result = counts;
           platform.set_exec_ctx(&io_context);
         } else {
           // If no conditionals, nothing special to do for library mode
           platform.set_exec_ctx(&io_context);
-          cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                     argsSize);
+          // Since registered operations may contain pointers to classes defined
+          // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
+          // deleted.
+          clearRegOpsAndDestroyJIT(llvmJit);
+          llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                               kernelArgs, argsSize);
         }
       } else {
         platform.set_exec_ctx(&io_context);
-        cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                   argsSize);
+        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                             kernelArgs, argsSize);
       }
     } else {
       platform.set_exec_ctx(&io_context);
@@ -324,7 +426,7 @@ public:
           io_context.hasConditionalsOnMeasureResults) {
         // Need to run simulation shot-by-shot
         cudaq::sample_result counts;
-        invokeMlirKernel(m_mlirContext, ir, requestInfo.passes,
+        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
                          std::string(kernelName), io_context.shots,
                          [&](std::size_t i) {
                            // Reset the context and get the single
@@ -340,11 +442,15 @@ public:
         io_context.result = counts;
         platform.set_exec_ctx(&io_context);
       } else {
-        invokeMlirKernel(m_mlirContext, ir, requestInfo.passes,
+        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
                          std::string(kernelName));
       }
     }
     platform.reset_exec_ctx();
+    // Clear the registered operations before the `llvmJit` goes out of scope
+    // so that destruction of registered operations doesn't cause segfaults
+    // during shutdown.
+    clearRegOpsAndDestroyJIT(llvmJit);
     simulationEnd = std::chrono::high_resolution_clock::now();
   }
 
@@ -389,12 +495,14 @@ protected:
     // Verify MLIR conforming to the NVQIR-spec (known runtime functions and/or
     // QIR functions)
     {
-      // Collect all functions that are defined in this module Ops.
+      // Collect all functions that are defined (and have non-empty bodies) in
+      // this module Op.
       const std::vector<llvm::StringRef> allFunctionNames = [&]() {
         std::vector<llvm::StringRef> allFuncs;
         for (auto &op : *module.getBody())
           if (auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op))
-            allFuncs.emplace_back(funcOp.getName());
+            if (!funcOp.getFunctionBody().empty())
+              allFuncs.emplace_back(funcOp.getName());
         return allFuncs;
       }();
       // Note: run this verification as a standalone step to decouple IR
@@ -435,7 +543,8 @@ protected:
   }
 
   void
-  invokeMlirKernel(std::unique_ptr<MLIRContext> &contextPtr,
+  invokeMlirKernel(cudaq::ExecutionContext &io_context,
+                   std::unique_ptr<MLIRContext> &contextPtr,
                    std::string_view irString,
                    const std::vector<std::string> &passes,
                    const std::string &entryPointFn, std::size_t numTimes = 1,
@@ -447,21 +556,56 @@ protected:
     if (!module)
       throw std::runtime_error("Failed to parse the input MLIR code");
     auto engine = jitMlirCode(*module, passes);
+    llvm::SmallVector<void *> returnArg;
     const std::string entryPointFunc =
         std::string(cudaq::runtime::cudaqGenPrefixName) + entryPointFn;
-    auto fnPtr =
-        getValueOrThrow(engine->lookup(entryPointFunc),
-                        "Failed to look up entry-point function symbol");
-    if (!fnPtr)
-      throw std::runtime_error("Failed to get entry function");
+    if (auto funcOp = module->lookupSymbol<LLVM::LLVMFuncOp>(entryPointFunc)) {
+      auto funcTy = funcOp.getFunctionType();
+      auto returnTy = funcTy.getReturnType();
+      // These are the returned types that we support.
+      if (returnTy.isF32()) {
+        io_context.invocationResultBuffer.resize(sizeof(float));
+        returnArg.push_back(io_context.invocationResultBuffer.data());
+      } else if (returnTy.isF64()) {
+        io_context.invocationResultBuffer.resize(sizeof(double));
+        returnArg.push_back(io_context.invocationResultBuffer.data());
+      } else if (returnTy.isInteger(1)) {
+        static_assert(sizeof(bool) == sizeof(char),
+                      "Incompatible boolean data type. CUDA-Q kernels expect "
+                      "sizeof(bool) == sizeof(char).");
+        io_context.invocationResultBuffer.resize(sizeof(bool));
+        returnArg.push_back(io_context.invocationResultBuffer.data());
+      } else if (returnTy.isIntOrIndex()) {
+        io_context.invocationResultBuffer.resize(
+            (returnTy.getIntOrFloatBitWidth() + 7) / 8);
+        returnArg.push_back(io_context.invocationResultBuffer.data());
+      }
+    }
 
-    auto fn = reinterpret_cast<void (*)()>(fnPtr);
-    simulationStart = std::chrono::high_resolution_clock::now();
-    for (std::size_t i = 0; i < numTimes; ++i) {
-      // Invoke the kernel
-      fn();
-      if (postExecCallback) {
-        postExecCallback(i);
+    // Note: currently, we only return data from kernel on single-shot
+    // execution. Once we enable arbitrary sample return type, we can run this
+    // in a loop and return a vector of return type.
+    if (numTimes == 1 && !returnArg.empty()) {
+      simulationStart = std::chrono::high_resolution_clock::now();
+      llvm::Error error = engine->invokePacked(entryPointFunc, returnArg);
+      if (error)
+        throw std::runtime_error("JIT invocation failed");
+      if (postExecCallback)
+        postExecCallback(0);
+    } else {
+      auto fnPtr =
+          getValueOrThrow(engine->lookup(entryPointFunc),
+                          "Failed to look up entry-point function symbol");
+      if (!fnPtr)
+        throw std::runtime_error("Failed to get entry function");
+
+      auto fn = reinterpret_cast<void (*)()>(fnPtr);
+      simulationStart = std::chrono::high_resolution_clock::now();
+      for (std::size_t i = 0; i < numTimes; ++i) {
+        // Invoke the kernel
+        fn();
+        if (postExecCallback)
+          postExecCallback(i);
       }
     }
   }
@@ -549,11 +693,11 @@ protected:
       // server is expecting, throw an error. Note: we don't support
       // automatically versioning the payload (converting payload between
       // different versions) at the moment.
-      if (static_cast<int>(request.version) != version())
+      if (static_cast<int>(request.version) != version().first)
         throw std::runtime_error(fmt::format(
             "Incompatible REST payload version detected: supported version {}, "
             "got version {}.",
-            version(), request.version));
+            version().first, request.version));
 
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
@@ -568,7 +712,25 @@ protected:
       m_codeTransform[reqId] =
           CodeTransformInfo(request.format, request.passes);
       json resultJson;
-      if (request.executionContext.name == "state-overlap") {
+      std::vector<char> decodedCodeIr;
+      auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
+      if (errorCode) {
+        LLVMConsumeError(llvm::wrap(std::move(errorCode)));
+        throw std::runtime_error("Failed to decode input IR");
+      }
+      std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
+
+      if (request.opt.has_value() && request.opt->optimizer) {
+        if (!request.opt->optimizer_n_params.has_value())
+          throw std::runtime_error(
+              "Cannot run optimizer without providing optimizer_n_params");
+
+        handleVQERequest(
+            reqId, request.executionContext, request.simulator, codeStr,
+            request.opt->gradient.get(), *request.opt->optimizer,
+            *request.opt->optimizer_n_params, request.entryPoint, request.seed);
+        resultJson["executionContext"] = request.executionContext;
+      } else if (request.executionContext.name == "state-overlap") {
         if (!request.overlapKernel.has_value())
           throw std::runtime_error("Missing overlap kernel data.");
         std::vector<char> decodedCodeIr1, decodedCodeIr2;
@@ -638,6 +800,19 @@ protected:
       resultJson["status"] = "Failed to process incoming request";
       resultJson["errorMessage"] = e.what();
       return resultJson;
+    } catch (...) {
+      json resultJson;
+      resultJson["status"] = "Failed to process incoming request";
+      std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
+      auto demangledPtr =
+          __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
+      if (demangledPtr) {
+        std::string demangledName(demangledPtr);
+        resultJson["errorMessage"] = "Unknown error of type " + demangledName;
+      } else {
+        resultJson["errorMessage"] = "Unknown error";
+      }
+      return resultJson;
     }
   }
 };
@@ -654,6 +829,12 @@ protected:
     if (in_request.format != cudaq::CodeFormat::MLIR) {
       outValidationMessage =
           "Unsupported input format: only CUDA-Q MLIR data is allowed.";
+      return false;
+    }
+
+    if (!in_request.passes.empty()) {
+      outValidationMessage =
+          "Unsupported passes: server-side compilation passes are not allowed.";
       return false;
     }
 

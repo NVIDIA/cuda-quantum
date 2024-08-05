@@ -10,7 +10,6 @@ import os
 import pytest
 import numpy as np
 import sys
-from typing import List
 
 import cudaq
 

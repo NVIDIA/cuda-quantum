@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
@@ -82,8 +83,8 @@ public:
   }
 };
 
-// Lower quake.init_state to a QIR function to allocate the
-// qubits with the provided state vector.
+// Lower codegen.qmem_raii to a QIR function to allocate the qubits with the
+// provided state vector.
 class QmemRAIIOpRewrite
     : public ConvertOpToLLVMPattern<cudaq::codegen::RAIIOp> {
 public:
@@ -385,11 +386,10 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto parentModule = instOp->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
-    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     std::string instName = instOp->getName().stripDialect().str();
 
     // Get the reset QIR function name
-    auto qirFunctionName = qirQisPrefix + instName;
+    auto qirFunctionName = cudaq::opt::QIRQISPrefix + instName;
 
     // Create the qubit pointer type
     auto qirQubitPointerType = cudaq::opt::getQubitType(context);
@@ -1213,6 +1213,137 @@ public:
     return success();
   }
 };
+
+/// NOTE: This class currently targets simulator backends. On hardware targets
+/// the custom operations ought to be decomposed by a separate pass and should
+/// never reach here.
+class CustomUnitaryOpRewrite
+    : public ConvertOpToLLVMPattern<quake::CustomUnitarySymbolOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  /// Function to convert a QIR Qubit value to an Array value.
+  /// TODO: Refactor to reuse code from 'ConcatOpRewrite' (line#247)
+  Value wrapQubitInArray(Location &loc, ConversionPatternRewriter &rewriter,
+                         ModuleOp parentModule, Value v) const {
+    auto context = rewriter.getContext();
+    auto qirArrayTy = cudaq::opt::getArrayType(context);
+    auto ptrTy = cudaq::opt::factory::getPointerType(context);
+    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::opt::QIRArrayCreateArray, qirArrayTy,
+        {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
+    FlatSymbolRefAttr getSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            cudaq::opt::QIRArrayGetElementPtr1d, ptrTy,
+            {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
+    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+    // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
+    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
+    if (v.getType() != cudaq::opt::getQubitType(context))
+      return v;
+    auto createCall = rewriter.create<LLVM::CallOp>(
+        loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
+    auto result = createCall.getResult();
+    auto call = rewriter.create<LLVM::CallOp>(loc, ptrTy, getSymbolRef,
+                                              ArrayRef<Value>{result, zero});
+    Value pointer = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(ptrTy), call.getResult());
+    auto cast = rewriter.create<LLVM::BitcastOp>(loc, ptrTy, v);
+    rewriter.create<LLVM::StoreOp>(loc, cast, pointer);
+    return result;
+  }
+
+  LogicalResult
+  matchAndRewrite(quake::CustomUnitarySymbolOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto parentModule = op->getParentOfType<ModuleOp>();
+    auto context = op->getContext();
+    auto typeConverter = this->getTypeConverter();
+
+    auto numParameters = op.getParameters().size();
+    if (numParameters)
+      op.emitOpError("Parameterized custom operations not yet supported.");
+
+    auto arrType = cudaq::opt::getArrayType(context);
+    auto qirArrayTy = cudaq::opt::getArrayType(context);
+    FlatSymbolRefAttr concatFunc =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            cudaq::opt::QIRArrayConcatArray, arrType, {arrType, arrType},
+            parentModule);
+
+    // targets
+    auto targetArr = wrapQubitInArray(loc, rewriter, parentModule,
+                                      adaptor.getTargets().front());
+    for (auto oper : adaptor.getTargets().drop_front(1)) {
+      auto backArr = wrapQubitInArray(loc, rewriter, parentModule, oper);
+      auto glue = rewriter.create<LLVM::CallOp>(
+          loc, qirArrayTy, concatFunc, ArrayRef<Value>{targetArr, backArr});
+      targetArr = glue.getResult();
+    }
+
+    // controls
+    auto controls = op.getControls();
+    Value controlArr;
+    if (controls.empty()) {
+      // make an empty array
+      Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+      Value zero32 = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
+      FlatSymbolRefAttr symbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              cudaq::opt::QIRArrayCreateArray,
+              cudaq::opt::getArrayType(context),
+              {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
+      controlArr = rewriter
+                       .create<LLVM::CallOp>(
+                           loc, TypeRange{cudaq::opt::getArrayType(context)},
+                           symbolRef, ValueRange{zero32, zero})
+                       .getResult();
+    } else {
+      controlArr = wrapQubitInArray(loc, rewriter, parentModule,
+                                    adaptor.getControls().front());
+      for (auto oper : adaptor.getControls().drop_front(1)) {
+        auto backArr = wrapQubitInArray(loc, rewriter, parentModule, oper);
+        auto glue = rewriter.create<LLVM::CallOp>(
+            loc, qirArrayTy, concatFunc, ArrayRef<Value>{controlArr, backArr});
+        controlArr = glue.getResult();
+      }
+    }
+
+    // Fetch the unitary matrix generator for this custom operation
+    auto sref = op.getGenerator();
+    StringRef generatorName = sref.getRootReference();
+    auto globalOp =
+        parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
+    if (!globalOp)
+      return op.emitOpError("global not found for custom op");
+
+    auto complex64Ty =
+        typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
+    auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
+    Type type = getTypeConverter()->convertType(globalOp.getType());
+    auto addrOp = rewriter.create<LLVM::AddressOfOp>(loc, type, generatorName);
+    auto unitaryData =
+        rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
+
+    auto qirFunctionName =
+        std::string{cudaq::opt::QIRCustomOp} + (op.isAdj() ? "__adj" : "");
+
+    FlatSymbolRefAttr customSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            qirFunctionName, LLVM::LLVMVoidType::get(context),
+            {complex64PtrTy, cudaq::opt::getArrayType(context),
+             cudaq::opt::getArrayType(context)},
+            parentModule);
+
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        op, TypeRange{}, customSymbolRef,
+        ValueRange{unitaryData, controlArr, targetArr});
+
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
@@ -1222,8 +1353,9 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
   patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, MxToMz, MyToMz,
                   ReturnBitRewrite>(context);
   patterns.insert<
-      AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite, DiscriminateOpPattern,
-      ExtractQubitOpRewrite, ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
+      AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
+      DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
+      ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
       OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
       OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
       OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,

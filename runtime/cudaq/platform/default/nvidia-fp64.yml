@@ -1,0 +1,17 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: nvidia-fp64
+description: "The NVIDIA FP64 Target provides a simulated QPU via single-GPU cuStateVec integration on FP64 types."
+warning: "This target is deprecating. Please use the 'nvidia' target with option 'fp64' by adding the command line option '--target-option fp64' or passing it as cudaq.set_target('nvidia', option='fp64') in Python. Please refer to CUDA-Q \e]8;;https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html#single-gpu\e\\documentation\e]8;;\e\\ for more information."
+gpu-requirements: true
+
+config:
+  nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
+  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+

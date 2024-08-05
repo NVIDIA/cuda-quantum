@@ -90,6 +90,8 @@ def cc_ScopeOp : CCOp<"scope",
   let extraClassDeclaration = [{
     using BodyBuilderFn =
         llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
+
+    bool hasAllocation(bool quantumAllocs = true);
   }];
 }
 
@@ -785,11 +787,17 @@ def cc_AllocaOp : CCOp<"alloca", [
     MemoryEffects<[MemAlloc<AutomaticAllocationScopeResource>]>]> {
   let summary = "Allocate a dynamic block of memory on the stack.";
   let description = [{
-    The AllocaOp is similar to the C library `alloca()` function. The number of
-    bytes to be allocated is computed by the size of the `elementType` (which
-    may not have a non-positive size) times `seqSize` if present or `1` if
-    `seqSize` is omitted. This returns a pointer to the first element in the
-    allocated sequence of `seqSize` elements of `elementType`.
+    The AllocaOp is similar to the C library `alloca()` function. It allocates
+    a block of memory on the stack. The memory is undefined/poison until it is
+    explicitly initialized.
+
+    The number of bytes to be allocated is computed by the size of the
+    `elementType` (which may not have a non-positive size) times `seqSize` if
+    present or `1` if `seqSize` is omitted.
+
+    The result is a pointer to the first element in the allocated sequence of
+    `seqSize` elements of `elementType`. Each subsequent element (if any) will
+    be at the next succeeding naturally aligned memory location.
   }];
 
   let arguments = (ins
@@ -934,22 +942,44 @@ def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
   }];
 
   let arguments = (ins
-    AnyAggregateType:$container,
-    DenseI64ArrayAttr:$position
+    AnyAggregateType:$aggregate,
+    Variadic<AnyInteger>:$dynamicIndices,
+    DenseI32ArrayAttr:$rawConstantIndices
   );
   let results = (outs AnyType);
 
   let assemblyFormat = [{
-    $container `` $position `:` functional-type(operands, results) attr-dict
+    $aggregate `[` custom<ExtractValueIndices>($dynamicIndices,
+      $rawConstantIndices) `]` `:` functional-type(operands, results) attr-dict
   }];
+
+  let hasFolder = 1;
+  let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
-               "std::int64_t":$index), [{
-      return build($_builder, $_state, resultType, aggregate,
-                   mlir::ArrayRef<std::int64_t>{index});
-    }]>
+               "mlir::ValueRange":$indices,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs)>,
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "mlir::ArrayRef<cudaq::cc::ExtractValueArg>":$indices,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs)>,
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "std::int32_t":$index,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs)>,
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "mlir::Value":$index,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs)>
   ];
+
+  let extraClassDeclaration = [{
+    static constexpr std::int32_t kDynamicIndex =
+      std::numeric_limits<std::int32_t>::min();
+
+    static std::int32_t getDynamicIndexValue() { return kDynamicIndex; }
+
+    bool indicesAreConstant() { return getDynamicIndices().empty(); }
+  }];
 }
 
 def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
@@ -998,10 +1028,10 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
     Example:
 
     ```mlir
-      %p = cc.compute_ptr %struct, 1 : (!cc.ptr<!cc.struct<{i32, f32}>>) ->
-                                       !cc.ptr<f32>
-      %q = cc.compute_ptr %array, %i : (!cc.ptr<!cc.array<i32 x 100>>, i64) ->
-                                       !cc.ptr<i32>
+      %p = cc.compute_ptr %struct[1] : (!cc.ptr<!cc.struct<{i32, f32}>>) ->
+                                        !cc.ptr<f32>
+      %q = cc.compute_ptr %array[%i] : (!cc.ptr<!cc.array<i32 x 100>>, i64) ->
+                                        !cc.ptr<i32>
     ```
   }];
 
@@ -1019,6 +1049,7 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
 
   let hasFolder = 1;
   let hasCanonicalizer = 1;
+  let hasVerifier = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
@@ -1031,16 +1062,22 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
   let extraClassDeclaration = [{
     static constexpr std::int32_t kDynamicIndex =
       std::numeric_limits<std::int32_t>::min();
+
+    static std::int32_t getDynamicIndexValue() { return kDynamicIndex; }
+
+    bool llvmNormalForm();
+
+    std::optional<std::int32_t> getConstantIndex(std::size_t arg);
   }];
 }
 
 def cc_SizeOfOp : CCOp<"sizeof", [Pure]> {
   let summary = "Return the size, in bytes, of a type.";
   let description = [{
-    This operation is the size, in bytes, of a type that can be reified. It can
-    be used to determine how many bytes to allocate or move when a value is in
-    memory, for example. If the type cannot be reified, it returns a size of
-    poison.
+    This operation returns the size, in bytes, of a type that can be reified.
+    It can be used to determine how many bytes to allocate or move when a value
+    is in memory, for example. If the type cannot be reified, it returns a size
+    of poison.
 
     Example:
 
@@ -1057,6 +1094,38 @@ def cc_SizeOfOp : CCOp<"sizeof", [Pure]> {
 
   let assemblyFormat = [{
     $inputType `:` qualified(type(results)) attr-dict
+  }];
+}
+
+def cc_OffsetOfOp : CCOp<"offsetof", [Pure]> {
+  let summary = "Return the interior offset, in bytes, of a subelement.";
+  let description = [{
+    This operation returns the offset, in bytes, of a subelement of a type that
+    can be reified. It can be used to determine the byte offset of a particular
+    field in a struct type, for example. If the type cannot be reified, this op
+    returns a value of poison.
+
+    Example:
+    ```mlir
+      // the offset of the i64 in the struct
+      %0 = cc.offsetof !cc.struct<i32, f64, i64> [2] : i64
+      // the offset of of the 3rd i32 element in the array field
+      %1 = cc.offsetof !cc.struct<!cc.array<!cc.struct<i32, i8> x 4>, f32>
+           [0, 2, 0] : i64
+    ```
+  }];
+
+  let arguments = (ins
+    TypeAttr:$inputType,
+    DenseI32ArrayAttr:$constantIndices
+  );
+  let results = (outs AnySignlessInteger);
+
+  let hasVerifier = 1;
+  let hasCanonicalizer = 1;
+
+  let assemblyFormat = [{
+    $inputType $constantIndices `:` type(results) attr-dict
   }];
 }
 
@@ -1079,37 +1148,6 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
   let results = (outs cc_ArrayType:$arrayType);
   let assemblyFormat = [{
     $constantValues `:` qualified(type($arrayType)) attr-dict
-  }];
-}
-
-def cc_GetConstantElementOp : CCOp<"get_const_element", [Pure]> {
-  let summary = "Get a constant value from a constant array.";
-  let description = [{
-    A GetConstantElementOp is used to extract a constant value from an aggregate
-    of type !cc.array<T,n>. The aggregate must be built by a `cc.const_array`
-    operation. The offset of the element must be between 0 and the length of the
-    array minus 1 (inclusive). Any other value has undefined behavior. If the
-    offset is a constant, this operation can be folded into a scalar constant
-    (or a cc.undef operation).
-
-    Example:
-
-    ```mlir
-      %arrCon = cc.get_const_element %4[%5] : (!cc.array<f64 x 2>, i32) -> f64
-    ```
-  }];
-
-  let arguments = (ins
-    cc_ArrayType:$constantArray,
-    AnySignlessInteger:$offset
-  );
-  let results = (outs AnyType);
-
-  let hasFolder = 1;
-  //let hasVerifier = 1; // FIXME: output type must match incoming const array
-
-  let assemblyFormat = [{
-    $constantArray `,` $offset `:` functional-type(operands, results) attr-dict
   }];
 }
 

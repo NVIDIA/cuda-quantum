@@ -28,6 +28,9 @@ protected:
   // the IR of both states for remote evaluation)
   mutable std::unique_ptr<cudaq::SimulationState> state;
   mutable std::vector<char> argsBuffer;
+  // Cache log messages from the remote execution.
+  // Mutable to support lazy execution during `const` API calls.
+  mutable std::string platformExecutionLog;
 
 public:
   /// @brief Constructor
@@ -44,7 +47,7 @@ public:
     argsBuffer = cudaq::serializeArgs(std::forward<Args>(args)...);
   }
   RemoteSimulationState() = default;
-
+  virtual ~RemoteSimulationState();
   /// @brief Triggers remote execution to resolve the state data.
   virtual void execute() const;
 
@@ -98,6 +101,21 @@ public:
 
   /// @brief Destroy the state representation, frees all associated memory.
   void destroyState() override;
+
+  /// @brief Return true if this `SimulationState` wraps data on the GPU.
+  bool isDeviceData() const override;
+
+  /// @brief Transfer data from device to host, return the data
+  /// to the pointer provided by the client. Clients must specify the number of
+  /// elements.
+  void toHost(std::complex<double> *clientAllocatedData,
+              std::size_t numElements) const override;
+
+  /// @brief Transfer data from device to host, return the data
+  /// to the pointer provided by the client. Clients must specify the number of
+  /// elements.
+  void toHost(std::complex<float> *clientAllocatedData,
+              std::size_t numElements) const override;
 
 private:
   /// @brief Return the qubit count threshold where the full remote state should

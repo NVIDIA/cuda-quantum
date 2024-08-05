@@ -305,9 +305,11 @@ jobs:
         run: |
           config='${{ needs.create_test_config.outputs.json }}'
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
-          additional_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
-          mv /tmp/install/* .
+          all_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
+          # Don't install CUDA dependencies if we run on a non-GPU runner
+          additional_build_args=`echo $all_build_args | sed -e 's/"cuda_distribution=[^"]*"//g'`
 
+          mv /tmp/install/* .
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
             --build-arg cuda_quantum_installer=install_cuda_quantum.$(uname -m) \
@@ -347,9 +349,9 @@ jobs:
               sudo zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
               $PYTHON -m ensurepip --upgrade            
             fi
-            
+
             ${PYTHON} -m pip install cuda_quantum*.whl
-            ${PYTHON} -m pip install pytest numpy
+            ${PYTHON} -m pip install pytest numpy psutil
             ${PYTHON} -m pytest -v /home/cudaq/python \
               --ignore /home/cudaq/python/backends \
               --ignore /home/cudaq/python/domains
@@ -385,7 +387,7 @@ jobs:
             # Re-install CUDA Quantum
             MPI_PATH=/usr/local/openmpi \
             sudo -E bash install_cuda_quantum.* --accept | tee install_log.txt
-            if [ -n "$(cat install_log.txt | grep -i warning)" ]; then
+            if [ -n "$(cat install_log.txt | grep -i 'Warning:')" ]; then
               echo "::error::Re-installation produced a warning. Check the log for more detail."
               exit 102
             fi

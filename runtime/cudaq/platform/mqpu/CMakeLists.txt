@@ -30,6 +30,7 @@ target_link_libraries(${LIBRARY_NAME}
   PRIVATE 
     cudaq
     mqpu_util
+    CUDAQTargetConfigUtil
     pthread
     spdlog::spdlog 
     fmt::fmt-header-only 

@@ -11,7 +11,6 @@
 import os
 
 import pytest
-import numpy as np
 
 import cudaq
 
@@ -93,7 +92,7 @@ def test_kernel_ctrl_rotation():
 # CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_8:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
-# CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_8]][0] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
+# CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_8]] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
 # CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<f64>
 # CHECK:           quake.r1 (%[[VAL_10]]) {{\[}}%[[VAL_6]]] %[[VAL_7]] : (f64, !quake.ref, !quake.ref) -> ()
 # CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_8]][1] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
@@ -253,12 +252,12 @@ def test_kernel_rotation_ctrl_register():
 # CHECK:           quake.ry (%[[VAL_3]]) {{\[}}%[[VAL_8]]] %[[VAL_10]] : (f64, !quake.veq<3>, !quake.ref) -> ()
 # CHECK:           quake.rz (%[[VAL_2]]) {{\[}}%[[VAL_8]]] %[[VAL_11]] : (f64, !quake.veq<3>, !quake.ref) -> ()
 # CHECK:           %[[VAL_19:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
-# CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_19]][0] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
+# CHECK:           %[[VAL_20:.*]] = cc.cast %[[VAL_19]] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
 # CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_20]] : !cc.ptr<f64>
-# CHECK:           quake.r1 (%[[VAL_21]]) {{\[}}%[[VAL_8]]] %[[VAL_10]] : (f64, !quake.veq<3>, !quake.ref) -> ()
+# CHECK:           quake.r1 (%[[VAL_21]]) [%[[VAL_8]]] %[[VAL_10]] : (f64, !quake.veq<3>, !quake.ref) -> ()
 # CHECK:           %[[VAL_22:.*]] = cc.compute_ptr %[[VAL_19]][1] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
 # CHECK:           %[[VAL_23:.*]] = cc.load %[[VAL_22]] : !cc.ptr<f64>
-# CHECK:           quake.rx (%[[VAL_23]]) {{\[}}%[[VAL_8]]] %[[VAL_11]] : (f64, !quake.veq<3>, !quake.ref) -> ()
+# CHECK:           quake.rx (%[[VAL_23]]) [%[[VAL_8]]] %[[VAL_11]] : (f64, !quake.veq<3>, !quake.ref) -> ()
 # CHECK:           %[[VAL_24:.*]] = cc.compute_ptr %[[VAL_19]][2] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
 # CHECK:           %[[VAL_25:.*]] = cc.load %[[VAL_24]] : !cc.ptr<f64>
 # CHECK:           quake.ry (%[[VAL_25]]) {{\[}}%[[VAL_8]]] %[[VAL_10]] : (f64, !quake.veq<3>, !quake.ref) -> ()

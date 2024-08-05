@@ -8,12 +8,13 @@
 import ast, sys, traceback
 import importlib
 import inspect
+import json
 from typing import Callable
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
+from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli, globalRegisteredTypes
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .captured_data import CapturedDataStorage
@@ -38,33 +39,67 @@ class PyKernelDecorator(object):
     MLIR `ExecutionEngine` for the MLIR mode. 
     """
 
-    def __init__(self, function, verbose=False, module=None, kernelName=None):
-        self.kernelFunction = function
+    def __init__(self,
+                 function,
+                 verbose=False,
+                 module=None,
+                 kernelName=None,
+                 funcSrc=None,
+                 signature=None,
+                 location=None,
+                 overrideGlobalScopedVars=None):
+
+        is_deserializing = isinstance(function, str)
+
+        # When initializing with a provided `funcSrc`, we cannot use inspect
+        # because we only have a string for the function source. That is - the
+        # "function" isn't actually a concrete Python Function object in memory
+        # that we can "inspect". Hence, use alternate approaches when
+        # initializing from `funcSrc`.
+        if is_deserializing:
+            self.kernelFunction = None
+            self.name = kernelName
+            self.location = location
+            self.signature = signature
+        else:
+            self.kernelFunction = function
+            self.name = kernelName if kernelName != None else self.kernelFunction.__name__
+            self.location = (inspect.getfile(self.kernelFunction),
+                             inspect.getsourcelines(self.kernelFunction)[1]
+                            ) if self.kernelFunction is not None else ('', 0)
+
         self.capturedDataStorage = None
 
-        self.module = None if module == None else module
+        self.module = module
         self.verbose = verbose
-        self.name = kernelName if kernelName != None else self.kernelFunction.__name__
         self.argTypes = None
-        self.location = (inspect.getfile(self.kernelFunction),
-                         inspect.getsourcelines(self.kernelFunction)[1]
-                        ) if self.kernelFunction is not None else ('', 0)
 
         # Get any global variables from parent scope.
         # We filter only types we accept: integers and floats.
         # Note here we assume that the parent scope is 2 stack frames up
         self.parentFrame = inspect.stack()[2].frame
-        self.globalScopedVars = {
-            k: v for k, v in dict(inspect.getmembers(self.parentFrame))
-            ['f_locals'].items()
-        }
+        if overrideGlobalScopedVars:
+            self.globalScopedVars = {
+                k: v for k, v in overrideGlobalScopedVars.items()
+            }
+        else:
+            self.globalScopedVars = {
+                k: v for k, v in dict(inspect.getmembers(self.parentFrame))
+                ['f_locals'].items()
+            }
+
+        # Register any external class types that may be used
+        # in the kernel definition
+        for name, var in self.globalScopedVars.items():
+            if isinstance(var, type):
+                globalRegisteredTypes[name] = (var, var.__annotations__)
 
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
         # used in the kernel. We need to track these.
         self.dependentCaptures = None
 
-        if self.kernelFunction is None:
+        if self.kernelFunction is None and not is_deserializing:
             if self.module is not None:
                 # Could be that we don't have a function
                 # but someone has provided an external Module.
@@ -87,13 +122,16 @@ class PyKernelDecorator(object):
                     "Invalid kernel decorator. Module and function are both None."
                 )
 
-        # Get the function source
-        src = inspect.getsource(self.kernelFunction)
+        if is_deserializing:
+            self.funcSrc = funcSrc
+        else:
+            # Get the function source
+            src = inspect.getsource(self.kernelFunction)
 
-        # Strip off the extra tabs
-        leadingSpaces = len(src) - len(src.lstrip())
-        self.funcSrc = '\n'.join(
-            [line[leadingSpaces:] for line in src.split('\n')])
+            # Strip off the extra tabs
+            leadingSpaces = len(src) - len(src.lstrip())
+            self.funcSrc = '\n'.join(
+                [line[leadingSpaces:] for line in src.split('\n')])
 
         # Create the AST
         self.astModule = ast.parse(self.funcSrc)
@@ -103,7 +141,9 @@ class PyKernelDecorator(object):
 
         # Assign the signature for use later and
         # keep a list of arguments (used for validation in the runtime)
-        self.signature = inspect.getfullargspec(self.kernelFunction).annotations
+        if not is_deserializing:
+            self.signature = inspect.getfullargspec(
+                self.kernelFunction).annotations
         self.arguments = [
             (k, v) for k, v in self.signature.items() if k != 'return'
         ]
@@ -150,7 +190,13 @@ class PyKernelDecorator(object):
                 }
                 if self.dependentCaptures != None:
                     for k, v in self.dependentCaptures.items():
-                        if self.globalScopedVars[k] != v:
+                        if (isinstance(v, (list, np.ndarray))):
+                            if not all(a == b for a, b in zip(
+                                    self.globalScopedVars[k], v)):
+                                # Recompile if values in the list have changed.
+                                self.module = None
+                                break
+                        elif self.globalScopedVars[k] != v:
                             # Need to recompile
                             self.module = None
                             break
@@ -243,6 +289,57 @@ class PyKernelDecorator(object):
                                    loc=self.location,
                                    name=self.name,
                                    module=self.module)
+
+    @staticmethod
+    def type_to_str(t):
+        """
+        This converts types to strings in a clean JSON-compatible way.
+        int -> 'int'
+        list[float] -> 'list[float]'
+        List[float] -> 'list[float]'
+        """
+        if hasattr(t, '__origin__') and t.__origin__ is not None:
+            # Handle generic types from typing
+            origin = t.__origin__
+            args = t.__args__
+            args_str = ', '.join(
+                PyKernelDecorator.type_to_str(arg) for arg in args)
+            return f'{origin.__name__}[{args_str}]'
+        elif hasattr(t, '__name__'):
+            return t.__name__
+        else:
+            return str(t)
+
+    def to_json(self):
+        """
+        Convert `self` to a JSON-serialized version of the kernel such that
+        `from_json` can reconstruct it elsewhere.
+        """
+        obj = dict()
+        obj['name'] = self.name
+        obj['location'] = self.location
+        obj['funcSrc'] = self.funcSrc
+        obj['signature'] = {
+            k: PyKernelDecorator.type_to_str(v)
+            for k, v in self.signature.items()
+        }
+        return json.dumps(obj)
+
+    @staticmethod
+    def from_json(jStr, overrideDict=None):
+        """
+        Convert a JSON string into a new PyKernelDecorator object.
+        """
+        j = json.loads(jStr)
+        return PyKernelDecorator(
+            'kernel',  # just set to any string
+            verbose=False,
+            module=None,
+            kernelName=j['name'],
+            funcSrc=j['funcSrc'],
+            signature=j['signature'],
+            location=j['location'],
+            overrideGlobalScopedVars=overrideDict)
 
     def __call__(self, *args):
         """

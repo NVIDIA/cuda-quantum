@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // Test complex call graph
-// RUN: cudaq-translate --convert-to=openqasm %s | FileCheck %s
+// RUN: cudaq-translate --convert-to=openqasm2 %s | FileCheck %s
 
 module {
   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_554765693745() attributes {"cudaq-entrypoint"} {

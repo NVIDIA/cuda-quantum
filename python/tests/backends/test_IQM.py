@@ -7,15 +7,19 @@
 # ============================================================================ #
 
 import os
+import shutil
 import tempfile
-import time
+from typing import List
 from multiprocessing import Process
+import numpy as np
+from network_utils import check_server_connection
 
 import cudaq
 from cudaq import spin
 import pytest
 
 iqm_client = pytest.importorskip("iqm.iqm_client")
+
 try:
     from utils.mock_qpu.iqm import startServer
     from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
@@ -26,6 +30,18 @@ except:
 # Define the port for the mock server
 port = 62443
 
+# If we're in a git repo, test that we can provide a filename with spaces.
+# If we are not in a git repo, then simply test without overriding
+# mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
+# that isn't the main point of these tests.)
+with os.popen("git rev-parse --show-toplevel") as f:
+    git_top = f.read().strip()
+    if os.path.isdir(git_top):
+        target_config_origin = os.path.join(f"{git_top}", "runtime/cudaq/platform/default/rest/helpers/iqm")
+        target_config_dest = os.path.join(f"{git_top}", "targettests")
+        shutil.copy(os.path.join(target_config_origin, "Adonis.txt"), os.path.join(target_config_dest, "Adonis Variant.txt"))
+        shutil.copy(os.path.join(target_config_origin, "Apollo.txt"), os.path.join(target_config_dest, "Apollo Variant.txt"))
+
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
     return abs(want - got) < tolerance
@@ -34,27 +50,23 @@ def assert_close(want, got, tolerance=1.0e-5) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     # Write a fake access tokens file
-    tmp_tokens_file = tempfile.NamedTemporaryFile(delete=False)
-    write_a_mock_tokens_file(tmp_tokens_file.name)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_tokens_file:
+        write_a_mock_tokens_file(tmp_tokens_file.name)
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
-    time.sleep(1)
+
+    if not check_server_connection(port):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    kwargs = dict()
-    kwargs["qpu-architecture"] = "Apollo"
-    # If we're in a git repo, test that we can provide a filename with spaces.
-    # If we are not in a git repo, then simply test without overriding
-    # mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
-    # that isn't the main point of these tests.)
-    with os.popen("git rev-parse --show-toplevel") as f:
-        git_top = f.read().strip()
-        if os.path.isdir(git_top):
-            mapping_file = f"{git_top}/targettests/Supplemental/Apollo Variant.txt"
-            kwargs["mapping_file"] = mapping_file
+    kwargs = {"qpu-architecture": "Apollo"}
+    if os.path.isdir(git_top):
+        mapping_file = f"{git_top}/targettests/Apollo Variant.txt"
+        kwargs["mapping_file"] = mapping_file
     cudaq.set_target("iqm", url="http://localhost:{}".format(port), **kwargs)
 
     yield "Running the tests."
@@ -87,9 +99,7 @@ def test_iqm_ghz():
     assert assert_close(counts["11"], shots / 2, 2)
 
     future = cudaq.sample_async(kernel, shots_count=shots)
-
     futureAsString = str(future)
-
     futureReadIn = cudaq.AsyncSampleResult(futureAsString)
     counts = futureReadIn.get()
     assert assert_close(counts["00"], shots / 2, 2)
@@ -98,8 +108,6 @@ def test_iqm_ghz():
     assert assert_close(counts["11"], shots / 2, 2)
 
 
-# FIXME: This test relies on the mock server to return the correct
-# expectation value. IQM Mock server doesn't do it yet.
 def test_iqm_observe():
     # Create the parameterized ansatz
     shots = 100000
@@ -158,6 +166,34 @@ def test_iqm_u3_ctrl_decomposition():
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
 
     result = cudaq.sample(kernel)
+
+
+def test_IQM_state_preparation():
+    shots = 10000
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_IQM_state_preparation_builder():
+    shots = 10000
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 # leave for gdb debugging

@@ -8,9 +8,7 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import os
 
-import pytest
 import numpy as np
 
 import cudaq
@@ -43,11 +41,11 @@ def test_elif():
 # CHECK:             cc.condition %[[VAL_8]](%[[VAL_7]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_9:.*]]: i64):
-# CHECK:             %[[VAL_10:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<f64>
-# CHECK:             %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]]{{\[}}%[[VAL_9]]] : (!cc.ptr<f64>, i64) -> !cc.ptr<f64>
+# CHECK:             %[[VAL_10:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+# CHECK:             %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]][%[[VAL_9]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
 # CHECK:             %[[VAL_12:.*]] = cc.load %[[VAL_11]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_13:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_13]]] : (!quake.veq<4>, i64) -> !quake.ref
+# CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_13]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.ry (%[[VAL_12]]) %[[VAL_14]] : (f64, !quake.ref) -> ()
 # CHECK:             %[[VAL_15:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_16:.*]] = arith.addi %[[VAL_15]], %[[VAL_1]] : i64

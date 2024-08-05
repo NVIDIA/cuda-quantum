@@ -12,7 +12,7 @@
 #include <cudaq/spin_op.h>
 #include <stdint.h>
 #include <unsupported/Eigen/KroneckerProduct>
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #include <omp.h>
 #endif
 #include <algorithm>
@@ -199,7 +199,7 @@ complex_matrix spin_op::to_matrix() const {
   complex_matrix A(dim, dim);
   A.set_zero();
   auto rawData = A.data();
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel for shared(rawData)
 #endif
   for (std::size_t rowIdx = 0; rowIdx < dim; rowIdx++) {
@@ -272,6 +272,10 @@ std::complex<double> spin_op::get_coefficient() const {
     throw std::runtime_error(
         "spin_op::get_coefficient called on spin_op with > 1 terms.");
   return terms.begin()->second;
+}
+
+std::tuple<std::vector<double>, std::size_t> spin_op::getDataTuple() const {
+  return std::tuple(getDataRepresentation(), num_qubits());
 }
 
 void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) const {
@@ -443,7 +447,7 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
     } else
       theirRow++;
   }
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
   // Threshold to start OpenMP parallelization.
   // 16 ~ 4-term * 4-term
   constexpr std::size_t spin_op_omp_threshold = 16;
@@ -594,7 +598,7 @@ void spin_op::dump() const {
   std::cout << str;
 }
 
-spin_op::spin_op(std::vector<double> &input_vec, std::size_t nQubits) {
+spin_op::spin_op(const std::vector<double> &input_vec, std::size_t nQubits) {
   auto n_terms = (int)input_vec.back();
   if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
     throw std::runtime_error("Invalid data representation for construction "
@@ -661,7 +665,7 @@ spin_op y(const std::size_t idx) { return spin_op(pauli::Y, idx); }
 spin_op z(const std::size_t idx) { return spin_op(pauli::Z, idx); }
 } // namespace spin
 
-std::vector<double> spin_op::getDataRepresentation() {
+std::vector<double> spin_op::getDataRepresentation() const {
   std::vector<double> dataVec;
   for (auto &[term, coeff] : terms) {
     auto nq = term.size() / 2;

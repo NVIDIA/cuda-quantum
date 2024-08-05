@@ -9,7 +9,7 @@
 # ============================================================================ #
 
 # This script finds CUDA-Q simulator assets and constructs the CMake
-# string argument in the form "<simulator's .so>;<simulator's .config>;...",
+# string argument in the form "<simulator's .so>;<simulator's .yml>;...",
 # suitable for wheel build.
 #
 # Usage:
@@ -23,7 +23,7 @@ if [ ! -d $1 ] ; then
     exit 0
 fi
 
-for config_file in `find $1/*.config -maxdepth 0 -type f`; do 
+for config_file in `find $1/*.yml -maxdepth 0 -type f`; do 
     RESULT_CONFIG="${RESULT_CONFIG:+$RESULT_CONFIG;}${config_file}"; 
 done 
 for lib_file in `find $1/libnvqir-*.so -maxdepth 0 -type f`; do 

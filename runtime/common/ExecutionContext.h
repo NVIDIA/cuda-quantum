@@ -13,6 +13,7 @@
 #include "NoiseModel.h"
 #include "SimulationState.h"
 #include "Trace.h"
+#include "cudaq/algorithms/optimizer.h"
 #include <optional>
 #include <string_view>
 
@@ -37,6 +38,9 @@ public:
 
   /// @brief A computed expectation value
   std::optional<double> expectationValue = std::nullopt;
+
+  /// @brief An optimization result
+  std::optional<cudaq::optimization_result> optResult = std::nullopt;
 
   /// @brief The kernel being executed in this context
   /// has conditional statements on measure results.
@@ -95,6 +99,11 @@ public:
   /// @brief A vector containing information about how to reorder the global
   /// register after execution. Empty means no reordering.
   std::vector<std::size_t> reorderIdx;
+
+  /// @brief A buffer containing the return value of a kernel invocation.
+  /// Note: this is only needed for invocation not able to return a
+  /// `sample_result`.
+  std::vector<char> invocationResultBuffer;
 
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context

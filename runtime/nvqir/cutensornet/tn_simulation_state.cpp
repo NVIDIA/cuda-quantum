@@ -21,8 +21,10 @@ std::size_t TensorNetSimulationState::getNumQubits() const {
 }
 
 TensorNetSimulationState::TensorNetSimulationState(
-    std::unique_ptr<TensorNetState> inState, cutensornetHandle_t cutnHandle)
-    : m_state(std::move(inState)), m_cutnHandle(cutnHandle) {}
+    std::unique_ptr<TensorNetState> inState, ScratchDeviceMem &inScratchPad,
+    cutensornetHandle_t cutnHandle)
+    : m_state(std::move(inState)), scratchPad(inScratchPad),
+      m_cutnHandle(cutnHandle) {}
 
 TensorNetSimulationState::~TensorNetSimulationState() {}
 
@@ -31,7 +33,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   const cudaq::SimulationState *const otherStatePtr = &other;
   const TensorNetSimulationState *const tnOther =
       dynamic_cast<const TensorNetSimulationState *>(otherStatePtr);
-
+  LOG_API_TIME();
   if (!tnOther)
     throw std::runtime_error("[tensornet state] Computing overlap with other "
                              "types of state is not supported.");
@@ -101,32 +103,41 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   HANDLE_CUDA_ERROR(cudaMalloc(&d_overlap, sizeof(std::complex<double>)));
   // Create the quantum state amplitudes accessor
   cutensornetStateAccessor_t accessor;
-  HANDLE_CUTN_ERROR(cutensornetCreateAccessor(
-      cutnHandle, tempQuantumState, projectedModes.size(),
-      projectedModes.data(), nullptr, &accessor));
+  {
+    ScopedTraceWithContext("cutensornetCreateAccessor");
+    HANDLE_CUTN_ERROR(cutensornetCreateAccessor(
+        cutnHandle, tempQuantumState, projectedModes.size(),
+        projectedModes.data(), nullptr, &accessor));
+  }
 
   const int32_t numHyperSamples =
       8; // desired number of hyper samples used in the tensor network
          // contraction path finder
-  HANDLE_CUTN_ERROR(cutensornetAccessorConfigure(
-      cutnHandle, accessor, CUTENSORNET_ACCESSOR_OPT_NUM_HYPER_SAMPLES,
-      &numHyperSamples, sizeof(numHyperSamples)));
+  {
+    ScopedTraceWithContext("cutensornetAccessorConfigure");
+    HANDLE_CUTN_ERROR(cutensornetAccessorConfigure(
+        cutnHandle, accessor, CUTENSORNET_ACCESSOR_OPT_NUM_HYPER_SAMPLES,
+        &numHyperSamples, sizeof(numHyperSamples)));
+  }
   // Prepare the quantum state amplitudes accessor
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
-  HANDLE_CUTN_ERROR(cutensornetAccessorPrepare(
-      cutnHandle, accessor, m_scratchPad.scratchSize, workDesc, 0));
+  {
+    ScopedTraceWithContext("cutensornetAccessorPrepare");
+    HANDLE_CUTN_ERROR(cutensornetAccessorPrepare(
+        cutnHandle, accessor, scratchPad.scratchSize, workDesc, 0));
+  }
 
   // Attach the workspace buffer
   int64_t worksize = 0;
   HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
       cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
       CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH, &worksize));
-  if (worksize <= static_cast<int64_t>(m_scratchPad.scratchSize)) {
+  if (worksize <= static_cast<int64_t>(scratchPad.scratchSize)) {
     HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
         cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
-        CUTENSORNET_WORKSPACE_SCRATCH, m_scratchPad.d_scratch, worksize));
+        CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch, worksize));
   } else {
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
@@ -135,9 +146,12 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   std::complex<double> stateNorm{0.0, 0.0};
   // Result overlap (host data)
   std::complex<double> h_overlap{0.0, 0.0};
-  HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
-      cutnHandle, accessor, projectedModeValues.data(), workDesc, d_overlap,
-      static_cast<void *>(&stateNorm), 0));
+  {
+    ScopedTraceWithContext("cutensornetAccessorCompute");
+    HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
+        cutnHandle, accessor, projectedModeValues.data(), workDesc, d_overlap,
+        static_cast<void *>(&stateNorm), 0));
+  }
   HANDLE_CUDA_ERROR(cudaMemcpy(&h_overlap, d_overlap,
                                sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
@@ -147,7 +161,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   HANDLE_CUTN_ERROR(cutensornetDestroyAccessor(accessor));
   HANDLE_CUTN_ERROR(cutensornetDestroyState(tempQuantumState));
 
-  return h_overlap;
+  return std::abs(h_overlap);
 }
 
 std::complex<double>
@@ -234,10 +248,10 @@ TensorNetSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
       reinterpret_cast<std::complex<double> *>(ptr),
       reinterpret_cast<std::complex<double> *>(ptr) + size);
   auto tensorNetState =
-      TensorNetState::createFromStateVector(vec, m_cutnHandle);
+      TensorNetState::createFromStateVector(vec, scratchPad, m_cutnHandle);
 
   return std::make_unique<TensorNetSimulationState>(std::move(tensorNetState),
-                                                    m_cutnHandle);
+                                                    scratchPad, m_cutnHandle);
 }
 
 void TensorNetSimulationState::destroyState() {

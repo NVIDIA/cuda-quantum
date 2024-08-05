@@ -25,16 +25,17 @@ std::size_t MPSSimulationState::getNumQubits() const {
 
 MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                                        const std::vector<MPSTensor> &mpsTensors,
+                                       ScratchDeviceMem &inScratchPad,
                                        cutensornetHandle_t cutnHandle)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
-      m_mpsTensors(mpsTensors) {}
+      m_mpsTensors(mpsTensors), scratchPad(inScratchPad) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
 std::complex<double> MPSSimulationState::computeOverlap(
     const std::vector<MPSTensor> &m_mpsTensors,
     const std::vector<MPSTensor> &mpsOtherTensors) {
-
+  LOG_API_TIME();
   auto dataDevice = deviceFromPointer(m_mpsTensors[0].deviceData);
   auto otherDevice = deviceFromPointer(mpsOtherTensors[0].deviceData);
 
@@ -141,17 +142,26 @@ std::complex<double> MPSSimulationState::computeOverlap(
       computeType, &m_tnDescr));
 
   cutensornetContractionOptimizerConfig_t m_tnConfig;
+
   // Determine the tensor network contraction path and create the contraction
   // plan
-  HANDLE_CUTN_ERROR(
-      cutensornetCreateContractionOptimizerConfig(cutnHandle, &m_tnConfig));
-
+  {
+    ScopedTraceWithContext("cutensornetCreateContractionOptimizerConfig");
+    HANDLE_CUTN_ERROR(
+        cutensornetCreateContractionOptimizerConfig(cutnHandle, &m_tnConfig));
+  }
   cutensornetContractionOptimizerInfo_t m_tnPath;
-  HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(
-      cutnHandle, m_tnDescr, &m_tnPath));
-  assert(m_scratchPad.scratchSize > 0);
-  HANDLE_CUTN_ERROR(cutensornetContractionOptimize(
-      cutnHandle, m_tnDescr, m_tnConfig, m_scratchPad.scratchSize, m_tnPath));
+  {
+    ScopedTraceWithContext("cutensornetCreateContractionOptimizerInfo");
+    HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(
+        cutnHandle, m_tnDescr, &m_tnPath));
+  }
+  assert(scratchPad.scratchSize > 0);
+  {
+    ScopedTraceWithContext("cutensornetContractionOptimize");
+    HANDLE_CUTN_ERROR(cutensornetContractionOptimize(
+        cutnHandle, m_tnDescr, m_tnConfig, scratchPad.scratchSize, m_tnPath));
+  }
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
@@ -164,15 +174,17 @@ std::complex<double> MPSSimulationState::computeOverlap(
       &requiredWorkspaceSize));
   assert(requiredWorkspaceSize > 0);
   assert(static_cast<std::size_t>(requiredWorkspaceSize) <=
-         m_scratchPad.scratchSize);
+         scratchPad.scratchSize);
   HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
       cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
-      CUTENSORNET_WORKSPACE_SCRATCH, m_scratchPad.d_scratch,
+      CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch,
       requiredWorkspaceSize));
   cutensornetContractionPlan_t m_tnPlan;
-  HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
-      cutnHandle, m_tnDescr, m_tnPath, workDesc, &m_tnPlan));
-
+  {
+    ScopedTraceWithContext("cutensornetCreateContractionPlan");
+    HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
+        cutnHandle, m_tnDescr, m_tnPath, workDesc, &m_tnPlan));
+  }
   // Compute the unnormalized overlap
   std::vector<const void *> rawDataIn(numTensors);
   for (int i = 0; i < mpsNumTensors; ++i) {
@@ -181,9 +193,12 @@ std::complex<double> MPSSimulationState::computeOverlap(
   }
   void *m_dOverlap{nullptr};
   HANDLE_CUDA_ERROR(cudaMalloc(&m_dOverlap, overlapSize));
-  HANDLE_CUTN_ERROR(cutensornetContractSlices(cutnHandle, m_tnPlan,
-                                              rawDataIn.data(), m_dOverlap, 0,
-                                              workDesc, NULL, 0x0));
+  {
+    ScopedTraceWithContext("cutensornetContractSlices");
+    HANDLE_CUTN_ERROR(cutensornetContractSlices(cutnHandle, m_tnPlan,
+                                                rawDataIn.data(), m_dOverlap, 0,
+                                                workDesc, NULL, 0x0));
+  }
   // Get the overlap value back to Host
   std::complex<double> overlap = 0.0;
   if (prec == precision::fp32) {
@@ -205,7 +220,7 @@ std::complex<double> MPSSimulationState::computeOverlap(
   HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(m_tnConfig));
   HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(m_tnDescr));
 
-  return overlap;
+  return std::abs(overlap);
 }
 
 std::complex<double>
@@ -251,11 +266,12 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
   }
 
   if (getNumQubits() > 1) {
-    TensorNetState basisTensorNetState(basisState, state->getInternalContext());
+    TensorNetState basisTensorNetState(basisState, scratchPad,
+                                       state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
-    std::vector<MPSTensor> basisStateTensors =
-        basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
-                                         std::numeric_limits<double>::min());
+    std::vector<MPSTensor> basisStateTensors = basisTensorNetState.factorizeMPS(
+        1, std::numeric_limits<double>::min(),
+        std::numeric_limits<double>::min(), MPSSettings().svdAlgo);
     const auto overlap = computeOverlap(m_mpsTensors, basisStateTensors);
     for (auto &mpsTensor : basisStateTensors) {
       HANDLE_CUDA_ERROR(cudaFree(mpsTensor.deviceData));
@@ -351,10 +367,9 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
   return reshapeMatrix(A);
 }
 
-MPSSimulationState::MpsStateData
-MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
-                                       std::size_t size,
-                                       std::complex<double> *ptr, int bondDim) {
+MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
+    cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
+    std::size_t size, std::complex<double> *ptr, int bondDim) {
   const std::size_t numQubits = std::log2(size);
   // Reverse the qubit order to match cutensornet convention
   auto newStateVec = TensorNetState::reverseQubitOrder(
@@ -371,8 +386,8 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
-    auto state =
-        TensorNetState::createFromMpsTensors({stateTensor}, cutnHandle);
+    auto state = TensorNetState::createFromMpsTensors({stateTensor},
+                                                      inScratchPad, cutnHandle);
     return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
 
@@ -444,7 +459,8 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
   stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
-  auto state = TensorNetState::createFromMpsTensors(mpsTensors, cutnHandle);
+  auto state = TensorNetState::createFromMpsTensors(mpsTensors, inScratchPad,
+                                                    cutnHandle);
   return {std::move(state), mpsTensors};
 }
 
@@ -470,23 +486,27 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
       MPSTensor stateTensor{d_tensor, mpsExtents};
       mpsTensors.emplace_back(stateTensor);
     }
-    auto state = TensorNetState::createFromMpsTensors(mpsTensors, m_cutnHandle);
+    auto state = TensorNetState::createFromMpsTensors(mpsTensors, scratchPad,
+                                                      m_cutnHandle);
     return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
-                                                m_cutnHandle);
+                                                scratchPad, m_cutnHandle);
   }
   auto [state, mpsTensors] = createFromStateVec(
-      m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr),
-      MPSSettings().maxBond);
+      m_cutnHandle, scratchPad, size,
+      reinterpret_cast<std::complex<double> *>(ptr), MPSSettings().maxBond);
   return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
-                                              m_cutnHandle);
+                                              scratchPad, m_cutnHandle);
 }
 
 MPSSettings::MPSSettings() {
   if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
     const std::string maxBondStr(maxBondEnvVar);
-    auto [ptr, ec] = std::from_chars(
-        maxBondStr.data(), maxBondStr.data() + maxBondStr.size(), maxBond);
-    if (ec != std::errc{} || maxBond < 1)
+    const char *nptr = maxBondStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    maxBond = strtol(nptr, &endptr, 10);
+
+    if (nptr == endptr || errno != 0 || maxBond < 1)
       throw std::runtime_error("Invalid CUDAQ_MPS_MAX_BOND setting. Expected "
                                "a positive number. Got: " +
                                maxBondStr);
@@ -496,10 +516,12 @@ MPSSettings::MPSSettings() {
   // Cutoff values
   if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
     const std::string absCutoffStr(absCutoffEnvVar);
-    auto [ptr, ec] =
-        std::from_chars(absCutoffStr.data(),
-                        absCutoffStr.data() + absCutoffStr.size(), absCutoff);
-    if (ec != std::errc{} || absCutoff <= 0.0 || absCutoff >= 1.0)
+    const char *nptr = absCutoffStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    absCutoff = strtod(nptr, &endptr);
+
+    if (nptr == endptr || errno != 0 || absCutoff <= 0.0 || absCutoff >= 1.0)
       throw std::runtime_error("Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
                                "a number in range (0.0, 1.0). Got: " +
                                absCutoffStr);
@@ -508,16 +530,45 @@ MPSSettings::MPSSettings() {
   }
   if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
     const std::string relCutoffStr(relCutoffEnvVar);
-    auto [ptr, ec] =
-        std::from_chars(relCutoffStr.data(),
-                        relCutoffStr.data() + relCutoffStr.size(), relCutoff);
-    if (ec != std::errc{} || relCutoff <= 0.0 || relCutoff >= 1.0)
+    const char *nptr = relCutoffStr.data();
+    char *endptr = nullptr;
+    errno = 0; // reset errno to 0 before call
+    relCutoff = strtod(nptr, &endptr);
+
+    if (nptr == endptr || errno != 0 || relCutoff <= 0.0 || relCutoff >= 1.0)
       throw std::runtime_error(
           "Invalid CUDAQ_MPS_RELATIVE_CUTOFF setting. Expected "
           "a number in range (0.0, 1.0). Got: " +
           relCutoffStr);
 
     cudaq::info("Setting MPS relative cutoff to {}.", relCutoff);
+  }
+  using namespace std::literals::string_view_literals;
+  using SvdPair = std::pair<std::string_view, cutensornetTensorSVDAlgo_t>;
+  constexpr std::array<SvdPair, 4> g_stringToAlgoEnum = {
+      SvdPair{"GESVD"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVD},
+      SvdPair{"GESVDJ"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ},
+      SvdPair{"GESVDP"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDP},
+      SvdPair{"GESVDR"sv, CUTENSORNET_TENSOR_SVD_ALGO_GESVDR}};
+  if (auto *svdAlgoEnvVar = std::getenv("CUDAQ_MPS_SVD_ALGO")) {
+    std::string svdAlgoStr(svdAlgoEnvVar);
+    std::transform(svdAlgoStr.begin(), svdAlgoStr.end(), svdAlgoStr.begin(),
+                   ::toupper);
+    const auto iter = std::lower_bound(
+        g_stringToAlgoEnum.begin(), g_stringToAlgoEnum.end(), svdAlgoStr,
+        [](const SvdPair &pair, const std::string &key) {
+          return pair.first < key;
+        });
+    if (iter == g_stringToAlgoEnum.end() || iter->first != svdAlgoStr) {
+      std::stringstream errorMsg;
+      errorMsg << "Unknown CUDAQ_MPS_SVD_ALGO value ('" << svdAlgoEnvVar
+               << "').\nValid values are:\n";
+      for (const auto &[configStr, _] : g_stringToAlgoEnum)
+        errorMsg << "  - " << configStr << "\n";
+      throw std::runtime_error(errorMsg.str());
+    }
+    svdAlgo = iter->second;
+    cudaq::info("Setting MPS SVD algorithm to {} ({}).", svdAlgo, iter->first);
   }
 }
 
