@@ -525,11 +525,23 @@ public:
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
-      throw std::runtime_error("Remote rest execution can only be performed "
-                               "via cudaq::sample() or cudaq::observe().");
+      throw std::runtime_error(
+          "Remote rest execution can only be performed via cudaq::sample(), "
+          "cudaq::observe(), or cudaq::draw().");
 
     // Get the Quake code, lowered according to config file.
     auto codes = lowerQuakeCode(kernelName, args);
+
+    // After performing lowerQuakeCode, check to see if we are simply drawing
+    // the circuit. If so, perform the trace here and then return.
+    if (executionContext->name == "tracer" && jitEngines.size() == 1) {
+      cudaq::getExecutionManager()->setExecutionContext(executionContext);
+      invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      cudaq::getExecutionManager()->resetExecutionContext();
+      jitEngines.clear();
+      return;
+    }
+
     // Get the current execution context and number of shots
     std::size_t localShots = 1000;
     if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&
