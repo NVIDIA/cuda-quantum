@@ -11,7 +11,7 @@ FROM ${base_image}
 
 ARG python_version=3.11
 ARG pip_install_flags="--user"
-ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
+ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11 ipie openfermion"
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
