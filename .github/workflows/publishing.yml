@@ -832,12 +832,12 @@ jobs:
         run: |
           apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
           cd /tmp
-          # Setup links for validate_wheel.sh script
-          ln -s $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
-          ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
-          ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
-          ln -s $GITHUB_WORKSPACE/python/README.md .
+          # Setup files for validate_wheel.sh script
+          cp    $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
+          cp -r $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples/
+          cp -r $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets/
+          cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
+          cp    $GITHUB_WORKSPACE/python/README.md .
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
           source validate_wheel.sh -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
