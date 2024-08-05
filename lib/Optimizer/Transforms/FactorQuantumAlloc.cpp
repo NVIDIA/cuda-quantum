@@ -42,21 +42,48 @@ public:
     for (std::size_t i = 0; i < size; ++i)
       newAllocs.emplace_back(rewriter.create<quake::AllocaOp>(loc, refTy));
 
-    // 2. Visit all users and replace them accordingly.
-    for (auto *user : allocOp->getUsers()) {
-      if (auto dealloc = dyn_cast<quake::DeallocOp>(user)) {
-        rewriter.setInsertionPoint(dealloc);
-        auto deloc = dealloc.getLoc();
-        for (std::size_t i = 0; i < size - 1; ++i)
-          rewriter.create<quake::DeallocOp>(deloc, newAllocs[i]);
-        rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
-                                                      newAllocs[size - 1]);
-        continue;
+    std::function<LogicalResult(Operation *, std::int64_t)> rewriteOpUsers =
+        [&](Operation *op, std::int64_t start) -> LogicalResult {
+      for (auto *user : op->getUsers()) {
+        if (auto dealloc = dyn_cast<quake::DeallocOp>(user)) {
+          rewriter.setInsertionPoint(dealloc);
+          auto deloc = dealloc.getLoc();
+          for (std::size_t i = 0; i < size - 1; ++i)
+            rewriter.create<quake::DeallocOp>(deloc, newAllocs[i]);
+          rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
+                                                        newAllocs[size - 1]);
+          continue;
+        }
+        if (auto subveq = dyn_cast<quake::SubVeqOp>(user)) {
+          std::int64_t lowInt = -1;
+          if (auto low =
+                  dyn_cast<arith::ConstantOp>(subveq.getLow().getDefiningOp()))
+            if (auto myInt = dyn_cast<IntegerAttr>(low.getValue()))
+              lowInt = start + myInt.getInt();
+          if (lowInt < 0) {
+            subveq.emitOpError("Invalid subveq operator found");
+            return failure();
+          }
+          for (auto *subUser : subveq->getUsers())
+            if (failed(rewriteOpUsers(subUser, lowInt)))
+              return failure();
+          llvm::errs() << "BMH erasing subveq\n";
+          subveq.dump();
+          rewriter.eraseOp(subveq);
+          continue;
+        }
+        auto ext = cast<quake::ExtractRefOp>(user);
+        auto index = ext.getConstantIndex();
+        rewriter.replaceOp(ext, newAllocs[start + index].getResult());
       }
-      auto ext = cast<quake::ExtractRefOp>(user);
-      auto index = ext.getConstantIndex();
-      rewriter.replaceOp(ext, newAllocs[index].getResult());
-    }
+      if (isa<quake::SubVeqOp>(op))
+        rewriter.eraseOp(op);
+      return success();
+    };
+
+    // 2. Visit all users and replace them accordingly.
+    if (failed(rewriteOpUsers(allocOp, 0)))
+      return failure();
 
     // 3. Remove the original alloca operation.
     rewriter.eraseOp(allocOp);
@@ -165,17 +192,33 @@ public:
 
   LogicalResult runAnalysis(SmallVector<quake::AllocaOp> &allocations) {
     auto func = getOperation();
+    std::function<bool(Operation *)> isUseConvertible =
+        [&](Operation *op) -> bool {
+      if (isa<quake::DeallocOp>(op))
+        return true;
+      if (auto ext = dyn_cast<quake::ExtractRefOp>(op))
+        if (ext.hasConstantIndex())
+          return true;
+      if (auto sub = dyn_cast<quake::SubVeqOp>(op)) {
+        if (!dyn_cast_or_null<arith::ConstantOp>(sub.getLow().getDefiningOp()))
+          return false;
+        if (!dyn_cast_or_null<arith::ConstantOp>(sub.getHigh().getDefiningOp()))
+          return false;
+        for (auto *subUser : sub->getUsers())
+          if (!isUseConvertible(subUser))
+            return false;
+        return true;
+      }
+      return false;
+    };
     func.walk([&](quake::AllocaOp alloc) {
       if (!allocaOfVeq(alloc) || allocaOfUnspecifiedSize(alloc) ||
           alloc.hasInitializedState())
         return;
       bool usesAreConvertible = [&]() {
         for (auto *users : alloc->getUsers()) {
-          if (isa<quake::DeallocOp>(users))
+          if (isUseConvertible(users))
             continue;
-          if (auto ext = dyn_cast<quake::ExtractRefOp>(users))
-            if (ext.hasConstantIndex())
-              continue;
           return false;
         }
         return true;
