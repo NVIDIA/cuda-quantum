@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+include(HandleLLVMOptions)
 set(LIBRARY_NAME cudaq-common)
 
 set(COMMON_EXTRA_DEPS "")

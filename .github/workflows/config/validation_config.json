@@ -51,32 +51,32 @@
                 "fedora:38"
             ],
             "ubuntu:22.04": 
-            { 
-                "libstdcpp_package": "libstdc++-11-dev",
+            {
+                "libcdev_package": "libc6-dev",
                 "cudart_version": 11.8,
                 "cuda_distribution": "ubuntu2204"
             },
             "redhat/ubi8:8.0": 
             {
-                "libstdcpp_package": "gcc-toolset-12",
+                "libcdev_package": "glibc-devel",
                 "cudart_version": 11.8,
                 "cuda_distribution": "rhel9"
             },
             "debian:12": 
             {
-                "libstdcpp_package": "libstdc++-11-dev",
+                "libcdev_package": "libc6-dev",
                 "cudart_version": 12.3,
                 "cuda_distribution": "debian12"
             },
             "opensuse/leap:15.5": 
             {
-                "libstdcpp_package": "gcc13-c++",
+                "libcdev_package": "glibc-devel",
                 "cudart_version": 11.8,
                 "cuda_distribution": "opensuse15"
             },
             "fedora:38": 
             {
-                "libstdcpp_package": "gcc-c++",
+                "libcdev_package": "glibc-devel",
                 "cudart_version": 11.8,
                 "cuda_distribution": "rhel9"
             }
@@ -91,19 +91,19 @@
             ],
             "ubuntu:22.04": 
             { 
-                "libstdcpp_package": "libstdc++-11-dev",
+                "libcdev_package": "libc6-dev",
                 "cudart_version": 11.8,
                 "cuda_distribution": "ubuntu2204"
             },
             "redhat/ubi8:8.0": 
             {
-                "libstdcpp_package": "gcc-toolset-12",
+                "libcdev_package": "glibc-devel",
                 "cudart_version": 11.8,
                 "cuda_distribution": "rhel9"
             },
             "fedora:38": 
             {
-                "libstdcpp_package": "gcc-c++",
+                "libcdev_package": "glibc-devel",
                 "cudart_version": 11.8,
                 "cuda_distribution": "rhel9"
             }

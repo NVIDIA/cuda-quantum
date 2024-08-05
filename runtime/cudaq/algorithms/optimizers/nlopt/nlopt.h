@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/algorithms/optimizer.h"
+#include <optional>
 
 namespace cudaq::optimizers {
 struct max_eval;

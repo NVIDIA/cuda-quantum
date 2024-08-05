@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${CUDA_QUANTUM_PATH}/**",
-                "/opt/llvm/lib/clang/**",
+                "/usr/local/llvm/lib/clang/**",
                 "/usr/include/c++/**",
                 "/usr/include/**/c++/**"
             ],
