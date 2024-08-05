@@ -393,38 +393,43 @@ class OperatorSum:
         return self._evaluate(PrettyPrint())
 
     def __mul__(self: OperatorSum, other: Any) -> OperatorSum:
-        if not (isinstance(other, OperatorSum) or isinstance(other, (complex, float, int))):
-            return NotImplemented
-        elif type(other) == OperatorSum:
+        if type(other) == OperatorSum:
             return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
-        return OperatorSum([self_term * other for self_term in self._terms])
+        elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
+            return OperatorSum([self_term * other for self_term in self._terms])
+        return NotImplemented
 
     def __add__(self: OperatorSum, other: Any) -> OperatorSum:
-        if not (isinstance(other, OperatorSum) or isinstance(other, (complex, float, int))):
-            return NotImplemented        
-        elif type(other) == OperatorSum:
+        if type(other) == OperatorSum:
             return OperatorSum(self._terms + other._terms)
-        return other + self # Operator addition is commutative.
+        elif isinstance(other, (complex, float, int)):
+            return OperatorSum(self._terms + [operators.const(other)])
+        elif type(other) == ScalarOperator: # Elementary and product operators are handled by their classes.
+            return OperatorSum(self._terms + [other])
+        return NotImplemented        
 
     def __sub__(self: OperatorSum, other: Any) -> OperatorSum:
         return self + (-1 * other)
 
-    # We only need to right-handle arithmetics with numbers, 
-    # since everything else is covered by the left-hand arithmetics.
-
     def __rmul__(self: OperatorSum, other: Any) -> OperatorSum:
         if isinstance(other, (complex, float, int)):
             return OperatorSum([self_term * other for self_term in self._terms])
+        elif type(other) == ProductOperator:
+            return OperatorSum([other]) * self
+        elif type(other) == ScalarOperator or type(other) == ElementaryOperator:
+            return OperatorSum([ProductOperator([other])]) * self
         return NotImplemented
 
     def __radd__(self: OperatorSum, other: Any) -> OperatorSum:
         if isinstance(other, (complex, float, int)):
             other_term = ProductOperator([operators.const(other)])
-            return OperatorSum(self._terms + [other_term])
+            return OperatorSum([other_term] + self._terms)
+        elif type(other) == ScalarOperator: # Elementary and product operators are handled by their classes.
+            return OperatorSum([ProductOperator([other])] + self._terms)
         return NotImplemented
 
     def __rsub__(self: OperatorSum, other: Any) -> OperatorSum:
-        return (-1 * self) + other
+        return (-1 * self) + other # Operator addition is commutative.
 
 
 class ProductOperator(OperatorSum):
@@ -506,40 +511,38 @@ class ProductOperator(OperatorSum):
     def __str__(self: ProductOperator) -> str:
         return self._evaluate(PrettyPrint())
 
-    def __mul__(self: ProductOperator, other: Any) -> ProductOperator | OperatorSum:
-        if not (isinstance(other, OperatorSum) or isinstance(other, (complex, float, int))):
-            return NotImplemented
-        elif type(other) == ProductOperator:
+    def __mul__(self: ProductOperator, other: Any) -> ProductOperator:
+        if type(other) == ProductOperator:
             return ProductOperator(self._operators + other._operators)
-        elif type(other) == OperatorSum: # Only create OperatorSum if needed.
-            return OperatorSum([self]) * other
         elif isinstance(other, (complex, float, int)):
             return ProductOperator(self._operators + [operators.const(other)])
-        return self * ProductOperator([other])
+        elif type(other) == ElementaryOperator or type(other) == ScalarOperator:
+            return ProductOperator(self._operators + [other])
+        return NotImplemented
 
     def __add__(self: ProductOperator, other: Any) -> OperatorSum:
-        if not (isinstance(other, OperatorSum) or isinstance(other, (complex, float, int))):
-            return NotImplemented
-        elif type(other) == ProductOperator:
+        if type(other) == ProductOperator:
             return OperatorSum([self, other])
-        return OperatorSum([self]) + other
+        elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
+            return OperatorSum([self]) + other
+        return NotImplemented
 
     def __sub__(self: ProductOperator, other: Any) -> OperatorSum:
         return self + (-1 * other)
 
-    # We only need to right-handle arithmetics with numbers, 
-    # since everything else is covered by the left-hand arithmetics.
-
     def __rmul__(self: ProductOperator, other: Any) -> ProductOperator:
         if isinstance(other, (complex, float, int)):
-            return ProductOperator([operators.const(other)] + self._operators)
+            return ProductOperator([operators.const(other), *self._operators])
+        elif type(other) == ScalarOperator or type(other) == ElementaryOperator:
+            return ProductOperator([other, *self._operators])
         return NotImplemented
 
     def __radd__(self: ProductOperator, other: Any) -> OperatorSum:
         return self + other # Operator addition is commutative.
 
     def __rsub__(self: ProductOperator, other: Any) -> OperatorSum:
-        return (-1 * self) + other
+        minus_self = ProductOperator([operators.const(-1), *self._operators])
+        return minus_self + other # Operator addition is commutative.
 
 
 class ElementaryOperator(ProductOperator):
@@ -689,37 +692,33 @@ class ElementaryOperator(ProductOperator):
         return f"{self._op_id}{parameter_names}{self._degrees}"
 
     def __mul__(self: ElementaryOperator, other: Any) -> ProductOperator:
-        if not (isinstance(other, OperatorSum) or isinstance(other, (complex, float, int))):
-            return NotImplemented
-        elif type(other) == ElementaryOperator:
+        if type(other) == ElementaryOperator:
             return ProductOperator([self, other])
-        return ProductOperator([self]) * other
+        elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
+            return ProductOperator([self]) * other
+        return NotImplemented
 
     def __add__(self: ElementaryOperator, other: Any) -> OperatorSum:
-        if not (isinstance(other, OperatorSum) or isinstance(other, (complex, float, int))):
-            return NotImplemented
-        elif type(other) == ElementaryOperator:
+        if type(other) == ElementaryOperator:
             op1 = ProductOperator([self])
             op2 = ProductOperator([other])
             return OperatorSum([op1, op2])
-        return ProductOperator([self]) + other
+        elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
+            return OperatorSum([ProductOperator([self])]) + other
+        return NotImplemented
 
     def __sub__(self: ElementaryOperator, other: Any) -> OperatorSum:
         return self + (-1 * other)
 
-    # We only need to right-handle arithmetics with numbers, 
-    # since everything else is covered by the left-hand arithmetics.
-
     def __rmul__(self: ElementaryOperator, other: Any) -> ProductOperator:
-        if isinstance(other, (complex, float, int)):
-            return ProductOperator([self]) * other
-        return NotImplemented
+        return other * ProductOperator([self])
 
     def __radd__(self: ElementaryOperator, other: Any) -> OperatorSum:
         return self + other # Operator addition is commutative.
 
     def __rsub__(self: ElementaryOperator, other: Any) -> OperatorSum:
-        return (-1 * self) + other
+        minus_self = ProductOperator([operators.const(-1), self])
+        return minus_self + other # Operator addition is commutative.
 
 
 class ScalarOperator(ProductOperator):
@@ -855,47 +854,49 @@ class ScalarOperator(ProductOperator):
         return operator
 
     def __pow__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if isinstance(other, (complex, float, int)):
+        if type(other) == ScalarOperator:
+            fct = lambda value, **kwargs: value ** other._invoke(**kwargs)
+            return self._compose(fct, other._parameter_info)
+        elif isinstance(other, (complex, float, int)):
             fct = lambda value, **kwargs: value ** other
             return self._compose(fct, None)
         return NotImplemented
 
-    def __mul__(self: ScalarOperator, other: Any) -> ScalarOperator | ProductOperator:
-        if not (isinstance(other, OperatorSum) or isinstance(other, (complex, float, int))):
-            return NotImplemented
-        elif type(other) == ScalarOperator:
+    def __mul__(self: ScalarOperator, other: Any) -> ScalarOperator:
+        if type(other) == ScalarOperator:
             fct = lambda value, **kwargs: value * other._invoke(**kwargs)
             return self._compose(fct, other._parameter_info)
         elif isinstance(other, (complex, float, int)):
             fct = lambda value, **kwargs: value * other
             return self._compose(fct, None)
-        return ProductOperator([self]) * other
+        return NotImplemented
     
     def __truediv__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if isinstance(other, (complex, float, int)):
+        if type(other) == ScalarOperator:
+            fct = lambda value, **kwargs: value / other._invoke(**kwargs)
+            return self._compose(fct, other._parameter_info)
+        elif isinstance(other, (complex, float, int)):
             fct = lambda value, **kwargs: value / other
             return self._compose(fct, None)
         return NotImplemented
 
-    def __add__(self: ScalarOperator, other: Any) -> ScalarOperator | OperatorSum:
-        if not (isinstance(other, OperatorSum) or isinstance(other, (complex, float, int))):
-            return NotImplemented
-        elif type(other) == ScalarOperator:
+    def __add__(self: ScalarOperator, other: Any) -> ScalarOperator:
+        if type(other) == ScalarOperator:
             fct = lambda value, **kwargs: value + other._invoke(**kwargs)
             return self._compose(fct, other._parameter_info)
         elif isinstance(other, (complex, float, int)):
             fct = lambda value, **kwargs: value + other
             return self._compose(fct, None)
-        return ProductOperator([self]) + other
+        return NotImplemented
 
-    def __sub__(self: ScalarOperator, other: Any) -> ScalarOperator | OperatorSum:
-        if isinstance(other, (complex, float, int)):
+    def __sub__(self: ScalarOperator, other: Any) -> ScalarOperator:
+        if type(other) == ScalarOperator:
+            fct = lambda value, **kwargs: value - other._invoke(**kwargs)
+            return self._compose(fct, other._parameter_info)
+        elif isinstance(other, (complex, float, int)):
             fct = lambda value, **kwargs: value - other
             return self._compose(fct, None)
-        return ProductOperator([self]) - other
-
-    # We only need to right-handle arithmetics with numbers, 
-    # since everything else is covered by the left-hand arithmetics.
+        return NotImplemented
 
     def __rpow__(self: ScalarOperator, other: Any) -> ScalarOperator:
         if isinstance(other, (complex, float, int)):
@@ -903,8 +904,11 @@ class ScalarOperator(ProductOperator):
             return self._compose(fct, None)
         return NotImplemented
 
-    def __rmul__(self: ScalarOperator, other: Any) -> ProductOperator:
-        return self * other # Scalar multiplication is commutative.
+    def __rmul__(self: ScalarOperator, other: Any) -> ScalarOperator:
+        if isinstance(other, (complex, float, int)):
+            fct = lambda value, **kwargs: other * value
+            return self._compose(fct, None)
+        return NotImplemented
 
     def __rtruediv__(self: ScalarOperator, other: Any) -> ScalarOperator:
         if isinstance(other, (complex, float, int)):
@@ -912,11 +916,17 @@ class ScalarOperator(ProductOperator):
             return self._compose(fct, None)
         return NotImplemented
 
-    def __radd__(self: ScalarOperator, other: Any) -> OperatorSum:
-        return self + other # Operator addition is commutative.
+    def __radd__(self: ScalarOperator, other: Any) -> ScalarOperator:
+        if isinstance(other, (complex, float, int)):
+            fct = lambda value, **kwargs: other + value
+            return self._compose(fct, None)
+        return NotImplemented
 
-    def __rsub__(self: ScalarOperator, other: Any) -> OperatorSum:
-        return (-1 * self) + other
+    def __rsub__(self: ScalarOperator, other: Any) -> ScalarOperator:
+        if isinstance(other, (complex, float, int)):
+            fct = lambda value, **kwargs: other - value
+            return self._compose(fct, None)
+        return NotImplemented
 
 
 # Operators as defined here (watch out of differences in convention): 
