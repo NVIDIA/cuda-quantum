@@ -460,8 +460,7 @@ public:
         // Create the pass manager, add the quake observe ansatz pass
         // and run it followed by the canonicalizer
         mlir::PassManager pm(&context);
-        mlir::OpPassManager &optPM = pm.nest<mlir::func::FuncOp>();
-        optPM.addPass(
+        pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
         if (disableMLIRthreading || enablePrintMLIREachPass)
           tmpModuleOp.getContext()->disableMultithreading();
