@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
 #include "nlohmann/json.hpp"
@@ -58,8 +59,6 @@ static std::optional<std::int64_t> sliceLowerBound(Operation *op) {
     return con.getValue().cast<IntegerAttr>().getInt();
   return {};
 }
-
-static constexpr char StartingOffsetAttrName[] = "StartingOffset";
 
 namespace {
 struct FunctionAnalysisData {
@@ -179,7 +178,7 @@ private:
           auto resIdx = IntegerAttr::get(intTy, data.nResults);
           callOp->setAttr(resultIndexName, resIdx);
           auto regName = [&]() -> StringAttr {
-            if (auto nameAttr = callOp->getAttr("registerName")
+            if (auto nameAttr = callOp->getAttr(cudaq::opt::QIRRegisterNameAttr)
                                     .dyn_cast_or_null<StringAttr>())
               return nameAttr;
             return {};
@@ -218,18 +217,23 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     // QIR functions need certain attributes, add them here.
     // TODO: Update schema_id with valid value (issues #385 and #556)
     auto arrAttr = rewriter.getArrayAttr(ArrayRef<Attribute>{
-        rewriter.getStringAttr("entry_point"),
-        rewriter.getStrArrayAttr({"qir_profiles", profileName}),
-        rewriter.getStrArrayAttr({"output_labeling_schema", "schema_id"}),
-        rewriter.getStrArrayAttr({"output_names", resultQubitJSON.dump()}),
+        rewriter.getStringAttr(cudaq::opt::QIREntryPointAttrName),
+        rewriter.getStrArrayAttr(
+            {cudaq::opt::QIRProfilesAttrName, profileName}),
+        rewriter.getStrArrayAttr(
+            {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}),
+        rewriter.getStrArrayAttr(
+            {cudaq::opt::QIROutputNamesAttrName, resultQubitJSON.dump()}),
         rewriter.getStrArrayAttr(
             // TODO: change to required_num_qubits once providers support it
             // (issues #385 and #556)
-            {"requiredQubits", std::to_string(info.nQubits)}),
+            {cudaq::opt::QIRRequiredQubitsAttrName,
+             std::to_string(info.nQubits)}),
         rewriter.getStrArrayAttr(
             // TODO: change to required_num_results once providers support it
             // (issues #385 and #556)
-            {"requiredResults", std::to_string(info.nResults)})});
+            {cudaq::opt::QIRRequiredResultsAttrName,
+             std::to_string(info.nResults)})});
     op.setPassthroughAttr(arrAttr);
 
     // Stick the record calls in the exit block.
@@ -292,7 +296,7 @@ struct AddCallAttribute : public OpRewritePattern<LLVM::CallOp> {
     assert(startIter != info.allocationOffsets.end());
     auto startVal = startIter->second;
     rewriter.startRootUpdate(op);
-    op->setAttr(StartingOffsetAttrName,
+    op->setAttr(cudaq::opt::StartingOffsetAttrName,
                 rewriter.getIntegerAttr(rewriter.getI64Type(), startVal));
     rewriter.finalizeRootUpdate(op);
     return success();
@@ -336,7 +340,7 @@ struct QIRToQIRProfileFuncPass
       StringRef funcName = op.getCalleeAttr().getValue();
       return (!funcName.equals(cudaq::opt::QIRArrayQubitAllocateArray) &&
               !funcName.equals(cudaq::opt::QIRQubitAllocate)) ||
-             op->hasAttr(StartingOffsetAttrName);
+             op->hasAttr(cudaq::opt::StartingOffsetAttrName);
     });
 
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
@@ -372,11 +376,12 @@ struct ArrayGetElementPtrConv : public OpRewritePattern<LLVM::LoadOp> {
     auto loc = op.getLoc();
     if (call.getCallee()->equals(cudaq::opt::QIRArrayGetElementPtr1d)) {
       auto *alloc = call.getOperand(0).getDefiningOp();
-      if (!alloc->hasAttr(StartingOffsetAttrName))
+      if (!alloc->hasAttr(cudaq::opt::StartingOffsetAttrName))
         return failure();
       Value disp = call.getOperand(1);
       Value off = rewriter.create<LLVM::ConstantOp>(
-          loc, disp.getType(), alloc->getAttr(StartingOffsetAttrName));
+          loc, disp.getType(),
+          alloc->getAttr(cudaq::opt::StartingOffsetAttrName));
       Value qubit = rewriter.create<LLVM::AddOp>(loc, off, disp);
       rewriter.replaceOpWithNewOp<LLVM::IntToPtrOp>(op, op.getType(), qubit);
       return success();
@@ -392,11 +397,12 @@ struct CallAlloc : public OpRewritePattern<LLVM::CallOp> {
                                 PatternRewriter &rewriter) const override {
     if (!call.getCallee()->equals(cudaq::opt::QIRQubitAllocate))
       return failure();
-    if (!call->hasAttr(StartingOffsetAttrName))
+    if (!call->hasAttr(cudaq::opt::StartingOffsetAttrName))
       return failure();
     auto loc = call.getLoc();
     Value qubit = rewriter.create<LLVM::ConstantOp>(
-        loc, rewriter.getI64Type(), call->getAttr(StartingOffsetAttrName));
+        loc, rewriter.getI64Type(),
+        call->getAttr(cudaq::opt::StartingOffsetAttrName));
     auto resTy = call.getResult().getType();
     rewriter.replaceOpWithNewOp<LLVM::IntToPtrOp>(call, resTy, qubit);
     return success();
@@ -506,8 +512,8 @@ struct QIRProfilePreparationPass
       auto funcOp = llvm::dyn_cast_if_present<LLVM::LLVMFuncOp>(op);
       if (funcOp) {
         auto builder = OpBuilder(op);
-        auto arrAttr = builder.getArrayAttr(
-            ArrayRef<Attribute>{builder.getStringAttr("irreversible")});
+        auto arrAttr = builder.getArrayAttr(ArrayRef<Attribute>{
+            builder.getStringAttr(cudaq::opt::QIRIrreversibleFlagName)});
         funcOp.setPassthroughAttr(arrAttr);
       }
     }

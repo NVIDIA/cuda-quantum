@@ -23,9 +23,7 @@ def QuakeToCC : Pass<"quake-to-cc", "mlir::ModuleOp"> {
     execution manager.
   }];
 
-  let dependentDialects = [
-    "cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"
-  ];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 }
 
 def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
@@ -103,7 +101,7 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
   }];
 
   let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+    Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
@@ -112,8 +110,10 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
 
 def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
   let summary =
-    "After lowering a Quake kernel to QIR, lower further to the specific QIR Profile.";
+    "Lower full QIR further to the specific QIR Profile.";
   let description = [{
+    This is run after lowering a Quake kernel to full QIR.
+
     This is a subpass of the pipeline to convert to the specific QIR Profile.
 
     This pass lowers various QIR DAGs to the specific QIR Profile. See
@@ -175,6 +175,31 @@ def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
     Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
+}
+
+def WireSetToProfileQIR : Pass<"wireset-to-profile-qir"> {
+  let summary = "Convert quake using wire sets to a profile of QIR";
+  let description = [{
+    This pass takes quake in "value semantics" form and after it has been
+    converted to use wire sets (qubit management, mapping, etc.) and converts
+    the code to CC dialect with QIR calls, etc.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
+           "Select the profile to convert wire sets to.">
+  ];
+}
+
+def WireSetToProfileQIRPrep :
+    Pass<"wireset-to-profile-qir-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare for lowering wire sets to a profile of QIR";
+  let description = [{
+    This pass should be run immediately before wireset-to-profile-qir.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES
