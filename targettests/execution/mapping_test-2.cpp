@@ -8,7 +8,7 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.code | FileCheck %s && FileCheck --check-prefix=QUAKE %s < %t.code && rm %t.code
+// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

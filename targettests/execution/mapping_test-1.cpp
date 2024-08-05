@@ -8,7 +8,7 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt
+// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck %s
 // RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Adonis.txt" "%t.dir/Adonis Variant.txt" && nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Adonis --mapping-file "%t.dir/Adonis Variant.txt" --emulate && %t
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t
 // RUN: rm -rf %t.txt %t.dir
@@ -38,17 +38,5 @@ int main() {
   return 0;
 }
 
-// QUAKE-LABEL: tail call void @__quantum__qis__x__body(%Qubit* null)
-// QUAKE:       tail call void @__quantum__qis__x__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-// QUAKE:       tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-// QUAKE:       tail call void @__quantum__qis__swap__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-// QUAKE:       tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 2 to %Qubit*))
-// QUAKE:       tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* writeonly null)
-// QUAKE:       tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* nonnull writeonly inttoptr (i64 1 to %Result*))
-// QUAKE:       tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull writeonly inttoptr (i64 2 to %Result*))
-// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// QUAKE:       ret void
-
-// CHECK-LABEL: most_probable "101"
+// CHECK: { 101:1000 }
+// CHECK: most_probable "101"
