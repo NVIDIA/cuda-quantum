@@ -10,7 +10,7 @@
 
 // This is tests mostly for scheduling
 
-func.func @test1() {
+func.func @test1() attributes {"cudaq-kernel"} {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2 = quake.null_wire
@@ -30,12 +30,12 @@ func.func @test1() {
   return
 }
 
-// CHECK-LABEL:   func.func @test1() {
+// CHECK-LABEL:   func.func @test1() attributes {"cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK-NOT:       foo
-// CHECK-DAG:       %[[VAL_2:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
-// CHECK-DAG:       %[[VAL_3:.*]] = quake.h %[[VAL_1]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_2:.*]] = quake.h %[[VAL_1]] : (!quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
 // CHECK-DAG:       %[[VAL_4:.*]] = quake.null_wire
 // CHECK-NOT:       foo
 // CHECK-DAG:       %[[VAL_5:.*]]:2 = quake.x [%[[VAL_4]]] %[[VAL_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
@@ -54,7 +54,7 @@ func.func @test1() {
 // CHECK:           return
 // CHECK:         }
 
-func.func @test2() {
+func.func @test2() attributes {"cudaq-kernel"} {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
@@ -65,7 +65,7 @@ func.func @test2() {
   return
 }
 
-// CHECK-LABEL:   func.func @test2() {
+// CHECK-LABEL:   func.func @test2() attributes {"cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = quake.null_wire
 // CHECK-DAG:       %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]]:2 = quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)

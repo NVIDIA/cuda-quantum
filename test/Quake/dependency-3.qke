@@ -10,7 +10,7 @@
 
 // These are more basic tests
 
-func.func @test1() {
+func.func @test1() attributes {"cudaq-kernel"} {
   %0 = quake.null_wire
   quake.sink %0 : !quake.wire
   return
@@ -20,7 +20,7 @@ func.func @test1() {
 // CHECK:           return
 // CHECK:         }
 
-func.func @test2() {
+func.func @test2() attributes {"cudaq-kernel"} {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)

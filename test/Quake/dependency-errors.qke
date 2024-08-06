@@ -8,15 +8,15 @@
 
 // RUN: cudaq-opt --assign-ids --dep-analysis %s -split-input-file -verify-diagnostics
 
-// expected-error @+1 {{function arguments not currently supported in dep-analysis}}
-func.func @test(%arg0 : i32) {
+// expected-error @+1 {{DependencyAnalysisPass cannot handle kernel arguments. Was quake synthesis run before this pass?}}
+func.func @test(%arg0 : i32) attributes {"cudaq-kernel"} {
   return
 }
 
 // -----
 
-// expected-error @+1 {{non-void return types not currently supported in dep-analysis}}
-func.func @test() -> !quake.measure {
+// expected-error @+1 {{DependencyAnalysisPass cannot handle non-void return types for kernels}}
+func.func @test() -> !quake.measure attributes {"cudaq-kernel"} {
   %0 = quake.null_wire
   %measOut, %wires = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
   quake.sink %wires : !quake.wire
@@ -25,31 +25,8 @@ func.func @test() -> !quake.measure {
 
 // -----
 
-func.func @test() {
-  // expected-error @+1 {{'quake.alloca' op dep-analysis requires all quake operations to be in value form}}
-  %0 = quake.alloca !quake.ref
-  %1 = quake.alloca !quake.ref
-  %2 = quake.alloca !quake.ref
-  quake.h %2 : (!quake.ref) -> ()
-  quake.x %2 : (!quake.ref) -> ()
-  quake.y %2 : (!quake.ref) -> ()
-  quake.h %1 : (!quake.ref) -> ()
-  quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
-  quake.x [%0] %2 : (!quake.ref, !quake.ref) -> ()
-  quake.z %1 : (!quake.ref) -> ()
-  quake.y %1 : (!quake.ref) -> ()
-  quake.x %1 : (!quake.ref) -> ()
-  %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
-  quake.dealloc %1 : !quake.ref
-  quake.dealloc %2 : !quake.ref
-  quake.dealloc %0 : !quake.ref
-  return
-}
-
-// -----
-
-// expected-error @+1 {{multiple blocks not currently supported in assign-ids}}
-func.func @test() {
+// expected-error @+1 {{AssignIDsPass cannot handle multiple blocks. Do you have if statements in a Base Profile QIR program?}}
+func.func @test() attributes {"cudaq-kernel"} {
     %0 = quake.null_wire
     %1 = quake.null_wire
     %2 = quake.null_wire
@@ -63,10 +40,10 @@ func.func @test() {
 
 // -----
 
-// expected-error @+1 {{func.func' op assigning qids failed}}
-func.func @test() {
+// expected-error @+1 {{'func.func' op Assigning qids failed}}
+func.func @test() attributes {"cudaq-kernel"} {
     %0 = quake.null_wire
-    // expected-error @+1 {{control flow operations not currently supported in assign-ids}}
+    // expected-error @+1 {{'cc.loop' op AssignIDsPass cannot handle non-function operations with regions. Do you have if statements in a Base Profile QIR program?}}
     %1 = cc.loop while ((%arg0 = %0) -> (!quake.wire)) {
       %measOut, %wires = quake.mz %arg0 : (!quake.wire) -> (!quake.measure, !quake.wire)
       %2 = quake.discriminate %measOut : (!quake.measure) -> i1
@@ -83,15 +60,15 @@ func.func @test() {
 
 // -----
 
-// expected-error @+1 {{func.func' op assigning qids failed}}
-func.func @test() {
+// expected-error @+1 {{'func.func' op Assigning qids failed}}
+func.func @test() attributes {"cudaq-kernel"} {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2 = quake.null_wire
   %3 = quake.h %0 : (!quake.wire) -> !quake.wire
   %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!quake.measure, !quake.wire)
   %4 = quake.discriminate %measOut : (!quake.measure) -> i1
-  // expected-error @+1 {{control flow operations not currently supported in assign-ids}}
+  // expected-error @+1 {{'cc.if' op AssignIDsPass cannot handle non-function operations with regions. Do you have if statements in a Base Profile QIR program?}}
   %5:3 = cc.if(%4) ((%arg1 = %wires, %arg2 = %1, %arg3 = %2)) -> (!quake.wire, !quake.wire, !quake.wire) {
     %6 = quake.x %arg1 : (!quake.wire) -> !quake.wire
     %7 = quake.h %arg2 : (!quake.wire) -> !quake.wire
