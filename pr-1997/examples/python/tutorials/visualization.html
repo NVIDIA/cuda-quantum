@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quantum Filter Diagonalization (LiH example) &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Visualization &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="CUDA-Q Backends" href="../../../using/backends/backends.html" />
-    <link rel="prev" title="Water Molecule with Active Space (CPU vs. GPU)" href="vqe_water_active_space.html" /> 
+    <link rel="next" title="Computing Expectation Values" href="../../../using/examples/expectation_values.html" />
+    <link rel="prev" title="Quantum Computing 101" href="../../../using/examples/quantum_operations.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -121,13 +121,17 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/introduction.html">   Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Qubit-Visualization">Qubit Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -159,7 +163,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -202,12 +206,21 @@
 <li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Filter Diagonalization (LiH example)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Divisive_clustering.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Data-preprocessing">Data preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Quantum-functions">Quantum functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#QAOA-Implementation">QAOA Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="H2-MRQKS.html">Multi-Reference Quantum Krylov Algorithm (H2 Example)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/backends/backends.html">   Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/backends/simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
@@ -269,6 +282,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#accessing-simulated-quantum-state">Accessing Simulated Quantum State</a></li>
 </ul>
 </li>
 </ul>
@@ -320,8 +334,8 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#mpi">MPI</a></li>
@@ -332,8 +346,14 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/integration/cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/integration/libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/integration/libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/integration/libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/extending/extending.html">   Extending</a><ul>
@@ -506,6 +526,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 </ul>
 </li>
 </ul>
@@ -527,58 +548,54 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Quantum Filter Diagonalization (LiH example)</li>
+          <li class="breadcrumb-item"><a href="../../../using/examples/examples.html">CUDA-Q by Example</a></li>
+      <li class="breadcrumb-item active">Visualization</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/examples/python/tutorials/LiH-MRQKS.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/examples/python/tutorials/visualization.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="vqe_water_active_space.html" class="btn btn-neutral float-left" title="Water Molecule with Active Space (CPU vs. GPU)" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../../../using/examples/quantum_operations.html" class="btn btn-neutral float-left" title="Quantum Computing 101" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/examples/expectation_values.html" class="btn btn-neutral float-right" title="Computing Expectation Values" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Quantum-Filter-Diagonalization-(LiH-example)">
-<h1>Quantum Filter Diagonalization (LiH example)<a class="headerlink" href="#Quantum-Filter-Diagonalization-(LiH-example)" title="Permalink to this heading">¶</a></h1>
-<div class="nbinput nblast docutils container">
+  <section id="Visualization">
+<h1>Visualization<a class="headerlink" href="#Visualization" title="Permalink to this heading">¶</a></h1>
+<section id="Qubit-Visualization">
+<h2>Qubit Visualization<a class="headerlink" href="#Qubit-Visualization" title="Permalink to this heading">¶</a></h2>
+<p>What are the possible states a qubit can be in and how can we build up a visual cue to help us make sense of quantum states and their evolution?</p>
+<p>We know our qubit can have two distinct states: <span class="math notranslate nohighlight">\(\ket{0}\)</span> and <span class="math notranslate nohighlight">\(\ket{1}\)</span>. Maybe we need a one-dimensional line whose vertices can represent each of the states. We also know that qubits can be in an equal superposition states: <span class="math notranslate nohighlight">\(\ket{+}\)</span> and <span class="math notranslate nohighlight">\(\ket{-}\)</span>. This now forces us to extend our 1D line to a 2D Cartesian coordinate system. If you dive deeper you will learn about the existence of states like <span class="math notranslate nohighlight">\(\ket{+i}\)</span> and <span class="math notranslate nohighlight">\(\ket{-i}\)</span>, this calls for a 3D extension.</p>
+<p>It turns out that a sphere is able to depict all the possible states of a single qubit. This is called a Bloch sphere.</p>
+<p><img alt="Bloch Sphere" class="no-scaled-link" src="../../../_images/Bloch_sphere.png" style="width: 300px; height: 300px;" /></p>
+<p>Let us try to showcase the functionality to render such a 3D representation with CUDA-Q. First, let us define a single-qubit kernel that returns a different state each time. This kernel uses random rotations.</p>
+<p>Note: CUDA-Q uses the <a class="reference external" href="https://qutip.org">QuTiP</a> library to render Bloch spheres. The following code will throw an error if QuTiP is not installed.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">scipy</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># install `qutip` in the current Python kernel. Skip this if `qutip` is already installed.</span>
+<span class="c1"># `matplotlib` is required for all visualization tasks.</span>
+<span class="c1"># Make sure to restart your kernel if you execute this!</span>
+<span class="c1"># In a Jupyter notebook, go to the menu bar &gt; Kernel &gt; Restart Kernel.</span>
+<span class="c1"># In VSCode, click on the Restart button in the Jupyter toolbar.</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-<span class="c1">#cudaq.set_target(&#39;nvidia&#39;, option=&#39;fp64&#39;)</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Define LiH molecule</span>
-<span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;Li&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.3925</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.1774</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">))]</span>
+<span class="c1"># The &#39;\&#39; before the &#39;&gt;&#39; operator is so that the shell does not misunderstand</span>
+<span class="c1"># the &#39;&gt;&#39; qualifier for the bash pipe operation.</span>
 
-<span class="n">hamiltonian</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">chemistry</span><span class="o">.</span><span class="n">create_molecular_hamiltonian</span><span class="p">(</span>
-    <span class="n">geometry</span><span class="p">,</span> <span class="s1">&#39;sto-3g&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">sys</span>
 
-<span class="n">electron_count</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">n_electrons</span>
-<span class="n">qubits_num</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">n_orbitals</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="kn">import</span> <span class="nn">qutip</span>
 
-<span class="n">spin_ham_matrix</span><span class="o">=</span><span class="n">hamiltonian</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">()</span>
-<span class="n">e</span><span class="p">,</span><span class="n">c</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">spin_ham_matrix</span><span class="p">)</span>
-
-<span class="c1"># Find the ground state energy and the corresponding eigenvector</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ground state energy (classical simulation)= &#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="s1">&#39;, index= &#39;</span><span class="p">,</span>  <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-<span class="n">min_indices</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-
-<span class="c1"># Eigen vector can be used to initialize the qubits</span>
-<span class="n">vec</span><span class="o">=</span><span class="n">c</span><span class="p">[:,</span><span class="n">min_indices</span><span class="p">]</span>
-</pre></div>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Tools not found, installing. Please restart your kernel after this is done.&quot;</span><span class="p">)</span>
+    <span class="o">!{</span>sys.executable<span class="o">}</span><span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>qutip<span class="se">\&gt;</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>matplotlib<span class="se">\&gt;</span><span class="o">=</span><span class="m">3</span>.5
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">New libraries have been installed. Please restart your kernel!&quot;</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -586,218 +603,182 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Ground state energy (classical simulation)=  (-7.88268002405655-1.2621687378676696e-29j) , index=  15
+Tools not found, installing. Please restart your kernel after this is done.
+Collecting qutip&gt;=5
+  Downloading qutip-5.0.3.post1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (28.0 MB)
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">68.9 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+Requirement already satisfied: matplotlib&gt;=3.5 in /usr/local/lib/python3.10/dist-packages (3.9.1)
+Requirement already satisfied: scipy&gt;=1.9 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.10.1)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (24.1)
+Requirement already satisfied: numpy&gt;=1.22 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.26.4)
+Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
+Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (2.9.0.post0)
+Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.5)
+Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.2.1)
+Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (10.4.0)
+Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.2)
+Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (4.53.1)
+Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib&gt;=3.5) (1.16.0)
+Installing collected packages: qutip
+Successfully installed qutip-5.0.3.post1
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>
+New libraries have been installed. Please restart your kernel!
 </pre></div></div>
 </div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1">## Retry the subsequent cells by setting the target to density matrix simulator.</span>
+<span class="c1"># cudaq.set_target(&quot;density-matrix-cpu&quot;)</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">angles</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">rz</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubit</span><span class="p">)</span>
+    <span class="n">rx</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qubit</span><span class="p">)</span>
+    <span class="n">rz</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">qubit</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<p>Next, we instantiate a random number generator, so we can get random outputs. We then create 4 random single-qubit states by using <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code> on the output state obtained from the random kernel.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
-<span class="k">def</span> <span class="nf">termCoefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">()))</span>
-    <span class="k">return</span> <span class="n">result</span>
-
-<span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
-<span class="k">def</span> <span class="nf">termWords</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="n">result</span>
-
-<span class="n">coefficient</span><span class="o">=</span><span class="n">termCoefficients</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
-<span class="n">pauli_string</span><span class="o">=</span><span class="n">termWords</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+<span class="n">blochSphereList</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+    <span class="n">angleList</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">sph</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">add_to_bloch_sphere</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">angleList</span><span class="p">))</span>
+    <span class="n">blochSphereList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sph</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<p>We can display the spheres with <code class="docutils literal notranslate"><span class="pre">cudaq.show()</span></code>. Show the first sphere:</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">U_psi</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
-    <span class="c1"># Compute U_m = exp(-i m dt H)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)):</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">dt</span><span class="o">*</span><span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span><span class="n">qubits</span><span class="p">,</span><span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">U_phi</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
-    <span class="c1"># Compute U_n = exp(-i n dt H)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)):</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">dt</span><span class="o">*</span><span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span><span class="n">qubits</span><span class="p">,</span><span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">apply_pauli</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">word</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
-
-    <span class="c1"># Add H (Hamiltonian operator)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">word</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span><span class="mi">1</span><span class="p">:</span>
-            <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span><span class="mi">2</span><span class="p">:</span>
-            <span class="n">y</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span><span class="mi">3</span><span class="p">:</span>
-            <span class="n">z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">qfd_kernel</span><span class="p">(</span><span class="n">dt_alpha</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">dt_beta</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
-        <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">word_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">vec</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]):</span>
-
-    <span class="n">ancilla</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
-    <span class="n">qreg</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
-
-    <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
-
-    <span class="n">x</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_psi</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">dt_alpha</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
-
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">apply_pauli</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">word_list</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_phi</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">dt_beta</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_7_0.png" src="../../../_images/examples_python_tutorials_visualization_7_0.png" />
+</div>
+</div>
+<p>We can also show multiple Bloch spheres side by side - simply set the <code class="docutils literal notranslate"><span class="pre">nrows</span></code> and <code class="docutils literal notranslate"><span class="pre">ncols</span></code> in the call to <code class="docutils literal notranslate"><span class="pre">cudaq.show()</span></code> accordingly. Make sure to have more spaces than spheres in your list, else it will throw an error! Let us show two spheres in a row:</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">pauli_str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">):</span>
-
-    <span class="n">my_list</span><span class="o">=</span><span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">==</span><span class="s1">&#39;I&#39;</span><span class="p">:</span>
-            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">==</span><span class="s1">&#39;X&#39;</span><span class="p">:</span>
-            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">==</span><span class="s1">&#39;Y&#39;</span><span class="p">:</span>
-            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">==</span><span class="s1">&#39;Z&#39;</span><span class="p">:</span>
-            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">my_list</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_9_0.png" src="../../../_images/examples_python_tutorials_visualization_9_0.png" />
+</div>
+</div>
+<p>We can show them in a column too, if we want! Simply set the <code class="docutils literal notranslate"><span class="pre">nrows</span> <span class="pre">=</span> <span class="pre">2</span></code> and <code class="docutils literal notranslate"><span class="pre">ncols</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the spin-op x for real component and y for the imaginary component.</span>
-
-<span class="n">x_0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">y_0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_11_0.png" src="../../../_images/examples_python_tutorials_visualization_11_0.png" />
+</div>
+</div>
+<p>Can we show the entire list of 4 Bloch spheres we created? Absolutely!</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Define parameters for the quantum krylov space</span>
-
-<span class="n">dt</span><span class="o">=</span><span class="mf">0.5</span>
-
-<span class="c1"># Dimension of the Krylov space</span>
-<span class="n">m_qfd</span><span class="o">=</span><span class="mi">4</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">blochSphereList</span><span class="p">[:],</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_13_0.png" src="../../../_images/examples_python_tutorials_visualization_13_0.png" />
+</div>
+</div>
+<p>What if we had to add multiple vectors to a single Bloch sphere? CUDA-Q uses the <a class="reference external" href="https://www.qutip.org">QuTiP</a> toolbox to construct Bloch spheres. We can then add multiple states to the same Bloch sphere by passing the sphere object as an argument to <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the basis overlap matrix</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">qutip</span>
 
-<span class="c1"># Add identity operator to compute overlap of basis</span>
-
-<span class="n">observe_op</span><span class="o">=</span><span class="mf">1.0</span>
-<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
-    <span class="n">observe_op</span><span class="o">*=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-
-<span class="n">identity_word</span><span class="o">=</span><span class="n">observe_op</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-
-<span class="n">pauli_list</span><span class="o">=</span><span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
-<span class="c1">#print(pauli_list)</span>
-
-<span class="n">wf_overlap</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span><span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-
-<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-    <span class="n">dt_m</span><span class="o">=</span><span class="n">dt</span><span class="o">*</span><span class="n">m</span>
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">m_qfd</span><span class="p">):</span>
-        <span class="n">dt_n</span><span class="o">=</span><span class="n">dt</span><span class="o">*</span><span class="n">n</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">)</span>
-        <span class="n">temp</span><span class="o">=</span><span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
-        <span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">]</span><span class="o">=</span><span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">1</span><span class="n">j</span>
-        <span class="k">if</span> <span class="n">n</span><span class="o">!=</span><span class="n">m</span><span class="p">:</span>
-            <span class="n">wf_overlap</span><span class="p">[</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">])</span>
-</pre></div>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">47</span><span class="p">)</span>
+<span class="n">blochSphere</span> <span class="o">=</span> <span class="n">qutip</span><span class="o">.</span><span class="n">Bloch</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">angleList</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">sph</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">add_to_bloch_sphere</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">angleList</span><span class="p">),</span> <span class="n">blochSphere</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<p>This created a single Bloch sphere with 10 random vectors. Let us see how it looks.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the matrix Hamiltonian</span>
-
-<span class="n">ham_matrx</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span><span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-
-<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-    <span class="n">dt_m</span><span class="o">=</span><span class="n">dt</span><span class="o">*</span><span class="n">m</span>
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">m_qfd</span><span class="p">):</span>
-        <span class="n">dt_n</span><span class="o">=</span><span class="n">dt</span><span class="o">*</span><span class="n">n</span>
-
-        <span class="n">tot_e</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">coef</span><span class="p">,</span><span class="n">word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span><span class="n">pauli_string</span><span class="p">):</span>
-            <span class="c1">#print(coef,word)</span>
-
-            <span class="n">pauli_list</span><span class="o">=</span><span class="n">pauli_str</span><span class="p">(</span><span class="n">word</span><span class="p">,</span><span class="n">qubits_num</span><span class="p">)</span>
-            <span class="c1">#print(pauli_list)</span>
-
-            <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span><span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">)</span>
-
-            <span class="n">temp</span><span class="o">=</span><span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
-            <span class="c1">#print(temp)</span>
-            <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="n">coef</span><span class="o">.</span><span class="n">real</span><span class="o">*</span><span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="n">coef</span><span class="o">.</span><span class="n">imag</span><span class="o">*</span><span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-
-            <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+=</span><span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+=</span><span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-
-        <span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">]</span><span class="o">=</span><span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">1</span><span class="n">j</span>
-        <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
-            <span class="n">ham_matrx</span><span class="p">[</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">blochSphere</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_visualization_17_0.png" src="../../../_images/examples_python_tutorials_visualization_17_0.png" />
+</div>
+</div>
+<p>Unfortunately, there is no such handy visualization for multi-qubit states. In particular, a multi-qubit state cannot be visualized as multiple Bloch spheres due to the nature of entanglement that makes quantum computing so powerful.</p>
+</section>
+<section id="Kernel-Visualization">
+<h2>Kernel Visualization<a class="headerlink" href="#Kernel-Visualization" title="Permalink to this heading">¶</a></h2>
+<p>A CUDA-Q kernel can be visualized using the <code class="docutils literal notranslate"><span class="pre">cudaq.draw</span></code> API which returns a string representing the drawing of the execution path, in the specified format. ASCII (default) and LaTeX formats are supported.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Diagonalize the matrix</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel_to_draw</span><span class="p">():</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">z</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 
-<span class="k">def</span> <span class="nf">eig</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
-    <span class="c1">#Solver for generalized eigenvalue problem</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 
-    <span class="c1"># HC = SCE</span>
-
-    <span class="n">THRESHOLD</span> <span class="o">=</span> <span class="mf">1e-20</span>
-    <span class="n">s_diag</span><span class="p">,</span><span class="n">u</span><span class="o">=</span><span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-    <span class="n">s_prime</span><span class="o">=</span><span class="p">[]</span>
-    <span class="k">for</span> <span class="n">sii</span> <span class="ow">in</span> <span class="n">s_diag</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">sii</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-7</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;S may not be hermetian, large imag. eval component.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">sii</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">THRESHOLD</span><span class="p">:</span>
-            <span class="n">s_prime</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">sii</span><span class="p">))</span>
-
-    <span class="n">X_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">s_diag</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">s_prime</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s_diag</span><span class="p">)):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s_prime</span><span class="p">)):</span>
-            <span class="n">X_prime</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s_prime</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
-
-    <span class="n">H_prime</span> <span class="o">=</span> <span class="p">(((</span><span class="n">X_prime</span><span class="o">.</span><span class="n">conjugate</span><span class="p">())</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_prime</span><span class="p">)</span>
-    <span class="n">e_prime</span><span class="p">,</span> <span class="n">C_prime</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">H_prime</span><span class="p">)</span>
-    <span class="n">C</span> <span class="o">=</span> <span class="n">X_prime</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C_prime</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">e_prime</span><span class="p">,</span> <span class="n">C</span>
+    <span class="n">r1</span><span class="p">(</span><span class="mf">3.14159</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">tdg</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">s</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
@@ -805,9 +786,7 @@ Ground state energy (classical simulation)=  (-7.88268002405655-1.26216873786766
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eigen_value</span><span class="p">,</span> <span class="n">eigen_vect</span><span class="o">=</span> <span class="n">eig</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">],</span><span class="n">wf_overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Energy from QFD:&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">eigen_value</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel_to_draw</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -816,18 +795,55 @@ Ground state energy (classical simulation)=  (-7.88268002405655-1.26216873786766
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Energy from QFD:
-(-7.882652519208281+1.4629821850143915e-17j)
+     ╭───╮                  ╭───────────╮
+q0 : ┤ h ├──●────●────╳───╳─┤ r1(3.142) ├───────
+     ├───┤╭─┴─╮  │    │   │ ╰───────────╯╭─────╮
+q1 : ┤ h ├┤ x ├──●────╳───┼───────╳──────┤ tdg ├
+     ├───┤╰───╯╭─┴─╮╭───╮ │       │      ╰┬───┬╯
+q2 : ┤ h ├─────┤ y ├┤ z ├─┼───────╳───────┤ s ├─
+     ├───┤     ╰───╯╰───╯ │               ╰───╯
+q3 : ┤ h ├────────────────╳─────────────────────
+     ╰───╯
+
 </pre></div></div>
 </div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">,</span> <span class="n">kernel_to_draw</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+\documentclass{minimal}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz}
+  \lstick{$q_0$} &amp; \gate{H} &amp; \ctrl{1} &amp; \ctrl{2} &amp; \swap{1} &amp; \swap{3} &amp; \gate{R_1(3.142)} &amp; \qw &amp; \qw \\
+  \lstick{$q_1$} &amp; \gate{H} &amp; \gate{X} &amp; \ctrl{1} &amp; \targX{} &amp; \qw &amp; \swap{1} &amp; \gate{T^\dag} &amp; \qw \\
+  \lstick{$q_2$} &amp; \gate{H} &amp; \qw &amp; \gate{Y} &amp; \gate{Z} &amp; \qw &amp; \targX{} &amp; \gate{S} &amp; \qw \\
+  \lstick{$q_3$} &amp; \gate{H} &amp; \qw &amp; \qw &amp; \qw &amp; \targX{} &amp; \qw &amp; \qw &amp; \qw \\
+\end{quantikz}
+\end{document}
+
+</pre></div></div>
+</div>
+<p>Copy this output string into any LaTeX editor and export it to PDF.</p>
+<p><img alt="Circuit in PDF format" class="no-scaled-link" src="../../../_images/circuit_pdf.png" style="width: 500px; height: 250px;" /></p>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="vqe_water_active_space.html" class="btn btn-neutral float-left" title="Water Molecule with Active Space (CPU vs. GPU)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../../../using/examples/quantum_operations.html" class="btn btn-neutral float-left" title="Quantum Computing 101" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/examples/expectation_values.html" class="btn btn-neutral float-right" title="Computing Expectation Values" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

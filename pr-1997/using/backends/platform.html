@@ -124,7 +124,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/visualization.html">   Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/visualization.html#Qubit-Visualization">Qubit Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -199,12 +203,21 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/LiH-MRQKS.html">Quantum Filter Diagonalization (LiH example)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Data-preprocessing">Data preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Quantum-functions">Quantum functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#QAOA-Implementation">QAOA Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/H2-MRQKS.html">Multi-Reference Quantum Krylov Algorithm (H2 Example)</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="backends.html">   Backends</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#features">Features</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
@@ -266,6 +279,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#supported-kernel-arguments">Supported Kernel Arguments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#accessing-simulated-quantum-state">Accessing Simulated Quantum State</a></li>
 </ul>
 </li>
 </ul>
@@ -317,8 +331,8 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../install/data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../install/data_center_install.html#mpi">MPI</a></li>
@@ -329,8 +343,14 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../integration/cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
@@ -503,6 +523,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 </ul>
 </li>
 </ul>
@@ -555,8 +576,8 @@ QPUs for asynchronous CUDA-Q kernel and <code class="code docutils literal notra
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.</p>
 <section id="nvidia-mqpu-platform">
-<h2>NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#nvidia-mqpu-platform" title="Permalink to this heading">¶</a></h2>
-<p id="mqpu-platform">In the multi-QPU mode (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system.
+<span id="mqpu-platform"></span><h2>NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#nvidia-mqpu-platform" title="Permalink to this heading">¶</a></h2>
+<p>In the multi-QPU mode (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> option), the NVIDIA target provides a simulated QPU for every available NVIDIA GPU on the underlying system.
 Each QPU is simulated via a <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> simulator backend as defined by the NVIDIA target. For more information about using multiple GPUs
 to simulate each virtual QPU, or using a different backend for virtual QPUs, please see <a class="reference internal" href="#id1"><span class="std std-ref">remote MQPU platform</span></a>.
 This target enables asynchronous parallel execution of quantum kernel tasks.</p>
@@ -910,8 +931,8 @@ code with the <code class="code docutils literal notranslate"><span class="pre">
 the CUDA-Q MLIR-based compiler. As a result, runtime arguments can be resolved by the CUDA
 Quantum compiler infrastructure to support wider range of argument types. However, certain
 language constructs within quantum kernels may not yet be fully supported.</p>
-<span id="type-serialization-table"></span><table class="docutils align-default" id="id2">
-<caption><span class="caption-text">Kernel argument serialization</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<span id="type-serialization-table"></span><table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Kernel argument serialization</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 33%" />
 <col style="width: 33%" />
@@ -942,6 +963,51 @@ language constructs within quantum kernels may not yet be fully supported.</p>
 </tr>
 </tbody>
 </table>
+<p>For CUDA-Q kernels that return a value, the remote platform supports returning simple data types of
+<code class="code docutils literal notranslate"><span class="pre">bool</span></code>, integral (e.g., <code class="code docutils literal notranslate"><span class="pre">int</span></code> or <code class="code docutils literal notranslate"><span class="pre">std::size_t</span></code>), and floating-point types (<code class="code docutils literal notranslate"><span class="pre">float</span></code> or <code class="code docutils literal notranslate"><span class="pre">double</span></code>)
+when MLIR-based compilation is enabled (<code class="code docutils literal notranslate"><span class="pre">--enable-mlir</span></code>).</p>
+</section>
+<section id="accessing-simulated-quantum-state">
+<h3>Accessing Simulated Quantum State<a class="headerlink" href="#accessing-simulated-quantum-state" title="Permalink to this heading">¶</a></h3>
+<p>The remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> platform supports accessing simulator backend’s state vector via the
+<code class="code docutils literal notranslate"><span class="pre">cudaq::get_state</span></code> (C++) or <code class="code docutils literal notranslate"><span class="pre">cudaq.get_state</span></code> (Python) APIs, similar to local simulator backends.</p>
+<p>State data can be retrieved as a full state vector or as individual basis states’ amplitudes.
+The later is designed for large quantum states, which incurred data transfer overheads.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="n">amplitudes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([</span><span class="s1">&#39;0000&#39;</span><span class="p">,</span> <span class="s1">&#39;1111&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">amplitudes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">amplitudes</span><span class="p">({{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">}});</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>In the above example, the amplitudes of the two requested states are returned.</p>
+<p>For C++ quantum kernels <a class="footnote-reference brackets" href="#id3" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>*<span class="fn-bracket">]</span></a> compiled with the CUDA-Q MLIR-based compiler and Python kernels,
+state accessor is evaluated in a just-in-time/on-demand manner, and hence can be customize to
+users’ need.</p>
+<p>For instance, in the above amplitude access example, if the state vector is very large, e.g.,
+multi-GPU distributed state vectors or tensor-network encoded quantum states, the full state vector
+will not be retrieved when <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> is called. Instead, when the <code class="code docutils literal notranslate"><span class="pre">amplitudes</span></code> accessor is called,
+a specific amplitude calculation request will be sent to the server.
+Thus, only the amplitudes of those basis states will be computed and returned.</p>
+<p>Similarly, for state overlap calculation, if deferred state evaluation is available (Python/MLIR-based compiler)
+for both of the operand quantum states, a custom overlap calculation request will be constructed and sent to the server.
+Only the final overlap result will be returned, thereby eliminating back-and-forth state data transfers.</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id3" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">*</a><span class="fn-bracket">]</span></span>
+<p>Only C++ quantum kernels whose names are available via run-time type information (RTTI) are supported.
+For example, quantum kernels expressed as named <code class="code docutils literal notranslate"><span class="pre">struct</span></code> are supported but not standalone functions.
+Kernels that do not have deferred state evaluation support will perform synchronous <code class="code docutils literal notranslate"><span class="pre">get_state</span></code>, whereby the full state
+vector is returned from the server immediately.</p>
+</aside>
+</aside>
 </section>
 </section>
 </section>
