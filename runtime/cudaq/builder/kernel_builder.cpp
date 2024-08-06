@@ -510,6 +510,27 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     return QuakeValue(builder, qubits);
   }
 
+  if (auto statePtrTy = dyn_cast<cc::PointerType>(type)) {
+    auto eleTy = statePtrTy.getElementType();
+    if (auto stateTy = dyn_cast<cc::StateType>(eleTy)) {
+      // get the number of qubits
+      IRBuilder irBuilder(context);
+      auto mod = builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+      auto result = irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
+      assert(succeeded(result) && "loading intrinsic should never fail");
+      auto numQubits = builder.create<func::CallOp>(
+          builder.getI64Type(), getNumQubitsFromCudaqState, ValueRange{value});
+      // allocate the number of qubits we need
+      auto veqTy = quake::VeqType::getUnsized(context);
+      Value qubits =
+          builder.create<quake::AllocaOp>(veqTy, numQubits.getResult(0));
+      // Add the initialize state op
+      qubits = builder.create<quake::InitializeStateOp>(qubits.getType(),
+                                                        qubits, value);
+      return QuakeValue(builder, qubits);
+    }
+  }
+
   if (!type.isIntOrIndex())
     throw std::runtime_error(
         "Invalid parameter passed to qalloc (must be integer type).");
