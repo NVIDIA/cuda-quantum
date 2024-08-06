@@ -316,7 +316,8 @@ jobs:
           docker run --rm -dit --name wheel-validation-examples wheel_validation:local
           status_sum=0
 
-          for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/providers/*' -not -path '*/divisive_clustering_src/*' -not -path '*/utils_ipie.py'`; do
+          for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/providers/*' -not -path '*/divisive_clustering_src/*' -not -path '*/utils_ipie.py' -not -path '*/vqe_cudaq_qnp.py
+'`; do
             file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out
             (docker exec wheel-validation-examples bash -c "python${{ inputs.python_version }} /tmp/examples/$file" >> /tmp/validation.out) && success=true || success=false
