@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -56,17 +57,11 @@ public:
           continue;
         }
         if (auto subveq = dyn_cast<quake::SubVeqOp>(user)) {
-          std::int64_t lowInt = -1;
-          if (auto low =
-                  dyn_cast<arith::ConstantOp>(subveq.getLow().getDefiningOp()))
-            if (auto myInt = dyn_cast<IntegerAttr>(low.getValue()))
-              lowInt = start + myInt.getInt();
-          if (lowInt < 0) {
-            subveq.emitOpError("Invalid subveq operator found");
+          auto lowInt = cudaq::opt::factory::getIntIfConstant(subveq.getLow());
+          if (!lowInt)
             return failure();
-          }
           for (auto *subUser : subveq->getUsers())
-            if (failed(rewriteOpAndUsers(subUser, lowInt)))
+            if (failed(rewriteOpAndUsers(subUser, *lowInt)))
               return failure();
           rewriter.eraseOp(subveq);
           continue;
@@ -205,9 +200,8 @@ public:
         if (ext.hasConstantIndex())
           return true;
       if (auto sub = dyn_cast<quake::SubVeqOp>(op)) {
-        if (!dyn_cast_or_null<arith::ConstantOp>(sub.getLow().getDefiningOp()))
-          return false;
-        if (!dyn_cast_or_null<arith::ConstantOp>(sub.getHigh().getDefiningOp()))
+        if (!cudaq::opt::factory::getIntIfConstant(sub.getLow()) ||
+            !cudaq::opt::factory::getIntIfConstant(sub.getHigh()))
           return false;
         for (auto *subUser : sub->getUsers())
           if (!isUseConvertible(subUser))
