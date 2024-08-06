@@ -40,7 +40,7 @@ chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
 visualization = [ "qutip<5" , "matplotlib>=3.5" ]
 
 [build-system]
-requires = ["scikit-build-core", "cmake>=3.26,<3.29", "numpy>=1.24", "pytest==8.2.0"]
+requires = ["scikit-build-core==0.9.10", "cmake>=3.26,<3.29", "numpy>=1.24", "pytest==8.2.0"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
@@ -49,7 +49,7 @@ wheel.license-files = [ "LICENSE", "NOTICE", "CITATION.cff" ]
 build-dir = "_skbuild"
 sdist.include = ["_version.py"]
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-cmake.version = "3.26"
+cmake.minimum-version = "3.26"
 cmake.build-type = "Release"
 cmake.verbose = false
 cmake.args = [
