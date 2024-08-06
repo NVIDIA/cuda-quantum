@@ -42,8 +42,9 @@ public:
     for (std::size_t i = 0; i < size; ++i)
       newAllocs.emplace_back(rewriter.create<quake::AllocaOp>(loc, refTy));
 
-    std::function<LogicalResult(Operation *, std::int64_t)> rewriteOpUsers =
+    std::function<LogicalResult(Operation *, std::int64_t)> rewriteOpAndUsers =
         [&](Operation *op, std::int64_t start) -> LogicalResult {
+      // First handle the users. Note that this can recurse.
       for (auto *user : op->getUsers()) {
         if (auto dealloc = dyn_cast<quake::DeallocOp>(user)) {
           rewriter.setInsertionPoint(dealloc);
@@ -65,22 +66,28 @@ public:
             return failure();
           }
           for (auto *subUser : subveq->getUsers())
-            if (failed(rewriteOpUsers(subUser, lowInt)))
+            if (failed(rewriteOpAndUsers(subUser, lowInt)))
               return failure();
           rewriter.eraseOp(subveq);
           continue;
         }
-        auto ext = cast<quake::ExtractRefOp>(user);
+        if (auto ext = dyn_cast<quake::ExtractRefOp>(user)) {
+          auto index = ext.getConstantIndex();
+          rewriter.replaceOp(ext, newAllocs[start + index].getResult());
+        }
+      }
+      // Now handle the base operation.
+      if (isa<quake::SubVeqOp>(op))
+        rewriter.eraseOp(op);
+      else if (auto ext = dyn_cast<quake::ExtractRefOp>(op)) {
         auto index = ext.getConstantIndex();
         rewriter.replaceOp(ext, newAllocs[start + index].getResult());
       }
-      if (isa<quake::SubVeqOp>(op))
-        rewriter.eraseOp(op);
       return success();
     };
 
     // 2. Visit all users and replace them accordingly.
-    if (failed(rewriteOpUsers(allocOp, 0)))
+    if (failed(rewriteOpAndUsers(allocOp, 0)))
       return failure();
 
     // 3. Remove the original alloca operation.
