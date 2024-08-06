@@ -78,7 +78,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -88,10 +88,8 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      build_args: |
-        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      checkout_submodules: true
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
@@ -134,7 +132,7 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/assets.Dockerfile
       build_target: prereqs
-      toolchain: gcc11
+      toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
@@ -155,7 +153,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -166,7 +164,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
         mpi: [openmpi, mpich]
         exclude:
           - toolchain: llvm
@@ -196,9 +194,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
 
   python_wheels:
     name: Create Python wheels
@@ -234,7 +232,7 @@ jobs:
       platform: linux/${{ matrix.platform }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
       build_cache:  ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
-      toolchain: gcc11
+      toolchain: llvm
 
   clean_up:
     name: Prepare cache clean-up

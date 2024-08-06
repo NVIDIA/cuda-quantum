@@ -366,7 +366,8 @@ def check_overlap_param(entity):
         state2 = cudaq.get_state(entity, angle2)
         state2.dump()
         overlap = state1.overlap(state2)
-        expected = np.abs(np.cos(angle1 / 2) * np.cos(angle2 / 2)) + np.abs(
+        expected = np.abs(
+            np.cos(angle1 / 2) * np.cos(angle2 / 2) +
             np.sin(angle1 / 2) * np.sin(angle2 / 2))
         assert assert_close(overlap, expected)
 
@@ -415,7 +416,7 @@ def test_math_exp():
         iqft(counting_qubits)
         mz(counting_qubits)
 
-    count = cudaq.sample(exp_kernel)
+    cudaq.sample(exp_kernel)
 
 
 def test_arbitrary_unitary_synthesis():

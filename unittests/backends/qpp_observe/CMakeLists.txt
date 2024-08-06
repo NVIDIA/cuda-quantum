@@ -7,13 +7,9 @@
 # ============================================================================ #
 
 add_library(nvqir-qpp-observe-test SHARED QPPObserveBackend.cpp)
-find_package(OpenMP)
-set (QPP_DEPENDENCIES "")
-if(OpenMP_CXX_FOUND)
-message(STATUS "OpenMP Found. Adding build flags to QPP Backend: ${OpenMP_CXX_FLAGS}.")
-list(APPEND QPP_DEPENDENCIES OpenMP::OpenMP_CXX)
-  target_compile_definitions(nvqir-qpp-observe-test PRIVATE -DHAS_OPENMP=1)
-endif()
+set (QPP_TEST_DEPENDENCIES "")
+list(APPEND QPP_TEST_DEPENDENCIES fmt::fmt-header-only cudaq-common cudaq-spin)
+add_openmp_configurations(nvqir-qpp-observe-test QPP_TEST_DEPENDENCIES)
 
 target_include_directories(nvqir-qpp-observe-test
   PUBLIC . ${CMAKE_SOURCE_DIR}/runtime 
@@ -23,9 +19,8 @@ target_include_directories(nvqir-qpp-observe-test
 )
 
 target_link_libraries(nvqir-qpp-observe-test
-  PUBLIC fmt::fmt-header-only
-          cudaq-common
-          cudaq-spin ${QPP_DEPENDENCIES} libqpp)
+                      PUBLIC libqpp
+                      PRIVATE ${QPP_TEST_DEPENDENCIES})
 
 add_executable(test_observe_backend QppObserveTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
