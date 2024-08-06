@@ -139,6 +139,8 @@ canonicalization
 canonicalize
 canonicalizer
 canonicalizes
+centroid
+centroids
 codebase
 comparator
 comparators
@@ -150,6 +152,7 @@ coprocessing
 coprocessor
 coprocessors
 copyable
+coreset
 cortex-cli
 coupler
 couplers
@@ -165,6 +168,7 @@ deallocation
 deallocations
 decrement
 decrementing
+dendrogram
 deserialize
 destructor
 dimensionality
