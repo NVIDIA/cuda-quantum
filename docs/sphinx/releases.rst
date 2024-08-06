@@ -28,7 +28,7 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 **0.7.1**
 
 The 0.7.1 release adds simulator optimizations with significant performance improvements and 
-extends their functionalities. The nvidia-mgpu backend now supports user customization of the 
+extends their functionalities. The `nvidia-mgpu` backend now supports user customization of the 
 gate fusion level as controlled by the `CUDAQ_MGPU_FUSE` environment variable documented 
 `here <https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html>`__.
 It furthermore adds a range of bug fixes and changes the Python wheel installation instructions.
