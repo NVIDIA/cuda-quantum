@@ -1320,7 +1320,10 @@ TEST(BuilderTester, checkFromStateVector) {
     EXPECT_EQ(counts.size(), 1);
     EXPECT_EQ(counts.count("110"), 1000);
   }
+}
 
+TEST(BuilderTester, checkFromState) {
+  std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
   {
     // qalloc with state
     auto kernel = cudaq::make_kernel();
@@ -1333,6 +1336,26 @@ TEST(BuilderTester, checkFromStateVector) {
     anotherOne.x<cudaq::ctrl>(newQubits[0], newQubits[1]);
     std::cout << anotherOne << "\n";
     auto counts = cudaq::sample(anotherOne);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    // qalloc with state passed by argument
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(2);
+    kernel.h(qubits[0]);
+    auto state = cudaq::get_state(kernel);
+    // Send on the state to the next kernel
+    auto [anotherOne, s] = cudaq::make_kernel<cudaq::state *>();
+    auto newQubits = anotherOne.qalloc(s);
+    anotherOne.x<cudaq::ctrl>(newQubits[0], newQubits[1]);
+    std::cout << anotherOne << "\n";
+    auto counts = cudaq::sample(anotherOne, &state);
     std::size_t counter = 0;
     for (auto &[k, v] : counts) {
       counter += v;
