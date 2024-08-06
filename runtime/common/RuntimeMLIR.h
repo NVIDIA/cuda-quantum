@@ -28,9 +28,10 @@ namespace cudaq {
 /// @param additionalPasses Additional passes to run at the end
 /// @param printIR Print IR to `stderr`
 /// @param printIntermediateMLIR Print IR in between each pass
+/// @param printStats Print pass statistics
 using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
     mlir::Operation *, llvm::raw_string_ostream &, const std::string &, bool,
-    bool)>;
+    bool, bool)>;
 
 /// @brief Initialize MLIR with CUDA-Q dialects and return the
 /// MLIRContext.
@@ -62,9 +63,10 @@ public:
                                  llvm::raw_string_ostream &output,
                                  const std::string &additionalPasses,
                                  bool printIR,
-                                 bool printIntermediateMLIR) const {
+                                 bool printIntermediateMLIR,
+                                 bool printStats) const {
     return function(op, output, additionalPasses, printIR,
-                    printIntermediateMLIR);
+                    printIntermediateMLIR, printStats);
   }
 
 private:

@@ -15,6 +15,7 @@ add_cudaq_library(OptTransforms
   AggressiveEarlyInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
+  AssignIDs.cpp
   BasisConversion.cpp
   CombineQuantumAlloc.cpp
   ConstPropComplex.cpp
@@ -39,6 +40,7 @@ add_cudaq_library(OptTransforms
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
+  DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
   PruneCtrlRelations.cpp

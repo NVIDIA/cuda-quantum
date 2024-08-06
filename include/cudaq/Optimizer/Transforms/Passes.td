@@ -47,6 +47,17 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
+def AssignIDs : Pass<"assign-ids", "mlir::func::FuncOp"> {
+  let summary = "Generate and assign unique identifiers for virtual qubits.";
+  let description = [{
+   Attachs a matching unique ID attribute to each `quake.null_wire` and corresponding
+   `quake.sink`. This is used in DependencyAnalysis to associate allocations and
+   deallocations for tracking qubit lifetimes.
+  }];
+
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
@@ -158,6 +169,47 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
                "other patterns are filtered out">,
     Option<"testConvergence", "test-convergence", "bool", /*default=*/"false",
            "Test only: Fail pass on non-convergence to detect cyclic patterns">,
+  ];
+}
+
+def DependencyAnalysis : Pass<"dep-analysis", "mlir::func::FuncOp"> {
+  let summary = "Maps qubits and reorders operations based on dependency graph.";
+  let description = [{
+    A dependency graph is a Directed Acyclic Graph (DAG) where each node represents
+    an operation, and each edge represents a "depends on" relation between that operation
+    and another operation. For example, in the following snippet the `x` operation
+    depends on the `h` operation because it is applied to the same qubit (`q`), so the
+    `h` operation must happen before the `x` operation:
+
+    ```
+    cudaq::qubit q;
+    x(q);
+    h(q);
+    ```
+
+    Once a dependency graph is created, it is then scheduled, assigning each operation
+    a virtual cycle. Operations that don't depend on each other may be scheduled at the
+    same cycle. However, an operation that depends on a second operation must be scheduled
+    after the second operation. The scheduling algorithm tries to pack operations as
+    densely as possible, minimizing the number of cycles between operations.
+
+    From this dependency graph, we can calculate the lifetime of a qubit: from the cycle
+    in which it is first used through the cycle in which it is last used. If two virtual
+    qubits have non-overlapping lifetimes, they can be assigned to the same physical qubit,
+    as every virtual qubit is assumed to be fully reset before release. Failure to fully
+    reset virtual qubits before release is undefinied behavior, and will likely lead to
+    incorrect output when running DependencyAnalysis.
+  }];
+
+  let dependentDialects = ["quake::QuakeDialect"];
+
+  let statistics = [
+    Statistic<"numVirtualQubits", "num-virtual-qubits",
+              "Number of virtual qubits used">,
+    Statistic<"numPhysicalQubits", "num-physical-qubits",
+              "Number of phyiscal qubits used">,
+    Statistic<"numCycles", "num-cycles",
+              "Length of kernel in cycles">,
   ];
 }
 

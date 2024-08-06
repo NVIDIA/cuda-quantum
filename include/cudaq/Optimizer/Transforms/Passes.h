@@ -30,6 +30,8 @@ void registerAggressiveEarlyInlining();
 
 void registerUnrollingPipeline();
 
+void registerQubitManagementPipeline();
+
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
 createApplyOpSpecializationPass(bool computeActionOpt);

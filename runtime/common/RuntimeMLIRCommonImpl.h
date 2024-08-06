@@ -356,7 +356,7 @@ mlir::LogicalResult
 qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
                               llvm::raw_string_ostream &output,
                               const std::string &additionalPasses, bool printIR,
-                              bool printIntermediateMLIR) {
+                              bool printIntermediateMLIR, bool printStats) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   const std::uint32_t qir_major_version = 1;
@@ -369,6 +369,8 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   mlir::PassManager pm(context);
   if (printIntermediateMLIR)
     pm.enableIRPrinting();
+  if (printStats)
+    pm.enableStatistics();
   std::string errMsg;
   llvm::raw_string_ostream errOs(errMsg);
   cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
@@ -468,10 +470,11 @@ void registerToQIRTranslation() {
       _profile, "translate from quake to " _profile,                           \
       [](mlir::Operation *op, llvm::raw_string_ostream &output,                \
          const std::string &additionalPasses, bool printIR,                    \
-         bool printIntermediateMLIR) {                                         \
+         bool printIntermediateMLIR, bool printStats) {                        \
         return qirProfileTranslationFunction(_profile, op, output,             \
                                              additionalPasses, printIR,        \
-                                             printIntermediateMLIR);           \
+                                             printIntermediateMLIR,            \
+                                             printStats);                      \
       })
 
   // Base Profile and Adaptive Profile are very similar, so they use the same
@@ -486,11 +489,13 @@ void registerToOpenQASMTranslation() {
       "qasm2", "translate from quake to openQASM 2.0",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
-         bool printIntermediateMLIR) {
+         bool printIntermediateMLIR, bool printStats) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "qasm2 translation");
         mlir::PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
+        if (printStats)
+          pm.enableStatistics();
         cudaq::opt::addPipelineTranslateToOpenQASM(pm);
         mlir::DefaultTimingManager tm;
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
@@ -515,11 +520,13 @@ void registerToIQMJsonTranslation() {
       "iqm", "translate from quake to IQM's json format",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
-         bool printIntermediateMLIR) {
+         bool printIntermediateMLIR, bool printStats) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "iqm translation");
         mlir::PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
+        if (printStats)
+          pm.enableStatistics();
         cudaq::opt::addPipelineTranslateToIQMJson(pm);
         mlir::DefaultTimingManager tm;
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
