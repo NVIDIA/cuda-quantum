@@ -10,6 +10,37 @@ The latest version of CUDA-Q is on the main branch of our `GitHub repository <ht
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.8.0**
+
+The 0.8.0 release adds a range of changes to improve the ease of use and performance with CUDA-Q. 
+The changes listed below highlight some of what we think will be most useful features and changes 
+to know about. While the changes list do not capture all of the great contributions, we would like 
+to extend many thanks for every contribution in particular also to external contributors.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Python wheel <https://pypi.org/project/cuda-quantum/0.8.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.8.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.8.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.8.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.8.0>`__.
+
+**0.7.1**
+
+The 0.7.1 release adds simulator optimizations with significant performance improvements and 
+extends their functionalities. The nvidia-mgpu backend now supports user customization of the 
+gate fusion level as controlled by the `CUDAQ_MGPU_FUSE` environment variable documented 
+`here <https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html>`__.
+It furthermore adds a range of bug fixes and changes the Python wheel installation instructions.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cuda-quantum/0.7.1>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.7.1>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.7.1>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.7.1/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.7.1>`__.
+
 **0.7.0**
 
 The 0.7.0 release adds support for using :doc:`NVIDIA Quantum Cloud <using/backends/nvqc>`,
@@ -19,13 +50,13 @@ Check out our `documentation <https://nvidia.github.io/cuda-quantum/latest/using
 to get started with the new Python syntax support we have added, and `follow our blog <https://developer.nvidia.com/cuda-q>`__
 to learn more about the new setup and its performance benefits.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
-- `Python wheel <https://pypi.org/project/cuda-quantum/>`__
-- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cuda-quantum/0.7.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.7.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.7.0>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.7.0/docs/sphinx/examples>`__
 
-The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases>`__.
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.7.0>`__.
 
 **0.6.0**
 
