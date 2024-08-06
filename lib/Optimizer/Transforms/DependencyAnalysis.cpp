@@ -673,9 +673,10 @@ struct DependencyAnalysisPass
   void codeGen(SmallVector<DependencyGraph> &graphs, OpBuilder &builder) {
     SmallVector<LifeTime *> lifetimes;
     SmallVector<DependencyNode *> sinks;
-    numCycles = getTotalCycles(graphs);
+    auto cycles = getTotalCycles(graphs);
+    numCycles += cycles;
 
-    for (uint cycle = 0; cycle < numCycles; cycle++) {
+    for (uint cycle = 0; cycle < cycles; cycle++) {
       for (auto graph : graphs) {
         // For every "new" qubit, try to find an existing out-of-use qubit
         // that we can reuse. Failing that, use a new qubit.
@@ -735,6 +736,7 @@ struct DependencyAnalysisPass
 
     SetVector<DependencyNode *> roots;
 
+    uint qubits = 0;
     for (auto &op : func.front().getOperations()) {
       if (dyn_cast<func::ReturnOp>(op))
         continue;
@@ -747,12 +749,14 @@ struct DependencyAnalysisPass
       }
 
       if (isBeginOp(&op))
-        numVirtualQubits++;
+        qubits++;
       if (isEndOp(&op))
         roots.insert(node);
     }
 
-    assert(numVirtualQubits == roots.size() && "Too few sinks for qubits -- was add-dealloc run?");
+    numVirtualQubits += qubits;
+
+    assert(qubits == roots.size() && "Too few sinks for qubits -- was add-dealloc run?");
 
     // Construct graphs from roots
     SmallVector<DependencyGraph> graphs;
