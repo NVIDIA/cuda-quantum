@@ -177,7 +177,7 @@ def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
   ];
 }
 
-def WireSetToProfileQIR : Pass<"wireset-to-profile-qir"> {
+def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
   let summary = "Convert quake using wire sets to a profile of QIR";
   let description = [{
     This pass takes quake in "value semantics" form and after it has been
