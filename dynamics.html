@@ -1,0 +1,807 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module dynamics</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>dynamics</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/workspaces/cuda-quantum/dynamics.py">/workspaces/cuda-quantum/dynamics.py</a></font></td></tr></table>
+    <p></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="inspect.html">inspect</a><br>
+<a href="itertools.html">itertools</a><br>
+</td><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+<a href="operator.html">operator</a><br>
+</td><td width="25%" valign=top><a href="os.html">os</a><br>
+<a href="re.html">re</a><br>
+</td><td width="25%" valign=top><a href="scipy.html">scipy</a><br>
+<a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="abc.html#ABC">abc.ABC</a>(<a href="builtins.html#object">builtins.object</a>)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>(<a href="abc.html#ABC">abc.ABC</a>, <a href="typing.html#Generic">typing.Generic</a>)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="dynamics.html#MatrixArithmetics">MatrixArithmetics</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#PrettyPrint">PrettyPrint</a>
+</font></dt></dl>
+</dd>
+</dl>
+</dd>
+<dt><font face="helvetica, arial"><a href="builtins.html#object">builtins.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="dynamics.html#OperatorSum">OperatorSum</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="dynamics.html#ProductOperator">ProductOperator</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="dynamics.html#ElementaryOperator">ElementaryOperator</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#ScalarOperator">ScalarOperator</a>
+</font></dt></dl>
+</dd>
+</dl>
+</dd>
+<dt><font face="helvetica, arial"><a href="dynamics.html#Schedule">Schedule</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#operators">operators</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#pauli">pauli</a>
+</font></dt></dl>
+</dd>
+<dt><font face="helvetica, arial"><a href="typing.html#Generic">typing.Generic</a>(<a href="builtins.html#object">builtins.object</a>)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>(<a href="abc.html#ABC">abc.ABC</a>, <a href="typing.html#Generic">typing.Generic</a>)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="dynamics.html#MatrixArithmetics">MatrixArithmetics</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#PrettyPrint">PrettyPrint</a>
+</font></dt></dl>
+</dd>
+</dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="ElementaryOperator">class <strong>ElementaryOperator</strong></a>(<a href="dynamics.html#ProductOperator">ProductOperator</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#ElementaryOperator">ElementaryOperator</a>(operator_id:&nbsp;'str',&nbsp;degrees:&nbsp;'Sequence[int]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Represents&nbsp;an&nbsp;elementary&nbsp;operator&nbsp;that&nbsp;acts&nbsp;on&nbsp;one&nbsp;or&nbsp;more&nbsp;degrees&nbsp;of&nbsp;freedom,&nbsp;<br>
+and&nbsp;cannot&nbsp;be&nbsp;further&nbsp;simplified&nbsp;to&nbsp;be&nbsp;the&nbsp;product&nbsp;or&nbsp;sum&nbsp;of&nbsp;other&nbsp;<a href="#operators">operators</a>.&nbsp;<br>
+An&nbsp;elementary&nbsp;operator&nbsp;is&nbsp;defined&nbsp;as&nbsp;a&nbsp;function&nbsp;of&nbsp;zero&nbsp;or&nbsp;more&nbsp;complex-valued&nbsp;<br>
+parameters&nbsp;using&nbsp;the&nbsp;:func:`~dynamics.<a href="#ElementaryOperator">ElementaryOperator</a>.define`&nbsp;class&nbsp;method.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="dynamics.html#ElementaryOperator">ElementaryOperator</a></dd>
+<dd><a href="dynamics.html#ProductOperator">ProductOperator</a></dd>
+<dd><a href="dynamics.html#OperatorSum">OperatorSum</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ElementaryOperator-__add__"><strong>__add__</strong></a>(self: 'ElementaryOperator', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="ElementaryOperator-__eq__"><strong>__eq__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'bool'</dt><dd><tt>Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;True,&nbsp;if&nbsp;the&nbsp;other&nbsp;value&nbsp;is&nbsp;an&nbsp;elementary&nbsp;operator&nbsp;with&nbsp;the&nbsp;same&nbsp;id<br>
+&nbsp;&nbsp;&nbsp;&nbsp;acting&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom,&nbsp;and&nbsp;False&nbsp;otherwise.</tt></dd></dl>
+
+<dl><dt><a name="ElementaryOperator-__init__"><strong>__init__</strong></a>(self: 'ElementaryOperator', operator_id: 'str', degrees: 'Sequence[int]') -&gt; 'None'</dt><dd><tt>Instantiates&nbsp;an&nbsp;elementary&nbsp;operator.<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;operator_id:&nbsp;The&nbsp;id&nbsp;of&nbsp;the&nbsp;operator&nbsp;as&nbsp;specified&nbsp;when&nbsp;it&nbsp;was&nbsp;defined.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;degrees:&nbsp;The&nbsp;degrees&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on.</tt></dd></dl>
+
+<dl><dt><a name="ElementaryOperator-__mul__"><strong>__mul__</strong></a>(self: 'ElementaryOperator', other: 'Any') -&gt; 'ProductOperator'</dt></dl>
+
+<dl><dt><a name="ElementaryOperator-__radd__"><strong>__radd__</strong></a>(self: 'ElementaryOperator', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="ElementaryOperator-__rmul__"><strong>__rmul__</strong></a>(self: 'ElementaryOperator', other: 'Any') -&gt; 'ProductOperator'</dt></dl>
+
+<dl><dt><a name="ElementaryOperator-__rsub__"><strong>__rsub__</strong></a>(self: 'ElementaryOperator', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="ElementaryOperator-__str__"><strong>__str__</strong></a>(self: 'ElementaryOperator') -&gt; 'str'</dt><dd><tt>Return&nbsp;str(self).</tt></dd></dl>
+
+<dl><dt><a name="ElementaryOperator-__sub__"><strong>__sub__</strong></a>(self: 'ElementaryOperator', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="ElementaryOperator-to_matrix"><strong>to_matrix</strong></a>(self: 'ElementaryOperator', dimensions: 'Mapping[int, int]', **kwargs: 'NumericType') -&gt; 'NDArray[numpy.complexfloating]'</dt><dd><tt>Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dimensions:&nbsp;A&nbsp;mapping&nbsp;that&nbsp;specifies&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;dimension,&nbsp;of&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;**kwargs:&nbsp;Keyword&nbsp;arguments&nbsp;needed&nbsp;to&nbsp;evaluate&nbsp;the&nbsp;operator.&nbsp;All<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;required&nbsp;parameters&nbsp;and&nbsp;their&nbsp;documentation,&nbsp;if&nbsp;available,&nbsp;can&nbsp;be&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;queried&nbsp;by&nbsp;accessing&nbsp;the&nbsp;`parameter`&nbsp;property.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;matrix&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;expression&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ElementaryOperator-define"><strong>define</strong></a>(op_id: 'str', expected_dimensions: 'Sequence[int]', create: 'Callable[..., NDArray[numpy.complexfloating]]') -&gt; 'None'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt><dd><tt>Adds&nbsp;the&nbsp;definition&nbsp;of&nbsp;an&nbsp;elementary&nbsp;operator&nbsp;with&nbsp;the&nbsp;given&nbsp;id&nbsp;to&nbsp;the&nbsp;class.<br>
+After&nbsp;definition,&nbsp;an&nbsp;the&nbsp;defined&nbsp;elementary&nbsp;operator&nbsp;can&nbsp;be&nbsp;instantiated&nbsp;by<br>
+providing&nbsp;the&nbsp;operator&nbsp;id&nbsp;as&nbsp;well&nbsp;as&nbsp;the&nbsp;degree(s)&nbsp;of&nbsp;freedom&nbsp;that&nbsp;it&nbsp;acts&nbsp;on.<br>
+&nbsp;<br>
+An&nbsp;elementary&nbsp;operator&nbsp;is&nbsp;a&nbsp;parameterized&nbsp;<a href="builtins.html#object">object</a>&nbsp;acting&nbsp;on&nbsp;certain&nbsp;degrees&nbsp;of&nbsp;<br>
+freedom.&nbsp;To&nbsp;evaluate&nbsp;an&nbsp;operator,&nbsp;for&nbsp;example&nbsp;to&nbsp;compute&nbsp;its&nbsp;matrix,&nbsp;the&nbsp;level,&nbsp;<br>
+that&nbsp;is&nbsp;the&nbsp;dimension,&nbsp;for&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;it&nbsp;acts&nbsp;on&nbsp;must&nbsp;be&nbsp;provided,&nbsp;<br>
+as&nbsp;well&nbsp;as&nbsp;all&nbsp;additional&nbsp;parameters.&nbsp;Additional&nbsp;parameters&nbsp;must&nbsp;be&nbsp;provided&nbsp;in&nbsp;<br>
+the&nbsp;form&nbsp;of&nbsp;keyword&nbsp;arguments.<br>
+&nbsp;<br>
+Note:<br>
+The&nbsp;dimensions&nbsp;passed&nbsp;during&nbsp;operator&nbsp;evaluation&nbsp;are&nbsp;automatically&nbsp;validated&nbsp;<br>
+against&nbsp;the&nbsp;expected&nbsp;dimensions&nbsp;specified&nbsp;during&nbsp;definition&nbsp;-&nbsp;the&nbsp;`create`&nbsp;<br>
+function&nbsp;does&nbsp;not&nbsp;need&nbsp;to&nbsp;do&nbsp;this.<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;op_id:&nbsp;A&nbsp;string&nbsp;that&nbsp;uniquely&nbsp;identifies&nbsp;the&nbsp;defined&nbsp;operator.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;expected_dimensions:&nbsp;defines&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is&nbsp;the&nbsp;dimension,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;in&nbsp;canonical&nbsp;(that&nbsp;is&nbsp;sorted)&nbsp;order.&nbsp;A&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;negative&nbsp;or&nbsp;zero&nbsp;value&nbsp;for&nbsp;one&nbsp;(or&nbsp;more)&nbsp;of&nbsp;the&nbsp;expected&nbsp;dimensions&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;indicates&nbsp;that&nbsp;the&nbsp;operator&nbsp;is&nbsp;defined&nbsp;for&nbsp;any&nbsp;dimension&nbsp;of&nbsp;the&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;corresponding&nbsp;degree&nbsp;of&nbsp;freedom.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;create:&nbsp;Takes&nbsp;any&nbsp;number&nbsp;of&nbsp;complex-valued&nbsp;arguments&nbsp;and&nbsp;returns&nbsp;the&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;matrix&nbsp;representing&nbsp;the&nbsp;operator&nbsp;in&nbsp;canonical&nbsp;order.&nbsp;If&nbsp;the&nbsp;matrix&nbsp;can<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;be&nbsp;defined&nbsp;for&nbsp;any&nbsp;number&nbsp;of&nbsp;levels&nbsp;for&nbsp;one&nbsp;or&nbsp;more&nbsp;degree&nbsp;of&nbsp;freedom,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;`create`&nbsp;function&nbsp;must&nbsp;take&nbsp;an&nbsp;argument&nbsp;called&nbsp;`dimension`&nbsp;(or&nbsp;`dim`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;short),&nbsp;if&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on&nbsp;a&nbsp;single&nbsp;degree&nbsp;of&nbsp;freedom,&nbsp;and&nbsp;an<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;argument&nbsp;called&nbsp;`dimensions`&nbsp;(or&nbsp;`dims`&nbsp;for&nbsp;short),&nbsp;if&nbsp;the&nbsp;operator&nbsp;acts&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on&nbsp;multiple&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<dl><dt><a name="ElementaryOperator-identity"><strong>identity</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="ElementaryOperator-zero"><strong>zero</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>expected_dimensions</strong></dt>
+<dd><tt>The&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is&nbsp;the&nbsp;dimension,&nbsp;for&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom<br>
+in&nbsp;canonical&nbsp;order&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on.&nbsp;A&nbsp;value&nbsp;of&nbsp;zero&nbsp;or&nbsp;less&nbsp;<br>
+indicates&nbsp;that&nbsp;the&nbsp;operator&nbsp;is&nbsp;defined&nbsp;for&nbsp;any&nbsp;dimension&nbsp;of&nbsp;that&nbsp;degree.</tt></dd>
+</dl>
+<dl><dt><strong>id</strong></dt>
+<dd><tt>A&nbsp;unique&nbsp;identifier&nbsp;of&nbsp;the&nbsp;operator.</tt></dd>
+</dl>
+<dl><dt><strong>parameters</strong></dt>
+<dd><tt>A&nbsp;mapping&nbsp;that&nbsp;contains&nbsp;the&nbsp;documentation&nbsp;comment&nbsp;for&nbsp;each&nbsp;parameter&nbsp;<br>
+needed&nbsp;to&nbsp;evaluate&nbsp;the&nbsp;elementary&nbsp;operator.</tt></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>Definition</strong> = &lt;class 'dynamics.ElementaryOperator.Definition'&gt;<dd><tt>Represents&nbsp;the&nbsp;definition&nbsp;of&nbsp;an&nbsp;elementary&nbsp;operator.</tt></dl>
+
+<dl><dt><strong>__annotations__</strong> = {'_ops': 'dict[str, ElementaryOperator.Definition]'}</dl>
+
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+<hr>
+Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
+<dl><dt><strong>degrees</strong></dt>
+<dd><tt>The&nbsp;degrees&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd>
+</dl>
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="MatrixArithmetics">class <strong>MatrixArithmetics</strong></a>(<a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#MatrixArithmetics">MatrixArithmetics</a>(dimensions:&nbsp;'Mapping[int,&nbsp;int]',&nbsp;**kwargs:&nbsp;'NumericType')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Encapsulates&nbsp;the&nbsp;functions&nbsp;needed&nbsp;to&nbsp;compute&nbsp;the&nbsp;matrix&nbsp;representation<br>
+of&nbsp;an&nbsp;operator&nbsp;expression.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="dynamics.html#MatrixArithmetics">MatrixArithmetics</a></dd>
+<dd><a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="MatrixArithmetics-__init__"><strong>__init__</strong></a>(self: 'MatrixArithmetics', dimensions: 'Mapping[int, int]', **kwargs: 'NumericType') -&gt; 'None'</dt><dd><tt>Instantiates&nbsp;a&nbsp;<a href="#MatrixArithmetics">MatrixArithmetics</a>&nbsp;instance&nbsp;that&nbsp;can&nbsp;act&nbsp;on&nbsp;the&nbsp;given<br>
+dimensions.<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dimensions:&nbsp;A&nbsp;mapping&nbsp;that&nbsp;specifies&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;the&nbsp;dimension,&nbsp;of&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;evaluated&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;operator&nbsp;can&nbsp;act&nbsp;on.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;**kwargs:&nbsp;Keyword&nbsp;arguments&nbsp;needed&nbsp;to&nbsp;evaluate,&nbsp;that&nbsp;is&nbsp;access&nbsp;data&nbsp;in,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;leaf&nbsp;nodes&nbsp;of&nbsp;the&nbsp;operator&nbsp;expression.&nbsp;Leaf&nbsp;nodes&nbsp;are&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;values&nbsp;of&nbsp;type&nbsp;<a href="#ElementaryOperator">ElementaryOperator</a>&nbsp;or&nbsp;<a href="#ScalarOperator">ScalarOperator</a>.</tt></dd></dl>
+
+<dl><dt><a name="MatrixArithmetics-add"><strong>add</strong></a>(self: 'MatrixArithmetics', op1: 'MatrixArithmetics.Evaluated', op2: 'MatrixArithmetics.Evaluated') -&gt; 'MatrixArithmetics.Evaluated'</dt><dd><tt>Multiplies&nbsp;two&nbsp;evaluated&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom<br>
+using&nbsp;`numpy`'s&nbsp;array&nbsp;addition.</tt></dd></dl>
+
+<dl><dt><a name="MatrixArithmetics-evaluate"><strong>evaluate</strong></a>(self: 'MatrixArithmetics', op: 'ElementaryOperator | ScalarOperator') -&gt; 'MatrixArithmetics.Evaluated'</dt><dd><tt>Computes&nbsp;the&nbsp;matrix&nbsp;of&nbsp;an&nbsp;<a href="#ElementaryOperator">ElementaryOperator</a>&nbsp;or&nbsp;<a href="#ScalarOperator">ScalarOperator</a>&nbsp;using&nbsp;its&nbsp;<br>
+`to_matrix`&nbsp;method.</tt></dd></dl>
+
+<dl><dt><a name="MatrixArithmetics-mul"><strong>mul</strong></a>(self: 'MatrixArithmetics', op1: 'MatrixArithmetics.Evaluated', op2: 'MatrixArithmetics.Evaluated') -&gt; 'MatrixArithmetics.Evaluated'</dt><dd><tt>Multiplies&nbsp;two&nbsp;evaluated&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom<br>
+using&nbsp;`numpy.dot`.</tt></dd></dl>
+
+<dl><dt><a name="MatrixArithmetics-tensor"><strong>tensor</strong></a>(self: 'MatrixArithmetics', op1: 'MatrixArithmetics.Evaluated', op2: 'MatrixArithmetics.Evaluated') -&gt; 'MatrixArithmetics.Evaluated'</dt><dd><tt>Computes&nbsp;the&nbsp;tensor&nbsp;product&nbsp;of&nbsp;two&nbsp;evaluate&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;different&nbsp;<br>
+degrees&nbsp;of&nbsp;freedom&nbsp;using&nbsp;`numpy.kron`.</tt></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>Evaluated</strong> = &lt;class 'dynamics.MatrixArithmetics.Evaluated'&gt;<dd><tt>Stores&nbsp;the&nbsp;relevant&nbsp;data&nbsp;to&nbsp;compute&nbsp;the&nbsp;matrix&nbsp;representation&nbsp;of&nbsp;an<br>
+operator&nbsp;expression.</tt></dl>
+
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (dynamics.OperatorArithmetics[ForwardRef('MatrixArithmetics.Evaluated')],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Data descriptors inherited from <a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="MatrixArithmetics-__class_getitem__"><strong>__class_getitem__</strong></a>(params)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt></dl>
+
+<dl><dt><a name="MatrixArithmetics-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt><dd><tt>This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="OperatorArithmetics">class <strong>OperatorArithmetics</strong></a>(<a href="abc.html#ABC">abc.ABC</a>, <a href="typing.html#Generic">typing.Generic</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>This&nbsp;class&nbsp;serves&nbsp;as&nbsp;a&nbsp;monad&nbsp;base&nbsp;class&nbsp;for&nbsp;computing&nbsp;arbitrary&nbsp;values<br>
+during&nbsp;operator&nbsp;evaluation.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="OperatorArithmetics-add"><strong>add</strong></a>(self: 'OperatorArithmetics[TEval]', val1: 'TEval', val2: 'TEval') -&gt; 'TEval'</dt><dd><tt>Adds&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<dl><dt><a name="OperatorArithmetics-evaluate"><strong>evaluate</strong></a>(self: 'OperatorArithmetics[TEval]', op: 'ElementaryOperator | ScalarOperator') -&gt; 'TEval'</dt><dd><tt>Accesses&nbsp;the&nbsp;relevant&nbsp;data&nbsp;to&nbsp;evaluate&nbsp;an&nbsp;operator&nbsp;expression&nbsp;in&nbsp;the&nbsp;leaf&nbsp;<br>
+nodes,&nbsp;that&nbsp;is&nbsp;in&nbsp;elementary&nbsp;and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.</tt></dd></dl>
+
+<dl><dt><a name="OperatorArithmetics-mul"><strong>mul</strong></a>(self: 'OperatorArithmetics[TEval]', val1: 'TEval', val2: 'TEval') -&gt; 'TEval'</dt><dd><tt>Multiplies&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<dl><dt><a name="OperatorArithmetics-tensor"><strong>tensor</strong></a>(self: 'OperatorArithmetics[TEval]', val1: 'TEval', val2: 'TEval') -&gt; 'TEval'</dt><dd><tt>Computes&nbsp;the&nbsp;tensor&nbsp;product&nbsp;of&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;different&nbsp;<br>
+degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset({'add', 'evaluate', 'mul', 'tensor'})</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (&lt;class 'abc.ABC'&gt;, typing.Generic[~TEval])</dl>
+
+<dl><dt><strong>__parameters__</strong> = (~TEval,)</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="OperatorArithmetics-__class_getitem__"><strong>__class_getitem__</strong></a>(params)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt></dl>
+
+<dl><dt><a name="OperatorArithmetics-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt><dd><tt>This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="OperatorSum">class <strong>OperatorSum</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#OperatorSum">OperatorSum</a>(terms:&nbsp;'Sequence[<a href="#ProductOperator">ProductOperator</a>]'&nbsp;=&nbsp;[])&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Represents&nbsp;an&nbsp;operator&nbsp;expression&nbsp;consisting&nbsp;of&nbsp;a&nbsp;sum&nbsp;of&nbsp;terms,&nbsp;<br>
+where&nbsp;each&nbsp;term&nbsp;is&nbsp;a&nbsp;product&nbsp;of&nbsp;elementary&nbsp;and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="OperatorSum-__add__"><strong>__add__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="OperatorSum-__eq__"><strong>__eq__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'bool'</dt><dd><tt>Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;True,&nbsp;if&nbsp;the&nbsp;other&nbsp;value&nbsp;is&nbsp;an&nbsp;<a href="#OperatorSum">OperatorSum</a>&nbsp;with&nbsp;equivalent&nbsp;terms,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;False&nbsp;otherwise.&nbsp;The&nbsp;equality&nbsp;takes&nbsp;into&nbsp;account&nbsp;that&nbsp;operator<br>
+&nbsp;&nbsp;&nbsp;&nbsp;addition&nbsp;is&nbsp;commutative,&nbsp;as&nbsp;is&nbsp;the&nbsp;product&nbsp;of&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;if&nbsp;they<br>
+&nbsp;&nbsp;&nbsp;&nbsp;act&nbsp;on&nbsp;different&nbsp;degrees&nbsp;of&nbsp;freedom.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;equality&nbsp;comparison&nbsp;does&nbsp;*not*&nbsp;take&nbsp;commutation&nbsp;relations&nbsp;into&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;account,&nbsp;and&nbsp;does&nbsp;not&nbsp;try&nbsp;to&nbsp;reorder&nbsp;terms&nbsp;blockwise;&nbsp;it&nbsp;may&nbsp;hence&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;evaluate&nbsp;to&nbsp;False,&nbsp;even&nbsp;if&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;in&nbsp;reality&nbsp;are&nbsp;the&nbsp;same.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;equality&nbsp;evaluates&nbsp;to&nbsp;True,&nbsp;on&nbsp;the&nbsp;other&nbsp;hand,&nbsp;the&nbsp;<a href="#operators">operators</a>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;guaranteed&nbsp;to&nbsp;represent&nbsp;the&nbsp;same&nbsp;transformation&nbsp;for&nbsp;all&nbsp;arguments.</tt></dd></dl>
+
+<dl><dt><a name="OperatorSum-__init__"><strong>__init__</strong></a>(self: 'OperatorSum', terms: 'Sequence[ProductOperator]' = []) -&gt; 'None'</dt><dd><tt>Instantiates&nbsp;an&nbsp;operator&nbsp;expression&nbsp;that&nbsp;represents&nbsp;a&nbsp;sum&nbsp;of&nbsp;terms,<br>
+where&nbsp;each&nbsp;term&nbsp;is&nbsp;a&nbsp;product&nbsp;of&nbsp;elementary&nbsp;and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.&nbsp;<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;terms:&nbsp;The&nbsp;ProductOperators&nbsp;that&nbsp;should&nbsp;be&nbsp;summed&nbsp;up&nbsp;when&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evaluating&nbsp;the&nbsp;operator&nbsp;expression.</tt></dd></dl>
+
+<dl><dt><a name="OperatorSum-__mul__"><strong>__mul__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="OperatorSum-__radd__"><strong>__radd__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="OperatorSum-__rmul__"><strong>__rmul__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="OperatorSum-__rsub__"><strong>__rsub__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="OperatorSum-__str__"><strong>__str__</strong></a>(self: 'OperatorSum') -&gt; 'str'</dt><dd><tt>Return&nbsp;str(self).</tt></dd></dl>
+
+<dl><dt><a name="OperatorSum-__sub__"><strong>__sub__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="OperatorSum-to_matrix"><strong>to_matrix</strong></a>(self: 'OperatorSum', dimensions: 'Mapping[int, int]', **kwargs: 'NumericType') -&gt; 'NDArray[numpy.complexfloating]'</dt><dd><tt>Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dimensions:&nbsp;A&nbsp;mapping&nbsp;that&nbsp;specifies&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;dimension,&nbsp;of&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;**kwargs:&nbsp;Keyword&nbsp;arguments&nbsp;needed&nbsp;to&nbsp;evaluate&nbsp;the&nbsp;operator.&nbsp;All<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;required&nbsp;parameters&nbsp;and&nbsp;their&nbsp;documentation,&nbsp;if&nbsp;available,&nbsp;can&nbsp;be&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;queried&nbsp;by&nbsp;accessing&nbsp;the&nbsp;`parameter`&nbsp;property.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;matrix&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;expression&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>degrees</strong></dt>
+<dd><tt>The&nbsp;degrees&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd>
+</dl>
+<dl><dt><strong>parameters</strong></dt>
+<dd><tt>A&nbsp;mapping&nbsp;that&nbsp;contains&nbsp;the&nbsp;documentation&nbsp;comment&nbsp;for&nbsp;each&nbsp;parameter&nbsp;<br>
+needed&nbsp;to&nbsp;evaluate&nbsp;the&nbsp;operator&nbsp;expression.</tt></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="PrettyPrint">class <strong>PrettyPrint</strong></a>(<a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>)</font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="dynamics.html#PrettyPrint">PrettyPrint</a></dd>
+<dd><a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="PrettyPrint-add"><strong>add</strong></a>(self, op1: 'str', op2: 'str') -&gt; 'str'</dt><dd><tt>Adds&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<dl><dt><a name="PrettyPrint-evaluate"><strong>evaluate</strong></a>(self, op: 'ElementaryOperator | ScalarOperator')</dt><dd><tt>Accesses&nbsp;the&nbsp;relevant&nbsp;data&nbsp;to&nbsp;evaluate&nbsp;an&nbsp;operator&nbsp;expression&nbsp;in&nbsp;the&nbsp;leaf&nbsp;<br>
+nodes,&nbsp;that&nbsp;is&nbsp;in&nbsp;elementary&nbsp;and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.</tt></dd></dl>
+
+<dl><dt><a name="PrettyPrint-mul"><strong>mul</strong></a>(self, op1: 'str', op2: 'str') -&gt; 'str'</dt><dd><tt>Multiplies&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<dl><dt><a name="PrettyPrint-tensor"><strong>tensor</strong></a>(self, op1: 'str', op2: 'str') -&gt; 'str'</dt><dd><tt>Computes&nbsp;the&nbsp;tensor&nbsp;product&nbsp;of&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;different&nbsp;<br>
+degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (dynamics.OperatorArithmetics[str],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Data descriptors inherited from <a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="PrettyPrint-__class_getitem__"><strong>__class_getitem__</strong></a>(params)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt></dl>
+
+<dl><dt><a name="PrettyPrint-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt><dd><tt>This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="ProductOperator">class <strong>ProductOperator</strong></a>(<a href="dynamics.html#OperatorSum">OperatorSum</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#ProductOperator">ProductOperator</a>(atomic_operators:&nbsp;'Sequence[<a href="#ElementaryOperator">ElementaryOperator</a>&nbsp;|&nbsp;<a href="#ScalarOperator">ScalarOperator</a>]'&nbsp;=&nbsp;[])&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Represents&nbsp;an&nbsp;operator&nbsp;expression&nbsp;consisting&nbsp;of&nbsp;a&nbsp;product&nbsp;of&nbsp;elementary<br>
+and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="dynamics.html#ProductOperator">ProductOperator</a></dd>
+<dd><a href="dynamics.html#OperatorSum">OperatorSum</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ProductOperator-__add__"><strong>__add__</strong></a>(self: 'ProductOperator', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="ProductOperator-__init__"><strong>__init__</strong></a>(self: 'ProductOperator', atomic_operators: 'Sequence[ElementaryOperator | ScalarOperator]' = []) -&gt; 'None'</dt><dd><tt>Instantiates&nbsp;an&nbsp;operator&nbsp;expression&nbsp;that&nbsp;represents&nbsp;a&nbsp;product&nbsp;of&nbsp;elementary<br>
+or&nbsp;scalar&nbsp;<a href="#operators">operators</a>.<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;atomic_operators:&nbsp;The&nbsp;<a href="#operators">operators</a>&nbsp;of&nbsp;which&nbsp;to&nbsp;compute&nbsp;the&nbsp;product&nbsp;when&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evaluating&nbsp;the&nbsp;operator&nbsp;expression.</tt></dd></dl>
+
+<dl><dt><a name="ProductOperator-__mul__"><strong>__mul__</strong></a>(self: 'ProductOperator', other: 'Any') -&gt; 'ProductOperator'</dt></dl>
+
+<dl><dt><a name="ProductOperator-__radd__"><strong>__radd__</strong></a>(self: 'ProductOperator', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="ProductOperator-__rmul__"><strong>__rmul__</strong></a>(self: 'ProductOperator', other: 'Any') -&gt; 'ProductOperator'</dt></dl>
+
+<dl><dt><a name="ProductOperator-__rsub__"><strong>__rsub__</strong></a>(self: 'ProductOperator', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<dl><dt><a name="ProductOperator-__sub__"><strong>__sub__</strong></a>(self: 'ProductOperator', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<hr>
+Methods inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
+<dl><dt><a name="ProductOperator-__eq__"><strong>__eq__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'bool'</dt><dd><tt>Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;True,&nbsp;if&nbsp;the&nbsp;other&nbsp;value&nbsp;is&nbsp;an&nbsp;<a href="#OperatorSum">OperatorSum</a>&nbsp;with&nbsp;equivalent&nbsp;terms,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;False&nbsp;otherwise.&nbsp;The&nbsp;equality&nbsp;takes&nbsp;into&nbsp;account&nbsp;that&nbsp;operator<br>
+&nbsp;&nbsp;&nbsp;&nbsp;addition&nbsp;is&nbsp;commutative,&nbsp;as&nbsp;is&nbsp;the&nbsp;product&nbsp;of&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;if&nbsp;they<br>
+&nbsp;&nbsp;&nbsp;&nbsp;act&nbsp;on&nbsp;different&nbsp;degrees&nbsp;of&nbsp;freedom.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;equality&nbsp;comparison&nbsp;does&nbsp;*not*&nbsp;take&nbsp;commutation&nbsp;relations&nbsp;into&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;account,&nbsp;and&nbsp;does&nbsp;not&nbsp;try&nbsp;to&nbsp;reorder&nbsp;terms&nbsp;blockwise;&nbsp;it&nbsp;may&nbsp;hence&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;evaluate&nbsp;to&nbsp;False,&nbsp;even&nbsp;if&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;in&nbsp;reality&nbsp;are&nbsp;the&nbsp;same.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;equality&nbsp;evaluates&nbsp;to&nbsp;True,&nbsp;on&nbsp;the&nbsp;other&nbsp;hand,&nbsp;the&nbsp;<a href="#operators">operators</a>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;guaranteed&nbsp;to&nbsp;represent&nbsp;the&nbsp;same&nbsp;transformation&nbsp;for&nbsp;all&nbsp;arguments.</tt></dd></dl>
+
+<dl><dt><a name="ProductOperator-__str__"><strong>__str__</strong></a>(self: 'OperatorSum') -&gt; 'str'</dt><dd><tt>Return&nbsp;str(self).</tt></dd></dl>
+
+<dl><dt><a name="ProductOperator-to_matrix"><strong>to_matrix</strong></a>(self: 'OperatorSum', dimensions: 'Mapping[int, int]', **kwargs: 'NumericType') -&gt; 'NDArray[numpy.complexfloating]'</dt><dd><tt>Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dimensions:&nbsp;A&nbsp;mapping&nbsp;that&nbsp;specifies&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;dimension,&nbsp;of&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;**kwargs:&nbsp;Keyword&nbsp;arguments&nbsp;needed&nbsp;to&nbsp;evaluate&nbsp;the&nbsp;operator.&nbsp;All<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;required&nbsp;parameters&nbsp;and&nbsp;their&nbsp;documentation,&nbsp;if&nbsp;available,&nbsp;can&nbsp;be&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;queried&nbsp;by&nbsp;accessing&nbsp;the&nbsp;`parameter`&nbsp;property.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;matrix&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;expression&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd></dl>
+
+<hr>
+Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
+<dl><dt><strong>degrees</strong></dt>
+<dd><tt>The&nbsp;degrees&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd>
+</dl>
+<dl><dt><strong>parameters</strong></dt>
+<dd><tt>A&nbsp;mapping&nbsp;that&nbsp;contains&nbsp;the&nbsp;documentation&nbsp;comment&nbsp;for&nbsp;each&nbsp;parameter&nbsp;<br>
+needed&nbsp;to&nbsp;evaluate&nbsp;the&nbsp;operator&nbsp;expression.</tt></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="ScalarOperator">class <strong>ScalarOperator</strong></a>(<a href="dynamics.html#ProductOperator">ProductOperator</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#ScalarOperator">ScalarOperator</a>(generator:&nbsp;'Callable[...,&nbsp;NumericType]',&nbsp;parameter_info:&nbsp;'Optional[Callable[[],&nbsp;Mapping[str,&nbsp;str]]]'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Represents&nbsp;a&nbsp;scalar&nbsp;operator&nbsp;defined&nbsp;as&nbsp;a&nbsp;function&nbsp;of&nbsp;zero&nbsp;or&nbsp;more&nbsp;<br>
+complex-valued&nbsp;parameters.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="dynamics.html#ScalarOperator">ScalarOperator</a></dd>
+<dd><a href="dynamics.html#ProductOperator">ProductOperator</a></dd>
+<dd><a href="dynamics.html#OperatorSum">OperatorSum</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ScalarOperator-__add__"><strong>__add__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__eq__"><strong>__eq__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'bool'</dt><dd><tt>Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;True,&nbsp;if&nbsp;the&nbsp;other&nbsp;value&nbsp;is&nbsp;a&nbsp;scalar&nbsp;operator&nbsp;with&nbsp;the&nbsp;same&nbsp;generator.</tt></dd></dl>
+
+<dl><dt><a name="ScalarOperator-__init__"><strong>__init__</strong></a>(self: 'ScalarOperator', generator: 'Callable[..., NumericType]', parameter_info: 'Optional[Callable[[], Mapping[str, str]]]' = None) -&gt; 'None'</dt><dd><tt>Instantiates&nbsp;a&nbsp;scalar&nbsp;operator.<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;generator:&nbsp;The&nbsp;value&nbsp;of&nbsp;the&nbsp;scalar&nbsp;operator&nbsp;as&nbsp;a&nbsp;function&nbsp;of&nbsp;its<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parameters.&nbsp;The&nbsp;generator&nbsp;may&nbsp;take&nbsp;any&nbsp;number&nbsp;of&nbsp;complex-valued<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arguments&nbsp;and&nbsp;must&nbsp;return&nbsp;a&nbsp;number.&nbsp;Each&nbsp;parameter&nbsp;must&nbsp;be&nbsp;passed<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;as&nbsp;a&nbsp;keyword&nbsp;argument&nbsp;when&nbsp;evaluating&nbsp;the&nbsp;operator.</tt></dd></dl>
+
+<dl><dt><a name="ScalarOperator-__mul__"><strong>__mul__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__pow__"><strong>__pow__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__radd__"><strong>__radd__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__rmul__"><strong>__rmul__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__rpow__"><strong>__rpow__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__rsub__"><strong>__rsub__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__rtruediv__"><strong>__rtruediv__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__str__"><strong>__str__</strong></a>(self: 'ScalarOperator') -&gt; 'str'</dt><dd><tt>Return&nbsp;str(self).</tt></dd></dl>
+
+<dl><dt><a name="ScalarOperator-__sub__"><strong>__sub__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-__truediv__"><strong>__truediv__</strong></a>(self: 'ScalarOperator', other: 'Any') -&gt; 'ScalarOperator'</dt></dl>
+
+<dl><dt><a name="ScalarOperator-to_matrix"><strong>to_matrix</strong></a>(self: 'ScalarOperator', dimensions: 'Mapping[int, int]' = {}, **kwargs: 'NumericType') -&gt; 'NDArray[numpy.complexfloating]'</dt><dd><tt>Class&nbsp;method&nbsp;for&nbsp;consistency&nbsp;with&nbsp;other&nbsp;operator&nbsp;classes.<br>
+Invokes&nbsp;the&nbsp;generator&nbsp;with&nbsp;the&nbsp;given&nbsp;keyword&nbsp;arguments.<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dimensions:&nbsp;(unused,&nbsp;passed&nbsp;for&nbsp;consistency)&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;mapping&nbsp;that&nbsp;specifies&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;dimension,&nbsp;of&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;**kwargs:&nbsp;Keyword&nbsp;arguments&nbsp;needed&nbsp;to&nbsp;evaluate&nbsp;the&nbsp;generator.&nbsp;All<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;required&nbsp;parameters&nbsp;and&nbsp;their&nbsp;documentation,&nbsp;if&nbsp;available,&nbsp;can&nbsp;be&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;queried&nbsp;by&nbsp;accessing&nbsp;the&nbsp;`parameter`&nbsp;property.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;scalar&nbsp;value&nbsp;of&nbsp;the&nbsp;operator&nbsp;for&nbsp;the&nbsp;given&nbsp;keyword&nbsp;arguments.</tt></dd></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ScalarOperator-const"><strong>const</strong></a>(constant_value: 'NumericType') -&gt; 'ScalarOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>parameters</strong></dt>
+<dd><tt>A&nbsp;mapping&nbsp;that&nbsp;contains&nbsp;the&nbsp;documentation&nbsp;comment&nbsp;for&nbsp;each&nbsp;parameter&nbsp;<br>
+needed&nbsp;to&nbsp;evaluate&nbsp;the&nbsp;generator.</tt></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>generator</strong></dt>
+<dd><tt>The&nbsp;function&nbsp;that&nbsp;generates&nbsp;the&nbsp;value&nbsp;of&nbsp;the&nbsp;scalar&nbsp;operator.&nbsp;<br>
+The&nbsp;function&nbsp;can&nbsp;take&nbsp;any&nbsp;number&nbsp;of&nbsp;complex-valued&nbsp;arguments<br>
+and&nbsp;returns&nbsp;a&nbsp;number.</tt></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>Definition</strong> = &lt;class 'dynamics.ScalarOperator.Definition'&gt;<dd><tt>Represents&nbsp;the&nbsp;definition&nbsp;of&nbsp;a&nbsp;scalar&nbsp;operator.</tt></dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+<hr>
+Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
+<dl><dt><strong>degrees</strong></dt>
+<dd><tt>The&nbsp;degrees&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd>
+</dl>
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Schedule">class <strong>Schedule</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#Schedule">Schedule</a>(steps:&nbsp;'Iterable[Any]',&nbsp;parameters:&nbsp;'Iterable[str]',&nbsp;get_value:&nbsp;'Callable[[str,&nbsp;Any],&nbsp;NumericType]')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Represents&nbsp;an&nbsp;iterator&nbsp;that&nbsp;produces&nbsp;all&nbsp;values&nbsp;needed&nbsp;for&nbsp;evaluating<br>
+an&nbsp;operator&nbsp;expression&nbsp;at&nbsp;different&nbsp;time&nbsp;steps.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Schedule-__init__"><strong>__init__</strong></a>(self: 'Schedule', steps: 'Iterable[Any]', parameters: 'Iterable[str]', get_value: 'Callable[[str, Any], NumericType]') -&gt; 'None'</dt><dd><tt>Creates&nbsp;a&nbsp;schedule&nbsp;for&nbsp;evaluating&nbsp;an&nbsp;operator&nbsp;expression&nbsp;at&nbsp;different&nbsp;steps.<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;steps:&nbsp;The&nbsp;sequence&nbsp;of&nbsp;steps&nbsp;in&nbsp;the&nbsp;schedule.&nbsp;A&nbsp;step&nbsp;is&nbsp;defined&nbsp;as&nbsp;a&nbsp;value&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;arbitrary&nbsp;type.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;parameters:&nbsp;A&nbsp;sequence&nbsp;of&nbsp;strings&nbsp;representing&nbsp;the&nbsp;parameter&nbsp;names&nbsp;of&nbsp;an&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;operator&nbsp;expression.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;get_value:&nbsp;A&nbsp;function&nbsp;that&nbsp;takes&nbsp;the&nbsp;name&nbsp;of&nbsp;a&nbsp;parameter&nbsp;as&nbsp;well&nbsp;as&nbsp;an&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;additional&nbsp;value&nbsp;("step")&nbsp;of&nbsp;arbitrary&nbsp;type&nbsp;as&nbsp;argument&nbsp;and&nbsp;returns&nbsp;the&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;complex&nbsp;value&nbsp;for&nbsp;that&nbsp;parameter&nbsp;at&nbsp;the&nbsp;given&nbsp;step.</tt></dd></dl>
+
+<dl><dt><a name="Schedule-__iter__"><strong>__iter__</strong></a>(self: 'Schedule') -&gt; 'Schedule'</dt></dl>
+
+<dl><dt><a name="Schedule-__next__"><strong>__next__</strong></a>(self: 'Schedule') -&gt; 'Mapping[str, NumericType]'</dt></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>current_step</strong></dt>
+<dd><tt>The&nbsp;value&nbsp;of&nbsp;the&nbsp;step&nbsp;the&nbsp;Schedule&nbsp;(iterator)&nbsp;is&nbsp;currently&nbsp;at.</tt></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="operators">class <strong>operators</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>#&nbsp;Operators&nbsp;as&nbsp;defined&nbsp;here&nbsp;(watch&nbsp;out&nbsp;of&nbsp;differences&nbsp;in&nbsp;convention):&nbsp;<br>
+#&nbsp;<a href="https://www.dynamiqs.org/python_api/utils/operators/sigmay.html">https://www.dynamiqs.org/python_api/utils/operators/sigmay.html</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Class methods defined here:<br>
+<dl><dt><a name="operators-annihilate"><strong>annihilate</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-const"><strong>const</strong></a>(constant_value: 'NumericType') -&gt; 'ScalarOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-create"><strong>create</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-displace"><strong>displace</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-identity"><strong>identity</strong></a>(degrees: 'list[int] | int' = []) -&gt; 'ScalarOperator | ElementaryOperator | ProductOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-momentum"><strong>momentum</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-number"><strong>number</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-parity"><strong>parity</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-position"><strong>position</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-squeeze"><strong>squeeze</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="operators-zero"><strong>zero</strong></a>(degrees: 'list[int] | int' = []) -&gt; 'ScalarOperator | ElementaryOperator | ProductOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>matrices</strong> = &lt;class 'dynamics.operators.matrices'&gt;</dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="pauli">class <strong>pauli</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Class methods defined here:<br>
+<dl><dt><a name="pauli-i"><strong>i</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="pauli-minus"><strong>minus</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="pauli-plus"><strong>plus</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="pauli-x"><strong>x</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="pauli-y"><strong>y</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<dl><dt><a name="pauli-z"><strong>z</strong></a>(degree: 'int') -&gt; 'ElementaryOperator'<font color="#909090"><font face="helvetica, arial"> from <a href="builtins.html#type">builtins.type</a></font></font></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-all_zero"><strong>all_zero</strong></a>(sure, args)</dt><dd><tt>Some&nbsp;args&nbsp;documentation.<br>
+Args:<br>
+&nbsp;<br>
+&nbsp;&nbsp;sure&nbsp;(:obj:`int`,&nbsp;optional):&nbsp;my&nbsp;docs&nbsp;for&nbsp;sure<br>
+&nbsp;&nbsp;args:&nbsp;Description&nbsp;of&nbsp;`args`.&nbsp;Multiple<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lines&nbsp;are&nbsp;supported.<br>
+Returns:<br>
+&nbsp;&nbsp;Something&nbsp;that&nbsp;for&nbsp;sure&nbsp;is&nbsp;correct.</tt></dd></dl>
+ <dl><dt><a name="-arith"><strong>arith</strong></a> = mul(a, b, /)</dt><dd><tt>Same&nbsp;as&nbsp;a&nbsp;*&nbsp;b.</tt></dd></dl>
+ <dl><dt><strong>gen</strong> <em>lambda</em> (...)</dt></dl>
+ <dl><dt><a name="-generator"><strong>generator</strong></a>(field, **kwargs)</dt></dl>
+ <dl><dt><a name="-get_parameter_value"><strong>get_parameter_value</strong></a>(parameter_name: 'str', time: 'float')</dt></dl>
+ <dl><dt><strong>paulixy</strong> <em>lambda</em> i, j</dt></dl>
+ <dl><dt><strong>paulizy</strong> <em>lambda</em> i, j</dt></dl>
+ <dl><dt><strong>so1_gen2</strong> <em>lambda</em> t</dt></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>Any</strong> = typing.Any<br>
+<strong>Callable</strong> = typing.Callable<br>
+<strong>Generator</strong> = typing.Generator<br>
+<strong>Iterable</strong> = typing.Iterable<br>
+<strong>NDArray</strong> = numpy.ndarray[typing.Any, numpy.dtype[+_ScalarType_co]]<br>
+<strong>NumericType</strong> = numpy.complexfloating | complex | float | int<br>
+<strong>Optional</strong> = typing.Optional<br>
+<strong>TEval</strong> = ~TEval<br>
+<strong>annotations</strong> = _Feature((3, 7, 0, 'beta', 1), (3, 11, 0, 'alpha', 0), 16777216)<br>
+<strong>dims</strong> = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}<br>
+<strong>elop</strong> = &lt;dynamics.ElementaryOperator object&gt;<br>
+<strong>op</strong> = &lt;dynamics.OperatorSum object&gt;<br>
+<strong>op1</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>op10</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>op11</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>op12</strong> = &lt;dynamics.OperatorSum object&gt;<br>
+<strong>op2</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>op3</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>op4</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>op5</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>op6</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>op7</strong> = &lt;dynamics.OperatorSum object&gt;<br>
+<strong>op8</strong> = &lt;dynamics.OperatorSum object&gt;<br>
+<strong>op9</strong> = &lt;dynamics.OperatorSum object&gt;<br>
+<strong>opprod</strong> = &lt;dynamics.ProductOperator object&gt;<br>
+<strong>opsum</strong> = &lt;dynamics.OperatorSum object&gt;<br>
+<strong>parameters</strong> = {'bar': 2.0, 'foo': 1.0}<br>
+<strong>schedule</strong> = &lt;dynamics.Schedule object&gt;<br>
+<strong>scop</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so0</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so1</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so10</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so11</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so2</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so3</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so4</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so5</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so6</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so7</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so8</strong> = &lt;dynamics.ScalarOperator object&gt;<br>
+<strong>so9</strong> = &lt;dynamics.ScalarOperator object&gt;</td></tr></table>
+</body></html>
