@@ -38,8 +38,8 @@ void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
 static std::string OQCbasis[] = {
-      // TODO: make this our native gate set
-      "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+    // TODO: make this our native gate set
+    "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
 };
 
 static std::string IQMbasis[] = {

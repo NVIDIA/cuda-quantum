@@ -281,8 +281,7 @@ public:
             "," + config.BackendConfig->PlatformLoweringConfig;
       }
       if (!config.BackendConfig->GateSet.empty()) {
-        cudaq::info("Set gate set: {}",
-                    config.BackendConfig->GateSet);
+        cudaq::info("Set gate set: {}", config.BackendConfig->GateSet);
         gateSet = config.BackendConfig->GateSet;
       }
       if (!config.BackendConfig->QubitMapping.empty()) {
@@ -410,7 +409,18 @@ public:
         moduleOpIn.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
         pm.enableIRPrinting();
-      cudaq::opt::commonLoweringPipeline(pm, gateSet, codegenTranslation);
+      if (failed(pm.run(moduleOpIn)))
+        throw std::runtime_error("Remote rest platform pass pipeline failed.");
+    };
+
+    auto runLoweringPipeline = [&](mlir::ModuleOp moduleOpIn) {
+      mlir::PassManager pm(&context);
+      if (disableMLIRthreading || enablePrintMLIREachPass)
+        moduleOpIn.getContext()->disableMultithreading();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
+      cudaq::opt::commonLoweringPipeline(pm, gateSet, qubitMapping,
+                                         codegenTranslation);
       if (failed(pm.run(moduleOpIn)))
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
@@ -428,7 +438,7 @@ public:
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
 
-    runPassPipeline(passPipelineConfig, moduleOp);
+    runLoweringPipeline(moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
         std::string("__nvqpp__mlirgen__") + kernelName);
@@ -482,7 +492,7 @@ public:
           pm.enableIRPrinting();
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
-        runPassPipeline(passPipelineConfig, tmpModuleOp);
+        runLoweringPipeline(tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else
@@ -496,7 +506,7 @@ public:
       for (auto &[name, module] : modules) {
         auto clonedModule = module.clone();
         jitEngines.emplace_back(
-            cudaq::createQIRJITEngine(clonedModule, codegenTranslation, qubitMapping));
+            cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
       }
     }
 
@@ -512,7 +522,7 @@ public:
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
-                               enablePrintMLIREachPass, qubitMapping)))
+                               enablePrintMLIREachPass)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }

@@ -165,18 +165,18 @@ int main(int argc, char **argv) {
       .Case("qir", [&]() { cudaq::opt::addPipelineConvertToQIR(pm); })
       .Cases("qir-adaptive", "qir-base",
              [&]() {
-               cudaq::opt::addPipelineConvertToQIR(pm, convertTo.getValue(), std::nullopt);
+               cudaq::opt::addPipelineConvertToQIR(pm, convertTo.getValue());
              })
       .Case("openqasm2",
             [&]() {
               targetUsesLlvm = false;
-              cudaq::opt::addPipelineTranslateToOpenQASM(pm, std::nullopt);
+              cudaq::opt::addPipelineTranslateToOpenQASM(pm);
               targetAction = qasmAction;
             })
       .Case("iqm",
             [&]() {
               targetUsesLlvm = false;
-              cudaq::opt::addPipelineTranslateToIQMJson(pm, std::nullopt);
+              cudaq::opt::addPipelineTranslateToIQMJson(pm);
               targetAction = iqmAction;
             })
       .Default([]() {})();

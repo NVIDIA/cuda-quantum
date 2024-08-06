@@ -352,13 +352,11 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
 /// @param additionalPasses Additional passes to run at the end
 /// @param printIR Print IR to `stderr`
 /// @param printIntermediateMLIR Print IR in between each pass
-/// @param mapping Perform qubit mapping
 mlir::LogicalResult
 qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
                               llvm::raw_string_ostream &output,
                               const std::string &additionalPasses, bool printIR,
-                              bool printIntermediateMLIR,
-                              std::optional<llvm::StringRef> mapping) {
+                              bool printIntermediateMLIR) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   const std::uint32_t qir_major_version = 1;
@@ -373,7 +371,7 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
     pm.enableIRPrinting();
   std::string errMsg;
   llvm::raw_string_ostream errOs(errMsg);
-  cudaq::opt::addPipelineConvertToQIR(pm, qirProfile, mapping);
+  cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&
       failed(parsePassPipeline(additionalPasses, pm, errOs)))
@@ -470,11 +468,10 @@ void registerToQIRTranslation() {
       _profile, "translate from quake to " _profile,                           \
       [](mlir::Operation *op, llvm::raw_string_ostream &output,                \
          const std::string &additionalPasses, bool printIR,                    \
-         bool printIntermediateMLIR,                                           \
-         std::optional<llvm::StringRef> mapping) {                             \
+         bool printIntermediateMLIR) {                                         \
         return qirProfileTranslationFunction(_profile, op, output,             \
                                              additionalPasses, printIR,        \
-                                             printIntermediateMLIR, mapping);  \
+                                             printIntermediateMLIR);           \
       })
 
   // Base Profile and Adaptive Profile are very similar, so they use the same
@@ -489,13 +486,12 @@ void registerToOpenQASMTranslation() {
       "qasm2", "translate from quake to openQASM 2.0",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
-         bool printIntermediateMLIR,
-         std::optional<llvm::StringRef> mapping) {
+         bool printIntermediateMLIR) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "qasm2 translation");
         mlir::PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
-        cudaq::opt::addPipelineTranslateToOpenQASM(pm, mapping);
+        cudaq::opt::addPipelineTranslateToOpenQASM(pm);
         mlir::DefaultTimingManager tm;
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
@@ -519,13 +515,12 @@ void registerToIQMJsonTranslation() {
       "iqm", "translate from quake to IQM's json format",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
-         bool printIntermediateMLIR,
-         std::optional<llvm::StringRef> mapping) {
+         bool printIntermediateMLIR) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "iqm translation");
         mlir::PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
-        cudaq::opt::addPipelineTranslateToIQMJson(pm, mapping);
+        cudaq::opt::addPipelineTranslateToIQMJson(pm);
         mlir::DefaultTimingManager tm;
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
@@ -545,8 +540,7 @@ void registerToIQMJsonTranslation() {
 }
 
 mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo,
-                                          const std::optional<llvm::StringRef> &mapping) {
+                                          llvm::StringRef convertTo) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
@@ -558,13 +552,11 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
 
-  llvm::outs() << mapping.value() << "\n";
-
   mlir::ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
   opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
   opts.llvmModuleBuilder =
-      [convertTo = convertTo.str(), mapping](
+      [convertTo = convertTo.str()](
           mlir::Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
@@ -579,7 +571,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     // Even though we're not lowering all the way to a real QIR profile for this
     // emulated path, we need to pass in the `convertTo` in order to mimic what
     // the non-emulated path would do.
-    cudaq::opt::commonPipelineConvertToQIR(pm, convertTo, mapping);
+    cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
     mlir::DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
