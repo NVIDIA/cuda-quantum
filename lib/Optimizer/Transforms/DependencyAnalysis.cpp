@@ -218,10 +218,19 @@ protected:
     if (hasCodeGen || isRoot() || isLeaf())
       return;
 
-    if (!quantumOp)
-      for (auto dependency : dependencies)
-        if (!dependency->hasCodeGen)
-          return;
+    hasCodeGen = true;
+
+    if (!quantumOp) {
+      for (auto dependency : dependencies) {
+        if (!dependency->hasCodeGen) {
+          if (dependency->isQuantumDependent())
+            // Wait for quantum op dependency to be codeGen'ed
+            return;
+          else
+            dependency->codeGen(builder);
+        }
+      }
+    }
 
     auto oldOp = associated;
     SmallVector<mlir::Value> operands(oldOp->getNumOperands());
@@ -247,7 +256,6 @@ protected:
                           oldOp->getResultTypes(), operands, oldOp->getAttrs());
     associated->removeAttr("dnodeid");
     builder.insert(associated);
-    hasCodeGen = true;
 
     for (auto successor : successors)
       // Ensure classical values are generated
