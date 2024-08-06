@@ -12,7 +12,7 @@ SHELL ["/bin/bash", "-c"]
 
 ARG python_version=3.11
 ARG pip_install_flags=""
-ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11 ipie openfermion"
+ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
