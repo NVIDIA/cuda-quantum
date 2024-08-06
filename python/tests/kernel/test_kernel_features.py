@@ -1620,57 +1620,58 @@ def test_capture_opaque_kernel():
     assert len(counts) == 2 and '00' in counts and '11' in counts
 
     counts = cudaq.sample(kd)
-    assert len(counts) == 2 and '0' in counts and '1' in counts 
-    
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
+
 def test_custom_classical_kernel_type():
     from dataclasses import dataclass
 
     @dataclass
     class CustomIntAndFloatType:
-        integer : int 
-        floatingPoint : float 
-    
+        integer: int
+        floatingPoint: float
+
     instance = CustomIntAndFloatType(123, 123.123)
     assert instance.integer == 123 and instance.floatingPoint == 123.123
 
     @cudaq.kernel
-    def test(input : CustomIntAndFloatType):
+    def test(input: CustomIntAndFloatType):
         qubits = cudaq.qvector(input.integer)
         ry(input.floatingPoint, qubits[0])
         rx(input.floatingPoint * 2, qubits[0])
         x.ctrl(qubits[0], qubits[1])
-    
-    instance = CustomIntAndFloatType(2, np.pi/2.)
+
+    instance = CustomIntAndFloatType(2, np.pi / 2.)
     counts = cudaq.sample(test, instance)
     counts.dump()
-    assert len(counts) == 2 and '00' in counts and '11' in counts 
+    assert len(counts) == 2 and '00' in counts and '11' in counts
 
     @dataclass
     class CustomIntAndListFloat:
-        integer: int 
-        array : List[float]
-
+        integer: int
+        array: List[float]
 
     @cudaq.kernel
-    def test(input : CustomIntAndListFloat):
+    def test(input: CustomIntAndListFloat):
         qubits = cudaq.qvector(input.integer)
         ry(input.array[0], qubits[0])
         rx(input.array[1], qubits[0])
         x.ctrl(qubits[0], qubits[1])
 
     print(test)
-    instance = CustomIntAndListFloat(2, [np.pi/2., np.pi])
+    instance = CustomIntAndListFloat(2, [np.pi / 2., np.pi])
     counts = cudaq.sample(test, instance)
     counts.dump()
-    assert len(counts) == 2 and '00' in counts and '11' in counts 
-    
-    # Test that the class can be in a library 
-    # and the paths all work out 
+    assert len(counts) == 2 and '00' in counts and '11' in counts
+
+    # Test that the class can be in a library
+    # and the paths all work out
     from mock.hello import TestClass
+
     @cudaq.kernel
-    def test(input : TestClass):
+    def test(input: TestClass):
         q = cudaq.qvector(input.i)
-    
+
     instance = TestClass(2, 2.2)
     state = cudaq.get_state(test, instance)
     state.dump()
@@ -1679,36 +1680,36 @@ def test_custom_classical_kernel_type():
 
     # Test invalid struct member
     @cudaq.kernel
-    def test(input : TestClass):
-        local = input.helloBadMember 
-    
+    def test(input: TestClass):
+        local = input.helloBadMember
+
     with pytest.raises(RuntimeError) as e:
         test.compile()
 
 
-
 def test_custom_quantum_type():
     from dataclasses import dataclass
+
     @dataclass
     class patch:
-        data : cudaq.qview 
-        ancx : cudaq.qview 
-        ancz : cudaq.qview 
-    
+        data: cudaq.qview
+        ancx: cudaq.qview
+        ancz: cudaq.qview
+
     @cudaq.kernel
-    def logicalH(p : patch):
+    def logicalH(p: patch):
         h(p.data)
-    
+
     # print(logicalH)
-    @cudaq.kernel 
-    def logicalX(p : patch):
+    @cudaq.kernel
+    def logicalX(p: patch):
         x(p.ancx)
 
-    @cudaq.kernel 
-    def logicalZ(p : patch):
+    @cudaq.kernel
+    def logicalZ(p: patch):
         z(p.ancz)
 
-    @cudaq.kernel# (verbose=True)
+    @cudaq.kernel  # (verbose=True)
     def run():
         q = cudaq.qvector(2)
         r = cudaq.qvector(2)
@@ -1718,12 +1719,12 @@ def test_custom_quantum_type():
         logicalH(p)
         logicalX(p)
         logicalZ(p)
-    
+
     # Test here is that it compiles and runs successfully
     print(run)
     run()
 
-   
+
 @skipIfPythonLessThan39
 def test_issue_9():
 
@@ -1796,6 +1797,38 @@ def test_control_then_adjoint():
     theta = 1.5
     # test here is that this compiles and runs
     cudaq.sample(kernel, theta).dump()
+
+
+def test_numpy_functions():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        h(q)
+        rx(np.pi, q[0])
+        ry(np.e, q[1])
+        rz(np.euler_gamma, q[2])
+
+    # test here is that this compiles and runs
+    cudaq.sample(kernel).dump()
+
+    @cudaq.kernel
+    def valid_unsupported():
+        q = cudaq.qubit()
+        h(q)
+        r1(np.inf, q)
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(valid_unsupported)
+
+    @cudaq.kernel
+    def invalid_unsupported():
+        q = cudaq.qubit()
+        h(q)
+        r1(np.foo, q)
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(invalid_unsupported)
 
 
 # leave for gdb debugging
