@@ -16,7 +16,7 @@ func.func @test1() attributes {"cudaq-kernel"} {
   return
 }
 
-// CHECK-LABEL:   func.func @test1() {
+// CHECK-LABEL:   func.func @test1() attributes {"cudaq-kernel"} {
 // CHECK:           return
 // CHECK:         }
 
@@ -30,7 +30,7 @@ func.func @test2() attributes {"cudaq-kernel"} {
   return
 }
 
-// CHECK-LABEL:   func.func @test2() {
+// CHECK-LABEL:   func.func @test2() attributes {"cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = quake.null_wire
 // CHECK-DAG:       %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]]:2 = quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
