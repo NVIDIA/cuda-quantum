@@ -37,7 +37,6 @@ def validate(notebook_filename, available_backends):
         for match in matches:
             backend = match[0] if match[0] else match[1]
             if backend not in available_backends:
-                print(notebook_filename)
                 return False
     return True
 
