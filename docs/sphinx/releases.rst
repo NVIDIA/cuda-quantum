@@ -13,7 +13,7 @@ The latest version of CUDA-Q is on the main branch of our `GitHub repository <ht
 **0.8.0**
 
 The 0.8.0 release adds a range of changes to improve the ease of use and performance with CUDA-Q. 
-The changes listed below highlight some of what we think will be most useful features and changes 
+The changes listed below highlight some of what we think will be the most useful features and changes 
 to know about. While the listed changes do not capture all of the great contributions, we would like 
 to extend many thanks for every contribution, in particular those from external contributors.
 
