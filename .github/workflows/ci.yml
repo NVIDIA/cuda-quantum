@@ -36,17 +36,26 @@ jobs:
       llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
+      actor_lower: ${{ steps.set_actor_lower.outputs.actor_lower }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set GitHub Actor to Lowercase
+        id: set_actor_lower
+        run: |
+          actor_lower=$(echo '${{ github.actor }}' | tr '[:upper:]' '[:lower:]')
+          echo "actor_lower=$actor_lower"
+          echo "ACTOR_LOWER=$actor_lower" >> $GITHUB_ENV
+          echo "actor_lower=$actor_lower" >> $GITHUB_OUTPUT 
+      
       - id: config
         run: |
           platforms="{}"
           for platform_id in amd64 arm64; do
-            if [ "$platform_id" == "amd64" ]; then minimal_base_image=ghcr.io/nvidia/amd64/almalinux:8
-            elif [ "$platform_id" == "arm64" ]; then minimal_base_image=ghcr.io/nvidia/arm64v8/almalinux:8
+            if [ "$platform_id" == "amd64" ]; then minimal_base_image=ghcr.io/${ACTOR_LOWER}/amd64/almalinux:8
+            elif [ "$platform_id" == "arm64" ]; then minimal_base_image=ghcr.io/${ACTOR_LOWER}/arm64v8/almalinux:8
             fi
             platform={\"$platform_id\":{\"minimal_base_image\":\"$minimal_base_image\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`
@@ -109,7 +118,7 @@ jobs:
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
-        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        base_image=ghcr.io/${{ needs.metadata.outputs.actor_lower }}/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}

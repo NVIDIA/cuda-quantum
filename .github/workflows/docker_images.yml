@@ -45,6 +45,7 @@ jobs:
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
       push_to_ngc: ${{ steps.info.outputs.push_to_ngc }}
+      actor_lower: ${{ steps.set_actor_lower.outputs.actor_lower }}
 
     # Needed to define metadata depending on whether an environment secret is defined.
     environment:
@@ -73,6 +74,15 @@ jobs:
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Set GitHub Actor to Lowercase
+        id: set_actor_lower
+        run: |
+          actor_lower=$(echo '${{ github.actor }}' | tr '[:upper:]' '[:lower:]')
+          echo "actor_lower=$actor_lower"
+          echo "ACTOR_LOWER=$actor_lower" >> $GITHUB_ENV
+          echo "actor_lower=$actor_lower" >> $GITHUB_OUTPUT 
+      
 
   ompi_image:
     name: open-mpi
@@ -147,7 +157,12 @@ jobs:
 
       - name: Set up context for buildx
         run: |
-          docker context create builder_context
+          if ! docker context inspect builder_context > /dev/null 2>&1; then
+            echo "Context 'builder_context' does not exist. Creating it..."
+            docker context create builder_context
+          else
+            echo "Context 'builder_context' already exists. No need to create."
+          fi
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
@@ -284,7 +299,12 @@ jobs:
 
       - name: Set up context for buildx
         run: |
-          docker context create builder_context
+          if ! docker context inspect builder_context > /dev/null 2>&1; then
+            echo "Context 'builder_context' does not exist. Creating it..."
+            docker context create builder_context
+          else
+            echo "Context 'builder_context' already exists. No need to create."
+          fi
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
@@ -414,7 +434,7 @@ jobs:
         id: prereqs
         run: |
           if ${{ needs.ompi_image.result == 'skipped' }}; then
-            base_image=ghcr.io/nvidia/ubuntu:22.04
+            base_image=ghcr.io/${{ needs.metadata.outputs.actor_lower }}/ubuntu:22.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
@@ -485,7 +505,12 @@ jobs:
 
       - name: Set up context for buildx
         run: |
-          docker context create builder_context
+          if ! docker context inspect builder_context > /dev/null 2>&1; then
+            echo "Context 'builder_context' does not exist. Creating it..."
+            docker context create builder_context
+          else
+            echo "Context 'builder_context' already exists. No need to create."
+          fi
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
