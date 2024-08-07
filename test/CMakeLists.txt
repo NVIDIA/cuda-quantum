@@ -36,6 +36,7 @@ set(NVQPP_TEST_DEPENDS
     FileCheck
 
     test_argument_conversion
+    CustomPassPlugin
 )
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   set(NVQPP_TEST_DEPENDS ${NVQPP_TEST_DEPENDS}
