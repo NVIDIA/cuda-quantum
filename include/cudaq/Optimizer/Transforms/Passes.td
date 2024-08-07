@@ -761,4 +761,14 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
+def WiresToWiresets : Pass<"wires-to-wiresets", "mlir::ModuleOp"> {
+  let summary = "Replaces wires with wires from a wireset";
+  let description = [{
+    Replaces all instances of `quake.null_wire_op` with `quake.borrow_wire_op`s
+    from a common `quake.wireset` without any topological information.
+    Each wire is assigned a unique identifier (the index into the wireset)
+    through this process.
+  }];
+}
+
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
