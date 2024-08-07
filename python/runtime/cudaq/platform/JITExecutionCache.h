@@ -35,7 +35,7 @@ protected:
   std::mutex mutex;
 
 public:
-  JITExecutionCache();
+  JITExecutionCache() = default;
   ~JITExecutionCache();
 
   void cache(std::size_t hash, ExecutionEngine *);
