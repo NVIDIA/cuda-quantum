@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --wires-to-wireset %s | FileCheck %s
+func.func @__nvqpp__mlirgen__run_test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
+  cc.if(%2) {
+    %3 = quake.null_wire
+    %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+    %measOut_0, %wires_1 = quake.mz %4 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.sink %wires_1 : !quake.wire
+  } else {
+  }
+  quake.sink %wires : !quake.wire
+  return
+}
+
+// CHECK:       quake.wire_set
+// CHECK-NOT:   quake.null_wire
+// CHECK-NOT:   quake.sink
+// CHECK:       quake.borrow_wire
+// CHECK:       quake.borrow_wire
+// CHECK:       quake.return_wire
+// CHECK:       quake.return_wire
