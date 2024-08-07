@@ -21,19 +21,14 @@ namespace cudaq {
 class JITExecutionCache {
 protected:
   // Implement a Least Recently Used cache based on the JIT hash.
-  struct LRUNodeType {
-    LRUNodeType *prev = nullptr;
-    LRUNodeType *next = nullptr;
-    std::size_t hash = 0;
-  };
-  LRUNodeType lruListHead;
+  std::list<std::size_t> lruList;
 
   // A given JIT hash has an associated MapItemType, which contains pointers to
-  // the execution engine and to the LRU node that is used to track which engine
-  // is the least recently used.
+  // the execution engine and to the LRU iterator that is used to track which
+  // engine is the least recently used.
   struct MapItemType {
     ExecutionEngine *execEngine = nullptr;
-    LRUNodeType *lruNode = nullptr;
+    std::list<std::size_t>::iterator lruListIt;
   };
   std::unordered_map<std::size_t, MapItemType> cacheMap;
 
