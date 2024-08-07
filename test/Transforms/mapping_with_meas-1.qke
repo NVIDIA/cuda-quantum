@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --qubit-mapping=device=path %s | FileCheck %s
+// RUN: cudaq-opt --qubit-mapping=device=path\(3\) %s | FileCheck %s
 module {
   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = quake.null_wire

@@ -610,11 +610,9 @@ def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
     operations. It will throw an error if any memory reference semantics are
     present on quantum operations.
 
-    Note 2: this pass can introduce ancilla qubits.
-
-    Note 3: as a result of note 2, if the IR contains no measurements, this pass
-    will inject measurements so that the post-mapping measurements correspond
-    to all of the input (user) qubits.
+    Note 2: If the IR contains no measurements, this pass will inject
+    measurements so that the post-mapping measurements correspond to all of the
+    input (user) qubits.
   }];
 
   let options = [

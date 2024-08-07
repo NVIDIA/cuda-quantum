@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --qubit-mapping=device=path %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=path\(10\) %s | CircuitCheck --up-to-mapping %s
 
 func.func @test_00() {
   %0 = quake.null_wire

@@ -707,14 +707,12 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     std::size_t y = deviceDim[1];
     std::size_t deviceNumQubits = deviceTopoType == Grid ? x * y : x;
 
-    if (deviceNumQubits && sources.size() > deviceNumQubits) {
+    if (sources.size() > deviceNumQubits) {
+      func.emitOpError("Too many qubits [" + std::to_string(sources.size()) +
+                       "] for device [" + std::to_string(deviceNumQubits) +
+                       "]");
       signalPassFailure();
       return;
-    }
-
-    if (!deviceNumQubits) {
-      x = deviceTopoType == Grid ? std::sqrt(sources.size()) : sources.size();
-      y = x;
     }
 
     // These are captured in the user help (device options in Passes.td), so if
@@ -737,7 +735,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       return;
     }
 
-    getAdjacencyFromDevice(d, func.getContext());
+    // getAdjacencyFromDevice(d, func.getContext());
 
     LLVM_DEBUG({ d.dump(); });
 
@@ -876,8 +874,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // this pass), run something like this:
     //   for (int v = 0; v < numQubits; v++)
     //     dataForOriginalQubit[v] = dataFromBackendQubit[mapping_v2p[v]];
-    llvm::SmallVector<Attribute> attrs(numOrigQubits);
-    for (unsigned int v = 0; v < numOrigQubits; v++)
+    llvm::SmallVector<Attribute> attrs(sources.size());
+    for (unsigned int v = 0; v < sources.size(); v++)
       attrs[v] =
           IntegerAttr::get(builder.getIntegerType(64),
                            placement.getPhy(Placement::VirtualQ(v)).index);

@@ -29,7 +29,7 @@ module {
   }
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghzILm2EE() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [0], mapping_v2p = [2, 1]} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghzILm2EE() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [0], mapping_v2p = [2, 1, 0, 3, 4]} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64

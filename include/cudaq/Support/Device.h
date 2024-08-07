@@ -105,7 +105,8 @@ public:
     Device device;
     device.topology.createNode();
     for (unsigned i = 0u; i < numQubits; ++i) {
-      device.topology.createNode();
+      if (i < numQubits - 1)
+        device.topology.createNode();
       device.topology.addEdge(Qubit(i), Qubit((i + 1) % numQubits));
     }
     device.computeAllPairShortestPaths();
