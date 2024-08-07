@@ -23,10 +23,19 @@ func.func @__nvqpp__mlirgen__run_test() attributes {"cudaq-entrypoint", "cudaq-k
   return
 }
 
-// CHECK:       quake.wire_set
-// CHECK-NOT:   quake.null_wire
-// CHECK-NOT:   quake.sink
-// CHECK:       quake.borrow_wire
-// CHECK:       quake.borrow_wire
-// CHECK:       quake.return_wire
-// CHECK:       quake.return_wire
+// CHECK-LABEL:   quake.wire_set @wires[2147483647]
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__run_test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_4]]) {
+// CHECK:             %[[VAL_5:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:             %[[VAL_6:.*]] = quake.h %[[VAL_5]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_6]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:             quake.return_wire %[[VAL_8]] : !quake.wire
+// CHECK:           }
+// CHECK:           quake.return_wire %[[VAL_3]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
