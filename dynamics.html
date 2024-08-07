@@ -49,7 +49,8 @@
 <dt><font face="helvetica, arial"><a href="builtins.html#object">builtins.object</a>
 </font></dt><dd>
 <dl>
-<dt><font face="helvetica, arial"><a href="dynamics.html#EvolveResult">EvolveResult</a>
+<dt><font face="helvetica, arial"><a href="dynamics.html#AsyncEvolveResult">AsyncEvolveResult</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#EvolveResult">EvolveResult</a>
 </font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#OperatorSum">OperatorSum</a>
 </font></dt><dd>
 <dl>
@@ -86,6 +87,38 @@
 </dd>
 </dl>
  <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="AsyncEvolveResult">class <strong>AsyncEvolveResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#AsyncEvolveResult">AsyncEvolveResult</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Stores&nbsp;the&nbsp;execution&nbsp;data&nbsp;from&nbsp;an&nbsp;invocation&nbsp;of&nbsp;`cudaq.evolve_async`.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="AsyncEvolveResult-__init__"><strong>__init__</strong></a>(handle: 'str') -&gt; 'None'</dt><dd><tt>Creates&nbsp;a&nbsp;class&nbsp;instance&nbsp;that&nbsp;can&nbsp;be&nbsp;used&nbsp;to&nbsp;retrieve&nbsp;the&nbsp;evolution<br>
+result&nbsp;produces&nbsp;by&nbsp;an&nbsp;calling&nbsp;the&nbsp;asynchronously&nbsp;executing&nbsp;function<br>
+`cudaq.evolve_async`.&nbsp;It&nbsp;models&nbsp;a&nbsp;future-like&nbsp;type&nbsp;whose&nbsp;<br>
+`<a href="#EvolveResult">EvolveResult</a>`&nbsp;may&nbsp;be&nbsp;accessed&nbsp;via&nbsp;an&nbsp;invocation&nbsp;of&nbsp;the&nbsp;`get`<br>
+method.</tt></dd></dl>
+
+<dl><dt><a name="AsyncEvolveResult-__str__"><strong>__str__</strong></a>(self: 'AsyncEvolveResult') -&gt; 'str'</dt><dd><tt>Return&nbsp;str(self).</tt></dd></dl>
+
+<dl><dt><a name="AsyncEvolveResult-get"><strong>get</strong></a>(self: 'AsyncEvolveResult') -&gt; 'EvolutionResult'</dt><dd><tt>Retrieves&nbsp;the&nbsp;`<a href="#EvolveResult">EvolveResult</a>`&nbsp;from&nbsp;the&nbsp;asynchronous&nbsp;evolve&nbsp;execution.<br>
+This&nbsp;causes&nbsp;the&nbsp;current&nbsp;thread&nbsp;to&nbsp;wait&nbsp;until&nbsp;the&nbsp;time&nbsp;evolution<br>
+execution&nbsp;has&nbsp;completed.</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table> <p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#ffc8d8">
 <td colspan=3 valign=bottom>&nbsp;<br>
@@ -836,35 +869,15 @@ Data descriptors defined here:<br>
 <font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
     
 <tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
-<td width="100%"><dl><dt><a name="-evolve"><strong>evolve</strong></a>(hamiltonian: 'Operator', dimensions: 'Mapping[int, int]', schedule: 'Schedule', initial_state: 'cudaq.State | Iterable[cudaq.States]', collapse_operators: 'Iterable[Operator]' = [], observables: 'Iterable[Operator]' = [], store_intermediate_results=False) -&gt; 'EvolveResult | Iterable[EvolveResult]'</dt><dd><tt>Computes&nbsp;the&nbsp;time&nbsp;evolution&nbsp;of&nbsp;one&nbsp;or&nbsp;more&nbsp;initial&nbsp;state(s)&nbsp;under&nbsp;the&nbsp;defined&nbsp;<br>
-<a href="#operators">operators</a>.&nbsp;<br>
-&nbsp;<br>
-Arguments:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;hamiltonian:&nbsp;Operator&nbsp;that&nbsp;describes&nbsp;the&nbsp;behavior&nbsp;of&nbsp;a&nbsp;quantum&nbsp;system<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;without&nbsp;noise.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;dimensions:&nbsp;A&nbsp;mapping&nbsp;that&nbsp;specifies&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;dimension,&nbsp;of&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;that&nbsp;any&nbsp;of&nbsp;the&nbsp;operator&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arguments&nbsp;acts&nbsp;on.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;schedule:&nbsp;An&nbsp;iterable&nbsp;that&nbsp;generates&nbsp;a&nbsp;mapping&nbsp;of&nbsp;keyword&nbsp;arguments&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;their&nbsp;respective&nbsp;value.&nbsp;The&nbsp;keyword&nbsp;arguments&nbsp;are&nbsp;the&nbsp;parameters<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;needed&nbsp;to&nbsp;evaluate&nbsp;any&nbsp;of&nbsp;the&nbsp;<a href="#operators">operators</a>&nbsp;passed&nbsp;to&nbsp;`evolve`.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All&nbsp;required&nbsp;parameters&nbsp;for&nbsp;evaluating&nbsp;an&nbsp;operator&nbsp;and&nbsp;their<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;documentation,&nbsp;if&nbsp;available,&nbsp;can&nbsp;be&nbsp;queried&nbsp;by&nbsp;accessing&nbsp;the<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`parameter`&nbsp;property&nbsp;of&nbsp;the&nbsp;operator.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;initial_state:&nbsp;A&nbsp;single&nbsp;state&nbsp;or&nbsp;a&nbsp;sequence&nbsp;of&nbsp;states&nbsp;of&nbsp;a&nbsp;quantum&nbsp;system.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;collapse_operators:&nbsp;A&nbsp;sequence&nbsp;of&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;describe&nbsp;the&nbsp;influence&nbsp;of&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noise&nbsp;on&nbsp;the&nbsp;quantum&nbsp;system.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;observables:&nbsp;A&nbsp;sequence&nbsp;of&nbsp;<a href="#operators">operators</a>&nbsp;for&nbsp;which&nbsp;to&nbsp;compute&nbsp;their&nbsp;expectation<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;during&nbsp;evolution.&nbsp;If&nbsp;`store_intermediate_results`&nbsp;is&nbsp;set&nbsp;to&nbsp;True,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;expectation&nbsp;values&nbsp;are&nbsp;computed&nbsp;after&nbsp;each&nbsp;step&nbsp;in&nbsp;the&nbsp;schedule,&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;otherwise&nbsp;only&nbsp;the&nbsp;final&nbsp;expectation&nbsp;values&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evolution&nbsp;are&nbsp;computed.<br>
+<td width="100%"><dl><dt><a name="-evolve"><strong>evolve</strong></a>(hamiltonian: 'Operator', dimensions: 'Mapping[int, int]', schedule: 'Schedule', initial_state: 'cudaq.State | Iterable[cudaq.States]', collapse_operators: 'Iterable[Operator]' = [], observables: 'Iterable[Operator]' = [], store_intermediate_results=False) -&gt; 'AsyncEvolveResult | Iterable[AsyncEvolveResult]'</dt><dd><tt>Asynchronously&nbsp;computes&nbsp;the&nbsp;time&nbsp;evolution&nbsp;of&nbsp;one&nbsp;or&nbsp;more&nbsp;initial&nbsp;state(s)&nbsp;<br>
+under&nbsp;the&nbsp;defined&nbsp;<a href="#operators">operators</a>.&nbsp;See&nbsp;`cudaq.evolve`&nbsp;for&nbsp;more&nbsp;details&nbsp;about&nbsp;the<br>
+parameters&nbsp;passed&nbsp;here.<br>
 &nbsp;<br>
 Returns:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;single&nbsp;evolution&nbsp;result&nbsp;if&nbsp;a&nbsp;single&nbsp;initial&nbsp;state&nbsp;is&nbsp;provided,&nbsp;or&nbsp;a&nbsp;sequence<br>
-&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;evolution&nbsp;results&nbsp;representing&nbsp;the&nbsp;data&nbsp;computed&nbsp;during&nbsp;the&nbsp;evolution&nbsp;of&nbsp;each<br>
-&nbsp;&nbsp;&nbsp;&nbsp;initial&nbsp;state.&nbsp;See&nbsp;the&nbsp;`EvolutionResult`&nbsp;for&nbsp;more&nbsp;information&nbsp;about&nbsp;the&nbsp;data&nbsp;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;computed&nbsp;during&nbsp;evolution.</tt></dd></dl>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;handle&nbsp;to&nbsp;a&nbsp;single&nbsp;evolution&nbsp;result&nbsp;if&nbsp;a&nbsp;single&nbsp;initial&nbsp;state&nbsp;is&nbsp;provided,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;or&nbsp;a&nbsp;sequence&nbsp;of&nbsp;handles&nbsp;to&nbsp;the&nbsp;evolution&nbsp;results&nbsp;representing&nbsp;the&nbsp;data&nbsp;computed&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;during&nbsp;the&nbsp;evolution&nbsp;of&nbsp;each&nbsp;initial&nbsp;state.&nbsp;See&nbsp;the&nbsp;`<a href="#EvolveResult">EvolveResult</a>`&nbsp;for&nbsp;more&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;information&nbsp;about&nbsp;the&nbsp;data&nbsp;computed&nbsp;during&nbsp;evolution.</tt></dd></dl>
 </td></tr></table><p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#55aa55">

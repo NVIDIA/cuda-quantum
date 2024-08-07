@@ -98,6 +98,33 @@ class EvolveResult:
         """
         return self._final_expectation
 
+# To be implemented in C++ and bindings will be generated.
+class AsyncEvolveResult:
+    """
+    Stores the execution data from an invocation of `cudaq.evolve_async`.
+    """
+
+    def __init__(handle: str) -> None:
+        """
+        Creates a class instance that can be used to retrieve the evolution
+        result produces by an calling the asynchronously executing function
+        `cudaq.evolve_async`. It models a future-like type whose 
+        `EvolveResult` may be accessed via an invocation of the `get`
+        method. 
+        """
+        raise NotImplementedError()
+
+    def get(self: AsyncEvolveResult) -> EvolutionResult:
+        """
+        Retrieves the `EvolveResult` from the asynchronous evolve execution.
+        This causes the current thread to wait until the time evolution
+        execution has completed. 
+        """
+        raise NotImplementedError()
+
+    def __str__(self: AsyncEvolveResult) -> str:
+        pass
+
 
 # Top level API for the CUDA-Q master equation solver.
 def evolve(hamiltonian: Operator, 
@@ -131,11 +158,31 @@ def evolve(hamiltonian: Operator,
             the expectation values are computed after each step in the schedule, 
             and otherwise only the final expectation values at the end of the 
             evolution are computed.
-    
+
     Returns:
         A single evolution result if a single initial state is provided, or a sequence
         of evolution results representing the data computed during the evolution of each
-        initial state. See the `EvolutionResult` for more information about the data 
-        computed during evolution.
+        initial state. See `EvolveResult` for more information about the data computed
+        during evolution.
+    """
+    raise NotImplementedError()
+
+def evolve(hamiltonian: Operator, 
+           dimensions: Mapping[int, int], 
+           schedule: Schedule,
+           initial_state: cudaq.State | Iterable[cudaq.States],
+           collapse_operators: Iterable[Operator] = [],
+           observables: Iterable[Operator] = [], 
+           store_intermediate_results = False) -> AsyncEvolveResult | Iterable[AsyncEvolveResult]:
+    """
+    Asynchronously computes the time evolution of one or more initial state(s) 
+    under the defined operators. See `cudaq.evolve` for more details about the
+    parameters passed here.
+    
+    Returns:
+        The handle to a single evolution result if a single initial state is provided, 
+        or a sequence of handles to the evolution results representing the data computed 
+        during the evolution of each initial state. See the `EvolveResult` for more 
+        information about the data computed during evolution.
     """
     raise NotImplementedError()
