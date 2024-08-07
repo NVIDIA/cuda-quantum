@@ -13,7 +13,6 @@ namespace cudaq {
 
 static constexpr int NUM_JIT_CACHE_ITEMS_TO_RETAIN = 100;
 
-
 JITExecutionCache::~JITExecutionCache() {
   std::scoped_lock<std::mutex> lock(mutex);
   for (auto &[k, v] : cacheMap)
