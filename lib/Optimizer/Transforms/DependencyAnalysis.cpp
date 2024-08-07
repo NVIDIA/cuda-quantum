@@ -807,7 +807,9 @@ struct ManageQubitsPipelineOptions
 static void createQubitManagementPipeline(OpPassManager &pm) {
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addPass(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuantumMemToReg());
