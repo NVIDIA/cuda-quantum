@@ -43,7 +43,7 @@ visualization = [ "qutip<5" , "matplotlib>=3.5" ]
 requires = ["scikit-build-core", "cmake>=3.26,<3.29", "numpy>=1.24", "pytest==8.2.0"]
 build-backend = "scikit_build_core.build"
 
-[tool.scikit-build]
+[tool.scikit-build-core]
 wheel.packages = ["python/cudaq"]
 wheel.license-files = [ "LICENSE", "NOTICE", "CITATION.cff" ]
 build-dir = "_skbuild"
