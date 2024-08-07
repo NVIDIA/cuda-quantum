@@ -10,7 +10,6 @@ import os
 
 import pytest
 
-import collections
 
 import cudaq
 from cudaq import spin

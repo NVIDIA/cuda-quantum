@@ -219,7 +219,7 @@ jobs:
             if [[ "$staging_branch" =~ ^bot\/.*$ ]]; then
               git push origin --delete $staging_branch
             else
-              echo "Unexpected staging branch."
+              echo "::error::Unexpected staging branch."
               exit 1
             fi
           }
@@ -458,7 +458,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Configure validation
-        uses: cloudposse/github-action-matrix-outputs-write@0.5.0
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
@@ -709,7 +709,7 @@ jobs:
     steps:
       - name: Get matrix job output
         id: read_json
-        uses: cloudposse/github-action-matrix-outputs-read@0.1.2
+        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         with:
           matrix-step-name: docker_images
 
@@ -752,7 +752,7 @@ jobs:
         if: startsWith(matrix.os_image, 'ubuntu')
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
-            wget ca-certificates libstdc++-11-dev libopenmpi-dev
+            wget ca-certificates libc6-dev libopenmpi-dev
           distro=`echo ${{ matrix.os_image }} | tr -d . | tr -d :`
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
@@ -764,9 +764,7 @@ jobs:
         if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
-            'dnf-command(config-manager)' gcc-toolset-12 openssh-clients
-          enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
-          . "$enable_script"
+            'dnf-command(config-manager)' glibc-devel openssh-clients
           . scripts/configure_build.sh install-cudart
 
           # We need to install an MPI implementation, otherwise nothing
@@ -800,7 +798,8 @@ jobs:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
           tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
           if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "Missing tests for nvidia-mgpu backend." && exit 1
+            echo "::error::Missing tests for nvidia-mgpu backend."
+            exit 1
           fi
 
   wheel_validation:
@@ -844,7 +843,7 @@ jobs:
           source validate_wheel.sh -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
-            echo "Error running validation script"
+            echo "::error::Error running validation script" 
             exit $status_sum
           fi
   
@@ -895,7 +894,7 @@ jobs:
           done
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
-            echo "Error running validation script"
+            echo "::error::Error running validation script" 
             exit $status_sum
           fi
   
@@ -951,7 +950,8 @@ jobs:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
           tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
           if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "Missing tests for nvidia-mgpu backend." && exit 1
+            echo "::error::Missing tests for nvidia-mgpu backend."
+            exit 1
           fi
 
       - name: MPI validation 
