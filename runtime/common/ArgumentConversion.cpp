@@ -9,6 +9,7 @@
 #include "ArgumentConversion.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Todo.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -87,6 +88,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                          ModuleOp substMod) {
   // TODO: do we materialize the data here or just add a symbolic reference into
   // the unknown?
+  TODO("cudaq::state* argument synthesis");
   return {};
 }
 
