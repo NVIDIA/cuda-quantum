@@ -1,7 +1,7 @@
 from __future__ import annotations
-import inspect, itertools, numpy, os, operator, re, scipy, sys # type: ignore
+import cudaq, inspect, itertools, numpy, os, operator, re, scipy, sys # type: ignore
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any, Callable, Generic, Generator, Iterable, Optional, SupportsComplex, TypeVar
 from numpy.typing import NDArray
@@ -1099,6 +1099,8 @@ class ScalarOperator(ProductOperator):
         return NotImplemented
 
 
+Operator = OperatorSum | ProductOperator | ElementaryOperator | ScalarOperator
+
 # Operators as defined here (watch out of differences in convention): 
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
 class operators:
@@ -1216,7 +1218,7 @@ class pauli:
         return ElementaryOperator("pauli_minus", [degree])
 
 
-class Schedule:
+class Schedule(Iterator):
     """
     Represents an iterator that produces all values needed for evaluating
     an operator expression at different time steps.
@@ -1259,6 +1261,143 @@ class Schedule:
         return kwargs
 
 
+# To be implemented in C++ and bindings will be generated.
+# If multiple initial states were passed, a sequence of evolution results is returned.
+class EvolveResult:
+    """
+    Stores the execution data from an invocation of `cudaq.evolve`.
+    """
+
+    # Shape support in the type annotation for ndarray data type is still under development:
+    # https://github.com/numpy/numpy/issues/16544
+    def __init__(self: EvolveResult, 
+                 state: cudaq.State | Iterable[cudaq.State],
+                 expectation: Optional[NDArray[numpy.complexfloating] | Iterable[NDArray[numpy.complexfloating]]] = None) -> None:
+        """
+        Instantiates an EvolveResult representing the output generated when evolving a single 
+        initial state under a set of operators. See `cudaq.evolve` for more detail.
+
+        Arguments:
+            state: A single state or a sequence of states of a quantum system. If a single 
+                state is given, it represents the final state of the system after time evolution.
+                If a sequence of states are given, they represent the state of the system after
+                each steps in the schedule specified in the call to `cudaq.evolve`.
+            expectation: A single one-dimensional array of complex values or a sequence of 
+                one-dimensional arrays of complex values representing the expectation values
+                computed during the evolution. If a single array is provided, it contains the
+                expectation values computed at the end of the evolution. If a sequence of arrays
+                is given, they represent the expectation values computed at each step in the 
+                schedule passed to `cudaq.evolve`.
+        """
+        # This implementation is just a mock up - probably not very robust.
+        *_, final_state = iter(state) # assumes cudaq.State is iterable - check if the type check here works
+        if isinstance(final_state, cudaq.State):
+            self._states = state
+            self._final_state = final_state
+        else:
+            self._states = None
+            self._final_state = state
+        if expectation is None:
+            self._expectation_values = None
+            self._final_expectation = None
+        else:
+            *_, final_expectation = iter(expectation)
+            if isinstance(final_expectation, numpy.ndarray):
+                if self._states is None:
+                    raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
+                self._expectation_values = expectation
+                self._final_expectation = final_expectation
+            else:
+                self._expectation_values = None
+                self._final_expectation = expectation
+
+    @property
+    def intermediate_states(self: EvolveResult) -> Optional[Iterable[cudaq.State]]:
+        """
+        Stores all intermediate states, meaning the state after each step in a defined 
+        schedule, produced by a call to `cudaq.evolve`, including the final state. 
+        This property is only populated if the corresponding saving intermediate results 
+        was requested in the call to `cudaq.evolve`.
+        """
+        return self._states
+
+    @property
+    def final_state(self: EvolveResult) -> cudaq.State:
+        """
+        Stores the final state produced by a call to `cudaq.evolve`.
+        Represent the state of a quantum system after time evolution under a set of 
+        operators, see the `cudaq.evolve` documentation for more detail.
+        """
+        return self._final_state
+
+    @property
+    def expectation_values(self: EvolveResult) -> Optional[Iterable[NDArray[numpy.complexfloating]]]:
+        """
+        Stores the expectation values at each step in the schedule produced by a call to 
+        `cudaq.evolve`, including the final expectation values. Each expectation value 
+        corresponds to one observable provided in the `cudaq.evolve` call. 
+        This property is only populated if the corresponding saving intermediate results 
+        was requested in the call to `cudaq.evolve`. This value will be None if no 
+        intermediate results were requested, or if no observables were specified in the 
+        call to `cudaq.evolve`.
+        """
+        return self._expectation_values
+
+    @property
+    def final_expectation(self: EvolveResult) -> Optional[NDArray[numpy.complexfloating]]:
+        """
+        Stores the final expectation values produced by a call to `cudaq.evolve`.
+        Each expectation value corresponds to one observable provided in the `cudaq.evolve` call. 
+        This value will be None if no observables were specified in the call to `cudaq.evolve`.
+        """
+        return self._final_expectation
+
+
+# Top level API for the CUDA-Q master equation solver.
+def evolve(hamiltonian: Operator, 
+           dimensions: Mapping[int, int], 
+           schedule: Schedule,
+           initial_state: cudaq.State | Iterable[cudaq.States],
+           collapse_operators: Iterable[Operator] = [],
+           observables: Iterable[Operator] = [], 
+           store_intermediate_results = False) -> EvolveResult | Iterable[EvolveResult]:
+    """
+    Computes the time evolution of one or more initial state(s) under the defined 
+    operators. 
+
+    Arguments:
+        hamiltonian: Operator that describes the behavior of a quantum system
+            without noise.
+        dimensions: A mapping that specifies the number of levels, that is
+            the dimension, of each degree of freedom that any of the operator 
+            arguments acts on.
+        schedule: An iterable that generates a mapping of keyword arguments 
+            to their respective value. The keyword arguments are the parameters
+            needed to evaluate any of the operators passed to `evolve`.
+            All required parameters for evaluating an operator and their
+            documentation, if available, can be queried by accessing the
+            `parameter` property of the operator.
+        initial_state: A single state or a sequence of states of a quantum system.
+        collapse_operators: A sequence of operators that describe the influence of 
+            noise on the quantum system.
+        observables: A sequence of operators for which to compute their expectation
+            value during evolution. If `store_intermediate_results` is set to True,
+            the expectation values are computed after each step in the schedule, 
+            and otherwise only the final expectation values at the end of the 
+            evolution are computed.
+    
+    Returns:
+        A single evolution result if a single initial state is provided, or a sequence
+        of evolution results representing the data computed during the evolution of each
+        initial state. See the `EvolutionResult` for more information about the data 
+        computed during evolution.
+    """
+    # FIXME: enforce that the hamiltonian acts on all degrees of freedom
+    # that any of the other operators act on?
+    raise NotImplementedError()
+
+
+'''
 dims = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
 print(f'pauliX(1): {pauli.x(1).to_matrix(dims)}')
@@ -1513,5 +1652,4 @@ print(paulixy(0,0) + paulizy(0,0) == paulizy(0,0) + paulixy(0,0))
 print(paulixy(0,0) * paulizy(0,0) == paulizy(0,0) * paulixy(0,0))
 print(paulixy(1,1) * paulizy(0,0) == paulizy(0,0) * paulixy(1,1)) # We have multiple terms acting on the same degree of freedom, so we don't try to reorder here.
 print(paulixy(1,2) * paulizy(3,4) == paulizy(3,4) * paulixy(1,2))
-
-
+'''

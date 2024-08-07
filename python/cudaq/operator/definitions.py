@@ -1,5 +1,4 @@
 import numpy, scipy # type: ignore
-from typing import SupportsComplex
 from numpy.typing import NDArray
 
 from .helpers import NumericType

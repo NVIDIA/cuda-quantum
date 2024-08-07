@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy, re # type: ignore
 from abc import ABC, abstractmethod
-from typing import Generic, SupportsComplex, TypeVar
+from typing import Generic, TypeVar
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType

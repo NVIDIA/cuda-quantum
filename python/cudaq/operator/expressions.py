@@ -1,7 +1,7 @@
 from __future__ import annotations
 import inspect, numpy, operator # type: ignore
 from collections.abc import Mapping, Sequence
-from typing import Any, Callable, Generator, Optional, SupportsComplex
+from typing import Any, Callable, Generator, Optional
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
@@ -777,3 +777,5 @@ class ScalarOperator(ProductOperator):
             fct = lambda value, **kwargs: other - value
             return self._compose(fct, None)
         return NotImplemented
+
+Operator = OperatorSum | ProductOperator | ElementaryOperator | ScalarOperator

@@ -17,15 +17,16 @@
 <font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
     
 <tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
-<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="inspect.html">inspect</a><br>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="cudaq.html">cudaq</a><br>
+<a href="inspect.html">inspect</a><br>
 <a href="itertools.html">itertools</a><br>
 </td><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
 <a href="operator.html">operator</a><br>
-</td><td width="25%" valign=top><a href="os.html">os</a><br>
-<a href="re.html">re</a><br>
-</td><td width="25%" valign=top><a href="scipy.html">scipy</a><br>
+<a href="os.html">os</a><br>
+</td><td width="25%" valign=top><a href="re.html">re</a><br>
+<a href="scipy.html">scipy</a><br>
 <a href="sys.html">sys</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#ee77aa">
 <td colspan=3 valign=bottom>&nbsp;<br>
@@ -48,7 +49,8 @@
 <dt><font face="helvetica, arial"><a href="builtins.html#object">builtins.object</a>
 </font></dt><dd>
 <dl>
-<dt><font face="helvetica, arial"><a href="dynamics.html#OperatorSum">OperatorSum</a>
+<dt><font face="helvetica, arial"><a href="dynamics.html#EvolveResult">EvolveResult</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#OperatorSum">OperatorSum</a>
 </font></dt><dd>
 <dl>
 <dt><font face="helvetica, arial"><a href="dynamics.html#ProductOperator">ProductOperator</a>
@@ -60,9 +62,14 @@
 </dd>
 </dl>
 </dd>
-<dt><font face="helvetica, arial"><a href="dynamics.html#Schedule">Schedule</a>
-</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#operators">operators</a>
+<dt><font face="helvetica, arial"><a href="dynamics.html#operators">operators</a>
 </font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#pauli">pauli</a>
+</font></dt></dl>
+</dd>
+<dt><font face="helvetica, arial"><a href="collections.abc.html#Iterator">collections.abc.Iterator</a>(<a href="collections.abc.html#Iterable">collections.abc.Iterable</a>)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="dynamics.html#Schedule">Schedule</a>
 </font></dt></dl>
 </dd>
 <dt><font face="helvetica, arial"><a href="typing.html#Generic">typing.Generic</a>(<a href="builtins.html#object">builtins.object</a>)
@@ -196,6 +203,68 @@ Data and other attributes defined here:<br>
 Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
 <dl><dt><strong>degrees</strong></dt>
 <dd><tt>The&nbsp;degrees&nbsp;of&nbsp;freedom&nbsp;that&nbsp;the&nbsp;operator&nbsp;acts&nbsp;on&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd>
+</dl>
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="EvolveResult">class <strong>EvolveResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#EvolveResult">EvolveResult</a>(state:&nbsp;'cudaq.State&nbsp;|&nbsp;Iterable[cudaq.State]',&nbsp;expectation:&nbsp;'Optional[NDArray[numpy.complexfloating]&nbsp;|&nbsp;Iterable[NDArray[numpy.complexfloating]]]'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Stores&nbsp;the&nbsp;execution&nbsp;data&nbsp;from&nbsp;an&nbsp;invocation&nbsp;of&nbsp;`cudaq.evolve`.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="EvolveResult-__init__"><strong>__init__</strong></a>(self: 'EvolveResult', state: 'cudaq.State | Iterable[cudaq.State]', expectation: 'Optional[NDArray[numpy.complexfloating] | Iterable[NDArray[numpy.complexfloating]]]' = None) -&gt; 'None'</dt><dd><tt>Instantiates&nbsp;an&nbsp;<a href="#EvolveResult">EvolveResult</a>&nbsp;representing&nbsp;the&nbsp;output&nbsp;generated&nbsp;when&nbsp;evolving&nbsp;a&nbsp;single&nbsp;<br>
+initial&nbsp;state&nbsp;under&nbsp;a&nbsp;set&nbsp;of&nbsp;<a href="#operators">operators</a>.&nbsp;See&nbsp;`cudaq.evolve`&nbsp;for&nbsp;more&nbsp;detail.<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;state:&nbsp;A&nbsp;single&nbsp;state&nbsp;or&nbsp;a&nbsp;sequence&nbsp;of&nbsp;states&nbsp;of&nbsp;a&nbsp;quantum&nbsp;system.&nbsp;If&nbsp;a&nbsp;single&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state&nbsp;is&nbsp;given,&nbsp;it&nbsp;represents&nbsp;the&nbsp;final&nbsp;state&nbsp;of&nbsp;the&nbsp;system&nbsp;after&nbsp;time&nbsp;evolution.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;a&nbsp;sequence&nbsp;of&nbsp;states&nbsp;are&nbsp;given,&nbsp;they&nbsp;represent&nbsp;the&nbsp;state&nbsp;of&nbsp;the&nbsp;system&nbsp;after<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;each&nbsp;steps&nbsp;in&nbsp;the&nbsp;schedule&nbsp;specified&nbsp;in&nbsp;the&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;expectation:&nbsp;A&nbsp;single&nbsp;one-dimensional&nbsp;array&nbsp;of&nbsp;complex&nbsp;values&nbsp;or&nbsp;a&nbsp;sequence&nbsp;of&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;one-dimensional&nbsp;arrays&nbsp;of&nbsp;complex&nbsp;values&nbsp;representing&nbsp;the&nbsp;expectation&nbsp;values<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;computed&nbsp;during&nbsp;the&nbsp;evolution.&nbsp;If&nbsp;a&nbsp;single&nbsp;array&nbsp;is&nbsp;provided,&nbsp;it&nbsp;contains&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expectation&nbsp;values&nbsp;computed&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;evolution.&nbsp;If&nbsp;a&nbsp;sequence&nbsp;of&nbsp;arrays<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;given,&nbsp;they&nbsp;represent&nbsp;the&nbsp;expectation&nbsp;values&nbsp;computed&nbsp;at&nbsp;each&nbsp;step&nbsp;in&nbsp;the&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;schedule&nbsp;passed&nbsp;to&nbsp;`cudaq.evolve`.</tt></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>expectation_values</strong></dt>
+<dd><tt>Stores&nbsp;the&nbsp;expectation&nbsp;values&nbsp;at&nbsp;each&nbsp;step&nbsp;in&nbsp;the&nbsp;schedule&nbsp;produced&nbsp;by&nbsp;a&nbsp;call&nbsp;to&nbsp;<br>
+`cudaq.evolve`,&nbsp;including&nbsp;the&nbsp;final&nbsp;expectation&nbsp;values.&nbsp;Each&nbsp;expectation&nbsp;value&nbsp;<br>
+corresponds&nbsp;to&nbsp;one&nbsp;observable&nbsp;provided&nbsp;in&nbsp;the&nbsp;`cudaq.evolve`&nbsp;call.&nbsp;<br>
+This&nbsp;property&nbsp;is&nbsp;only&nbsp;populated&nbsp;if&nbsp;the&nbsp;corresponding&nbsp;saving&nbsp;intermediate&nbsp;results&nbsp;<br>
+was&nbsp;requested&nbsp;in&nbsp;the&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.&nbsp;This&nbsp;value&nbsp;will&nbsp;be&nbsp;None&nbsp;if&nbsp;no&nbsp;<br>
+intermediate&nbsp;results&nbsp;were&nbsp;requested,&nbsp;or&nbsp;if&nbsp;no&nbsp;observables&nbsp;were&nbsp;specified&nbsp;in&nbsp;the&nbsp;<br>
+call&nbsp;to&nbsp;`cudaq.evolve`.</tt></dd>
+</dl>
+<dl><dt><strong>final_expectation</strong></dt>
+<dd><tt>Stores&nbsp;the&nbsp;final&nbsp;expectation&nbsp;values&nbsp;produced&nbsp;by&nbsp;a&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.<br>
+Each&nbsp;expectation&nbsp;value&nbsp;corresponds&nbsp;to&nbsp;one&nbsp;observable&nbsp;provided&nbsp;in&nbsp;the&nbsp;`cudaq.evolve`&nbsp;call.&nbsp;<br>
+This&nbsp;value&nbsp;will&nbsp;be&nbsp;None&nbsp;if&nbsp;no&nbsp;observables&nbsp;were&nbsp;specified&nbsp;in&nbsp;the&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.</tt></dd>
+</dl>
+<dl><dt><strong>final_state</strong></dt>
+<dd><tt>Stores&nbsp;the&nbsp;final&nbsp;state&nbsp;produced&nbsp;by&nbsp;a&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.<br>
+Represent&nbsp;the&nbsp;state&nbsp;of&nbsp;a&nbsp;quantum&nbsp;system&nbsp;after&nbsp;time&nbsp;evolution&nbsp;under&nbsp;a&nbsp;set&nbsp;of&nbsp;<br>
+operators,&nbsp;see&nbsp;the&nbsp;`cudaq.evolve`&nbsp;documentation&nbsp;for&nbsp;more&nbsp;detail.</tt></dd>
+</dl>
+<dl><dt><strong>intermediate_states</strong></dt>
+<dd><tt>Stores&nbsp;all&nbsp;intermediate&nbsp;states,&nbsp;meaning&nbsp;the&nbsp;state&nbsp;after&nbsp;each&nbsp;step&nbsp;in&nbsp;a&nbsp;defined&nbsp;<br>
+schedule,&nbsp;produced&nbsp;by&nbsp;a&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`,&nbsp;including&nbsp;the&nbsp;final&nbsp;state.&nbsp;<br>
+This&nbsp;property&nbsp;is&nbsp;only&nbsp;populated&nbsp;if&nbsp;the&nbsp;corresponding&nbsp;saving&nbsp;intermediate&nbsp;results&nbsp;<br>
+was&nbsp;requested&nbsp;in&nbsp;the&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.</tt></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
 </dl>
 </td></tr></table> <p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
@@ -624,7 +693,7 @@ Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorS
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#ffc8d8">
 <td colspan=3 valign=bottom>&nbsp;<br>
-<font color="#000000" face="helvetica, arial"><a name="Schedule">class <strong>Schedule</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+<font color="#000000" face="helvetica, arial"><a name="Schedule">class <strong>Schedule</strong></a>(<a href="collections.abc.html#Iterator">collections.abc.Iterator</a>)</font></td></tr>
     
 <tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
 <td colspan=2><tt><a href="#Schedule">Schedule</a>(steps:&nbsp;'Iterable[Any]',&nbsp;parameters:&nbsp;'Iterable[str]',&nbsp;get_value:&nbsp;'Callable[[str,&nbsp;Any],&nbsp;NumericType]')&nbsp;-&amp;gt;&nbsp;'None'<br>
@@ -632,7 +701,14 @@ Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorS
 Represents&nbsp;an&nbsp;iterator&nbsp;that&nbsp;produces&nbsp;all&nbsp;values&nbsp;needed&nbsp;for&nbsp;evaluating<br>
 an&nbsp;operator&nbsp;expression&nbsp;at&nbsp;different&nbsp;time&nbsp;steps.<br>&nbsp;</tt></td></tr>
 <tr><td>&nbsp;</td>
-<td width="100%">Methods defined here:<br>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="dynamics.html#Schedule">Schedule</a></dd>
+<dd><a href="collections.abc.html#Iterator">collections.abc.Iterator</a></dd>
+<dd><a href="collections.abc.html#Iterable">collections.abc.Iterable</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
 <dl><dt><a name="Schedule-__init__"><strong>__init__</strong></a>(self: 'Schedule', steps: 'Iterable[Any]', parameters: 'Iterable[str]', get_value: 'Callable[[str, Any], NumericType]') -&gt; 'None'</dt><dd><tt>Creates&nbsp;a&nbsp;schedule&nbsp;for&nbsp;evaluating&nbsp;an&nbsp;operator&nbsp;expression&nbsp;at&nbsp;different&nbsp;steps.<br>
 &nbsp;<br>
 Arguments:<br>
@@ -646,7 +722,7 @@ Arguments:<br>
 
 <dl><dt><a name="Schedule-__iter__"><strong>__iter__</strong></a>(self: 'Schedule') -&gt; 'Schedule'</dt></dl>
 
-<dl><dt><a name="Schedule-__next__"><strong>__next__</strong></a>(self: 'Schedule') -&gt; 'Mapping[str, NumericType]'</dt></dl>
+<dl><dt><a name="Schedule-__next__"><strong>__next__</strong></a>(self: 'Schedule') -&gt; 'Mapping[str, NumericType]'</dt><dd><tt>Return&nbsp;the&nbsp;next&nbsp;item&nbsp;from&nbsp;the&nbsp;iterator.&nbsp;When&nbsp;exhausted,&nbsp;raise&nbsp;StopIteration</tt></dd></dl>
 
 <hr>
 Readonly properties defined here:<br>
@@ -661,6 +737,25 @@ Data descriptors defined here:<br>
 <dl><dt><strong>__weakref__</strong></dt>
 <dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
 </dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<hr>
+Class methods inherited from <a href="collections.abc.html#Iterator">collections.abc.Iterator</a>:<br>
+<dl><dt><a name="Schedule-__subclasshook__"><strong>__subclasshook__</strong></a>(C)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt><dd><tt>Abstract&nbsp;classes&nbsp;can&nbsp;override&nbsp;this&nbsp;to&nbsp;customize&nbsp;issubclass().<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;invoked&nbsp;early&nbsp;on&nbsp;by&nbsp;abc.ABCMeta.__subclasscheck__().<br>
+It&nbsp;should&nbsp;return&nbsp;True,&nbsp;False&nbsp;or&nbsp;NotImplemented.&nbsp;&nbsp;If&nbsp;it&nbsp;returns<br>
+NotImplemented,&nbsp;the&nbsp;normal&nbsp;algorithm&nbsp;is&nbsp;used.&nbsp;&nbsp;Otherwise,&nbsp;it<br>
+overrides&nbsp;the&nbsp;normal&nbsp;algorithm&nbsp;(and&nbsp;the&nbsp;outcome&nbsp;is&nbsp;cached).</tt></dd></dl>
+
+<hr>
+Class methods inherited from <a href="collections.abc.html#Iterable">collections.abc.Iterable</a>:<br>
+<dl><dt><a name="Schedule-__class_getitem__"><strong>__class_getitem__</strong></a> = GenericAlias(...)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt><dd><tt>Represent&nbsp;a&nbsp;<a href="https://www.python.org/dev/peps/pep-0585/">PEP&nbsp;585</a>&nbsp;generic&nbsp;type<br>
+&nbsp;<br>
+E.g.&nbsp;for&nbsp;t&nbsp;=&nbsp;list[int],&nbsp;t.__origin__&nbsp;is&nbsp;list&nbsp;and&nbsp;t.__args__&nbsp;is&nbsp;(int,).</tt></dd></dl>
+
 </td></tr></table> <p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#ffc8d8">
@@ -736,6 +831,42 @@ Data descriptors defined here:<br>
 </dl>
 </td></tr></table></td></tr></table><p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-evolve"><strong>evolve</strong></a>(hamiltonian: 'Operator', dimensions: 'Mapping[int, int]', schedule: 'Schedule', initial_state: 'cudaq.State | Iterable[cudaq.States]', collapse_operators: 'Iterable[Operator]' = [], observables: 'Iterable[Operator]' = [], store_intermediate_results=False) -&gt; 'EvolveResult | Iterable[EvolveResult]'</dt><dd><tt>Computes&nbsp;the&nbsp;time&nbsp;evolution&nbsp;of&nbsp;one&nbsp;or&nbsp;more&nbsp;initial&nbsp;state(s)&nbsp;under&nbsp;the&nbsp;defined&nbsp;<br>
+<a href="#operators">operators</a>.&nbsp;<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;hamiltonian:&nbsp;Operator&nbsp;that&nbsp;describes&nbsp;the&nbsp;behavior&nbsp;of&nbsp;a&nbsp;quantum&nbsp;system<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;without&nbsp;noise.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dimensions:&nbsp;A&nbsp;mapping&nbsp;that&nbsp;specifies&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;dimension,&nbsp;of&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;that&nbsp;any&nbsp;of&nbsp;the&nbsp;operator&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arguments&nbsp;acts&nbsp;on.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;schedule:&nbsp;An&nbsp;iterable&nbsp;that&nbsp;generates&nbsp;a&nbsp;mapping&nbsp;of&nbsp;keyword&nbsp;arguments&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;their&nbsp;respective&nbsp;value.&nbsp;The&nbsp;keyword&nbsp;arguments&nbsp;are&nbsp;the&nbsp;parameters<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;needed&nbsp;to&nbsp;evaluate&nbsp;any&nbsp;of&nbsp;the&nbsp;<a href="#operators">operators</a>&nbsp;passed&nbsp;to&nbsp;`evolve`.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All&nbsp;required&nbsp;parameters&nbsp;for&nbsp;evaluating&nbsp;an&nbsp;operator&nbsp;and&nbsp;their<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;documentation,&nbsp;if&nbsp;available,&nbsp;can&nbsp;be&nbsp;queried&nbsp;by&nbsp;accessing&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`parameter`&nbsp;property&nbsp;of&nbsp;the&nbsp;operator.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;initial_state:&nbsp;A&nbsp;single&nbsp;state&nbsp;or&nbsp;a&nbsp;sequence&nbsp;of&nbsp;states&nbsp;of&nbsp;a&nbsp;quantum&nbsp;system.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;collapse_operators:&nbsp;A&nbsp;sequence&nbsp;of&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;describe&nbsp;the&nbsp;influence&nbsp;of&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noise&nbsp;on&nbsp;the&nbsp;quantum&nbsp;system.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;observables:&nbsp;A&nbsp;sequence&nbsp;of&nbsp;<a href="#operators">operators</a>&nbsp;for&nbsp;which&nbsp;to&nbsp;compute&nbsp;their&nbsp;expectation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;during&nbsp;evolution.&nbsp;If&nbsp;`store_intermediate_results`&nbsp;is&nbsp;set&nbsp;to&nbsp;True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;expectation&nbsp;values&nbsp;are&nbsp;computed&nbsp;after&nbsp;each&nbsp;step&nbsp;in&nbsp;the&nbsp;schedule,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;otherwise&nbsp;only&nbsp;the&nbsp;final&nbsp;expectation&nbsp;values&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evolution&nbsp;are&nbsp;computed.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;single&nbsp;evolution&nbsp;result&nbsp;if&nbsp;a&nbsp;single&nbsp;initial&nbsp;state&nbsp;is&nbsp;provided,&nbsp;or&nbsp;a&nbsp;sequence<br>
+&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;evolution&nbsp;results&nbsp;representing&nbsp;the&nbsp;data&nbsp;computed&nbsp;during&nbsp;the&nbsp;evolution&nbsp;of&nbsp;each<br>
+&nbsp;&nbsp;&nbsp;&nbsp;initial&nbsp;state.&nbsp;See&nbsp;the&nbsp;`EvolutionResult`&nbsp;for&nbsp;more&nbsp;information&nbsp;about&nbsp;the&nbsp;data&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;computed&nbsp;during&nbsp;evolution.</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#55aa55">
 <td colspan=3 valign=bottom>&nbsp;<br>
 <font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
@@ -747,6 +878,7 @@ Data descriptors defined here:<br>
 <strong>Iterable</strong> = typing.Iterable<br>
 <strong>NDArray</strong> = numpy.ndarray[typing.Any, numpy.dtype[+_ScalarType_co]]<br>
 <strong>NumericType</strong> = numpy.complexfloating | complex | float | int<br>
+<strong>Operator</strong> = dynamics.OperatorSum | dynamics.ProductOperator ...mics.ElementaryOperator | dynamics.ScalarOperator<br>
 <strong>Optional</strong> = typing.Optional<br>
 <strong>TEval</strong> = ~TEval<br>
 <strong>annotations</strong> = _Feature((3, 7, 0, 'beta', 1), (3, 11, 0, 'alpha', 0), 16777216)</td></tr></table>

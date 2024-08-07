@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Any, Callable, Iterable, Optional, SupportsComplex
+from collections import Iterator
+from typing import Any, Callable, Iterable, Optional
 
 from .helpers import NumericType
 
-class Schedule:
+class Schedule(Iterator):
     """
     Represents an iterator that produces all values needed for evaluating
     an operator expression at different time steps.
