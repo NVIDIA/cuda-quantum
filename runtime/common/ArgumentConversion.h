@@ -44,7 +44,6 @@ private:
   mlir::ModuleOp substModule;
   mlir::OpBuilder builder;
   mlir::StringRef kernelName;
-
   mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
 };
 
