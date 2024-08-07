@@ -24,6 +24,7 @@ using namespace mlir;
 //===----------------------------------------------------------------------===//
 namespace cudaq::opt {
 #define GEN_PASS_DEF_WIRESTOWIRESETS
+#define GEN_PASS_DEF_ADDWIRESET
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -70,25 +71,33 @@ struct WiresToWiresetsPass
   using WiresToWiresetsBase::WiresToWiresetsBase;
 
   void runOnOperation() override {
-    ModuleOp mod = getOperation();
-    StringRef setName = "wires";
-    OpBuilder builder(mod.getBodyRegion());
-    builder.create<quake::WireSetOp>(builder.getUnknownLoc(), setName, INT_MAX,
-                                     ElementsAttr{});
+    func::FuncOp func = getOperation();
 
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     unsigned x = 0;
-    patterns.insert<NullWirePat>(ctx, &x, setName);
+    patterns.insert<NullWirePat>(ctx, &x, cudaq::opt::topologyAgnosticWiresetName);
     patterns.insert<SinkOpPat>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<quake::QuakeDialect>();
     target.addIllegalOp<quake::NullWireOp>();
     target.addIllegalOp<quake::SinkOp>();
-    if (failed(applyPartialConversion(mod, target, std::move(patterns)))) {
-      mod->emitOpError("Converting individual wires to wireset wires failed");
+    if (failed(applyPartialConversion(func, target, std::move(patterns)))) {
+      func->emitOpError("Converting individual wires to wireset wires failed");
       signalPassFailure();
     }
+  }
+};
+
+struct AddWiresetPass
+    : public cudaq::opt::impl::AddWiresetBase<AddWiresetPass> {
+  using AddWiresetBase::AddWiresetBase;
+
+  void runOnOperation() override {
+    ModuleOp mod = getOperation();
+    OpBuilder builder(mod.getBodyRegion());
+    builder.create<quake::WireSetOp>(builder.getUnknownLoc(), cudaq::opt::topologyAgnosticWiresetName, INT_MAX,
+                                     ElementsAttr{});
   }
 };
 

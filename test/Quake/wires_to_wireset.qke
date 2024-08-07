@@ -6,7 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --wires-to-wireset %s | FileCheck %s
+// RUN: cudaq-opt --add-wireset --wires-to-wireset %s | FileCheck %s
+
 func.func @__nvqpp__mlirgen__run_test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.null_wire
   %1 = quake.h %0 : (!quake.wire) -> !quake.wire

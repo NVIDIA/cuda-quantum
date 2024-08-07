@@ -796,7 +796,14 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
-def WiresToWiresets : Pass<"wires-to-wiresets", "mlir::ModuleOp"> {
+def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
+  let summary = "Adds a wireset op without tological info to the module";
+  let description = [{
+    Adds a wireset op without tological info to the module.
+  }];
+}
+
+def WiresToWiresets : Pass<"wires-to-wiresets", "mlir::func::FuncOp"> {
   let summary = "Replaces wires with wires from a wireset";
   let description = [{
     Replaces all instances of `quake.null_wire_op` with `quake.borrow_wire_op`s
