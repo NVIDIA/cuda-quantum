@@ -42,14 +42,16 @@ public:
   StringRef setName;
 
   NullWirePat(MLIRContext *context, unsigned *c, StringRef name)
-      : OpRewritePattern<quake::NullWireOp>(context), counter(c), setName(name) {}
+      : OpRewritePattern<quake::NullWireOp>(context), counter(c),
+        setName(name) {}
 
   LogicalResult matchAndRewrite(quake::NullWireOp alloc,
                                 PatternRewriter &rewriter) const override {
 
     auto index = (*counter)++;
     auto wirety = quake::WireType::get(rewriter.getContext());
-    rewriter.replaceOpWithNewOp<quake::BorrowWireOp>(alloc, wirety, setName, index);
+    rewriter.replaceOpWithNewOp<quake::BorrowWireOp>(alloc, wirety, setName,
+                                                     index);
 
     return success();
   }
@@ -61,7 +63,8 @@ public:
 
   LogicalResult matchAndRewrite(quake::SinkOp release,
                                 PatternRewriter &rewriter) const override {
-    rewriter.replaceOpWithNewOp<quake::ReturnWireOp>(release, release.getOperand());
+    rewriter.replaceOpWithNewOp<quake::ReturnWireOp>(release,
+                                                     release.getOperand());
 
     return success();
   }
@@ -71,15 +74,16 @@ public:
 // Pass implementation
 //===----------------------------------------------------------------------===//
 
-struct WiresToWiresetsPass : public cudaq::opt::impl::WiresToWiresetsBase<WiresToWiresetsPass> {
+struct WiresToWiresetsPass
+    : public cudaq::opt::impl::WiresToWiresetsBase<WiresToWiresetsPass> {
   using WiresToWiresetsBase::WiresToWiresetsBase;
 
   void runOnOperation() override {
     ModuleOp mod = getOperation();
     StringRef setName = "wires";
     OpBuilder builder(mod.getBodyRegion());
-    builder.create<quake::WireSetOp>(builder.getUnknownLoc(), setName,
-                                     INT_MAX, ElementsAttr{});
+    builder.create<quake::WireSetOp>(builder.getUnknownLoc(), setName, INT_MAX,
+                                     ElementsAttr{});
 
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
@@ -92,8 +96,7 @@ struct WiresToWiresetsPass : public cudaq::opt::impl::WiresToWiresetsBase<WiresT
     target.addIllegalOp<quake::SinkOp>();
     target.addLegalOp<quake::BorrowWireOp>();
     target.addLegalOp<quake::ReturnWireOp>();
-    if (failed(applyPartialConversion(mod, target,
-                                      std::move(patterns)))) {
+    if (failed(applyPartialConversion(mod, target, std::move(patterns)))) {
       mod->emitOpError("Converting individual wires to wireset wires failed");
       signalPassFailure();
     }
