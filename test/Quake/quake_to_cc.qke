@@ -1,0 +1,60 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -lower-quake -canonicalize %s | FileCheck %s
+
+func.func @test1(%arg1: i32) {
+  %1 = cc.alloca i32
+  cc.store %arg1, %1 : !cc.ptr<i32>
+  %3 = cc.load %1 : !cc.ptr<i32>
+  %4 = arith.extsi %3 : i32 to i64
+  %5 = quake.alloca !quake.veq<?>[%4 : i64]
+  %6 = quake.extract_ref %5[0] : (!quake.veq<?>) -> !quake.ref
+  quake.x %6 : (!quake.ref) -> ()
+  quake.dealloc %5 : !quake.veq<?>
+  return
+}
+
+// CHECK-LABEL:   func.func @test1(
+// CHECK-SAME:        %[[VAL_0:.*]]: i32) {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant false
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_6:.*]] = arith.extsi %[[VAL_5]] : i32 to i64
+// CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>
+// CHECK:           %[[VAL_8:.*]] = cc.alloca i64{{\[}}%[[VAL_6]] : i64]
+// CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_7]], %[[VAL_8]], %[[VAL_6]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
+// CHECK:           call @__nvqpp__cudaq_em_allocate_veq(%[[VAL_7]], %[[VAL_6]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, i64) -> ()
+// CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+// CHECK:           %[[VAL_12:.*]] = cc.alloca !cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>
+// CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_12]], %[[VAL_10]], %[[VAL_2]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
+// CHECK:           %[[VAL_13:.*]] = cc.address_of @cstr.7800 : !cc.ptr<!llvm.array<2 x i8>>
+// CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!llvm.array<2 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           %[[VAL_16:.*]] = cc.alloca !cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>
+// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_16]], %[[VAL_17]], %[[VAL_3]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.array<i64 x ?>>, i64) -> ()
+// CHECK:           call @__nvqpp__cudaq_em_apply(%[[VAL_14]], %[[VAL_3]], %[[VAL_15]], %[[VAL_16]], %[[VAL_12]], %[[VAL_1]]) : (!cc.ptr<i8>, i64, !cc.ptr<!cc.array<f64 x ?>>, !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, i1) -> ()
+// CHECK:           call @__nvqpp__cudaq_em_return(%[[VAL_7]]) : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-DAG:     func.func private @__nvqpp__cudaq_em_allocate() -> i64
+// CHECK-DAG:     func.func private @__nvqpp__cudaq_em_allocate_veq(
+// CHECK-DAG:     func.func private @__nvqpp__cudaq_em_apply(
+// CHECK-DAG:     func.func private @__nvqpp__cudaq_em_concatSpan(
+// CHECK-DAG:     func.func private @__nvqpp__cudaq_em_measure(
+// CHECK-DAG:     func.func private @__nvqpp__cudaq_em_reset(
+// CHECK-DAG:     func.func private @__nvqpp__cudaq_em_return(
+// CHECK-DAG:     func.func private @__nvqpp__cudaq_em_writeToSpan(
+// CHECK-DAG:     llvm.mlir.global private constant @cstr.7800("x\00") {addr_space = 0 : i32}
+

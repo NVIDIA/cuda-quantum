@@ -11,9 +11,10 @@
 // REQUIRES: remote-sim
 
 // clang-format off
-// RUN: nvq++ %cpp_std --enable-mlir --no-aggressive-early-inline --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
+// RUN: nvq++ %cpp_std --enable-mlir -fno-aggressive-early-inline --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 #include <iostream>
 
@@ -38,6 +39,6 @@ struct foo {
 int main() {
   auto result = cudaq::sample(1000, foo{}, baz{}, /*qreg size*/ 1);
   std::cout << result.most_probable() << '\n';
-  assert("1" == result.most_probable());
+  REMOTE_TEST_ASSERT("1" == result.most_probable());
   return 0;
 }

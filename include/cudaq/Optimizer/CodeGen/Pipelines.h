@@ -43,6 +43,9 @@ inline void addPipelineConvertToQIR(mlir::PassManager &pm,
   addQIRProfilePipeline(pm, convertTo);
 }
 
+void addLowerToCCPipeline(mlir::OpPassManager &pm);
+
 void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
 void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
+
 } // namespace cudaq::opt

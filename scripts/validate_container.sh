@@ -55,23 +55,25 @@ requested_backends=`\
 
 installed_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
+    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
     do basename $file | cut -d "." -f 1; \
     done`
 
 # remote_rest targets are automatically filtered, 
 # so is execution on the photonics backend
+# This will test all NVIDIA-derivative targets in the legacy mode,
+# i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
 available_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
+    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
     do
-        if grep -q "LIBRARY_MODE_EXECUTION_MANAGER=photonics" $file ; then 
+        if grep -q "library-mode-execution-manager: photonics" $file ; then 
           continue
         fi 
-        platform=$(cat $file | grep "PLATFORM_QPU=")
-        qpu=${platform#PLATFORM_QPU=}
-        requirements=$(cat $file | grep "GPU_REQUIREMENTS=")
-        gpus=${requirements#GPU_REQUIREMENTS=}
+        platform=$(cat $file | grep "platform-qpu:")
+        qpu=${platform##* }
+        requirements=$(cat $file | grep "gpu-requirements:")
+        gpus=${requirements##* }
         if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
@@ -111,11 +113,12 @@ then
     exit 1 
 fi
 
-# Skip some tests (multi-controlled gates) for the MPS backend;
-# see https://github.com/NVIDIA/cuda-quantum/issues/884
-mps_skipped_tests=(\
-    examples/cpp/algorithms/grover.cpp \
-    examples/cpp/basics/multi_controlled_operations.cpp \
+# Long-running tests
+tensornet_backend_skipped_tests=(\
+    examples/cpp/other/builder/vqe_h2_builder.cpp \
+    examples/cpp/other/builder/qaoa_maxcut_builder.cpp \
+    examples/cpp/algorithms/vqe_h2.cpp \
+    examples/cpp/algorithms/qaoa_maxcut.cpp \
     examples/cpp/other/builder/builder.cpp \
     examples/cpp/algorithms/amplitude_estimation.cpp)
 
@@ -158,8 +161,8 @@ do
             echo "Skipping $t target."
             echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
-
-        elif [ "$t" == "tensornet-mps" ] && [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]]; then
+        # Skip long-running tests, not suitable for cutensornet-based backends.
+        elif [[ "$t" == "tensornet" || "$t" == "tensornet-mps" || "$t" == "nvidia-mqpu-mps" ]] && [[ " ${tensornet_backend_skipped_tests[*]} " =~ " $ex " ]]; then
             let "skipped+=1"
             echo "Skipping $t target."
             echo ":white_flag: $filename: Issue https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -170,7 +173,7 @@ do
             # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
             # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
             # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
-            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
+            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel"* || "$ex" == *"builder.cpp"* ]];
             then
                 let "skipped+=1"
                 echo "Skipping $t target.";
@@ -193,25 +196,56 @@ do
         fi
 
         echo "Testing on $t target..."
-        nvq++ $ex $target_flag 
-        if [ ! $? -eq 0 ]; then
-            let "failed+=1"
-            echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-            continue
-        fi
+        if [ "$t" == "nvidia" ]; then
+            # For the unified 'nvidia' target, we validate all target options as well.
+            # Note: this overlaps some legacy standalone targets (e.g., nvidia-mqpu, nvidia-mgpu, etc.),
+            # but we want to make sure all supported configurations in the unified 'nvidia' target are validated.
+            declare -a optionArray=("fp32" "fp64" "fp32,mqpu" "fp64,mqpu" "fp32,mgpu" "fp64,mgpu")
+            arraylength=${#optionArray[@]}
+            for (( i=0; i<${arraylength}; i++ ));
+            do
+                echo "  Testing nvidia target option: ${optionArray[$i]}"
+                nvq++ $ex $target_flag --target-option "${optionArray[$i]}"
+                if [ ! $? -eq 0 ]; then
+                    let "failed+=1"
+                    echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                    continue
+                fi
 
-        ./a.out &> /tmp/cudaq_validation.out
-        status=$?
-        echo "Exited with code $status"
-        if [ "$status" -eq "0" ]; then 
-            let "passed+=1"
-            echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                ./a.out &> /tmp/cudaq_validation.out
+                status=$?
+                echo "  Exited with code $status"
+                if [ "$status" -eq "0" ]; then 
+                    let "passed+=1"
+                    echo "  :white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                else
+                    cat /tmp/cudaq_validation.out
+                    let "failed+=1"
+                    echo "  :x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                fi 
+                rm a.out /tmp/cudaq_validation.out &> /dev/null
+            done
         else
-            cat /tmp/cudaq_validation.out
-            let "failed+=1"
-            echo ":x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-        fi 
-        rm a.out /tmp/cudaq_validation.out &> /dev/null
+            nvq++ $ex $target_flag 
+            if [ ! $? -eq 0 ]; then
+                let "failed+=1"
+                echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                continue
+            fi
+
+            ./a.out &> /tmp/cudaq_validation.out
+            status=$?
+            echo "Exited with code $status"
+            if [ "$status" -eq "0" ]; then 
+                let "passed+=1"
+                echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+            else
+                cat /tmp/cudaq_validation.out
+                let "failed+=1"
+                echo ":x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+            fi 
+            rm a.out /tmp/cudaq_validation.out &> /dev/null
+        fi
     done
     echo "============================="
 done
@@ -228,11 +262,20 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"oqc"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvqc"* ]];
+    skip_example=false
+    explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
+    for t in $explicit_targets; do
+        if [ -z "$(echo $requested_backends | grep $t)" ]; then 
+            echo "Explicitly set target $t not available."
+            skip_example=true
+        fi
+    done
+
+    if $skip_example;
     then
         let "skipped+=1"
         echo "Skipped.";
-        echo ":white_flag: $filename: External backend. Test skipped." >> "${tmpFile}"
+        echo ":white_flag: $filename: Necessary backend(s) not available. Test skipped." >> "${tmpFile}"
     else
         python3 $ex 1> /dev/null
         status=$?
@@ -250,6 +293,7 @@ done
 
 if [ -n "$(find $(pwd) -name '*.ipynb')" ]; then
     echo "Validating notebooks:"
+    export OMP_NUM_THREADS=8 
     echo "$available_backends" | python3 notebook_validation.py
     if [ $? -eq 0 ]; then 
         let "passed+=1"

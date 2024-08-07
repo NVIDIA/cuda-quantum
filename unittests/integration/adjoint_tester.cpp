@@ -219,6 +219,8 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   // }
 }
 
+#ifndef CUDAQ_BACKEND_DM
+
 // From issue: https://github.com/NVIDIA/cuda-quantum/issues/1215
 
 #ifdef CUDAQ_BACKEND_CUSTATEVEC_FP32
@@ -251,10 +253,9 @@ static __qpu__ void bar() {
 
 CUDAQ_TEST(AdjointTester, checkEvenAdjointNesting) {
   auto result = cudaq::get_state(bar);
-  auto amplitudes = result.get_data();
   std::array<std::complex<double>, 2> expected = {1., 0};
-  EXPECT_TRUE(essentially_equal(expected[0], amplitudes[0]));
-  EXPECT_TRUE(essentially_equal(expected[1], amplitudes[1]));
+  EXPECT_TRUE(essentially_equal(expected[0], result[0]));
+  EXPECT_TRUE(essentially_equal(expected[1], result[1]));
 }
 
 static __qpu__ void zaz(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
@@ -269,8 +270,9 @@ static __qpu__ void bar_2() {
 
 CUDAQ_TEST(AdjointTester, checkOddAdjointNesting) {
   auto result = cudaq::get_state(bar_2);
-  auto amplitudes = result.get_data();
   std::array<std::complex<double>, 2> expected = {1., 0};
-  EXPECT_TRUE(essentially_equal(expected[0], amplitudes[0]));
-  EXPECT_TRUE(essentially_equal(expected[1], amplitudes[1]));
+  EXPECT_TRUE(essentially_equal(expected[0], result[0]));
+  EXPECT_TRUE(essentially_equal(expected[1], result[1]));
 }
+
+#endif

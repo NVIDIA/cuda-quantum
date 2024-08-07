@@ -8,9 +8,7 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import os
 
-import pytest
 import numpy as np
 
 import cudaq
@@ -47,8 +45,8 @@ def test_elif():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_11:.*]]: i64):
 # CHECK:             %[[VAL_12:.*]] = cc.undef !cc.struct<{i64, f64}>
-# CHECK:             %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<f64>
-# CHECK:             %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]]{{\[}}%[[VAL_11]]] : (!cc.ptr<f64>, i64) -> !cc.ptr<f64>
+# CHECK:             %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+# CHECK:             %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]][%[[VAL_11]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
 # CHECK:             %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_7]]{{\[}}%[[VAL_11]]] : (!cc.ptr<!cc.array<!cc.struct<{i64, f64}> x ?>>, i64) -> !cc.ptr<!cc.struct<{i64, f64}>>
 # CHECK:             %[[VAL_17:.*]] = cc.insert_value %[[VAL_11]], %[[VAL_12]][0] : (!cc.struct<{i64, f64}>, i64) -> !cc.struct<{i64, f64}>

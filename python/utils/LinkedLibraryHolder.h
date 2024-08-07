@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/host_config.h"
 #include <filesystem>
 #include <map>
 #include <string>
@@ -30,23 +32,20 @@ struct RuntimeTarget {
   std::string simulatorName;
   std::string platformName;
   std::string description;
-
+  simulation_precision precision;
+  config::TargetConfig config;
   /// @brief Return the number of QPUs this target exposes.
   std::size_t num_qpus();
   bool is_remote();
   bool is_emulated();
+  simulation_precision get_precision();
+  std::string get_target_args_help_string() const;
 };
 
 /// @brief The LinkedLibraryHolder provides a mechanism for
 /// dynamically loading and storing the required plugin libraries
 /// for the CUDA-Q runtime within the Python runtime.
 class LinkedLibraryHolder {
-public:
-  /// @brief Global boolean that disables target modification.
-  /// This will turn off (bypass) target modification in the LinkedLibraryHolder
-  /// instance used by Python bindings.
-  static inline bool disallowTargetModification = false;
-
 protected:
   // Store the library suffix
   std::string libSuffix = "";

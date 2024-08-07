@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/QuditIdTracker.h"
+#include "cudaq/host_config.h"
 #include "cudaq/spin_op.h"
 #include <deque>
 #include <string_view>
@@ -16,6 +17,7 @@
 
 namespace cudaq {
 class ExecutionContext;
+class SimulationState;
 using SpinMeasureResult = std::pair<double, sample_result>;
 
 /// A QuditInfo is a type encoding the number of \a levels and the \a id of the
@@ -27,15 +29,6 @@ struct QuditInfo {
   bool operator==(const QuditInfo &other) const {
     return levels == other.levels && id == other.id;
   }
-};
-
-struct QuantumOperation {
-  const std::string &opName;
-  const std::vector<double> &params;
-  const std::vector<QuditInfo> &controls;
-  const std::vector<QuditInfo> &targets;
-  bool isAdjoint = false;
-  const spin_op op = spin_op();
 };
 
 extern "C" {
@@ -68,6 +61,17 @@ public:
 using measure_result = bool;
 #endif
 
+/// @brief Define a `unitary_operation` type that exposes
+/// a sub-type specific unitary representation of the
+/// operation.
+struct unitary_operation {
+  /// @brief Given a set of rotation parameters, return
+  /// a row-major 1D array representing the unitary operation
+  virtual std::vector<std::complex<double>> unitary(
+      const std::vector<double> &parameters = std::vector<double>()) const = 0;
+  virtual ~unitary_operation() {}
+};
+
 /// The ExecutionManager provides a base class describing a concrete sub-system
 /// for allocating qudits and executing quantum instructions on those qudits.
 /// This type is templated on the concrete qudit type (`qubit`, `qmode`, etc).
@@ -92,6 +96,10 @@ protected:
   /// Internal - At qudit deallocation, return the qudit index
   void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
 
+  /// @brief Keep track of a registry of user-provided unitary operations.
+  std::unordered_map<std::string, std::unique_ptr<cudaq::unitary_operation>>
+      registeredOperations;
+
 public:
   ExecutionManager() = default;
 
@@ -110,6 +118,23 @@ public:
 
   /// Reset the execution context
   virtual void resetExecutionContext() = 0;
+
+  /// @brief Initialize the state of the given qudits to the provided
+  /// state vector.
+  virtual void initializeState(const std::vector<QuditInfo> &targets,
+                               const void *state,
+                               simulation_precision precision) = 0;
+  /// @brief Initialize the state of the given qudits to the provided
+  /// simulation state.
+  virtual void initializeState(const std::vector<QuditInfo> &targets,
+                               const SimulationState *state) = 0;
+
+  /// @brief Initialize the state of the given qudits to the provided
+  /// simulation state.
+  virtual void initializeState(const std::vector<QuditInfo> &targets,
+                               const SimulationState &state) {
+    initializeState(targets, &state);
+  }
 
   /// Apply the quantum instruction with the given name, on the provided target
   /// qudits. Supports input of control qudits and rotational parameters. Can
@@ -150,6 +175,19 @@ public:
 
   /// Flush the gate queue (needed for accurate timing information)
   virtual void flushGateQueue(){};
+
+  /// @brief Register a new custom unitary operation under the
+  /// provided operation name.
+  template <typename T>
+  void registerOperation(const std::string &name) {
+    auto iter = registeredOperations.find(name);
+    if (iter != registeredOperations.end())
+      return;
+    registeredOperations.insert({name, std::make_unique<T>()});
+  }
+
+  /// Clear the registered operations
+  virtual void clearRegisteredOperations() { registeredOperations.clear(); }
 
   virtual ~ExecutionManager() = default;
 };

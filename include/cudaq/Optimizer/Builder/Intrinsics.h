@@ -11,6 +11,13 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 
 namespace cudaq {
+namespace cc {
+class GlobalOp;
+}
+
+/// This is the name of a dummy builtin to identify a std::move() call. These
+/// calls will be erased before code gen.
+static constexpr const char stdMoveBuiltin[] = ".std::move";
 
 static constexpr const char llvmMemCopyIntrinsic[] =
     "llvm.memcpy.p0i8.p0i8.i64";
@@ -34,11 +41,16 @@ static constexpr const char stdvecBoolCtorFromInitList[] =
 static constexpr const char stdvecBoolUnpackToInitList[] =
     "__nvqpp_vector_bool_to_initializer_list";
 
-/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering
-/// includes the transformation of both quantum and classical computation.
-/// Different features of the CUDA-Q programming model are lowered into
-/// different dialects of MLIR. This builder makes heavy use of the Quake
-/// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
+// The internal data of the cudaq::state object must be `2**n` in length. This
+// function returns the value `n`.
+static constexpr const char getNumQubitsFromCudaqState[] =
+    "__nvqpp_cudaq_state_numberOfQubits";
+
+/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
+/// the transformation of both quantum and classical computation. Different
+/// features of the CUDA-Q programming model are lowered into different dialects
+/// of MLIR. This builder makes heavy use of the Quake (QUAntum Kernel
+/// Execution) and CC (Classical Computation) dialects.
 ///
 /// This builder also allows for the inclusion of predefined intrinsics into
 /// the `ModuleOp` on demand. Intrinsics exist in a map accessed by a symbol
@@ -46,6 +58,9 @@ static constexpr const char stdvecBoolUnpackToInitList[] =
 class IRBuilder : public mlir::OpBuilder {
 public:
   using OpBuilder::OpBuilder;
+
+  /// Create IRBuilder such that it has the same insertion point as \p builder.
+  IRBuilder(const mlir::OpBuilder &builder);
 
   mlir::LLVM::ConstantOp genLlvmI32Constant(mlir::Location loc,
                                             std::int32_t val) {
@@ -70,6 +85,42 @@ public:
     return genCStringLiteral(loc, module, buffer);
   }
 
+  cc::GlobalOp
+  genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                       mlir::StringRef name,
+                       const std::vector<std::complex<double>> &values);
+  cc::GlobalOp
+  genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                       mlir::StringRef name,
+                       const std::vector<std::complex<float>> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<double> &values);
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<float> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<std::int64_t> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<std::int32_t> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<std::int16_t> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<std::int8_t> &values);
+
+  cc::GlobalOp genVectorOfConstants(mlir::Location loc, mlir::ModuleOp module,
+                                    mlir::StringRef name,
+                                    const std::vector<bool> &values);
+
   /// Load an intrinsic into \p module. The intrinsic to load has name \p name.
   /// This will automatically load any intrinsics that \p name depends upon.
   /// Return `failure()` when \p name is not in the table of known intrinsics.
@@ -77,6 +128,10 @@ public:
                                     llvm::StringRef name);
 
   std::string hashStringByContent(llvm::StringRef sref);
+
+  /// Generates code that yields the size of any type that can be reified in
+  /// memory. Otherwise returns a `nullptr` Value.
+  mlir::Value getByteSizeOfType(mlir::Location loc, mlir::Type ty);
 
   static IRBuilder atBlockEnd(mlir::Block *block) {
     return IRBuilder(block, block->end(), nullptr);

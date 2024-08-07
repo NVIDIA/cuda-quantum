@@ -8,6 +8,8 @@
 
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MD5.h"
@@ -138,25 +140,127 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %rv : i64
   })#"},
 
+    // __nvqpp__cudaq_em_allocate
+    {cudaq::opt::CudaqEMAllocate,
+     {},
+     "func.func private @__nvqpp__cudaq_em_allocate() -> i64"},
+    // __nvqpp__cudaq_em_allocate_veq
+    {cudaq::opt::CudaqEMAllocateVeq,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_allocate_veq(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %size : i64) {
+    %buffptr = cc.compute_ptr %span[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %buffer = cc.load %buffptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %0 = arith.constant 0 : i64
+    %1 = cc.loop while ((%arg0 = %0) -> (i64)) {
+      %cond = arith.cmpi slt, %arg0, %size : i64
+      cc.condition %cond (%arg0 : i64)
+    } do {
+     ^bb0(%arg0 : i64):
+      %2 = func.call @__nvqpp__cudaq_em_allocate() : () -> i64
+      %3 = cc.compute_ptr %buffer[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+      cc.store %2, %3 : !cc.ptr<i64>
+      cc.continue %arg0 : i64
+    } step {
+     ^bb0(%arg0 : i64):
+      %4 = arith.constant 1 : i64
+      %5 = arith.addi %arg0, %4 : i64
+      cc.continue %5 : i64
+    } {invariant}
+    return
+  })#"},
+    // __nvqpp__cudaq_em_apply
+    {cudaq::opt::CudaqEMApply,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_apply(!cc.ptr<i8>, i64, !cc.ptr<!cc.array<f64 x ?>>, !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, i1)
+  )#"},
+    // __nvqpp__cudaq_em_concatSpan
+    {cudaq::opt::CudaqEMConcatSpan,
+     {cudaq::llvmMemCopyIntrinsic},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_concatSpan(%dest : !cc.ptr<i64>, %from : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %length : i64) {
+    %ptrptr = cc.compute_ptr %from[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %src = cc.load %ptrptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %eight = arith.constant 8 : i64
+    %len = arith.muli %length, %eight : i64
+    %false = arith.constant false
+    %to0 = cc.cast %dest : (!cc.ptr<i64>) -> !cc.ptr<i8>
+    %from0 = cc.cast %src : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i8>
+    call @llvm.memcpy.p0i8.p0i8.i64(%to0, %from0, %len, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    return
+  })#"},
+    // __nvqpp__cudaq_em_measure
+    {cudaq::opt::CudaqEMMeasure,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_measure(!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<i8>) -> i32
+  )#"},
+    // __nvqpp__cudaq_em_reset
+    {cudaq::opt::CudaqEMReset,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_reset(!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>)
+  )#"},
+    // __nvqpp__cudaq_em_return
+    {cudaq::opt::CudaqEMReturn,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_return(!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>)
+  )#"},
+    // __nvqpp__cudaq_em_writeToSpan
+    {cudaq::opt::CudaqEMWriteToSpan,
+     {},
+     R"#(
+  func.func private @__nvqpp__cudaq_em_writeToSpan(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %ptr : !cc.ptr<!cc.array<i64 x ?>>, %size : i64) {
+    %buffptr = cc.compute_ptr %span[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    cc.store %ptr, %buffptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
+    %szptr = cc.compute_ptr %span[1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
+    cc.store %size, %szptr : !cc.ptr<i64>
+    return
+  })#"},
+
     {"__nvqpp_createDynamicResult",
      {cudaq::llvmMemCopyIntrinsic, "malloc"},
      R"#(
   func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.struct<{!cc.ptr<i8>, i64}> {
-    %0 = cc.compute_ptr %arg2[0, 1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
+    %0 = cc.compute_ptr %arg2[1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
     %1 = cc.load %0 : !cc.ptr<i64>
     %2 = arith.addi %arg1, %1 : i64
     %3 = call @malloc(%2) : (i64) -> !cc.ptr<i8>
+    %10 = cc.cast %3 : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
     %false = arith.constant false
     call @llvm.memcpy.p0i8.p0i8.i64(%3, %arg0, %arg1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-    %4 = cc.compute_ptr %arg2[0, 0] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<!cc.ptr<i8>>
+    %4 = cc.compute_ptr %arg2[0] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<!cc.ptr<i8>>
     %5 = cc.load %4 : !cc.ptr<!cc.ptr<i8>>
-    %6 = cc.compute_ptr %3[%arg1] : (!cc.ptr<i8>, i64) -> !cc.ptr<i8>
+    %6 = cc.compute_ptr %10[%arg1] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
     call @llvm.memcpy.p0i8.p0i8.i64(%6, %5, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     %7 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
     %8 = cc.insert_value %3, %7[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
     %9 = cc.insert_value %2, %8[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
     return %9 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
+
+    {cudaq::getNumQubitsFromCudaqState, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!cc.state>) -> i64
+  )#"},
+
+    {"__nvqpp_getStateVectorData_fp32", {}, R"#(
+  func.func private @__nvqpp_getStateVectorData_fp32(%p : i64, %o : i64) -> !cc.ptr<complex<f32>>
+  )#"},
+    {"__nvqpp_getStateVectorData_fp64", {}, R"#(
+  func.func private @__nvqpp_getStateVectorData_fp64(%p : i64, %o : i64) -> !cc.ptr<complex<f64>>
+  )#"},
+    {"__nvqpp_getStateVectorLength_fp32",
+     {},
+     R"#(
+  func.func private @__nvqpp_getStateVectorLength_fp32(%p : i64, %o : i64) -> i64
+  )#"},
+    {"__nvqpp_getStateVectorLength_fp64",
+     {},
+     R"#(
+  func.func private @__nvqpp_getStateVectorLength_fp64(%p : i64, %o : i64) -> i64
+  )#"},
 
     // __nvqpp_initializer_list_to_vector_bool
     {cudaq::stdvecBoolCtorFromInitList,
@@ -215,6 +319,17 @@ inline bool intrinsicTableIsSorted() {
 
 namespace cudaq {
 
+IRBuilder::IRBuilder(const OpBuilder &builder)
+    : OpBuilder{builder.getContext()} {
+  // Sets the insertion point to be the same as \p builder. New operations will
+  // be inserted immediately before this insertion point and the insertion
+  // points will remain the identical, upto and unless one of the builders
+  // changes its insertion pointer.
+  auto *block = builder.getBlock();
+  auto point = builder.getInsertionPoint();
+  setInsertionPoint(block, point);
+}
+
 LLVM::GlobalOp IRBuilder::genCStringLiteral(Location loc, ModuleOp module,
                                             llvm::StringRef cstring) {
   auto *ctx = getContext();
@@ -270,6 +385,112 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
   return parseSourceString(
       iter->code, module.getBody(),
       ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
+}
+
+template <typename T>
+DenseElementsAttr createDenseElementsAttr(const std::vector<T> &values,
+                                          Type eleTy) {
+  auto newValues = ArrayRef<T>(values.data(), values.size());
+  auto tensorTy = RankedTensorType::get(values.size(), eleTy);
+  return DenseElementsAttr::get(tensorTy, newValues);
+}
+
+DenseElementsAttr createDenseElementsAttr(const std::vector<bool> &values,
+                                          Type eleTy) {
+  std::vector<std::byte> converted;
+  for (auto it = values.begin(); it != values.end(); it++) {
+    bool value = *it;
+    converted.push_back(std::byte(value));
+  }
+  auto newValues = ArrayRef<bool>(reinterpret_cast<bool *>(converted.data()),
+                                  converted.size());
+  auto tensorTy = RankedTensorType::get(converted.size(), eleTy);
+  return DenseElementsAttr::get(tensorTy, newValues);
+}
+
+template <typename A>
+cc::GlobalOp buildVectorOfConstantElements(Location loc, ModuleOp module,
+                                           StringRef name,
+                                           const std::vector<A> &values,
+                                           IRBuilder &builder, Type eleTy) {
+  if (auto glob = module.lookupSymbol<cc::GlobalOp>(name))
+    return glob;
+  auto *ctx = builder.getContext();
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToEnd(module.getBody());
+  auto globalTy = cc::ArrayType::get(ctx, eleTy, values.size());
+
+  auto arrayAttr = createDenseElementsAttr(values, eleTy);
+  return builder.create<cudaq::cc::GlobalOp>(loc, globalTy, name, arrayAttr,
+                                             /*constant=*/true,
+                                             /*external=*/false);
+}
+
+cc::GlobalOp IRBuilder::genVectorOfConstants(
+    Location loc, ModuleOp module, StringRef name,
+    const std::vector<std::complex<double>> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       ComplexType::get(getF64Type()));
+}
+
+cc::GlobalOp IRBuilder::genVectorOfConstants(
+    Location loc, ModuleOp module, StringRef name,
+    const std::vector<std::complex<float>> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       ComplexType::get(getF32Type()));
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<double> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getF64Type());
+}
+
+cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
+                                             StringRef name,
+                                             const std::vector<float> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getF32Type());
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<std::int64_t> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI64Type());
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<std::int32_t> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI32Type());
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<std::int16_t> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI16Type());
+}
+
+cc::GlobalOp
+IRBuilder::genVectorOfConstants(Location loc, ModuleOp module, StringRef name,
+                                const std::vector<std::int8_t> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI8Type());
+}
+
+cc::GlobalOp IRBuilder::genVectorOfConstants(Location loc, ModuleOp module,
+                                             StringRef name,
+                                             const std::vector<bool> &values) {
+  return buildVectorOfConstantElements(loc, module, name, values, *this,
+                                       getI1Type());
+}
+
+Value IRBuilder::getByteSizeOfType(Location loc, Type ty) {
+  return cc::getByteSizeOfType(*this, loc, ty, /*useSizeOf=*/true);
 }
 
 } // namespace cudaq

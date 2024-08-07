@@ -1,0 +1,108 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -canonicalize %s | cudaq-opt | FileCheck %s
+
+func.func @b1() -> f32 {
+  %0 = arith.constant 22 : i64
+  %1 = cc.cast signed %0 : (i64) -> f32
+  return %1 : f32
+}
+
+func.func @b2() -> f32 {
+  %0 = arith.constant -21 : i64
+  %1 = cc.cast unsigned %0 : (i64) -> f32
+  return %1 : f32
+}
+
+func.func @b3() -> f32 {
+  %0 = arith.constant 2.34 : f64
+  %1 = cc.cast %0 : (f64) -> f32
+  return %1 : f32
+}
+
+func.func @b4() -> f64 {
+  %0 = arith.constant 6.34 : f32
+  %1 = cc.cast %0 : (f32) -> f64
+  return %1 : f64
+}
+
+func.func @b5() -> i32 {
+  %0 = arith.constant 94 : i64
+  %1 = cc.cast signed %0 : (i64) -> i32
+  return %1 : i32
+}
+
+func.func @b6() -> i64 {
+  %0 = arith.constant 73 : i16
+  %1 = cc.cast signed %0 : (i16) -> i64
+  return %1 : i64
+}
+
+func.func @b7() -> i64 {
+  %0 = arith.constant -82 : i16
+  %1 = cc.cast unsigned %0 : (i16) -> i64
+  return %1 : i64
+}
+
+func.func @b8() -> i64 {
+  %0 = arith.constant -6.29 : f32
+  %1 = cc.cast signed %0 : (f32) -> i64
+  return %1 : i64
+}
+
+func.func @b9() -> i32 {
+  %0 = arith.constant 7.11 : f64
+  %1 = cc.cast unsigned %0 : (f64) -> i32
+  return %1 : i32
+}
+
+// CHECK-LABEL:   func.func @b1() -> f32 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2.200000e+01 : f32
+// CHECK:           return %[[VAL_0]] : f32
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @b2() -> f32 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.84467441E+19 : f32
+// CHECK:           return %[[VAL_0]] : f32
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @b3() -> f32 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2.340000e+00 : f32
+// CHECK:           return %[[VAL_0]] : f32
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @b4() -> f64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 6.3400001525878906 : f64
+// CHECK:           return %[[VAL_0]] : f64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @b5() -> i32 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 94 : i32
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @b6() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 73 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @b7() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant -82 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @b8() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant -6 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @b9() -> i32 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 7 : i32
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }

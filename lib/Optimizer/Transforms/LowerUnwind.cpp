@@ -321,6 +321,16 @@ static bool anyPrimitiveAncestor(
   return false;
 }
 
+static Value adjustedDeallocArg(quake::AllocaOp alloc) {
+  if (auto init = alloc.getInitializedState())
+    return init.getResult();
+  return alloc.getResult();
+}
+
+static Value adjustedDeallocArg(Operation *op) {
+  return adjustedDeallocArg(cast<quake::AllocaOp>(op));
+}
+
 namespace {
 /// A scope op that contains an unwind op and is contained by a loop (for break
 /// or continue) or for return always, dictates that the unwind op must transfer
@@ -366,7 +376,7 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       auto *contOp = pr.first;
       rewriter.setInsertionPoint(contOp);
       for (auto a : llvm::reverse(pr.second))
-        rewriter.create<quake::DeallocOp>(a.getLoc(), a.getResult());
+        rewriter.create<quake::DeallocOp>(a.getLoc(), adjustedDeallocArg(a));
       rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, nextBlock,
                                                 contOp->getOperands());
     }
@@ -380,7 +390,7 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.continueBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          rewriter.create<quake::DeallocOp>(a->getLoc(), a->getResult(0));
+          rewriter.create<quake::DeallocOp>(a->getLoc(), adjustedDeallocArg(a));
         if (asPrimitive) {
           Block *landingPad = getLandingPad(infoMap, scope).continueBlock;
           rewriter.create<cf::BranchOp>(loc, landingPad, blk->getArguments());
@@ -393,7 +403,7 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.breakBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          rewriter.create<quake::DeallocOp>(a->getLoc(), a->getResult(0));
+          rewriter.create<quake::DeallocOp>(a->getLoc(), adjustedDeallocArg(a));
         if (asPrimitive) {
           Block *landingPad = getLandingPad(infoMap, scope).breakBlock;
           rewriter.create<cf::BranchOp>(loc, landingPad, blk->getArguments());
@@ -406,7 +416,7 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.returnBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          rewriter.create<quake::DeallocOp>(a->getLoc(), a->getResult(0));
+          rewriter.create<quake::DeallocOp>(a->getLoc(), adjustedDeallocArg(a));
         assert(asPrimitive);
         Block *landingPad = getLandingPad(infoMap, scope).returnBlock;
         rewriter.create<cf::BranchOp>(loc, landingPad, blk->getArguments());
@@ -458,7 +468,7 @@ struct FuncLikeOpPattern : public OpRewritePattern<OP> {
       auto *exitOp = pr.first;
       rewriter.setInsertionPoint(exitOp);
       for (auto a : llvm::reverse(pr.second))
-        rewriter.create<quake::DeallocOp>(a.getLoc(), a.getResult());
+        rewriter.create<quake::DeallocOp>(a.getLoc(), adjustedDeallocArg(a));
     }
 
     // Here, we handle the unwind return jumps.
@@ -477,7 +487,7 @@ struct FuncLikeOpPattern : public OpRewritePattern<OP> {
       if (Block *exitBlock = blockInfo.returnBlock) {
         rewriter.setInsertionPointToEnd(exitBlock);
         for (auto a : llvm::reverse(qallocas))
-          rewriter.create<quake::DeallocOp>(a->getLoc(), a->getResult(0));
+          rewriter.create<quake::DeallocOp>(a->getLoc(), adjustedDeallocArg(a));
         rewriter.create<TERM>(func.getLoc(), exitBlock->getArguments());
         func.getBody().push_back(exitBlock);
       }
@@ -503,8 +513,8 @@ struct IfOpPattern : public OpRewritePattern<cudaq::cc::IfOp> {
 
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
-    auto iter = infoMap.opParentMap.find(ifOp.getOperation());
-    assert(iter != infoMap.opParentMap.end());
+    assert(infoMap.opParentMap.find(ifOp.getOperation()) !=
+           infoMap.opParentMap.end());
     LLVM_DEBUG(llvm::dbgs() << "replacing if @" << ifOp.getLoc() << '\n');
 
     // Decompose the cc.if to a CFG.

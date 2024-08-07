@@ -6,8 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
-
 import cudaq
 
 
@@ -27,3 +25,4 @@ def test_cpu_only_target():
     result.dump()
     assert '00' in result
     assert '11' in result
+    cudaq.reset_target()

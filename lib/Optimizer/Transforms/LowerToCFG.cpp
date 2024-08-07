@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -46,24 +47,50 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = scopeOp.getLoc();
     auto *initBlock = rewriter.getInsertionBlock();
+    Value stacksave;
+    auto module = scopeOp.getOperation()->getParentOfType<ModuleOp>();
+    auto ptrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+    if (scopeOp.hasAllocation(/*quantumAllocs=*/false)) {
+      auto fun = cudaq::opt::factory::createFunction(
+          "llvm.stacksave", ArrayRef<Type>{ptrTy}, {}, module);
+      fun.setPrivate();
+      auto call = rewriter.create<func::CallOp>(
+          loc, ptrTy, fun.getSymNameAttr(), ArrayRef<Value>{});
+      stacksave = call.getResult(0);
+    }
     auto initPos = rewriter.getInsertionPoint();
     auto *endBlock = rewriter.splitBlock(initBlock, initPos);
-    auto *scopeBlock = &scopeOp.getInitRegion().front();
-    auto contOp = cast<cudaq::cc::ContinueOp>(scopeBlock->getTerminator());
+    ValueRange scopeResults;
     if (scopeOp.getNumResults() != 0) {
       Block *continueBlock = rewriter.createBlock(
           endBlock, scopeOp.getResultTypes(),
           SmallVector<Location>(scopeOp.getNumResults(), loc));
+      scopeResults = continueBlock->getArguments();
       rewriter.create<cf::BranchOp>(loc, endBlock);
       endBlock = continueBlock;
     }
+
+    for (auto &block : scopeOp.getInitRegion())
+      if (auto contOp =
+              dyn_cast<cudaq::cc::ContinueOp>(block.getTerminator())) {
+        rewriter.setInsertionPointToEnd(&block);
+        rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, endBlock,
+                                                  contOp.getOperands());
+      }
+
+    auto *entryBlock = &scopeOp.getInitRegion().front();
     rewriter.setInsertionPointToEnd(initBlock);
-    rewriter.create<cf::BranchOp>(loc, scopeBlock, ValueRange{});
-    rewriter.setInsertionPointToEnd(scopeBlock);
-    rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, endBlock,
-                                              contOp.getOperands());
+    rewriter.create<cf::BranchOp>(loc, entryBlock, ValueRange{});
     rewriter.inlineRegionBefore(scopeOp.getInitRegion(), endBlock);
-    rewriter.replaceOp(scopeOp, contOp.getOperands());
+    if (stacksave) {
+      rewriter.setInsertionPointToStart(endBlock);
+      auto fun = cudaq::opt::factory::createFunction(
+          "llvm.stackrestore", {}, ArrayRef<Type>{ptrTy}, module);
+      fun.setPrivate();
+      rewriter.create<func::CallOp>(loc, ArrayRef<Type>{}, fun.getSymNameAttr(),
+                                    ArrayRef<Value>{stacksave});
+    }
+    rewriter.replaceOp(scopeOp, scopeResults);
     return success();
   }
 };
@@ -168,10 +195,7 @@ public:
     }
     auto comparison = whileCond.getCondition();
     auto *bodyBlock = loopOp.getDoEntryBlock();
-    auto *condBlock =
-        loopOp.hasStep()
-            ? loopOp.getStepBlock()
-            : (loopOp.isPostConditional() ? bodyBlock : whileBlock);
+    auto *condBlock = loopOp.hasStep() ? loopOp.getStepBlock() : whileBlock;
 
     if (failed(updateBodyBranches(&loopOp.getBodyRegion(), rewriter, condBlock,
                                   endBlock)))

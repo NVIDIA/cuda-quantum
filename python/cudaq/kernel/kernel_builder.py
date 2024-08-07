@@ -7,23 +7,29 @@
 # ============================================================================ #
 
 from functools import partialmethod
+import hashlib
+import uuid
 import random
 import re
 import string
 import sys
+import numpy as np
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType, emitErrorIfInvalidPauli
+from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli, globalRegisteredOperations
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
+from .captured_data import CapturedDataStorage
 
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.execution_engine import *
 from ..mlir.dialects import quake, cc
-from ..mlir.dialects import builtin, func, arith
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, register_all_dialects
+from ..mlir.dialects import builtin, func, arith, math, complex as complexDialect
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
+
+kDynamicPtrIndex: int = -2147483648
 
 
 ## [PYTHON_VERSION_FIX]
@@ -172,6 +178,67 @@ def __singleTargetSingleParameterControlOperation(self,
                            context=self.ctx)
 
 
+def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
+    argEleTy = cc.StdvecType.getElementType(mlirType)
+    eleTy = cc.StdvecType.getElementType(otherTy)
+    if ToType.isinstance(eleTy) and FromType.isinstance(argEleTy):
+        return [PyType(i) for i in arg]
+    return None
+
+
+def __generalCustomOperation(self, opName, *args):
+    """
+    Utility function for adding a generic quantum operation to the MLIR 
+    representation for the PyKernel.
+
+    A controlled version can be invoked by passing additional arguments 
+    to the operation. For an N-qubit operation, the last N arguments are 
+    treated as `targets` and excess arguments as `controls`.
+    """
+
+    global globalRegisteredOperations
+    unitary = globalRegisteredOperations[opName]
+
+    numTargets = int(np.log2(np.sqrt(unitary.size)))
+
+    qubits = []
+    with self.insertPoint, self.loc:
+        for arg in args:
+            if isinstance(arg, QuakeValue):
+                qubits.append(arg.mlirValue)
+            else:
+                emitFatalError(f"invalid argument type passed to {opName}.")
+
+        targets = []
+        controls = []
+
+        if numTargets == len(qubits):
+            targets = qubits
+        elif numTargets < len(qubits):
+            numControls = len(qubits) - numTargets
+            targets = qubits[-numTargets:]
+            controls = qubits[:numControls]
+        else:
+            emitFatalError(
+                f"too few arguments passed to {opName}, expected ({numTargets})"
+            )
+
+        globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
+        currentST = SymbolTable(self.module.operation)
+        if not globalName in currentST:
+            with InsertionPoint(self.module.body):
+                gen_vector_of_complex_constant(self.loc, self.module,
+                                               globalName, unitary.tolist())
+
+        quake.CustomUnitarySymbolOp([],
+                                    generator=FlatSymbolRefAttr.get(globalName),
+                                    parameters=[],
+                                    controls=controls,
+                                    targets=targets,
+                                    is_adj=False)
+        return
+
+
 class PyKernel(object):
     """
     The :class:`Kernel` provides an API for dynamically constructing quantum 
@@ -212,6 +279,11 @@ class PyKernel(object):
         self.module.operation.attributes.__setitem__('quake.mangled_name_map',
                                                      attr)
 
+        self.capturedDataStorage = CapturedDataStorage(ctx=self.ctx,
+                                                       loc=self.loc,
+                                                       name=self.name,
+                                                       module=self.module)
+
         with self.ctx, InsertionPoint(self.module.body), self.loc:
             self.mlirArgTypes = [
                 mlirTypeFromPyType(argType[0], self.ctx, argInstance=argType[1])
@@ -232,6 +304,13 @@ class PyKernel(object):
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
 
+    def __del__(self):
+        """
+        When a kernel builder is deleted we need to clean up 
+        any state data if there is any.
+        """
+        self.capturedDataStorage.__del__()
+
     def __processArgType(self, ty):
         """
         Process input argument type. Specifically, try to infer the 
@@ -239,12 +318,15 @@ class PyKernel(object):
         """
         if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
             return ty, None
-        if get_origin(ty) == list or isinstance(ty(), list):
+        if get_origin(ty) == list or isinstance(ty, list):
             if '[' in str(ty) and ']' in str(ty):
                 allowedTypeMap = {
                     'int': int,
                     'bool': bool,
                     'float': float,
+                    'complex': complex,
+                    'numpy.complex128': np.complex128,
+                    'numpy.complex64': np.complex64,
                     'pauli_word': cudaq_runtime.pauli_word
                 }
                 # Infer the slice type
@@ -278,13 +360,127 @@ class PyKernel(object):
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
-    def getConstantFloat(self, value):
+    def getFloatType(self, width=64):
+        """
+        Return an MLIR float type (single or double precision).
+        """
+        # Note:
+        # `numpy.float64` is the same as `float` type, with width of 64 bit.
+        # `numpy.float32` type has width of 32 bit.
+        return F64Type.get() if width == 64 else F32Type.get()
+
+    def getFloatAttr(self, type, value):
+        """
+        Return an MLIR float attribute (single or double precision).
+        """
+        return FloatAttr.get(type, value)
+
+    def getConstantFloat(self, value, width=64):
         """
         Create a constant float operation and return its MLIR result Value.
-        Takes as input the concrete float value. 
+        Takes as input the concrete float value.
         """
-        ty = F64Type.get()
-        return arith.ConstantOp(ty, FloatAttr.get(ty, value)).result
+        ty = self.getFloatType(width=width)
+        return self.getConstantFloatWithType(value, ty)
+
+    def getConstantFloatWithType(self, value, ty):
+        """
+        Create a constant float operation and return its MLIR result Value.
+        Takes as input the concrete float value.
+        """
+        return arith.ConstantOp(ty, self.getFloatAttr(ty, value)).result
+
+    def getComplexType(self, width=64):
+        """
+        Return an MLIR complex type (single or double precision).
+        """
+        # Note:
+        # `numpy.complex128` is the same as `complex` type,
+        # with element width of 64bit (`np.complex64` and `float`)
+        # `numpy.complex64` type has element type of `np.float32`.
+        return self.getComplexTypeWithElementType(
+            self.getFloatType(width=width))
+
+    def getComplexTypeWithElementType(self, eTy):
+        """
+        Return an MLIR complex type (single or double precision).
+        """
+        return ComplexType.get(eTy)
+
+    def simulationPrecision(self):
+        """
+        Return precision for the current simulation backend,
+        see `cudaq_runtime.SimulationPrecision`.
+        """
+        target = cudaq_runtime.get_target()
+        return target.get_precision()
+
+    def simulationDType(self):
+        """
+        Return the data type for the current simulation backend,
+        either `numpy.complex128` or `numpy.complex64`.
+        """
+        if self.simulationPrecision() == cudaq_runtime.SimulationPrecision.fp64:
+            return self.getComplexType(width=64)
+        return self.getComplexType(width=32)
+
+    def ifPointerThenLoad(self, value):
+        """
+        If the given value is of pointer type, load the pointer
+        and return that new value.
+        """
+        if cc.PointerType.isinstance(value.type):
+            return cc.LoadOp(value).result
+        return value
+
+    def ifNotPointerThenStore(self, value):
+        """
+        If the given value is not of a pointer type, allocate a
+        slot on the stack, store the the value in the slot, and
+        return the slot address.
+        """
+        if not cc.PointerType.isinstance(value.type):
+            slot = cc.AllocaOp(cc.PointerType.get(self.ctx, value.type),
+                               TypeAttr.get(value.type)).result
+            cc.StoreOp(value, slot)
+            return slot
+        return value
+
+    def promoteOperandType(self, ty, operand):
+        if ComplexType.isinstance(ty):
+            complexType = ComplexType(ty)
+            floatType = complexType.element_type
+            if ComplexType.isinstance(operand.type):
+                otherComplexType = ComplexType(operand.type)
+                otherFloatType = otherComplexType.element_type
+                if (floatType != otherFloatType):
+                    real = self.promoteOperandType(
+                        floatType,
+                        complexDialect.ReOp(operand).result)
+                    imag = self.promoteOperandType(
+                        floatType,
+                        complexDialect.ImOp(operand).result)
+                    operand = complexDialect.CreateOp(complexType, real,
+                                                      imag).result
+            else:
+                real = self.promoteOperandType(floatType, operand)
+                imag = self.getConstantFloatWithType(0.0, floatType)
+                operand = complexDialect.CreateOp(complexType, real,
+                                                  imag).result
+
+        if F64Type.isinstance(ty):
+            if F32Type.isinstance(operand.type):
+                operand = arith.ExtFOp(ty, operand).result
+            if IntegerType.isinstance(operand.type):
+                operand = arith.SIToFPOp(ty, operand).result
+
+        if F32Type.isinstance(ty):
+            if F64Type.isinstance(operand.type):
+                operand = arith.TruncFOp(ty, operand).result
+            if IntegerType.isinstance(operand.type):
+                operand = arith.SIToFPOp(ty, operand).result
+
+        return operand
 
     def __getMLIRValueFromPythonArg(self, arg, argTy):
         """
@@ -303,8 +499,10 @@ class PyKernel(object):
             return self.getConstantFloat(arg)
 
         if ComplexType.isinstance(mlirType):
-            return complex.CreateOp(mlirType, self.getConstantFloat(arg.real),
-                                    self.getConstantFloat(arg.imag)).result
+            return complexDialect.CreateOp(mlirType,
+                                           self.getConstantFloat(arg.real),
+                                           self.getConstantFloat(
+                                               arg.imag)).result
 
         if cc.StdvecType.isinstance(mlirType):
             size = self.getConstantInt(len(arg))
@@ -514,13 +712,13 @@ class PyKernel(object):
             return str(cloned)
         return str(self.module)
 
-    def qalloc(self, size=None):
+    def qalloc(self, initializer=None):
         """
         Allocate a register of qubits of size `qubit_count` and return a 
         handle to them as a :class:`QuakeValue`.
 
         Args:
-            qubit_count (Union[`int`,`QuakeValue`): The number of qubits to allocate.
+            initializer (Union[`int`,`QuakeValue`, `list[T]`): The number of qubits to allocate or a concrete state to allocate and initialize the qubits.
         Returns:
             :class:`QuakeValue`: A handle to the allocated qubits in the MLIR.
 
@@ -531,18 +729,122 @@ class PyKernel(object):
         ```
         """
         with self.insertPoint, self.loc:
-            if size == None:
+            # If the initializer is an integer, create `veq<N>`
+            if isinstance(initializer, int):
+                veqTy = quake.VeqType.get(self.ctx, initializer)
+                return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
+
+            if isinstance(initializer, list):
+                initializer = np.array(initializer, dtype=type(initializer[0]))
+
+            if isinstance(initializer, np.ndarray):
+                if len(initializer.shape) != 1:
+                    raise RuntimeError(
+                        "invalid initializer for qalloc (np.ndarray must be 1D, vector-like)"
+                    )
+
+                if initializer.dtype not in [
+                        complex, np.complex128, np.complex64, float, np.float64,
+                        np.float32, int
+                ]:
+                    raise RuntimeError(
+                        "invalid initializer for qalloc (must be int, float, or complex dtype)"
+                    )
+
+                # Get current simulation precision and convert the initializer if needed.
+                simulationPrecision = self.simulationPrecision()
+                if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
+                    if initializer.dtype not in [complex, np.complex128]:
+                        initializer = initializer.astype(dtype=np.complex128)
+
+                if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
+                    if initializer.dtype != np.complex64:
+                        initializer = initializer.astype(dtype=np.complex64)
+
+                # Get the size of the array
+                size = len(initializer)
+                numQubits = np.log2(size)
+
+                if not numQubits.is_integer():
+                    raise RuntimeError(
+                        "invalid input state size for qalloc (not a power of 2)"
+                    )
+
+                # check state is normalized
+                norm = sum([np.conj(a) * a for a in initializer])
+                if np.abs(norm.imag) > 1e-4 or np.abs(1. - norm.real) > 1e-4:
+                    raise RuntimeError(
+                        "invalid input state for qalloc (not normalized)")
+
+                veqTy = quake.VeqType.get(self.ctx, int(numQubits))
+                qubits = quake.AllocaOp(veqTy).result
+                data = self.capturedDataStorage.storeArray(initializer)
+
+                init = quake.InitializeStateOp(qubits.type, qubits, data).result
+                return self.__createQuakeValue(init)
+
+            # Captured state
+            if isinstance(initializer, cudaq_runtime.State):
+                statePtr = self.capturedDataStorage.storeCudaqState(initializer)
+
+                symName = '__nvqpp_cudaq_state_numberOfQubits'
+                load_intrinsic(self.module, symName)
+                i64Ty = self.getIntegerType()
+                numQubits = func.CallOp([i64Ty], symName, [statePtr]).result
+
+                veqTy = quake.VeqType.get(self.ctx)
+                qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                init = quake.InitializeStateOp(veqTy, qubits, statePtr).result
+                return self.__createQuakeValue(init)
+
+            # If the initializer is a QuakeValue, see if it is
+            # an integer or a `stdvec` type
+            if isinstance(initializer, QuakeValue):
+                veqTy = quake.VeqType.get(self.ctx)
+                if IntegerType.isinstance(initializer.mlirValue.type):
+                    # This is an integer size
+                    return self.__createQuakeValue(
+                        quake.AllocaOp(veqTy,
+                                       size=initializer.mlirValue).result)
+
+                if cc.StdvecType.isinstance(initializer.mlirValue.type):
+                    size = cc.StdvecSizeOp(self.getIntegerType(),
+                                           initializer.mlirValue).result
+                    value = initializer.mlirValue
+                    eleTy = cc.StdvecType.getElementType(value.type)
+                    numQubits = math.CountTrailingZerosOp(size).result
+                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                    ptrTy = cc.PointerType.get(self.ctx, eleTy)
+                    data = cc.StdvecDataOp(ptrTy, value).result
+                    init = quake.InitializeStateOp(veqTy, qubits, data).result
+                    return self.__createQuakeValue(init)
+
+                # State pointer
+                if cc.PointerType.isinstance(initializer.mlirValue.type):
+                    valuePtrTy = initializer.mlirValue.type
+                    valueTy = cc.PointerType.getElementType(valuePtrTy)
+                    if cc.StateType.isinstance(valueTy):
+                        statePtr = initializer.mlirValue
+
+                        symName = '__nvqpp_cudaq_state_numberOfQubits'
+                        load_intrinsic(self.module, symName)
+                        i64Ty = self.getIntegerType()
+                        numQubits = func.CallOp([i64Ty], symName,
+                                                [statePtr]).result
+
+                        veqTy = quake.VeqType.get(self.ctx)
+                        qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                        init = quake.InitializeStateOp(veqTy, qubits,
+                                                       statePtr).result
+                        return self.__createQuakeValue(init)
+
+            # If no initializer, create a single qubit
+            if initializer == None:
                 qubitTy = quake.RefType.get(self.ctx)
                 return self.__createQuakeValue(quake.AllocaOp(qubitTy).result)
-            else:
-                if isinstance(size, QuakeValue):
-                    veqTy = quake.VeqType.get(self.ctx)
-                    sizeVal = size.mlirValue
-                    return self.__createQuakeValue(
-                        quake.AllocaOp(veqTy, size=sizeVal).result)
-                else:
-                    veqTy = quake.VeqType.get(self.ctx, size)
-                    return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
+
+            raise RuntimeError(
+                f"invalid initializer argument for qalloc: {initializer}")
 
     def __isPauliWordType(self, ty):
         """
@@ -1191,6 +1493,26 @@ class PyKernel(object):
                     continue
                 listType = getListType(type(arg[0]))
             mlirType = mlirTypeFromPyType(argType, self.ctx)
+
+            if cc.StdvecType.isinstance(mlirType):
+                # Support passing `list[int]` to a `list[float]` argument
+                if cc.StdvecType.isinstance(self.mlirArgTypes[i]):
+                    maybeCasted = supportCommonCast(mlirType,
+                                                    self.mlirArgTypes[i], arg,
+                                                    IntegerType, F64Type, float)
+                    if maybeCasted != None:
+                        processedArgs.append(maybeCasted)
+                        continue
+
+                    # Support passing `list[float]` to a `list[complex]` argument
+                    maybeCasted = supportCommonCast(mlirType,
+                                                    self.mlirArgTypes[i], arg,
+                                                    F64Type, ComplexType,
+                                                    complex)
+                    if maybeCasted != None:
+                        processedArgs.append(maybeCasted)
+                        continue
+
             if mlirType != self.mlirArgTypes[
                     i] and listType != mlirTypeToPyType(self.mlirArgTypes[i]):
                 emitFatalError(
@@ -1214,6 +1536,11 @@ class PyKernel(object):
                 processedArgs.append(arg)
 
         cudaq_runtime.pyAltLaunchKernel(self.name, self.module, *processedArgs)
+
+    def __getattr__(self, attr_name):
+        if hasattr(self, attr_name):
+            return getattr(self, attr_name)
+        raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
 
 
 setattr(PyKernel, 'h', partialmethod(__singleTargetOperation, 'h'))

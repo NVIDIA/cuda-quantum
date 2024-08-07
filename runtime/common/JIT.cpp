@@ -31,11 +31,10 @@
 #define DEBUG_TYPE "cudaq-qpud"
 
 namespace cudaq {
-
-void invokeWrappedKernel(std::string_view irString,
-                         const std::string &entryPointFn, void *args,
-                         std::uint64_t argsSize, std::size_t numTimes,
-                         std::function<void(std::size_t)> postExecCallback) {
+std::unique_ptr<llvm::orc::LLJIT>
+invokeWrappedKernel(std::string_view irString, const std::string &entryPointFn,
+                    void *args, std::uint64_t argsSize, std::size_t numTimes,
+                    std::function<void(std::size_t)> postExecCallback) {
 
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
   // Parse bitcode
@@ -67,9 +66,9 @@ void invokeWrappedKernel(std::string_view irString,
     // Hence, fix the linkage.
     const auto fixUpLinkage = [](auto &func) {
       if (func.hasInternalLinkage()) {
-        llvm::dbgs() << "Change linkage type for symbol " << func.getName()
-                     << " internal to "
-                        "external linkage.";
+        LLVM_DEBUG(llvm::dbgs()
+                   << "Change linkage type for symbol " << func.getName()
+                   << " internal to external linkage.");
         func.setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
       }
     };
@@ -144,5 +143,7 @@ void invokeWrappedKernel(std::string_view irString,
       postExecCallback(i);
     }
   }
+
+  return jit;
 }
 } // namespace cudaq

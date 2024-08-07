@@ -21,7 +21,6 @@ void bindExecutionContext(py::module &mod) {
       .def(py::init<std::string>())
       .def(py::init<std::string, int>())
       .def_readonly("result", &cudaq::ExecutionContext::result)
-      .def_readonly("simulationData", &cudaq::ExecutionContext::simulationData)
       .def_readwrite("hasConditionalsOnMeasureResults",
                      &cudaq::ExecutionContext::hasConditionalsOnMeasureResults)
       .def_readwrite("totalIterations",

@@ -27,7 +27,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     pthread cudaq-em-default cudaq-spin cudaq-common
   PRIVATE
-    fmt::fmt-header-only cudaq)
+    fmt::fmt-header-only cudaq CUDAQTargetConfigUtil)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME}

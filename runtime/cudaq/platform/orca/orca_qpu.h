@@ -16,30 +16,23 @@
 namespace cudaq::orca {
 
 struct TBIParameters {
-  std::vector<double> bs_angles;
-  std::vector<double> ps_angles;
-
   std::vector<std::size_t> input_state;
   std::vector<std::size_t> loop_lengths;
+
+  std::vector<double> bs_angles;
+  std::vector<double> ps_angles;
 
   int n_samples;
 };
 
 /// @brief Implementation of the sample method of the cudaq::orca namespace
-cudaq::sample_result sample(std::vector<double> &bs_angles,
-                            std::vector<double> &ps_angles,
-                            std::vector<std::size_t> &input_state,
+cudaq::sample_result sample(std::vector<std::size_t> &input_state,
                             std::vector<std::size_t> &loop_lengths,
-                            int n_samples = 1000000) {
-  TBIParameters parameters{bs_angles, ps_angles, input_state, loop_lengths,
-                           n_samples};
-  cudaq::ExecutionContext context("sample", n_samples);
-  auto &platform = get_platform();
-  platform.set_exec_ctx(&context, 0);
-  cudaq::altLaunchKernel("orca_launch", nullptr, &parameters,
-                         sizeof(TBIParameters), 0);
-
-  return context.result;
-}
-
+                            std::vector<double> &bs_angles,
+                            std::vector<double> &ps_angles,
+                            int n_samples = 10000);
+cudaq::sample_result sample(std::vector<std::size_t> &input_state,
+                            std::vector<std::size_t> &loop_lengths,
+                            std::vector<double> &bs_angles,
+                            int n_samples = 10000);
 }; // namespace cudaq::orca

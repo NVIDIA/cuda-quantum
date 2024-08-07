@@ -6,9 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os, time
+import cudaq
+import pytest
+import os
 from cudaq import spin
-from multiprocessing import Process
+import numpy as np
+from typing import List
 
 
 def assert_close(got) -> bool:
@@ -118,13 +121,63 @@ def test_quantinuum_exp_pauli():
 
 
 def test_u3_emulatation():
+
     @cudaq.kernel
     def check_x():
         q = cudaq.qubit()
         u3(np.pi, np.pi, np.pi / 2, q)
 
+    counts = cudaq.sample(check_x)
+
+
+def test_u3_ctrl_emulation():
+
+    @cudaq.kernel
+    def kernel():
+        control = cudaq.qubit()
+        target = cudaq.qubit()
+        u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
+
+    result = cudaq.sample(kernel)
+
+
+def test_quantinuum_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0., 0., 0., 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '000' in counts
+    assert '100' in counts
+    assert not '001' in counts
+    assert not '010' in counts
+    assert not '011' in counts
+    assert not '101' in counts
+    assert not '110' in counts
+    assert not '111' in counts
+
+
+def test_arbitrary_unitary_synthesis():
+    import numpy as np
+    cudaq.register_operation("custom_h",
+                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+
+    @cudaq.kernel
+    def basic():
+        q = cudaq.qubit()
+        custom_h(q)
+
     with pytest.raises(RuntimeError) as error:
-        counts = cudaq.sample(check_x)
+        cudaq.sample(basic)
 
 
 # leave for gdb debugging

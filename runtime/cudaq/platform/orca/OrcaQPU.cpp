@@ -31,6 +31,37 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+namespace cudaq::orca {
+cudaq::sample_result sample(std::vector<std::size_t> &input_state,
+                            std::vector<std::size_t> &loop_lengths,
+                            std::vector<double> &bs_angles,
+                            std::vector<double> &ps_angles, int n_samples) {
+  TBIParameters parameters{input_state, loop_lengths, bs_angles, ps_angles,
+                           n_samples};
+  cudaq::ExecutionContext context("sample", n_samples);
+  auto &platform = get_platform();
+  platform.set_exec_ctx(&context, 0);
+  cudaq::altLaunchKernel("orca_launch", nullptr, &parameters,
+                         sizeof(TBIParameters), 0);
+
+  return context.result;
+}
+cudaq::sample_result sample(std::vector<std::size_t> &input_state,
+                            std::vector<std::size_t> &loop_lengths,
+                            std::vector<double> &bs_angles, int n_samples) {
+  std::vector<double> ps_angles = {};
+  TBIParameters parameters{input_state, loop_lengths, bs_angles, ps_angles,
+                           n_samples};
+  cudaq::ExecutionContext context("sample", n_samples);
+  auto &platform = get_platform();
+  platform.set_exec_ctx(&context, 0);
+  cudaq::altLaunchKernel("orca_launch", nullptr, &parameters,
+                         sizeof(TBIParameters), 0);
+
+  return context.result;
+}
+} // namespace cudaq::orca
+
 namespace {
 
 /// @brief The OrcaRemoteRESTQPU is a subtype of QPU that enables the
@@ -183,13 +214,6 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   /// Once we know the backend, we should search for the config file
   /// from there we can get the URL/PORT and other inforation used in the
   /// pipeline.
-  std::string fileName = mutableBackend + std::string(".config");
-  auto configFilePath = platformPath / fileName;
-  cudaq::info("Config file path = {}", configFilePath.string());
-  std::ifstream configFile(configFilePath.string());
-  std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                             std::istreambuf_iterator<char>());
-
   // Set the qpu name
   qpuName = mutableBackend;
   initialize();
@@ -254,10 +278,10 @@ OrcaRemoteRESTQPU::createJob(cudaq::orca::TBIParameters params) {
   // Construct the job message
   job["target"] = machine;
 
-  job["bs_angles"] = params.bs_angles;
-  job["ps_angles"] = params.ps_angles;
   job["input_state"] = params.input_state;
   job["loop_lengths"] = params.loop_lengths;
+  job["bs_angles"] = params.bs_angles;
+  job["ps_angles"] = params.ps_angles;
   job["n_samples"] = params.n_samples;
 
   jobs.push_back(job);

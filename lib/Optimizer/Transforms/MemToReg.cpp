@@ -331,6 +331,11 @@ public:
     return addLiveInToBlock(block, mr);
   }
 
+  void maybeAddBalancedLiveInToBlock(Block *block, MemRef mr) {
+    if (liveOutSet.count(mr))
+      maybeAddLiveInToBlock(block, mr);
+  }
+
   /// Record the memory reference \p mr as live-in to \p block. The live-in
   /// value is specified as \p val. Consequently, \p val \em{must dominate} \p
   /// block.
@@ -423,8 +428,11 @@ public:
             // unsafe call here because liveInMap should already have a binding
             // for memref to the promoted load value. That binding will be
             // overwritten.
-            for (auto memref : liveOutSet)
+            for (auto memref : liveOutSet) {
+              if (onlyLinearTypes && !isLinearType(promotedDefs[memref]))
+                continue;
               unsafeAddLiveInToBlock(block, memref);
+            }
             blockSet.insert(block);
             worklist.push_back(block);
             appendToWorklist(worklist, getPredecessors(block));
@@ -954,6 +962,8 @@ public:
       auto *block = term->getBlock();
       for (auto liveOut : bindings) {
         if (dataFlow.hasBinding(block, liveOut)) {
+          if (!isFunctionBlock(block) && !usePromo && !onlyLinear)
+            dataFlow.maybeAddBalancedLiveInToBlock(block, liveOut);
           auto oldVal = dataFlow.getBinding(block, liveOut);
           addTerminatorArgument(term, target, oldVal);
         } else if ((usePromo ||

@@ -11,7 +11,47 @@
 
 include "mlir/Pass/PassBase.td"
 
-def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
+def QuakeToCC : Pass<"quake-to-cc", "mlir::ModuleOp"> {
+  let summary = "Lower Quake to CC.";
+  let description = [{
+    Converts Quake to CC. The `add-dealloc` pass should be run before this pass
+    in order to properly generate deallocations for allocated qubits.
+
+    This is the second of 2 passes to lower quake code to cc code. The
+    `quake-to-cc-prep` pass must be run first. After these passes the code will
+    be in the CC dialect, with calls back to the runtime, specifically the
+    execution manager.
+  }];
+
+  let dependentDialects = [
+    "cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"
+  ];
+}
+
+def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare for lowering Quake to CC.";
+  let description = [{
+    Do the preparation work on the module. This pass must be run before the
+    `quake-to-cc` pass is run.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
+def CCToLLVM : Pass<"cc-to-llvm", "mlir::ModuleOp"> {
+  let summary = "Convert CC dialect (and others) to LLVM-IR.";
+  let description = [{
+    Complete the conversion of modules from 'CC dialect' to LLVM-IR dialect.
+    This is the final step before generating LLVM code. It would typically be
+    used after `-quake-to-cc` when a simulator is the target.
+  }];
+
+  let dependentDialects = [
+    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
+  ];
+}
+
+def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{
     Converts Quake to QIR (as LLVM-IR). The add-dealloc pass should be run
@@ -22,7 +62,14 @@ def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let dependentDialects = [
     "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
   ];
-  let constructor = "cudaq::opt::createConvertToQIRPass()";
+}
+
+def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
+  let summary = "Lower Quake to CG dialect.";
+  let description = [{
+    For testing purposes only.
+  }];
+  let dependentDialects = [ "cudaq::codegen::CodeGenDialect" ];
 }
 
 def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
@@ -61,7 +108,8 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
   let description = [{
-    This is a (function) subpass of the pipeline to convert to specific QIR Profile.
+    This is a (function) subpass of the pipeline to convert to specific QIR
+    Profile.
 
     Each function with a body is analyzed for qubit allocations and qubit
     measurements. Attributes for the total count of qubits are added to the

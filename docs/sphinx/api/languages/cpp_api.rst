@@ -51,7 +51,28 @@ Common
 .. doxygenclass:: cudaq::sample_result
     :members:
 
-.. doxygentypedef:: cudaq::State
+.. doxygenclass:: cudaq::SimulationState
+
+.. doxygenstruct:: cudaq::SimulationState::Tensor
+    :members:
+
+.. doxygenenum:: cudaq::SimulationState::precision
+
+.. doxygenenum:: cudaq::simulation_precision
+
+.. doxygentypedef:: cudaq::tensor
+
+.. doxygentypedef:: cudaq::TensorStateData
+
+.. doxygentypedef:: cudaq::state_data
+
+.. doxygenclass:: cudaq::CusvState
+
+.. doxygenclass:: nvqir::MPSSimulationState
+
+.. doxygenclass:: nvqir::TensorNetSimulationState
+
+.. doxygenclass:: cudaq::RemoteSimulationState
 
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
@@ -72,7 +93,6 @@ Common
 
 Noise Modeling 
 ================
-.. doxygentypedef:: cudaq::complex
 
 .. doxygenstruct:: cudaq::kraus_op
     :members:
@@ -151,6 +171,11 @@ Platform
 .. doxygenclass:: cudaq::quantum_platform
     :members:
 
+.. doxygenstruct:: cudaq::RemoteCapabilities
+    :members:
+
+.. doxygenclass:: cudaq::SerializedCodeExecutionContext
+
 .. doxygentypedef:: cudaq::QuantumTask
 
 .. doxygentypedef:: cudaq::QubitConnectivity
@@ -161,6 +186,10 @@ Platform
 
 Utilities
 =========
+
+.. doxygentypedef:: cudaq::complex
+
+.. doxygentypedef:: cudaq::real 
 
 .. doxygenfunction:: cudaq::range(std::size_t)
     

@@ -7,18 +7,12 @@
 # ============================================================================ #
 
 import os
-import platform
-import re
-import subprocess
-import sys
 import bisect
 
 import lit.formats
 import lit.util
 
 from lit.llvm import llvm_config
-from lit.llvm.subst import ToolSubst
-from lit.llvm.subst import FindTool
 
 # Configuration file for the 'lit' test runner.
 
@@ -39,6 +33,8 @@ config.substitutions.append(('%llvmshlibdir', config.llvm_shlib_dir))
 config.substitutions.append(('%pluginext', config.llvm_plugin_ext))
 config.substitutions.append(('%llvmInclude', config.llvm_install + "/include"))
 config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
+config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
+config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 
 llvm_config.use_default_substitutions()

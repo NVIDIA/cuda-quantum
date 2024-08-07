@@ -14,8 +14,12 @@ from ..mlir.passmanager import *
 import numpy as np
 from typing import Callable, List
 import ast, sys, traceback
+import re
+from typing import get_origin
 
+State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
+qview = cudaq_runtime.qview
 qubit = cudaq_runtime.qubit
 pauli_word = cudaq_runtime.pauli_word
 qreg = qvector
@@ -32,8 +36,15 @@ globalKernelRegistry = {}
 # and the source code location for the kernel.
 globalAstRegistry = {}
 
+# Keep a global registry of all registered custom operations.
+globalRegisteredOperations = {}
+
+# Keep a global registry of any custom data types
+globalRegisteredTypes = {}
+
 
 class Color:
+    YELLOW = '\033[93m'
     RED = '\033[91m'
     BOLD = '\033[1m'
     END = '\033[0m'
@@ -50,7 +61,7 @@ def emitFatalError(msg):
         # Raise the exception so we can get the
         # stack trace to inspect
         raise RuntimeError(msg)
-    except RuntimeError as e:
+    except RuntimeError:
         # Immediately grab the exception and
         # analyze the stack trace, get the source location
         # and construct a new error diagnostic
@@ -62,6 +73,29 @@ def emitFatalError(msg):
             msg = Color.RED + "error: " + Color.END + Color.BOLD + msg + Color.END + '\n\nOffending code:\n' + offendingSrc[
                 0]
     raise RuntimeError(msg)
+
+
+def emitWarning(msg):
+    """
+    Emit a warning, providing the user with source file information and
+    the offending code.
+    """
+    print(Color.BOLD, end='')
+    try:
+        # Raise the exception so we can get the
+        # stack trace to inspect
+        raise RuntimeError(msg)
+    except RuntimeError:
+        # Immediately grab the exception and
+        # analyze the stack trace, get the source location
+        # and construct a new error diagnostic
+        cached = sys.tracebacklimit
+        sys.tracebacklimit = None
+        offendingSrc = traceback.format_stack()
+        sys.tracebacklimit = cached
+        if len(offendingSrc):
+            msg = Color.YELLOW + "error: " + Color.END + Color.BOLD + msg + Color.END + '\n\nOffending code:\n' + offendingSrc[
+                0]
 
 
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
@@ -82,17 +116,19 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         localEmitFatalError(
             'cudaq.kernel functions must have argument type annotations.')
 
-    if hasattr(annotation, 'attr'):
+    if hasattr(annotation, 'attr') and hasattr(annotation.value, 'id'):
         if annotation.value.id == 'cudaq':
             if annotation.attr in ['qview', 'qvector']:
                 return quake.VeqType.get(ctx)
+            if annotation.attr in ['State']:
+                return cc.PointerType.get(ctx, cc.StateType.get(ctx))
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
             if annotation.attr == 'pauli_word':
                 return cc.CharspanType.get(ctx)
 
         if annotation.value.id in ['numpy', 'np']:
-            if annotation.attr == 'ndarray':
+            if annotation.attr in ['array', 'ndarray']:
                 return cc.StdvecType.get(ctx, F64Type.get())
             if annotation.attr == 'complex128':
                 return ComplexType.get(F64Type.get())
@@ -170,13 +206,23 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if id == 'complex':
         return ComplexType.get(F64Type.get())
 
+    if isinstance(annotation, ast.Attribute):
+        # in this case we might have `mod1.mod2...mod3.UserType`
+        # slurp up the path to the type
+        id = annotation.attr
+
+    # One final check to see if this is a custom data type.
+    if id in globalRegisteredTypes:
+        _, memberTys = globalRegisteredTypes[id]
+        structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
+        return cc.StructType.getNamed(ctx, id, structTys)
+
     localEmitFatalError(
         f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
     )
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
-
     if argType == int:
         return IntegerType.get_signless(64, ctx)
     if argType in [float, np.float64]:
@@ -193,6 +239,27 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(np.float32, ctx))
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+    if argType == State:
+        return cc.PointerType.get(ctx, cc.StateType.get(ctx))
+
+    if get_origin(argType) == list:
+        result = re.search(r'ist\[(.*)\]', str(argType))
+        eleTyName = result.group(1)
+        argType = list
+        if eleTyName == 'int':
+            kwargs['argInstance'] = [int(0)]
+        elif eleTyName == 'float':
+            kwargs['argInstance'] = [float(0.0)]
+        elif eleTyName == 'bool':
+            kwargs['argInstance'] = [bool(False)]
+        elif eleTyName == 'complex':
+            kwargs['argInstance'] = [0j]
+        elif eleTyName == 'pauli_word':
+            kwargs['argInstance'] = [pauli_word('')]
+        elif eleTyName == 'numpy.complex128':
+            kwargs['argInstance'] = [np.complex128(0.0)]
+        elif eleTyName == 'numpy.complex64':
+            kwargs['argInstance'] = [np.complex64(0.0)]
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
@@ -217,25 +284,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         if isinstance(argInstance[0], int):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
         if isinstance(argInstance[0], (float, np.float64)):
-            if argTypeToCompareTo != None:
-                # check if we are comparing to a complex...
-                eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-                if ComplexType.isinstance(eleTy):
-                    emitFatalError(
-                        "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
-                    )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
         if isinstance(argInstance[0], np.float32):
-            if argTypeToCompareTo != None:
-                # check if we are comparing to a complex...
-                eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-                if ComplexType.isinstance(eleTy):
-                    emitFatalError(
-                        "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
-                    )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.float32, ctx))
 
-        if isinstance(argInstance[0], complex):
+        if isinstance(argInstance[0], (complex, np.complex128)):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
 
         if isinstance(argInstance[0], np.complex64):
@@ -256,7 +309,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
         emitFatalError(f'Invalid list element type ({argType})')
 
-    if argType == qvector or argType == qreg:
+    if argType == qvector or argType == qreg or argType == qview:
         return quake.VeqType.get(ctx)
     if argType == qubit:
         return quake.RefType.get(ctx)
@@ -267,6 +320,18 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
             return cc.CallableType.get(ctx, argInstance.argTypes)
+    else:
+        if argType == list[int]:
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
+        if argType == list[float]:
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+
+    for name, (customTys, memberTys) in globalRegisteredTypes.items():
+        if argType == customTys:
+            structTys = [
+                mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
+            ]
+            return cc.StructType.getNamed(ctx, name, structTys)
 
     emitFatalError(
         f"Can not handle conversion of python type {argType} to MLIR type.")
@@ -315,8 +380,13 @@ def mlirTypeToPyType(argType):
             return getListType(np.float32)
         if ComplexType.isinstance(eleTy):
             ty = complex if F64Type.isinstance(
-                ComplexType(argType).element_type) else np.complex64
+                ComplexType(eleTy).element_type) else np.complex64
             return getListType(ty)
+
+    if cc.PointerType.isinstance(argType):
+        valueTy = cc.PointerType.getElementType(argType)
+        if cc.StateType.isinstance(valueTy):
+            return State
 
     emitFatalError(
         f"Cannot infer CUDA-Q type from provided Python type ({argType})")

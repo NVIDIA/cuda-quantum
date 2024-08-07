@@ -52,8 +52,10 @@ std::pair<void *, std::size_t> mapToRawArgs(const std::string &kernelName,
 LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
                             OwningOpRef<mlir::ModuleOp> &module) {
   PassManager pm(module->getContext());
+  module->getContext()->disableMultithreading();
+  pm.enableIRPrinting();
+  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, 0, true));
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs));
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
@@ -66,6 +68,8 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
 /// @brief Lower the module to LLVM
 LogicalResult lowerToLLVMDialect(ModuleOp module) {
   PassManager pm(module->getContext());
+  module->getContext()->disableMultithreading();
+  pm.enableIRPrinting();
   pm.addPass(createCanonicalizerPass());
   OpPassManager &optPM = pm.nest<func::FuncOp>();
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
@@ -79,7 +83,7 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
+  pm.addPass(cudaq::opt::createConvertToQIR());
   return pm.run(module);
 }
 
@@ -359,6 +363,65 @@ TEST(QuakeSynthTests, checkCallable) {
   func.dump();
   EXPECT_TRUE(func);
   EXPECT_TRUE(func.getArguments().empty());
+}
+
+TEST(QuakeSynthTests, checkVectorOfComplex) {
+  auto [colonel, stateVec] =
+      cudaq::make_kernel<std::vector<std::complex<double>>>();
+  auto qubits = colonel.qalloc(stateVec);
+  colonel.h(qubits);
+  colonel.mz(qubits);
+  std::cout << colonel.to_quake() << '\n';
+
+  // Generate name of the kernel
+  auto colonelName = cudaq::runtime::cudaqGenPrefixName + colonel.name();
+  std::vector<std::complex<double>> initialState = {1.0, 2.0, 3.0, 4.0};
+
+  [[maybe_unused]] auto counts = cudaq::sample(colonel, initialState);
+  counts.dump();
+
+  auto context = cudaq::initializeMLIR();
+  auto module = parseSourceString<ModuleOp>(colonel.to_quake(), context.get());
+
+  auto [args, offset] = cudaq::mapToRawArgs(colonel.name(), initialState);
+
+  EXPECT_TRUE(succeeded(runQuakeSynth(colonel.name(), args, module)));
+
+  auto func = module->lookupSymbol<func::FuncOp>(colonelName);
+  EXPECT_TRUE(func);
+  EXPECT_TRUE(func.getArguments().empty());
+  func.dump();
+}
+
+TEST(QuakeSynthTests, checkVectorOfPauliWord) {
+  auto [colonel, stateVec] =
+      cudaq::make_kernel<std::vector<cudaq::pauli_word>>();
+  auto qubit = colonel.qalloc();
+  colonel.h(qubit);
+  colonel.y(qubit);
+  colonel.z(qubit);
+  colonel.mz(qubit);
+  std::cout << colonel.to_quake() << '\n';
+
+  // Generate name of the kernel
+  auto colonelName = cudaq::runtime::cudaqGenPrefixName + colonel.name();
+  std::vector<cudaq::pauli_word> peterPauli = {cudaq::pauli_word("IXII"),
+                                               cudaq::pauli_word("IIIZ")};
+
+  [[maybe_unused]] auto counts = cudaq::sample(colonel, peterPauli);
+  counts.dump();
+
+  auto context = cudaq::initializeMLIR();
+  auto module = parseSourceString<ModuleOp>(colonel.to_quake(), context.get());
+
+  auto [args, offset] = cudaq::mapToRawArgs(colonel.name(), peterPauli);
+
+  EXPECT_TRUE(succeeded(runQuakeSynth(colonel.name(), args, module)));
+
+  auto func = module->lookupSymbol<func::FuncOp>(colonelName);
+  EXPECT_TRUE(func);
+  EXPECT_TRUE(func.getArguments().empty());
+  func.dump();
 }
 
 int main(int argc, char **argv) {

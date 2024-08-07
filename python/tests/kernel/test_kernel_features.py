@@ -1149,7 +1149,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'quantum operation h on incorrect quantum type' in repr(e)
+    assert 'target operand 0 is not of quantum type' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1199,11 +1199,11 @@ def test_ctrl_wrong_dtype_1447():
     @cudaq.kernel
     def test_kernel(nQubits: int):
         qubits = cudaq.qvector(nQubits)
-        swap.ctrl(3, 4)
+        swap.ctrl(2, 3, 4)
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'control operand 0 is not of quantum type' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1296,6 +1296,51 @@ def test_bad_return_value_with_stdvec_arg():
     l = [42]
     for i in range(4):
         assert test_param(i, l) == i
+
+
+def test_bad_return_int_bool_param():
+
+    @cudaq.kernel
+    def kernel(c: int, b: bool) -> int:
+        return c
+
+    assert kernel(1, False) == 1
+
+
+def test_return_bool_bool_param():
+
+    @cudaq.kernel
+    def kernel(b: bool, b2: bool) -> bool:
+        return b
+
+    assert kernel(True, False) == True
+
+
+def test_return_int_int_param():
+
+    @cudaq.kernel
+    def kernel(b: int, b2: int) -> int:
+        return b
+
+    assert kernel(42, 53) == 42
+
+
+def test_return_no_param():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        return 42
+
+    assert kernel() == 42
+
+
+def test_no_param_no_return():
+
+    @cudaq.kernel
+    def kernel():
+        return
+
+    kernel()
 
 
 def test_measure_variadic_qubits():
@@ -1442,7 +1487,7 @@ def test_nested_loops_with_break():
         for _ in range(5):
             while True:
                 x(q)
-                ry.ctrl(theta, q[1])
+                ry(theta, q[1])
                 res = mz(q[1])
 
                 if res:
@@ -1518,6 +1563,272 @@ def test_issue_1682():
         mz(qubits)
 
     qrbm_reuse_ancilla.compile()
+
+
+def test_subtract():
+
+    @cudaq.kernel
+    def bug_subtract():
+        qubits = cudaq.qvector(4)
+        x(qubits[0:2])
+        mu = 0.7951
+        sigma = 0.6065
+        rz(1.0 - (mu / sigma), qubits[1])
+        mz(qubits)
+
+    cudaq.sample(bug_subtract)
+
+
+def test_capture_opaque_kernel():
+
+    def retFunc():
+
+        @cudaq.kernel
+        def bell(i: int):
+            q = cudaq.qvector(i)
+            h(q[0])
+            x.ctrl(q[0], q[1])
+
+        return bell
+
+    def retFunc2():
+
+        @cudaq.kernel
+        def super():
+            q = cudaq.qubit()
+            h(q)
+
+        return super
+
+    b = retFunc()
+
+    @cudaq.kernel
+    def k():
+        b(2)
+
+    print(k)
+
+    b = retFunc2()
+
+    @cudaq.kernel
+    def kd():
+        b()
+
+    print(kd)
+
+    counts = cudaq.sample(k)
+    assert len(counts) == 2 and '00' in counts and '11' in counts
+
+    counts = cudaq.sample(kd)
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
+
+def test_custom_classical_kernel_type():
+    from dataclasses import dataclass
+
+    @dataclass
+    class CustomIntAndFloatType:
+        integer: int
+        floatingPoint: float
+
+    instance = CustomIntAndFloatType(123, 123.123)
+    assert instance.integer == 123 and instance.floatingPoint == 123.123
+
+    @cudaq.kernel
+    def test(input: CustomIntAndFloatType):
+        qubits = cudaq.qvector(input.integer)
+        ry(input.floatingPoint, qubits[0])
+        rx(input.floatingPoint * 2, qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+
+    instance = CustomIntAndFloatType(2, np.pi / 2.)
+    counts = cudaq.sample(test, instance)
+    counts.dump()
+    assert len(counts) == 2 and '00' in counts and '11' in counts
+
+    @dataclass
+    class CustomIntAndListFloat:
+        integer: int
+        array: List[float]
+
+    @cudaq.kernel
+    def test(input: CustomIntAndListFloat):
+        qubits = cudaq.qvector(input.integer)
+        ry(input.array[0], qubits[0])
+        rx(input.array[1], qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+
+    print(test)
+    instance = CustomIntAndListFloat(2, [np.pi / 2., np.pi])
+    counts = cudaq.sample(test, instance)
+    counts.dump()
+    assert len(counts) == 2 and '00' in counts and '11' in counts
+
+    # Test that the class can be in a library
+    # and the paths all work out
+    from mock.hello import TestClass
+
+    @cudaq.kernel
+    def test(input: TestClass):
+        q = cudaq.qvector(input.i)
+
+    instance = TestClass(2, 2.2)
+    state = cudaq.get_state(test, instance)
+    state.dump()
+
+    assert len(state) == 2**instance.i
+
+    # Test invalid struct member
+    @cudaq.kernel
+    def test(input: TestClass):
+        local = input.helloBadMember
+
+    with pytest.raises(RuntimeError) as e:
+        test.compile()
+
+
+def test_custom_quantum_type():
+    from dataclasses import dataclass
+
+    @dataclass
+    class patch:
+        data: cudaq.qview
+        ancx: cudaq.qview
+        ancz: cudaq.qview
+
+    @cudaq.kernel
+    def logicalH(p: patch):
+        h(p.data)
+
+    # print(logicalH)
+    @cudaq.kernel
+    def logicalX(p: patch):
+        x(p.ancx)
+
+    @cudaq.kernel
+    def logicalZ(p: patch):
+        z(p.ancz)
+
+    @cudaq.kernel  # (verbose=True)
+    def run():
+        q = cudaq.qvector(2)
+        r = cudaq.qvector(2)
+        s = cudaq.qvector(2)
+        p = patch(q, r, s)
+
+        logicalH(p)
+        logicalX(p)
+        logicalZ(p)
+
+    # Test here is that it compiles and runs successfully
+    print(run)
+    run()
+
+
+@skipIfPythonLessThan39
+def test_issue_9():
+
+    @cudaq.kernel
+    def kernel(features: list[float]):
+        qubits = cudaq.qvector(8)
+        rx(features[0], qubits[100])
+
+    with pytest.raises(RuntimeError) as error:
+        kernel([3.14])
+
+
+def test_issue_1641():
+
+    @cudaq.kernel
+    def less_arguments():
+        q = cudaq.qubit()
+        rx(3.14)
+
+    with pytest.raises(RuntimeError) as error:
+        print(less_arguments)
+    assert 'invalid number of arguments (1) passed to rx (requires at least 2 arguments)' in repr(
+        error)
+
+    @cudaq.kernel
+    def wrong_arguments():
+        q = cudaq.qubit()
+        rx("random_argument", q)
+
+    with pytest.raises(RuntimeError) as error:
+        print(wrong_arguments)
+    assert 'rotational parameter must be a float, or int' in repr(error)
+
+    @cudaq.kernel
+    def wrong_type():
+        q = cudaq.qubit()
+        x("random_argument")
+
+    with pytest.raises(RuntimeError) as error:
+        print(wrong_type)
+    assert 'target operand 0 is not of quantum type' in repr(error)
+
+    @cudaq.kernel
+    def invalid_ctrl():
+        q = cudaq.qubit()
+        rx.ctrl(np.pi, q)
+
+    with pytest.raises(RuntimeError) as error:
+        print(invalid_ctrl)
+    assert 'controlled operation requested without any control argument(s)' in repr(
+        error)
+
+
+def test_control_then_adjoint():
+
+    @cudaq.kernel
+    def my_func(q: cudaq.qubit, theta: float):
+        ry(theta, q)
+        rz(theta, q)
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        ancilla = cudaq.qubit()
+        q = cudaq.qubit()
+
+        h(ancilla)
+        cudaq.control(my_func, ancilla, q, theta)
+        cudaq.adjoint(my_func, q, theta)
+
+    theta = 1.5
+    # test here is that this compiles and runs
+    cudaq.sample(kernel, theta).dump()
+
+
+def test_numpy_functions():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        h(q)
+        rx(np.pi, q[0])
+        ry(np.e, q[1])
+        rz(np.euler_gamma, q[2])
+
+    # test here is that this compiles and runs
+    cudaq.sample(kernel).dump()
+
+    @cudaq.kernel
+    def valid_unsupported():
+        q = cudaq.qubit()
+        h(q)
+        r1(np.inf, q)
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(valid_unsupported)
+
+    @cudaq.kernel
+    def invalid_unsupported():
+        q = cudaq.qubit()
+        h(q)
+        r1(np.foo, q)
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(invalid_unsupported)
 
 
 # leave for gdb debugging

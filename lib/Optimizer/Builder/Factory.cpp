@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/TargetParser/Triple.h"
+#include "mlir/IR/Matchers.h"
 
 using namespace mlir;
 
@@ -61,27 +62,30 @@ Type factory::genArgumentBufferType(Type ty) {
   return genBufferType</*isOutput=*/false>(ty);
 }
 
-cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy) {
+cudaq::cc::StructType
+factory::buildInvokeStructType(FunctionType funcTy,
+                               std::size_t startingArgIdx) {
   auto *ctx = funcTy.getContext();
   SmallVector<Type> eleTys;
-  for (auto inTy : funcTy.getInputs())
-    eleTys.push_back(genBufferType</*isOutput=*/false>(inTy));
+  for (auto inTy : llvm::enumerate(funcTy.getInputs()))
+    if (inTy.index() >= startingArgIdx)
+      eleTys.push_back(genBufferType</*isOutput=*/false>(inTy.value()));
   for (auto outTy : funcTy.getResults())
     eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
-  return cudaq::cc::StructType::get(ctx, eleTys /*packed=false*/);
+  return cudaq::cc::StructType::get(ctx, eleTys);
 }
 
 Value factory::packIsArrayAndLengthArray(Location loc,
                                          ConversionPatternRewriter &rewriter,
                                          ModuleOp parentModule,
-                                         Value numOperands,
+                                         std::size_t numOperands,
                                          ValueRange operands) {
-  // Create an integer array where the kth element is N if the kth
-  // control operand is a veq<N>, and 0 otherwise.
+  // Create an integer array where the kth element is N if the kth control
+  // operand is a veq<N>, and 0 otherwise.
   auto i64Type = rewriter.getI64Type();
   auto context = rewriter.getContext();
-  Value isArrayAndLengthArr = rewriter.create<LLVM::AllocaOp>(
-      loc, LLVM::LLVMPointerType::get(i64Type), numOperands);
+  Value isArrayAndLengthArr = createLLVMTemporary(
+      loc, rewriter, LLVM::LLVMPointerType::get(i64Type), numOperands);
   auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
   Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
   auto getSizeSymbolRef = opt::factory::createLLVMFunctionSymbol(
@@ -151,6 +155,20 @@ func::FuncOp factory::createFunction(StringRef name, ArrayRef<Type> retTypes,
   return func;
 }
 
+std::optional<std::uint64_t> factory::maybeValueOfIntConstant(Value v) {
+  APInt cst;
+  if (matchPattern(v, m_ConstantInt(&cst)))
+    return {cst.getZExtValue()};
+  return std::nullopt;
+}
+
+std::optional<double> factory::maybeValueOfFloatConstant(Value v) {
+  APFloat cst(0.0);
+  if (matchPattern(v, m_ConstantFloat(&cst)))
+    return {cst.convertToDouble()};
+  return std::nullopt;
+}
+
 void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
   auto *ctx = mod.getContext();
   auto loc = mod.getLoc();
@@ -197,6 +215,23 @@ cc::LoopOp factory::createInvariantLoop(
       });
   loop->setAttr("invariant", builder.getUnitAttr());
   return loop;
+}
+
+/// Create a temporary on the stack. The temporary is created such that it is
+/// \em{not} control dependent (other than on function entry).
+Value factory::createLLVMTemporary(Location loc, OpBuilder &builder, Type type,
+                                   std::size_t size) {
+  Operation *op = builder.getBlock()->getParentOp();
+  auto func = dyn_cast<LLVM::LLVMFuncOp>(op);
+  if (!func)
+    func = op->getParentOfType<LLVM::LLVMFuncOp>();
+  assert(func && "must be in a function");
+  auto *entryBlock = &func.getRegion().front();
+  assert(entryBlock && "function must have an entry block");
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToStart(entryBlock);
+  Value len = genLlvmI64Constant(loc, builder, size);
+  return builder.create<LLVM::AllocaOp>(loc, type, ArrayRef<Value>{len});
 }
 
 // This builder will transform the monotonic loop into an invariant loop during
@@ -324,8 +359,13 @@ static Type convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
-  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty))
-    return convertToHostSideType(factory::stlStringType(memrefTy.getContext()));
+  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty)) {
+    // `pauli_word` is an object with a std::vector in the header files at
+    // present. This data type *must* be updated if it becomes a std::string
+    // once again.
+    return convertToHostSideType(
+        factory::stlVectorType(IntegerType::get(ty.getContext(), 8)));
+  }
   auto *ctx = ty.getContext();
   if (auto structTy = dyn_cast<cc::StructType>(ty)) {
     SmallVector<Type> newMembers;
@@ -513,6 +553,21 @@ bool factory::isStdVecArg(Type type) {
 
   // This is a stdvec type to us.
   return true;
+}
+
+Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
+                          Value fromValue, bool signExtend, bool zeroExtend) {
+  if (signExtend && zeroExtend) {
+    emitError(loc, "cannot both sign and zero extend in a cast");
+    return fromValue;
+  }
+  if (fromValue.getType() == toType)
+    return fromValue;
+  auto unit = UnitAttr::get(builder.getContext());
+  UnitAttr none;
+  return builder.create<cudaq::cc::CastOp>(loc, toType, fromValue,
+                                           signExtend ? unit : none,
+                                           zeroExtend ? unit : none);
 }
 
 } // namespace cudaq::opt

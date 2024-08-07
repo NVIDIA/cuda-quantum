@@ -68,7 +68,8 @@ Kernel Execution
 .. autofunction:: cudaq::get_state
 .. autofunction:: cudaq::get_state_async
 .. autofunction:: cudaq::vqe
-.. autofunction:: cudaq::draw    
+.. autofunction:: cudaq::draw
+.. autofunction:: cudaq::translate
 
 Backend Configuration
 =============================
@@ -87,11 +88,16 @@ Backend Configuration
 Data Types
 =============================
 
+.. autoclass:: cudaq::SimulationPrecision
+    :members:
+    
 .. autoclass:: cudaq::Target
     :members:
 
 .. autoclass:: cudaq::State
     :members:
+
+.. autoclass:: cudaq::Tensor
 
 .. autoclass:: cudaq::QuakeValue
 

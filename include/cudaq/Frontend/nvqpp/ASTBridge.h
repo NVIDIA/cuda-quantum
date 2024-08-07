@@ -144,18 +144,19 @@ class QuakeBridgeVisitor
   using Base = clang::RecursiveASTVisitor<QuakeBridgeVisitor>;
 
 public:
-  explicit QuakeBridgeVisitor(clang::ASTContext *astCtx,
-                              mlir::MLIRContext *mlirCtx, mlir::OpBuilder &bldr,
-                              mlir::ModuleOp module, SymbolTable &symTab,
-                              EmittedFunctionsCollection &funcsToEmit,
-                              llvm::ArrayRef<clang::Decl *> reachableFuncs,
-                              MangledKernelNamesMap &namesMap,
-                              clang::CompilerInstance &ci,
-                              clang::ItaniumMangleContext *mangler)
+  explicit QuakeBridgeVisitor(
+      clang::ASTContext *astCtx, mlir::MLIRContext *mlirCtx,
+      mlir::OpBuilder &bldr, mlir::ModuleOp module, SymbolTable &symTab,
+      EmittedFunctionsCollection &funcsToEmit,
+      llvm::ArrayRef<clang::Decl *> reachableFuncs,
+      MangledKernelNamesMap &namesMap, clang::CompilerInstance &ci,
+      clang::ItaniumMangleContext *mangler,
+      std::unordered_map<std::string, std::string> &customOperations)
       : astContext(astCtx), mlirContext(mlirCtx), builder(bldr), module(module),
         symbolTable(symTab), functionsToEmit(funcsToEmit),
         reachableFunctions(reachableFuncs), namesMap(namesMap),
-        compilerInstance(ci), mangler(mangler) {}
+        compilerInstance(ci), mangler(mangler),
+        customOperationNames(customOperations) {}
 
   /// `nvq++` renames quantum kernels to differentiate them from classical C++
   /// code. This renaming is done on function names. \p tag makes it easier
@@ -249,13 +250,8 @@ public:
   bool TraverseConditionalOperator(clang::ConditionalOperator *x,
                                    DataRecursionQueue *q = nullptr);
   bool VisitReturnStmt(clang::ReturnStmt *x);
-  bool VisitCXXFunctionalCastExpr(clang::CXXFunctionalCastExpr *x) {
-    return true;
-  }
   bool TraverseInitListExpr(clang::InitListExpr *x,
                             DataRecursionQueue *q = nullptr);
-  bool TraverseCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x,
-                                      DataRecursionQueue *q = nullptr);
 
   // These misc. statements are not (yet) handled by lowering.
   bool TraverseAsmStmt(clang::AsmStmt *x, DataRecursionQueue *q = nullptr);
@@ -287,16 +283,58 @@ public:
   bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                 DataRecursionQueue *q = nullptr);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
-  bool VisitCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x);
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool TraverseDeclRefExpr(clang::DeclRefExpr *x,
                            DataRecursionQueue *q = nullptr);
   bool VisitDeclRefExpr(clang::DeclRefExpr *x);
   bool VisitFloatingLiteral(clang::FloatingLiteral *x);
+
+  // Cast operations.
+  bool TraverseCastExpr(clang::CastExpr *x, DataRecursionQueue *q = nullptr);
+  bool VisitCastExpr(clang::CastExpr *x);
+
   bool TraverseImplicitCastExpr(clang::ImplicitCastExpr *x,
-                                DataRecursionQueue *q = nullptr);
-  bool VisitImplicitCastExpr(clang::ImplicitCastExpr *x);
+                                DataRecursionQueue *q = nullptr) {
+    return TraverseCastExpr(x, q);
+  }
+  bool TraverseExplicitCastExpr(clang::ExplicitCastExpr *x,
+                                DataRecursionQueue *q = nullptr) {
+    return TraverseCastExpr(x, q);
+  }
+  bool TraverseCStyleCastExpr(clang::CStyleCastExpr *x,
+                              DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXFunctionalCastExpr(clang::CXXFunctionalCastExpr *x,
+                                     DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXAddrspaceCastExpr(clang::CXXAddrspaceCastExpr *x,
+                                    DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXConstCastExpr(clang::CXXConstCastExpr *x,
+                                DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXDynamicCastExpr(clang::CXXDynamicCastExpr *x,
+                                  DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXReinterpretCastExpr(clang::CXXReinterpretCastExpr *x,
+                                      DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXStaticCastExpr(clang::CXXStaticCastExpr *x,
+                                 DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseBuiltinBitCastExpr(clang::BuiltinBitCastExpr *x,
+                                  DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+
   bool VisitInitListExpr(clang::InitListExpr *x);
   bool VisitIntegerLiteral(clang::IntegerLiteral *x);
   bool VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x);
@@ -560,6 +598,7 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
+  std::unordered_map<std::string, std::string> &customOperationNames;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -579,7 +618,6 @@ private:
   llvm::DenseMap<clang::RecordType *, mlir::Type> records;
 
   // State Flags
-
   bool skipCompoundScope : 1 = false;
   bool isEntry : 1 = false;
   /// If there is a catastrophic error in the bridge (there is no rational way
@@ -589,6 +627,7 @@ private:
   bool visitImplicitCode : 1 = false;
   bool inRecType : 1 = false;
   bool allowUnknownRecordType : 1 = false;
+  bool initializerIsGlobal : 1 = false;
 };
 } // namespace details
 
@@ -646,6 +685,9 @@ public:
     // The mangler is constructed and owned by `this`.
     clang::ItaniumMangleContext *mangler;
 
+    // Keep track of user custom operation names.
+    std::unordered_map<std::string, std::string> customOperationNames;
+
     /// Add a placeholder definition to the module in \p visitor for the
     /// function, \p funcDecl. This is used for adding the host-side function
     /// corresponding to the kernel. The code for this function will be
@@ -676,6 +718,10 @@ public:
 
     // Return true if this FunctionDecl is a quantum kernel.
     static bool isQuantum(const clang::FunctionDecl *decl);
+
+    // Return true if this FunctionDecl is a generator function for custom
+    // operation
+    static bool isCustomOpGenerator(const clang::FunctionDecl *decl);
   };
 
 protected:
@@ -738,6 +784,15 @@ inline bool isCharPointerType(mlir::Type t) {
       eleTy = arrTy.getElementType();
     if (auto intTy = dyn_cast<mlir::IntegerType>(eleTy))
       return intTy.getWidth() == 8;
+  }
+  return false;
+}
+
+/// Is \p t a `char` span type? The type `pauli_word` maps to a span of `char`.
+inline bool isCharspanPointerType(mlir::Type t) {
+  if (auto ptrTy = dyn_cast<cc::PointerType>(t)) {
+    mlir::Type eleTy = ptrTy.getElementType();
+    return isa<cc::CharspanType>(eleTy);
   }
   return false;
 }

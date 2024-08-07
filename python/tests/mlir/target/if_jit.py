@@ -9,20 +9,19 @@
 # RUN: PYTHONPATH=../../.. python3 %s | FileCheck %s
 # RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate | FileCheck %s
 
-import os
 
-import pytest
-import numpy as np
 
 import cudaq
 
+
 @cudaq.kernel
-def foo(value:bool):
+def foo(value: bool):
     q = cudaq.qubit()
     if value:
         x(q)
-    
+
     result = mz(q)
+
 
 result = cudaq.sample(foo, True, shots_count=100)
 assert '1' == result.most_probable()

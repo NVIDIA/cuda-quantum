@@ -8,10 +8,7 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import os
 
-import pytest
-import numpy as np
 
 import cudaq
 
@@ -40,7 +37,7 @@ def test_iterate_list_init():
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_6]] : !cc.ptr<f64>
 # CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<4>
 # CHECK:           %[[VAL_8:.*]] = cc.alloca !cc.array<i64 x 4>
-# CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_8]][0] : (!cc.ptr<!cc.array<i64 x 4>>) -> !cc.ptr<i64>
+# CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_8]] : (!cc.ptr<!cc.array<i64 x 4>>) -> !cc.ptr<i64>
 # CHECK:           cc.store %[[VAL_4]], %[[VAL_9]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_8]][1] : (!cc.ptr<!cc.array<i64 x 4>>) -> !cc.ptr<i64>
 # CHECK:           cc.store %[[VAL_3]], %[[VAL_10]] : !cc.ptr<i64>
@@ -53,8 +50,7 @@ def test_iterate_list_init():
 # CHECK:             cc.condition %[[VAL_15]](%[[VAL_14]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
-# CHECK:             %[[VAL_17:.*]] = cc.cast %[[VAL_8]] : (!cc.ptr<!cc.array<i64 x 4>>) -> !cc.ptr<i64>
-# CHECK:             %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_17]]{{\[}}%[[VAL_16]]] : (!cc.ptr<i64>, i64) -> !cc.ptr<i64>
+# CHECK:             %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_8]][%[[VAL_16]]] : (!cc.ptr<!cc.array<i64 x 4>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_19:.*]] = cc.load %[[VAL_18]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_6]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_21:.*]] = arith.sitofp %[[VAL_19]] : i64 to f64

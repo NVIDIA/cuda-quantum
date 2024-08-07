@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os, sys
+import sys
 
 import pytest
 import numpy as np
@@ -146,6 +146,7 @@ def test_broadcast():
     for i, c in enumerate(allCounts):
         print(runtimeAngles[i, :], c)
         assert len(c) == 2
+
 
 @skipIfPythonLessThan39
 def test_broadcastPy39Plus():

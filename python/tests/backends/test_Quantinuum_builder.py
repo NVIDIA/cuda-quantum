@@ -6,9 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os, time
+import cudaq, pytest, os
+import numpy as np
+from typing import List
 from cudaq import spin
 from multiprocessing import Process
+from network_utils import check_server_connection
 try:
     from utils.mock_qpu.quantinuum import startServer
 except:
@@ -39,7 +42,10 @@ def startUpMockServer():
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
-    time.sleep(1)
+
+    if not check_server_connection(port):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
 
     yield credsName
 
@@ -143,6 +149,18 @@ def test_quantinuum_observe():
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
     assert assert_close(res.expectation())
+
+
+def test_quantinuum_state_preparation():
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 
 # leave for gdb debugging

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -171,6 +172,14 @@ LogicalResult quake::AllocaOp::verify() {
       }
     }
   }
+
+  // Check the uses. If any use is a InitializeStateOp, then it must be the only
+  // use.
+  Operation *self = getOperation();
+  if (!self->getUsers().empty() && !self->hasOneUse())
+    for (auto *op : self->getUsers())
+      if (isa<quake::InitializeStateOp>(op))
+        return emitOpError("init_state must be the only use");
   return success();
 }
 
@@ -180,6 +189,15 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   // changes the type. Uses may still expect a veq with unspecified size.
   // Folding is strictly reductive and doesn't allow the creation of ops.
   patterns.add<FuseConstantToAllocaPattern>(context);
+}
+
+quake::InitializeStateOp quake::AllocaOp::getInitializedState() {
+  auto *self = getOperation();
+  if (self->hasOneUse()) {
+    auto x = self->getUsers().begin();
+    return dyn_cast<quake::InitializeStateOp>(*x);
+  }
+  return {};
 }
 
 //===----------------------------------------------------------------------===//
@@ -269,6 +287,24 @@ ParseResult quake::ApplyOp::parse(OpAsmParser &parser, OperationState &result) {
             applyTy.getInputs(), loc, result.operands))
       return failure();
   }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// BorrowWire
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::BorrowWireOp::verify() {
+  std::int32_t id = getIdentity();
+  if (id < 0)
+    return emitOpError("id cannot be negative");
+  ModuleOp module = getOperation()->getParentOfType<ModuleOp>();
+  auto wires = module.lookupSymbol<quake::WireSetOp>(getSetName());
+  if (!wires)
+    return emitOpError("wire set could not be found");
+  std::int32_t setCardinality = wires.getCardinality();
+  if (id >= setCardinality)
+    return emitOpError("id is out of bounds for wire set");
   return success();
 }
 
@@ -469,6 +505,76 @@ LogicalResult quake::ExtractRefOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// InitializeStateOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::InitializeStateOp::verify() {
+  auto ptrTy = cast<cudaq::cc::PointerType>(getState().getType());
+  Type ty = ptrTy.getElementType();
+  if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
+    if (!arrTy.isUnknownSize()) {
+      std::size_t size = arrTy.getSize();
+      if (!std::has_single_bit(size))
+        return emitOpError(
+            "initialize state vector must be power of 2, but is " +
+            std::to_string(size) + " instead.");
+    }
+    if (!isa<FloatType, ComplexType>(arrTy.getElementType()))
+      return emitOpError("invalid data pointer type");
+  } else if (!isa<FloatType, ComplexType, cudaq::cc::StateType>(ty)) {
+    return emitOpError("invalid data pointer type");
+  }
+  return success();
+}
+
+namespace {
+// %22 = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<?>
+// ────────────────────────────────────────────────────────────────────
+// %22' = quake.init_state %1, %2 : (!quake.veq<k>, T) -> !quake.veq<k>
+// %22 = quake.relax_size %22' : (!quake.veq<k>) -> !quake.veq<?>
+struct ForwardAllocaTypePattern
+    : public OpRewritePattern<quake::InitializeStateOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
+                                PatternRewriter &rewriter) const override {
+    if (auto isTy = dyn_cast<quake::VeqType>(initState.getType()))
+      if (!isTy.hasSpecifiedSize()) {
+        auto targ = initState.getTargets();
+        if (auto targTy = dyn_cast<quake::VeqType>(targ.getType()))
+          if (targTy.hasSpecifiedSize()) {
+            auto newInit = rewriter.create<quake::InitializeStateOp>(
+                initState.getLoc(), targTy, targ, initState.getState());
+            rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(initState, isTy,
+                                                            newInit);
+            return success();
+          }
+      }
+
+    // Remove any intervening cast to !cc.ptr<!cc.array<T x ?>> ops.
+    if (auto stateCast =
+            initState.getState().getDefiningOp<cudaq::cc::CastOp>())
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateCast.getType())) {
+        auto eleTy = ptrTy.getElementType();
+        if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy))
+          if (arrTy.isUnknownSize()) {
+            rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
+                initState, initState.getTargets().getType(),
+                initState.getTargets(), stateCast.getValue());
+            return success();
+          }
+      }
+    return failure();
+  }
+};
+} // namespace
+
+void quake::InitializeStateOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardAllocaTypePattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // RelaxSizeOp
 //===----------------------------------------------------------------------===//
 
@@ -478,6 +584,7 @@ LogicalResult quake::RelaxSizeOp::verify() {
   return success();
 }
 
+namespace {
 // Forward the argument to a relax_size to the users for all users that are
 // quake operations. All quake ops that take a sized veq argument are
 // polymorphic on all veq types. If the op is not a quake op, then maintain
@@ -499,6 +606,7 @@ struct ForwardRelaxedSizePattern : public RewritePattern {
     return success();
   };
 };
+} // namespace
 
 void quake::RelaxSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
@@ -509,6 +617,7 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 // SubVeqOp
 //===----------------------------------------------------------------------===//
 
+namespace {
 struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -551,6 +660,7 @@ struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
     return failure();
   }
 };
+} // namespace
 
 Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
@@ -577,9 +687,36 @@ void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 // VeqSizeOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+struct FoldInitStateSizePattern : public OpRewritePattern<quake::VeqSizeOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  // %11 = quake.init_state %_, %_ : (!quake.veq<2>, T1) -> !quake.veq<?>
+  // %12 = quake.veq_size %11 : (!quake.veq<?>) -> i64
+  // ────────────────────────────────────────────────────────────────────
+  // %11 = quake.init_state %_, %_ : (!quake.veq<2>, T1) -> !quake.veq<?>
+  // %12 = constant 2 : i64
+  LogicalResult matchAndRewrite(quake::VeqSizeOp veqSize,
+                                PatternRewriter &rewriter) const override {
+    Value veq = veqSize.getVeq();
+    if (auto initState = veq.getDefiningOp<quake::InitializeStateOp>())
+      if (auto veqTy =
+              dyn_cast<quake::VeqType>(initState.getTargets().getType()))
+        if (veqTy.hasSpecifiedSize()) {
+          std::size_t numQubits = veqTy.getSize();
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, numQubits,
+                                                            veqSize.getType());
+          return success();
+        }
+    return failure();
+  }
+};
+} // namespace
+
 void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                    MLIRContext *context) {
-  patterns.add<ForwardConstantVeqSizePattern>(context);
+  patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -664,6 +801,45 @@ LogicalResult quake::DiscriminateOp::verify() {
           "must return integral type when discriminating exactly one qubit");
   }
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// WireSetOp
+//===----------------------------------------------------------------------===//
+
+ParseResult quake::WireSetOp::parse(OpAsmParser &parser,
+                                    OperationState &result) {
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  std::int32_t cardinality = 0;
+  if (parser.parseLSquare() || parser.parseInteger(cardinality) ||
+      parser.parseRSquare())
+    return failure();
+  result.addAttribute(getCardinalityAttrName(result.name),
+                      parser.getBuilder().getI32IntegerAttr(cardinality));
+  Attribute sparseEle;
+  if (succeeded(parser.parseOptionalKeyword("adjacency")))
+    if (parser.parseAttribute(sparseEle, getAdjacencyAttrName(result.name),
+                              result.attributes))
+      return failure();
+  if (parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  return success();
+}
+
+void quake::WireSetOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  p.printSymbolName(getSymName());
+  p << '[' << getCardinality() << ']';
+  if (auto adj = getAdjacency()) {
+    p << " adjacency ";
+    p.printAttribute(*adj);
+  }
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(),
+      {getSymNameAttrName(), getCardinalityAttrName(), getAdjacencyAttrName()});
 }
 
 //===----------------------------------------------------------------------===//
@@ -903,6 +1079,8 @@ void quake::ZOp::getOperatorMatrix(Matrix &matrix) {
   matrix.assign({1, 0, 0, -1});
 }
 
+void quake::CustomUnitarySymbolOp::getOperatorMatrix(Matrix &matrix) {}
+
 //===----------------------------------------------------------------------===//
 
 /// Never inline a `quake.apply` of a variant form of a kernel. The apply
@@ -914,7 +1092,11 @@ bool cudaq::EnableInlinerInterface::isLegalToInline(Operation *call,
   if (auto applyOp = dyn_cast<quake::ApplyOp>(call))
     if (applyOp.applyToVariant())
       return false;
-  return !(callable->hasAttr(cudaq::entryPointAttrName));
+  if (auto destFunc = call->getParentOfType<mlir::func::FuncOp>())
+    if (destFunc.getName().ends_with(".thunk"))
+      if (auto srcFunc = call->getParentOfType<mlir::func::FuncOp>())
+        return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
+  return true;
 }
 
 using EffectsVectorImpl =
@@ -982,7 +1164,7 @@ void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
 // but not having a way to define them in the ODS.
 // clang-format off
 #define GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp) MACRO(SOp) \
-  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op)                             \
+  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(CustomUnitarySymbolOp) \
   MACRO(R1Op) MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
 #define QUANTUM_OPS(MACRO) MACRO(ResetOp) GATE_OPS(MACRO) MEASURE_OPS(MACRO)

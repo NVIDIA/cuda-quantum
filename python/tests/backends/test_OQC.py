@@ -7,14 +7,14 @@
 # ============================================================================ #
 
 import os
-import sys
-import time
-
+from typing import List
 import pytest
 from multiprocessing import Process
+from network_utils import check_server_connection
 
 import cudaq
 from cudaq import spin
+import numpy as np
 
 try:
     from utils.mock_qpu.oqc import startServer
@@ -42,7 +42,10 @@ def startUpMockServer():
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
-    time.sleep(1)
+
+    if not check_server_connection(port):
+        p.terminate()
+        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
 
     yield "Running the tests."
 
@@ -100,6 +103,27 @@ def test_OQC_sample():
     assert ('11' in counts)
 
 
+def test_OQC_u3_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        qubit = cudaq.qubit()
+        u3(0.0, np.pi / 2, np.pi, qubit)
+
+    result = cudaq.sample(kernel)
+
+
+def test_OQC_u3_ctrl_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        control = cudaq.qubit()
+        target = cudaq.qubit()
+        u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
+
+    result = cudaq.sample(kernel)
+
+
 def test_OQC_observe():
     # Create the parameterized ansatz
     kernel, theta = cudaq.make_kernel(float)
@@ -135,6 +159,32 @@ def test_OQC_observe():
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
     assert assert_close(res.expectation())
+
+
+def test_OQC_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+
+def test_OQC_state_preparation_builder():
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 
 # leave for gdb debugging

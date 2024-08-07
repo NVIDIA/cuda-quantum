@@ -61,9 +61,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
-RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev \
-    && python3 -m pip install --no-cache-dir notebook==7.1.3 \
-    && apt-get remove -y gcc python3-dev \
+    RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
+    # Ref: https://github.com/qutip/qutip/issues/2412
+    && python3 -m pip install --no-cache-dir notebook==7.1.3 "qutip<5" matplotlib \
+    && apt-get remove -y gcc g++ python3-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy over the CUDA-Q installation, and the necessary compiler tools.
@@ -117,7 +118,7 @@ ENV PATH="$PATH:/home/cudaq/.local/bin"
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
 ADD ./docker/release/README.md /home/cudaq/README.md
-RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorial \
+RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorials \
     && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 
 USER cudaq

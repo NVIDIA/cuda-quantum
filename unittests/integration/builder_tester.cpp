@@ -1086,6 +1086,57 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     });
     EXPECT_NEAR(e, -1.13, 1e-2);
   }
+  {
+    // XX
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(2);
+    kernel.exp_pauli(theta, "XX", qubits[0], qubits[1]);
+    kernel.h(qubits);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.rz(2.0 * theta, qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.h(qubits);
+    std::cout << kernel << "\n";
+    for (const auto &angle : cudaq::linspace(-M_PI, M_PI, 10)) {
+      auto counts = cudaq::sample(kernel, angle);
+      EXPECT_EQ(counts.size(), 1);
+      EXPECT_EQ(counts.begin()->first, "00");
+    }
+  }
+  {
+    // YY
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(2);
+    kernel.exp_pauli(theta, "YY", qubits[0], qubits[1]);
+    kernel.rx(M_PI_2, qubits[0]);
+    kernel.rx(M_PI_2, qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.rz(2.0 * theta, qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.rx(-M_PI_2, qubits[0]);
+    kernel.rx(-M_PI_2, qubits[1]);
+    std::cout << kernel << "\n";
+    for (const auto &angle : cudaq::linspace(-M_PI, M_PI, 10)) {
+      auto counts = cudaq::sample(kernel, angle);
+      EXPECT_EQ(counts.size(), 1);
+      EXPECT_EQ(counts.begin()->first, "00");
+    }
+  }
+  {
+    // ZZ
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(2);
+    kernel.exp_pauli(theta, "ZZ", qubits[0], qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    kernel.rz(2.0 * theta, qubits[1]);
+    kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
+    std::cout << kernel << "\n";
+    for (const auto &angle : cudaq::linspace(-M_PI, M_PI, 10)) {
+      auto counts = cudaq::sample(kernel, angle);
+      EXPECT_EQ(counts.size(), 1);
+      EXPECT_EQ(counts.begin()->first, "00");
+    }
+  }
 }
 
 CUDAQ_TEST(BuilderTester, checkControlledRotations) {
@@ -1203,7 +1254,116 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_DM
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET)
+
+TEST(BuilderTester, checkFromStateVector) {
+  std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  {
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(vec);
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 2);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    auto [kernel, initState] =
+        cudaq::make_kernel<std::vector<cudaq::complex>>();
+    auto qubits = kernel.qalloc(initState);
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel, vec);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 2);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    // 2 qubit 11 state
+    std::vector<cudaq::complex> vec{0., 0., 0., 1.};
+    auto [kernel, initState] =
+        cudaq::make_kernel<std::vector<cudaq::complex>>();
+    auto qubits = kernel.qalloc(initState);
+    // induce the need for a kron prod between
+    // [0,0,0,1] and [1, 0, 0, 0]
+    auto anotherOne = kernel.qalloc(2);
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel, vec);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.count("1100"), 1000);
+  }
+
+  {
+    // 2 qubit 11 state
+    std::vector<cudaq::complex> vec{0., 0., 0., 1.};
+    auto [kernel, initState] =
+        cudaq::make_kernel<std::vector<cudaq::complex>>();
+    auto qubits = kernel.qalloc(initState);
+    // induce the need for a kron prod between
+    // [0,0,0,1] and [1, 0]
+    auto anotherOne = kernel.qalloc();
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel, vec);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.count("110"), 1000);
+  }
+}
+
+TEST(BuilderTester, checkFromState) {
+  std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  {
+    // qalloc with state
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(2);
+    kernel.h(qubits[0]);
+    auto state = cudaq::get_state(kernel);
+    // Send on the state to the next kernel
+    auto anotherOne = cudaq::make_kernel();
+    auto newQubits = anotherOne.qalloc(state);
+    anotherOne.x<cudaq::ctrl>(newQubits[0], newQubits[1]);
+    std::cout << anotherOne << "\n";
+    auto counts = cudaq::sample(anotherOne);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    // qalloc with state passed by argument
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(2);
+    kernel.h(qubits[0]);
+    auto state = cudaq::get_state(kernel);
+    // Send on the state to the next kernel
+    auto [anotherOne, s] = cudaq::make_kernel<cudaq::state *>();
+    auto newQubits = anotherOne.qalloc(s);
+    anotherOne.x<cudaq::ctrl>(newQubits[0], newQubits[1]);
+    std::cout << anotherOne << "\n";
+    auto counts = cudaq::sample(anotherOne, &state);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+}
 
 CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
   auto kernel = cudaq::make_kernel();
@@ -1256,9 +1416,9 @@ CUDAQ_TEST(BuilderTester, checkQuakeValueOperators) {
   kernel.rx(M_PI / 8.0, q[0]);
   auto state = cudaq::get_state(kernel);
 
-  EXPECT_NEAR(state.overlap(state1), 1.0, 1e-3);
-  EXPECT_NEAR(state.overlap(state2), 1.0, 1e-3);
-  EXPECT_NEAR(state.overlap(state3), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state1).real(), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state2).real(), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state3).real(), 1.0, 1e-3);
 }
 
 #endif

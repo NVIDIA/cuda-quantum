@@ -118,7 +118,7 @@ jobs:
         run: |
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
-            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
@@ -430,7 +430,7 @@ jobs:
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
     steps:        
-      - uses: cloudposse/github-action-matrix-outputs-write@0.5.0
+      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}

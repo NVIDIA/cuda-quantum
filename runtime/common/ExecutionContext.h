@@ -11,17 +11,14 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
+#include "SimulationState.h"
 #include "Trace.h"
+#include "cudaq/algorithms/optimizer.h"
 #include <optional>
 #include <string_view>
 
 namespace cudaq {
 class spin_op;
-
-// A State is the vector of data for the density matrix or state vector,
-// as well as the array shape (n,n) or (n)
-using State =
-    std::tuple<std::vector<std::size_t>, std::vector<std::complex<double>>>;
 
 /// @brief The ExecutionContext is an abstraction to indicate
 /// how a CUDA-Q kernel should be executed.
@@ -41,6 +38,9 @@ public:
 
   /// @brief A computed expectation value
   std::optional<double> expectationValue = std::nullopt;
+
+  /// @brief An optimization result
+  std::optional<cudaq::optimization_result> optResult = std::nullopt;
 
   /// @brief The kernel being executed in this context
   /// has conditional statements on measure results.
@@ -62,9 +62,20 @@ public:
   /// the expected results as a cudaq::future here.
   details::future futureResult;
 
-  /// @brief simulationData provides a mechanism for
-  /// simulation clients to extract the underlying simulation data.
-  State simulationData;
+  /// @brief Pointer to simulation-specific simulation data.
+  std::unique_ptr<SimulationState> simulationState;
+
+  /// @brief A map of basis-state amplitudes
+  // The list of basis state is set before kernel launch and the map is filled
+  // by the executor platform.
+  std::optional<std::map<std::vector<int>, std::complex<double>>> amplitudeMaps;
+
+  /// @brief List of pairs of states to compute the overlap
+  std::optional<std::pair<const SimulationState *, const SimulationState *>>
+      overlapComputeStates;
+
+  /// @brief Overlap results
+  std::optional<std::complex<double>> overlapResult;
 
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.
@@ -88,6 +99,11 @@ public:
   /// @brief A vector containing information about how to reorder the global
   /// register after execution. Empty means no reordering.
   std::vector<std::size_t> reorderIdx;
+
+  /// @brief A buffer containing the return value of a kernel invocation.
+  /// Note: this is only needed for invocation not able to return a
+  /// `sample_result`.
+  std::vector<char> invocationResultBuffer;
 
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context

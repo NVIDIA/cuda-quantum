@@ -13,8 +13,111 @@
 #include <iostream>
 #include <qpp.h>
 #include <set>
+#include <span>
+
+using namespace cudaq;
 
 namespace nvqir {
+
+/// @brief QppState provides an implementation of `SimulationState` that
+/// encapsulates the state data for the Qpp Circuit Simulator.
+struct QppState : public cudaq::SimulationState {
+  /// @brief The state. This class takes ownership move semantics.
+  qpp::ket state;
+
+  QppState(qpp::ket &&data) : state(std::move(data)) {}
+  QppState(const std::vector<std::size_t> &shape,
+           const std::vector<std::complex<double>> &data) {
+    if (shape.size() != 1)
+      throw std::runtime_error(
+          "QppState must be created from data with 1D shape.");
+
+    state = Eigen::Map<qpp::ket>(
+        const_cast<std::complex<double> *>(data.data()), shape[0]);
+  }
+
+  std::size_t getNumQubits() const override { return std::log2(state.size()); }
+
+  std::complex<double> overlap(const cudaq::SimulationState &other) override {
+    if (other.getNumTensors() != 1 ||
+        (other.getTensor().extents != getTensor().extents))
+      throw std::runtime_error("[qpp-state] overlap error - other state "
+                               "dimension not equal to this state dimension.");
+
+    std::span<std::complex<double>> otherState(
+        reinterpret_cast<std::complex<double> *>(other.getTensor().data),
+        other.getTensor().extents[0]);
+    return std::abs(std::inner_product(
+        state.begin(), state.end(), otherState.begin(), complex{0., 0.},
+        [](auto a, auto b) { return a + b; },
+        [](auto a, auto b) { return a * std::conj(b); }));
+  }
+
+  std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override {
+    if (getNumQubits() != basisState.size())
+      throw std::runtime_error(fmt::format(
+          "[qpp-state] getAmplitude with an invalid number of bits in the "
+          "basis state: expected {}, provided {}.",
+          getNumQubits(), basisState.size()));
+    if (std::any_of(basisState.begin(), basisState.end(),
+                    [](int x) { return x != 0 && x != 1; }))
+      throw std::runtime_error(
+          "[qpp-state] getAmplitude with an invalid basis state: only "
+          "qubit state (0 or 1) is supported.");
+
+    // Convert the basis state to an index value
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+    return state[idx];
+  }
+
+  Tensor getTensor(std::size_t tensorIdx = 0) const override {
+    if (tensorIdx != 0)
+      throw std::runtime_error("[qpp-state] invalid tensor requested.");
+    return Tensor{
+        reinterpret_cast<void *>(
+            const_cast<std::complex<double> *>(state.data())),
+        std::vector<std::size_t>{static_cast<std::size_t>(state.size())},
+        getPrecision()};
+  }
+
+  // /// @brief Return all tensors that represent this state
+  std::vector<Tensor> getTensors() const override { return {getTensor()}; }
+
+  // /// @brief Return the number of tensors that represent this state.
+  std::size_t getNumTensors() const override { return 1; }
+
+  std::complex<double>
+  operator()(std::size_t tensorIdx,
+             const std::vector<std::size_t> &indices) override {
+    if (tensorIdx != 0)
+      throw std::runtime_error("[qpp-state] invalid tensor requested.");
+    if (indices.size() != 1)
+      throw std::runtime_error("[qpp-state] invalid element extraction.");
+
+    return state[indices[0]];
+  }
+
+  std::unique_ptr<SimulationState>
+  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
+    return std::make_unique<QppState>(Eigen::Map<qpp::ket>(
+        reinterpret_cast<std::complex<double> *>(ptr), size));
+  }
+
+  void dump(std::ostream &os) const override { os << state << "\n"; }
+
+  precision getPrecision() const override {
+    return cudaq::SimulationState::precision::fp64;
+  }
+
+  void destroyState() override {
+    qpp::ket k;
+    state = k;
+  }
+};
 
 /// @brief The QppCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator delegating to the Q++ library from
@@ -52,7 +155,7 @@ protected:
     std::vector<double> result;
     if constexpr (std::is_same_v<StateType, qpp::ket>) {
       result.resize(stateDimension);
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel for
 #endif
       for (std::size_t i = 0; i < stateDimension; ++i)
@@ -60,7 +163,7 @@ protected:
     } else if constexpr (std::is_same_v<StateType, qpp::cmat>) {
       Eigen::VectorXcd diag = state.diagonal();
       result.resize(state.rows());
-#ifdef CUDAQ_HAS_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel for
 #endif
       for (Eigen::Index i = 0; i < state.rows(); ++i)
@@ -88,25 +191,47 @@ protected:
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
-  void addQubitsToState(std::size_t count) override {
-    if (count == 0)
+  void addQubitsToState(std::size_t qubitCount,
+                        const void *stateDataIn = nullptr) override {
+    if (qubitCount == 0)
       return;
+
+    auto *stateData = reinterpret_cast<std::complex<double> *>(
+        const_cast<void *>(stateDataIn));
 
     if (state.size() == 0) {
       // If this is the first time, allocate the state
-      state = qpp::ket::Zero(stateDimension);
-      state(0) = 1.0;
+      if (stateData == nullptr) {
+        state = qpp::ket::Zero(stateDimension);
+        state(0) = 1.0;
+      } else
+        state = qpp::ket::Map(stateData, stateDimension);
       return;
     }
-
     // If we are resizing an existing, allocate
     // a zero state on a n qubit, and Kron-prod
     // that with the existing state.
-    qpp::ket zero_state = qpp::ket::Zero((1UL << count));
-    zero_state(0) = 1.0;
-    state = qpp::kron(zero_state, state);
-
+    if (stateData == nullptr) {
+      qpp::ket zero_state = qpp::ket::Zero((1UL << qubitCount));
+      zero_state(0) = 1.0;
+      state = qpp::kron(zero_state, state);
+    } else {
+      qpp::ket initState = qpp::ket::Map(stateData, (1UL << qubitCount));
+      state = qpp::kron(initState, state);
+    }
     return;
+  }
+
+  void addQubitsToState(const cudaq::SimulationState &in_state) override {
+    const QppState *const casted = dynamic_cast<const QppState *>(&in_state);
+    if (!casted)
+      throw std::invalid_argument(
+          "[QppCircuitSimulator] Incompatible state input");
+
+    if (state.size() == 0)
+      state = casted->state;
+    else
+      state = qpp::kron(casted->state, state);
   }
 
   /// @brief Reset the qubit state.
@@ -162,6 +287,8 @@ protected:
     cudaq::info("Measured qubit {} -> {}", qubitIdx, measurement_result);
     return measurement_result == 1 ? true : false;
   }
+
+  QubitOrdering getQubitOrdering() const override { return QubitOrdering::msb; }
 
 public:
   QppCircuitSimulator() {
@@ -275,11 +402,9 @@ public:
     return counts;
   }
 
-  cudaq::State getStateData() override {
+  std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     flushGateQueue();
-    // There has to be at least one copy
-    return cudaq::State{{stateDimension},
-                        {state.data(), state.data() + state.size()}};
+    return std::make_unique<QppState>(std::move(state));
   }
 
   bool isStateVectorSimulator() const override {

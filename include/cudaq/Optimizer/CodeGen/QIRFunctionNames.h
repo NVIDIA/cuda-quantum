@@ -8,59 +8,73 @@
 
 #pragma once
 
-/// This file provides some common QIR function name string s
-/// for use throughout our MLIR lowering infrastructure.
+/// This file provides some common QIR function names for use throughout our
+/// MLIR lowering infrastructure.
 
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 
 namespace cudaq::opt {
 
 /// QIS Function name strings
-constexpr static const char QIRQISPrefix[] = "__quantum__qis__";
-constexpr static const char QIRMeasureBody[] = "__quantum__qis__mz__body";
-constexpr static const char QIRMeasure[] = "__quantum__qis__mz";
-constexpr static const char QIRMeasureToRegister[] =
+static constexpr const char QIRQISPrefix[] = "__quantum__qis__";
+static constexpr const char QIRMeasureBody[] = "__quantum__qis__mz__body";
+static constexpr const char QIRMeasure[] = "__quantum__qis__mz";
+static constexpr const char QIRMeasureToRegister[] =
     "__quantum__qis__mz__to__register";
 
-constexpr static const char QIRCnot[] = "__quantum__qis__cnot";
-constexpr static const char QIRCphase[] = "__quantum__qis__cphase";
-constexpr static const char QIRReadResultBody[] =
+static constexpr const char QIRCnot[] = "__quantum__qis__cnot";
+static constexpr const char QIRCphase[] = "__quantum__qis__cphase";
+static constexpr const char QIRReadResultBody[] =
     "__quantum__qis__read_result__body";
 
-constexpr static const char NVQIRInvokeWithControlBits[] =
+static constexpr const char QIRCustomOp[] = "__quantum__qis__custom_unitary";
+
+static constexpr const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
-constexpr static const char NVQIRInvokeRotationWithControlBits[] =
+static constexpr const char NVQIRInvokeRotationWithControlBits[] =
     "invokeRotationWithControlQubits";
-constexpr static const char NVQIRInvokeU3RotationWithControlBits[] =
+static constexpr const char NVQIRInvokeU3RotationWithControlBits[] =
     "invokeU3RotationWithControlQubits";
-constexpr static const char NVQIRInvokeWithControlRegisterOrBits[] =
+static constexpr const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
-constexpr static const char NVQIRPackSingleQubitInArray[] =
+static constexpr const char NVQIRPackSingleQubitInArray[] =
     "packSingleQubitInArray";
-constexpr static const char NVQIRReleasePackedQubitArray[] =
+static constexpr const char NVQIRReleasePackedQubitArray[] =
     "releasePackedQubitArray";
 
 /// QIR Array function name strings
-constexpr static const char QIRArrayGetElementPtr1d[] =
+static constexpr const char QIRArrayGetElementPtr1d[] =
     "__quantum__rt__array_get_element_ptr_1d";
-constexpr static const char QIRArrayQubitAllocateArray[] =
+static constexpr const char QIRArrayQubitAllocateArray[] =
     "__quantum__rt__qubit_allocate_array";
-constexpr static const char QIRQubitAllocate[] =
+static constexpr const char QIRArrayQubitAllocateArrayWithStateFP64[] =
+    "__quantum__rt__qubit_allocate_array_with_state_fp64";
+static constexpr const char QIRArrayQubitAllocateArrayWithStateFP32[] =
+    "__quantum__rt__qubit_allocate_array_with_state_fp32";
+static constexpr const char QIRArrayQubitAllocateArrayWithStateComplex64[] =
+    "__quantum__rt__qubit_allocate_array_with_state_complex64";
+static constexpr const char QIRArrayQubitAllocateArrayWithStateComplex32[] =
+    "__quantum__rt__qubit_allocate_array_with_state_complex32";
+static constexpr const char QIRArrayQubitAllocateArrayWithStatePtr[] =
+    "__quantum__rt__qubit_allocate_array_with_state_ptr";
+static constexpr const char QIRArrayQubitAllocateArrayWithCudaqStatePtr[] =
+    "__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr";
+static constexpr const char QIRQubitAllocate[] =
     "__quantum__rt__qubit_allocate";
-constexpr static const char QIRArrayQubitReleaseArray[] =
+static constexpr const char QIRArrayQubitReleaseArray[] =
     "__quantum__rt__qubit_release_array";
-constexpr static const char QIRArrayQubitReleaseQubit[] =
+static constexpr const char QIRArrayQubitReleaseQubit[] =
     "__quantum__rt__qubit_release";
-constexpr static const char QIRArraySlice[] = "__quantum__rt__array_slice";
-constexpr static const char QIRArrayGetSize[] =
+static constexpr const char QIRArraySlice[] = "__quantum__rt__array_slice";
+static constexpr const char QIRArrayGetSize[] =
     "__quantum__rt__array_get_size_1d";
-constexpr static const char QIRArrayConcatArray[] =
+static constexpr const char QIRArrayConcatArray[] =
     "__quantum__rt__array_concatenate";
-constexpr static const char QIRArrayCreateArray[] =
+static constexpr const char QIRArrayCreateArray[] =
     "__quantum__rt__array_create_1d";
 
 /// QIR Base/Adaptive Profile record output function names
-constexpr static const char QIRRecordOutput[] =
+static constexpr const char QIRRecordOutput[] =
     "__quantum__rt__result_record_output";
 
 inline mlir::Type getQuantumTypeByName(mlir::StringRef type,

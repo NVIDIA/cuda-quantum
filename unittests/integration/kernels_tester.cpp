@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/algorithms/state.h"
 #include "cudaq/builder/kernels.h"
 #include <iostream>
 

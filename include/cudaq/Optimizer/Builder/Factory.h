@@ -18,8 +18,10 @@
 
 namespace cudaq {
 namespace cc {
+class CharspanType;
 class LoopOp;
 class PointerType;
+class StateType;
 class StructType;
 } // namespace cc
 
@@ -89,7 +91,10 @@ mlir::Type genArgumentBufferType(mlir::Type ty);
 /// ```
 /// where the values of the vector argument are pass-by-value and appended to
 /// the end of the struct as a sequence of \i n double values.
-cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy);
+///
+/// The leading `startingArgIdx + 1` parameters are omitted from the struct.
+cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy,
+                                            std::size_t startingArgIdx = 0);
 
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
@@ -113,6 +118,11 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   auto i64Ty = mlir::IntegerType::get(ctx, 64);
   llvm::SmallVector<mlir::Type> eleTys = {elePtrTy, i64Ty};
   return mlir::LLVM::LLVMStructType::getLiteral(ctx, eleTys);
+}
+
+/// Used to convert `StateType*` to a pointer in LLVM-IR.
+inline mlir::Type stateImplType(mlir::Type eleTy) {
+  return cudaq::opt::factory::getPointerType(eleTy.getContext());
 }
 
 // Host side types for std::string and std::vector
@@ -159,6 +169,17 @@ inline mlir::Value createF64Constant(mlir::Location loc,
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
 
+/// Return the integer value if \p v is an integer constant.
+std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
+
+/// Return the floating point value if \p v is a floating-point constant.
+std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
+
+/// Create a temporary on the stack. The temporary is created such that it is
+/// \em{not} control dependent (other than on function entry).
+mlir::Value createLLVMTemporary(mlir::Location loc, mlir::OpBuilder &builder,
+                                mlir::Type type, std::size_t size = 1);
+
 //===----------------------------------------------------------------------===//
 
 inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
@@ -172,7 +193,7 @@ inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
 mlir::Value packIsArrayAndLengthArray(mlir::Location loc,
                                       mlir::ConversionPatternRewriter &rewriter,
                                       mlir::ModuleOp parentModule,
-                                      mlir::Value numOperands,
+                                      std::size_t numOperands,
                                       mlir::ValueRange operands);
 mlir::FlatSymbolRefAttr
 createLLVMFunctionSymbol(mlir::StringRef name, mlir::Type retType,
@@ -229,6 +250,14 @@ bool isAArch64(mlir::ModuleOp);
 /// A small structure may be passed as two arguments on the host side. (e.g., on
 /// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`.
 bool structUsesTwoArguments(mlir::Type ty);
+
+std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
+std::optional<llvm::APFloat> getDoubleIfConstant(mlir::Value value);
+
+/// Create a `cc.cast` operation, if it is needed.
+mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
+                       mlir::Type toType, mlir::Value fromValue,
+                       bool signExtend = false, bool zeroExtend = false);
 
 } // namespace factory
 } // namespace opt

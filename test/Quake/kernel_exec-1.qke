@@ -89,8 +89,7 @@ module attributes {quake.mangled_name_map = {
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_2]][0] : (!cc.struct<{i32, f64}>, i32) -> !cc.struct<{i32, f64}>
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> i64
+// CHECK:           %[[VAL_7:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
 // CHECK:           %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_3]] : i64
 // CHECK:           %[[VAL_9:.*]] = cc.alloca i8[%[[VAL_8]] : i64]
 // CHECK:           %[[VAL_10:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
@@ -101,7 +100,7 @@ module attributes {quake.mangled_name_map = {
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_15:.*]] = cc.func_ptr %[[VAL_13]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][0, 1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<f64>) -> i64
 // CHECK:           call @altLaunchKernel(%[[VAL_14]], %[[VAL_15]], %[[VAL_16]], %[[VAL_8]], %[[VAL_18]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
 // CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_11]][0, 1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<f64>
@@ -119,15 +118,12 @@ module attributes {quake.mangled_name_map = {
 // CHECK-SAME:                         %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (i64) -> !cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> i64
+// CHECK:           %[[VAL_7:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
 // CHECK:           %[[VAL_20:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_20]][%[[VAL_7]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_9:.*]] = cc.extract_value %[[VAL_3]][0] : (!cc.struct<{i32, f64}>) -> i32
 // CHECK:           %[[VAL_10:.*]] = call @__nvqpp__mlirgen__ghz(%[[VAL_9]]) : (i32) -> f64
-// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_2]][0, 1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_12:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return %[[VAL_12]] : !cc.struct<{!cc.ptr<i8>, i64}>
@@ -137,15 +133,14 @@ module attributes {quake.mangled_name_map = {
 // CHECK-SAME:                               %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
 // CHECK-SAME:                               %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
 // CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
+// CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.ptr<i8>>) -> !cc.ptr<!cc.array<!cc.ptr<i8> x ?>>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.ptr<i8>>) -> !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_14]][0] : (!cc.ptr<!cc.array<!cc.ptr<i8> x ?>>) -> !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_8:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_2]][0] : (!cc.struct<{i32, f64}>, i32) -> !cc.struct<{i32, f64}>
-// CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_9]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> i64
+// CHECK:           %[[VAL_11:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
 // CHECK:           %[[VAL_12:.*]] = call @malloc(%[[VAL_11]]) : (i64) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_12]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_13]] : !cc.ptr<!cc.struct<{i32, f64}>>

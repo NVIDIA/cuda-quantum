@@ -13,7 +13,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
-#include "cudaq/algorithms/state.h"
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
 int main() {
@@ -23,10 +23,10 @@ int main() {
     kernel.h(q[0]);
     kernel.x<cudaq::ctrl>(q[0], q[1]);
     auto state = cudaq::get_state(kernel);
-    assert(std::abs(M_SQRT1_2 - state[0].real()) < 1e-3);
-    assert(std::abs(state[1].real()) < 1e-3);
-    assert(std::abs(state[2].real()) < 1e-3);
-    assert(std::abs(M_SQRT1_2 - state[3].real()) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(M_SQRT1_2 - state[0].real()) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(state[1].real()) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(state[2].real()) < 1e-3);
+    REMOTE_TEST_ASSERT(std::abs(M_SQRT1_2 - state[3].real()) < 1e-3);
   }
 // Skipped test due to a stability issue. See:
 // https://github.com/NVIDIA/cuda-quantum/issues/1087
@@ -35,7 +35,7 @@ int main() {
     auto &platform = cudaq::get_platform();
 
     auto num_qpus = platform.num_qpus();
-    assert(num_qpus == 4);
+    REMOTE_TEST_ASSERT(num_qpus == 4);
     std::vector<cudaq::async_state_result> stateFutures;
     auto [kernel, num_qubits] = cudaq::make_kernel<int>();
     auto q = kernel.qalloc(num_qubits);
@@ -48,9 +48,9 @@ int main() {
     }
     for (std::size_t i = 0; i < num_qpus; ++i) {
       auto state = stateFutures[i].get();
-      assert(state.get_shape()[0] == (1ULL << (i + 1)));
-      assert(std::abs(M_SQRT1_2 - state[0].real()) < 1e-3);
-      assert(std::abs(M_SQRT1_2 - state[(1ULL << (i + 1)) - 1].real()) < 1e-3);
+      REMOTE_TEST_ASSERT(state.get_shape()[0] == (1ULL << (i + 1)));
+      REMOTE_TEST_ASSERT(std::abs(M_SQRT1_2 - state[0].real()) < 1e-3);
+      REMOTE_TEST_ASSERT(std::abs(M_SQRT1_2 - state[(1ULL << (i + 1)) - 1].real()) < 1e-3);
     }
   }
 #endif

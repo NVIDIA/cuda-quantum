@@ -88,6 +88,14 @@ struct FunctionProfileAnalysis {
   const FunctionAnalysisInfo &getAnalysisInfo() const { return infoMap; }
 
 private:
+  static bool isAllocateArray(StringRef f) {
+    return f == cudaq::opt::QIRArrayQubitAllocateArray ||
+           f == cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64 ||
+           f == cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32 ||
+           f == cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64 ||
+           f == cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32;
+  }
+
   // Scan the body of a function for ops that will be used for profiling.
   void performAnalysis(Operation *operation) {
     auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(operation);
@@ -109,7 +117,7 @@ private:
         }
       };
 
-      if (funcName.equals(cudaq::opt::QIRArrayQubitAllocateArray)) {
+      if (isAllocateArray(funcName)) {
         addAllocation([&]() { return getNumQubits(callOp); });
       } else if (funcName.equals(cudaq::opt::QIRQubitAllocate)) {
         addAllocation([]() { return 1; });
@@ -539,7 +547,8 @@ struct VerifyQIRProfilePass
     func.walk([&](Operation *op) {
       if (auto call = dyn_cast<LLVM::CallOp>(op)) {
         auto funcName = call.getCalleeAttr().getValue();
-        if (!funcName.startswith("__quantum_")) {
+        if (!funcName.startswith("__quantum_") ||
+            funcName.equals(cudaq::opt::QIRCustomOp)) {
           call.emitOpError("unexpected call in QIR base profile");
           passFailed = true;
           return WalkResult::advance();

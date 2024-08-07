@@ -61,17 +61,17 @@ struct ArithmeticTupleQernelWithUse {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<{i32, f64, i16, i64}>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<!cc.struct<{i32, f64, i16, i64}>>
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_3]][0, 0] : (!cc.ptr<!cc.struct<{i32, f64, i16, i64}>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.struct<{i32, f64, i16, i64}>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_6:.*]] = arith.extsi %[[VAL_5]] : i32 to i64
-// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_6]] : i64]
+// CHECK:           %[[VAL_6:.*]] = cc.cast signed %[[VAL_5]] : (i32) -> i64
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>[%[[VAL_6]] : i64]
 // CHECK:           %[[VAL_8:.*]] = quake.veq_size %[[VAL_7]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {
 // CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_8]] : i64
 // CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
-// CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_7]]{{\[}}%[[VAL_12]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_7]][%[[VAL_12]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.h %[[VAL_13]] : (!quake.ref) -> ()
 // CHECK:             cc.continue %[[VAL_12]] : i64
 // CHECK:           } step {
@@ -99,17 +99,17 @@ struct ArithmeticTupleQernelWithUse0 {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<{i32, f64, i16, i64}>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<!cc.struct<{i32, f64, i16, i64}>>
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_3]][0, 0] : (!cc.ptr<!cc.struct<{i32, f64, i16, i64}>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.struct<{i32, f64, i16, i64}>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_6:.*]] = arith.extsi %[[VAL_5]] : i32 to i64
-// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_6]] : i64]
+// CHECK:           %[[VAL_6:.*]] = cc.cast signed %[[VAL_5]] : (i32) -> i64
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>[%[[VAL_6]] : i64]
 // CHECK:           %[[VAL_8:.*]] = quake.veq_size %[[VAL_7]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {
 // CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_8]] : i64
 // CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
-// CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_7]]{{\[}}%[[VAL_12]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_7]][%[[VAL_12]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.h %[[VAL_13]] : (!quake.ref) -> ()
 // CHECK:             cc.continue %[[VAL_12]] : i64
 // CHECK:           } step {
@@ -134,10 +134,10 @@ struct ArithmeticPairQernelWithUse {
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{f32, i32}>)
 // CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{f32, i32}>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{f32, i32}>>
-// CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_1]][0, 1] : (!cc.ptr<!cc.struct<{f32, i32}>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_1]][1] : (!cc.ptr<!cc.struct<{f32, i32}>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_4:.*]] = arith.extsi %[[VAL_3]] : i32 to i64
-// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_4]] : i64]
+// CHECK:           %[[VAL_4:.*]] = cc.cast signed %[[VAL_3]] : (i32) -> i64
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_4]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
