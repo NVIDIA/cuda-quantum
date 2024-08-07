@@ -42,7 +42,6 @@ DOCS_INSTALL_PREFIX=${DOCS_INSTALL_PREFIX:-"$CUDAQ_INSTALL_PREFIX/docs"}
 export PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
 # Process command line arguments
-(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 force_update=""
 
 __optind__=$OPTIND
@@ -52,7 +51,7 @@ while getopts ":u:" opt; do
     u) force_update="$OPTARG"
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
   esac
 done
@@ -83,7 +82,7 @@ if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" 
     python3 -c "import cudaq" 2>/dev/null
     if [ ! "$?" -eq "0" ] || [ ! "$cudaq_build_exit_code" -eq "0" ]; then
         echo "Failed to build and install the CUDA-Q Python package needed for docs generation."
-        cd "$working_dir" && if $is_sourced; then return 2; else exit 2; fi
+        cd "$working_dir" && (return 0 2>/dev/null) && return 2 || exit 2
     else 
         echo "Python package has been installed in $CUDAQ_INSTALL_PREFIX."
         echo "You may need to add it to your PYTHONPATH to use it outside this script."
@@ -120,7 +119,7 @@ if [ "$doxygen_version" = "" ] || [ "$doxygen_revision" -lt "7" ]; then
     if [ ! "$?" -eq "0" ]; then
         echo "Build failed. The build logs can be found in the $logs_dir directory."
         echo "You may need to install the prerequisites listed in the comment at the top of this file."
-        cd "$working_dir" && if $is_sourced; then return 3; else exit 3; fi
+        cd "$working_dir" && (return 0 2>/dev/null) && return 3 || exit 3
     else
         doxygen_exe="$CUDAQ_INSTALL_PREFIX/bin/doxygen"
     fi
@@ -178,4 +177,4 @@ else
     echo "Check the logs in $logs_dir, and the documentation build output in $docs_build_output."
 fi
 
-cd "$working_dir" && if $is_sourced; then return $docs_exit_code; else exit $docs_exit_code; fi
+cd "$working_dir" && (return 0 2>/dev/null) && return $docs_exit_code || exit $docs_exit_code

@@ -7,17 +7,11 @@
 # ============================================================================ #
 
 import os
-import platform
-import re
-import subprocess
-import sys
+import shutil
 import bisect
 
 import lit.util
 from lit.llvm import llvm_config
-from lit.llvm.subst import ToolSubst
-from lit.llvm.subst import FindTool
-
 import lit.formats
 
 # The name of this test suite.
@@ -26,7 +20,7 @@ config.name = 'CUDAQ-Target'
 # `testFormat`: The test format to use to interpret tests.
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 
-config.suffixes = ['.cpp']
+config.suffixes = ['.cpp', '.config']
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.
@@ -40,6 +34,8 @@ config.substitutions.append(('%pluginext', config.llvm_plugin_ext))
 config.substitutions.append(('%llvmInclude', config.llvm_install + "/include"))
 config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
+config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
+config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
 
 llvm_config.use_default_substitutions()
 
@@ -75,3 +71,9 @@ llvm_config.with_system_environment(
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
+
+# Create some of the test inputs.
+target_config_origin = os.path.join(config.cudaq_src_dir, "runtime/cudaq/platform/default/rest/helpers/iqm")
+target_config_dest = os.path.join(config.cudaq_src_dir, "targettests")
+shutil.copy(os.path.join(target_config_origin, "Adonis.txt"), os.path.join(target_config_dest, "Adonis Variant.txt"))
+shutil.copy(os.path.join(target_config_origin, "Apollo.txt"), os.path.join(target_config_dest, "Apollo Variant.txt"))

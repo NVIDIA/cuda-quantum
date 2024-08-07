@@ -8,10 +8,10 @@
 
 name: nvidia-fp64
 description: "The NVIDIA FP64 Target provides a simulated QPU via single-GPU cuStateVec integration on FP64 types."
-warning: "This target is deprecating. Please use the 'nvidia' target with option 'fp64'."
+warning: "This target is deprecating. Please use the 'nvidia' target with option 'fp64' by adding the command line option '--target-option fp64' or passing it as cudaq.set_target('nvidia', option='fp64') in Python. Please refer to CUDA-Q \e]8;;https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html#single-gpu\e\\documentation\e]8;;\e\\ for more information."
 gpu-requirements: true
 
 config:
-  nvqir-simulation-backend: custatevec-fp64
+  nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
 

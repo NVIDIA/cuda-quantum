@@ -1,5 +1,4 @@
 import cudaq
-import os
 
 # You only have to set the target once! No need to redefine it
 # for every execution call on your kernel.

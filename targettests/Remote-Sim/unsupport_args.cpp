@@ -70,4 +70,5 @@ int main() {
     // CHECK NEXT: rewrite the entry  point kernel or use MLIR mode.
     counts.dump();
   }
+  return 0;
 }

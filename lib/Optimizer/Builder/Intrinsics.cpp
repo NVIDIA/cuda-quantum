@@ -398,8 +398,9 @@ DenseElementsAttr createDenseElementsAttr(const std::vector<T> &values,
 DenseElementsAttr createDenseElementsAttr(const std::vector<bool> &values,
                                           Type eleTy) {
   std::vector<std::byte> converted;
-  for (auto b : values) {
-    converted.push_back(std::byte(b));
+  for (auto it = values.begin(); it != values.end(); it++) {
+    bool value = *it;
+    converted.push_back(std::byte(value));
   }
   auto newValues = ArrayRef<bool>(reinterpret_cast<bool *>(converted.data()),
                                   converted.size());
