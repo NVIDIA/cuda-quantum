@@ -132,7 +132,10 @@ Data descriptors defined here:<br>
 Represents&nbsp;an&nbsp;elementary&nbsp;operator&nbsp;that&nbsp;acts&nbsp;on&nbsp;one&nbsp;or&nbsp;more&nbsp;degrees&nbsp;of&nbsp;freedom,&nbsp;<br>
 and&nbsp;cannot&nbsp;be&nbsp;further&nbsp;simplified&nbsp;to&nbsp;be&nbsp;the&nbsp;product&nbsp;or&nbsp;sum&nbsp;of&nbsp;other&nbsp;<a href="#operators">operators</a>.&nbsp;<br>
 An&nbsp;elementary&nbsp;operator&nbsp;is&nbsp;defined&nbsp;as&nbsp;a&nbsp;function&nbsp;of&nbsp;zero&nbsp;or&nbsp;more&nbsp;complex-valued&nbsp;<br>
-parameters&nbsp;using&nbsp;the&nbsp;:func:`~dynamics.<a href="#ElementaryOperator">ElementaryOperator</a>.define`&nbsp;class&nbsp;method.<br>&nbsp;</tt></td></tr>
+parameters&nbsp;using&nbsp;the&nbsp;:func:`~dynamics.<a href="#ElementaryOperator">ElementaryOperator</a>.define`&nbsp;class&nbsp;method.<br>
+&nbsp;<br>
+Operator&nbsp;expressions&nbsp;cannot&nbsp;be&nbsp;used&nbsp;within&nbsp;quantum&nbsp;kernels,&nbsp;but&nbsp;<br>
+they&nbsp;provide&nbsp;methods&nbsp;to&nbsp;convert&nbsp;them&nbsp;to&nbsp;data&nbsp;types&nbsp;that&nbsp;can.<br>&nbsp;</tt></td></tr>
 <tr><td>&nbsp;</td>
 <td width="100%"><dl><dt>Method resolution order:</dt>
 <dd><a href="dynamics.html#ElementaryOperator">ElementaryOperator</a></dd>
@@ -442,7 +445,10 @@ overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</tt></dd></dl>
 <td colspan=2><tt><a href="#OperatorSum">OperatorSum</a>(terms:&nbsp;'Sequence[<a href="#ProductOperator">ProductOperator</a>]'&nbsp;=&nbsp;[])&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Represents&nbsp;an&nbsp;operator&nbsp;expression&nbsp;consisting&nbsp;of&nbsp;a&nbsp;sum&nbsp;of&nbsp;terms,&nbsp;<br>
-where&nbsp;each&nbsp;term&nbsp;is&nbsp;a&nbsp;product&nbsp;of&nbsp;elementary&nbsp;and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.<br>&nbsp;</tt></td></tr>
+where&nbsp;each&nbsp;term&nbsp;is&nbsp;a&nbsp;product&nbsp;of&nbsp;elementary&nbsp;and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.&nbsp;<br>
+&nbsp;<br>
+Operator&nbsp;expressions&nbsp;cannot&nbsp;be&nbsp;used&nbsp;within&nbsp;quantum&nbsp;kernels,&nbsp;but&nbsp;<br>
+they&nbsp;provide&nbsp;methods&nbsp;to&nbsp;convert&nbsp;them&nbsp;to&nbsp;data&nbsp;types&nbsp;that&nbsp;can.<br>&nbsp;</tt></td></tr>
 <tr><td>&nbsp;</td>
 <td width="100%">Methods defined here:<br>
 <dl><dt><a name="OperatorSum-__add__"><strong>__add__</strong></a>(self: 'OperatorSum', other: 'Any') -&gt; 'OperatorSum'</dt></dl>
@@ -621,7 +627,10 @@ overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</tt></dd></dl>
 <td colspan=2><tt><a href="#ProductOperator">ProductOperator</a>(atomic_operators:&nbsp;'Sequence[<a href="#ElementaryOperator">ElementaryOperator</a>&nbsp;|&nbsp;<a href="#ScalarOperator">ScalarOperator</a>]'&nbsp;=&nbsp;[])&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Represents&nbsp;an&nbsp;operator&nbsp;expression&nbsp;consisting&nbsp;of&nbsp;a&nbsp;product&nbsp;of&nbsp;elementary<br>
-and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.<br>&nbsp;</tt></td></tr>
+and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.&nbsp;<br>
+&nbsp;<br>
+Operator&nbsp;expressions&nbsp;cannot&nbsp;be&nbsp;used&nbsp;within&nbsp;quantum&nbsp;kernels,&nbsp;but&nbsp;<br>
+they&nbsp;provide&nbsp;methods&nbsp;to&nbsp;convert&nbsp;them&nbsp;to&nbsp;data&nbsp;types&nbsp;that&nbsp;can.<br>&nbsp;</tt></td></tr>
 <tr><td>&nbsp;</td>
 <td width="100%"><dl><dt>Method resolution order:</dt>
 <dd><a href="dynamics.html#ProductOperator">ProductOperator</a></dd>
@@ -705,7 +714,10 @@ Data and other attributes inherited from <a href="dynamics.html#OperatorSum">Ope
 <td colspan=2><tt><a href="#ScalarOperator">ScalarOperator</a>(generator:&nbsp;'Callable[...,&nbsp;NumericType]',&nbsp;parameter_info:&nbsp;'Optional[Callable[[],&nbsp;Mapping[str,&nbsp;str]]]'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Represents&nbsp;a&nbsp;scalar&nbsp;operator&nbsp;defined&nbsp;as&nbsp;a&nbsp;function&nbsp;of&nbsp;zero&nbsp;or&nbsp;more&nbsp;<br>
-complex-valued&nbsp;parameters.<br>&nbsp;</tt></td></tr>
+complex-valued&nbsp;parameters.<br>
+&nbsp;<br>
+Operator&nbsp;expressions&nbsp;cannot&nbsp;be&nbsp;used&nbsp;within&nbsp;quantum&nbsp;kernels,&nbsp;but&nbsp;<br>
+they&nbsp;provide&nbsp;methods&nbsp;to&nbsp;convert&nbsp;them&nbsp;to&nbsp;data&nbsp;types&nbsp;that&nbsp;can.<br>&nbsp;</tt></td></tr>
 <tr><td>&nbsp;</td>
 <td width="100%"><dl><dt>Method resolution order:</dt>
 <dd><a href="dynamics.html#ScalarOperator">ScalarOperator</a></dd>

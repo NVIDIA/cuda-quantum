@@ -11,6 +11,9 @@ class OperatorSum:
     """
     Represents an operator expression consisting of a sum of terms, 
     where each term is a product of elementary and scalar operators. 
+
+    Operator expressions cannot be used within quantum kernels, but 
+    they provide methods to convert them to data types that can.
     """
 
     __slots__ = ['_terms']
@@ -163,6 +166,9 @@ class ProductOperator(OperatorSum):
     """
     Represents an operator expression consisting of a product of elementary
     and scalar operators. 
+
+    Operator expressions cannot be used within quantum kernels, but 
+    they provide methods to convert them to data types that can.
     """
 
     __slots__ = ['_operators']
@@ -247,6 +253,9 @@ class ElementaryOperator(ProductOperator):
     and cannot be further simplified to be the product or sum of other operators. 
     An elementary operator is defined as a function of zero or more complex-valued 
     parameters using the :func:`~dynamics.ElementaryOperator.define` class method.
+
+    Operator expressions cannot be used within quantum kernels, but 
+    they provide methods to convert them to data types that can.
     """
 
     _create_key = object()
@@ -519,6 +528,9 @@ class ScalarOperator(ProductOperator):
     """
     Represents a scalar operator defined as a function of zero or more 
     complex-valued parameters.
+
+    Operator expressions cannot be used within quantum kernels, but 
+    they provide methods to convert them to data types that can.
     """
 
     _create_key = object()
@@ -786,4 +798,12 @@ class ScalarOperator(ProductOperator):
             return self._compose(fct, None)
         return NotImplemented
 
+# Doc strings for type alias are not supported in Python.
+# The string below hence merely serves to document it here;
+# within the Python AST it is not associated with the type alias.
 Operator = OperatorSum | ProductOperator | ElementaryOperator | ScalarOperator
+"""
+Type of an arbitrary operator expression. 
+Operator expressions cannot be used within quantum kernels, but 
+they provide methods to convert them to data types that can.
+"""
