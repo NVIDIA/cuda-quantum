@@ -189,9 +189,14 @@ protected:
         return;
       }
 
-      // User state provided...
+      // Check if the pointer is a device pointer
+      cudaPointerAttributes attributes;
+      HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, state));
 
-      // FIXME handle case where pointer is a device pointer
+      if (attributes.type == cudaMemoryTypeDevice) {
+        throw std::invalid_argument(
+            "[CuStateVecCircuitSimulator] Incompatible host pointer");
+      }
 
       // First allocation, so just set the user provided data here
       ScopedTraceWithContext(
@@ -200,6 +205,7 @@ protected:
       HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
                                    stateDimension * sizeof(CudaDataType),
                                    cudaMemcpyHostToDevice));
+
       return;
     }
 
@@ -221,8 +227,15 @@ protected:
           n_blocks, threads_per_block, otherState, (1UL << count));
       HANDLE_CUDA_ERROR(cudaGetLastError());
     } else {
+      // Check if the pointer is a device pointer
+      cudaPointerAttributes attributes;
+      HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, state));
 
-      // FIXME Handle case where data is already on GPU
+      if (attributes.type == cudaMemoryTypeDevice) {
+        throw std::invalid_argument(
+            "[CuStateVecCircuitSimulator] Incompatible host pointer");
+      }
+
       HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
                                    (1UL << count) * sizeof(CudaDataType),
                                    cudaMemcpyHostToDevice));
@@ -692,6 +705,9 @@ public:
     }
 
     counts.expectationValue = expVal;
+
+    HANDLE_ERROR(custatevecSamplerDestroy(sampler));
+
     return counts;
   }
 
