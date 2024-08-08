@@ -308,7 +308,7 @@ jobs:
       devdeps_toolchain: gcc11
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -350,7 +350,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -407,7 +407,6 @@ jobs:
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
-      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
-      cuda_version: ${{ matrix.cuda_version }}
+      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
       toolchain: llvm
       environment: ghcr-deployment

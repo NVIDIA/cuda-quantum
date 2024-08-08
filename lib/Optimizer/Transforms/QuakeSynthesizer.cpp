@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -53,14 +55,14 @@ class state;
 /// BlockArgument with it.
 template <typename ConcreteType>
 void synthesizeRuntimeArgument(
-    OpBuilder &builder, BlockArgument argument, void *args, std::size_t offset,
-    std::size_t typeSize,
+    OpBuilder &builder, BlockArgument argument, const void *args,
+    std::size_t offset, std::size_t typeSize,
     std::function<Value(OpBuilder &, ConcreteType *)> &&opGenerator) {
 
   // Create an instance of the concrete type
   ConcreteType concrete;
   // Copy the void* struct member into that concrete instance
-  std::memcpy(&concrete, ((char *)args) + offset, typeSize);
+  std::memcpy(&concrete, ((const char *)args) + offset, typeSize);
 
   // Generate the MLIR Value (arith constant for example)
   auto runtimeArg = opGenerator(builder, &concrete);
@@ -120,9 +122,15 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          ATTR arrayAttr, MAKER makeElementValue) {
   auto *ctx = builder.getContext();
   auto argTy = argument.getType();
-  assert(isa<cudaq::cc::StdvecType>(argTy));
-  auto strTy = cast<cudaq::cc::StdvecType>(argTy);
-  auto eleTy = cast<ELETY>(strTy.getElementType());
+  assert(isa<cudaq::cc::StdvecType>(argTy) ||
+         isa<cudaq::cc::CharspanType>(argTy));
+  ELETY eleTy = [&]() -> ELETY {
+    if (auto strTy = dyn_cast<cudaq::cc::StdvecType>(argTy))
+      return cast<ELETY>(strTy.getElementType());
+    // Force cast this to ELETY. This will only happen for CharspanType.
+    return cast<ELETY>(cudaq::opt::factory::getCharType(ctx));
+  }();
+  auto strTy = cudaq::cc::StdvecType::get(ctx, eleTy);
   builder.setInsertionPointToStart(argument.getOwner());
   auto argLoc = argument.getLoc();
   auto conArray = builder.create<cudaq::cc::ConstantArrayOp>(
@@ -140,13 +148,13 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     Value buffer;
     if (hasInitStateUse(argument)) {
       // Stick global at end of Module.
-      builder.setInsertionPointToEnd(module.getBody());
       std::string symbol =
           "__nvqpp_rodata_init_state." + std::to_string(counter++);
-      builder.create<cudaq::cc::GlobalOp>(argLoc, arrTy, symbol, arrayAttr,
-                                          /*isConstant=*/true,
-                                          /*isExternal=*/false);
-      builder.setInsertionPointAfter(conArray);
+
+      cudaq::IRBuilder irBuilder(builder);
+      irBuilder.genVectorOfConstants(argLoc, module, symbol, vec);
+
+      builder.setInsertionPointToStart(argument.getOwner());
       buffer = builder.create<cudaq::cc::AddressOfOp>(
           argLoc, cudaq::cc::PointerType::get(arrTy), symbol);
     } else {
@@ -154,6 +162,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
       builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
     }
+
     auto ptrArrEleTy =
         cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
     Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrArrEleTy, buffer);
@@ -163,15 +172,14 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
 
   auto replaceLoads = [&](cudaq::cc::ComputePtrOp elePtrOp,
                           Value newVal) -> LogicalResult {
+    bool allLoadUsers = true;
     for (auto *u : elePtrOp->getUsers()) {
-      if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u)) {
+      if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u))
         loadOp.replaceAllUsesWith(newVal);
-        continue;
-      }
-      return elePtrOp.emitError(
-          "Unknown gep/load configuration for synthesis.");
+      else
+        allLoadUsers = false;
     }
-    return success();
+    return success(allLoadUsers);
   };
 
   // Iterate over the users of this stdvec argument.
@@ -218,9 +226,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
               Value memArr = getArrayInMemory();
               builder.setInsertionPoint(elePtrOp);
               Value newComputedPtr = builder.create<cudaq::cc::ComputePtrOp>(
-                  argLoc, ptrEleTy, memArr,
-                  SmallVector<cudaq::cc::ComputePtrArg>{
-                      0, elePtrOp.getDynamicIndices()[0]});
+                  argLoc, ptrEleTy, memArr, elePtrOp.getDynamicIndices()[0]);
               elePtrOp.replaceAllUsesWith(newComputedPtr);
             }
             continue;
@@ -243,7 +249,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       // Check if there were other uses of `vec.data()` and simply forward the
       // constant array as materialized in memory.
       if (replaceOtherUses) {
-        Value memArr = getArrayInMemory();
+        auto memArr = getArrayInMemory();
         stdvecDataOp.replaceAllUsesWith(memArr);
       }
       continue;
@@ -255,7 +261,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     generateNewValue = true;
   }
   if (generateNewValue) {
-    auto memArr = getArrayInMemory();
+    Value memArr = getArrayInMemory();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointAfter(memArr.getDefiningOp());
     Value size = builder.create<arith::ConstantIntOp>(argLoc, vec.size(), 64);
@@ -385,23 +391,34 @@ protected:
   std::string kernelName;
 
   // The raw pointer to the runtime arguments.
-  void *args;
+  const void *args;
+
+  // The starting argument index to synthesize. Typically 0 but may be >0 for
+  // partial synthesis. If >0, it is assumed that the first argument(s) are NOT
+  // in `args`.
+  std::size_t startingArgIdx = 0;
+
+  // The program is executed in the same address space as the synthesis.
+  bool sameAddressSpace = false;
 
 public:
   QuakeSynthesizer() = default;
-  QuakeSynthesizer(std::string_view kernel, void *a)
-      : kernelName(kernel), args(a) {}
+  QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s,
+                   bool sameAddrSpace)
+      : kernelName(kernel), args(a), startingArgIdx(s),
+        sameAddressSpace(sameAddrSpace) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
   std::pair<std::size_t, std::vector<std::size_t>>
   getTargetLayout(FunctionType funcTy) {
-    auto bufferTy = cudaq::opt::factory::buildInvokeStructType(funcTy);
+    auto bufferTy =
+        cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
     StringRef dataLayoutSpec = "";
     if (auto attr =
             getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
       dataLayoutSpec = cast<StringAttr>(attr);
-    auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+    llvm::DataLayout dataLayout{dataLayoutSpec};
     // Convert bufferTy to llvm.
     llvm::LLVMContext context;
     LLVMTypeConverter converter(funcTy.getContext());
@@ -447,10 +464,10 @@ public:
     // Keep track of the stdVec sizes.
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
 
-    for (auto iter : llvm::enumerate(arguments)) {
-      auto argNum = iter.index();
-      auto argument = iter.value();
-      std::size_t offset = structLayout.second[argNum];
+    for (std::size_t argNum = startingArgIdx, end = arguments.size();
+         argNum < end; argNum++) {
+      auto argument = arguments[argNum];
+      std::size_t offset = structLayout.second[argNum - startingArgIdx];
 
       // Get the argument type
       auto type = argument.getType();
@@ -532,17 +549,24 @@ public:
           // Special case of a `cudaq::state*` which must be in the same address
           // space. This references a container to a set of simulation
           // amplitudes.
-          synthesizeRuntimeArgument<cudaq::state *>(
-              builder, argument, args, offset, sizeof(void *),
-              [=](OpBuilder &builder, cudaq::state **concrete) {
-                Value rawPtr = builder.create<arith::ConstantIntOp>(
-                    loc, reinterpret_cast<std::intptr_t>(*concrete),
-                    sizeof(void *) * 8);
-                auto stateTy = cudaq::cc::StateType::get(builder.getContext());
-                return builder.create<cudaq::cc::CastOp>(
-                    loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
-              });
-          continue;
+          if (sameAddressSpace) {
+            synthesizeRuntimeArgument<cudaq::state *>(
+                builder, argument, args, offset, sizeof(void *),
+                [=](OpBuilder &builder, cudaq::state **concrete) {
+                  Value rawPtr = builder.create<arith::ConstantIntOp>(
+                      loc, reinterpret_cast<std::intptr_t>(*concrete),
+                      sizeof(void *) * 8);
+                  auto stateTy =
+                      cudaq::cc::StateType::get(builder.getContext());
+                  return builder.create<cudaq::cc::CastOp>(
+                      loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
+                });
+            continue;
+          } else {
+            funcOp.emitOpError("synthesis: unsupported argument type for "
+                               "remote devices and simulators: state*");
+            signalPassFailure();
+          }
         }
         // N.B. Other pointers will not be materialized and may be in a
         // different address space.
@@ -552,15 +576,22 @@ public:
       // These will be processed when we reach the buffer's appendix.
       if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(type)) {
         auto eleTy = vecTy.getElementType();
-        if (!isa<IntegerType, FloatType, ComplexType>(eleTy)) {
+        if (!isa<IntegerType, FloatType, ComplexType, cudaq::cc::CharspanType>(
+                eleTy)) {
           funcOp.emitOpError("synthesis: unsupported argument type");
           signalPassFailure();
           return;
         }
-        char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
+        const char *ptrToSizeInBuffer =
+            static_cast<const char *>(args) + offset;
         auto sizeFromBuffer =
-            *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        unsigned bytesInType = [&eleTy]() {
+            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
+        auto bytesInType = [&eleTy]() -> unsigned {
+          if (isa<cudaq::cc::CharspanType>(eleTy)) {
+            /* A charspan is a struct{ ptr, i64 }, which is just an i64 in
+             * pointer-free encoding. */
+            return sizeof(std::int64_t);
+          }
           if (auto complexTy = dyn_cast<ComplexType>(eleTy))
             return 2 * cudaq::opt::convertBitsToBytes(
                            complexTy.getElementType().getIntOrFloatBitWidth());
@@ -584,9 +615,24 @@ public:
           // TODO: for now we can ignore empty struct types.
           continue;
         }
-        char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
-        auto rawSize = *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
+        const char *ptrToSizeInBuffer =
+            static_cast<const char *>(args) + offset;
+        auto rawSize =
+            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
+        continue;
+      }
+
+      if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(type)) {
+        const char *ptrToSizeInBuffer =
+            static_cast<const char *>(args) + offset;
+        auto sizeFromBuffer =
+            *reinterpret_cast<const std::uint64_t *>(ptrToSizeInBuffer);
+        std::size_t bytesInType = sizeof(char);
+        auto vectorSize = sizeFromBuffer / bytesInType;
+        stdVecInfo.emplace_back(
+            argNum, cudaq::opt::factory::getCharType(builder.getContext()),
+            vectorSize);
         continue;
       }
 
@@ -599,7 +645,7 @@ public:
     // the block arg with the actual vector element data. First get the pointer
     // to the start of the buffer's appendix.
     auto structSize = structLayout.first;
-    char *bufferAppendix = static_cast<char *>(args) + structSize;
+    const char *bufferAppendix = static_cast<const char *>(args) + structSize;
     for (auto [idx, eleTy, vecLength] : stdVecInfo) {
       if (!eleTy) {
         // FIXME: Skip struct values.
@@ -609,7 +655,7 @@ public:
         continue;
       }
       auto doVector = [&]<typename T>(T) {
-        auto *ptr = reinterpret_cast<T *>(bufferAppendix);
+        auto *ptr = reinterpret_cast<const T *>(bufferAppendix);
         std::vector<T> v(ptr, ptr + vecLength);
         if (failed(synthesizeVectorArgument(builder, module, counter,
                                             arguments[idx], v)))
@@ -657,6 +703,59 @@ public:
         doVector(std::complex<double>{});
         continue;
       }
+      if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(eleTy)) {
+        // For this case, the message buffer contained the length of the range
+        // of sizes that are encoded starting at bufferAppendix.
+        // At the end of the block of sizes, the C-strings will be encoded.
+        auto numberSpans = vecLength;
+        auto *spanSizes =
+            reinterpret_cast<const std::uint64_t *>(bufferAppendix);
+        bufferAppendix += vecLength * sizeof(std::uint64_t);
+        // These strings are reified in the following way:
+        //   - Create an array numberSpans in length and where each element
+        //     has a `{i8*, i64}` type.
+        //   - Create a C-string literal constant (global) for each string in
+        //     this vector for a total of numberSpans.
+        //   - Save the address of the C-string to each element of the array.
+        // Users of this data structure will need to use compute_ptr to access
+        // the elements, which are the pointers. Each ptr element is a `char*`
+        // that can be used in, say, a Pauli op.
+        auto ptrTy = cudaq::cc::PointerType::get(charSpanTy);
+        auto loc = arguments[idx].getLoc();
+        auto ns = builder.create<arith::ConstantIntOp>(loc, numberSpans, 64);
+        auto aos = builder.create<cudaq::cc::AllocaOp>(loc, charSpanTy, ns);
+        auto pi8Ty = cudaq::cc::PointerType::get(charSpanTy.getElementType());
+        auto ppi8Ty = cudaq::cc::PointerType::get(pi8Ty);
+        auto ptrI64Ty = cudaq::cc::PointerType::get(builder.getI64Type());
+        auto iaTy = cudaq::cc::PointerType::get(
+            cudaq::cc::ArrayType::get(builder.getI64Type()));
+        cudaq::IRBuilder irBuilder(module);
+        for (decltype(numberSpans) i = 0; i < numberSpans; ++i) {
+          std::size_t length = spanSizes[i];
+          auto strLen = builder.create<arith::ConstantIntOp>(loc, length, 64);
+          StringRef strData{bufferAppendix, length};
+          auto global =
+              irBuilder.genCStringLiteralAppendNul(loc, module, strData);
+          auto addr = builder.create<cudaq::cc::AddressOfOp>(
+              loc, cudaq::cc::PointerType::get(global.getType()),
+              global.getName());
+          auto str = builder.create<cudaq::cc::CastOp>(loc, pi8Ty, addr);
+          auto spanp = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrTy, aos,
+              ArrayRef<cudaq::cc::ComputePtrArg>{static_cast<std::int32_t>(i)});
+          auto relocp = builder.create<cudaq::cc::CastOp>(loc, ppi8Ty, spanp);
+          builder.create<cudaq::cc::StoreOp>(loc, str, relocp);
+          auto lengthp = builder.create<cudaq::cc::CastOp>(loc, iaTy, spanp);
+          auto offsetp = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrI64Ty, lengthp, ArrayRef<cudaq::cc::ComputePtrArg>{1});
+          builder.create<cudaq::cc::StoreOp>(loc, strLen, offsetp);
+          bufferAppendix += length;
+        }
+        auto svTy = cudaq::cc::StdvecType::get(ptrTy);
+        auto ics = builder.create<cudaq::cc::StdvecInitOp>(loc, svTy, aos, ns);
+        arguments[idx].replaceAllUsesWith(ics);
+        continue;
+      }
     }
 
     // Clean up dead code.
@@ -669,7 +768,8 @@ public:
     // Remove the old arguments.
     auto numArgs = funcOp.getNumArguments();
     BitVector argsToErase(numArgs);
-    for (std::size_t argIndex = 0; argIndex < numArgs; ++argIndex) {
+    for (std::size_t argIndex = startingArgIdx; argIndex < numArgs;
+         ++argIndex) {
       argsToErase.set(argIndex);
       if (!funcOp.getBody().front().getArgument(argIndex).getUses().empty()) {
         funcOp.emitError("argument(s) still in use after synthesis.");
@@ -688,6 +788,9 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 }
 
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, void *a) {
-  return std::make_unique<QuakeSynthesizer>(kernelName, a);
+cudaq::opt::createQuakeSynthesizer(std::string_view kernelName, const void *a,
+                                   std::size_t startingArgIdx,
+                                   bool sameAddressSpace) {
+  return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx,
+                                            sameAddressSpace);
 }

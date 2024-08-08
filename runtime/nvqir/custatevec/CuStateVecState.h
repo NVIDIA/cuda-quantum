@@ -1,5 +1,5 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -143,7 +143,7 @@ public:
 
       auto cmplx = nvqir::innerProduct<ScalarType>(
           devicePtr, other.getTensor().data, size, false);
-      return std::complex<ScalarType>(cmplx.real, cmplx.imaginary);
+      return std::abs(std::complex<ScalarType>(cmplx.real, cmplx.imaginary));
     } else {
       // If we reach here, then we have to copy the data from host.
       cudaq::info("[custatevec-state] overlap computation requested with a "
@@ -152,7 +152,7 @@ public:
 
       auto cmplx = nvqir::innerProduct<ScalarType>(
           devicePtr, other.getTensor().data, size, true);
-      return std::complex<ScalarType>(cmplx.real, cmplx.imaginary);
+      return std::abs(std::complex<ScalarType>(cmplx.real, cmplx.imaginary));
     }
   }
 

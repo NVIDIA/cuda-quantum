@@ -1,0 +1,57 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+description: "The NVIDIA Target provides a simulated QPU via cuStateVec (state-vector simulation) integration."
+
+name: nvidia
+
+gpu-requirements: true
+
+target-arguments:
+  - key: option
+    required: false
+    type: option-flags
+    help-string: "Specify the target options as a comma-separated list.\nSupported options are 'fp32', 'fp64', 'mgpu', 'mqpu'.\nFor example, the 'fp32,mgpu' option combination will activate multi-GPU distribution with single-precision. Not all option combinations are supported."
+
+configuration-matrix:
+  - name: single-gpu-fp32
+    option-flags: [fp32]
+    default: true
+    config:
+      # This can be a string or a list.
+      # If a list, we check the install directory to see if the .so file associated with the preceding one is present or not.
+      # If present, the preceding one will be selected. Otherwise, continue the .so search.
+      nvqir-simulation-backend: cusvsim-fp32, custatevec-fp32
+      preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
+  - name: single-gpu-fp64
+    option-flags: [fp64]
+    config:
+      nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
+      preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+  - name: multi-gpu-fp32
+    option-flags: [fp32, mgpu]
+    config:
+      nvqir-simulation-backend: nvidia-mgpu-fp32
+      preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
+  - name: multi-gpu-fp64
+    option-flags: [fp64, mgpu]
+    config:
+      nvqir-simulation-backend: nvidia-mgpu
+      preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+  - name: multi-qpu-fp32
+    option-flags: [fp32, mqpu]
+    config:
+      nvqir-simulation-backend: cusvsim-fp32, custatevec-fp32
+      preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
+      platform-library: mqpu
+  - name: multi-qpu-fp64
+    option-flags: [fp64, mqpu]
+    config:
+      platform-library: mqpu
+      nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
+      preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]

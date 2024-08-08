@@ -9,10 +9,7 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import os
-
 import pytest
-import numpy as np
-
 import cudaq
 
 
@@ -147,8 +144,66 @@ def test_conditional_on_measure():
 
     print(test10)
 
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test10() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test10() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+    @cudaq.kernel
+    def test11():
+        data = cudaq.qubit()
+        res = mz(data)
+        flag = res
+
+        if flag:
+            h(data)
+
+    print(test11)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test11() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+
+    @cudaq.kernel
+    def test12():
+        data = cudaq.qubit()
+        res = mz(data)
+        flag1 = res
+        flag2 = flag1
+
+        if flag2 == False:
+            x(data)
+
+    print(test12)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test12() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+
+    @cudaq.kernel
+    def test13():
+        qubits = cudaq.qvector(2)
+        h(qubits)
+        m0 = mz(qubits[0])
+        m1 = mz(qubits[1])
+
+        if m0 or m1:
+            x.ctrl(qubits[0], qubits[1])
+            res = mz(qubits[0])
+
+    print(test13)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test13() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+
+    @cudaq.kernel
+    def test14():
+        qubits = cudaq.qvector(2)
+        h(qubits)
+        m0 = mz(qubits[0])
+        m1 = mz(qubits[1])
+
+        if m0 == True:
+            if m1:
+                x.ctrl(qubits[0], qubits[1])
+                res = mz(qubits[0])
+
+    print(test14)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test14() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

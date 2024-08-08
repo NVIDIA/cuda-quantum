@@ -14,8 +14,8 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
-from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
+from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli, globalRegisteredTypes
+from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .captured_data import CapturedDataStorage
 
@@ -87,6 +87,12 @@ class PyKernelDecorator(object):
                 k: v for k, v in dict(inspect.getmembers(self.parentFrame))
                 ['f_locals'].items()
             }
+
+        # Register any external class types that may be used
+        # in the kernel definition
+        for name, var in self.globalScopedVars.items():
+            if isinstance(var, type):
+                globalRegisteredTypes[name] = (var, var.__annotations__)
 
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
@@ -184,7 +190,13 @@ class PyKernelDecorator(object):
                 }
                 if self.dependentCaptures != None:
                     for k, v in self.dependentCaptures.items():
-                        if self.globalScopedVars[k] != v:
+                        if (isinstance(v, (list, np.ndarray))):
+                            if not all(a == b for a, b in zip(
+                                    self.globalScopedVars[k], v)):
+                                # Recompile if values in the list have changed.
+                                self.module = None
+                                break
+                        elif self.globalScopedVars[k] != v:
                             # Need to recompile
                             self.module = None
                             break

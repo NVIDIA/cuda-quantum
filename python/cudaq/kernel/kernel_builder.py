@@ -17,7 +17,7 @@ import numpy as np
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli
+from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli, globalRegisteredOperations
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
 from .captured_data import CapturedDataStorage
@@ -27,7 +27,7 @@ from ..mlir.passmanager import *
 from ..mlir.execution_engine import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex as complexDialect
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -184,6 +184,59 @@ def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
     if ToType.isinstance(eleTy) and FromType.isinstance(argEleTy):
         return [PyType(i) for i in arg]
     return None
+
+
+def __generalCustomOperation(self, opName, *args):
+    """
+    Utility function for adding a generic quantum operation to the MLIR 
+    representation for the PyKernel.
+
+    A controlled version can be invoked by passing additional arguments 
+    to the operation. For an N-qubit operation, the last N arguments are 
+    treated as `targets` and excess arguments as `controls`.
+    """
+
+    global globalRegisteredOperations
+    unitary = globalRegisteredOperations[opName]
+
+    numTargets = int(np.log2(np.sqrt(unitary.size)))
+
+    qubits = []
+    with self.insertPoint, self.loc:
+        for arg in args:
+            if isinstance(arg, QuakeValue):
+                qubits.append(arg.mlirValue)
+            else:
+                emitFatalError(f"invalid argument type passed to {opName}.")
+
+        targets = []
+        controls = []
+
+        if numTargets == len(qubits):
+            targets = qubits
+        elif numTargets < len(qubits):
+            numControls = len(qubits) - numTargets
+            targets = qubits[-numTargets:]
+            controls = qubits[:numControls]
+        else:
+            emitFatalError(
+                f"too few arguments passed to {opName}, expected ({numTargets})"
+            )
+
+        globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
+        currentST = SymbolTable(self.module.operation)
+        if not globalName in currentST:
+            with InsertionPoint(self.module.body):
+                gen_vector_of_complex_constant(self.loc, self.module,
+                                               globalName, unitary.tolist())
+
+        quake.CustomUnitarySymbolOp([],
+                                    generator=FlatSymbolRefAttr.get(globalName),
+                                    parameters=[],
+                                    controls=controls,
+                                    targets=targets,
+                                    is_adj=False)
+        return
 
 
 class PyKernel(object):
@@ -1483,6 +1536,11 @@ class PyKernel(object):
                 processedArgs.append(arg)
 
         cudaq_runtime.pyAltLaunchKernel(self.name, self.module, *processedArgs)
+
+    def __getattr__(self, attr_name):
+        if hasattr(self, attr_name):
+            return getattr(self, attr_name)
+        raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
 
 
 setattr(PyKernel, 'h', partialmethod(__singleTargetOperation, 'h'))

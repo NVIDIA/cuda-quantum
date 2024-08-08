@@ -81,9 +81,10 @@ int main(int argc, char **argv) {
 
   if (printRestPayloadVersion) {
     // IMPORTANT: Don't change this message without updating
-    // `cudaq.nvqc.Dockerfile`, which relies on the this information to perform
+    // `scripts/nvqc_launch.sh`, which relies on the this information to perform
     // deployment sanity check.
-    printf("\nCUDA-Q REST API version: %d\n", restServer->version());
+    printf("\nCUDA-Q REST API version: %d.%d\n", restServer->version().first,
+           restServer->version().second);
     return 0;
   }
 

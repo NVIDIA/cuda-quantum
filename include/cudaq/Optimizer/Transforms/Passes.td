@@ -47,18 +47,42 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
-def PySynthCallableBlockArgs : Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
-  let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
+def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
+  let summary = "Specialize a function by replacing arguments with constants";
   let description = [{
-    This pass is leveraged by the Python bindings to synthesize any 
-    cc.callable block arguments. By synthesis we mean replace all uses of the 
-    callable block argument with a specific in-Module function call (func.call) 
-    retrieved at runtime (the name of the function passed to the kernel at the 
-    cc.callable block argument index).
+    This pass takes a list of functions and argument substitutions. For each
+    function in the list, the arguments to the function in the substitutions
+    list will be erased and replaced with a computed value (e.g., a constant)
+    provided in the substitution list. All arguments or some subset of arguments
+    may be substituted in this way.
+
+    To facilitate command-line testing, this pass can be run with the functions
+    suboption using filenames containing the argument substitutions. For
+    example, one might run
+    ```console
+      cudaq-opt input.qke \
+        --argument-synthesis=functions="kernel1:subst1.qke,kernel2:subst2.qke"
+    ```
+    where `kernel1`, `kernel2` are the names of functions and `subst1.qke` and
+    `subst2.qke` are quake source files contains arg_subst operations.
+
+    For running this pass from code, one can build the substitution code in a
+    std::string and use a prefix character '*' to indicate the text is inline
+    and not in a file.
+    ```
+      kernel1:*"cc.arg_subst [0] { ... }"
+    ```
   }];
+
+  let options = [
+    ListOption<"funcList", "functions", "std::string",
+               "Function name and substitutions pairs (<func>:<filename>)">,
+  ];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::cf::ControlFlowDialect"];
 }
 
-def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
+def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.
@@ -116,6 +140,14 @@ def CombineQuantumAllocations :
     combined deallocation will be added to each exit block.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
+def ConstPropComplex : Pass<"const-prop-complex", "mlir::ModuleOp"> {
+  let summary = "Create and propagate complex constants.";
+  let description = [{
+    Rewrite the complex.CreateOp to complex.ConstantOp when possible.
+    Replace array pointer casts with element pointer casts.
+  }];
 }
 
 def ConvertToDirectCalls :
@@ -197,6 +229,9 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
     The target may only support measuring a single qubit however. This pass
     expands these ops in list format into a series of measurements (including
     loops) on individual qubits and into a single `std::vector<bool>` result.
+
+    The `reset` op can also take a veq argument and this pass will also expand
+    that to a series of `reset` operations on single qubits.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -251,7 +286,51 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
   let options = [
     Option<"outputFilename", "output-filename", "std::string",
       /*default=*/"\"-\"", "Name of output file.">,
+    Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
+      "The starting argument index for the argsCreator.">,
   ];
+}
+
+def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
+  let summary = "Replace the unitary matrix generator function with concrete matrix.";
+  let description = [{
+    Given a custom operation whose generator attribute is another function 
+    within the module, such that if `LiftArrayAlloc` pass has run, there will
+    be a global constant within the module which holds the concrete matrix 
+    representation for the custom operation. This pass will find that global
+    variable and update the custom operation to directly point to it. 
+
+    Example:
+    ```mlir
+      module {
+        func.func @__nvqpp__mlirgen__function_foo_generator_1.bar(%arg0: !cc.stdvec<f64>) -> !cc.stdvec<complex<f64>> {
+          ...
+          %0 = cc.address_of @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 : !cc.ptr<!cc.array<complex<f64> x 4>>
+          ...
+          return %3 : !cc.stdvec<complex<f64>>
+        }
+
+        func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
+          %0 = quake.alloca !quake.ref
+          quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar %0 : (!quake.ref) -> ()
+          return
+        }
+
+        cc.global constant @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+      }
+    ```
+
+    The `quake.custom_op` call would be converted to
+
+    ```mlir
+      func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
+        %0 = quake.alloca !quake.ref
+        quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 %0 : (!quake.ref) -> ()
+        return
+      }
+    ```
+
+  }];
 }
 
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
@@ -532,6 +611,55 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
+  let summary =
+    "Convert state vector data into gates";
+  let description = [{
+    Convert quake representation that includes qubit initialization
+    from data into qubit initialization using gates.
+
+    For example:
+
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
+        %1 = quake.alloca !quake.veq<2>
+        %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+        return
+      }
+      cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+    }
+    ```
+    Will be rewritten to:
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = quake.alloca !quake.veq<2>
+        %c1_i64 = arith.constant 1 : i64
+        %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst = arith.constant 0.000000e+00 : f64
+        quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+        %c0_i64 = arith.constant 0 : i64
+        %2 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst_0 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_0) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        %cst_1 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_1) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        return
+      }
+    }
+    ```
+  }];
+
+  let options = [
+    Option<"phaseThreshold", "threshold", "double",
+      /*default=*/"1e-10", "Threshold to trigger phase equalization">,
+  ];
+}
+
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
   let summary = "Promote single qubit allocations.";
   let description = [{
@@ -569,6 +697,18 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
       %5 = y [%ctrl] %3 : (!control, !wire) -> !wire
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
+  }];
+}
+
+def PySynthCallableBlockArgs :
+    Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
+  let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
+  let description = [{
+    This pass is leveraged by the Python bindings to synthesize any 
+    cc.callable block arguments. By synthesis we mean replace all uses of the 
+    callable block argument with a specific in-Module function call (func.call) 
+    retrieved at runtime (the name of the function passed to the kernel at the 
+    cc.callable block argument index).
   }];
 }
 

@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/FmtCore.h"
@@ -19,9 +20,11 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/spin_op.h"
@@ -122,18 +125,6 @@ protected:
                                  const std::string &kernelName) {
     invokeJITKernel(jit, kernelName);
     delete jit;
-  }
-
-  /// @brief Helper function to get boolean environment variable
-  bool getEnvBool(const char *envName, bool defaultVal = false) {
-    if (auto envVal = std::getenv(envName)) {
-      std::string tmp(envVal);
-      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        return true;
-    }
-    return defaultVal;
   }
 
   virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
@@ -264,29 +255,31 @@ public:
     /// Once we know the backend, we should search for the configuration file
     /// from there we can get the URL/PORT and the required MLIR pass
     /// pipeline.
-    std::string fileName = mutableBackend + std::string(".config");
+    std::string fileName = mutableBackend + std::string(".yml");
     auto configFilePath = platformPath / fileName;
     cudaq::info("Config file path = {}", configFilePath.string());
     std::ifstream configFile(configFilePath.string());
-    std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                               std::istreambuf_iterator<char>());
-
-    // Loop through the file, extract the pass pipeline and CODEGEN Type
-    auto lines = cudaq::split(configContents, '\n');
-    std::regex pipeline("^PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
-    std::regex emissionType("^CODEGEN_EMISSION\\s*=\\s*(\\S+)");
-    std::regex postCodeGen("^POST_CODEGEN_PASSES\\s*=\\s*\"(\\S+)\"");
-    std::smatch match;
-    for (const std::string &line : lines) {
-      if (std::regex_search(line, match, pipeline)) {
-        cudaq::info("Appending lowering pipeline: {}", match[1].str());
-        passPipelineConfig += "," + match[1].str();
-      } else if (std::regex_search(line, match, emissionType)) {
-        codegenTranslation = match[1].str();
-      } else if (std::regex_search(line, match, postCodeGen)) {
+    std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
+                                  std::istreambuf_iterator<char>());
+    cudaq::config::TargetConfig config;
+    llvm::yaml::Input Input(configYmlContents.c_str());
+    Input >> config;
+    if (config.BackendConfig.has_value()) {
+      if (!config.BackendConfig->PlatformLoweringConfig.empty()) {
+        cudaq::info("Appending lowering pipeline: {}",
+                    config.BackendConfig->PlatformLoweringConfig);
+        passPipelineConfig +=
+            "," + config.BackendConfig->PlatformLoweringConfig;
+      }
+      if (!config.BackendConfig->CodegenEmission.empty()) {
+        cudaq::info("Set codegen translation: {}",
+                    config.BackendConfig->CodegenEmission);
+        codegenTranslation = config.BackendConfig->CodegenEmission;
+      }
+      if (!config.BackendConfig->PostCodeGenPasses.empty()) {
         cudaq::info("Adding post-codegen lowering pipeline: {}",
-                    match[1].str());
-        postCodeGenPasses = match[1].str();
+                    config.BackendConfig->PostCodeGenPasses);
+        postCodeGenPasses = config.BackendConfig->PostCodeGenPasses;
       }
     }
     std::string allowEarlyExitSetting =
@@ -381,6 +374,15 @@ public:
     moduleOp.push_back(func.clone());
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
+    for (auto &op : m_module.getOps()) {
+      // Add any global symbols, including global constant arrays.
+      // Global constant arrays can be created during compilation,
+      // `lift-array-value`, `quake-synthesizer`, and `get-concrete-matrix`
+      // passes.
+      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
+        moduleOp.push_back(globalOp.clone());
+    }
+
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
                                mlir::ModuleOp moduleOpIn) {
@@ -413,7 +415,6 @@ public:
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
 
-    // Run the config-specified pass pipeline
     runPassPipeline(passPipelineConfig, moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
@@ -459,8 +460,7 @@ public:
         // Create the pass manager, add the quake observe ansatz pass
         // and run it followed by the canonicalizer
         mlir::PassManager pm(&context);
-        mlir::OpPassManager &optPM = pm.nest<mlir::func::FuncOp>();
-        optPM.addPass(
+        pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
         if (disableMLIRthreading || enablePrintMLIREachPass)
           tmpModuleOp.getContext()->disableMultithreading();
@@ -524,11 +524,23 @@ public:
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
-      throw std::runtime_error("Remote rest execution can only be performed "
-                               "via cudaq::sample() or cudaq::observe().");
+      throw std::runtime_error(
+          "Remote rest execution can only be performed via cudaq::sample(), "
+          "cudaq::observe(), or cudaq::draw().");
 
     // Get the Quake code, lowered according to config file.
     auto codes = lowerQuakeCode(kernelName, args);
+
+    // After performing lowerQuakeCode, check to see if we are simply drawing
+    // the circuit. If so, perform the trace here and then return.
+    if (executionContext->name == "tracer" && jitEngines.size() == 1) {
+      cudaq::getExecutionManager()->setExecutionContext(executionContext);
+      invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      cudaq::getExecutionManager()->resetExecutionContext();
+      jitEngines.clear();
+      return;
+    }
+
     // Get the current execution context and number of shots
     std::size_t localShots = 1000;
     if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&

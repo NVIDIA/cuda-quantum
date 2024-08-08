@@ -91,7 +91,10 @@ mlir::Type genArgumentBufferType(mlir::Type ty);
 /// ```
 /// where the values of the vector argument are pass-by-value and appended to
 /// the end of the struct as a sequence of \i n double values.
-cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy);
+///
+/// The leading `startingArgIdx + 1` parameters are omitted from the struct.
+cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy,
+                                            std::size_t startingArgIdx = 0);
 
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
@@ -249,6 +252,7 @@ bool isAArch64(mlir::ModuleOp);
 bool structUsesTwoArguments(mlir::Type ty);
 
 std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
+std::optional<llvm::APFloat> getDoubleIfConstant(mlir::Value value);
 
 /// Create a `cc.cast` operation, if it is needed.
 mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
@@ -256,5 +260,9 @@ mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
                        bool signExtend = false, bool zeroExtend = false);
 
 } // namespace factory
+
+std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);
+std::size_t getDataOffset(llvm::DataLayout &dataLayout, mlir::Type ty,
+                          std::size_t off);
 } // namespace opt
 } // namespace cudaq

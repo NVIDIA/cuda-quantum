@@ -28,7 +28,17 @@ set(CMAKE_PLATFORM_NO_VERSIONED_SONAME 1)
 
 add_subdirectory(extension)
 
-file (COPY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
+file(GLOB_RECURSE PYTHON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
+
+add_custom_target(
+  CopyPythonFiles ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_BINARY_DIR}/python
+  DEPENDS ${PYTHON_SOURCES}
+)
+
+add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
 
 add_subdirectory(runtime/cudaq/domains/plugins)
 

@@ -316,12 +316,8 @@ jobs:
           config='${{ needs.create_test_config.outputs.json }}'
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
           all_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
-          if [ -x "$(command -v nvidia-smi)" ]; then
-            additional_build_args="$all_build_args"
-          else
-            # Don't install CUDA dependencies if we run on a non-GPU runner
-            additional_build_args=`echo $all_build_args | sed -e 's/"cuda_distribution=[^"]*"//g'`
-          fi
+          # Don't install CUDA dependencies if we run on a non-GPU runner
+          additional_build_args=`echo $all_build_args | sed -e 's/"cuda_distribution=[^"]*"//g'`
 
           mv /tmp/install/* .
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
@@ -400,7 +396,7 @@ jobs:
 
             # Re-install CUDA Quantum
             MPI_PATH=/usr/local/openmpi \
-            sudo -E bash install_cuda_quantum* --accept | tee install_log.txt
+            sudo -E bash install_cuda_quantum.* --accept | tee install_log.txt
             if [ -n "$(cat install_log.txt | grep -i 'Warning:')" ]; then
               echo "::error::Re-installation produced a warning. Check the log for more detail."
               exit 102

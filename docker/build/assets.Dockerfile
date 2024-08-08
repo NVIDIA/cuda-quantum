@@ -12,7 +12,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-assets:amd64-cu11-llvm-main -f docker/build/assets.Dockerfile .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-assets:amd64-llvm-main -f docker/build/assets.Dockerfile .
 
 # [Operating System]
 ARG base_image=amd64/almalinux:8
@@ -134,7 +134,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 
 # Validate that the nvidia backend was built.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
-    if [ -z "$(ls $CUDAQ_INSTALL_PREFIX/targets/nvidia.config)" ]; then \
+    if [ -z "$(ls $CUDAQ_INSTALL_PREFIX/targets/nvidia.yml)" ]; then \
         echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
         exit 1; \
     fi
@@ -220,11 +220,12 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
         --exclude libcudart.so.11.0 \
-        --exclude libnvToolsExt.so.1
+        --exclude libnvToolsExt.so.1 \
+        --exclude libnvidia-ml.so.1
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.
-RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.config)" ]; then \
+RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.yml)" ]; then \
         echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
         exit 1; \
     fi
@@ -293,6 +294,9 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
     filtered=" --filter-out Kernel/inline-qpu-func" && \
+    if [ ! -x "$(command -v nvcc)" ]; then \
+        filtered+="|TargetConfig/check_compile"; \
+    fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
@@ -305,6 +309,5 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
-        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
-        libnvjitlink-$(echo ${CUDA_VERSION} | tr . -)
+        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -)
 

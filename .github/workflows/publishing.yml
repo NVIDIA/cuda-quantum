@@ -459,7 +459,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Configure validation
-        uses: cloudposse/github-action-matrix-outputs-write@0.5.0
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
@@ -720,7 +720,7 @@ jobs:
     steps:
       - name: Get matrix job output
         id: read_json
-        uses: cloudposse/github-action-matrix-outputs-read@0.1.2
+        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         with:
           matrix-step-name: docker_images
 
@@ -822,34 +822,6 @@ jobs:
           tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
           if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
             echo "::error::Missing tests for nvidia-mgpu backend."
-            exit 1
-          fi
-
-      - name: Side-by-side installation of Python wheels
-        shell: bash
-        env:
-          BASH_ENV: ~/.bashrc
-        run: |
-          PYTHON="python3.$(ls /tmp/install/cuda_quantum*.whl | grep -o cp3[0-9]* | cut -c 4- | head -1)"
-          if [ -x "$(command -v apt-get)" ]; then
-            sudo apt-get update && sudo apt-get install -y --no-install-recommends $PYTHON $PYTHON-venv
-            $PYTHON -m venv "$HOME/.venv" && PATH="$HOME/.venv/bin:$PATH"
-          elif [ -x "$(command -v dnf)" ]; then
-            sudo dnf install -y --nobest --setopt=install_weak_deps=False $(echo $PYTHON | tr -d .)
-            $PYTHON -m ensurepip --upgrade
-          elif [ -x "$(command -v zypper)" ]; then
-            sudo zypper --non-interactive up --no-recommends
-            sudo zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
-            $PYTHON -m ensurepip --upgrade            
-          fi
-
-          ${PYTHON} -m pip install /tmp/install/cuda_quantum*.whl
-          ${PYTHON} -m pip install pytest numpy psutil
-          ${PYTHON} -m pytest -v /home/cudaq/python \
-            --ignore /home/cudaq/python/backends \
-            --ignore /home/cudaq/python/domains
-          if [ ! $? -eq 0 ]; then
-            echo "::error::Sanity tests failed for side-by-side Python support."
             exit 1
           fi
 
@@ -983,9 +955,9 @@ jobs:
         shell: bash
         run: |
           backends_to_test=`\
-              for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
+              for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
               do
-                  if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then \
+                  if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
                     basename $file | cut -d "." -f 1; \
                   elif [ -n "$(basename $file | grep mqpu)" ]; then \
                     echo remote-mqpu; \

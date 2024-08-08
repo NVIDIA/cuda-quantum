@@ -14,7 +14,7 @@
 # Must be built from the repo root with:
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/installer.Dockerfile . --output out
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-cu11-llvm-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-llvm-main
 ARG additional_components=none
 
 FROM $base_image as additional_components_none
@@ -60,5 +60,5 @@ RUN bash /makeself/makeself.sh --gzip --sha256 --license /cuda-quantum/LICENSE \
         bash install.sh -t /opt/nvidia/cudaq
 
 FROM scratch
-COPY --from=assets install_cuda_quantum* . 
+COPY --from=assets install_cuda_quantum.* . 
 COPY --from=assets /cuda-quantum/wheelhouse/* . 

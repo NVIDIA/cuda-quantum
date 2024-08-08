@@ -6,8 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os, numpy, platform
+import sys, os, numpy, platform, multiprocessing
 from ._packages import *
+
+# Set the multiprocessing start method to 'spawn' if not already set
+if multiprocessing.get_start_method(allow_none=True) is None:
+    multiprocessing.set_start_method('forkserver')
 
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
 # LinkedLibraryHolder.
@@ -38,10 +42,12 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
-from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
+from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
 from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import to_cupy
+from .kernel.register_op import register_operation
+
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 try:
@@ -157,9 +163,10 @@ def amplitudes(array_data):
 
 
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry
+    global globalKernelRegistry, globalAstRegistry, globalRegisteredOperations
     globalKernelRegistry.clear()
     globalAstRegistry.clear()
+    globalRegisteredOperations.clear()
 
 
 # Expose chemistry domain functions
@@ -181,6 +188,8 @@ if '-target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
 if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
+if '--target-option' in sys.argv:
+    initKwargs['option'] = sys.argv[sys.argv.index('--target-option') + 1]
 if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
 if not '--cudaq-full-stack-trace' in sys.argv:

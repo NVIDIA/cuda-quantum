@@ -36,6 +36,8 @@ class PassManager;
 } // namespace mlir
 
 namespace cudaq {
+class pauli_word;
+
 std::string get_quake_by_name(const std::string &);
 
 #if CUDAQ_USE_STD20
@@ -69,7 +71,8 @@ concept KernelBuilderArgTypeIsValid =
           Args, float, double, std::size_t, int, std::vector<int>,             \
           std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
           std::vector<std::complex<float>>, std::vector<std::complex<double>>, \
-          std::vector<cudaq::complex>, cudaq::qubit, cudaq::qvector<>> &&      \
+          std::vector<cudaq::complex>, cudaq::qubit, cudaq::qvector<>,         \
+          std::vector<cudaq::pauli_word>, cudaq::state *> &&                   \
       ...)
 #else
 // Not C++ 2020: stub these out.
@@ -146,6 +149,9 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e);
 /// @brief  Map a `qvector` to a `KernelBuilderType`
 KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e);
 
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &e);
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&e);
+
 /// @brief Initialize the `MLIRContext`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
 mlir::MLIRContext *initializeContext();
@@ -218,7 +224,7 @@ CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(r1)
 
 #define CUDAQ_DETAILS_MEASURE_DECLARATION(NAME)                                \
   QuakeValue NAME(mlir::ImplicitLocOpBuilder &builder, QuakeValue &target,     \
-                  std::string regName = "");
+                  const std::string &regName = std::string{});
 
 CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
@@ -342,6 +348,14 @@ struct ArgumentValidator<std::vector<T>> {
           std::to_string(nRequiredElements) + ").\n");
   }
 };
+
+/// @brief Return a pointer to store in argument array.
+template <typename T>
+void *getArgPointer(T *arg) {
+  if constexpr (std::is_pointer_v<T>)
+    return *arg;
+  return arg;
+}
 
 /// @brief The `kernel_builder_base` provides a base type for the templated
 /// kernel builder so that we can get a single handle on an instance within the
@@ -640,9 +654,8 @@ public:
                           std::string>>>                                       \
   auto NAME(QubitValues... args) {                                             \
     std::vector<QuakeValue> values{args...}, results;                          \
-    for (auto &value : values) {                                               \
+    for (auto &value : values)                                                 \
       results.emplace_back(NAME(value));                                       \
-    }                                                                          \
     return results;                                                            \
   }
 
@@ -884,7 +897,7 @@ public:
     [[maybe_unused]] std::size_t argCounter = 0;
     (details::ArgumentValidator<Args>::validate(argCounter, arguments, args),
      ...);
-    void *argsArr[sizeof...(Args)] = {&args...};
+    void *argsArr[sizeof...(Args)] = {details::getArgPointer(&args)...};
     return operator()(argsArr);
   }
 
