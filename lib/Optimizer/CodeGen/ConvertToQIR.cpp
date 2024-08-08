@@ -221,7 +221,7 @@ cudaq::opt::getFunctionArgumentLayout(mlir::ModuleOp module,
   if (auto attr =
           module->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
     dataLayoutSpec = cast<mlir::StringAttr>(attr);
-  auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+  llvm::DataLayout dataLayout{dataLayoutSpec};
   // Convert bufferTy to llvm.
   llvm::LLVMContext context;
   mlir::LLVMTypeConverter converter(funcTy.getContext());
