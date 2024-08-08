@@ -192,6 +192,16 @@ def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
   ];
 }
 
+def WireSetToProfileQIRPost :
+    Pass<"wireset-to-profile-qir-post", "mlir::ModuleOp"> {
+  let summary = "Post processing for lowering wire sets to a profile of QIR";
+  let description = [{
+    This pass should be run immediately after wireset-to-profile-qir.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
 def WireSetToProfileQIRPrep :
     Pass<"wireset-to-profile-qir-prep", "mlir::ModuleOp"> {
   let summary = "Prepare for lowering wire sets to a profile of QIR";
