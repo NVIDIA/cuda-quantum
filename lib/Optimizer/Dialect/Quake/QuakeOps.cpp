@@ -72,7 +72,7 @@ LogicalResult quake::verifyWireArityAndCoarity(Operation *op) {
 }
 
 bool quake::isSupportedMappingOperation(Operation *op) {
-  return isa<OperatorInterface, MeasurementInterface, SinkOp, ReturnWireOp>(op);
+  return isa<OperatorInterface, MeasurementInterface, ReturnWireOp>(op);
 }
 
 ValueRange quake::getQuantumTypesFromRange(ValueRange range) {
