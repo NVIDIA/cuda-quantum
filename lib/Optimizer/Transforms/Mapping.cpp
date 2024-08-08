@@ -16,6 +16,7 @@
 #include "llvm/Support/ScopedPrinter.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Transforms/TopologicalSortUtils.h"
+#include <mutex>
 
 #define DEBUG_TYPE "quantum-mapper"
 
@@ -553,19 +554,22 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         mlir::RankedTensorType::get({static_cast<int64_t>(numEdges)}, boolTy),
         true);
     auto sparseInt = SparseElementsAttr::get(tensorI1, indices, intValue);
-    sparseInt.dump();
-
-    Device anotherDevice = Device::attr(sparseInt);
-    anotherDevice.dump();
 
     return sparseInt;
   }
 
   quake::WireSetOp insertWireSetOpForDevice(Device &d, ModuleOp mod) {
+    constexpr StringRef mappedWireSetName("mapped_wireset");
+    static std::mutex z_mutex;
+    std::scoped_lock<std::mutex> lock(z_mutex);
+    if (auto wires = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName))
+      return wires;
+
     auto adjacency = getAdjacencyFromDevice(d, mod.getContext());
     OpBuilder builder(mod.getBodyRegion());
-    return builder.create<quake::WireSetOp>(
-        builder.getUnknownLoc(), "mapped_wireset", d.getNumQubits(), adjacency);
+    return builder.create<quake::WireSetOp>(builder.getUnknownLoc(),
+                                            mappedWireSetName, d.getNumQubits(),
+                                            adjacency);
   }
 
   void runOnOperation() override {
@@ -599,7 +603,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // Also populate the highest identity borrow up as long as we're traversing
     // them.
     StringRef inputWireSet;
-    std::uint32_t highestIdentity = 0;
+    std::optional<std::uint32_t> highestIdentity;
     auto walkResult = func.walk([&](quake::BorrowWireOp borrowOp) {
       if (inputWireSet.empty())
         inputWireSet = borrowOp.getSetName();
@@ -607,10 +611,17 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         func.emitOpError("function cannot use multiple WireSets");
         return WalkResult::interrupt();
       }
-      highestIdentity = std::max(highestIdentity, borrowOp.getIdentity());
+      highestIdentity = highestIdentity
+                            ? std::max(*highestIdentity, borrowOp.getIdentity())
+                            : borrowOp.getIdentity();
       return WalkResult::advance();
     });
     if (walkResult.wasInterrupted()) {
+      signalPassFailure();
+      return;
+    }
+    if (!highestIdentity) {
+      func.emitOpError("no borrow_wire ops found in " + func.getName());
       signalPassFailure();
       return;
     }
@@ -618,17 +629,13 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // Sanity checks and create a wire to virtual qubit mapping.
     Block &block = *blocks.begin();
     auto mod = block.getParentOp()->getParentOfType<ModuleOp>();
-    // OpBuilder modBuilder(&mod, mod.begin());
-    // void WireSetOp::build(::mlir::StringAttr sym_name, ::mlir::IntegerAttr
-    // cardinality, /*optional*/::mlir::ElementsAttr adjacency)
-    // FIXME - how do I get the cardinality? Should it just be the same as the
-    // input WireSet? What if I have to add ancilla qubits? Maybe it would be
-    // better to create it from the file.
-    // modBuilder.create<quake::WireSetOp>(modBuilder.getUnknownLoc(),
-    // ::mlir::StringAttr sym_name, ::mlir::IntegerAttr cardinality,
-    // /*optional*/::mlir::ElementsAttr adjacency);
 
-    SmallVector<quake::BorrowWireOp> sources(highestIdentity + 1);
+    // Get grid dimensions
+    std::size_t x = deviceDim[0];
+    std::size_t y = deviceDim[1];
+    std::size_t deviceNumQubits = deviceTopoType == Grid ? x * y : x;
+
+    SmallVector<quake::BorrowWireOp> sources(deviceNumQubits);
     SmallVector<quake::ReturnWireOp> returnsToRemove;
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
     SmallVector<std::size_t> userQubitsMeasured;
@@ -689,12 +696,6 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         }
       }
     }
-
-    // Make a local copy of device dimensions since we may need to modify it.
-    // Otherwise multi-threaded operation may cause undefined behavior.
-    std::size_t x = deviceDim[0];
-    std::size_t y = deviceDim[1];
-    std::size_t deviceNumQubits = deviceTopoType == Grid ? x * y : x;
 
     if (sources.size() > deviceNumQubits) {
       func.emitOpError("Too many qubits [" + std::to_string(sources.size()) +
@@ -828,8 +829,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // this pass), run something like this:
     //   for (int v = 0; v < numQubits; v++)
     //     dataForOriginalQubit[v] = dataFromBackendQubit[mapping_v2p[v]];
-    llvm::SmallVector<Attribute> attrs(highestIdentity + 1);
-    for (unsigned int v = 0; v < highestIdentity + 1; v++)
+    llvm::SmallVector<Attribute> attrs(*highestIdentity + 1);
+    for (unsigned int v = 0; v < *highestIdentity + 1; v++)
       attrs[v] =
           IntegerAttr::get(builder.getIntegerType(64),
                            placement.getPhy(Placement::VirtualQ(v)).index);
