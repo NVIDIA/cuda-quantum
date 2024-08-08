@@ -503,6 +503,34 @@ public:
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
+<<<<<<< HEAD
+=======
+  std::pair<std::size_t, std::vector<std::size_t>>
+  getTargetLayout(FunctionType funcTy) {
+    auto bufferTy =
+        cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
+    StringRef dataLayoutSpec = "";
+    if (auto attr =
+            getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
+      dataLayoutSpec = cast<StringAttr>(attr);
+    llvm::DataLayout dataLayout{dataLayoutSpec};
+    // Convert bufferTy to llvm.
+    llvm::LLVMContext context;
+    LLVMTypeConverter converter(funcTy.getContext());
+    cudaq::opt::initializeTypeConversions(converter);
+    auto llvmDialectTy = converter.convertType(bufferTy);
+    LLVM::TypeToLLVMIRTranslator translator(context);
+    auto *llvmStructTy =
+        cast<llvm::StructType>(translator.translateType(llvmDialectTy));
+    auto *layout = dataLayout.getStructLayout(llvmStructTy);
+    auto strSize = layout->getSizeInBytes();
+    std::vector<std::size_t> fieldOffsets;
+    for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
+      fieldOffsets.emplace_back(layout->getElementOffset(i));
+    return {strSize, fieldOffsets};
+  }
+
+>>>>>>> f7c7fe68ab62b6a2c43f5af1dcab911682726bda
   void runOnOperation() override final {
     auto module = getModule();
     unsigned counter = 0;

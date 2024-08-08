@@ -1242,20 +1242,26 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(complex.ImOp(value).result)
                     return
 
-        if isinstance(node.value, ast.Name) and node.value.id in [
-                'np', 'numpy', 'math'
-        ] and node.attr == 'pi':
-            self.pushValue(self.getConstantFloat(np.pi))
-            return
-
         if isinstance(node.value,
-                      ast.Name) and node.value.id in ['np', 'numpy']:
+                      ast.Name) and node.value.id in ['np', 'numpy', 'math']:
             if node.attr == 'complex64':
                 self.pushValue(self.getComplexType(width=32))
                 return
             if node.attr == 'complex128':
                 self.pushValue(self.getComplexType(width=64))
                 return
+            if node.attr == 'pi':
+                self.pushValue(self.getConstantFloat(np.pi))
+                return
+            if node.attr == 'e':
+                self.pushValue(self.getConstantFloat(np.e))
+                return
+            if node.attr == 'euler_gamma':
+                self.pushValue(self.getConstantFloat(np.euler_gamma))
+                return
+            raise RuntimeError(
+                "math expression {}.{} was not understood".format(
+                    node.value.id, node.attr))
 
     def visit_Call(self, node):
         """
