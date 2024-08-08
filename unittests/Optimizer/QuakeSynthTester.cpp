@@ -51,15 +51,35 @@ std::pair<void *, std::size_t> mapToRawArgs(const std::string &kernelName,
 }
 } // namespace cudaq
 
+/// @brief Collect simulation state data from all `cudaq::state *` arguments.
+cudaq::opt::ArgumentDataStore
+readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
+                        const void *args, std::size_t startingArgIdx = 0) {
+  cudaq::opt::ArgumentDataStore dataStore;
+  auto filterStatePtr = [](mlir::Type type) {
+    if (auto ptrTy = llvm::dyn_cast<cudaq::cc::PointerType>(type))
+      return llvm::isa<cudaq::cc::StateType>(ptrTy.getElementType());
+    return false;
+  };
+  auto argumentLayout = cudaq::opt::getFunctionArgumentLayout(
+      moduleOp, func, filterStatePtr, startingArgIdx);
+  return cudaq::runtime::readSimulationStateData(argumentLayout, args);
+}
+
 /// @brief Run the Quake Synth pass on the given kernel with provided runtime
 /// args.
 LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
-                            OwningOpRef<mlir::ModuleOp> &module) {
+                            OwningOpRef<mlir::ModuleOp> &module, bool isRemote = false) {
   PassManager pm(module->getContext());
   module->getContext()->disableMultithreading();
   pm.enableIRPrinting();
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, 0, nullptr,
-                                                true));
+  auto kernelNameInQuake = std::string(cudaq::runtime::cudaqGenPrefixName) + std::string(kernelName);
+  auto funcOp = module->lookupSymbol<func::FuncOp>(kernelNameInQuake);
+  auto stateData = isRemote
+    ? readSimulationStateData(*module, funcOp, rawArgs, 0)
+    : cudaq::opt::ArgumentDataStore();
+  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, 0, &stateData,
+                                                !isRemote));
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
@@ -428,6 +448,65 @@ TEST(QuakeSynthTests, checkVectorOfPauliWord) {
   EXPECT_TRUE(func.getArguments().empty());
   func.dump();
 }
+
+TEST(QuakeSynthTests, checkStatePointerLocal) {
+  auto [colonel, state] =
+      cudaq::make_kernel<cudaq::state*>();
+  auto qubits = colonel.qalloc(state);
+  colonel.h(qubits);
+  colonel.mz(qubits);
+  std::cout << colonel.to_quake() << '\n';
+
+  // Generate name of the kernel
+  auto colonelName = cudaq::runtime::cudaqGenPrefixName + colonel.name();
+  std::vector<std::complex<double>> vec = {1.0, 2.0, 3.0, 4.0};
+  auto initialState = cudaq::state::from_data(vec);
+
+  [[maybe_unused]] auto counts = cudaq::sample(colonel, &initialState);
+  counts.dump();
+
+  auto context = cudaq::initializeMLIR();
+  auto module = parseSourceString<ModuleOp>(colonel.to_quake(), context.get());
+
+  auto [args, offset] = cudaq::mapToRawArgs(colonel.name(), initialState);
+
+  EXPECT_TRUE(succeeded(runQuakeSynth(colonel.name(), args, module)));
+
+  auto func = module->lookupSymbol<func::FuncOp>(colonelName);
+  EXPECT_TRUE(func);
+  EXPECT_TRUE(func.getArguments().empty());
+  func.dump();
+}
+
+TEST(QuakeSynthTests, checkStatePointerRemote) {
+ auto [colonel, state] =
+      cudaq::make_kernel<cudaq::state*>();
+  auto qubits = colonel.qalloc(state);
+  colonel.h(qubits);
+  colonel.mz(qubits);
+  std::cout << colonel.to_quake() << '\n';
+
+  // Generate name of the kernel
+  auto colonelName = cudaq::runtime::cudaqGenPrefixName + colonel.name();
+  std::vector<std::complex<double>> vec = {1.0, 2.0, 3.0, 4.0};
+  auto initialState = cudaq::state::from_data(vec);
+
+  [[maybe_unused]] auto counts = cudaq::sample(colonel, &initialState);
+  counts.dump();
+
+  auto context = cudaq::initializeMLIR();
+  auto module = parseSourceString<ModuleOp>(colonel.to_quake(), context.get());
+
+  auto [args, offset] = cudaq::mapToRawArgs(colonel.name(), initialState);
+
+  EXPECT_TRUE(succeeded(runQuakeSynth(colonel.name(), args, module, true)));
+
+  auto func = module->lookupSymbol<func::FuncOp>(colonelName);
+  EXPECT_TRUE(func);
+  EXPECT_TRUE(func.getArguments().empty());
+  func.dump();
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
