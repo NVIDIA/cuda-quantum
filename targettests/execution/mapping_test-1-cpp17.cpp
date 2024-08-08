@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // REQUIRES: c++17
-// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.code | FileCheck %s && FileCheck --check-prefix=QUAKE %s < %t.code && rm %t.code
-// RUN: nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Adonis --mapping-file "%p/../Adonis Variant.txt" --emulate && %t
+// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 1> >(FileCheck %s) 2> >(FileCheck --check-prefix=QUAKE %s)
+// RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Adonis.txt" "%t.dir/Adonis Variant.txt" && nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Adonis --mapping-file "%t.dir/Adonis Variant.txt" --emulate && %t
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t
 
 #include <cudaq.h>
