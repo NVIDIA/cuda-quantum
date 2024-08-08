@@ -254,7 +254,13 @@ echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
-for ex in `find examples/ -name '*.py'`;
+# Note divisive_clustering_src is not currently in the Published container under
+# the "examples" folder, but the Publishing workflow moves all examples from
+# docs/sphinx/examples into the examples directory for the purposes of the
+# container validation. The divisive_clustering_src Python files are used by the
+# Divisive_clustering.ipynb notebook, so they are tested elsewhere and should be
+# excluded from this test.
+for ex in `find examples/ -name '*.py' -not -path '*/divisive_clustering_src/*'`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
