@@ -1378,11 +1378,13 @@ class EvolveResult:
         else:
             *_, final_expectation = iter(expectation)
             if isinstance(final_expectation, numpy.complexfloating):
+                if self._states is not None:
+                    raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
                 self._expectation_values = None
                 self._final_expectation = expectation # type: ignore
             else:
                 if self._states is None:
-                    raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
+                    raise ValueError("no intermediate states were defined but intermediate expectation values are provided")
                 self._expectation_values = expectation
                 self._final_expectation = final_expectation
 

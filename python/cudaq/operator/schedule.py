@@ -3,6 +3,7 @@ from collections import Iterator
 from typing import Any, Callable, Iterable, Optional
 
 from .helpers import NumericType
+from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 class Schedule(Iterator):
     """
