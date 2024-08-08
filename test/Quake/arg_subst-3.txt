@@ -1,0 +1,19 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+cc.arg_subst[0] {
+  %0 = cc.undef !cc.struct<{i32, f64, i8, i16}>
+  %c-889275714_i32 = arith.constant -889275714 : i32
+  %1 = cc.insert_value %c-889275714_i32, %0[0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+  %cst = arith.constant 87.654499999999998 : f64
+  %2 = cc.insert_value %cst, %1[1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+  %c65_i8 = arith.constant 65 : i8
+  %3 = cc.insert_value %c65_i8, %2[2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+  %c-1314_i16 = arith.constant -1314 : i16
+  %4 = cc.insert_value %c-1314_i16, %3[3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+}
