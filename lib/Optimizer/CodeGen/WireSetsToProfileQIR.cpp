@@ -401,8 +401,6 @@ struct WireSetToProfileQIRPostPass
     QuakeTypeConverter quakeTypeConverter;
     patterns.insert<WireSetRewrite>(quakeTypeConverter, ctx);
     ConversionTarget target(*ctx);
-    target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                           func::FuncDialect, LLVM::LLVMDialect>();
     target.addIllegalDialect<quake::QuakeDialect>();
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
