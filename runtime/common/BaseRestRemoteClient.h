@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/Environment.h"
 #include "common/JsonConvert.h"
 #include "common/Logger.h"
 #include "common/NvqcConfig.h"
@@ -42,6 +43,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
+#include <cxxabi.h>
 #include <dlfcn.h>
 #include <fstream>
 #include <iostream>
@@ -92,6 +94,11 @@ protected:
                        });
   }
 
+  /// @brief Flag indicating whether we should enable MLIR printing before and
+  /// after each pass. This is similar to `-mlir-print-ir-before-all` and
+  /// `-mlir-print-ir-after-all` in `cudaq-opt`.
+  bool enablePrintMLIREachPass = false;
+
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
@@ -115,6 +122,9 @@ public:
                                      const void *args,
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx) {
+    enablePrintMLIREachPass =
+        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+
     if (cudaq::__internal__::isLibraryMode(name)) {
       // Library mode: retrieve the embedded bitcode in the executable.
       const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
@@ -175,6 +185,10 @@ public:
         pm.addPass(
             cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx));
         pm.addPass(mlir::createCanonicalizerPass());
+        if (enablePrintMLIREachPass) {
+          moduleOp.getContext()->disableMultithreading();
+          pm.enableIRPrinting();
+        }
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
@@ -192,6 +206,10 @@ public:
                           std::string(), [](const auto &ss, const auto &s) {
                             return ss.empty() ? s : ss + "," + s;
                           });
+      if (enablePrintMLIREachPass) {
+        moduleOp.getContext()->disableMultithreading();
+        pm.enableIRPrinting();
+      }
       if (failed(parsePassPipeline(pipeline, pm, os)))
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
@@ -405,6 +423,17 @@ public:
       if (optionalErrorMsg)
         *optionalErrorMsg = e.what();
       return false;
+    } catch (...) {
+      std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
+      auto demangledPtr =
+          __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
+      if (demangledPtr && optionalErrorMsg) {
+        std::string demangledName(demangledPtr);
+        *optionalErrorMsg = "Unhandled exception of type " + demangledName;
+      } else if (optionalErrorMsg) {
+        *optionalErrorMsg = "Unhandled exception of unknown type";
+      }
+      return false;
     }
   }
 
@@ -414,9 +443,12 @@ public:
   }
 
   // The remote-mqpu backend (this class) returns true for all remote
-  // capabilities.
+  // capabilities unless overridden by environment variable.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
-    return RemoteCapabilities(/*initValues=*/true);
+    // Default to all true, but allow the user to override to all false.
+    if (getEnvBool("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE", true))
+      return RemoteCapabilities(/*initValues=*/true);
+    return RemoteCapabilities(/*initValues=*/false);
   }
 };
 
@@ -842,15 +874,9 @@ public:
   // The NVCF version of this function needs to dynamically determine the remote
   // capabilities based on the servers currently deployed.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
-    // If an environment variable override is activated, then enable all remote
-    // capabilities.
-    if (auto *envVal = std::getenv("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE")) {
-      std::string tmp(envVal);
-      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        return RemoteCapabilities(/*initValues=*/true);
-    }
+    // Allow the user to override to all true.
+    if (getEnvBool("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE", false))
+      return RemoteCapabilities(/*initValues=*/true);
     // Else determine capabilities based on server deployment info.
     RemoteCapabilities capabilities(/*initValues=*/false);
     if (!m_availableFuncs.contains(m_functionId)) {
@@ -1208,6 +1234,17 @@ public:
     } catch (std::exception &e) {
       if (optionalErrorMsg)
         *optionalErrorMsg = e.what();
+      return false;
+    } catch (...) {
+      std::string exType = __cxxabiv1::__cxa_current_exception_type()->name();
+      auto demangledPtr =
+          __cxxabiv1::__cxa_demangle(exType.c_str(), nullptr, nullptr, nullptr);
+      if (demangledPtr && optionalErrorMsg) {
+        std::string demangledName(demangledPtr);
+        *optionalErrorMsg = "Unhandled exception of type " + demangledName;
+      } else if (optionalErrorMsg) {
+        *optionalErrorMsg = "Unhandled exception of unknown type";
+      }
       return false;
     }
   }

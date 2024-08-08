@@ -510,6 +510,27 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     return QuakeValue(builder, qubits);
   }
 
+  if (auto statePtrTy = dyn_cast<cc::PointerType>(type)) {
+    auto eleTy = statePtrTy.getElementType();
+    if (auto stateTy = dyn_cast<cc::StateType>(eleTy)) {
+      // get the number of qubits
+      IRBuilder irBuilder(context);
+      auto mod = builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+      auto result = irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
+      assert(succeeded(result) && "loading intrinsic should never fail");
+      auto numQubits = builder.create<func::CallOp>(
+          builder.getI64Type(), getNumQubitsFromCudaqState, ValueRange{value});
+      // allocate the number of qubits we need
+      auto veqTy = quake::VeqType::getUnsized(context);
+      Value qubits =
+          builder.create<quake::AllocaOp>(veqTy, numQubits.getResult(0));
+      // Add the initialize state op
+      qubits = builder.create<quake::InitializeStateOp>(qubits.getType(),
+                                                        qubits, value);
+      return QuakeValue(builder, qubits);
+    }
+  }
+
   if (!type.isIntOrIndex())
     throw std::runtime_error(
         "Invalid parameter passed to qalloc (must be integer type).");
@@ -927,21 +948,20 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   {
     PassManager pm(context);
-    OpPassManager &optPM = pm.nest<func::FuncOp>();
-    optPM.addPass(cudaq::opt::createUnwindLoweringPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
-    optPM.addPass(cudaq::opt::createClassicalMemToReg());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addPass(cudaq::opt::createLoopNormalize());
     pm.addPass(cudaq::opt::createLoopUnroll());
     pm.addPass(createCanonicalizerPass());
-    optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
-    optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-    optPM.addPass(createCanonicalizerPass());
-    optPM.addPass(createCSEPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     if (failed(pm.run(module)))
@@ -953,17 +973,17 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     // rewrites before lowering to a raw CFG form. Loop unrolling depends on the
     // cc.loop op and GKE generates new code which may have cc.loop ops, etc.
     PassManager pm(context);
-    OpPassManager &optPM = pm.nest<func::FuncOp>();
-    optPM.addPass(cudaq::opt::createLowerToCFGPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
     // We want quantum allocations to stay where they are if
     // we are simulating and have user-provided state vectors.
     // This check could be better / smarter probably, in tandem
     // with some synth strategy to rewrite initState with circuit
     // synthesis result
     if (stateVectorStorage.empty())
-      optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-    optPM.addPass(createCanonicalizerPass());
-    optPM.addPass(createCSEPass());
+      pm.addNestedPass<func::FuncOp>(
+          cudaq::opt::createCombineQuantumAllocations());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createConvertToQIR());
     pm.addPass(createCanonicalizerPass());
 

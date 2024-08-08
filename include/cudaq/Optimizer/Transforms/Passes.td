@@ -47,7 +47,42 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
-def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
+def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
+  let summary = "Specialize a function by replacing arguments with constants";
+  let description = [{
+    This pass takes a list of functions and argument substitutions. For each
+    function in the list, the arguments to the function in the substitutions
+    list will be erased and replaced with a computed value (e.g., a constant)
+    provided in the substitution list. All arguments or some subset of arguments
+    may be substituted in this way.
+
+    To facilitate command-line testing, this pass can be run with the functions
+    suboption using filenames containing the argument substitutions. For
+    example, one might run
+    ```console
+      cudaq-opt input.qke \
+        --argument-synthesis=functions="kernel1:subst1.qke,kernel2:subst2.qke"
+    ```
+    where `kernel1`, `kernel2` are the names of functions and `subst1.qke` and
+    `subst2.qke` are quake source files contains arg_subst operations.
+
+    For running this pass from code, one can build the substitution code in a
+    std::string and use a prefix character '*' to indicate the text is inline
+    and not in a file.
+    ```
+      kernel1:*"cc.arg_subst [0] { ... }"
+    ```
+  }];
+
+  let options = [
+    ListOption<"funcList", "functions", "std::string",
+               "Function name and substitutions pairs (<func>:<filename>)">,
+  ];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::cf::ControlFlowDialect"];
+}
+
+def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.

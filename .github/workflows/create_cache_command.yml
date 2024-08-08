@@ -87,7 +87,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -97,12 +97,10 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      build_args: |
-        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       create_local_cache: true
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
+      checkout_submodules: true
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
@@ -147,7 +145,7 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/assets.Dockerfile
       build_target: prereqs
-      toolchain: gcc11
+      toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
@@ -171,7 +169,7 @@ jobs:
           reactions-edit-mode: append
           reactions: hooray
 
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
         id: read_json
         with:
           matrix-step-name: dev_environment

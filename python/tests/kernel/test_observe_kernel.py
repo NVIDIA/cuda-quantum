@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os, sys, random
+import sys, random
 
 import pytest
 import numpy as np

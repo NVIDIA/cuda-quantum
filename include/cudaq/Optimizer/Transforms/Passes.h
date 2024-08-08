@@ -43,7 +43,8 @@ std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
 std::unique_ptr<mlir::Pass>
 createQuakeSynthesizer(std::string_view, const void *,
-                       std::size_t startingArgIdx = 0);
+                       std::size_t startingArgIdx = 0,
+                       bool sameAddressSpace = false);
 std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
@@ -52,6 +53,13 @@ createPySynthCallableBlockArgs(const std::vector<std::string> &);
 inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
   return createPySynthCallableBlockArgs({});
 }
+
+/// Helper function to build an argument synthesis pass. The names of the
+/// functions and the substitutions text can be built as an unzipped pair of
+/// lists.
+std::unique_ptr<mlir::Pass> createArgumentSynthesisPass(
+    const mlir::ArrayRef<mlir::StringRef> &funcNames,
+    const mlir::ArrayRef<mlir::StringRef> &substitutions);
 
 // declarative passes
 #define GEN_PASS_DECL

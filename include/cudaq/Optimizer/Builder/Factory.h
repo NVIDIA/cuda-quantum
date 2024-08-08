@@ -252,6 +252,7 @@ bool isAArch64(mlir::ModuleOp);
 bool structUsesTwoArguments(mlir::Type ty);
 
 std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
+std::optional<llvm::APFloat> getDoubleIfConstant(mlir::Value value);
 
 /// Create a `cc.cast` operation, if it is needed.
 mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
@@ -259,5 +260,9 @@ mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
                        bool signExtend = false, bool zeroExtend = false);
 
 } // namespace factory
+
+std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);
+std::size_t getDataOffset(llvm::DataLayout &dataLayout, mlir::Type ty,
+                          std::size_t off);
 } // namespace opt
 } // namespace cudaq

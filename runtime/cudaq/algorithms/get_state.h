@@ -98,6 +98,17 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
 template <typename QuantumKernel, typename... Args>
 auto get_state(QuantumKernel &&kernel, Args &&...args) {
 #if defined(CUDAQ_REMOTE_SIM) && !defined(CUDAQ_LIBRARY_MODE)
+  // If this is a kernel that we cannot retrieve a name at runtime (C-type
+  // function), we cannot use lazy evaluation since the kernel name/quake code
+  // is not retrievable. This needs to be directed to the `altLaunchKernel`
+  // function, whereby the bridge has generated code to construct the kernel
+  // name at runtime.
+  if (cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
+    return details::extractState([&]() mutable {
+      cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                          std::forward<Args>(args)...);
+    });
+
   return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                          std::forward<Args>(args)...));
 #else
