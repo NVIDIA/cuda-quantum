@@ -194,9 +194,8 @@ protected:
       HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, state));
 
       if (attributes.type == cudaMemoryTypeDevice) {
-        throw std::runtime_error(
-            "[CuStateVecCircuitSimulator] Currently, not supporting device "
-            "memory pointer to the state passed by the user");
+        throw std::invalid_argument(
+            "[CuStateVecCircuitSimulator] Incompatible host pointer");
       }
 
       // First allocation, so just set the user provided data here
