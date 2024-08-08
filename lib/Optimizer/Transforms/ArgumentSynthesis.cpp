@@ -77,8 +77,16 @@ public:
     std::vector<std::tuple<unsigned, Value, Value>> replacements;
     for (auto &op : *substMod) {
       auto subst = dyn_cast<cudaq::cc::ArgumentSubstitutionOp>(op);
-      if (!subst)
+      if (!subst) {
+        if (auto symInterface = dyn_cast<SymbolOpInterface>(op)) {
+          auto name = symInterface.getName();
+          auto srcMod = func->getParentOfType<ModuleOp>();
+          auto obj = srcMod.lookupSymbol(name);
+          if (!obj)
+            srcMod.getBody()->push_back(op.clone());
+        }
         continue;
+      }
       auto pos = subst.getPosition();
       if (pos >= processedArgs.size()) {
         func.emitError("Argument " + std::to_string(pos) + " is invalid.");
