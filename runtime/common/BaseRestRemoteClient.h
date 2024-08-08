@@ -15,15 +15,19 @@
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
+#include "common/SimulationStateData.h"
 #include "common/UnzipUtils.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Transforms/ArgumentDataStore.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -73,6 +77,21 @@ private:
   std::function<void()> m_atExitFunc;
 };
 } // namespace
+
+/// Collect simulation state data from all `cudaq::state *` arguments.
+static cudaq::opt::ArgumentDataStore
+readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
+                        const void *args, std::size_t startingArgIdx = 0) {
+  auto filterStatePtr = [](mlir::Type type) {
+    if (auto ptrTy = llvm::dyn_cast<cudaq::cc::PointerType>(type))
+      return llvm::isa<cudaq::cc::StateType>(ptrTy.getElementType());
+    return false;
+  };
+
+  auto argumentLayout = cudaq::opt::getFunctionArgumentLayout(
+      moduleOp, func, filterStatePtr, startingArgIdx);
+  return cudaq::runtime::readSimulationStateData(argumentLayout, args);
+}
 
 namespace cudaq {
 class BaseRemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
@@ -182,8 +201,14 @@ public:
       if (args) {
         cudaq::info("Run Quake Synth.\n");
         mlir::PassManager pm(&mlirContext);
-        pm.addPass(
-            cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx));
+        // For efficiency, we don't run state prep to convert states to gates on
+        // remote simulators, instead we synthesize states as their simulation
+        // data vectors. Read the simulation state data and pass it to the
+        // synthesizer for this purpose.
+        auto stateData =
+            readSimulationStateData(moduleOp, func, args, startingArgIdx);
+        pm.addPass(cudaq::opt::createQuakeSynthesizer(
+            name, args, startingArgIdx, &stateData));
         pm.addPass(mlir::createCanonicalizerPass());
         if (enablePrintMLIREachPass) {
           moduleOp.getContext()->disableMultithreading();
@@ -448,7 +473,9 @@ public:
     // Default to all true, but allow the user to override to all false.
     if (getEnvBool("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE", true))
       return RemoteCapabilities(/*initValues=*/true);
-    return RemoteCapabilities(/*initValues=*/false);
+    auto capabilities = RemoteCapabilities(/*initValues=*/false);
+    capabilities.isRemoteSimulator = true;
+    return capabilities;
   }
 };
 
@@ -898,6 +925,7 @@ public:
         (funcEnv.majorVersion >= 1 && funcEnv.minorVersion >= 1);
     capabilities.vqe = funcEnv.majorVersion > 1 ||
                        (funcEnv.majorVersion >= 1 && funcEnv.minorVersion >= 1);
+    capabilities.isRemoteSimulator = true;
     return capabilities;
   }
 

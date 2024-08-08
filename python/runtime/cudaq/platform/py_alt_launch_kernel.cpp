@@ -9,14 +9,18 @@
 #include "JITExecutionCache.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
+#include "common/SimulationStateData.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/Transforms/ArgumentDataStore.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
@@ -494,6 +498,20 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   return returnValue;
 }
 
+/// Collect simulation state data from all `cudaq::state *` arguments.
+static cudaq::opt::ArgumentDataStore
+readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
+                        const void *args, std::size_t startingArgIdx = 0) {
+  auto filterStatePtr = [](Type type) {
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type))
+      return isa<cudaq::cc::StateType>(ptrTy.getElementType());
+    return false;
+  };
+  auto argumentLayout = cudaq::opt::getFunctionArgumentLayout(
+      moduleOp, func, filterStatePtr, startingArgIdx);
+  return cudaq::runtime::readSimulationStateData(argumentLayout, args);
+}
+
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                             cudaq::OpaqueArguments &runtimeArgs) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
@@ -511,18 +529,24 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
       getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
   PassManager pm(context);
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, true));
-  pm.addPass(createCanonicalizerPass());
+  auto kernelNameInQuake = cudaq::runtime::cudaqGenPrefixName + name;
+  auto funcOp = cloned.lookupSymbol<func::FuncOp>(kernelNameInQuake);
+  if (!funcOp)
+    cloned.emitOpError("The kernel '" + name +
+                       "' was not found in the module.");
 
-  // Run state preparation for quantum devices only.
-  // Simulators have direct implementation of state initialization
-  // in their runtime.
   auto &platform = cudaq::get_platform();
-  if (!platform.is_simulator() || platform.is_emulated()) {
-    pm.addPass(cudaq::opt::createConstPropComplex());
-    pm.addPass(cudaq::opt::createLiftArrayAlloc());
-    pm.addPass(cudaq::opt::createStatePreparation());
-  }
+  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
+  auto inProcess =
+      platform.is_simulator() && !platform.is_emulated() && !isRemoteSimulator;
+
+  auto stateData =
+      isRemoteSimulator
+          ? readSimulationStateData(cloned, funcOp, runtimeArgs.data())
+          : cudaq::opt::ArgumentDataStore();
+
+  pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, &stateData,
+                                                inProcess));
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());

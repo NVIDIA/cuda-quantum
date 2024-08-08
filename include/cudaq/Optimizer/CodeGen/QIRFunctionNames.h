@@ -103,4 +103,8 @@ inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
 
 void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
 
+std::pair<std::size_t, std::vector<std::size_t>>
+getFunctionArgumentLayout(mlir::ModuleOp module, mlir::func::FuncOp func,
+                          bool filter(mlir::Type) = nullptr,
+                          std::size_t startingArgIdx = 0);
 } // namespace cudaq::opt

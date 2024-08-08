@@ -16,6 +16,7 @@ set(NVQIR_RUNTIME_SRC
   QIRTypes.cpp
   NVQIR.cpp
   ../cudaq/qis/state.cpp
+  ../common/SimulationStateData.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${NVQIR_RUNTIME_SRC})
