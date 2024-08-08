@@ -190,16 +190,43 @@ protected:
       }
 
       // User state provided...
-
-      // FIXME handle case where pointer is a device pointer
+      // Check if the pointer is a device pointer
+      cudaPointerAttributes attributes;
+      HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, state));
 
       // First allocation, so just set the user provided data here
       ScopedTraceWithContext(
           "CuStateVecCircuitSimulator::addQubitsToState cudaMemcpy",
           stateDimension * sizeof(CudaDataType));
-      HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
-                                   stateDimension * sizeof(CudaDataType),
-                                   cudaMemcpyHostToDevice));
+
+      if (attributes.type == cudaMemoryTypeDevice) {
+        int currentDevice;
+        HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
+
+        if (attributes.device != currentDevice) {
+          // Memory is on a different GPU
+          // Set the device to the device where the memory is located
+          HANDLE_CUDA_ERROR(cudaSetDevice(attributes.device));
+
+          // Perform device to device copy
+          HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
+                                       stateDimension * sizeof(CudaDataType),
+                                       cudaMemcpyDeviceToDevice));
+
+          // Restore the current device
+          HANDLE_CUDA_ERROR(cudaSetDevice(currentDevice));
+        } else {
+          // Memory is on the same GPU
+          HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
+                                       stateDimension * sizeof(CudaDataType),
+                                       cudaMemcpyDeviceToDevice));
+        }
+      } else {
+        // Else, copy from host to device
+        HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
+                                     stateDimension * sizeof(CudaDataType),
+                                     cudaMemcpyHostToDevice));
+      }
       return;
     }
 
@@ -221,11 +248,33 @@ protected:
           n_blocks, threads_per_block, otherState, (1UL << count));
       HANDLE_CUDA_ERROR(cudaGetLastError());
     } else {
+      // Check if the pointer is a device pointer
+      cudaPointerAttributes attributes;
+      HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, state));
 
-      // FIXME Handle case where data is already on GPU
-      HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
-                                   (1UL << count) * sizeof(CudaDataType),
-                                   cudaMemcpyHostToDevice));
+      if (attributes.type == cudaMemoryTypeDevice) {
+        int currentDevice;
+        HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
+
+        if (attributes.device != currentDevice) {
+          // Memory is on a different GPU
+          // Set the device to the device where the memory is located
+          HANDLE_CUDA_ERROR(cudaSetDevice(attributes.device));
+
+          // Perform device to device copy
+          HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
+                                       stateDimension * sizeof(CudaDataType),
+                                       cudaMemcpyDeviceToDevice));
+
+          // Restore the current device
+          HANDLE_CUDA_ERROR(cudaSetDevice(currentDevice));
+        }
+      } else {
+        // Else, copy from host to device
+        HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
+                                     (1UL << count) * sizeof(CudaDataType),
+                                     cudaMemcpyHostToDevice));
+      }
     }
 
     {
