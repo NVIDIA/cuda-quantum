@@ -140,7 +140,7 @@ is as follows: In value form we need to follow a chain of values to
 know the qubit operators are being applied to, in this example:
 
 ```text
-Mmeory                          Value
+Memory                          Value
     %q0         [%q0_0, %q0_1 ... %q0_L, %q0_M; %q0_P ... %q0_Y, %q0_Z]
 
 ```

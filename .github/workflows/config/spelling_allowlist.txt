@@ -1,4 +1,5 @@
 ABI
+AFQMC
 API
 APIs
 AST
@@ -48,7 +49,9 @@ JupyterLab
 Kagome
 Kraus
 LLVM
+LPX
 LSB
+LXmn
 Libraries
 MCA
 MLIR
@@ -153,6 +156,7 @@ coreset
 cortex-cli
 coupler
 couplers
+cpp
 cuQuantum
 cuTensor
 cudaq
@@ -212,6 +216,7 @@ instantiations
 interferometer
 interoperational
 intrinsics
+ipie
 iterable
 iteratively
 kets
@@ -230,13 +235,20 @@ namespace
 namespaces
 natively
 normalization
+np
 nullary
+nvidia
+occa
+occb
+openfermion
 optimizer
 optimizers
 parallelization
 parallelize
 parallelizing
+param
 parameterization
+params
 performant
 photonic
 precompute
@@ -246,6 +258,7 @@ preprocessor
 probability
 programmatically
 pybind
+pyscf
 quantize
 quantized
 qubit

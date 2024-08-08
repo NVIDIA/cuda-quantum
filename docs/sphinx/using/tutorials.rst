@@ -6,6 +6,7 @@ Tutorials that give an in depth view of CUDA-Q and its applications in Python.
 
 .. nbgallery::
 
+    /examples/python/tutorials/afqmc.ipynb
     /examples/python/tutorials/deutschs_algorithm.ipynb
     /examples/python/tutorials/quantum_fourier_transform.ipynb
     /examples/python/tutorials/cost_minimization.ipynb
