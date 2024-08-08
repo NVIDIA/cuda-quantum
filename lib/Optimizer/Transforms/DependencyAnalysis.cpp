@@ -286,6 +286,7 @@ protected:
   virtual bool isLeaf() { return dependencies.size() == 0; };
   virtual bool isSkip() { return numTicks() == 0; };
   virtual bool isQuantumOp() = 0;
+  virtual bool isContainer() { return false; }
   virtual uint numTicks() = 0;
   virtual Value getResult(uint resultidx) = 0;
   virtual ValueRange getResults() = 0;
@@ -307,11 +308,13 @@ protected:
     return nodes;
   }
 
-  /// This function guarantees that nodes are scheduled after their predecessors
-  /// and before their successors, and that every node is scheduled at a cycle
-  /// between 0 and the height of the graph to which they belong.
+  /// Assigns cycles to quantum operations. A node must be scheduled after all
+  /// of its dependencies, and before all of its successors. A node cannot be
+  /// scheduled at a negative cycle, nor can it be scheduled at a cycle greater
+  /// than or equal to the height of the graph to which it belongs.
   ///
-  /// The scheduling algorithm works by always following the longest path first.
+  /// The scheduling algorithm (as currently implemented) works by always
+  /// following the longest path first.
   /// The longest path will always be "saturated" with an operation every cycle,
   /// so we know exactly when to schedule every operation along that path.
   /// Then, every successor (not on the path) of an operation on the path should
@@ -374,7 +377,7 @@ protected:
       return false;
     if (getOpName().value() != other->getOpName().value())
       return false;
-    if (cycle != other->cycle)
+    if (height != other->height)
       return false;
     if (dependencies.size() != other->dependencies.size())
       return false;
@@ -408,6 +411,10 @@ public:
   void print() { printSubGraph(0); }
 
   virtual bool isQuantumDependent() { return qids.size() > 0; };
+
+  virtual void performAnalysis(LifeTimeSet &set) {
+    assert(false && "performAnalysis can only be called on an IfDependencyNode");
+  }
 };
 
 class InitDependencyNode : public DependencyNode {
@@ -614,12 +621,16 @@ public:
     return getResultIDXFromOperandIDX(operandidx, associated);
   }
 
+  /// Remove this dependency node by replacing successor dependencies with
+  /// the relevant dependency from this node.
   void erase() {
     for (auto successor : successors) {
       for (uint j = 0; j < successor->dependencies.size(); j++) {
         auto edge = successor->dependencies[j];
-        if (edge.node == this)
+        if (edge.node == this) {
           successor->dependencies[j] = getDependencyForResult(edge.resultidx);
+          getDependencyForResult(edge.resultidx)->successors.insert(successor);
+        }
       }
     }
   }
@@ -629,12 +640,13 @@ class DependencyGraph {
 private:
   SetVector<DependencyNode *> roots;
   DenseMap<VirtualQID, InitDependencyNode *> allocs;
-  DenseMap<VirtualQID, DependencyNode *> firstUses;
+  DenseMap<VirtualQID, DependencyNode *> leafs;
   SetVector<VirtualQID> qids;
   uint total_height;
   bool isScheduled = false;
   DependencyNode *tallest = nullptr;
   uint shift;
+  SetVector<DependencyNode *> containers;
 
   /// Starting from \p next, searches through \p next's family
   /// (excluding already seen nodes) to find all the interconnected roots
@@ -657,7 +669,7 @@ private:
     qids.set_union(next->qids);
 
     if (next->isLeaf() && next->isQuantumOp())
-      firstUses.insert({next->qids.front(), next->successors.front()});
+      leafs.insert({next->qids.front(), next});
 
     if (next->isAlloc()) {
       auto init = static_cast<InitDependencyNode *>(next);
@@ -666,13 +678,14 @@ private:
       allocs[init->getQID()] = init;
     }
 
+    if (next->isContainer())
+      containers.insert(next);
+
     for (auto successor : next->successors)
       gatherRoots(seen, successor);
     for (auto dependency : next->dependencies)
       gatherRoots(seen, dependency.node);
   }
-
-  void scheduleNodes() { tallest->schedule(total_height); }
 
   SetVector<DependencyNode *> getNodesAtCycle(uint cycle) {
     SetVector<DependencyNode *> nodes;
@@ -681,7 +694,7 @@ private:
     return nodes;
   }
 
-  void performLifting(SetVector<DependencyNode *> &seen, DependencyNode *next) {
+  /*void performLifting(SetVector<DependencyNode *> &seen, DependencyNode *next) {
     if (seen.contains(next))
       return;
 
@@ -694,26 +707,7 @@ private:
 
     for (auto edge : next->dependencies)
       performLifting(seen, edge.node);
-  }
-
-  void deschedule(DependencyNode *next) {
-    if (!next->isSkip() && !next->isScheduled)
-      return;
-
-    next->cycle = INT_MAX;
-    next->isScheduled = false;
-
-    if (!next->isQuantumDependent())
-      return;
-
-    for (auto edge : next->dependencies)
-      deschedule(edge.node);
-
-    next->computeHeight();
-
-    if (next->isLeaf() && next->isQuantumOp())
-      firstUses[next->qids.front()] = next->successors.front();
-  }
+  }*/
 
 public:
   DependencyGraph(DependencyNode *root) {
@@ -724,7 +718,6 @@ public:
     if (roots.size() == 0)
       return;
 
-    scheduleNodes();
     qids = SetVector<size_t>();
     for (auto root : roots) {
       qids.set_union(root->qids);
@@ -746,7 +739,7 @@ public:
 
   OpDependencyNode *getFirstUseOf(VirtualQID qid) {
     assert(qids.contains(qid) && "Given qid not in dependency graph");
-    return static_cast<OpDependencyNode *>(firstUses[qid]);
+    return static_cast<OpDependencyNode *>(leafs[qid]->successors[0]);
   }
 
   OpDependencyNode *getLastUseOf(VirtualQID qid) {
@@ -813,6 +806,14 @@ public:
       allocs[qid]->performMapping(phys);
   }
 
+  /*void performLifting() {
+    SetVector<DependencyNode *> seen;
+    for (auto root : roots)
+      performLifting(seen, root);
+  }*/
+  
+  void performScheduling() { tallest->schedule(total_height); }
+
   void print() {
     llvm::outs() << "Graph Start\n";
     for (auto root : roots)
@@ -820,23 +821,11 @@ public:
     llvm::outs() << "Graph End\n";
   }
 
-  // void genReturn(VirtualQID qid, OpBuilder &builder, LifeTimeSet &set) {
-  //   getRootForQID(qid)->genReturnWire(builder, set);
-  // }
+  void setCycleOffset(uint cycle) { this->shift = cycle; }
 
-  // TODO: Is there a better way to get lifetimes to align
-  void setCycle(uint cycle) { this->shift = cycle; }
-
-  void performLifting() {
-    SetVector<DependencyNode *> seen;
-    for (auto root : roots)
-      performLifting(seen, root);
-  }
-
-  void reschedule() {
-    for (auto root : roots)
-      deschedule(root);
-    scheduleNodes();
+  void performAnalysis(LifeTimeSet &set) {
+    for (auto container : containers)
+      container->performAnalysis(set);
   }
 };
 
@@ -980,19 +969,11 @@ public:
     computeHeight();
   }
 
-  void computeHeight() {
-    height = 0;
-    for (auto graph : graphs) {
-      if (graph->getHeight() > height)
-        height = graph->getHeight();
-    }
-  }
-
   uint getHeight() { return height; }
 
   void setCycle(uint cycle) {
     for (auto graph : graphs)
-      graph->setCycle(cycle);
+      graph->setCycleOffset(cycle);
   }
 
   SetVector<VirtualQID> getAllocs() {
@@ -1059,14 +1040,9 @@ public:
     }
     builder.setInsertionPointToStart(newBlock);
 
-    for (uint cycle = 0; cycle < height; cycle++) {
-      for (auto graph : graphs) {
+    for (uint cycle = 0; cycle < height; cycle++)
+      for (auto graph : graphs)
         graph->codeGenAt(cycle, builder, set);
-
-        // for (auto qid : graph->getLastUsedAtCycle(cycle))
-        //   graph->genReturn(qid, builder, set);
-      }
-    }
 
     terminator->genTerminator(builder, set);
 
@@ -1084,11 +1060,22 @@ public:
     llvm::outs() << "End block\n";
   }
 
-  void performLifting() {
+  void computeHeight() {
+    height = 0;
     for (auto graph : graphs) {
-      graph->performLifting();
-      graph->reschedule();
+      if (graph->getHeight() > height)
+        height = graph->getHeight();
     }
+  }
+
+  void performAnalysis(LifeTimeSet &set) {
+    for (auto graph : graphs)
+      graph->performAnalysis(set);
+  }
+
+  void performScheduling() {
+    for (auto graph : graphs)
+      graph->performScheduling();
   }
 };
 
@@ -1119,6 +1106,8 @@ protected:
 
     return numTicks() > 0;
   }
+
+  virtual bool isContainer() override { return true; }
 
   void liftOp(OpDependencyNode *op) {
     auto newDeps = SmallVector<DependencyEdge>();
@@ -1159,9 +1148,6 @@ protected:
   }
 
   void performLifting() override {
-    // Work inside out
-    then_block->performLifting();
-    else_block->performLifting();
     // Calculate qids from outside used inside
     auto then_allocs = then_block->getAllocs();
     auto else_allocs = else_block->getAllocs();
@@ -1176,13 +1162,10 @@ protected:
         depMap[edge.qid.value()] = edge;
 
     for (auto qid : inner_qids) {
-      if (depMap[qid]->cycle + depMap[qid]->numTicks() == cycle)
-        continue;
-
       auto then_use = then_block->getFirstUseOf(qid);
       auto else_use = else_block->getFirstUseOf(qid);
 
-      if (!then_use || !else_use || then_use->cycle > 0 || else_use->cycle > 0)
+      if (!then_use || !else_use)
         continue;
 
       if (then_use->equivalentTo(else_use)) {
@@ -1213,6 +1196,7 @@ protected:
     else_block->setCycle(cycle);
     auto pqids1 = then_block->mapToPhysical(set);
     auto pqids2 = else_block->mapToPhysical(set);
+    // TODO: function for combining pqids
     pqids1.set_union(pqids2);
     set.addOpaque(pqids1, new LifeTime(cycle, cycle + numTicks()));
     return pqids1;
@@ -1250,8 +1234,6 @@ protected:
   };
 
   void computeHeight() override {
-    then_block->computeHeight();
-    else_block->computeHeight();
     height = 0;
     for (auto edge : dependencies)
       if (edge->getHeight() > height)
@@ -1267,6 +1249,22 @@ public:
     // numTicks won't be properly calculated by OpDependencyNode constructor,
     // so have to recompute height here
     computeHeight();
+  }
+
+  void performAnalysis(LifeTimeSet &set) override {
+    // First, recur to settle Ifs inside blocks
+    then_block->performAnalysis(set);
+    else_block->performAnalysis(set);
+    // Lift operations as possible
+    performLifting();
+    // Recompute block heights after lifting
+    then_block->computeHeight();
+    else_block->computeHeight();
+    // Schedule blocks once operations inside are finalized
+    then_block->performScheduling();
+    else_block->performScheduling();
+    // TODO: mapToPhysical - update with context
+    auto newPQIDs = mapToPhysical(set);
   }
 };
 
@@ -1469,8 +1467,14 @@ struct DependencyAnalysisPass
       OpBuilder builder(func);
       auto name = "wires";
       LifeTimeSet set(name);
-      body->performLifting();
+      // A function body is a container with only one inner block,
+      // so we repeat the "performAnalysis" function from IfDependencyNode,
+      // but with only one block instead of two
+      body->performAnalysis(set);
+      body->computeHeight();
+      body->performScheduling();
       body->mapToPhysical(set);
+      // Now, perform code generation
       body->codeGen(builder, &func.getRegion(), set);
       builder.setInsertionPointToStart(mod.getBody());
       builder.create<quake::WireSetOp>(builder.getUnknownLoc(), name,
