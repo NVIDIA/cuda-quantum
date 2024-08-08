@@ -796,4 +796,21 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
+def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
+  let summary = "Adds a topology-less `quake.wireset` to the module";
+  let description = [{
+    Adds a `quake.wireset` operation without tological info to the module.
+  }];
+}
+
+def WiresToWiresets : Pass<"wires-to-wiresets", "mlir::func::FuncOp"> {
+  let summary = "Replaces wires with wires from a `quake.wireset`";
+  let description = [{
+    Replaces all instances of `quake.null_wire_op` with `quake.borrow_wire_op`s
+    from a common `quake.wireset` without any topological information.
+    Each wire is assigned a unique identifier (the index into the
+    `quake.wireset`) through this process.
+  }];
+}
+
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
