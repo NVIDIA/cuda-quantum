@@ -430,6 +430,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernelDecorator"><code class="docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PhotonicsKernel"><code class="docutils literal notranslate"><span class="pre">PhotonicsKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.kernel"><code class="docutils literal notranslate"><span class="pre">kernel()</span></code></a></li>
 </ul>
 </li>
@@ -492,6 +493,16 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#photonics-submodule">Photonics Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.photonics.allocate_qudit"><code class="docutils literal notranslate"><span class="pre">allocate_qudit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.photonics.apply_operation"><code class="docutils literal notranslate"><span class="pre">apply_operation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.photonics.measure"><code class="docutils literal notranslate"><span class="pre">measure()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -587,8 +598,12 @@
         <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__add__">(cudaq.SpinOperator method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.__call__">__call__() (cudaq.PyKernelDecorator method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PhotonicsKernel.__call__">__call__() (cudaq.PhotonicsKernel method)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.__call__">(cudaq.PyKernelDecorator method)</a>
 </li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__eq__">__eq__() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.__getitem__">__getitem__() (cudaq.ComplexMatrix method)</a>
@@ -671,6 +686,8 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.all_gather">all_gather() (in module cudaq.mpi)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.photonics.allocate_qudit">allocate_qudit() (in module cudaq.photonics)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.State.amplitude">amplitude() (cudaq.State method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.AmplitudeDampingChannel">AmplitudeDampingChannel (class in cudaq)</a>
@@ -680,6 +697,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.KrausChannel.append">append() (cudaq.KrausChannel method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.photonics.apply_operation">apply_operation() (in module cudaq.photonics)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernel.argument_count">argument_count (cudaq.PyKernel attribute)</a>
 </li>
@@ -1640,6 +1659,8 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.photonics.measure">measure() (in module cudaq.photonics)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.minimal_eigenvalue">minimal_eigenvalue() (cudaq.ComplexMatrix method)</a>
 </li>
       <li>
@@ -1723,10 +1744,12 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PhaseFlipChannel">PhaseFlipChannel (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Target.platform">platform (cudaq.Target property)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PhotonicsKernel">PhotonicsKernel (class in cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.Target.platform">platform (cudaq.Target property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.probability">probability() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernel">PyKernel (class in cudaq)</a>
@@ -1784,7 +1807,11 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.sample">sample() (in module cudaq)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.orca.sample">(in module cudaq.orca)</a>
 </li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.sample_async">sample_async() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult">SampleResult (class in cudaq)</a>
@@ -1797,10 +1824,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.set_target">set_target() (in module cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.SimulationPrecision">SimulationPrecision (class in cudaq)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.SimulationPrecision">SimulationPrecision (class in cudaq)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Target.simulator">simulator (cudaq.Target property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.QuakeValue.slice">slice() (cudaq.QuakeValue method)</a>

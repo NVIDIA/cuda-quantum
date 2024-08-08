@@ -38,9 +38,9 @@ def TBI(parameters: TBIParameters):
             plus(quds[i])
 
     c = 0
-    for ll in loop_lengths:
-        for i in range(n_modes - ll):
-            beam_splitter(quds[i], quds[i + ll], bs_angles[c])
+    for j in loop_lengths:
+        for i in range(n_modes - j):
+            beam_splitter(quds[i], quds[i + j], bs_angles[c])
             phase_shift(quds[i], ps_angles[c])
             c += 1
 
