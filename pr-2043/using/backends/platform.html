@@ -650,7 +650,8 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 </div>
 </div>
 <p>CUDA-Q exposes asynchronous versions of the default <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> algorithmic
-primitive functions like <code class="code docutils literal notranslate"><span class="pre">sample</span></code> and <code class="code docutils literal notranslate"><span class="pre">observe</span></code> (e.g., <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code> function in the above code snippets).</p>
+primitive functions like <code class="code docutils literal notranslate"><span class="pre">sample</span></code>, <code class="code docutils literal notranslate"><span class="pre">observe</span></code>, and <code class="code docutils literal notranslate"><span class="pre">get_state</span></code>
+(e.g., <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code> function in the above code snippets).</p>
 <p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> multi-QPU platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> instances.</p>
 <p>The results might look like the following 4 different random samplings:</p>
@@ -666,6 +667,77 @@ For example, on a system with 4 GPUs, the above code will distribute the four sa
 <p>By default, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> multi-QPU platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
 To specify the number QPUs to be instantiated, one can set the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MQPU_NGPUS</span></code> environment variable.
 For example, use <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">CUDAQ_MQPU_NGPUS=2</span></code> to specify that only 2 QPUs (GPUs) are needed.</p>
+</div>
+<p>Since the underlying <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> is a simulator backend, we can also retrieve the state vector from each
+QPU via the <code class="code docutils literal notranslate"><span class="pre">cudaq::get_state_async</span></code> (C++) or <code class="code docutils literal notranslate"><span class="pre">cudaq.get_state_async</span></code> (Python) as shown in the bellow code snippets.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
+<span class="n">qpu_count</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of QPUs:&quot;</span><span class="p">,</span> <span class="n">qpu_count</span><span class="p">)</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+    <span class="c1"># Place qubits in GHZ State</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">qubit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+
+
+<span class="n">state_futures</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">qpu</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qpu_count</span><span class="p">):</span>
+    <span class="n">state_futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu</span><span class="p">))</span>
+
+<span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">state_futures</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernelToRun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">runtimeParam</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">runtimeParam</span><span class="p">);</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">runtimeParam</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
+<span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Get the quantum_platform singleton</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">platform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_platform</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Query the number of QPUs in the system</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">num_qpus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">platform</span><span class="p">.</span><span class="n">num_qpus</span><span class="p">();</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Number of QPUs: %zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// We will launch asynchronous tasks</span>
+<span class="w">  </span><span class="c1">// and will store the results immediately as a future</span>
+<span class="w">  </span><span class="c1">// we can query at some later point</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_state_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">stateFutures</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">stateFutures</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+<span class="w">        </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_state_async</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">kernelToRun</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="cm">/*runtimeParam*/</span><span class="p">));</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Go do other work, asynchronous execution of tasks on-going</span>
+<span class="w">  </span><span class="c1">//</span>
+
+<span class="w">  </span><span class="c1">// Get the results, note future::get() will kick off a wait</span>
+<span class="w">  </span><span class="c1">// if the results are not yet available.</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">state</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">stateFutures</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">state</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+<p>One can specify the target multi-QPU architecture with the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flag:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ get_state_async.cpp --target nvidia --target-option mqpu</span>
+<span class="go">./a.out</span>
+</pre></div>
+</div>
+</div>
 </div>
 <div class="deprecated">
 <p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> and <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu-fp64</span></code> targets, which are equivalent to the multi-QPU options <code class="code docutils literal notranslate"><span class="pre">mgpu,fp32</span></code> and <code class="code docutils literal notranslate"><span class="pre">mgpu,fp64</span></code>, respectively, of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target, are deprecated and will be removed in a future release.</p>
@@ -683,7 +755,7 @@ On the other hand, if one wants to distribute the tasks across GPUs on multiple 
 should be used.</p>
 <p>An example of MPI distribution mode usage in both C++ and Python is given below:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
@@ -716,7 +788,7 @@ should be used.</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">initialize</span><span class="p">();</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="o">::</span><span class="nn">spin</span><span class="p">;</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.907</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
@@ -756,7 +828,7 @@ which encapsulates simulated QPUs as independent HTTP REST server instances.
 The following code illustrates how to launch asynchronous sampling tasks on multiple virtual QPUs,
 each simulated by a <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> simulator backend.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="c1"># Specified as program input, e.g.</span>
     <span class="c1"># ```</span>
     <span class="c1"># backend = &quot;tensornet&quot;; servers = &quot;2&quot;</span>
@@ -805,7 +877,7 @@ each simulated by a <code class="code docutils literal notranslate"><span class=
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Define a kernel to be sampled.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">nrControls</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">controls</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernel</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">nrControls</span><span class="p">);</span>
@@ -862,7 +934,7 @@ manually launching each server instance. How to do that is explained in the rest
 For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
 4 virtual QPU instances, each manages 2 GPUs. To do so, first launch a <code class="code docutils literal notranslate"><span class="pre">cudaq-qpud</span></code> server for each virtual QPU:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.</span>
 <span class="nv">cudaq_location</span><span class="o">=</span><span class="sb">`</span>python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>show<span class="w"> </span>cuda-quantum<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-e<span class="w"> </span><span class="s1">&#39;Location: .*$&#39;</span><span class="sb">`</span>
 <span class="nv">qpud_py</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cudaq_location</span><span class="p">#Location: </span><span class="si">}</span><span class="s2">/bin/cudaq-qpud.py&quot;</span>
@@ -873,7 +945,7 @@ For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those G
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># It is assumed that your $LD_LIBRARY_PATH is able to find all the necessary dependencies.</span>
 <span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>cudaq-qpud<span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">1</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
 <span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">2</span>,3<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>cudaq-qpud<span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">2</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
@@ -896,12 +968,12 @@ Hence, please make sure to either (1) use a non-public TCP/IP port for internal 
 </div>
 <p>User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the multi-QPU NVIDIA platform platform.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-mqpu&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;localhost:&lt;port1&gt;,localhost:&lt;port2&gt;,localhost:&lt;port3&gt;,localhost:&lt;port4&gt;&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;nvidia-mgpu&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ distributed.cpp --target remote-mqpu --remote-mqpu-url localhost:&lt;port1&gt;,localhost:&lt;port2&gt;,localhost:&lt;port3&gt;,localhost:&lt;port4&gt; --remote-mqpu-backend nvidia-mgpu</span>
 </pre></div>
 </div>
@@ -973,13 +1045,13 @@ when MLIR-based compilation is enabled (<code class="code docutils literal notra
 <p>State data can be retrieved as a full state vector or as individual basis states’ amplitudes.
 The later is designed for large quantum states, which incurred data transfer overheads.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="n">amplitudes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([</span><span class="s1">&#39;0000&#39;</span><span class="p">,</span> <span class="s1">&#39;1111&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">amplitudes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">amplitudes</span><span class="p">({{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">}});</span>
 </pre></div>
