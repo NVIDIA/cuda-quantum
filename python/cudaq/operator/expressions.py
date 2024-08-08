@@ -108,6 +108,14 @@ class OperatorSum:
         """
         return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
 
+    def to_pauli_word(self: OperatorSum) -> cudaq_runtime.pauli_word:
+        """
+        Creates a representation of the operator as `pauli_word` that can be passed
+        as an argument to quantum kernels.
+        Raises a ValueError if the operator contains non-Pauli suboperators.
+        """
+        return self._evaluate(PauliWordConversion()).pauli_word
+
     def __str__(self: OperatorSum) -> str:
         return self._evaluate(PrettyPrint())
 

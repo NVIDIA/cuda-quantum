@@ -41,6 +41,7 @@
 </font></dt><dd>
 <dl>
 <dt><font face="helvetica, arial"><a href="dynamics.html#MatrixArithmetics">MatrixArithmetics</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#PauliWordConversion">PauliWordConversion</a>
 </font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#PrettyPrint">PrettyPrint</a>
 </font></dt></dl>
 </dd>
@@ -80,6 +81,7 @@
 </font></dt><dd>
 <dl>
 <dt><font face="helvetica, arial"><a href="dynamics.html#MatrixArithmetics">MatrixArithmetics</a>
+</font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#PauliWordConversion">PauliWordConversion</a>
 </font></dt><dt><font face="helvetica, arial"><a href="dynamics.html#PrettyPrint">PrettyPrint</a>
 </font></dt></dl>
 </dd>
@@ -93,12 +95,12 @@
 <font color="#000000" face="helvetica, arial"><a name="AsyncEvolveResult">class <strong>AsyncEvolveResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
     
 <tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
-<td colspan=2><tt><a href="#AsyncEvolveResult">AsyncEvolveResult</a>()&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td colspan=2><tt><a href="#AsyncEvolveResult">AsyncEvolveResult</a>(handle:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Stores&nbsp;the&nbsp;execution&nbsp;data&nbsp;from&nbsp;an&nbsp;invocation&nbsp;of&nbsp;`cudaq.evolve_async`.<br>&nbsp;</tt></td></tr>
 <tr><td>&nbsp;</td>
 <td width="100%">Methods defined here:<br>
-<dl><dt><a name="AsyncEvolveResult-__init__"><strong>__init__</strong></a>(handle: 'str') -&gt; 'None'</dt><dd><tt>Creates&nbsp;a&nbsp;class&nbsp;instance&nbsp;that&nbsp;can&nbsp;be&nbsp;used&nbsp;to&nbsp;retrieve&nbsp;the&nbsp;evolution<br>
+<dl><dt><a name="AsyncEvolveResult-__init__"><strong>__init__</strong></a>(self: 'AsyncEvolveResult', handle: 'str') -&gt; 'None'</dt><dd><tt>Creates&nbsp;a&nbsp;class&nbsp;instance&nbsp;that&nbsp;can&nbsp;be&nbsp;used&nbsp;to&nbsp;retrieve&nbsp;the&nbsp;evolution<br>
 result&nbsp;produces&nbsp;by&nbsp;an&nbsp;calling&nbsp;the&nbsp;asynchronously&nbsp;executing&nbsp;function<br>
 `cudaq.evolve_async`.&nbsp;It&nbsp;models&nbsp;a&nbsp;future-like&nbsp;type&nbsp;whose&nbsp;<br>
 `<a href="#EvolveResult">EvolveResult</a>`&nbsp;may&nbsp;be&nbsp;accessed&nbsp;via&nbsp;an&nbsp;invocation&nbsp;of&nbsp;the&nbsp;`get`<br>
@@ -106,7 +108,7 @@ method.</tt></dd></dl>
 
 <dl><dt><a name="AsyncEvolveResult-__str__"><strong>__str__</strong></a>(self: 'AsyncEvolveResult') -&gt; 'str'</dt><dd><tt>Return&nbsp;str(self).</tt></dd></dl>
 
-<dl><dt><a name="AsyncEvolveResult-get"><strong>get</strong></a>(self: 'AsyncEvolveResult') -&gt; 'EvolutionResult'</dt><dd><tt>Retrieves&nbsp;the&nbsp;`<a href="#EvolveResult">EvolveResult</a>`&nbsp;from&nbsp;the&nbsp;asynchronous&nbsp;evolve&nbsp;execution.<br>
+<dl><dt><a name="AsyncEvolveResult-get"><strong>get</strong></a>(self: 'AsyncEvolveResult') -&gt; 'EvolveResult'</dt><dd><tt>Retrieves&nbsp;the&nbsp;`<a href="#EvolveResult">EvolveResult</a>`&nbsp;from&nbsp;the&nbsp;asynchronous&nbsp;evolve&nbsp;execution.<br>
 This&nbsp;causes&nbsp;the&nbsp;current&nbsp;thread&nbsp;to&nbsp;wait&nbsp;until&nbsp;the&nbsp;time&nbsp;evolution<br>
 execution&nbsp;has&nbsp;completed.</tt></dd></dl>
 
@@ -231,6 +233,12 @@ Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {'_ops': 'dict[str, ElementaryOperator.Definition]'}</dl>
 
 <dl><dt><strong>__hash__</strong> = None</dl>
+
+<hr>
+Methods inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
+<dl><dt><a name="ElementaryOperator-to_pauli_word"><strong>to_pauli_word</strong></a>(self: 'OperatorSum') -&gt; 'cudaq.pauli_word'</dt><dd><tt>Creates&nbsp;a&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;as&nbsp;`pauli_word`&nbsp;that&nbsp;can&nbsp;be&nbsp;passed<br>
+as&nbsp;an&nbsp;argument&nbsp;to&nbsp;quantum&nbsp;kernels.<br>
+Raises&nbsp;a&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;operator&nbsp;contains&nbsp;non-Pauli&nbsp;suboperators.</tt></dd></dl>
 
 <hr>
 Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
@@ -479,6 +487,10 @@ Arguments:<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;matrix&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;expression&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd></dl>
 
+<dl><dt><a name="OperatorSum-to_pauli_word"><strong>to_pauli_word</strong></a>(self: 'OperatorSum') -&gt; 'cudaq.pauli_word'</dt><dd><tt>Creates&nbsp;a&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;as&nbsp;`pauli_word`&nbsp;that&nbsp;can&nbsp;be&nbsp;passed<br>
+as&nbsp;an&nbsp;argument&nbsp;to&nbsp;quantum&nbsp;kernels.<br>
+Raises&nbsp;a&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;operator&nbsp;contains&nbsp;non-Pauli&nbsp;suboperators.</tt></dd></dl>
+
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>degrees</strong></dt>
@@ -498,6 +510,60 @@ Data and other attributes defined here:<br>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
 <tr bgcolor="#ffc8d8">
 <td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="PauliWordConversion">class <strong>PauliWordConversion</strong></a>(<a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>)</font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="dynamics.html#PauliWordConversion">PauliWordConversion</a></dd>
+<dd><a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a></dd>
+<dd><a href="abc.html#ABC">abc.ABC</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="PauliWordConversion-add"><strong>add</strong></a>(self, op1: 'PauliWordConversion.Evaluated', op2: 'PauliWordConversion.Evaluated') -&gt; 'PauliWordConversion.Evaluated'</dt><dd><tt>Adds&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<dl><dt><a name="PauliWordConversion-evaluate"><strong>evaluate</strong></a>(self, op: 'ElementaryOperator | ScalarOperator') -&gt; 'PauliWordConversion.Evaluated'</dt><dd><tt>Accesses&nbsp;the&nbsp;relevant&nbsp;data&nbsp;to&nbsp;evaluate&nbsp;an&nbsp;operator&nbsp;expression&nbsp;in&nbsp;the&nbsp;leaf&nbsp;<br>
+nodes,&nbsp;that&nbsp;is&nbsp;in&nbsp;elementary&nbsp;and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.</tt></dd></dl>
+
+<dl><dt><a name="PauliWordConversion-mul"><strong>mul</strong></a>(self, op1: 'PauliWordConversion.Evaluated', op2: 'PauliWordConversion.Evaluated') -&gt; 'PauliWordConversion.Evaluated'</dt><dd><tt>Multiplies&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<dl><dt><a name="PauliWordConversion-tensor"><strong>tensor</strong></a>(self, op1: 'PauliWordConversion.Evaluated', op2: 'PauliWordConversion.Evaluated') -&gt; 'PauliWordConversion.Evaluated'</dt><dd><tt>Computes&nbsp;the&nbsp;tensor&nbsp;product&nbsp;of&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;different&nbsp;<br>
+degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>Evaluated</strong> = &lt;class 'dynamics.PauliWordConversion.Evaluated'&gt;<dd><tt>Stores&nbsp;the&nbsp;relevant&nbsp;data&nbsp;to&nbsp;compute&nbsp;the&nbsp;representation&nbsp;of&nbsp;an<br>
+operator&nbsp;expression&nbsp;as&nbsp;a&nbsp;`pauli_word`.</tt></dl>
+
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__orig_bases__</strong> = (dynamics.OperatorArithmetics[cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.pauli_word],)</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<hr>
+Data descriptors inherited from <a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="PauliWordConversion-__class_getitem__"><strong>__class_getitem__</strong></a>(params)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt></dl>
+
+<dl><dt><a name="PauliWordConversion-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)<font color="#909090"><font face="helvetica, arial"> from <a href="abc.html#ABCMeta">abc.ABCMeta</a></font></font></dt><dd><tt>This&nbsp;method&nbsp;is&nbsp;called&nbsp;when&nbsp;a&nbsp;class&nbsp;is&nbsp;subclassed.<br>
+&nbsp;<br>
+The&nbsp;default&nbsp;implementation&nbsp;does&nbsp;nothing.&nbsp;It&nbsp;may&nbsp;be<br>
+overridden&nbsp;to&nbsp;extend&nbsp;subclasses.</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
 <font color="#000000" face="helvetica, arial"><a name="PrettyPrint">class <strong>PrettyPrint</strong></a>(<a href="dynamics.html#OperatorArithmetics">OperatorArithmetics</a>)</font></td></tr>
     
 <tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
@@ -512,7 +578,7 @@ Data and other attributes defined here:<br>
 Methods defined here:<br>
 <dl><dt><a name="PrettyPrint-add"><strong>add</strong></a>(self, op1: 'str', op2: 'str') -&gt; 'str'</dt><dd><tt>Adds&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
 
-<dl><dt><a name="PrettyPrint-evaluate"><strong>evaluate</strong></a>(self, op: 'ElementaryOperator | ScalarOperator')</dt><dd><tt>Accesses&nbsp;the&nbsp;relevant&nbsp;data&nbsp;to&nbsp;evaluate&nbsp;an&nbsp;operator&nbsp;expression&nbsp;in&nbsp;the&nbsp;leaf&nbsp;<br>
+<dl><dt><a name="PrettyPrint-evaluate"><strong>evaluate</strong></a>(self, op: 'ElementaryOperator | ScalarOperator') -&gt; 'str'</dt><dd><tt>Accesses&nbsp;the&nbsp;relevant&nbsp;data&nbsp;to&nbsp;evaluate&nbsp;an&nbsp;operator&nbsp;expression&nbsp;in&nbsp;the&nbsp;leaf&nbsp;<br>
 nodes,&nbsp;that&nbsp;is&nbsp;in&nbsp;elementary&nbsp;and&nbsp;scalar&nbsp;<a href="#operators">operators</a>.</tt></dd></dl>
 
 <dl><dt><a name="PrettyPrint-mul"><strong>mul</strong></a>(self, op1: 'str', op2: 'str') -&gt; 'str'</dt><dd><tt>Multiplies&nbsp;two&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;act&nbsp;on&nbsp;the&nbsp;same&nbsp;degrees&nbsp;of&nbsp;freedom.</tt></dd></dl>
@@ -611,6 +677,10 @@ Methods inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
 &nbsp;<br>
 Returns:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;matrix&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;expression&nbsp;in&nbsp;canonical&nbsp;order.</tt></dd></dl>
+
+<dl><dt><a name="ProductOperator-to_pauli_word"><strong>to_pauli_word</strong></a>(self: 'OperatorSum') -&gt; 'cudaq.pauli_word'</dt><dd><tt>Creates&nbsp;a&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;as&nbsp;`pauli_word`&nbsp;that&nbsp;can&nbsp;be&nbsp;passed<br>
+as&nbsp;an&nbsp;argument&nbsp;to&nbsp;quantum&nbsp;kernels.<br>
+Raises&nbsp;a&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;operator&nbsp;contains&nbsp;non-Pauli&nbsp;suboperators.</tt></dd></dl>
 
 <hr>
 Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
@@ -716,6 +786,12 @@ Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {}</dl>
 
 <dl><dt><strong>__hash__</strong> = None</dl>
+
+<hr>
+Methods inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
+<dl><dt><a name="ScalarOperator-to_pauli_word"><strong>to_pauli_word</strong></a>(self: 'OperatorSum') -&gt; 'cudaq.pauli_word'</dt><dd><tt>Creates&nbsp;a&nbsp;representation&nbsp;of&nbsp;the&nbsp;operator&nbsp;as&nbsp;`pauli_word`&nbsp;that&nbsp;can&nbsp;be&nbsp;passed<br>
+as&nbsp;an&nbsp;argument&nbsp;to&nbsp;quantum&nbsp;kernels.<br>
+Raises&nbsp;a&nbsp;ValueError&nbsp;if&nbsp;the&nbsp;operator&nbsp;contains&nbsp;non-Pauli&nbsp;suboperators.</tt></dd></dl>
 
 <hr>
 Readonly properties inherited from <a href="dynamics.html#OperatorSum">OperatorSum</a>:<br>
@@ -869,7 +945,36 @@ Data descriptors defined here:<br>
 <font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
     
 <tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
-<td width="100%"><dl><dt><a name="-evolve"><strong>evolve</strong></a>(hamiltonian: 'Operator', dimensions: 'Mapping[int, int]', schedule: 'Schedule', initial_state: 'cudaq.State | Iterable[cudaq.States]', collapse_operators: 'Iterable[Operator]' = [], observables: 'Iterable[Operator]' = [], store_intermediate_results=False) -&gt; 'AsyncEvolveResult | Iterable[AsyncEvolveResult]'</dt><dd><tt>Asynchronously&nbsp;computes&nbsp;the&nbsp;time&nbsp;evolution&nbsp;of&nbsp;one&nbsp;or&nbsp;more&nbsp;initial&nbsp;state(s)&nbsp;<br>
+<td width="100%"><dl><dt><a name="-evolve"><strong>evolve</strong></a>(hamiltonian: 'Operator', dimensions: 'Mapping[int, int]', schedule: 'Schedule', initial_state: 'cudaq.State | Iterable[cudaq.States]', collapse_operators: 'Iterable[Operator]' = [], observables: 'Iterable[Operator]' = [], store_intermediate_results=False) -&gt; 'EvolveResult | Iterable[EvolveResult]'</dt><dd><tt>Computes&nbsp;the&nbsp;time&nbsp;evolution&nbsp;of&nbsp;one&nbsp;or&nbsp;more&nbsp;initial&nbsp;state(s)&nbsp;under&nbsp;the&nbsp;defined&nbsp;<br>
+<a href="#operators">operators</a>.&nbsp;<br>
+&nbsp;<br>
+Arguments:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;hamiltonian:&nbsp;Operator&nbsp;that&nbsp;describes&nbsp;the&nbsp;behavior&nbsp;of&nbsp;a&nbsp;quantum&nbsp;system<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;without&nbsp;noise.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dimensions:&nbsp;A&nbsp;mapping&nbsp;that&nbsp;specifies&nbsp;the&nbsp;number&nbsp;of&nbsp;levels,&nbsp;that&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;dimension,&nbsp;of&nbsp;each&nbsp;degree&nbsp;of&nbsp;freedom&nbsp;that&nbsp;any&nbsp;of&nbsp;the&nbsp;operator&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arguments&nbsp;acts&nbsp;on.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;schedule:&nbsp;An&nbsp;iterable&nbsp;that&nbsp;generates&nbsp;a&nbsp;mapping&nbsp;of&nbsp;keyword&nbsp;arguments&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;their&nbsp;respective&nbsp;value.&nbsp;The&nbsp;keyword&nbsp;arguments&nbsp;are&nbsp;the&nbsp;parameters<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;needed&nbsp;to&nbsp;evaluate&nbsp;any&nbsp;of&nbsp;the&nbsp;<a href="#operators">operators</a>&nbsp;passed&nbsp;to&nbsp;`evolve`.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All&nbsp;required&nbsp;parameters&nbsp;for&nbsp;evaluating&nbsp;an&nbsp;operator&nbsp;and&nbsp;their<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;documentation,&nbsp;if&nbsp;available,&nbsp;can&nbsp;be&nbsp;queried&nbsp;by&nbsp;accessing&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`parameter`&nbsp;property&nbsp;of&nbsp;the&nbsp;operator.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;initial_state:&nbsp;A&nbsp;single&nbsp;state&nbsp;or&nbsp;a&nbsp;sequence&nbsp;of&nbsp;states&nbsp;of&nbsp;a&nbsp;quantum&nbsp;system.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;collapse_operators:&nbsp;A&nbsp;sequence&nbsp;of&nbsp;<a href="#operators">operators</a>&nbsp;that&nbsp;describe&nbsp;the&nbsp;influence&nbsp;of&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noise&nbsp;on&nbsp;the&nbsp;quantum&nbsp;system.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;observables:&nbsp;A&nbsp;sequence&nbsp;of&nbsp;<a href="#operators">operators</a>&nbsp;for&nbsp;which&nbsp;to&nbsp;compute&nbsp;their&nbsp;expectation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;during&nbsp;evolution.&nbsp;If&nbsp;`store_intermediate_results`&nbsp;is&nbsp;set&nbsp;to&nbsp;True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;expectation&nbsp;values&nbsp;are&nbsp;computed&nbsp;after&nbsp;each&nbsp;step&nbsp;in&nbsp;the&nbsp;schedule,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;otherwise&nbsp;only&nbsp;the&nbsp;final&nbsp;expectation&nbsp;values&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evolution&nbsp;are&nbsp;computed.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;single&nbsp;evolution&nbsp;result&nbsp;if&nbsp;a&nbsp;single&nbsp;initial&nbsp;state&nbsp;is&nbsp;provided,&nbsp;or&nbsp;a&nbsp;sequence<br>
+&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;evolution&nbsp;results&nbsp;representing&nbsp;the&nbsp;data&nbsp;computed&nbsp;during&nbsp;the&nbsp;evolution&nbsp;of&nbsp;each<br>
+&nbsp;&nbsp;&nbsp;&nbsp;initial&nbsp;state.&nbsp;See&nbsp;`<a href="#EvolveResult">EvolveResult</a>`&nbsp;for&nbsp;more&nbsp;information&nbsp;about&nbsp;the&nbsp;data&nbsp;computed<br>
+&nbsp;&nbsp;&nbsp;&nbsp;during&nbsp;evolution.</tt></dd></dl>
+ <dl><dt><a name="-evolve_async"><strong>evolve_async</strong></a>(hamiltonian: 'Operator', dimensions: 'Mapping[int, int]', schedule: 'Schedule', initial_state: 'cudaq.State | Iterable[cudaq.States]', collapse_operators: 'Iterable[Operator]' = [], observables: 'Iterable[Operator]' = [], store_intermediate_results=False) -&gt; 'AsyncEvolveResult | Iterable[AsyncEvolveResult]'</dt><dd><tt>Asynchronously&nbsp;computes&nbsp;the&nbsp;time&nbsp;evolution&nbsp;of&nbsp;one&nbsp;or&nbsp;more&nbsp;initial&nbsp;state(s)&nbsp;<br>
 under&nbsp;the&nbsp;defined&nbsp;<a href="#operators">operators</a>.&nbsp;See&nbsp;`cudaq.evolve`&nbsp;for&nbsp;more&nbsp;details&nbsp;about&nbsp;the<br>
 parameters&nbsp;passed&nbsp;here.<br>
 &nbsp;<br>

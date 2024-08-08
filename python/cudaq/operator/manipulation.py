@@ -70,7 +70,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         @property
         def degrees(self: MatrixArithmetics.Evaluated) -> Sequence[int]: 
             """
-            The degrees of freedom that the matrix of the Evaluated value applies to.
+            The degrees of freedom that the matrix of the evaluated value applies to.
             """
             return self._degrees
 
@@ -78,7 +78,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         def matrix(self: MatrixArithmetics.Evaluated) -> NDArray[numpy.complexfloating]: 
             """
             The matrix representation of an evaluated operator, ordered according
-            to the sequence of degrees of freedom associated with the Evaluated value.
+            to the sequence of degrees of freedom associated with the evaluated value.
             """
             return self._matrix
 
@@ -184,4 +184,52 @@ class PrettyPrint(OperatorArithmetics[str]):
     def add(self, op1: str, op2: str) -> str:
         return f"{op1} + {op2}"
 
-    def evaluate(self, op: ElementaryOperator | ScalarOperator): return str(op)
+    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> str: 
+        return str(op)
+
+class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
+
+    class Evaluated:
+        """
+        Stores the relevant data to compute the representation of an
+        operator expression as a `pauli_word`.
+        """
+
+        def __init__(self: PauliWordConversion.Evaluated, degrees: Sequence[int], pauli_word: cudaq_runtime.pauli_word) -> None:
+            """
+            Instantiates an object that contains the `pauli_word` representation of an
+            operator acting on the given degrees of freedom.
+
+            Arguments:
+                degrees: The degrees of freedom that the matrix applies to.
+                pauli_word: The `pauli_word` representation of an evaluated operator.
+            """
+            self._degrees = degrees
+            self._pauli_word = pauli_word
+
+        @property
+        def degrees(self: PauliWordConversion.Evaluated) -> Sequence[int]: 
+            """
+            The degrees of freedom that the evaluated operator acts on.
+            """
+            return self._degrees
+
+        @property
+        def pauli_word(self: PauliWordConversion.Evaluated) -> cudaq_runtime.pauli_word:
+            """
+            The `pauli_word` representation of an evaluated operator, ordered according
+            to the sequence of degrees of freedom associated with the evaluated value.
+            """
+            return self._pauli_word
+
+    def tensor(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+        raise NotImplementedError()
+
+    def mul(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+        raise NotImplementedError()
+
+    def add(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+        raise NotImplementedError()
+
+    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> PauliWordConversion.Evaluated:
+        raise NotImplementedError()

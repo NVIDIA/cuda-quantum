@@ -207,7 +207,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         @property
         def degrees(self: MatrixArithmetics.Evaluated) -> Sequence[int]: 
             """
-            The degrees of freedom that the matrix of the Evaluated value applies to.
+            The degrees of freedom that the matrix of the evaluated value applies to.
             """
             return self._degrees
 
@@ -215,7 +215,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         def matrix(self: MatrixArithmetics.Evaluated) -> NDArray[numpy.complexfloating]: 
             """
             The matrix representation of an evaluated operator, ordered according
-            to the sequence of degrees of freedom associated with the Evaluated value.
+            to the sequence of degrees of freedom associated with the evaluated value.
             """
             return self._matrix
 
@@ -321,7 +321,55 @@ class PrettyPrint(OperatorArithmetics[str]):
     def add(self, op1: str, op2: str) -> str:
         return f"{op1} + {op2}"
 
-    def evaluate(self, op: ElementaryOperator | ScalarOperator): return str(op)
+    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> str: 
+        return str(op)
+
+class PauliWordConversion(OperatorArithmetics[cudaq.pauli_word]):
+
+    class Evaluated:
+        """
+        Stores the relevant data to compute the representation of an
+        operator expression as a `pauli_word`.
+        """
+
+        def __init__(self: PauliWordConversion.Evaluated, degrees: Sequence[int], pauli_word: cudaq.pauli_word) -> None:
+            """
+            Instantiates an object that contains the `pauli_word` representation of an
+            operator acting on the given degrees of freedom.
+
+            Arguments:
+                degrees: The degrees of freedom that the matrix applies to.
+                pauli_word: The `pauli_word` representation of an evaluated operator.
+            """
+            self._degrees = degrees
+            self._pauli_word = pauli_word
+
+        @property
+        def degrees(self: PauliWordConversion.Evaluated) -> Sequence[int]: 
+            """
+            The degrees of freedom that the evaluated operator acts on.
+            """
+            return self._degrees
+
+        @property
+        def pauli_word(self: PauliWordConversion.Evaluated) -> cudaq.pauli_word:
+            """
+            The `pauli_word` representation of an evaluated operator, ordered according
+            to the sequence of degrees of freedom associated with the evaluated value.
+            """
+            return self._pauli_word
+
+    def tensor(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+        raise NotImplementedError()
+
+    def mul(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+        raise NotImplementedError()
+
+    def add(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+        raise NotImplementedError()
+
+    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> PauliWordConversion.Evaluated:
+        raise NotImplementedError()
 
 
 class OperatorSum:
@@ -424,6 +472,14 @@ class OperatorSum:
             The matrix representation of the operator expression in canonical order.
         """
         return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
+
+    def to_pauli_word(self: OperatorSum) -> cudaq.pauli_word:
+        """
+        Creates a representation of the operator as `pauli_word` that can be passed
+        as an argument to quantum kernels.
+        Raises a ValueError if the operator contains non-Pauli suboperators.
+        """
+        return self._evaluate(PauliWordConversion()).pauli_word
 
     def __str__(self: OperatorSum) -> str:
         return self._evaluate(PrettyPrint())
@@ -1299,17 +1355,17 @@ class EvolveResult:
             self._final_state = state
         if expectation is None:
             self._expectation_values = None
-            self._final_expectation = None
+            self._final_expectation : Optional[NDArray[numpy.complexfloating]] = None
         else:
             *_, final_expectation = iter(expectation)
-            if isinstance(final_expectation, numpy.ndarray):
+            if isinstance(final_expectation, numpy.complexfloating):
+                self._expectation_values = None
+                self._final_expectation = expectation # type: ignore
+            else:
                 if self._states is None:
                     raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
                 self._expectation_values = expectation
                 self._final_expectation = final_expectation
-            else:
-                self._expectation_values = None
-                self._final_expectation = expectation
 
     @property
     def intermediate_states(self: EvolveResult) -> Optional[Iterable[cudaq.State]]:
@@ -1358,7 +1414,7 @@ class AsyncEvolveResult:
     Stores the execution data from an invocation of `cudaq.evolve_async`.
     """
 
-    def __init__(handle: str) -> None:
+    def __init__(self: AsyncEvolveResult, handle: str) -> None:
         """
         Creates a class instance that can be used to retrieve the evolution
         result produces by an calling the asynchronously executing function
@@ -1368,7 +1424,7 @@ class AsyncEvolveResult:
         """
         raise NotImplementedError()
 
-    def get(self: AsyncEvolveResult) -> EvolutionResult:
+    def get(self: AsyncEvolveResult) -> EvolveResult:
         """
         Retrieves the `EvolveResult` from the asynchronous evolve execution.
         This causes the current thread to wait until the time evolution
@@ -1377,7 +1433,7 @@ class AsyncEvolveResult:
         raise NotImplementedError()
 
     def __str__(self: AsyncEvolveResult) -> str:
-        pass
+        raise NotImplementedError()
 
 
 # Top level API for the CUDA-Q master equation solver.
@@ -1421,13 +1477,13 @@ def evolve(hamiltonian: Operator,
     """
     raise NotImplementedError()
 
-def evolve(hamiltonian: Operator, 
-           dimensions: Mapping[int, int], 
-           schedule: Schedule,
-           initial_state: cudaq.State | Iterable[cudaq.States],
-           collapse_operators: Iterable[Operator] = [],
-           observables: Iterable[Operator] = [], 
-           store_intermediate_results = False) -> AsyncEvolveResult | Iterable[AsyncEvolveResult]:
+def evolve_async(hamiltonian: Operator, 
+                 dimensions: Mapping[int, int], 
+                 schedule: Schedule,
+                 initial_state: cudaq.State | Iterable[cudaq.States],
+                 collapse_operators: Iterable[Operator] = [],
+                 observables: Iterable[Operator] = [], 
+                 store_intermediate_results = False) -> AsyncEvolveResult | Iterable[AsyncEvolveResult]:
     """
     Asynchronously computes the time evolution of one or more initial state(s) 
     under the defined operators. See `cudaq.evolve` for more details about the

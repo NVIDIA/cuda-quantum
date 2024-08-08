@@ -45,17 +45,17 @@ class EvolveResult:
             self._final_state = state
         if expectation is None:
             self._expectation_values = None
-            self._final_expectation = None
+            self._final_expectation : Optional[NDArray[numpy.complexfloating]] = None
         else:
             *_, final_expectation = iter(expectation)
-            if isinstance(final_expectation, numpy.ndarray):
+            if isinstance(final_expectation, numpy.complexfloating):
+                self._expectation_values = None
+                self._final_expectation = expectation # type: ignore
+            else:
                 if self._states is None:
                     raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
                 self._expectation_values = expectation
                 self._final_expectation = final_expectation
-            else:
-                self._expectation_values = None
-                self._final_expectation = expectation
 
     @property
     def intermediate_states(self: EvolveResult) -> Optional[Iterable[cudaq_runtime.State]]:
@@ -104,7 +104,7 @@ class AsyncEvolveResult:
     Stores the execution data from an invocation of `cudaq.evolve_async`.
     """
 
-    def __init__(handle: str) -> None:
+    def __init__(self: AsyncEvolveResult, handle: str) -> None:
         """
         Creates a class instance that can be used to retrieve the evolution
         result produces by an calling the asynchronously executing function
@@ -114,7 +114,7 @@ class AsyncEvolveResult:
         """
         raise NotImplementedError()
 
-    def get(self: AsyncEvolveResult) -> EvolutionResult:
+    def get(self: AsyncEvolveResult) -> EvolveResult:
         """
         Retrieves the `EvolveResult` from the asynchronous evolve execution.
         This causes the current thread to wait until the time evolution
@@ -123,7 +123,7 @@ class AsyncEvolveResult:
         raise NotImplementedError()
 
     def __str__(self: AsyncEvolveResult) -> str:
-        pass
+        raise NotImplementedError()
 
 
 # Top level API for the CUDA-Q master equation solver.
