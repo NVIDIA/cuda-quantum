@@ -78,7 +78,7 @@ def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
     ListOption<"funcList", "functions", "std::string",
                "Function name and substitutions pairs (<func>:<filename>)">,
   ];
-  let dependentDialects = ["cudaq::cc::CCDialect",
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
     "mlir::cf::ControlFlowDialect"];
 }
 
