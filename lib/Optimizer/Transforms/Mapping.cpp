@@ -633,7 +633,30 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // Get grid dimensions
     std::size_t x = deviceDim[0];
     std::size_t y = deviceDim[1];
-    std::size_t deviceNumQubits = deviceTopoType == Grid ? x * y : x;
+
+    // These are captured in the user help (device options in Passes.td), so if
+    // you update this, be sure to update that as well.
+    Device d;
+    if (deviceTopoType == Path)
+      d = Device::path(x);
+    else if (deviceTopoType == Ring)
+      d = Device::ring(x);
+    else if (deviceTopoType == Star)
+      d = Device::star(/*numQubits=*/x, /*centerQubit=*/y);
+    else if (deviceTopoType == Grid)
+      d = Device::grid(/*width=*/x, /*height=*/y);
+    else if (deviceTopoType == File)
+      d = Device::file(deviceFilename);
+
+    if (d.getNumQubits() == 0) {
+      func.emitError("Trying to target an empty device.");
+      signalPassFailure();
+      return;
+    }
+
+    LLVM_DEBUG({ d.dump(); });
+
+    const std::size_t deviceNumQubits = d.getNumQubits();
 
     SmallVector<quake::BorrowWireOp> sources(deviceNumQubits);
     SmallVector<quake::ReturnWireOp> returnsToRemove;
@@ -704,28 +727,6 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       signalPassFailure();
       return;
     }
-
-    // These are captured in the user help (device options in Passes.td), so if
-    // you update this, be sure to update that as well.
-    Device d;
-    if (deviceTopoType == Path)
-      d = Device::path(x);
-    else if (deviceTopoType == Ring)
-      d = Device::ring(x);
-    else if (deviceTopoType == Star)
-      d = Device::star(/*numQubits=*/x, /*centerQubit=*/y);
-    else if (deviceTopoType == Grid)
-      d = Device::grid(/*width=*/x, /*height=*/y);
-    else if (deviceTopoType == File)
-      d = Device::file(deviceFilename);
-
-    if (d.getNumQubits() == 0) {
-      func.emitError("Trying to target an empty device.");
-      signalPassFailure();
-      return;
-    }
-
-    LLVM_DEBUG({ d.dump(); });
 
     // Create a new WireSet and make all existing borrow_wire ops use it
     // instead.
