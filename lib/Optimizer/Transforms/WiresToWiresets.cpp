@@ -52,6 +52,7 @@ public:
 
 class SinkOpPat : public OpRewritePattern<quake::SinkOp> {
   using OpRewritePattern::OpRewritePattern;
+
 public:
   LogicalResult matchAndRewrite(quake::SinkOp release,
                                 PatternRewriter &rewriter) const override {
@@ -76,7 +77,8 @@ struct WiresToWiresetsPass
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     unsigned x = 0;
-    patterns.insert<NullWirePat>(ctx, &x, cudaq::opt::topologyAgnosticWiresetName);
+    patterns.insert<NullWirePat>(ctx, &x,
+                                 cudaq::opt::topologyAgnosticWiresetName);
     patterns.insert<SinkOpPat>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<quake::QuakeDialect>();
@@ -96,8 +98,9 @@ struct AddWiresetPass
   void runOnOperation() override {
     ModuleOp mod = getOperation();
     OpBuilder builder(mod.getBodyRegion());
-    builder.create<quake::WireSetOp>(builder.getUnknownLoc(), cudaq::opt::topologyAgnosticWiresetName, INT_MAX,
-                                     ElementsAttr{});
+    builder.create<quake::WireSetOp>(builder.getUnknownLoc(),
+                                     cudaq::opt::topologyAgnosticWiresetName,
+                                     INT_MAX, ElementsAttr{});
   }
 };
 
