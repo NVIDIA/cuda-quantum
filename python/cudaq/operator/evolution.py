@@ -62,8 +62,8 @@ class EvolveResult:
         """
         Stores all intermediate states, meaning the state after each step in a defined 
         schedule, produced by a call to `cudaq.evolve`, including the final state. 
-        This property is only populated if the corresponding saving intermediate results 
-        was requested in the call to `cudaq.evolve`.
+        This property is only populated saving intermediate results was requested in the 
+        call to `cudaq.evolve`.
         """
         return self._states
 
@@ -82,10 +82,9 @@ class EvolveResult:
         Stores the expectation values at each step in the schedule produced by a call to 
         `cudaq.evolve`, including the final expectation values. Each expectation value 
         corresponds to one observable provided in the `cudaq.evolve` call. 
-        This property is only populated if the corresponding saving intermediate results 
-        was requested in the call to `cudaq.evolve`. This value will be None if no 
-        intermediate results were requested, or if no observables were specified in the 
-        call to `cudaq.evolve`.
+        This property is only populated saving intermediate results was requested in the 
+        call to `cudaq.evolve`. This value will be None if no intermediate results were 
+        requested, or if no observables were specified in the call to `cudaq.evolve`.
         """
         return self._expectation_values
 

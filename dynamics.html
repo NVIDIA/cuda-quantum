@@ -281,10 +281,9 @@ Readonly properties defined here:<br>
 <dd><tt>Stores&nbsp;the&nbsp;expectation&nbsp;values&nbsp;at&nbsp;each&nbsp;step&nbsp;in&nbsp;the&nbsp;schedule&nbsp;produced&nbsp;by&nbsp;a&nbsp;call&nbsp;to&nbsp;<br>
 `cudaq.evolve`,&nbsp;including&nbsp;the&nbsp;final&nbsp;expectation&nbsp;values.&nbsp;Each&nbsp;expectation&nbsp;value&nbsp;<br>
 corresponds&nbsp;to&nbsp;one&nbsp;observable&nbsp;provided&nbsp;in&nbsp;the&nbsp;`cudaq.evolve`&nbsp;call.&nbsp;<br>
-This&nbsp;property&nbsp;is&nbsp;only&nbsp;populated&nbsp;if&nbsp;the&nbsp;corresponding&nbsp;saving&nbsp;intermediate&nbsp;results&nbsp;<br>
-was&nbsp;requested&nbsp;in&nbsp;the&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.&nbsp;This&nbsp;value&nbsp;will&nbsp;be&nbsp;None&nbsp;if&nbsp;no&nbsp;<br>
-intermediate&nbsp;results&nbsp;were&nbsp;requested,&nbsp;or&nbsp;if&nbsp;no&nbsp;observables&nbsp;were&nbsp;specified&nbsp;in&nbsp;the&nbsp;<br>
-call&nbsp;to&nbsp;`cudaq.evolve`.</tt></dd>
+This&nbsp;property&nbsp;is&nbsp;only&nbsp;populated&nbsp;if&nbsp;saving&nbsp;intermediate&nbsp;results&nbsp;was&nbsp;requested&nbsp;in&nbsp;the&nbsp;<br>
+call&nbsp;to&nbsp;`cudaq.evolve`.&nbsp;This&nbsp;value&nbsp;will&nbsp;be&nbsp;None&nbsp;if&nbsp;no&nbsp;intermediate&nbsp;results&nbsp;were&nbsp;<br>
+requested,&nbsp;or&nbsp;if&nbsp;no&nbsp;observables&nbsp;were&nbsp;specified&nbsp;in&nbsp;the&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.</tt></dd>
 </dl>
 <dl><dt><strong>final_expectation</strong></dt>
 <dd><tt>Stores&nbsp;the&nbsp;final&nbsp;expectation&nbsp;values&nbsp;produced&nbsp;by&nbsp;a&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.<br>
@@ -299,8 +298,8 @@ operators,&nbsp;see&nbsp;the&nbsp;`cudaq.evolve`&nbsp;documentation&nbsp;for&nbs
 <dl><dt><strong>intermediate_states</strong></dt>
 <dd><tt>Stores&nbsp;all&nbsp;intermediate&nbsp;states,&nbsp;meaning&nbsp;the&nbsp;state&nbsp;after&nbsp;each&nbsp;step&nbsp;in&nbsp;a&nbsp;defined&nbsp;<br>
 schedule,&nbsp;produced&nbsp;by&nbsp;a&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`,&nbsp;including&nbsp;the&nbsp;final&nbsp;state.&nbsp;<br>
-This&nbsp;property&nbsp;is&nbsp;only&nbsp;populated&nbsp;if&nbsp;the&nbsp;corresponding&nbsp;saving&nbsp;intermediate&nbsp;results&nbsp;<br>
-was&nbsp;requested&nbsp;in&nbsp;the&nbsp;call&nbsp;to&nbsp;`cudaq.evolve`.</tt></dd>
+This&nbsp;property&nbsp;is&nbsp;only&nbsp;populated&nbsp;if&nbsp;saving&nbsp;intermediate&nbsp;results&nbsp;was&nbsp;requested&nbsp;in&nbsp;the&nbsp;<br>
+call&nbsp;to&nbsp;`cudaq.evolve`.</tt></dd>
 </dl>
 <hr>
 Data descriptors defined here:<br>
