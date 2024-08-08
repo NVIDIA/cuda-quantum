@@ -11,10 +11,12 @@ using namespace mlir;
 
 namespace cudaq {
 
+static constexpr int NUM_JIT_CACHE_ITEMS_TO_RETAIN = 100;
+
 JITExecutionCache::~JITExecutionCache() {
   std::scoped_lock<std::mutex> lock(mutex);
   for (auto &[k, v] : cacheMap)
-    delete v;
+    delete v.execEngine;
   cacheMap.clear();
 }
 bool JITExecutionCache::hasJITEngine(std::size_t hashkey) {
@@ -24,10 +26,29 @@ bool JITExecutionCache::hasJITEngine(std::size_t hashkey) {
 
 void JITExecutionCache::cache(std::size_t hash, ExecutionEngine *jit) {
   std::scoped_lock<std::mutex> lock(mutex);
-  cacheMap.insert({hash, jit});
+
+  lruList.push_back(hash);
+
+  // If adding a new item would exceed our cache limit, then remove the least
+  // recently used item (at the head of the list).
+  if (cacheMap.size() >= NUM_JIT_CACHE_ITEMS_TO_RETAIN) {
+    auto hashToRemove = lruList.begin();
+    auto it = cacheMap.find(*hashToRemove);
+    delete it->second.execEngine;
+    lruList.erase(hashToRemove);
+    cacheMap.erase(it);
+  }
+
+  cacheMap.insert({hash, {jit, std::prev(lruList.end())}});
 }
 ExecutionEngine *JITExecutionCache::getJITEngine(std::size_t hash) {
   std::scoped_lock<std::mutex> lock(mutex);
-  return cacheMap.at(hash);
+  auto &item = cacheMap.at(hash);
+
+  // Move item.lruListIt to the end of the list to indicate that it is being
+  // used right now.
+  lruList.splice(lruList.end(), lruList, item.lruListIt);
+
+  return item.execEngine;
 }
 } // namespace cudaq
