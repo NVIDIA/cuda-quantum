@@ -21,6 +21,12 @@
 
 namespace cudaq::opt {
 
+/// Adds the common pipeline lowering passes.
+void commonLoweringPipeline(mlir::PassManager &pm,
+                            const mlir::StringRef &gateset,
+                            const std::optional<mlir::StringRef> &mapping,
+                            const std::optional<mlir::StringRef> &convertTo);
+
 /// The common pipeline.
 /// Adds the common pipeline (with or without a profile specifier) but without
 /// the final QIR profile lowering passes.

@@ -564,6 +564,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
+
     mlir::PassManager pm(context);
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);

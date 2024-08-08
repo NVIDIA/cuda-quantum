@@ -15,8 +15,10 @@ config:
   gen-target-backend: true
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
-  # Define the lowering pipeline
-  platform-lowering-config: "const-prop-complex,canonicalize,cse,lift-array-value,state-prep,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg,qubit-mapping{device=file(%QPU_ARCH%)},regtomem)"
+  # Specify the gate set to use
+  gate-set: oqc
+  # Specify that we want to do qubit mapping for the file based on the architecture parameter
+  qubit-mapping: file(%QPU_ARCH%)
   # Tell the rest-qpu that we are generating QIR.
   codegen-emission: qir-base
   # Library mode is only for simulators, physical backends must turn this off
