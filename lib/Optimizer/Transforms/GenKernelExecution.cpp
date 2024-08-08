@@ -1116,10 +1116,11 @@ public:
   /// library. Pass along the thunk, so the runtime can call the quantum
   /// circuit. These entry points are `operator()` member functions in a class,
   /// so account for the `this` argument here.
-  void genNewHostEntryPoint(Location loc, OpBuilder &builder,
-                            FunctionType funcTy, cudaq::cc::StructType structTy,
-                            LLVM::GlobalOp kernelNameObj, func::FuncOp thunk,
-                            func::FuncOp rewriteEntry, bool addThisPtr) {
+  void genNewHostEntryPoint1(Location loc, OpBuilder &builder,
+                             FunctionType funcTy,
+                             cudaq::cc::StructType structTy,
+                             LLVM::GlobalOp kernelNameObj, func::FuncOp thunk,
+                             func::FuncOp rewriteEntry, bool addThisPtr) {
     auto *ctx = builder.getContext();
     auto i64Ty = builder.getI64Type();
     auto offset = funcTy.getNumInputs();
@@ -1392,6 +1393,91 @@ public:
     builder.create<func::ReturnOp>(loc, results);
   }
 
+  void genNewHostEntryPoint2(Location loc, OpBuilder &builder,
+                             FunctionType devFuncTy,
+                             LLVM::GlobalOp kernelNameObj,
+                             func::FuncOp hostFunc, bool addThisPtr) {
+    const bool hiddenSRet = cudaq::opt::factory::hasHiddenSRet(devFuncTy);
+    const unsigned count =
+        cudaq::cc::numberOfHiddenArgs(addThisPtr, hiddenSRet);
+    auto *ctx = builder.getContext();
+    auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
+
+    // 0) Pointer our builder into the entry block of the function.
+    Block *hostFuncEntryBlock = hostFunc.addEntryBlock();
+
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointToStart(hostFuncEntryBlock);
+
+    // 1) Allocate and initialize a std::vector<void*> object.
+    auto stdVec = builder.create<cudaq::cc::AllocaOp>(
+        loc, cudaq::opt::factory::stlVectorType(i8PtrTy));
+    auto arrPtrTy = cudaq::cc::ArrayType::get(ctx, i8PtrTy, count);
+    Value buffer = builder.create<cudaq::cc::AllocaOp>(loc, arrPtrTy);
+    auto i64Ty = builder.getI64Type();
+    auto buffSize = builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, arrPtrTy);
+    auto ptrPtrTy = cudaq::cc::PointerType::get(i8PtrTy);
+    auto cast1 = builder.create<cudaq::cc::CastOp>(loc, ptrPtrTy, buffer);
+    auto ptr3Ty = cudaq::cc::PointerType::get(ptrPtrTy);
+    auto stdVec0 = builder.create<cudaq::cc::CastOp>(loc, ptr3Ty, stdVec);
+    builder.create<cudaq::cc::StoreOp>(loc, cast1, stdVec0);
+    auto cast2 = builder.create<cudaq::cc::CastOp>(loc, i64Ty, buffer);
+    auto endBuff = builder.create<arith::AddIOp>(loc, cast2, buffSize);
+    auto cast3 = builder.create<cudaq::cc::CastOp>(loc, ptrPtrTy, endBuff);
+    auto stdVec1 = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, ptr3Ty, stdVec, ArrayRef<cudaq::cc::ComputePtrArg>{1});
+    builder.create<cudaq::cc::StoreOp>(loc, cast3, stdVec1);
+    auto stdVec2 = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, ptr3Ty, stdVec, ArrayRef<cudaq::cc::ComputePtrArg>{2});
+    builder.create<cudaq::cc::StoreOp>(loc, cast3, stdVec2);
+    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto nullPtr = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, zero);
+
+    // 2) Iterate over the arguments passed in and populate the vector.
+    SmallVector<BlockArgument> blockArgs{dropAnyHiddenArguments(
+        hostFuncEntryBlock->getArguments(), devFuncTy, addThisPtr)};
+    for (auto iter : llvm::enumerate(blockArgs)) {
+      std::int32_t i = iter.index();
+      auto pos = builder.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrPtrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
+      auto blkArg = iter.value();
+      if (isa<cudaq::cc::PointerType>(blkArg.getType())) {
+        auto castArg = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, blkArg);
+        builder.create<cudaq::cc::StoreOp>(loc, castArg, pos);
+        continue;
+      }
+      auto temp = builder.create<cudaq::cc::AllocaOp>(loc, blkArg.getType());
+      builder.create<cudaq::cc::StoreOp>(loc, blkArg, temp);
+      auto castTemp = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, temp);
+      builder.create<cudaq::cc::StoreOp>(loc, castTemp, pos);
+    }
+
+    auto resultBuffer = builder.create<cudaq::cc::AllocaOp>(loc, i8PtrTy);
+    builder.create<cudaq::cc::StoreOp>(loc, nullPtr, resultBuffer);
+    auto castResultBuffer =
+        builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, resultBuffer);
+    auto castStdvec = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, stdVec);
+    Value loadKernName = builder.create<LLVM::AddressOfOp>(
+        loc, cudaq::opt::factory::getPointerType(kernelNameObj.getType()),
+        kernelNameObj.getSymName());
+    auto castKernelNameObj =
+        builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, loadKernName);
+    builder.create<func::CallOp>(
+        loc, std::nullopt, cudaq::runtime::launchKernelVersion2FuncName,
+        ArrayRef<Value>{castKernelNameObj, castStdvec, castResultBuffer});
+
+    // FIXME: Drop any results on the floor for now and return random data left
+    // on the stack. (Maintains parity with existing kernel launch.)
+    if (hostFunc.getFunctionType().getResults().empty()) {
+      builder.create<func::ReturnOp>(loc);
+      return;
+    }
+    // There can only be 1 return type in C++, so this is safe.
+    Value garbage = builder.create<cudaq::cc::UndefOp>(
+        loc, hostFunc.getFunctionType().getResult(0));
+    builder.create<func::ReturnOp>(loc, garbage);
+  }
+
   /// A kernel function that takes a quantum type argument (also known as a pure
   /// device kernel) cannot be called directly from C++ (classical) code. It
   /// must be called via other quantum code.
@@ -1422,11 +1508,18 @@ public:
     if (!mangledNameMap || mangledNameMap.empty())
       return;
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
-    if (failed(irBuilder.loadIntrinsic(module,
-                                       cudaq::runtime::launchKernelFuncName))) {
-      module.emitError("could not load altLaunchKernel intrinsic.");
-      return;
-    }
+    if (altLaunchVersion == 1)
+      if (failed(irBuilder.loadIntrinsic(
+              module, cudaq::runtime::launchKernelFuncName))) {
+        module.emitError("could not load altLaunchKernel intrinsic.");
+        return;
+      }
+    if (altLaunchVersion == 2)
+      if (failed(irBuilder.loadIntrinsic(
+              module, cudaq::runtime::launchKernelVersion2FuncName))) {
+        module.emitError("could not load altLaunchKernel intrinsic.");
+        return;
+      }
 
     auto loc = module.getLoc();
     auto ptrType = cudaq::cc::PointerType::get(builder.getI8Type());
@@ -1526,37 +1619,47 @@ public:
             cudaq::opt::factory::toHostSideFuncType(funcTy, hasThisPtr, module);
       }
 
-      // Generate the function that computes the return offset.
-      genReturnOffsetFunction(loc, builder, funcTy, structTy, classNameStr);
+      func::FuncOp thunk;
+      func::FuncOp argsCreatorFunc;
 
-      // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
-      auto thunk = genThunkFunction(loc, builder, classNameStr, structTy,
-                                    funcTy, funcOp);
+      if (altLaunchVersion == 1) {
+        // Generate the function that computes the return offset.
+        genReturnOffsetFunction(loc, builder, funcTy, structTy, classNameStr);
 
-      // Generate the argsCreator function used by synthesis.
-      mlir::func::FuncOp argsCreatorFunc;
-      if (startingArgIdx == 0) {
-        argsCreatorFunc =
-            genKernelArgsCreatorFunction(loc, builder, funcTy, structTy,
-                                         classNameStr, hostFuncTy, hasThisPtr);
-      } else {
-        // We are operating in a very special case where we want the argsCreator
-        // function to ignore the first `startingArgIdx` arguments. In this
-        // situation, the argsCreator function will not be compatible with the
-        // other helper functions created in this pass, so it is assumed that
-        // the caller is OK with that.
-        auto structTy_argsCreator =
-            cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
-        argsCreatorFunc = genKernelArgsCreatorFunction(
-            loc, builder, funcTy, structTy_argsCreator, classNameStr,
-            hostFuncTy, hasThisPtr);
+        // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
+        thunk = genThunkFunction(loc, builder, classNameStr, structTy, funcTy,
+                                 funcOp);
+
+        // Generate the argsCreator function used by synthesis.
+        if (startingArgIdx == 0) {
+          argsCreatorFunc = genKernelArgsCreatorFunction(
+              loc, builder, funcTy, structTy, classNameStr, hostFuncTy,
+              hasThisPtr);
+        } else {
+          // We are operating in a very special case where we want the
+          // argsCreator function to ignore the first `startingArgIdx`
+          // arguments. In this situation, the argsCreator function will not be
+          // compatible with the other helper functions created in this pass, so
+          // it is assumed that the caller is OK with that.
+          auto structTy_argsCreator =
+              cudaq::opt::factory::buildInvokeStructType(funcTy,
+                                                         startingArgIdx);
+          argsCreatorFunc = genKernelArgsCreatorFunction(
+              loc, builder, funcTy, structTy_argsCreator, classNameStr,
+              hostFuncTy, hasThisPtr);
+        }
       }
 
       // Generate a new mangled function on the host side to call the
       // callback function.
-      if (hostEntryNeeded)
-        genNewHostEntryPoint(loc, builder, funcTy, structTy, kernelNameObj,
-                             thunk, hostFunc, hasThisPtr);
+      if (hostEntryNeeded) {
+        if (altLaunchVersion == 1)
+          genNewHostEntryPoint1(loc, builder, funcTy, structTy, kernelNameObj,
+                                thunk, hostFunc, hasThisPtr);
+        else
+          genNewHostEntryPoint2(loc, builder, funcTy, kernelNameObj, hostFunc,
+                                hasThisPtr);
+      }
 
       // Generate a function at startup to register this kernel as having
       // been processed for kernel execution.
@@ -1576,17 +1679,19 @@ public:
         builder.create<func::CallOp>(loc, std::nullopt, cudaqRegisterKernelName,
                                      ValueRange{castKernRef});
 
-        // Register the argsCreator too
-        auto ptrPtrType = cudaq::cc::PointerType::get(ptrType);
-        auto argsCreatorFuncType = FunctionType::get(
-            ctx, {ptrPtrType, ptrPtrType}, {builder.getI64Type()});
-        Value loadArgsCreator = builder.create<func::ConstantOp>(
-            loc, argsCreatorFuncType, argsCreatorFunc.getName());
-        auto castLoadArgsCreator = builder.create<cudaq::cc::FuncToPtrOp>(
-            loc, ptrType, loadArgsCreator);
-        builder.create<func::CallOp>(
-            loc, std::nullopt, cudaqRegisterArgsCreator,
-            ValueRange{castKernRef, castLoadArgsCreator});
+        if (altLaunchVersion == 1) {
+          // Register the argsCreator too
+          auto ptrPtrType = cudaq::cc::PointerType::get(ptrType);
+          auto argsCreatorFuncType = FunctionType::get(
+              ctx, {ptrPtrType, ptrPtrType}, {builder.getI64Type()});
+          Value loadArgsCreator = builder.create<func::ConstantOp>(
+              loc, argsCreatorFuncType, argsCreatorFunc.getName());
+          auto castLoadArgsCreator = builder.create<cudaq::cc::FuncToPtrOp>(
+              loc, ptrType, loadArgsCreator);
+          builder.create<func::CallOp>(
+              loc, std::nullopt, cudaqRegisterArgsCreator,
+              ValueRange{castKernRef, castLoadArgsCreator});
+        }
 
         // Check if this is a lambda mangled name
         auto demangledPtr = abi::__cxa_demangle(mangledName.str().c_str(),
