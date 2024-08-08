@@ -189,9 +189,14 @@ protected:
         return;
       }
 
-      // User state provided...
+      // Check if the pointer is a device pointer
+      cudaPointerAttributes attributes;
+      HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, state));
 
-      // FIXME handle case where pointer is a device pointer
+      if (attributes.type == cudaMemoryTypeDevice) {
+        throw std::runtime_error(
+          "[CuStateVecCircuitSimulator] Currently, not supporting device memory pointer to the state passed by the user");
+      }
 
       // First allocation, so just set the user provided data here
       ScopedTraceWithContext(
@@ -200,6 +205,7 @@ protected:
       HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
                                    stateDimension * sizeof(CudaDataType),
                                    cudaMemcpyHostToDevice));
+
       return;
     }
 
