@@ -29,4 +29,4 @@ int main() {
   return 0;
 }
 
-// CHECK: error: 'func.func' op synthesis: unsupported argument type for remote devices and simulators: state*
+// CHECK: error: 'func.func' op synthesis: unsupported argument type on quantum devices: state*

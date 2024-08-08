@@ -69,17 +69,19 @@ readSimulationStateData(mlir::ModuleOp moduleOp, mlir::func::FuncOp func,
 /// @brief Run the Quake Synth pass on the given kernel with provided runtime
 /// args.
 LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
-                            OwningOpRef<mlir::ModuleOp> &module, bool isRemote = false) {
+                            OwningOpRef<mlir::ModuleOp> &module,
+                            bool isRemote = false) {
   PassManager pm(module->getContext());
   module->getContext()->disableMultithreading();
   pm.enableIRPrinting();
-  auto kernelNameInQuake = std::string(cudaq::runtime::cudaqGenPrefixName) + std::string(kernelName);
+  auto kernelNameInQuake =
+      std::string(cudaq::runtime::cudaqGenPrefixName) + std::string(kernelName);
   auto funcOp = module->lookupSymbol<func::FuncOp>(kernelNameInQuake);
   auto stateData = isRemote
-    ? readSimulationStateData(*module, funcOp, rawArgs, 0)
-    : cudaq::opt::ArgumentDataStore();
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, 0, &stateData,
-                                                !isRemote));
+                       ? readSimulationStateData(*module, funcOp, rawArgs, 0)
+                       : cudaq::opt::ArgumentDataStore();
+  pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs, 0,
+                                                &stateData, !isRemote));
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
@@ -450,8 +452,7 @@ TEST(QuakeSynthTests, checkVectorOfPauliWord) {
 }
 
 TEST(QuakeSynthTests, checkStatePointerLocal) {
-  auto [colonel, state] =
-      cudaq::make_kernel<cudaq::state*>();
+  auto [colonel, state] = cudaq::make_kernel<cudaq::state *>();
   auto qubits = colonel.qalloc(state);
   colonel.h(qubits);
   colonel.mz(qubits);
@@ -479,8 +480,7 @@ TEST(QuakeSynthTests, checkStatePointerLocal) {
 }
 
 TEST(QuakeSynthTests, checkStatePointerRemote) {
- auto [colonel, state] =
-      cudaq::make_kernel<cudaq::state*>();
+  auto [colonel, state] = cudaq::make_kernel<cudaq::state *>();
   auto qubits = colonel.qalloc(state);
   colonel.h(qubits);
   colonel.mz(qubits);
@@ -506,7 +506,6 @@ TEST(QuakeSynthTests, checkStatePointerRemote) {
   EXPECT_TRUE(func.getArguments().empty());
   func.dump();
 }
-
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -473,7 +473,9 @@ public:
     // Default to all true, but allow the user to override to all false.
     if (getEnvBool("CUDAQ_CLIENT_REMOTE_CAPABILITY_OVERRIDE", true))
       return RemoteCapabilities(/*initValues=*/true);
-    return RemoteCapabilities(/*initValues=*/false);
+    auto capabilities = RemoteCapabilities(/*initValues=*/false);
+    capabilities.isRemoteSimulator = true;
+    return capabilities;
   }
 };
 
@@ -923,6 +925,7 @@ public:
         (funcEnv.majorVersion >= 1 && funcEnv.minorVersion >= 1);
     capabilities.vqe = funcEnv.majorVersion > 1 ||
                        (funcEnv.majorVersion >= 1 && funcEnv.minorVersion >= 1);
+    capabilities.isRemoteSimulator = true;
     return capabilities;
   }
 

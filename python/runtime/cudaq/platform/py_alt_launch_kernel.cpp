@@ -536,9 +536,8 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                        "' was not found in the module.");
 
   auto &platform = cudaq::get_platform();
-  auto isRemoteSimulator =
-      platform.get_remote_capabilities().serializedCodeExec;
-  auto isSameAddressSpace =
+  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
+  auto inProcess =
       platform.is_simulator() && !platform.is_emulated() && !isRemoteSimulator;
 
   auto stateData =
@@ -547,7 +546,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
           : cudaq::opt::ArgumentDataStore();
 
   pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, &stateData,
-                                                isSameAddressSpace));
+                                                inProcess));
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());

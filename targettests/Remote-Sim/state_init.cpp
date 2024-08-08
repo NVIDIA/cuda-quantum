@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
+// REQUIRES: c++20
 
 // clang-format off
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu %s -o %t && %t

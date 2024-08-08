@@ -492,45 +492,17 @@ protected:
   const cudaq::opt::ArgumentDataStore *stateData;
 
   // The program is executed in the same address space as the synthesis.
-  bool sameAddressSpace = false;
+  bool inProcess = false;
 
 public:
   QuakeSynthesizer() = default;
   QuakeSynthesizer(std::string_view kernel, const void *a, std::size_t s,
-                   const cudaq::opt::ArgumentDataStore *d, bool sameSpace)
+                   const cudaq::opt::ArgumentDataStore *d, bool p)
       : kernelName(kernel), args(a), startingArgIdx(s), stateData(d),
-        sameAddressSpace(sameSpace) {}
+        inProcess(p) {}
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
-<<<<<<< HEAD
-=======
-  std::pair<std::size_t, std::vector<std::size_t>>
-  getTargetLayout(FunctionType funcTy) {
-    auto bufferTy =
-        cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
-    StringRef dataLayoutSpec = "";
-    if (auto attr =
-            getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
-      dataLayoutSpec = cast<StringAttr>(attr);
-    llvm::DataLayout dataLayout{dataLayoutSpec};
-    // Convert bufferTy to llvm.
-    llvm::LLVMContext context;
-    LLVMTypeConverter converter(funcTy.getContext());
-    cudaq::opt::initializeTypeConversions(converter);
-    auto llvmDialectTy = converter.convertType(bufferTy);
-    LLVM::TypeToLLVMIRTranslator translator(context);
-    auto *llvmStructTy =
-        cast<llvm::StructType>(translator.translateType(llvmDialectTy));
-    auto *layout = dataLayout.getStructLayout(llvmStructTy);
-    auto strSize = layout->getSizeInBytes();
-    std::vector<std::size_t> fieldOffsets;
-    for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
-      fieldOffsets.emplace_back(layout->getElementOffset(i));
-    return {strSize, fieldOffsets};
-  }
-
->>>>>>> f7c7fe68ab62b6a2c43f5af1dcab911682726bda
   void runOnOperation() override final {
     auto module = getModule();
     unsigned counter = 0;
@@ -645,7 +617,7 @@ public:
 
       if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
         if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
-          if (sameAddressSpace) {
+          if (inProcess) {
             // Special case of a `cudaq::state*` which must be in the same
             // address space. This references a container to a set of simulation
             // amplitudes.
@@ -897,7 +869,7 @@ std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer() {
 
 std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeSynthesizer(
     std::string_view kernelName, const void *a, std::size_t startingArgIdx,
-    const ArgumentDataStore *stateData, bool sameAddressSpace) {
+    const ArgumentDataStore *stateData, bool inProcess) {
   return std::make_unique<QuakeSynthesizer>(kernelName, a, startingArgIdx,
-                                            stateData, sameAddressSpace);
+                                            stateData, inProcess);
 }
