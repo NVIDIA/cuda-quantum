@@ -8,9 +8,10 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 1> >(FileCheck %s) 2> >(FileCheck --check-prefix=QUAKE %s)
+// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt
 // RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Adonis.txt" "%t.dir/Adonis Variant.txt" && nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Adonis --mapping-file "%t.dir/Adonis Variant.txt" --emulate && %t
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t
+// RUN: rm -rf %t.txt %t.dir
 
 #include <cudaq.h>
 #include <iostream>
