@@ -61,12 +61,6 @@ Program Construction
     
     .. automethod:: __call__
 
-    .. .. autofunction:: qudit
-    .. .. autofunction:: plus
-    .. .. autofunction:: phase_shift
-    .. .. autofunction:: beam_splitter
-    .. .. autofunction:: mz
-
 
 .. autofunction:: kernel
     
