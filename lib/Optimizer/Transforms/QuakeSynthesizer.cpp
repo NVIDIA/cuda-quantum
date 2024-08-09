@@ -146,7 +146,7 @@ LogicalResult synthesizeStateArgument(OpBuilder &builder, ModuleOp module,
 
   // Iterate over the users of this state argument.
   for (auto *argUser : argument.getUsers()) {
-    // Replace a calls to runtime function that reads the number of qubits
+    // Replace a call to runtime function that reads the number of qubits
     // with the log of the length, which is a synthesized constant.
     if (auto numOfQubitsOp = dyn_cast<func::CallOp>(argUser)) {
       if (auto calleeAttr = numOfQubitsOp.getCalleeAttr()) {
