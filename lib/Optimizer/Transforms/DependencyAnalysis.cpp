@@ -370,12 +370,8 @@ protected:
         successor->schedule(current + numTicks() + successor->numTicks());
   }
 
-  virtual std::optional<std::string> getOpName() = 0;
-
   virtual bool equivalentTo(DependencyNode *other) {
-    if (!getOpName() || !other->getOpName())
-      return false;
-    if (getOpName().value() != other->getOpName().value())
+    if (getOpName() != other->getOpName())
       return false;
     if (height != other->height)
       return false;
@@ -415,6 +411,8 @@ public:
   virtual void performAnalysis(LifeTimeSet &set) {
     assert(false && "performAnalysis can only be called on an IfDependencyNode");
   }
+
+  virtual std::string getOpName() = 0;
 };
 
 class InitDependencyNode : public DependencyNode {
@@ -455,10 +453,6 @@ protected:
 
   VirtualQID getQID() { return qids.front(); }
 
-  virtual std::optional<std::string> getOpName() override {
-    return std::optional("init");
-  };
-
   std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
     assert(resultidx == 0 && "Invalid resultidx");
     return std::optional(getQID());
@@ -472,6 +466,10 @@ public:
     // Lookup qid
     auto qid = op->getAttrOfType<IntegerAttr>("qid").getUInt();
     qids.insert(qid);
+  };
+
+  virtual std::string getOpName() override {
+    return "init";
   };
 };
 
@@ -556,22 +554,6 @@ protected:
         successor->codeGen(builder, set);
   }
 
-  std::optional<std::string> getOpName() override {
-    if (isa<arith::ConstantOp>(associated)) {
-      if (auto cstf = dyn_cast<arith::ConstantFloatOp>(associated)) {
-        auto value = cstf.getValue().cast<FloatAttr>().getValueAsDouble();
-        return std::optional(std::to_string(value));
-      } else if (auto csti = dyn_cast<arith::ConstantIndexOp>(associated)) {
-        auto value = cstf.getValue().cast<IntegerAttr>().getInt();
-        return std::optional(std::to_string(value));
-      } else if (auto csti = dyn_cast<arith::ConstantIntOp>(associated)) {
-        auto value = cstf.getValue().cast<IntegerAttr>().getInt();
-        return std::optional(std::to_string(value));
-      }
-    }
-    return std::optional(associated->getName().getStringRef().str());
-  };
-
   std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
     if (!isQuantumOp())
       return std::nullopt;
@@ -634,6 +616,22 @@ public:
       }
     }
   }
+
+  std::string getOpName() override {
+    if (isa<arith::ConstantOp>(associated)) {
+      if (auto cstf = dyn_cast<arith::ConstantFloatOp>(associated)) {
+        auto value = cstf.getValue().cast<FloatAttr>().getValueAsDouble();
+        return std::to_string(value);
+      } else if (auto csti = dyn_cast<arith::ConstantIndexOp>(associated)) {
+        auto value = cstf.getValue().cast<IntegerAttr>().getInt();
+        return std::to_string(value);
+      } else if (auto csti = dyn_cast<arith::ConstantIntOp>(associated)) {
+        auto value = cstf.getValue().cast<IntegerAttr>().getInt();
+        return std::to_string(value);
+      }
+    }
+    return associated->getName().getStringRef().str();
+  };
 };
 
 class DependencyGraph {
@@ -892,10 +890,6 @@ protected:
 
   ValueRange getResults() override { return ValueRange({barg}); }
 
-  virtual std::optional<std::string> getOpName() override {
-    return std::optional(std::to_string(barg.getArgNumber()).append("arg"));
-  };
-
   void codeGen(OpBuilder &builder, LifeTimeSet &set) override{};
 
   std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
@@ -911,6 +905,10 @@ public:
   }
 
   ArgDependencyNode(BlockArgument arg) : barg(arg) {}
+
+  virtual std::string getOpName() override {
+    return std::to_string(barg.getArgNumber()).append("arg");
+  };
 };
 
 class TerminatorDependencyNode : public OpDependencyNode {
@@ -994,6 +992,10 @@ public:
 
   OpDependencyNode *getFirstUseOf(VirtualQID qid) {
     return graphMap[qid]->getFirstUseOf(qid);
+  }
+
+  OpDependencyNode *getLastUseOf(VirtualQID qid) {
+    return graphMap[qid]->getLastUseOf(qid);
   }
 
   SetVector<PhysicalQID> mapToPhysical(LifeTimeSet &set) {
