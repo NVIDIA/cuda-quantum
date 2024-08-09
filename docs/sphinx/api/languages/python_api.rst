@@ -246,3 +246,4 @@ Photonics Submodule
 .. automethod:: cudaq.photonics::allocate_qudit
 .. automethod:: cudaq.photonics::apply_operation
 .. automethod:: cudaq.photonics::measure
+.. automethod:: cudaq.photonics::release_qudit
