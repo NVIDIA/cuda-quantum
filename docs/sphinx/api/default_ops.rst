@@ -643,7 +643,7 @@ These operations are valid only on the `photonics` target which does not support
 :code:`plus`
 ---------------------
 
-This operation TBD.
+This is a place-holder, to be updated later.
 
 .. tab:: Python
 
@@ -662,7 +662,7 @@ This operation TBD.
 :code:`phase_shift`
 ---------------------
 
-This operation TBD.
+This is a place-holder, to be updated later.
 
 .. tab:: Python
 
@@ -681,7 +681,7 @@ This operation TBD.
 :code:`beam_splitter`
 ---------------------
 
-This operation TBD.
+This is a place-holder, to be updated later.
 
 .. tab:: Python
 
