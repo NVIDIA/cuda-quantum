@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
 from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 class OperatorSum:
     """
@@ -67,7 +68,9 @@ class OperatorSum:
         """
         The degrees of freedom that the operator acts on in canonical order.
         """
-        return [degree for term in self._terms for op in term._operators for degree in op._degrees]
+        degrees = list(set((degree for term in self._terms for op in term._operators for degree in op._degrees)))
+        degrees.sort() # Sorted in canonical order to match the to_matrix method.
+        return degrees
 
     @property
     def parameters(self: OperatorSum) -> Mapping[str, str]:

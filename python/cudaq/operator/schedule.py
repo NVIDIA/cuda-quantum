@@ -1,9 +1,8 @@
 from __future__ import annotations
-from collections import Iterator
+from collections.abc import Iterator
 from typing import Any, Callable, Iterable, Optional
 
 from .helpers import NumericType
-from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 class Schedule(Iterator):
     """
@@ -12,7 +11,7 @@ class Schedule(Iterator):
     """
 
     # The output type of the iterable steps must match the second argument of `get_value`.
-    def __init__(self: Schedule, steps: Iterable[Any], parameters: Iterable[str], get_value: Callable[[str, Any], NumericType]) -> None:
+    def __init__(self: Schedule, steps: Iterable[Any], parameters: Iterable[str], get_value: Optional[Callable[[str, Any], NumericType]] = None) -> None:
         """
         Creates a schedule for evaluating an operator expression at different steps.
 
@@ -23,12 +22,30 @@ class Schedule(Iterator):
                 operator expression.
             get_value: A function that takes the name of a parameter as well as an 
                 additional value ("step") of arbitrary type as argument and returns the 
-                complex value for that parameter at the given step.
+                complex value for that parameter at the given step. If this function is 
+                not provided, then the steps must be of a numeric type, and the value
+                of each parameter will be set to the step value. 
         """
         self._iterator = iter(steps)
-        self._parameters = parameters
-        self._get_value = get_value
         self._current_step = None
+        self._parameters = parameters
+        if get_value is None:
+            self._get_value : Callable[[str, Any], NumericType] = self._operator_parameter
+        else:
+            self._get_value = get_value
+
+    @property
+    def _operator_parameter(self: Schedule) -> Callable[[str, NumericType], NumericType]:
+        """
+        Helper function used in the case when no custom callable to
+        retrieve parameter values is defined in the instantiation.
+        """
+        def resolve_parameter(name: str, value: Any) -> NumericType:
+            if name in self._parameters:
+                if isinstance(value, (complex, float, int)): return value
+                else: raise TypeError("step value is not a numeric type but now function has been defined to compute a numeric type")
+            else: raise NotImplementedError(f'unknown parameter {name}')
+        return resolve_parameter
 
     @property
     def current_step(self: Schedule) -> Optional[Any]:

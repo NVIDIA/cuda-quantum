@@ -5,6 +5,7 @@ from typing import Generic, TypeVar
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 TEval = TypeVar('TEval')
 class OperatorArithmetics(ABC, Generic[TEval]):

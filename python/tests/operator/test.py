@@ -1,5 +1,6 @@
-import cudaq, numpy, operator
+import cudaq, inspect, numpy, operator, sys, types, uuid
 from cudaq.operator import *
+from typing import Any, Optional
 
 dims = {0: 2, 1: 2, 2: 2, 3: 2, 4: 2}
 
@@ -255,3 +256,73 @@ print(paulixy(0,0) + paulizy(0,0) == paulizy(0,0) + paulixy(0,0))
 print(paulixy(0,0) * paulizy(0,0) == paulizy(0,0) * paulixy(0,0))
 print(paulixy(1,1) * paulizy(0,0) == paulizy(0,0) * paulixy(1,1)) # We have multiple terms acting on the same degree of freedom, so we don't try to reorder here.
 print(paulixy(1,2) * paulizy(3,4) == paulizy(3,4) * paulixy(1,2))
+
+def tranverse_field(num_qubits: int, field_strength: ScalarOperator) -> Operator:
+    operator = OperatorSum()
+    for i in range(num_qubits):
+        operator += field_strength * pauli.x(i)
+    return operator
+
+def ising_chain(num_qubits: int, coupling_strength: ScalarOperator) -> Operator:
+    operator = OperatorSum()
+    for i in range(1, num_qubits):
+        operator += coupling_strength * pauli.z(i-1) * pauli.z(i)
+    return operator
+
+num_qubits = 5
+start_time, end_time = 0, 1
+field_coeff, coupling_coeff = 1.0, 1.0
+num_steps = 10
+
+time = ScalarOperator(lambda time: time)
+field_strength = field_coeff * (1 - time)
+coupling_strength = coupling_coeff * time
+
+hamiltonian = ising_chain(num_qubits, field_strength) + tranverse_field(num_qubits, coupling_strength)
+dimensions = dict([(i, 2) for i in hamiltonian.degrees])
+energy = hamiltonian
+# FIXME: IMPLEMENT DIVISION ETC WITH NUMERICTYPE AND SCALAROPS FOR OPERATORS
+magnetization = 1/num_qubits * tranverse_field(num_qubits, operators.const(1))
+cost_function = ising_chain(num_qubits, operators.const(coupling_coeff))
+
+uniform_superposition = numpy.ones(2**num_qubits, dtype=numpy.complex128) / numpy.sqrt(2**num_qubits)
+all_zero_state = numpy.array([1] + (2**num_qubits - 1) * [0], dtype=numpy.complex128)
+
+steps = numpy.linspace(start_time, end_time, num_steps)
+schedule = Schedule(steps, ["time"])
+#evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, 
+#                          observables = [energy, magnetization, cost_function],
+#                          store_intermediate_results = True)
+
+# FIXME: convert to list to not duplicate
+print("Evolve on default simulator:")
+schedule = list(Schedule(steps, ["time"]))
+evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition)
+evolution_result.final_state.dump()
+print("Evolve asynchronous on default simulator:")
+evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition)
+evolution_result.final_state.get().dump()
+
+@cudaq.kernel
+def foo():
+    qs = cudaq.qvector(2)
+    h(qs[0])
+    cx(qs[0], qs[1])
+@cudaq.kernel
+def bar(init_state: cudaq.State):
+    cudaq.qvector(init_state)
+
+state = cudaq.get_state(foo)
+#res = cudaq.sample(bar, state)
+#res.dump()
+print(type(type(state)))
+
+print("Evolve with intermediate states on default simulator:")
+evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
+for state in evolution_result.intermediate_states: state.dump()
+evolution_result.final_state.dump()
+print("Evolve asynchronous with intermediate states on default simulator:")
+
+# FIXME: convert cost_function to spin_ops
+# cudaq.observe(time_evolution, cost_function)
+
