@@ -183,11 +183,8 @@ static LogicalResult synthesizeStateArgument(OpBuilder &builder,
                                              ModuleOp module, unsigned &counter,
                                              BlockArgument argument, Type eleTy,
                                              void *data, std::size_t size) {
-  std::vector<T> vec;
-  for (std::size_t i = 0; i < size; i++) {
-    auto elePtr = reinterpret_cast<T *>(data) + i;
-    vec.push_back(*elePtr);
-  }
+  auto *castData =  reinterpret_cast<T *>(data);
+  std::vector<T> vec(castData, castData + size);
   return synthesizeStateArgument(builder, module, counter, argument, eleTy,
                                  vec);
 }
