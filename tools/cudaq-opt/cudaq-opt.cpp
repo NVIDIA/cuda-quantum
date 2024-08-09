@@ -62,6 +62,7 @@ int main(int argc, char **argv) {
   cudaq::opt::registerUnrollingPipeline();
   cudaq::opt::registerToExecutionManagerCCPipeline();
   cudaq::opt::registerTargetPipelines();
+  cudaq::opt::registerWireSetToProfileQIRPipeline();
 
   // See if we have been asked to load a pass plugin,
   // if so load it.

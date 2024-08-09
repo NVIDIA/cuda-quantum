@@ -202,6 +202,16 @@ extern "C" {
 void print_i64(const char *msg, std::size_t i) { printf(msg, i); }
 void print_f64(const char *msg, double f) { printf(msg, f); }
 
+/// @brief Return whether or not the NVQIR runtime is running with dynamic qubit
+/// management (qubits are pointers) or not (qubits are integers).
+bool __quantum__rt__is_dynamic_qubit_management() { return !qubitPtrIsIndex; }
+
+/// @brief Set whether or not the NVQIR runtime is running with dynamic qubit
+/// management (qubits are pointers) or not (qubits are integers).
+void __quantum__rt__set_dynamic_qubit_management(bool isDynamic) {
+  qubitPtrIsIndex = !isDynamic;
+}
+
 /// @brief QIR Initialization function
 void __quantum__rt__initialize(int argc, int8_t **argv) {
   if (!initialized) {

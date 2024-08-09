@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToCC.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -245,6 +246,7 @@ struct WireSetToProfileQIRPass
   void runOnOperation() override {
     auto op = getOperation();
     auto *context = &getContext();
+    OpBuilder builder(op);
     DenseMap<Operation *, StringRef> regNameMap;
     op.walk([&](quake::DiscriminateOp disc) {
       auto meas = disc.getMeasurement().getDefiningOp<quake::MzOp>();
@@ -254,6 +256,16 @@ struct WireSetToProfileQIRPass
       else
         regNameMap[disc.getOperation()] = "?";
     });
+    std::optional<std::uint32_t> highestIdentity;
+    op.walk([&](quake::BorrowWireOp op) {
+      highestIdentity = highestIdentity
+                            ? std::max(*highestIdentity, op.getIdentity())
+                            : op.getIdentity();
+    });
+    if (highestIdentity)
+      op->setAttr(cudaq::opt::QIRRequiredQubitsAttrName,
+                  builder.getStringAttr(std::to_string(*highestIdentity + 1)));
+
     RewritePatternSet patterns(context);
     QuakeTypeConverter quakeTypeConverter;
     unsigned resultCounter = 0;
@@ -278,6 +290,11 @@ struct WireSetToProfileQIRPass
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
+
+    if (highestIdentity)
+      op->setAttr(cudaq::opt::QIRRequiredResultsAttrName,
+                  builder.getStringAttr(std::to_string(resultCounter)));
+
     LLVM_DEBUG(llvm::dbgs() << "Module after:\n"; op.dump());
   }
 };
@@ -419,6 +436,9 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
     wopt.convertTo = profile.str();
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createWireSetToProfileQIR(wopt));
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPost());
+  // Perform final cleanup for other dialect conversions (like func.func)
+  pm.addPass(cudaq::opt::createConvertToQIR());
+  cudaq::opt::addQIRProfilePipeline(pm, profile, /*performPrep=*/false);
 }
 
 // Pipeline option: let the user specify the profile name.

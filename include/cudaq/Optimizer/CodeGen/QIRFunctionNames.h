@@ -73,6 +73,13 @@ static constexpr const char QIRArrayConcatArray[] =
 static constexpr const char QIRArrayCreateArray[] =
     "__quantum__rt__array_create_1d";
 
+/// Dynamic qubit management helper functions. These are currently only used by
+/// the NVQIR simulator.
+static constexpr const char QIRisDynamicQubitManagement[] =
+    "__quantum__rt__is_dynamic_qubit_management";
+static constexpr const char QIRsetDynamicQubitManagement[] =
+    "__quantum__rt__set_dynamic_qubit_management";
+
 /// QIR Base/Adaptive Profile record output function names
 static constexpr const char QIRRecordOutput[] =
     "__quantum__rt__result_record_output";
