@@ -47,8 +47,6 @@ def test_qudit_list():
     assert '11' in counts
 
 
-@pytest.mark.skip(
-    reason="Skip the tests which throw / raise to check CI status")
 def test_qudit_invalid():
 
     @cudaq.kernel
@@ -111,8 +109,6 @@ def test_target_change():
     assert len(res) == 2 and '00' in res and '11' in res
 
 
-@pytest.mark.skip(
-    reason="Skip the tests which throw / raise to check CI status")
 def test_unsupported_gates():
 
     @cudaq.kernel
@@ -126,7 +122,11 @@ def test_unsupported_gates():
 
 
 @pytest.mark.skip(
-    reason="Skip the tests which throw / raise to check CI status")
+    reason=
+    "This failing test causes a crash on subsequent test when running in CI. \
+    (python/tests/kernel/test_adjoint_operations.py::test_sdg_1_state) \
+    Need to check if the fix for https://github.com/NVIDIA/cuda-quantum/issues/1717 also solves this."
+)
 def test_unsupported_types():
 
     @cudaq.kernel
@@ -148,8 +148,6 @@ def test_unsupported_types():
     assert "Qudit level not set" in repr(e)
 
 
-@pytest.mark.skip(
-    reason="Skip the tests which throw / raise to check CI status")
 def test_target_handler():
     cudaq.reset_target()
 
@@ -163,8 +161,6 @@ def test_target_handler():
         cudaq.sample(kernel)
 
 
-@pytest.mark.skip(
-    reason="Skip the tests which throw / raise to check CI status")
 def test_qudit_level():
 
     @cudaq.kernel
