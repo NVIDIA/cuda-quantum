@@ -71,8 +71,6 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
                  std::size_t startingArgIdx = 0) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
   auto mod = unwrap(module);
-  auto cloned = mod.clone();
-  auto context = cloned.getContext();
 
   // Do not cache the JIT if we are running with startingArgIdx > 0 because a)
   // we won't be executing right after JIT-ing, and b) we might get called later
@@ -94,6 +92,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     ScopedTraceWithContext(cudaq::TIMING_JIT,
                            "jitAndCreateArgs - execute passes", name);
 
+    auto cloned = mod.clone();
+    auto context = cloned.getContext();
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(
         cudaq::opt::createPySynthCallableBlockArgs(names));
