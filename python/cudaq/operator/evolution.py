@@ -182,6 +182,7 @@ class AsyncEvolveResult:
         final state. This property is only populated saving intermediate results was 
         requested in the call to `cudaq.evolve_async`.
         """
+        print("hello")
         return self._states
 
     @property
@@ -258,7 +259,7 @@ def _create_kernel(name: str, hamiltonian: Operator, schedule: Schedule, initial
 def _create_kernels(name: str, 
                     hamiltonian: Operator, 
                     schedule: Schedule, 
-                    initial_state = None) -> Generator[Callable[[Optional[cudaq_runtime.State]], PyKernelDecorator]]:
+                    initial_state = None) -> Generator[PyKernelDecorator]:
     operation_names = _register_evolution_kernels(hamiltonian, schedule)
     num_qubits = len(hamiltonian.degrees)
     for op_idx, operation_name in enumerate(operation_names):
@@ -266,23 +267,21 @@ def _create_kernels(name: str,
         else: srcCode = f"def {name}_{op_idx}(init_state: cudaq.State):\n"
 
         if op_idx == 0 and initial_state is None: qvec_arg = str(num_qubits)
-        elif op_idx == 0: qvec_arg = ', '.join([str(value) for value in initial_state]) # FIXME: precision
+        elif op_idx == 0: qvec_arg = f"[{', '.join([str(value) for value in initial_state])}]" # FIXME: precision
         else: qvec_arg = "init_state"
-        srcCode += f"\tqs = cudaq.qvector([{qvec_arg}])\n"
+        srcCode += f"\tqs = cudaq.qvector({qvec_arg})\n"
 
         arguments = [f"qs[{i}]" for i in range(num_qubits)]
         srcCode += f"\t{operation_name}({', '.join(arguments)})\n"
 
-        def create_decorator(previous_state: Optional[cudaq_runtime.State]):
-            signature : dict[str, Any] = {}
-            if previous_state is not None:
-                signature["init_state"] = type(previous_state)
-            return PyKernelDecorator(f"evolution_kernel", # FIXME: ??
-                                     kernelName = f"{name}_{op_idx}",
-                                     funcSrc = srcCode,
-                                     signature = signature,
-                                     location = (__file__, sys._getframe().f_lineno))
-        yield create_decorator
+        signature : dict[str, Any] = {}
+        if op_idx != 0:
+            signature["init_state"] = cudaq_runtime.State
+        yield PyKernelDecorator(f"evolution_kernel", # FIXME: ??
+                                 kernelName = f"{name}_{op_idx}",
+                                 funcSrc = srcCode,
+                                 signature = signature,
+                                 location = (__file__, sys._getframe().f_lineno))
 
 # Top level API for the CUDA-Q master equation solver.
 def evolve(hamiltonian: Operator, 
@@ -345,13 +344,9 @@ def evolve(hamiltonian: Operator,
     if store_intermediate_results:
         evolution = _create_kernels("time_evolution", hamiltonian, schedule, initial_state)
         states = []
-        for create_kernel in evolution:
-            if len(states) == 0: 
-                kernel = create_kernel(None)
-                intermediate_state = cudaq_runtime.get_state(kernel)
-            else: 
-                kernel = create_kernel(states[-1])
-                intermediate_state = cudaq_runtime.get_state(kernel, states[-1])
+        for kernel in evolution:
+            if len(states) == 0: intermediate_state = cudaq_runtime.get_state(kernel)
+            else: intermediate_state = cudaq_runtime.get_state(kernel, states[-1])
             states.append(intermediate_state)
         return EvolveResult(states)
     else:
@@ -393,9 +388,22 @@ def evolve_async(hamiltonian: Operator,
         raise ValueError("collapse operators can only be defined when using the nvidia-dynamics target")
 
     # FIXME: implement
-    if len(observables) > 0 or store_intermediate_results:
+    if len(observables) > 0:
         raise NotImplementedError()
-    evolution = _create_kernel("time_evolution", hamiltonian, schedule, initial_state)
-    final_state = cudaq_runtime.get_state_async(evolution)
-    return AsyncEvolveResult(final_state)
+
+    if store_intermediate_results:
+        evolution = _create_kernels("time_evolution", hamiltonian, schedule, initial_state)
+        states = []
+        for kernel in evolution:
+            if len(states) == 0: intermediate_state = cudaq_runtime.get_state_async(kernel)
+            else: # FIXME: can we manually create a AsyncStateResult to not wait here?
+                # FIXME: inlining the expression to get the previous state here causes a segfault
+                previous_state = states[-1].get()
+                intermediate_state = cudaq_runtime.get_state_async(kernel, previous_state)
+            states.append(intermediate_state)
+        return AsyncEvolveResult(states)
+    else:
+        evolution = _create_kernel("time_evolution", hamiltonian, schedule, initial_state)
+        final_state = cudaq_runtime.get_state_async(evolution)
+        return AsyncEvolveResult(final_state)
 

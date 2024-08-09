@@ -303,25 +303,17 @@ print("Evolve asynchronous on default simulator:")
 evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition)
 evolution_result.final_state.get().dump()
 
-@cudaq.kernel
-def foo():
-    qs = cudaq.qvector(2)
-    h(qs[0])
-    cx(qs[0], qs[1])
-@cudaq.kernel
-def bar(init_state: cudaq.State):
-    cudaq.qvector(init_state)
-
-state = cudaq.get_state(foo)
-#res = cudaq.sample(bar, state)
-#res.dump()
-print(type(type(state)))
-
 print("Evolve with intermediate states on default simulator:")
 evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
 for state in evolution_result.intermediate_states: state.dump()
 evolution_result.final_state.dump()
 print("Evolve asynchronous with intermediate states on default simulator:")
+evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
+#for state in evolution_result.intermediate_states: 
+    # FIXME: trying to get a state results in a "no associated state"
+    # possibly we are overwriting something?
+    #state.get().dump()
+evolution_result.final_state.get().dump()
 
 # FIXME: convert cost_function to spin_ops
 # cudaq.observe(time_evolution, cost_function)
