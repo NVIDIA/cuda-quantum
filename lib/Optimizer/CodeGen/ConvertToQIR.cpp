@@ -217,7 +217,7 @@ cudaq::opt::getFunctionArgumentLayout(mlir::ModuleOp module,
   auto funcTy = func.getFunctionType();
   auto bufferTy =
       cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
-  mlir::StringRef dataLayoutSpec = "";
+  StringRef dataLayoutSpec;
   if (auto attr =
           module->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
     dataLayoutSpec = cast<mlir::StringAttr>(attr);
