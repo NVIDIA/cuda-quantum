@@ -15,6 +15,7 @@ add_cudaq_library(OptTransforms
   AggressiveEarlyInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
+  ArgumentSynthesis.cpp
   AssignIDs.cpp
   BasisConversion.cpp
   CombineQuantumAlloc.cpp
@@ -50,6 +51,7 @@ add_cudaq_library(OptTransforms
   RefToVeqAlloc.cpp
   RegToMem.cpp
   StatePreparation.cpp
+  WiresToWiresets.cpp
 
   DEPENDS
     OptTransformsPassIncGen

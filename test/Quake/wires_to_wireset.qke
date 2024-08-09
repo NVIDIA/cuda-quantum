@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --add-wireset --assign-wire-indices %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__run_test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
+  cc.if(%2) {
+    %3 = quake.null_wire
+    %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+    %measOut_0, %wires_1 = quake.mz %4 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.sink %wires_1 : !quake.wire
+  } else {
+  }
+  quake.sink %wires : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   quake.wire_set @wires[2147483647]
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__run_test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_4]]) {
+// CHECK:             %[[VAL_5:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:             %[[VAL_6:.*]] = quake.h %[[VAL_5]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_6]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:             quake.return_wire %[[VAL_8]] : !quake.wire
+// CHECK:           }
+// CHECK:           quake.return_wire %[[VAL_3]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
