@@ -1357,10 +1357,11 @@ class PyASTBridge(ast.NodeVisitor):
                                                                  name]
                 fType = otherKernel.type
                 if len(fType.inputs) != len(node.args):
+                    funcName = node.func.id if hasattr(node.func,
+                                                       'id') else node.func.attr
                     self.emitFatalError(
-                        "invalid number of arguments passed to callable {} ({} vs required {})"
-                        .format(node.func.id, len(node.args),
-                                len(fType.inputs)), node)
+                        f"invalid number of arguments passed to callable {funcName} ({len(node.args)} vs required {len(fType.inputs)})",
+                        node)
 
                 [self.visit(arg) for arg in node.args]
                 values = [self.popValue() for _ in node.args]

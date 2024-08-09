@@ -13,7 +13,15 @@ get_filename_component(PARENT_DIRECTORY ${NVQIR_CMAKE_DIR} DIRECTORY)
 
 find_dependency(CUDAQSpin REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
 find_dependency(CUDAQCommon REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
-find_dependency(fmt REQUIRED HINTS "${PARENT_DIRECTORY}/cudaq")
+find_package(fmt QUIET)
+if (NOT fmt_FOUND)
+  include(FetchContent)
+  FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt
+    GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+  FetchContent_MakeAvailable(fmt)
+endif()
 
 if(NOT TARGET nvqir::nvqir)
     include("${NVQIR_CMAKE_DIR}/NVQIRTargets.cmake")
