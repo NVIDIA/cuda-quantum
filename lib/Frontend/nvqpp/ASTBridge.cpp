@@ -50,11 +50,18 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
   return result;
 }
 
-// Does `ty` refer to a Quake quantum type? This also checks custom recursive
-// types. It does not check builtin recursive types; e.g., `!llvm.ptr<T>`.
+// Does `ty` refer to a Quake quantum type? This also checks CC Dialect
+// recursive types. It does not check builtin recursive types; e.g.,
+// `!llvm.ptr<T>`.
 static bool isQubitType(Type ty) {
-  if (ty.isa<quake::RefType, quake::VeqType>())
+  if (isa<quake::RefType, quake::VeqType>(ty))
     return true;
+
+  if (auto structTy = dyn_cast<cudaq::cc::StructType>(ty))
+    for (auto memberTy : structTy.getMembers())
+      if (isQubitType(memberTy))
+        return true;
+
   // FIXME: next if case is a bug.
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
     return isQubitType(vecTy.getElementType());
@@ -70,6 +77,7 @@ static bool hasAnyQubitTypes(FunctionType funcTy) {
   for (auto ty : funcTy.getResults())
     if (isQubitType(ty))
       return true;
+
   return false;
 }
 
@@ -335,6 +343,18 @@ private:
 
 #ifndef NDEBUG
 namespace cudaq::details {
+bool QuakeBridgeVisitor::isQuantumStructType(Type ty) {
+  auto structTy = dyn_cast<cc::StructType>(ty);
+  if (!structTy)
+    return false;
+
+  for (auto member : structTy.getMembers())
+    if (quake::isQuantumType(member))
+      return true;
+
+  return false;
+}
+
 bool QuakeBridgeVisitor::pushValue(Value v) {
   LLVM_DEBUG(llvm::dbgs() << std::string(valueStack.size(), ' ')
                           << "+push value: ";
