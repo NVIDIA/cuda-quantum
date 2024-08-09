@@ -633,3 +633,86 @@ operations, each operating on 2 qubits.
 
   Custom operations are currently supported only on :doc:`../using/backends/simulators`.
   Attempt to use with a hardware backend will result in runtime error.
+
+
+Photonic Operations on Qudits
+=============================
+
+These operations are valid only on the `photonics` target which does not support the quantum operations above.
+
+:code:`plus`
+---------------------
+
+This operation TBD.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        q = qudit(3)
+        plus(q)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qvector<3> q(1);
+        plus(q[0]);
+
+:code:`phase_shift`
+---------------------
+
+This operation TBD.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        q = qudit(4)
+        phase_shift(q, 0.17)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qvector<4> q(1);
+        phase_shift(q[0], 0.17);
+
+:code:`beam_splitter`
+---------------------
+
+This operation TBD.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        q = [qudit(3) for _ in range(2)]
+        beam_splitter(q[0], q[1], 0.34)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qvector<3> q(2);
+        beam_splitter(q[0], q[1], 0.34);
+
+:code:`mz`
+---------------------
+
+This operation returns the measurement results of the input qudit(s).
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        qutrits = [qudit(3) for _ in range(2)]
+        mz(qutrits)
+
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qvector<3> qutrits(2);
+        mz(qutrits);
