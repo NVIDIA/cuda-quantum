@@ -7,7 +7,9 @@
 # ============================================================================ #
 
 from dataclasses import dataclass
+from __future__ import annotations
 from typing import List
+
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # The qudit level must be explicitly defined
@@ -33,7 +35,7 @@ class PyQudit:
         cudaq_runtime.photonics.release_qudit(self.level, self.id)
 
 
-def check_qudit_type(q):
+def _check_qudit_type(q):
     """
     Utility function to check whether the input argument is instance of 
     `PyQudit` class.
@@ -47,7 +49,7 @@ def check_qudit_type(q):
         )
 
 
-def check_args(q: PyQudit | List[PyQudit]):
+def _check_args(q: PyQudit | List[PyQudit]):
     """
     Utility function to verify the arguments to a photonic quantum operation.
 
@@ -65,9 +67,9 @@ def check_args(q: PyQudit | List[PyQudit]):
 
     if isinstance(q, List):
         for qudit in q:
-            check_qudit_type(qudit)
+            _check_qudit_type(qudit)
     else:
-        check_qudit_type(q)
+        _check_qudit_type(q)
 
 
 def qudit(level: int) -> PyQudit:
@@ -108,7 +110,7 @@ def plus(qudit: PyQudit):
         RuntimeError: If the qudit level is not set.
         Exception: If input argument is not instance of `PyQudit` class.
     """
-    check_args(qudit)
+    _check_args(qudit)
     cudaq_runtime.photonics.apply_operation('plusGate', [],
                                             [[qudit.level, qudit.id]])
 
@@ -126,7 +128,7 @@ def phase_shift(qudit: PyQudit, phi: float):
         RuntimeError: If the qudit level is not set.
         Exception: If input argument is not instance of `PyQudit` class.
     """
-    check_args(qudit)
+    _check_args(qudit)
     cudaq_runtime.photonics.apply_operation('phaseShiftGate', [phi],
                                             [[qudit.level, qudit.id]])
 
@@ -145,7 +147,7 @@ def beam_splitter(q: PyQudit, r: PyQudit, theta: float):
         RuntimeError: If the qudit level is not set.
         Exception: If input argument is not instance of `PyQudit` class.
     """
-    check_args([q, r])
+    _check_args([q, r])
     cudaq_runtime.photonics.apply_operation('beamSplitterGate', [theta],
                                             [[q.level, q.id], [r.level, r.id]])
 
@@ -164,7 +166,7 @@ def mz(qudits: PyQudit | List[PyQudit], register_name=''):
         RuntimeError: If the qudit level is not set.
         Exception: If input argument is not instance of `PyQudit` class.
     """
-    check_args(qudits)
+    _check_args(qudits)
     if isinstance(qudits, PyQudit):
         return cudaq_runtime.photonics.measure(qudits.level, qudits.id,
                                                register_name)
