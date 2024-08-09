@@ -23,7 +23,7 @@ using namespace mlir;
 // Generated logic
 //===----------------------------------------------------------------------===//
 namespace cudaq::opt {
-#define GEN_PASS_DEF_WIRESTOWIRESETS
+#define GEN_PASS_DEF_ASSIGNWIREINDICES
 #define GEN_PASS_DEF_ADDWIRESET
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
@@ -67,9 +67,9 @@ public:
 // Pass implementation
 //===----------------------------------------------------------------------===//
 
-struct WiresToWiresetsPass
-    : public cudaq::opt::impl::WiresToWiresetsBase<WiresToWiresetsPass> {
-  using WiresToWiresetsBase::WiresToWiresetsBase;
+struct AssignWireIndicesPass
+    : public cudaq::opt::impl::AssignWireIndicesBase<AssignWireIndicesPass> {
+  using AssignWireIndicesBase::AssignWireIndicesBase;
 
   void runOnOperation() override {
     func::FuncOp func = getOperation();
