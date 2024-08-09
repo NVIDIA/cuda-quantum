@@ -75,6 +75,7 @@ POSIX
 PSIRT
 Pauli
 Paulis
+Photonics
 PyPI
 Pygments
 QAOA
