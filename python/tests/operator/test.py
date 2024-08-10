@@ -308,13 +308,29 @@ evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superpositi
 for state in evolution_result.intermediate_states: state.dump()
 evolution_result.final_state.dump()
 print("Evolve asynchronous with intermediate states on default simulator:")
+# FIXME: trying to get a state results in a "no associated state"
+# Edit: I think the issue is calling state.get() twice.
 evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
 #for state in evolution_result.intermediate_states: 
-    # FIXME: trying to get a state results in a "no associated state"
-    # possibly we are overwriting something?
     #state.get().dump()
 evolution_result.final_state.get().dump()
 
-# FIXME: convert cost_function to spin_ops
-# cudaq.observe(time_evolution, cost_function)
+# FIXME: need to replace the spin_ops that observable take with a more generic version
+cost_function = pauli.z(0) * pauli.z(1)
+for i in range(2, num_qubits):
+    cost_function += pauli.z(i-1) * pauli.z(i)
+
+print("Evolve + observe on default simulator:")
+evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function])
+print(f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values]}")
+
+print("Evolve + observe asynchronous on default simulator:")
+# FIXME: segfaults after completion - check after fixing the no associated state issue above
+#evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function])
+#print(f"final expectation values: {[res.get().expectation() for res in evolution_result.final_expectation_values]}")
+
+print("Evolve + observe asynchronous with intermediate results on default simulator:")
+# FIXME: segfaults after completion - check after fixing the no associated state issue above
+#evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function], store_intermediate_results = True)
+#print(f"final expectation values: {[res.get().expectation() for res in evolution_result.final_expectation_values]}")
 

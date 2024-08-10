@@ -87,12 +87,8 @@ Returns:
         cudaq_runtime.set_noise(noise_model)
 
     # Process spin_operator if its a list
-    localOp = spin_operator
-    localOp = cudaq_runtime.SpinOperator()
     if isinstance(spin_operator, list):
-        for o in spin_operator:
-            localOp += o
-        localOp -= cudaq_runtime.SpinOperator()
+        localOp = sum(spin_operator)
     else:
         localOp = spin_operator
 

@@ -234,3 +234,26 @@ class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
 
     def evaluate(self, op: ElementaryOperator | ScalarOperator) -> PauliWordConversion.Evaluated:
         raise NotImplementedError()
+
+# To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
+class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator]):
+
+    def tensor(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator, op2: cudaq_runtime.SpinOperator) -> cudaq_runtime.SpinOperator:
+        return op1 * op2
+
+    def mul(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator, op2: cudaq_runtime.SpinOperator) -> cudaq_runtime.SpinOperator:
+        return op1 * op2
+
+    def add(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator, op2: cudaq_runtime.SpinOperator) -> cudaq_runtime.SpinOperator:
+        return op1 + op2
+
+    def evaluate(self: _SpinArithmetics, op: ElementaryOperator | ScalarOperator) -> cudaq_runtime.SpinOperator: 
+        if hasattr(op, "id"):
+            match op.id:
+                case "pauli_x": return cudaq_runtime.spin.x(op.degrees[0])
+                case "pauli_y": return cudaq_runtime.spin.y(op.degrees[0])
+                case "pauli_z": return cudaq_runtime.spin.z(op.degrees[0])
+                case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0])
+                case "identity": return cudaq_runtime.spin.i(op.degrees[0])
+                case _: raise ValueError(f"operator '{op.id}' is not a spin operator")
+        raise ValueError("spin operator cannot contain scalar values")

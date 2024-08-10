@@ -5,7 +5,7 @@ from typing import Any, Callable, Generator, Optional
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
-from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint
+from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint, _SpinArithmetics
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 class OperatorSum:
@@ -113,6 +113,10 @@ class OperatorSum:
             The matrix representation of the operator expression in canonical order.
         """
         return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
+
+    # To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
+    def _to_spinop(self: OperatorSum, dimensions: Mapping[int, int], **kwargs: NumericType) -> cudaq_runtime.SpinOperator:
+        return self._evaluate(_SpinArithmetics())
 
     def to_pauli_word(self: OperatorSum) -> cudaq_runtime.pauli_word:
         """

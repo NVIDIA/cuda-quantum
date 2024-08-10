@@ -111,7 +111,7 @@ class _OperatorHelpers:
         return extracted_args, {}
 
     @staticmethod
-    def generate_all_states(degrees: Sequence[int], dimensions: Mapping[int, int]):
+    def generate_all_states(degrees: Sequence[int], dimensions: Mapping[int, int]) -> Iterable[str]:
         """
         Generates all possible states for the given dimensions ordered according to 
         the sequence of degrees (ordering is relevant if dimensions differ).

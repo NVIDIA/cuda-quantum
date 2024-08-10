@@ -4,11 +4,12 @@ from collections.abc import Mapping, Sequence
 from typing import Callable, Optional, Iterable
 
 from .expressions import Operator
+from .helpers import _OperatorHelpers
 from .schedule import Schedule
 from ..kernel.register_op import register_operation
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_decorator import PyKernelDecorator
-
+from ..runtime.observe import observe
 
 # To be implemented in C++ and bindings will be generated.
 # If multiple initial states were passed, a sequence of evolution results is returned.
@@ -43,32 +44,32 @@ class EvolveResult:
         print("init evolve result")
         if isinstance(state, cudaq_runtime.State):
             print("no intermediate results")
-            self._states = None
+            self._intermediate_states = None
             self._final_state = state
         else:
             print("intermediate results")
             if len(state) == 0:
                 raise ValueError("got an empty sequence of states")
-            self._states = state
+            self._intermediate_states = state
             self._final_state = state[-1]
         if expectation is None or len(expectation) == 0:
             print("no expectation values computed")
             self._expectation_values = None
-            self._final_expectation : Optional[NDArray[numpy.complexfloating]] = None
+            self._final_expectation_values : Optional[NDArray[cudaq_runtime.ObserveResult]] = None
         else:
             if isinstance(expectation[0], cudaq_runtime.ObserveResult):
                 print("got final expectation values")
-                if self._states is not None:
+                if self._intermediate_states is not None:
                     raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
                 self._expectation_values = None
-                self._final_expectation = expectation # type: ignore
+                self._final_expectation_values = expectation # type: ignore
             else:
                 print("got expectation values for each step")
-                if self._states is None:
+                if self._intermediate_states is None:
                     raise ValueError("no intermediate states were defined but intermediate expectation values are provided")
                 self._expectation_values = expectation
-                self._final_expectation = expectation[-1]
-            print("done")
+                self._final_expectation_values = expectation[-1]
+        print("done")
 
     @property
     def intermediate_states(self: EvolveResult) -> Optional[Iterable[cudaq_runtime.State]]:
@@ -78,7 +79,7 @@ class EvolveResult:
         This property is only populated saving intermediate results was requested in the 
         call to `cudaq.evolve`.
         """
-        return self._states
+        return self._intermediate_states
 
     @property
     def final_state(self: EvolveResult) -> cudaq_runtime.State:
@@ -103,14 +104,14 @@ class EvolveResult:
         return self._expectation_values
 
     @property
-    def final_expectation(self: EvolveResult) -> Optional[NDArray[cudaq_runtime.ObserveResult]]:
+    def final_expectation_values(self: EvolveResult) -> Optional[NDArray[cudaq_runtime.ObserveResult]]:
         """
         Stores the final expectation values, that is the results produced by
         calls to `cudaq.observe`, from a call to `cudaq.evolve`. Each entry 
         corresponds to one observable provided in the `cudaq.evolve` call. 
         This value will be None if no observables were specified in the call.
         """
-        return self._final_expectation
+        return self._final_expectation_values
 
 # To be implemented in C++ and bindings will be generated.
 class AsyncEvolveResult:
@@ -147,32 +148,32 @@ class AsyncEvolveResult:
         print("init evolve result")
         if isinstance(state, cudaq_runtime.AsyncStateResult):
             print("no intermediate results")
-            self._states = None
+            self._intermediate_states = None
             self._final_state = state
         else:
             print("intermediate results")
             if len(state) == 0:
                 raise ValueError("got an empty sequence of states")
-            self._states = state
+            self._intermediate_states = state
             self._final_state = state[-1]
         if expectation is None or len(expectation) == 0:
             print("no expectation values computed")
             self._expectation_values = None
-            self._final_expectation : Optional[NDArray[numpy.complexfloating]] = None
+            self._final_expectation_values : Optional[NDArray[cudaq_runtime.ObserveResult]] = None
         else:
             if isinstance(expectation[0], cudaq_runtime.AsyncObserveResult):
                 print("got final expectation values")
-                if self._states is not None:
+                if self._intermediate_states is not None:
                     raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
                 self._expectation_values = None
-                self._final_expectation = expectation # type: ignore
+                self._final_expectation_values = expectation # type: ignore
             else:
                 print("got expectation values for each step")
-                if self._states is None:
+                if self._intermediate_states is None:
                     raise ValueError("no intermediate states were defined but intermediate expectation values are provided")
                 self._expectation_values = expectation
-                self._final_expectation = expectation[-1]
-            print("done")
+                self._final_expectation_values = expectation[-1]
+        print("done")
 
     @property
     def intermediate_states(self: EvolveResult) -> Optional[Iterable[cudaq_runtime.AsyncStateResult]]:
@@ -182,8 +183,7 @@ class AsyncEvolveResult:
         final state. This property is only populated saving intermediate results was 
         requested in the call to `cudaq.evolve_async`.
         """
-        print("hello")
-        return self._states
+        return self._intermediate_states
 
     @property
     def final_state(self: EvolveResult) -> cudaq_runtime.AsyncStateResult:
@@ -208,14 +208,14 @@ class AsyncEvolveResult:
         return self._expectation_values
 
     @property
-    def final_expectation(self: EvolveResult) -> Optional[NDArray[cudaq_runtime.AsyncObserveResult]]:
+    def final_expectation_values(self: EvolveResult) -> Optional[NDArray[cudaq_runtime.AsyncObserveResult]]:
         """
         Stores the handles to the final expectation values, that is the results produced 
         by calls to `cudaq.observe_async`, from a call to `cudaq.evolve_async`. Each 
         entry corresponds to one observable provided in the `cudaq.evolve_async` call. 
         This value will be None if no observables were specified in the call.
         """
-        return self._final_expectation
+        return self._final_expectation_values
 
 
 def _register_evolution_kernels(hamiltonian: Operator, schedule: Schedule) -> list[str]:
@@ -229,6 +229,8 @@ def _register_evolution_kernels(hamiltonian: Operator, schedule: Schedule) -> li
             kernel_name = f"evolve_{kernel_base_name}_{step_idx}"
             op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
             # FIXME: Use GPU acceleration for matrix manipulations if possible.
+            # Alternative/possibly better: do the same thing we'll do for hardware
+            # and decompose directly into gates.
             evolution_matrix = scipy.linalg.expm(-1j * op_matrix)
             register_operation(kernel_name, evolution_matrix)
             yield kernel_name
@@ -250,7 +252,7 @@ def _create_kernel(name: str, hamiltonian: Operator, schedule: Schedule, initial
         srcCode += f"\t{operation_name}({', '.join(arguments)})\n"
     # FIXME: PyKernelDecorator is documented but not accessible in the API due to shadowing by the kernel module.
     # See also https://stackoverflow.com/questions/6810999/how-to-determine-file-function-and-line-number
-    return PyKernelDecorator("evolution_kernel", # FIXME: ??
+    return PyKernelDecorator("evolution_kernel",
                              kernelName = name,
                              funcSrc = srcCode,
                              signature = {},
@@ -275,13 +277,22 @@ def _create_kernels(name: str,
         srcCode += f"\t{operation_name}({', '.join(arguments)})\n"
 
         signature : dict[str, Any] = {}
-        if op_idx != 0:
-            signature["init_state"] = cudaq_runtime.State
-        yield PyKernelDecorator(f"evolution_kernel", # FIXME: ??
+        if op_idx != 0: signature["init_state"] = cudaq_runtime.State
+        yield PyKernelDecorator(f"evolution_kernel",
                                  kernelName = f"{name}_{op_idx}",
                                  funcSrc = srcCode,
                                  signature = signature,
                                  location = (__file__, sys._getframe().f_lineno))
+
+def _state_to_kernel():
+    kernel_name = "gen_" + "".join(filter(str.isalnum, str(uuid.uuid4())))
+    srcCode = f"def {kernel_name}(init_state: cudaq.State):\n"
+    srcCode += f"\tqs = cudaq.qvector(init_state)\n"
+    return PyKernelDecorator(f"state_kernel",
+                             kernelName = kernel_name,
+                             funcSrc = srcCode,
+                             signature = {"init_state": cudaq_runtime.State},
+                             location = (__file__, sys._getframe().f_lineno))
 
 # Top level API for the CUDA-Q master equation solver.
 def evolve(hamiltonian: Operator, 
@@ -337,27 +348,35 @@ def evolve(hamiltonian: Operator,
     if len(collapse_operators) > 0:
         raise ValueError("collapse operators can only be defined when using the nvidia-dynamics target")
 
-    # FIXME: implement
-    if len(observables) > 0:
-        raise NotImplementedError()
-    
+    # FIXME: pass kwargs from schedule to concretize the observables
+    state_to_kernel = _state_to_kernel()
+    observable_spinops = [op._to_spinop(dimensions) for op in observables]
+    def compute_expectations(cudaq_state: cudaq_runtime.State) -> Iterable[cudaq_runtime.ObserveResult]:
+        expectation_values: list[cudaq_runtime.ObserveResult] = []
+        for observable in observable_spinops:
+            expectation = observe(state_to_kernel, observable, cudaq_state)
+            expectation_values.append(expectation)
+        return expectation_values
+
     if store_intermediate_results:
         evolution = _create_kernels("time_evolution", hamiltonian, schedule, initial_state)
-        states = []
+        states, expectations = [], []
         for kernel in evolution:
             if len(states) == 0: intermediate_state = cudaq_runtime.get_state(kernel)
             else: intermediate_state = cudaq_runtime.get_state(kernel, states[-1])
             states.append(intermediate_state)
-        return EvolveResult(states)
+            if len(observables) > 0: expectations.append(compute_expectations(intermediate_state))
+        return EvolveResult(states, expectations)
     else:
         evolution = _create_kernel("time_evolution", hamiltonian, schedule, initial_state)
         final_state = cudaq_runtime.get_state(evolution)
-        return EvolveResult(final_state)
+        if len(observables) == 0: return EvolveResult(final_state)
+        else: return EvolveResult(final_state, compute_expectations(final_state))
 
 def evolve_async(hamiltonian: Operator, 
            dimensions: Mapping[int, int], 
            schedule: Schedule,
-           initial_state: cudaq.State | Iterable[cudaq.States],
+           initial_state: cudaq_runtime.State | Iterable[cudaq_runtime.State],
            collapse_operators: Iterable[Operator] = [],
            observables: Iterable[Operator] = [], 
            store_intermediate_results = False) -> AsyncEvolveResult | Iterable[AsyncEvolveResult]:
@@ -387,13 +406,19 @@ def evolve_async(hamiltonian: Operator,
     if len(collapse_operators) > 0:
         raise ValueError("collapse operators can only be defined when using the nvidia-dynamics target")
 
-    # FIXME: implement
-    if len(observables) > 0:
-        raise NotImplementedError()
+    # FIXME: pass kwargs from schedule to concretize the observables
+    state_to_kernel = _state_to_kernel()
+    observable_spinops = [op._to_spinop(dimensions) for op in observables]
+    def compute_expectations(cudaq_state: cudaq_runtime.State) -> Iterable[cudaq_runtime.ObserveResult]:
+        expectation_values: list[cudaq_runtime.ObserveResult] = []
+        for observable in observable_spinops:
+            expectation = cudaq_runtime.observe_async(state_to_kernel, observable, cudaq_state)
+            expectation_values.append(expectation)
+        return expectation_values
 
     if store_intermediate_results:
         evolution = _create_kernels("time_evolution", hamiltonian, schedule, initial_state)
-        states = []
+        states, expectations = [], []
         for kernel in evolution:
             if len(states) == 0: intermediate_state = cudaq_runtime.get_state_async(kernel)
             else: # FIXME: can we manually create a AsyncStateResult to not wait here?
@@ -401,9 +426,13 @@ def evolve_async(hamiltonian: Operator,
                 previous_state = states[-1].get()
                 intermediate_state = cudaq_runtime.get_state_async(kernel, previous_state)
             states.append(intermediate_state)
-        return AsyncEvolveResult(states)
+            # FIXME: can we make this so that we don't have to get the state here?
+            if len(observables) > 0: expectations.append(compute_expectations(intermediate_state.get()))
+        return AsyncEvolveResult(states, expectations)
     else:
         evolution = _create_kernel("time_evolution", hamiltonian, schedule, initial_state)
         final_state = cudaq_runtime.get_state_async(evolution)
+        if len(observables) > 0:
+            # FIXME: can we make this so that we don't have to get the state here?
+            return AsyncEvolveResult(final_state, compute_expectations(final_state.get()))
         return AsyncEvolveResult(final_state)
-
