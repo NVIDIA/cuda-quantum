@@ -254,6 +254,8 @@ class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator]):
                 case "pauli_y": return cudaq_runtime.spin.y(op.degrees[0])
                 case "pauli_z": return cudaq_runtime.spin.z(op.degrees[0])
                 case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0])
-                case "identity": return cudaq_runtime.spin.i(op.degrees[0])
+                case "identity": 
+                    assert len(op.degrees) == 1, "expecting identity to act on a single degree of freedom"
+                    return cudaq_runtime.spin.i(op.degrees[0])
                 case _: raise ValueError(f"operator '{op.id}' is not a spin operator")
         raise ValueError("spin operator cannot contain scalar values")

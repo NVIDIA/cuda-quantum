@@ -94,6 +94,7 @@ class operators:
         return ElementaryOperator("op_momentum", [degree])
 
 class pauli:
+    # FIXME: make these call into cudaq_runtime.spin instead to get the matrix
     ElementaryOperator.define("pauli_x", [2], lambda: numpy.array([[0,1],[1,0]], dtype=numpy.complex128))
     ElementaryOperator.define("pauli_y", [2], lambda: numpy.array([[0,1j],[-1j,0]], dtype=numpy.complex128))
     ElementaryOperator.define("pauli_z", [2], lambda: numpy.array([[1,0],[0,-1]], dtype=numpy.complex128))
