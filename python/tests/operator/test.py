@@ -334,3 +334,4 @@ print("Evolve + observe asynchronous with intermediate results on default simula
 #evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function], store_intermediate_results = True)
 #print(f"final expectation values: {[res.get().expectation() for res in evolution_result.final_expectation_values]}")
 
+# FIXME: CHECK EQUALITY COMPARISON (maybe canonicalize degrees changed it?)

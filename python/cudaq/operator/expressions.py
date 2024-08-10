@@ -17,6 +17,10 @@ class OperatorSum:
     they provide methods to convert them to data types that can.
     """
 
+    # FIXME: make OperatorSum and ProductOperator iterable
+    # FIXME: make Operators hashable (for caching purposes)
+    # FIXME: implement a caching mechanism for to_matrix
+
     __slots__ = ['_terms']
     def __init__(self: OperatorSum, terms: Sequence[ProductOperator] = []) -> None:
         """
@@ -80,6 +84,11 @@ class OperatorSum:
         """
         return _OperatorHelpers.aggregate_parameters((op.parameters for term in self._terms for op in term._operators))
 
+    @property
+    def _is_spinop(self: OperatorSum) -> bool:
+        # FIXME: Make spin operators inherit from operators
+        return all((op._is_spinop for term in self._terms for op in term._operators))
+
     def _evaluate(self: OperatorSum, arithmetics : OperatorArithmetics[TEval]) -> TEval:
         """
         Helper function used for evaluating operator expressions and computing arbitrary values
@@ -112,6 +121,20 @@ class OperatorSum:
         Returns:
             The matrix representation of the operator expression in canonical order.
         """
+        # FIXME: make sure we have enough tests that are not consisting of spin operators,
+        # then enable the code below and check tests with and without this.
+        # (there seems to be a difference in convension somewhere)
+        '''
+        if self._is_spinop and all([dim == 2 for dim in dimensions.values()]):
+            print("is spin op")
+            # For spin operators we can compute the matrix more efficiently.
+            cmat = self._evaluate(_SpinArithmetics()).to_matrix()
+            # FIXME: implement conversion in py_matrix.cpp instead and ensure consistency with numpy.array -> ComplexMatrix
+            return numpy.array([
+                [cmat[row, column] 
+                 for row in range(cmat.num_rows())] 
+                 for column in range(cmat.num_columns())], dtype = numpy.complex128)
+        '''
         return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
 
     # To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
@@ -472,6 +495,10 @@ class ElementaryOperator(ProductOperator):
         """
         return ElementaryOperator._ops[self._id].expected_dimensions
 
+    @property
+    def _is_spinop(self: ElementaryOperator) -> bool:
+        return self._id in ["pauli_x", "pauli_y", "pauli_z", "pauli_i", "identity"]
+
     def _evaluate(self: ElementaryOperator, arithmetics: OperatorArithmetics[TEval]) -> TEval:
         """
         Helper function for consistency with other operator expressions.
@@ -672,6 +699,10 @@ class ScalarOperator(ProductOperator):
         needed to evaluate the generator.
         """
         return self._definition.parameters()
+
+    @property
+    def _is_spinop(self: ScalarOperator) -> bool:
+        return False # FIXME: support as coefficient
 
     def _invoke(self: ScalarOperator, **kwargs: NumericType) -> NumericType:
         """
