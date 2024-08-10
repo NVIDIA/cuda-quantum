@@ -50,9 +50,9 @@ class OperatorSum:
         """
         if type(other) == self.__class__:
             def canonical_terms(prod: ProductOperator) -> Sequence[ElementaryOperator | ScalarOperator]:
-                degrees = prod.degrees
-                if len(degrees) == 1: return prod._operators
-                elif len(degrees) != len(set(degrees)): 
+                all_degrees = [degree for op in prod._operators for degree in op._degrees]
+                if len(all_degrees) == 1: return prod._operators
+                elif len(all_degrees) != len(set(all_degrees)): 
                     # Some degrees exist multiple times; order the scalars, 
                     # but do not otherwise try to reorder terms.
                     scalars = [op for op in prod._operators if isinstance(op, ScalarOperator)]
