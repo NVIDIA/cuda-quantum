@@ -28,12 +28,11 @@ are listed in the Installation Guide of the linked documentation.
 
 [//]: # (Begin complete install)
 
-CUDA-Q does not require a GPU to use, but some components are
-GPU-accelerated.
+CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.
 
 Getting started with CUDA-Q on `x86_64` platforms simply requires
-`pip install cuda-quantum`. If you have an NVIDIA GPU on your host system,
-you will be able to use it without any further installation steps.
+`pip install cuda-quantum`. If you have an NVIDIA GPU on your host system, you
+will be able to use it without any further installation steps.
 
 However, if you want to perform multi-GPU simulations, or if you are using
 `aarch64`/`arm64` processors, additional components must be installed.
