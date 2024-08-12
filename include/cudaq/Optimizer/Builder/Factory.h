@@ -260,5 +260,9 @@ mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
                        bool signExtend = false, bool zeroExtend = false);
 
 } // namespace factory
+
+std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);
+std::size_t getDataOffset(llvm::DataLayout &dataLayout, mlir::Type ty,
+                          std::size_t off);
 } // namespace opt
 } // namespace cudaq

@@ -11,10 +11,28 @@
 
 include "mlir/Pass/PassBase.td"
 
+def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
+  let summary = "Adds a topology-less `quake.wire_set` to the module.";
+  let description = [{
+    Adds a `quake.wire_set` operation without any topological information to the
+    ModuleOp.
+  }];
+}
+
+def AssignWireIndices : Pass<"assign-wire-indices", "mlir::func::FuncOp"> {
+  let summary = "Replaces `null_wire` with `borrow_wire` from a `wire_set`.";
+  let description = [{
+    Replaces all instances of `quake.null_wire` with `quake.borrow_wire` from a
+    common `quake.wire_set` without any topological information.  Each wire is
+    assigned a unique identifier (the index into the `quake.wire_set`) through
+    this process.
+  }];
+}
+
 def ApplyControlNegations :
     Pass<"apply-control-negations", "mlir::func::FuncOp"> {
   let summary =
-    "Replace all operations with negative controls with positive controls and X operations.";
+    "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
 
   let description = [{
     For every quantum operation with a negative control, replace that operation 
@@ -78,7 +96,7 @@ def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
     ListOption<"funcList", "functions", "std::string",
                "Function name and substitutions pairs (<func>:<filename>)">,
   ];
-  let dependentDialects = ["cudaq::cc::CCDialect",
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
     "mlir::cf::ControlFlowDialect"];
 }
 
@@ -279,6 +297,11 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Generate the kernel execution thunks. The kernel execution thunks allow
     the control side (C++ code) to launch quantum kernels. This pass
     generates the required glue code.
+
+    Specifying the alt-launch=2 option will generate different code that makes
+    use of library side argument conversion and the argument synthesis pass.
+    More generally, this option can be used when JIT compiling kernels on the
+    client/host/local processor.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -288,11 +311,14 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
       /*default=*/"\"-\"", "Name of output file.">,
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
+    Option<"altLaunchVersion", "alt-launch", "std::size_t", /*default=*/"1",
+      "Specify the version of altLaunchKernel to be used.">
   ];
 }
 
 def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
-  let summary = "Replace the unitary matrix generator function with concrete matrix.";
+  let summary =
+    "Replace the unitary matrix generator function with concrete matrix.";
   let description = [{
     Given a custom operation whose generator attribute is another function 
     within the module, such that if `LiftArrayAlloc` pass has run, there will

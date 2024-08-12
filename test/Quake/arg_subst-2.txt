@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+cc.arg_subst[0] {
+  %0 = cc.alloca !cc.array<i32 x 4>
+  %c14581_i32 = arith.constant 14581 : i32
+  %1 = cc.compute_ptr %0[0] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+  cc.store %c14581_i32, %1 : !cc.ptr<i32>
+  %c51966_i32 = arith.constant 51966 : i32
+  %2 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+  cc.store %c51966_i32, %2 : !cc.ptr<i32>
+  %c42_i32 = arith.constant 42 : i32
+  %3 = cc.compute_ptr %0[2] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+  cc.store %c42_i32, %3 : !cc.ptr<i32>
+  %c48879_i32 = arith.constant 48879 : i32
+  %4 = cc.compute_ptr %0[3] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+  cc.store %c48879_i32, %4 : !cc.ptr<i32>
+  %c4_i64 = arith.constant 4 : i64
+  %5 = cc.stdvec_init %0, %c4_i64 : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.stdvec<i32>
+}
