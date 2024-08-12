@@ -62,7 +62,7 @@ class VQE(object):
         """
             Generates the QNP ansatz circuit and returns the  kernel and the optimization parameters thetas
 
-            params: list/np.array
+            params: list/`np`.array
             [theta_0, ..., theta_{M-1}, phi_0, ..., phi_{M-1}]
             where M is the total number of blocks = layer * (n_qubits/2 - 1)
 
@@ -73,9 +73,9 @@ class VQE(object):
         n_layers = self.n_layers
         number_of_blocks = self.number_of_Q_blocks
 
-        # changed self.target to nvidia to pass CI job, as it expects a string
+        # changed self.target to `nvidia`` to pass CI job, as it expects a string
         # literal
-        # cudaq.set_target("nvidia")  # `nvidia` or `nvidia-mgpu`
+        # cudaq.set_target("`nvidia`")  # `nvidia` or `nvidia-mgpu`
 
         kernel, thetas = cudaq.make_kernel(list)
         # Allocate n qubits.
@@ -247,7 +247,7 @@ def from_string_to_cudaq_spin(pauli_string, qubit):
 
 
 def get_cudaq_hamiltonian(jw_hamiltonian):
-    """ Converts an openfermion QubitOperator Hamiltonian into a `cudaq.SpinOperator` Hamiltonian
+    """ Converts an `openfermion` QubitOperator Hamiltonian into a `cudaq.SpinOperator` Hamiltonian
 
     """
 
@@ -270,7 +270,7 @@ def get_cudaq_hamiltonian(jw_hamiltonian):
 
 
 def get_cudaq_operator(jw_hamiltonian):
-    """ Converts an openfermion QubitOperator Hamiltonian into a `cudaq.SpinOperator` Hamiltonian
+    """ Converts an `openfermion` QubitOperator Hamiltonian into a `cudaq.SpinOperator` Hamiltonian
 
     """
 

@@ -31,14 +31,6 @@ def validate(notebook_filename, available_backends):
         match = re.search('set_target[\\\s\(]+"(.+)\\\\"[)]', notebook_content)
         if match and (match.group(1) not in available_backends):
             return False
-    for notebook_content in lines:
-        match = re.search('--target ([^ ]+)', notebook_content)
-        if match and (match.group(1) not in available_backends):
-            return False
-    for notebook_content in lines:
-        match = re.search('(config.update_option)', notebook_content)
-        if match and match.group(1):
-            return False
     return True
 
 

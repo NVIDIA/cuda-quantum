@@ -584,7 +584,7 @@ adjusted quasi-probability distribution</p>
 <li><p>A full confusion matrix for each <span class="math notranslate nohighlight">\(2^n\)</span> combination</p></li>
 </ul>
 <p>The last method works well for correcting correlated errors (which affect multiple qubits together). However, it becomes impractical for large numbers of qubits.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
@@ -596,59 +596,6 @@ adjusted quasi-probability distribution</p>
 <span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">seaborn</span><span class="o">==</span><span class="m">0</span>.13.2
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Requirement already satisfied: matplotlib==3.8.4 in /usr/local/lib/python3.10/dist-packages (3.8.4)
-Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (1.4.5)
-Requirement already satisfied: packaging&gt;=20.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (24.0)
-Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (3.1.2)
-Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (0.12.1)
-Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (1.2.1)
-Requirement already satisfied: numpy&gt;=1.21 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (1.26.4)
-Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (2.9.0.post0)
-Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (4.51.0)
-Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (10.3.0)
-Requirement already satisfied: six&gt;=1.5 in /usr/local/lib/python3.10/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib==3.8.4) (1.16.0)
-<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
-</span>Requirement already satisfied: pandas==2.2.2 in /usr/local/lib/python3.10/dist-packages (2.2.2)
-Requirement already satisfied: numpy&gt;=1.22.4 in /usr/local/lib/python3.10/dist-packages (from pandas==2.2.2) (1.26.4)
-Requirement already satisfied: tzdata&gt;=2022.7 in /usr/local/lib/python3.10/dist-packages (from pandas==2.2.2) (2024.1)
-Requirement already satisfied: pytz&gt;=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas==2.2.2) (2024.1)
-Requirement already satisfied: python-dateutil&gt;=2.8.2 in /usr/local/lib/python3.10/dist-packages (from pandas==2.2.2) (2.9.0.post0)
-Requirement already satisfied: six&gt;=1.5 in /usr/local/lib/python3.10/dist-packages (from python-dateutil&gt;=2.8.2-&gt;pandas==2.2.2) (1.16.0)
-<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
-</span>Collecting scipy==1.13.1
-  Using cached scipy-1.13.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (38.6 MB)
-Requirement already satisfied: numpy&lt;2.3,&gt;=1.22.4 in /usr/local/lib/python3.10/dist-packages (from scipy==1.13.1) (1.26.4)
-Installing collected packages: scipy
-  Attempting uninstall: scipy
-    Found existing installation: scipy 1.13.0
-    Uninstalling scipy-1.13.0:
-      Successfully uninstalled scipy-1.13.0
-Successfully installed scipy-1.13.1
-<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
-</span>Requirement already satisfied: seaborn==0.13.2 in /usr/local/lib/python3.10/dist-packages (0.13.2)
-Requirement already satisfied: numpy!=1.24.0,&gt;=1.20 in /usr/local/lib/python3.10/dist-packages (from seaborn==0.13.2) (1.26.4)
-Requirement already satisfied: matplotlib!=3.6.1,&gt;=3.4 in /usr/local/lib/python3.10/dist-packages (from seaborn==0.13.2) (3.8.4)
-Requirement already satisfied: pandas&gt;=1.2 in /usr/local/lib/python3.10/dist-packages (from seaborn==0.13.2) (2.2.2)
-Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (4.51.0)
-Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (1.4.5)
-Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (1.2.1)
-Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (3.1.2)
-Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (0.12.1)
-Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (10.3.0)
-Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (2.9.0.post0)
-Requirement already satisfied: packaging&gt;=20.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (24.0)
-Requirement already satisfied: tzdata&gt;=2022.7 in /usr/local/lib/python3.10/dist-packages (from pandas&gt;=1.2-&gt;seaborn==0.13.2) (2024.1)
-Requirement already satisfied: pytz&gt;=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas&gt;=1.2-&gt;seaborn==0.13.2) (2024.1)
-Requirement already satisfied: six&gt;=1.5 in /usr/local/lib/python3.10/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib!=3.6.1,&gt;=3.4-&gt;seaborn==0.13.2) (1.16.0)
-<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
-</span>
-</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
