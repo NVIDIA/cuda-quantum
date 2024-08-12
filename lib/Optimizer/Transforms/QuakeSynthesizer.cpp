@@ -129,7 +129,7 @@ Value createGlobalArray(ConstantCache &cache, OpBuilder &builder,
   else {
     auto data = reinterpret_cast<const char *>(vec.data());
     auto size = vec.size() * sizeof(T) / sizeof(char);
-    auto bytes = std::vector<char>(data, data + size);
+    std::vector<char> bytes(data, data + size);
     hash = llvm::hash_combine_range(bytes.begin(), bytes.end());
   }
   if (cache.contains(hash))
@@ -166,7 +166,7 @@ LogicalResult synthesizeStateArgument(ConstantCache &cache, OpBuilder &builder,
 
   // Iterate over the users of this state argument.
   for (auto *argUser : argument.getUsers()) {
-    // Replace a calls to runtime function that reads the number of qubits
+    // Replace a call to runtime function that reads the number of qubits
     // with the log of the length, which is a synthesized constant.
     if (auto numOfQubitsOp = dyn_cast<func::CallOp>(argUser)) {
       if (auto calleeAttr = numOfQubitsOp.getCalleeAttr()) {
@@ -204,8 +204,8 @@ static LogicalResult synthesizeStateArgument(ConstantCache &cache,
                                              ModuleOp module, unsigned &counter,
                                              BlockArgument argument, Type eleTy,
                                              void *data, std::size_t size) {
-  auto typedData = reinterpret_cast<const T *>(data);
-  auto vec = std::vector<T>(typedData, typedData + size);
+  auto *castData = reinterpret_cast<T *>(data);
+  std::vector<T> vec(castData, castData + size);
   return synthesizeStateArgument(cache, builder, module, counter, argument,
                                  eleTy, vec);
 }
