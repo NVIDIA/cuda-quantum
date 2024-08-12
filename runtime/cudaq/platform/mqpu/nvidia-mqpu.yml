@@ -12,7 +12,7 @@ warning: "This target is deprecating. Please use the 'nvidia' target with option
 gpu-requirements: true
 
 config:
-  nvqir-simulation-backend: custatevec-fp32
+  nvqir-simulation-backend: cusvsim-fp32, custatevec-fp32
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
   platform-library: mqpu
 

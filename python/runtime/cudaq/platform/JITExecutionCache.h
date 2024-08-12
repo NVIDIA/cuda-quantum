@@ -20,7 +20,18 @@ namespace cudaq {
 /// for the string representation of the original MLIR ModuleOp.
 class JITExecutionCache {
 protected:
-  std::unordered_map<std::size_t, ExecutionEngine *> cacheMap;
+  // Implement a Least Recently Used cache based on the JIT hash.
+  std::list<std::size_t> lruList;
+
+  // A given JIT hash has an associated MapItemType, which contains pointers to
+  // the execution engine and to the LRU iterator that is used to track which
+  // engine is the least recently used.
+  struct MapItemType {
+    ExecutionEngine *execEngine = nullptr;
+    std::list<std::size_t>::iterator lruListIt;
+  };
+  std::unordered_map<std::size_t, MapItemType> cacheMap;
+
   std::mutex mutex;
 
 public:

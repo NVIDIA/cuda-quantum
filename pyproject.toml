@@ -40,7 +40,7 @@ chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py<3.11"  ]
 visualization = [ "qutip<5" , "matplotlib>=3.5" ]
 
 [build-system]
-requires = ["scikit-build-core", "cmake>=3.26,<3.29"]
+requires = ["scikit-build-core==0.9.10", "cmake>=3.26,<3.29", "numpy>=1.24", "pytest==8.2.0"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
@@ -56,7 +56,7 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=FALSE"
+    "-DCUDAQ_BUILD_TESTS=TRUE"
 ]
 
 [tool.setuptools_scm]

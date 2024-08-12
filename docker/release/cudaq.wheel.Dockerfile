@@ -13,6 +13,11 @@
 # Must be built from the repo root with:
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.wheel.Dockerfile . --output out
 
+# NOTES:
+# Building wheels for Mac; use CI build wheel instead. Good example: 
+# - https://github.com/numpy/numpy/blob/main/pyproject.toml, and 
+# - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
+
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-gcc11-main
 FROM $base_image as wheelbuild
 
@@ -24,15 +29,17 @@ ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
 ARG python_version=3.10
-RUN echo "Building MLIR bindings for python${python_version}" \
-    && python${python_version} -m pip install --no-cache-dir numpy \
-    && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
-    && export Python3_EXECUTABLE="$(which python${python_version})" \
-    && LLVM_PROJECTS='clang;mlir;python-bindings' \
-        bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
+RUN echo "Building MLIR bindings for python${python_version}" && \
+    python${python_version} -m pip install --no-cache-dir numpy && \
+    rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" && \
+    Python3_EXECUTABLE="$(which python${python_version})" \
+    LLVM_PROJECTS='clang;mlir;python-bindings' \
+    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake LLVM_SOURCE=/llvm-project \
+    bash /scripts/build_llvm.sh -c Release -v 
 
 # Build the wheel
 RUN echo "Building wheel for python${python_version}." \
+    && rm ~/.cache/pip -rf \
     && cd cuda-quantum && python=python${python_version} \
     # Find any external NVQIR simulator assets to be pulled in during wheel packaging.
     && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \

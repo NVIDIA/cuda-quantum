@@ -11,6 +11,23 @@
 
 include "mlir/Pass/PassBase.td"
 
+def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
+  let summary = "Adds a topology-less `quake.wireset` to the module";
+  let description = [{
+    Adds a `quake.wireset` operation without tological info to the module.
+  }];
+}
+
+def AssignWireIndices : Pass<"assign-wire-indices", "mlir::func::FuncOp"> {
+  let summary = "Replaces wires with wires from a `quake.wireset`";
+  let description = [{
+    Replaces all instances of `quake.null_wire_op` with `quake.borrow_wire_op`s
+    from a common `quake.wireset` without any topological information.
+    Each wire is assigned a unique identifier (the index into the
+    `quake.wireset`) through this process.
+  }];
+}
+
 def ApplyControlNegations :
     Pass<"apply-control-negations", "mlir::func::FuncOp"> {
   let summary =
@@ -47,7 +64,42 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
-def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
+def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
+  let summary = "Specialize a function by replacing arguments with constants";
+  let description = [{
+    This pass takes a list of functions and argument substitutions. For each
+    function in the list, the arguments to the function in the substitutions
+    list will be erased and replaced with a computed value (e.g., a constant)
+    provided in the substitution list. All arguments or some subset of arguments
+    may be substituted in this way.
+
+    To facilitate command-line testing, this pass can be run with the functions
+    suboption using filenames containing the argument substitutions. For
+    example, one might run
+    ```console
+      cudaq-opt input.qke \
+        --argument-synthesis=functions="kernel1:subst1.qke,kernel2:subst2.qke"
+    ```
+    where `kernel1`, `kernel2` are the names of functions and `subst1.qke` and
+    `subst2.qke` are quake source files contains arg_subst operations.
+
+    For running this pass from code, one can build the substitution code in a
+    std::string and use a prefix character '*' to indicate the text is inline
+    and not in a file.
+    ```
+      kernel1:*"cc.arg_subst [0] { ... }"
+    ```
+  }];
+
+  let options = [
+    ListOption<"funcList", "functions", "std::string",
+               "Function name and substitutions pairs (<func>:<filename>)">,
+  ];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::cf::ControlFlowDialect"];
+}
+
+def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.
@@ -244,6 +296,11 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Generate the kernel execution thunks. The kernel execution thunks allow
     the control side (C++ code) to launch quantum kernels. This pass
     generates the required glue code.
+
+    Specifying the alt-launch=2 option will generate different code that makes
+    use of library side argument conversion and the argument synthesis pass.
+    More generally, this option can be used when JIT compiling kernels on the
+    client/host/local processor.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -253,11 +310,14 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
       /*default=*/"\"-\"", "Name of output file.">,
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
+    Option<"altLaunchVersion", "alt-launch", "std::size_t", /*default=*/"1",
+      "Specify the version of altLaunchKernel to be used.">
   ];
 }
 
 def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
-  let summary = "Replace the unitary matrix generator function with concrete matrix.";
+  let summary =
+    "Replace the unitary matrix generator function with concrete matrix.";
   let description = [{
     Given a custom operation whose generator attribute is another function 
     within the module, such that if `LiftArrayAlloc` pass has run, there will

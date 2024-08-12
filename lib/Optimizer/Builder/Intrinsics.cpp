@@ -298,6 +298,12 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ())#"},
 
+    {cudaq::runtime::
+         launchKernelVersion2FuncName, // altLaunchKernelUsingLocalJIT
+     {},
+     R"#(
+  func.func private @altLaunchKernelUsingLocalJIT(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>) -> ())#"},
+
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
     {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
@@ -398,8 +404,9 @@ DenseElementsAttr createDenseElementsAttr(const std::vector<T> &values,
 DenseElementsAttr createDenseElementsAttr(const std::vector<bool> &values,
                                           Type eleTy) {
   std::vector<std::byte> converted;
-  for (auto b : values) {
-    converted.push_back(std::byte(b));
+  for (auto it = values.begin(); it != values.end(); it++) {
+    bool value = *it;
+    converted.push_back(std::byte(value));
   }
   auto newValues = ArrayRef<bool>(reinterpret_cast<bool *>(converted.data()),
                                   converted.size());

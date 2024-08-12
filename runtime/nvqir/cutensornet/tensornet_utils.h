@@ -47,10 +47,8 @@ allocateGateMatrix(const std::vector<std::complex<double>> &gateMatHost) {
 }
 
 /// @brief Generate an array of random values in the range (0.0, max)
-inline std::vector<double>
-randomValues(uint64_t num_samples, double max_value,
-             std::size_t seed = std::random_device()()) {
-  std::mt19937 randomEngine(seed);
+inline std::vector<double> randomValues(uint64_t num_samples, double max_value,
+                                        std::mt19937 &randomEngine) {
   std::vector<double> rs;
   rs.reserve(num_samples);
   std::uniform_real_distribution<double> distr(0.0, max_value);
