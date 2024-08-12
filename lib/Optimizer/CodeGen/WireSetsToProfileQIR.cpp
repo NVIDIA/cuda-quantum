@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/CallGraphFix.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
@@ -17,6 +18,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"
@@ -411,9 +413,76 @@ struct WireSetToProfileQIRPostPass
           WireSetToProfileQIRPostPass> {
   using WireSetToProfileQIRPostBase::WireSetToProfileQIRPostBase;
 
+  /// Apply required QIR function attributes to the entry-point functions.
+  void addAttributes(ModuleOp moduleOp, MLIRContext *ctx) {
+    OpBuilder builder(moduleOp);
+
+    // Build the call graph of the module
+    CallGraph callGraph(moduleOp);
+
+    // Traverse the module looking for entry-point functions. When one is found,
+    // consult the call graph to find the highest qubit identity and highest QIR
+    // result number used in the call graph.
+    for (Operation &op : moduleOp) {
+      if (auto funcOp = dyn_cast<func::FuncOp>(op)) {
+        if (op.hasAttr(cudaq::entryPointAttrName)) {
+          mlir::CallGraphNode *node =
+              callGraph.lookupNode(funcOp.getCallableRegion());
+          std::optional<std::uint32_t> highestIdentity;
+          std::optional<std::uint32_t> highestResult;
+          for (auto it = llvm::df_begin(node), itEnd = llvm::df_end(node);
+               it != itEnd; ++it) {
+            if (it->isExternal())
+              continue;
+            auto *callableRegion = it->getCallableRegion();
+            auto parentFuncOp =
+                callableRegion->getParentOfType<mlir::func::FuncOp>();
+
+            if (auto reqQubits =
+                    parentFuncOp->getAttr(cudaq::opt::QIRRequiredQubitsAttrName)
+                        .dyn_cast_or_null<StringAttr>()) {
+              std::uint32_t thisFuncReqQubits = 0;
+              if (!reqQubits.strref().getAsInteger(10, thisFuncReqQubits)) {
+                auto thisFuncHighestIdentity = thisFuncReqQubits - 1;
+                highestIdentity =
+                    highestIdentity
+                        ? std::max(*highestIdentity, thisFuncHighestIdentity)
+                        : thisFuncHighestIdentity;
+              }
+            }
+
+            if (auto reqResults =
+                    parentFuncOp
+                        ->getAttr(cudaq::opt::QIRRequiredResultsAttrName)
+                        .dyn_cast_or_null<StringAttr>()) {
+              std::uint32_t thisFuncReqResults = 0;
+              if (!reqResults.strref().getAsInteger(10, thisFuncReqResults)) {
+                auto thisFuncHighestResult = thisFuncReqResults - 1;
+                highestResult = highestResult ? std::max(*highestResult,
+                                                         thisFuncHighestResult)
+                                              : thisFuncHighestResult;
+              }
+            }
+          } // end call graph traversal
+
+          // Apply the final attribute on the entrypoint function
+          if (highestIdentity)
+            funcOp->setAttr(
+                cudaq::opt::QIRRequiredQubitsAttrName,
+                builder.getStringAttr(std::to_string(*highestIdentity + 1)));
+          if (highestResult)
+            funcOp->setAttr(
+                cudaq::opt::QIRRequiredResultsAttrName,
+                builder.getStringAttr(std::to_string(*highestResult + 1)));
+        }
+      }
+    }
+  }
+
   void runOnOperation() override {
     ModuleOp op = getOperation();
     auto *ctx = &getContext();
+    addAttributes(op, ctx);
     RewritePatternSet patterns(ctx);
     QuakeTypeConverter quakeTypeConverter;
     patterns.insert<WireSetRewrite>(quakeTypeConverter, ctx);
