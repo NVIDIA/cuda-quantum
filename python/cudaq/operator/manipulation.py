@@ -93,7 +93,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
             of freedom in canonical order.
         """
         # FIXME: check endianness ... (in the sorting/states here, and in the matrix definitions)
-        canon_degrees = sorted(op_degrees)
+        canon_degrees = _OperatorHelpers.canonicalize_degrees(op_degrees)
         if op_degrees != canon_degrees:
             # There may be a more efficient way, but I needed something correct first.
             states = _OperatorHelpers.generate_all_states(canon_degrees, self._dimensions)
@@ -236,24 +236,24 @@ class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
         raise NotImplementedError()
 
 # To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
-class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator]):
+class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator | NumericType]):
 
-    def tensor(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator, op2: cudaq_runtime.SpinOperator) -> cudaq_runtime.SpinOperator:
+    def tensor(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType, op2: cudaq_runtime.SpinOperator | NumericType) -> cudaq_runtime.SpinOperator | NumericType:
         return op1 * op2
 
-    def mul(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator, op2: cudaq_runtime.SpinOperator) -> cudaq_runtime.SpinOperator:
+    def mul(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType, op2: cudaq_runtime.SpinOperator | NumericType) -> cudaq_runtime.SpinOperator | NumericType:
         return op1 * op2
 
-    def add(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator, op2: cudaq_runtime.SpinOperator) -> cudaq_runtime.SpinOperator:
+    def add(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType, op2: cudaq_runtime.SpinOperator | NumericType) -> cudaq_runtime.SpinOperator | NumericType:
         return op1 + op2
 
-    def evaluate(self: _SpinArithmetics, op: ElementaryOperator | ScalarOperator) -> cudaq_runtime.SpinOperator: 
+    def evaluate(self: _SpinArithmetics, op: ElementaryOperator | ScalarOperator) -> cudaq_runtime.SpinOperator | NumericType: 
         match getattr(op, "id", "scalar"):
             case "scalar": return op.evaluate(**self._kwargs)
             case "pauli_x": return cudaq_runtime.spin.x(op.degrees[0])
             case "pauli_y": return cudaq_runtime.spin.y(op.degrees[0])
             case "pauli_z": return cudaq_runtime.spin.z(op.degrees[0])
-            case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0])
+            case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0]) # FIXME: DOESN'T EXIST
             case "identity": 
                 assert len(op.degrees) == 1, "expecting identity to act on a single degree of freedom"
                 return cudaq_runtime.spin.i(op.degrees[0])

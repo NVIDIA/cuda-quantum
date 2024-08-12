@@ -72,9 +72,9 @@ class OperatorSum:
         """
         The degrees of freedom that the operator acts on in canonical order.
         """
-        degrees = list(set((degree for term in self._terms for op in term._operators for degree in op._degrees)))
-        degrees.sort() # Sorted in canonical order to match the to_matrix method.
-        return degrees
+        unique_degrees = set((degree for term in self._terms for op in term._operators for degree in op._degrees))
+        # Sorted in canonical order to match the to_matrix method.
+        return _OperatorHelpers.canonicalize_degrees(unique_degrees)
 
     @property
     def parameters(self: OperatorSum) -> Mapping[str, str]:
@@ -123,17 +123,16 @@ class OperatorSum:
         """
         # FIXME: make sure we have enough tests that are not consisting of spin operators,
         # then enable the code below and check tests with and without this.
-        # (there seems to be a difference in convension somewhere)
+        # FIXME: while the convention (endianness) in operators should match the one in 
+        # the rest of CUDA-Q, there are some bugs in spinop arithmetics that need to be fixed.
+        # For example, while pauliX(0) * (pauliZ(0) + pauliZ(1)) evaluates correctly, 
+        # this does not: (pauliZ(0) + pauliZ(1)) * pauliX(0)
         '''
         if self._is_spinop and all([dim == 2 for dim in dimensions.values()]):
-            print("is spin op")
             # For spin operators we can compute the matrix more efficiently.
-            cmat = self._evaluate(_SpinArithmetics()).to_matrix()
-            # FIXME: implement conversion in py_matrix.cpp instead and ensure consistency with numpy.array -> ComplexMatrix
-            return numpy.array([
-                [cmat[row, column] 
-                 for row in range(cmat.num_rows())] 
-                 for column in range(cmat.num_columns())], dtype = numpy.complex128)
+            spin_op = self._evaluate(_SpinArithmetics(**kwargs))
+            if isinstance(spin_op, (complex, float, int)): return numpy.array([spin_op], dtype=numpy.complex128)
+            else: return _OperatorHelpers.cmatrix_to_nparray(spin_op.to_matrix())
         '''
         return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
 
@@ -244,7 +243,7 @@ class ProductOperator(OperatorSum):
                 padded = arithmetics.tensor(padded, value)
             return padded
         # Sorting the degrees to avoid unnecessary permutations during the padding.
-        degrees = sorted(set([degree for op in self._operators for degree in op._degrees]))
+        degrees = _OperatorHelpers.canonicalize_degrees(set([degree for op in self._operators for degree in op._degrees]))
         evaluated = padded_op(self._operators[0], degrees)
         for op in self._operators[1:]:
             if len(op._degrees) != 1 or op != ElementaryOperator.identity(op._degrees[0]):
@@ -469,7 +468,7 @@ class ElementaryOperator(ProductOperator):
         if not operator_id in ElementaryOperator._ops:
             raise ValueError(f"no built-in operator '{operator_id}' has been defined")
         self._id = operator_id
-        self._degrees = sorted(degrees) # Sorting so that order matches the elementary operation definition.
+        self._degrees = _OperatorHelpers.canonicalize_degrees(degrees) # Sorting so that order matches the elementary operation definition.
         num_degrees = len(self.expected_dimensions)
         if len(degrees) != num_degrees:
             raise ValueError(f"definition of {operator_id} acts on {num_degrees} degree(s) of freedom (given: {len(degrees)})")

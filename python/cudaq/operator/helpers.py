@@ -3,6 +3,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Callable, Iterable, Optional
 from numpy.typing import NDArray
 
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+
 if (3, 11) <= sys.version_info: NumericType = SupportsComplex
 else: NumericType = numpy.complexfloating | complex | float | int
 
@@ -137,3 +139,21 @@ class _OperatorHelpers:
             matrix[:,i] = matrix[permutation,i]
         for i in range(numpy.size(matrix, 0)):
             matrix[i,:] = matrix[i,permutation]
+
+    @staticmethod
+    def cmatrix_to_nparray(cmatrix: cudaq_runtime.ComplexMatrix) -> NDArray[numpy.complexfloating]:
+        """
+        Converts a `cudaq.ComplexMatrix` to the corresponding numpy array.
+        """
+        # FIXME: implement conversion in py_matrix.cpp instead and ensure consistency with numpy.array -> ComplexMatrix
+        return numpy.array([
+            [cmatrix[row, column] 
+                for row in range(cmatrix.num_rows())] 
+                for column in range(cmatrix.num_columns())], dtype = numpy.complex128)
+
+    @staticmethod
+    def canonicalize_degrees(degrees: Iterable[int]) -> Iterable[int]:
+        """
+        Returns the degrees sorted in canonical order.
+        """
+        return sorted(degrees, reverse = True)

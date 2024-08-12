@@ -1,8 +1,9 @@
 import numpy, scipy # type: ignore
 from numpy.typing import NDArray
 
-from .helpers import NumericType
+from .helpers import NumericType, _OperatorHelpers
 from .expressions import ProductOperator, ElementaryOperator, ScalarOperator
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # Operators as defined here (watch out of differences in convention): 
 # https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
@@ -94,13 +95,14 @@ class operators:
         return ElementaryOperator("op_momentum", [degree])
 
 class pauli:
-    # FIXME: make these call into cudaq_runtime.spin instead to get the matrix
-    ElementaryOperator.define("pauli_x", [2], lambda: numpy.array([[0,1],[1,0]], dtype=numpy.complex128))
-    ElementaryOperator.define("pauli_y", [2], lambda: numpy.array([[0,1j],[-1j,0]], dtype=numpy.complex128))
-    ElementaryOperator.define("pauli_z", [2], lambda: numpy.array([[1,0],[0,-1]], dtype=numpy.complex128))
+    ElementaryOperator.define("pauli_x", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(cudaq_runtime.spin.x(0).to_matrix()))
+    ElementaryOperator.define("pauli_y", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(cudaq_runtime.spin.y(0).to_matrix()))
+    ElementaryOperator.define("pauli_z", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(cudaq_runtime.spin.z(0).to_matrix()))
+    # FIXME: add binding for spin.i to spinops
     ElementaryOperator.define("pauli_i", [2], lambda: numpy.array([[1,0],[0,1]], dtype=numpy.complex128))
-    ElementaryOperator.define("pauli_plus", [2], lambda: numpy.array([[0,0],[1,0]], dtype=numpy.complex128))
-    ElementaryOperator.define("pauli_minus", [2], lambda: numpy.array([[0,1],[0,0]], dtype=numpy.complex128))
+    # FIXME: make these such that they are also considered spinops
+    ElementaryOperator.define("pauli_plus", [2], lambda: numpy.array([[0,1],[0,0]], dtype=numpy.complex128))
+    ElementaryOperator.define("pauli_minus", [2], lambda: numpy.array([[0,0],[1,0]], dtype=numpy.complex128))
 
     @classmethod
     def x(cls, degree: int) -> ElementaryOperator:

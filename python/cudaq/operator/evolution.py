@@ -336,6 +336,7 @@ def evolve(hamiltonian: Operator,
 
     state_to_kernel = _state_to_kernel()
     def compute_expectations(cudaq_state: cudaq_runtime.State, parameters: Mapping[str, NumericType]) -> Iterable[cudaq_runtime.ObserveResult]:
+        # FIXME: permit to compute expectation values for operators defined as matrix
         observable_spinops = [op._to_spinop(dimensions, **parameters) for op in observables]
         expectation_values: list[cudaq_runtime.ObserveResult] = []
         for observable in observable_spinops:
@@ -393,6 +394,7 @@ def evolve_async(hamiltonian: Operator,
 
     state_to_kernel = _state_to_kernel()
     def compute_expectations(cudaq_state: cudaq_runtime.State, parameters: Mapping[str, NumericType]) -> Iterable[cudaq_runtime.ObserveResult]:
+        # FIXME: permit to compute expectation values for operators defined as matrix
         observable_spinops = [op._to_spinop(dimensions, **parameters) for op in observables]
         expectation_values: list[cudaq_runtime.ObserveResult] = []
         for observable in observable_spinops:
