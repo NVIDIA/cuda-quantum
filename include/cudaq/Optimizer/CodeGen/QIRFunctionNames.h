@@ -103,6 +103,9 @@ inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
 
 void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
 
+/// @brief Compute function argument size in bytes and offsets
+/// of all the arguments that satisfy the filter.
+/// Start computing offsets and size from `startingArgIdx`.
 std::pair<std::size_t, std::vector<std::size_t>>
 getFunctionArgumentLayout(mlir::ModuleOp module, mlir::func::FuncOp func,
                           bool filter(mlir::Type) = nullptr,

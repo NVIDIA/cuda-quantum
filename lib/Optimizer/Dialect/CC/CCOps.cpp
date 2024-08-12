@@ -967,7 +967,11 @@ struct FuseWithConstantArray
           return success();
         }
         if (auto complexTy = dyn_cast<ComplexType>(extval.getType())) {
-          std::int32_t i = extval.getRawConstantIndices()[0];
+          std::int32_t index = extval.getRawConstantIndices()[0];
+          assert((index >= 0) && "Invalid index into constant complex array");
+          std::size_t i = index;
+          assert((2 * i + 1 < conarr.getConstantValues().size()) &&
+                 "Invalid index into constant complex array");
           auto rePart = cast<FloatAttr>(conarr.getConstantValues()[2 * i]);
           auto imPart = cast<FloatAttr>(conarr.getConstantValues()[2 * i + 1]);
           auto cval = rewriter.getArrayAttr({rePart, imPart});

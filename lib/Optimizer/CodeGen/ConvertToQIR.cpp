@@ -204,30 +204,26 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
   cudaq::opt::populateCCTypeConversions(&typeConverter);
 }
 
-/// @brief Compute function argument size in bytes and offsets
-/// of all the arguments that satisfy the filter.
-/// Start computing offsets and size from `startingArgIdx`.
 std::pair<std::size_t, std::vector<std::size_t>>
-cudaq::opt::getFunctionArgumentLayout(mlir::ModuleOp module,
-                                      mlir::func::FuncOp func,
-                                      bool filter(mlir::Type arg),
+cudaq::opt::getFunctionArgumentLayout(ModuleOp module, func::FuncOp func,
+                                      bool filter(Type arg),
                                       std::size_t startingArgIdx) {
   auto arguments = func.getArguments();
   auto results = func.getResultTypes();
   auto funcTy = func.getFunctionType();
   auto bufferTy =
       cudaq::opt::factory::buildInvokeStructType(funcTy, startingArgIdx);
-  mlir::StringRef dataLayoutSpec = "";
+  StringRef dataLayoutSpec = "";
   if (auto attr =
           module->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
-    dataLayoutSpec = cast<mlir::StringAttr>(attr);
+    dataLayoutSpec = cast<StringAttr>(attr);
   llvm::DataLayout dataLayout{dataLayoutSpec};
   // Convert bufferTy to llvm.
   llvm::LLVMContext context;
-  mlir::LLVMTypeConverter converter(funcTy.getContext());
+  LLVMTypeConverter converter(funcTy.getContext());
   cudaq::opt::initializeTypeConversions(converter);
   auto llvmDialectTy = converter.convertType(bufferTy);
-  mlir::LLVM::TypeToLLVMIRTranslator translator(context);
+  LLVM::TypeToLLVMIRTranslator translator(context);
   auto *llvmStructTy =
       cast<llvm::StructType>(translator.translateType(llvmDialectTy));
   auto *layout = dataLayout.getStructLayout(llvmStructTy);
