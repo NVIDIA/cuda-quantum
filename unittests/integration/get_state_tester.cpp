@@ -171,7 +171,7 @@ CUDAQ_TEST(GetStateTester, checkKron) {
     cudaq::qubit a;
     cudaq::qvector qvec(vec);
   };
-  // Construct a 10-qubit |1111111111> state
+  // Construct a 6-qubit |111111> state
   const int num_qubits_input_state = 6;
   std::vector<std::complex<cudaq::real>> hostStateData(
       1 << num_qubits_input_state);
