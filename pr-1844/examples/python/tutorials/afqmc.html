@@ -578,8 +578,8 @@
 <li><p>A variational quantum eigensolver that uses the quantum-number-preserving ansatz proposed by <a class="reference external" href="https://doi.org/10.1088/1367-2630/ac2cb3">Anselmetti et al. (2021)</a> to generate a quantum trial wave function <span class="math notranslate nohighlight">\(|\Psi_T\rangle\)</span> using CUDA Quantum.</p></li>
 <li><p>An Auxiliary-Field Quantum Monte Carlo simulation that realizes a classical imaginary time evolution and collects the ground state energy estimates.</p></li>
 </ol>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Package installs and relevant imports.</span>
@@ -611,64 +611,6 @@
 <span class="n">config</span><span class="o">.</span><span class="n">update_option</span><span class="p">(</span><span class="s2">&quot;use_gpu&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 <br/></pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Requirement already satisfied: pyscf==2.6.0 in /usr/local/lib/python3.10/dist-packages (2.6.0)
-Requirement already satisfied: openfermion==1.6.1 in /usr/local/lib/python3.10/dist-packages (1.6.1)
-Requirement already satisfied: ipie==0.7.1 in /usr/local/lib/python3.10/dist-packages (0.7.1)
-Requirement already satisfied: scipy!=1.5.0,!=1.5.1 in /usr/local/lib/python3.10/dist-packages (from pyscf==2.6.0) (1.10.1)
-Requirement already satisfied: setuptools in /usr/lib/python3/dist-packages (from pyscf==2.6.0) (59.6.0)
-Requirement already satisfied: h5py&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from pyscf==2.6.0) (3.10.0)
-Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/python3.10/dist-packages (from pyscf==2.6.0) (1.26.4)
-Requirement already satisfied: networkx in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (3.3)
-Requirement already satisfied: requests&gt;=2.18 in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (2.31.0)
-Requirement already satisfied: cirq-core~=1.0 in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (1.4.1)
-Requirement already satisfied: sympy in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (1.13.1)
-Requirement already satisfied: deprecation in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (2.1.0)
-Requirement already satisfied: pubchempy in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (1.0.4)
-Requirement already satisfied: numba in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (0.60.0)
-Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (2.2.2)
-Requirement already satisfied: pytest in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (8.2.0)
-Requirement already satisfied: plum-dispatch in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (2.5.2)
-Requirement already satisfied: matplotlib~=3.0 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (3.9.1)
-Requirement already satisfied: sortedcontainers~=2.0 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (2.4.0)
-Requirement already satisfied: typing-extensions&gt;=4.2 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (4.12.2)
-Requirement already satisfied: tqdm in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (4.66.4)
-Requirement already satisfied: attrs&gt;=21.3.0 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (23.2.0)
-Requirement already satisfied: duet&gt;=0.2.8 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (0.2.9)
-Requirement already satisfied: charset-normalizer&lt;4,&gt;=2 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion==1.6.1) (3.3.2)
-Requirement already satisfied: idna&lt;4,&gt;=2.5 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion==1.6.1) (3.7)
-Requirement already satisfied: certifi&gt;=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion==1.6.1) (2024.7.4)
-Requirement already satisfied: urllib3&lt;3,&gt;=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion==1.6.1) (2.2.2)
-Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from deprecation-&gt;openfermion==1.6.1) (24.1)
-Requirement already satisfied: llvmlite&lt;0.44,&gt;=0.43.0dev0 in /usr/local/lib/python3.10/dist-packages (from numba-&gt;ipie==0.7.1) (0.43.0)
-Requirement already satisfied: python-dateutil&gt;=2.8.2 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;ipie==0.7.1) (2.9.0.post0)
-Requirement already satisfied: pytz&gt;=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;ipie==0.7.1) (2024.1)
-Requirement already satisfied: tzdata&gt;=2022.7 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;ipie==0.7.1) (2024.1)
-Requirement already satisfied: beartype&gt;=0.16.2 in /usr/local/lib/python3.10/dist-packages (from plum-dispatch-&gt;ipie==0.7.1) (0.18.5)
-Requirement already satisfied: rich&gt;=10.0 in /usr/local/lib/python3.10/dist-packages (from plum-dispatch-&gt;ipie==0.7.1) (13.7.1)
-Requirement already satisfied: pluggy&lt;2.0,&gt;=1.5 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (1.5.0)
-Requirement already satisfied: tomli&gt;=1 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (2.0.1)
-Requirement already satisfied: exceptiongroup&gt;=1.0.0rc8 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (1.2.2)
-Requirement already satisfied: iniconfig in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (2.0.0)
-Requirement already satisfied: mpmath&lt;1.4,&gt;=1.1.0 in /usr/local/lib/python3.10/dist-packages (from sympy-&gt;openfermion==1.6.1) (1.3.0)
-Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (4.53.1)
-Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (3.1.2)
-Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (10.4.0)
-Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (1.4.5)
-Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (0.12.1)
-Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (1.2.1)
-Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.8.2-&gt;pandas-&gt;ipie==0.7.1) (1.16.0)
-Requirement already satisfied: markdown-it-py&gt;=2.2.0 in /usr/local/lib/python3.10/dist-packages (from rich&gt;=10.0-&gt;plum-dispatch-&gt;ipie==0.7.1) (2.2.0)
-Requirement already satisfied: pygments&lt;3.0.0,&gt;=2.13.0 in /usr/local/lib/python3.10/dist-packages (from rich&gt;=10.0-&gt;plum-dispatch-&gt;ipie==0.7.1) (2.18.0)
-Requirement already satisfied: mdurl~=0.1 in /usr/local/lib/python3.10/dist-packages (from markdown-it-py&gt;=2.2.0-&gt;rich&gt;=10.0-&gt;plum-dispatch-&gt;ipie==0.7.1) (0.1.2)
-<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
-</span>
-</pre></div></div>
 </div>
 <p>We start by defining the structure of the molecule, the basis set, and its spin. We build the molecule object with PySCF and run a preliminary Hartree-Fock computation. Here we choose as an example a <a class="reference external" href="https://doi.org/10.1021/acs.jctc.3c01375">chelating agent</a> representing a relevant class of substances industrially produced at large scales. Their use ranges, among the others, from water softeners in cleaning applications, modulators of redox behaviour in oxidative bleaching, scale
 suppressants, soil remediation and ligands for catalysts. In particular we focus here in a Fe(III)-NTA complex whose structure is given in the file imported below.</p>
