@@ -87,10 +87,9 @@ module attributes {quake.mangled_name_map = {
 
 // CHECK-LABEL:   func.func @_ZN3ghzclEi(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: i32) -> f64 {
-// CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_2]][0] : (!cc.struct<{i32, f64}>, i32) -> !cc.struct<{i32, f64}>
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // CHECK:           %[[VAL_7:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
 // CHECK:           %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_3]] : i64
 // CHECK:           %[[VAL_9:.*]] = cc.alloca i8[%[[VAL_8]] : i64]
@@ -100,8 +99,7 @@ module attributes {quake.mangled_name_map = {
 // CHECK:           %[[VAL_13:.*]] = constant @ghz.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_15:.*]] = cc.func_ptr %[[VAL_13]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<f64>) -> i64
+// CHECK:           %[[VAL_18:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
 // CHECK:           %[[VAL_12:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr<array<4 x i8>>
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
 // CHECK:           call @altLaunchKernel(%[[VAL_14]], %[[VAL_15]], %[[VAL_16]], %[[VAL_8]], %[[VAL_18]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
@@ -132,8 +130,8 @@ module attributes {quake.mangled_name_map = {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @ghz.argsCreator(
-// CHECK-SAME:                               %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
-// CHECK-SAME:                               %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
 // CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.ptr<i8>>) -> !cc.ptr<!cc.array<!cc.ptr<i8> x ?>>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
@@ -194,7 +192,6 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
 // HYBRID:           %[[VAL_3:.*]] = arith.constant 0 : i64
 // HYBRID:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_2]][0] : (!cc.struct<{i32, f64}>, i32) -> !cc.struct<{i32, f64}>
-// HYBRID:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // HYBRID:           %[[VAL_6:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
 // HYBRID:           %[[VAL_7:.*]] = arith.addi %[[VAL_6]], %[[VAL_3]] : i64
 // HYBRID:           %[[VAL_8:.*]] = cc.alloca i8{{\[}}%[[VAL_7]] : i64]
@@ -204,8 +201,7 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_11:.*]] = constant @ghz.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // HYBRID:           %[[VAL_12:.*]] = cc.func_ptr %[[VAL_11]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // HYBRID:           %[[VAL_13:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<i8>
-// HYBRID:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
-// HYBRID:           %[[VAL_15:.*]] = cc.cast %[[VAL_14]] : (!cc.ptr<f64>) -> i64
+// HYBRID:           %[[VAL_15:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
 // HYBRID:           %[[VAL_16:.*]] = cc.alloca !cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>
 // HYBRID:           %[[VAL_17:.*]] = cc.alloca !cc.array<!cc.ptr<i8> x 1>
 // HYBRID:           %[[VAL_18:.*]] = cc.sizeof !cc.array<!cc.ptr<i8> x 1> : i64
