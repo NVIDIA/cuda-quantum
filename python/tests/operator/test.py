@@ -330,11 +330,6 @@ evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_super
     #state.get().dump()
 evolution_result.final_state.get().dump()
 
-# FIXME: need to replace the spin_ops that observable take with a more generic version
-cost_function = pauli.z(0) * pauli.z(1)
-for i in range(2, num_qubits):
-    cost_function += pauli.z(i-1) * pauli.z(i)
-
 print("Evolve + observe on default simulator:")
 schedule.reset()
 evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function])

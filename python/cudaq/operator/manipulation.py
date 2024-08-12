@@ -248,14 +248,26 @@ class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator]):
         return op1 + op2
 
     def evaluate(self: _SpinArithmetics, op: ElementaryOperator | ScalarOperator) -> cudaq_runtime.SpinOperator: 
-        if hasattr(op, "id"):
-            match op.id:
-                case "pauli_x": return cudaq_runtime.spin.x(op.degrees[0])
-                case "pauli_y": return cudaq_runtime.spin.y(op.degrees[0])
-                case "pauli_z": return cudaq_runtime.spin.z(op.degrees[0])
-                case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0])
-                case "identity": 
-                    assert len(op.degrees) == 1, "expecting identity to act on a single degree of freedom"
-                    return cudaq_runtime.spin.i(op.degrees[0])
-                case _: raise ValueError(f"operator '{op.id}' is not a spin operator")
-        raise ValueError("spin operator cannot contain scalar values")
+        match getattr(op, "id", "scalar"):
+            case "scalar": return op.evaluate(**self._kwargs)
+            case "pauli_x": return cudaq_runtime.spin.x(op.degrees[0])
+            case "pauli_y": return cudaq_runtime.spin.y(op.degrees[0])
+            case "pauli_z": return cudaq_runtime.spin.z(op.degrees[0])
+            case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0])
+            case "identity": 
+                assert len(op.degrees) == 1, "expecting identity to act on a single degree of freedom"
+                return cudaq_runtime.spin.i(op.degrees[0])
+            case _: raise ValueError(f"operator '{op.id}' is not a spin operator")
+
+    def __init__(self: _SpinArithmetics, **kwargs: NumericType) -> None:
+        """
+        Instantiates a _SpinArithmetics instance for the given keyword arguments.
+        This class is only defined for qubits, that is all degrees of freedom must 
+        have dimension two.
+
+        Arguments:
+            **kwargs: Keyword arguments needed to evaluate, that is access data in,
+                the leaf nodes of the operator expression. Leaf nodes are 
+                values of type ElementaryOperator or ScalarOperator.
+        """
+        self._kwargs = kwargs

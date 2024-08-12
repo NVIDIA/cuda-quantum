@@ -139,7 +139,9 @@ class OperatorSum:
 
     # To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
     def _to_spinop(self: OperatorSum, dimensions: Mapping[int, int], **kwargs: NumericType) -> cudaq_runtime.SpinOperator:
-        return self._evaluate(_SpinArithmetics())
+        if any((dim != 2 for dim in dimensions.values())):
+            raise ValueError("incorrect dimensions - conversion to spin operator can only be done for qubits")
+        return self._evaluate(_SpinArithmetics(**kwargs))
 
     def to_pauli_word(self: OperatorSum) -> cudaq_runtime.pauli_word:
         """
@@ -723,7 +725,7 @@ class ScalarOperator(ProductOperator):
 
     @property
     def _is_spinop(self: ScalarOperator) -> bool:
-        return False # FIXME: support as coefficient
+        return True # supported as coefficient
 
     def _invoke(self: ScalarOperator, **kwargs: NumericType) -> NumericType:
         """
@@ -743,6 +745,20 @@ class ScalarOperator(ProductOperator):
         """
         return arithmetics.evaluate(self)
 
+    def evaluate(self: ScalarOperator, **kwargs: NumericType) -> NumericType:
+        """
+        Invokes the generator with the given keyword arguments.
+
+        Arguments:
+            **kwargs: Keyword arguments needed to evaluate the generator. All
+                required parameters and their documentation, if available, can be 
+                queried by accessing the `parameter` property.
+
+        Returns:
+            The scalar value of the operator for the given keyword arguments.
+        """
+        return self._invoke(**kwargs)
+
     # The argument `dimensions` here is only passed for consistency with parent classes.
     def to_matrix(self: ScalarOperator, dimensions: Mapping[int, int] = {}, **kwargs: NumericType) -> NDArray[numpy.complexfloating]:
         """
@@ -758,7 +774,8 @@ class ScalarOperator(ProductOperator):
                 queried by accessing the `parameter` property.
 
         Returns:
-            The scalar value of the operator for the given keyword arguments.
+            An array with a single element corresponding to the value of the operator 
+            for the given keyword arguments.
         """
         return numpy.array([self._invoke(**kwargs)], dtype=numpy.complex128)
 
