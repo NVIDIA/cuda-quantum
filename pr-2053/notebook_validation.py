@@ -13,6 +13,9 @@ from pathlib import Path
 import subprocess
 from shutil import which
 
+patterns = ['set_target[\\\s\(]+"(.+)\\\\"[)]', '--target ([^ ]+)']
+patterns_string = "|".join(patterns)
+
 
 def check_jupyter_installed():
     if which('jupyter') is None:
@@ -21,19 +24,14 @@ def check_jupyter_installed():
 
 
 def read_available_backends():
-    available_backends = sys.stdin.readlines()
-    available_backends = ' '.join(available_backends).split()
-    return [backend.strip() for backend in available_backends]
+    return sys.stdin.read().split()
 
 
 def validate(notebook_filename, available_backends):
     with open(notebook_filename) as f:
         lines = f.read()
-    if any(
-            re.search(pattern, lines) for pattern in
-        ['set_target[\\\s\(]+"(.+)\\\\"[)]', '--target ([^ ]+)']):
-        matches = re.findall(
-            'set_target[\\\s\(]+"(.+)\\\\"[)]|--target ([^ ]+)', lines)
+    if any(re.search(pattern, lines) for pattern in patterns):
+        matches = re.findall(patterns_string, lines)
         for match in matches:
             backend = match[0] if match[0] else match[1]
             if backend not in available_backends:
