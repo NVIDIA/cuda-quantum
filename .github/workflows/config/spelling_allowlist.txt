@@ -237,9 +237,7 @@ optimizers
 parallelization
 parallelize
 parallelizing
-param
 parameterization
-params
 performant
 photonic
 precompute
