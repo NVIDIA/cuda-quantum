@@ -11,6 +11,7 @@ class Schedule(Iterator):
     """
 
     # The output type of the iterable steps must match the second argument of `get_value`.
+    __slots__ = ['_steps', '_current_idx', '_parameters', '_get_value']
     def __init__(self: Schedule, steps: Iterable[Any], parameters: Iterable[str], get_value: Optional[Callable[[str, Any], NumericType]] = None) -> None:
         """
         Creates a schedule for evaluating an operator expression at different steps.
@@ -26,8 +27,8 @@ class Schedule(Iterator):
                 not provided, then the steps must be of a numeric type, and the value
                 of each parameter will be set to the step value. 
         """
-        self._iterator = iter(steps)
-        self._current_step = None
+        self._steps = steps
+        self._current_idx = -1
         self._parameters = parameters
         if get_value is None:
             self._get_value : Callable[[str, Any], NumericType] = self._operator_parameter
@@ -51,15 +52,22 @@ class Schedule(Iterator):
     def current_step(self: Schedule) -> Optional[Any]:
         """
         The value of the step the Schedule (iterator) is currently at.
+        Returns None if the iteration has not yet started or has finished.
         """
-        return self._current_step
+        if 0 <= self._current_idx < len(self._steps): return self._steps[self._current_idx]
+        else: return None
+
+    def reset(self: Schedule) -> None:
+        """
+        Resets the schedule (iterator) to its starting point.
+        """
+        self._current_idx = -1
     
     def __iter__(self: Schedule) -> Schedule:
         return self
         
     def __next__(self: Schedule) -> Mapping[str, NumericType]:
-        self._current_step = next(self._iterator)
-        kwargs : dict[str, NumericType] = {}
-        for parameter in self._parameters:
-            kwargs[parameter] = self._get_value(parameter, self._current_step)
-        return kwargs
+        self._current_idx += 1
+        current_step = self.current_step
+        if current_step is None: raise StopIteration
+        return dict(((parameter, self._get_value(parameter, current_step)) for parameter in self._parameters))

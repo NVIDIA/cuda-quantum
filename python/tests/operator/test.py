@@ -156,12 +156,22 @@ scop = operators.const(2)
 elop = operators.identity(1)
 print(f"arithmetics: {scop.to_matrix(dims)}")
 print(f"arithmetics: {elop.to_matrix(dims)}")
+print(f"arithmetics: {(elop / scop).to_matrix(dims)}")
 print(f"arithmetics: {(scop * elop).to_matrix(dims)}")
 print(f"arithmetics: {(elop * scop).to_matrix(dims)}")
 print(f"arithmetics: {(scop + elop).to_matrix(dims)}")
 print(f"arithmetics: {(elop + scop).to_matrix(dims)}")
 print(f"arithmetics: {(scop - elop).to_matrix(dims)}")
 print(f"arithmetics: {(elop - scop).to_matrix(dims)}")
+print(f"arithmetics: {((scop * elop) / scop).to_matrix(dims)}")
+print(f"arithmetics: {((elop / scop) * elop).to_matrix(dims)}")
+print(f"arithmetics: {((elop / scop) + elop).to_matrix(dims)}")
+print(f"arithmetics: {(elop * (elop / scop)).to_matrix(dims)}")
+print(f"arithmetics: {(elop + (elop / scop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop + elop) / scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop + (elop / scop)).to_matrix(dims)}")
+print(f"arithmetics: {((scop * elop) / scop).to_matrix(dims)}")
+print(f"arithmetics: {(scop * (elop / scop)).to_matrix(dims)}")
 print(f"arithmetics: {((scop * elop) * scop).to_matrix(dims)}")
 print(f"arithmetics: {(scop * (scop * elop)).to_matrix(dims)}")
 print(f"arithmetics: {((scop * elop) * elop).to_matrix(dims)}")
@@ -211,6 +221,10 @@ for op in [elop, opprod, opsum]:
         print(f"arithmetics: {arith(2, op).to_matrix(dims)}")
         print(f"arithmetics: {arith(2.5, op).to_matrix(dims)}")
         print(f"arithmetics: {arith(2j, op).to_matrix(dims)}")
+    print(f"testing {operator.truediv} for {type(op)}")
+    print(f"arithmetics: {(op / 2).to_matrix(dims)}")
+    print(f"arithmetics: {(op / 2.5).to_matrix(dims)}")
+    print(f"arithmetics: {(op / 2j).to_matrix(dims)}")
 
 print(operators.const(2))
 print(ScalarOperator(lambda alpha: 2*alpha))
@@ -281,8 +295,7 @@ coupling_strength = coupling_coeff * time
 hamiltonian = ising_chain(num_qubits, field_strength) + tranverse_field(num_qubits, coupling_strength)
 dimensions = dict([(i, 2) for i in hamiltonian.degrees])
 energy = hamiltonian
-# FIXME: IMPLEMENT DIVISION ETC WITH NUMERICTYPE AND SCALAROPS FOR OPERATORS
-magnetization = 1/num_qubits * tranverse_field(num_qubits, operators.const(1))
+magnetization = tranverse_field(num_qubits, operators.const(1)) / num_qubits
 cost_function = ising_chain(num_qubits, operators.const(coupling_coeff))
 
 uniform_superposition = numpy.ones(2**num_qubits, dtype=numpy.complex128) / numpy.sqrt(2**num_qubits)
@@ -294,20 +307,22 @@ schedule = Schedule(steps, ["time"])
 #                          observables = [energy, magnetization, cost_function],
 #                          store_intermediate_results = True)
 
-# FIXME: convert to list to not duplicate
 print("Evolve on default simulator:")
-schedule = list(Schedule(steps, ["time"]))
+schedule.reset()
 evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition)
 evolution_result.final_state.dump()
 print("Evolve asynchronous on default simulator:")
+schedule.reset()
 evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition)
 evolution_result.final_state.get().dump()
 
 print("Evolve with intermediate states on default simulator:")
+schedule.reset()
 evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
 for state in evolution_result.intermediate_states: state.dump()
 evolution_result.final_state.dump()
 print("Evolve asynchronous with intermediate states on default simulator:")
+schedule.reset()
 # FIXME: trying to get a state results in a "no associated state"
 # Edit: I think the issue is calling state.get() twice.
 evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
@@ -321,17 +336,20 @@ for i in range(2, num_qubits):
     cost_function += pauli.z(i-1) * pauli.z(i)
 
 print("Evolve + observe on default simulator:")
+schedule.reset()
 evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function])
 print(f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values]}")
 
 print("Evolve + observe asynchronous on default simulator:")
+schedule.reset()
 # FIXME: segfaults after completion - check after fixing the no associated state issue above
 #evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function])
 #print(f"final expectation values: {[res.get().expectation() for res in evolution_result.final_expectation_values]}")
 
 print("Evolve + observe asynchronous with intermediate results on default simulator:")
+schedule.reset()
 # FIXME: segfaults after completion - check after fixing the no associated state issue above
 #evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function], store_intermediate_results = True)
 #print(f"final expectation values: {[res.get().expectation() for res in evolution_result.final_expectation_values]}")
 
-# FIXME: CHECK EQUALITY COMPARISON (maybe canonicalize degrees changed it?)
+

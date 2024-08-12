@@ -159,6 +159,11 @@ class OperatorSum:
             return OperatorSum([self_term * other for self_term in self._terms])
         return NotImplemented
 
+    def __truediv__(self: OperatorSum, other: Any) -> OperatorSum:
+        if type(other) == ScalarOperator or isinstance(other, (complex, float, int)):
+            return OperatorSum([term / other for term in self._terms])
+        return NotImplemented
+
     def __add__(self: OperatorSum, other: Any) -> OperatorSum:
         if type(other) == OperatorSum:
             return OperatorSum([*self._terms, *other._terms])
@@ -251,6 +256,14 @@ class ProductOperator(OperatorSum):
             return ProductOperator([*self._operators, ScalarOperator.const(other)])
         elif type(other) == ElementaryOperator or type(other) == ScalarOperator:
             return ProductOperator([*self._operators, other])
+        return NotImplemented
+
+    def __truediv__(self: ProductOperator, other: Any) -> ProductOperator:
+        if isinstance(other, (complex, float, int)):
+            other_op = ScalarOperator.const(1 / other)
+            return ProductOperator([other_op, *self._operators])
+        if type(other) == ScalarOperator:
+            return ProductOperator([1 / other, *self._operators])
         return NotImplemented
 
     def __add__(self: ProductOperator, other: Any) -> OperatorSum:
@@ -534,6 +547,14 @@ class ElementaryOperator(ProductOperator):
             return ProductOperator([self, other])
         elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
             return ProductOperator([self]) * other
+        return NotImplemented
+
+    def __truediv__(self: ElementaryOperator, other: Any) -> ProductOperator:
+        if isinstance(other, (complex, float, int)):
+            other_op = ScalarOperator.const(1 / other)
+            return ProductOperator([other_op, self])
+        if type(other) == ScalarOperator:
+            return ProductOperator([1 / other, self])
         return NotImplemented
 
     def __add__(self: ElementaryOperator, other: Any) -> OperatorSum:
