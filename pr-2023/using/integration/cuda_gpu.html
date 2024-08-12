@@ -29,8 +29,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA-Q and CMake" href="cmake_app.html" />
-    <link rel="prev" title="Integration with other Software Tools" href="integration.html" /> 
+    <link rel="next" title="Integrating with Third-Party Libraries" href="libraries.html" />
+    <link rel="prev" title="CUDA-Q and CMake" href="cmake_app.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -124,7 +124,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/visualization.html">   Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/visualization.html#Qubit-Visualization">Qubit Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -199,6 +203,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Data-preprocessing">Data preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Quantum-functions">Quantum functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#QAOA-Implementation">QAOA Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -266,6 +278,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#accessing-simulated-quantum-state">Accessing Simulated Quantum State</a></li>
 </ul>
 </li>
 </ul>
@@ -317,8 +330,8 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../install/data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../install/data_center_install.html#mpi">MPI</a></li>
@@ -329,8 +342,14 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="integration.html">   Integration</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
@@ -503,6 +522,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 </ul>
 </li>
 </ul>
@@ -530,8 +550,8 @@
             <a href="../../_sources/using/integration/cuda_gpu.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="integration.html" class="btn btn-neutral float-left" title="Integration with other Software Tools" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cmake_app.html" class="btn btn-neutral float-right" title="CUDA-Q and CMake" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cmake_app.html" class="btn btn-neutral float-left" title="CUDA-Q and CMake" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="libraries.html" class="btn btn-neutral float-right" title="Integrating with Third-Party Libraries" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -556,18 +576,82 @@ standard conforming C++ syntax. Typically, a quantum kernel would be
 saved in a file with the <code class="code docutils literal notranslate"><span class="pre">.cpp</span></code> extension. Again for our
 example, let’s assume that we’ve written quantum kernels and saved
 them in the file <code class="code docutils literal notranslate"><span class="pre">my_proj_quantum.cpp</span></code>.</p>
-<p>There is a bit of a wrinkle to be aware of before we compile these two
-compilation units. Version 11 (and earlier) of CUDA <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code>
-supports the C++ 11, 14, and 17 standards and the default standard is
-determined by the host C++ compiler. The CUDA-Q compiler,
-<code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>, defaults to the C++ 20 standard. To get around this
-limitation, the project makefiles should select a common C++ standard
-version. Fortunately, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> does allow the use of C++ 17.</p>
-<p>Note that starting with version 12 of the CUDA toolkit, the C++ 20
-standard is supported.</p>
-<p>Our project can then be built with commands such as</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvcc<span class="w"> </span>-c<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_proj.cu<span class="w"> </span>-o<span class="w"> </span>my_proj.o
-nvq++<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_project_quantum.cpp<span class="w"> </span>my_proj.o<span class="w"> </span>-L<span class="w"> </span><span class="si">${</span><span class="nv">CUDA_INSTALL</span><span class="si">}</span>/lib64<span class="w"> </span>-lcudart<span class="w"> </span>-o<span class="w"> </span>my_executable
+<p>By default, CUDA-Q uses C++ 20 and builds source code against the
+LLVM C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libc++</span></code>). To create a CUDA library that
+can link against CUDA-Q code, make sure to define an API that does
+not rely on C++ data structures that rely on a specific C++ toolchain
+for all functions intended to be called from CUDA-Q (see also
+<a class="reference internal" href="libraries.html#clike-shim"><span class="std std-ref">Interfacing between binaries compiled with a different toolchains</span></a>). For example, if you define a CUDA kernel in <code class="code docutils literal notranslate"><span class="pre">my_proj.cu</span></code></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">CudaDataType</span><span class="o">&gt;</span>
+<span class="n">__global__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">cudaSetFirstNElements</span><span class="p">(</span><span class="n">CudaDataType</span><span class="w"> </span><span class="o">*</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">CudaDataType</span><span class="w"> </span><span class="o">*</span><span class="n">__restrict__</span><span class="w"> </span><span class="n">sv2</span><span class="p">,</span><span class="w"> </span><span class="kt">int64_t</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="kt">int64_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int64_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">sv</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sv2</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">x</span><span class="p">;</span>
+<span class="w">        </span><span class="n">sv</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sv2</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">y</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">sv</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">        </span><span class="n">sv</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>define the following template and all desired template specializations</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">CudaDataType</span><span class="o">&gt;</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">setFirstNElements</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">n_blocks</span><span class="p">,</span>
+<span class="w">                       </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">threads_per_block</span><span class="p">,</span>
+<span class="w">                       </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">newDeviceStateVector</span><span class="p">,</span>
+<span class="w">                       </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">deviceStateVector</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">previousStateDimension</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaSetFirstNElements</span><span class="o">&lt;&lt;&lt;</span><span class="n">n_blocks</span><span class="p">,</span><span class="w"> </span><span class="n">threads_per_block</span><span class="o">&gt;&gt;&gt;</span><span class="p">(</span>
+<span class="w">        </span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">CudaDataType</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="n">newDeviceStateVector</span><span class="p">),</span>
+<span class="w">        </span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">CudaDataType</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="n">deviceStateVector</span><span class="p">),</span>
+<span class="w">        </span><span class="n">previousStateDimension</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">template</span><span class="w"> </span><span class="kt">void</span>
+<span class="n">setFirstNElements</span><span class="o">&lt;</span><span class="n">cuFloatComplex</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">n_blocks</span><span class="p">,</span>
+<span class="w">                                  </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">threads_per_block</span><span class="p">,</span>
+<span class="w">                                  </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">newDeviceStateVector</span><span class="p">,</span>
+<span class="w">                                  </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">deviceStateVector</span><span class="p">,</span>
+<span class="w">                                  </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">previousStateDimension</span><span class="p">);</span>
+
+<span class="k">template</span><span class="w"> </span><span class="kt">void</span>
+<span class="n">setFirstNElements</span><span class="o">&lt;</span><span class="n">cuDoubleComplex</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">n_blocks</span><span class="p">,</span>
+<span class="w">                                   </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">threads_per_block</span><span class="p">,</span>
+<span class="w">                                   </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">newDeviceStateVector</span><span class="p">,</span>
+<span class="w">                                   </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">deviceStateVector</span><span class="p">,</span>
+<span class="w">                                   </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">previousStateDimension</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Create the corresponding header file <code class="code docutils literal notranslate"><span class="pre">my_proj.h</span></code> declaring the <code class="code docutils literal notranslate"><span class="pre">setFirstNElements</span></code>
+template. You can then call <code class="code docutils literal notranslate"><span class="pre">setFirstNElements</span></code> from within <code class="code docutils literal notranslate"><span class="pre">my_proj_quantum.cpp</span></code>
+by including <code class="code docutils literal notranslate"><span class="pre">my_proj.h</span></code>, for example</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cuComplex.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cuda_runtime.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;device_launch_parameters.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;my_proj.h&quot;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">my_kernels</span><span class="p">;</span><span class="w"> </span><span class="c1">// the namespace where you defined setFirstNElements</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">n_blocks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">threads_per_block</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">deviceStateVector</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaMalloc</span><span class="p">((</span><span class="kt">void</span><span class="w"> </span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">deviceStateVector</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">cuDoubleComplex</span><span class="p">));</span>
+<span class="w">    </span><span class="c1">// ...</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">newDeviceStateVector</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaMalloc</span><span class="p">((</span><span class="kt">void</span><span class="w"> </span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">newDeviceStateVector</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">cuDoubleComplex</span><span class="p">));</span>
+<span class="w">    </span><span class="n">setFirstNElements</span><span class="o">&lt;</span><span class="n">cuDoubleComplex</span><span class="o">&gt;</span><span class="p">(</span><span class="n">n_blocks</span><span class="p">,</span><span class="w"> </span><span class="n">threads_per_block</span><span class="p">,</span>
+<span class="w">                                       </span><span class="n">newDeviceStateVector</span><span class="p">,</span><span class="w"> </span><span class="n">deviceStateVector</span><span class="p">,</span>
+<span class="w">                                       </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To get an executable, compile the code with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvcc<span class="w"> </span>-c<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>-Xcompiler<span class="w"> </span>-fPIC<span class="w"> </span>my_proj.cu<span class="w"> </span>-o<span class="w"> </span>my_proj.o
+nvq++<span class="w"> </span>my_proj_quantum.cpp<span class="w"> </span>my_proj.o<span class="w"> </span>-I<span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_HOME</span><span class="si">}</span><span class="s2">/include/&quot;</span><span class="w"> </span>-L<span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_HOME</span><span class="si">}</span><span class="s2">/lib64&quot;</span><span class="w"> </span>-lcudart<span class="w"> </span>-o<span class="w"> </span>my_executable
 </pre></div>
 </div>
 <p>Above, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> is used for the link step and will make sure the CUDA-Q
@@ -579,8 +663,8 @@ The CUDA runtime is explicitly added to this command.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="integration.html" class="btn btn-neutral float-left" title="Integration with other Software Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cmake_app.html" class="btn btn-neutral float-right" title="CUDA-Q and CMake" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cmake_app.html" class="btn btn-neutral float-left" title="CUDA-Q and CMake" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="libraries.html" class="btn btn-neutral float-right" title="Integrating with Third-Party Libraries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -124,7 +124,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#state-visualization">State Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/visualization.html">   Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/visualization.html#Qubit-Visualization">Qubit Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -199,6 +203,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Data-preprocessing">Data preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Quantum-functions">Quantum functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#QAOA-Implementation">QAOA Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Divisive_clustering.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -266,6 +278,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#accessing-simulated-quantum-state">Accessing Simulated Quantum State</a></li>
 </ul>
 </li>
 </ul>
@@ -317,8 +330,8 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#building-cuda-q">Building CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mpi">MPI</a></li>
@@ -329,8 +342,14 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../integration/cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integration/libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
@@ -503,6 +522,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
 </ul>
 </li>
 </ul>
@@ -551,12 +571,15 @@ in a user folder and its installation does not require admin permissions; see
 on how to do that. Our installation guide also contains instructions for how to
 <a class="reference internal" href="local_installation.html#local-development-with-vscode"><span class="std std-ref">connect an IDE</span></a> to a running container.</p>
 <p>If you do not want use a container runtime, we also provide pre-built binaries
-for using CUDA-Q with C++. These binaries are built following the instructions
+for using CUDA-Q with C++, and Python wheels for using CUDA-Q with Python.
+These binaries and wheels are built following the instructions
 in this guide and should work for you as long as your system meets the compatibility
 requirements listed under <a class="reference internal" href="#compatibility-prebuilt-binaries"><span class="std std-ref">Prerequisites</span></a>.
-To install them, please follow the instructions <a class="reference internal" href="local_installation.html#install-prebuilt-binaries"><span class="std std-ref">here</span></a>.</p>
-<p>If our pre-built packages are not a good option for you, e.g. because you would
-like to use CUDA-Q on an operating system that is not officially supported,
+To install the pre-built binaries, please follow the instructions
+<a class="reference internal" href="local_installation.html#install-prebuilt-binaries"><span class="std std-ref">here</span></a>. To install the Python wheels, please
+follow the instructions <a class="reference internal" href="local_installation.html#install-python-wheels"><span class="std std-ref">here</span></a>.</p>
+<p>If your system is not listed as supported by our official packages, e.g. because you would
+like to use CUDA-Q on an operating system that uses an older C standard library,
 please follow this guide carefully without skipping any steps to build and install
 CUDA-Q from source. The rest of this guide details system requirements
 during the build and after installation, and walks through the installation steps.</p>
@@ -671,10 +694,12 @@ corresponding environment variable(s).</p>
 <section id="cuda">
 <h3>CUDA<a class="headerlink" href="#cuda" title="Permalink to this heading">¶</a></h3>
 <p>Building CUDA-Q requires a full installation of the CUDA toolkit.
+<strong>You can install the CUDA toolkit and use the CUDA compiler without having a GPU.</strong>
 The instructions are tested using version 11.8, but any CUDA 11 or 12 version
-should work, as long as the installed driver on the host
+should work, as long as the CUDA runtime version on the host system matches the
+CUDA version used for the build, and the installed driver on the host
 system supports that CUDA version. We recommend using the latest CUDA version
-that is supported by your driver.</p>
+that is supported by the driver on the host system.</p>
 <p>Download a suitable <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>
 following the installation guide for your platform in the online documentation
 linked on that page.</p>
@@ -694,38 +719,38 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 </section>
 <section id="toolchain">
 <h3>Toolchain<a class="headerlink" href="#toolchain" title="Permalink to this heading">¶</a></h3>
-<p>The compiler toolchain used for the build needs to support C++20 and must be a supported
+<p>The compiler toolchain used for the build must be a supported
 <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers">CUDA host compiler</a>
 for the installed CUDA version.
-The following instructions have been tested with
-<a class="reference external" href="https://gcc.gnu.org/index.html">GCC-11</a> as your toolchain for building CUDA-Q.
-If you use a different compiler, we recommend using an OpenMP-enabled compiler. At this
-time, we actively test building with GCC 11 and 12, as well as with Clang 16.
+The following instructions have been tested with <a class="reference external" href="https://gcc.gnu.org/index.html">GCC-11</a>.
 Other toolchains may be supported but have not been tested.</p>
 <p>Within the tested AlmaLinux 8 environment, for example, the following commands
 install GCC 11:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GCC_VERSION</span><span class="o">=</span><span class="m">11</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>gcc-toolset-<span class="si">${</span><span class="nv">GCC_VERSION</span><span class="si">}</span>
+<span class="c1"># Enabling the toolchain globally is only needed for debug builds</span>
+<span class="c1"># to ensure that the correct assembler is picked to process debug symbols.</span>
+<span class="nv">enable_script</span><span class="o">=</span><span class="sb">`</span>find<span class="w"> </span>/<span class="w"> </span>-path<span class="w"> </span><span class="s1">&#39;*gcc*&#39;</span><span class="w"> </span>-path<span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="nv">$GCC_VERSIONS</span><span class="s1">&#39;*&#39;</span><span class="w"> </span>-name<span class="w"> </span><span class="nb">enable</span><span class="sb">`</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$enable_script</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span>.<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$enable_script</span><span class="s2">&quot;</span>
+<span class="k">fi</span>
 </pre></div>
 </div>
 <p>Independent on which compiler toolchain you installed, set the following
 environment variables to point to the respective compilers on your build system:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GCC_INSTALL_PREFIX</span><span class="o">=</span>/opt/rh/gcc-toolset-11
-<span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/g++&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/gcc&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">FC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/gfortran&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">GCC_TOOLCHAIN</span><span class="o">=</span>/opt/rh/gcc-toolset-11/root/usr/
+<span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/g++&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/gcc&quot;</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">CUDACXX</span><span class="o">=</span>/usr/local/cuda/bin/nvcc
+<span class="nb">export</span><span class="w"> </span><span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_TOOLCHAIN</span><span class="si">}</span><span class="s2">/bin/g++&quot;</span>
 </pre></div>
 </div>
 <ul class="simple">
 <li><p>The variables <code class="code docutils literal notranslate"><span class="pre">CC</span></code> and <code class="code docutils literal notranslate"><span class="pre">CXX</span></code> <em>must</em> be set for the CUDA-Q build.</p></li>
-<li><p>A Fortran compiler is needed (only) to build the OpenSSL dependency;
-if you have an existing OpenSSL installation that you set the
-<code class="code docutils literal notranslate"><span class="pre">OPENSSL_INSTALL_PREFIX</span></code> variable to, you can omit setting the <code class="code docutils literal notranslate"><span class="pre">FC</span></code>
-environment variable.</p></li>
 <li><p>To use GPU-acceleration in CUDA-Q, make sure to set <code class="code docutils literal notranslate"><span class="pre">CUDACXX</span></code> to
-your CUDA compiler. If the CUDA compiler is not found when building
+your CUDA compiler, and <code class="code docutils literal notranslate"><span class="pre">CUDAHOSTCXX</span></code> to the CUDA compatible host
+compiler you are using. If the CUDA compiler is not found when building
 CUDA-Q, some components and backends will be omitted automatically
 during the build.</p></li>
 </ul>
@@ -741,11 +766,10 @@ Note that the build scripts assume that they are run from within a git repositor
 and merely downloading the source code as ZIP archive hence will not work.</p>
 <p>Please follow the instructions in the respective subsection(s) to build the necessary
 components for using CUDA-Q from C++ and/or Python.
-After the build, check the build log printed to the console to confirm that all desired
-components have been built.
-In particular, look for a line “Looking for CUDA compiler” in the build output,
-and confirm that it found the installed CUDA compiler, and the correct host compiler
-is used.</p>
+After the build, check that the GPU-accelerated components have been built by confirming
+that the file <code class="code docutils literal notranslate"><span class="pre">nvidia.config</span></code> exists in the <code class="code docutils literal notranslate"><span class="pre">$CUDAQ_INSTALL_PREFIX/targets</span></code> folder.
+We also recommend checking the build log printed to the console to confirm that all desired
+components have been built.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The CUDA-Q build will compile or omit optional components automatically depending
@@ -756,50 +780,13 @@ instructions for installing the necessary prerequisites and build dependencies,
 and have set the necessary environment variables as described in this document.</p>
 </div>
 </section>
-<section id="c-support">
-<span id="cudaq-cpp-from-source"></span><h2>C++ Support<a class="headerlink" href="#c-support" title="Permalink to this heading">¶</a></h2>
-<p>From within the folder where you cloned the CUDA-Q repository, run the following
-command to build CUDA-Q:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_WERROR</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
-<span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CXX</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">LDFLAGS</span><span class="o">=</span><span class="s1">&#39;-static-libgcc -static-libstdc++&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;lld;mlir&#39;</span><span class="w"> </span><span class="se">\</span>
-bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-uv
-</pre></div>
-</div>
-<p>Note that <code class="code docutils literal notranslate"><span class="pre">lld</span></code> is primarily needed when the build or host system does not already have an existing default linker on its path; CUDA-Q supports the same linkers as <code class="code docutils literal notranslate"><span class="pre">clang</span></code> does.</p>
-<p>To easily migrate the built binaries to the host system, we recommend creating a
-<a class="reference external" href="https://makeself.io/">self-extracting archive</a>. To do so, download the
-<a class="reference external" href="https://github.com/megastep/makeself">makeself script(s)</a> and move the necessary
-files to install into a separate folder using the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/llvm/bin<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/llvm/lib<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/&quot;</span>clang*<span class="w"> </span>cuda_quantum_assets/llvm/bin/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/&quot;</span>clang*<span class="w"> </span>cuda_quantum_assets/llvm/lib/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/llc&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/llc<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/lld&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/lld<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/ld.lld&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/ld.lld<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/build_config.xml&quot;</span><span class="w"> </span>cuda_quantum_assets/build_config.xml<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets
-</pre></div>
-</div>
-<p>You can then create a self-extracting archive with the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./makeself.sh<span class="w"> </span>--gzip<span class="w"> </span>--sha256<span class="w"> </span>--license<span class="w"> </span>cuda_quantum_assets/cudaq/LICENSE<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>cuda_quantum_assets<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="s2">&quot;CUDA-Q toolkit for heterogeneous quantum-classical workflows&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>bash<span class="w"> </span>cudaq/migrate_assets.sh<span class="w"> </span>-t<span class="w"> </span>/opt/nvidia/cudaq
-</pre></div>
-</div>
-</section>
 <section id="python-support">
 <span id="cudaq-python-from-source"></span><h2>Python Support<a class="headerlink" href="#python-support" title="Permalink to this heading">¶</a></h2>
 <p>The most convenient way to enable Python support within CUDA-Q is to build
 a <a class="reference external" href="https://pythonwheels.com/">wheel</a> that can then easily be installed
 using <code class="code docutils literal notranslate"><span class="pre">pip</span></code>. To ensure the wheel can be installed on the host system, make sure to
 use the same Python version for the build as the one that is installed on the host system.
-To build the CUDA-Q Python wheel, you will need to install the following additional
+To build a CUDA-Q Python wheel, you will need to install the following additional
 Python-specific tools:</p>
 <ul class="simple">
 <li><p>Python development headers: The development headers for your Python version are installed
@@ -816,8 +803,11 @@ Python version, e.g. <code class="code docutils literal notranslate"><span class
 </ul>
 <p>From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>scripts/install_prerequisites.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CXX</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;python-bindings;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
+bash<span class="w"> </span>scripts/install_prerequisites.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/clang++&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">FC</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LLVM_INSTALL_PREFIX</span><span class="s2">/bin/flang-new&quot;</span><span class="w"> </span><span class="se">\</span>
 python3<span class="w"> </span>-m<span class="w"> </span>build<span class="w"> </span>--wheel
 </pre></div>
 </div>
@@ -845,6 +835,7 @@ python3<span class="w"> </span>-m<span class="w"> </span>auditwheel<span class="
 <span class="w">    </span>--exclude<span class="w"> </span>libcutensornet.so.2<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcustatevec.so.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcudart.so.11.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libnvToolsExt.so.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libnvidia-ml.so.1
 </pre></div>
 </div>
@@ -857,18 +848,63 @@ checking that the wheel tag (i.e. the file name ending of the <code class="code 
 “Compatible Tags” when running the command <code class="code docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">debug</span> <span class="pre">--verbose</span></code> on the host.</p>
 </div>
 </section>
+<section id="c-support">
+<span id="cudaq-cpp-from-source"></span><h2>C++ Support<a class="headerlink" href="#c-support" title="Permalink to this heading">¶</a></h2>
+<p>From within the folder where you cloned the CUDA-Q repository, run the following
+command to build CUDA-Q:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_ENABLE_STATIC_LINKING</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAQ_REQUIRE_OPENMP</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAQ_WERROR</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
+<span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;flang;lld;mlir;openmp;runtimes&#39;</span><span class="w"> </span><span class="se">\</span>
+bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v
+</pre></div>
+</div>
+<p>Note that <code class="code docutils literal notranslate"><span class="pre">lld</span></code> is primarily needed when the build or host system does not already
+have an existing default linker on its path; CUDA-Q supports the same linkers as
+<code class="code docutils literal notranslate"><span class="pre">clang</span></code> does.</p>
+<p>To easily migrate the built binaries to the host system, we recommend creating a
+<a class="reference external" href="https://makeself.io/">self-extracting archive</a>. To do so, download the
+<a class="reference external" href="https://github.com/megastep/makeself">makeself script(s)</a> and move the necessary
+files to install into a separate folder using the command</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/llvm/bin<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/llvm/lib<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/llvm/include<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/&quot;</span>clang*<span class="w"> </span>cuda_quantum_assets/llvm/bin/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span>cuda_quantum_assets/llvm/bin/clang-format*<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/llc&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/llc<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/lld&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/lld<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/ld.lld&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/ld.lld<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/llvm/lib/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/include/&quot;</span>*<span class="w"> </span>cuda_quantum_assets/llvm/include/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/build_config.xml&quot;</span><span class="w"> </span>cuda_quantum_assets/build_config.xml<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets
+</pre></div>
+</div>
+<p>You can then create a self-extracting archive with the command</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./makeself.sh<span class="w"> </span>--gzip<span class="w"> </span>--sha256<span class="w"> </span>--license<span class="w"> </span>cuda_quantum_assets/cudaq/LICENSE<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>cuda_quantum_assets<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">&quot;CUDA-Q toolkit for heterogeneous quantum-classical workflows&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>bash<span class="w"> </span>cudaq/migrate_assets.sh<span class="w"> </span>-t<span class="w"> </span>/opt/nvidia/cudaq
+</pre></div>
+</div>
+</section>
 <section id="installation-on-the-host">
 <h2>Installation on the Host<a class="headerlink" href="#installation-on-the-host" title="Permalink to this heading">¶</a></h2>
 <p>Make sure your host system satisfies the <a class="reference internal" href="#prerequisites">Prerequisites</a> listed above.</p>
 <ul class="simple">
-<li><p>To use CUDA-Q with C++, you should also make sure that the
-<a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>
-is installed and discoverable on your host system.
-CUDA-Q supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
-version 11 or newer. Other libraries may work but can cause issues in certain cases.</p></li>
 <li><p>To use CUDA-Q with Python, you should have a working
 Python installation on the host system, including the <code class="code docutils literal notranslate"><span class="pre">pip</span></code> package manager.</p></li>
+<li><p>To use CUDA-Q with C++, you should make sure that you have the necessary development
+headers of the C standard library installed. You can check this by searching for
+<code class="code docutils literal notranslate"><span class="pre">features.h</span></code>, commonly found in <code class="code docutils literal notranslate"><span class="pre">/usr/include/</span></code>. You can install the necessary headers
+via package manager (usually the package name is called something like <code class="code docutils literal notranslate"><span class="pre">glibc-devel</span></code>
+or <code class="code docutils literal notranslate"><span class="pre">libc6-devel</span></code>). These headers are also included with any installation of GCC.</p></li>
 </ul>
+<p>To use CUDA-Q with Python, you should have a working
+Python installation on the host system, including the <code class="code docutils literal notranslate"><span class="pre">pip</span></code> package manager.</p>
 <p>If you followed the instructions for building the
 <a class="reference internal" href="#cudaq-python-from-source"><span class="std std-ref">CUDA-Q Python wheel</span></a>,
 copy the built <code class="code docutils literal notranslate"><span class="pre">.whl</span></code> file to the host system, and install it using <code class="code docutils literal notranslate"><span class="pre">pip</span></code>; e.g.</p>
@@ -900,9 +936,13 @@ the <code class="code docutils literal notranslate"><span class="pre">/etc/profi
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CUDA-Q includes its own linker, specifically the <a class="reference external" href="https://lld.llvm.org/">LLD</a>
-linker. You can customize which linker the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler uses by setting the
-<code class="code docutils literal notranslate"><span class="pre">NVQPP_LD_PATH</span></code> environment variable; for example <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NVQPP_LD_PATH=ld</span></code>.</p>
+<p>CUDA-Q as built following the instructions above includes and uses the LLVM
+C++ standard library. This will not interfere with any other C++ standard library
+you may have on your system. Pre-built external libraries, you may want to use with
+CUDA-Q, such as specific optimizers for example, have a C API to ensure compatibility
+across different versions of the C++ standard library and will work with CUDA-Q without
+issues. The same is true for all distributed CUDA libraries. To build you own CUDA
+libraries that can be used with CUDA-Q, please take a look at <a class="reference internal" href="../integration/cuda_gpu.html"><span class="doc">Using CUDA and CUDA-Q in a Project</span></a>.</p>
 </div>
 <p>The remaining sections in this document list additional runtime dependencies
 that are not included in the migrated assets and are needed to use some of the
@@ -910,7 +950,8 @@ CUDA-Q features and components.</p>
 <section id="cuda-runtime-libraries">
 <h3>CUDA Runtime Libraries<a class="headerlink" href="#cuda-runtime-libraries" title="Permalink to this heading">¶</a></h3>
 <p>To use GPU-acceleration in CUDA-Q you will need to install the necessary
-CUDA runtime libraries. While not necessary, we recommend installing
+CUDA runtime libraries. Their version (at least the version major) needs to match the version
+used for the build. While not necessary, we recommend installing
 the complete CUDA toolkit like you did for the CUDA-Q build.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for the AlmaLinux 8 environment:</p>
