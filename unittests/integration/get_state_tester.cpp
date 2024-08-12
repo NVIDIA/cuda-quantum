@@ -165,3 +165,28 @@ CUDAQ_TEST(GetStateTester, checkOverlapFromHostVector) {
   EXPECT_NEAR(1.0, state.overlap(hostState).real(), 1e-3);
 }
 #endif
+
+#ifdef CUDAQ_SIMULATION_SCALAR_FP64
+using SimScalarType = double;
+#else
+using SimScalarType = float;
+#endif
+
+CUDAQ_TEST(GetStateTester, checkKron) {
+  auto force_kron = [](std::vector<std::complex<SimScalarType>> vec) __qpu__ {
+    cudaq::qubit a;
+    cudaq::qvector qvec(vec);
+  };
+  // Construct a 10-qubit |1111111111> state
+  const int num_qubits_input_state = 6;
+  std::vector<std::complex<SimScalarType>> hostStateData(
+      1 << num_qubits_input_state);
+  hostStateData[hostStateData.size() - 1] = 1.0;
+
+  auto counts = cudaq::sample(force_kron, hostStateData);
+
+  // Expect a single state with a deterministic outcome
+  EXPECT_EQ(counts.size(), 1);
+  EXPECT_EQ(counts.begin()->first,
+            "0" + std::string(num_qubits_input_state, '1'));
+}
