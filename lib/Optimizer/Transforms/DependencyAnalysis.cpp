@@ -866,6 +866,10 @@ public:
   ///
   /// TODO: should be able to parallelize this across all blocks
   void schedulingPass() {
+    if (!tallest) {
+      assert(roots.empty() && "updateHeight not invoked before scheduling graph!");
+      return;
+    }
     for (auto container : containers)
       container->schedulingPass();
     tallest->schedule(total_height);
@@ -1083,8 +1087,7 @@ public:
 class DependencyBlock {
 private:
   SmallVector<ArgDependencyNode *> argdnodes;
-  SmallVector<DependencyGraph *> graphs;
-  DenseMap<VirtualQID, DependencyGraph *> graphMap;
+  DependencyGraph *graph;
   Block *block;
   TerminatorDependencyNode *terminator;
   uint height;
@@ -1092,73 +1095,57 @@ private:
 
 public:
   DependencyBlock(SmallVector<ArgDependencyNode *> argdnodes,
-                  SmallVector<DependencyGraph *> graphs, Block *block,
+                  DependencyGraph *graph, Block *block,
                   TerminatorDependencyNode *terminator)
-      : argdnodes(argdnodes), graphs(graphs), block(block),
+      : argdnodes(argdnodes), graph(graph), block(block),
         terminator(terminator), pqids() {
-    // Each Graph should contain distinct VirtualQIDs
-    for (auto graph : graphs)
-      for (auto qid : graph->getQIDs())
-        graphMap[qid] = graph;
-
-    updateHeight();
+    height = graph->getHeight();
   }
 
   uint getHeight() { return height; }
 
   void setCycle(uint cycle) {
-    for (auto graph : graphs)
-      graph->setCycleOffset(cycle);
+    graph->setCycleOffset(cycle);
   }
 
   SetVector<VirtualQID> getAllocs() {
-    SetVector<VirtualQID> allocated;
-    for (auto graph : graphs)
-      allocated.set_union(graph->getAllocs());
-
-    return allocated;
+    return graph->getAllocs();
   }
 
   SetVector<VirtualQID> getQIDs() {
-    SetVector<VirtualQID> qids;
-    for (auto graph : graphs)
-      qids.set_union(graph->getQIDs());
-
-    return qids;
+    return graph->getQIDs();
   }
 
   OpDependencyNode *getFirstUseOf(VirtualQID qid) {
-    return graphMap[qid]->getFirstUseOf(qid);
+    return graph->getFirstUseOf(qid);
   }
 
   OpDependencyNode *getLastUseOf(VirtualQID qid) {
-    return graphMap[qid]->getLastUseOf(qid);
+    return graph->getLastUseOf(qid);
   }
 
   SetVector<PhysicalQID> mapToPhysical(LifeTimeAnalysis &set) {
     set.pushFrame();
     for (uint cycle = 0; cycle < height; cycle++) {
-      for (auto graph : graphs) {
-        for (auto qid : graph->getFirstUsedAtCycle(cycle)) {
-          auto lifetime = graph->getLifeTimeForQID(qid);
-          LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
-          LLVM_DEBUG(llvm::dbgs()
-                     << " is in use from cycle " << lifetime->getBegin());
-          LLVM_DEBUG(llvm::dbgs() << " through cycle " << lifetime->getEnd());
-          LLVM_DEBUG(llvm::dbgs() << "\n");
+      for (auto qid : graph->getFirstUsedAtCycle(cycle)) {
+        auto lifetime = graph->getLifeTimeForQID(qid);
+        LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
+        LLVM_DEBUG(llvm::dbgs()
+                    << " is in use from cycle " << lifetime->getBegin());
+        LLVM_DEBUG(llvm::dbgs() << " through cycle " << lifetime->getEnd());
+        LLVM_DEBUG(llvm::dbgs() << "\n");
 
-          auto phys = set.mapToPhysical(qid, lifetime);
-          LLVM_DEBUG(llvm::dbgs()
-                     << "\tIt is mapped to the physical qubit " << phys);
-          LLVM_DEBUG(llvm::dbgs() << "\n\n");
+        auto phys = set.mapToPhysical(qid, lifetime);
+        LLVM_DEBUG(llvm::dbgs()
+                    << "\tIt is mapped to the physical qubit " << phys);
+        LLVM_DEBUG(llvm::dbgs() << "\n\n");
 
-          graph->performMapping(qid, phys);
-        }
-
-        // New physical qubits will be captured in the LifeTimeAnalysis frame,
-        // no need to capture here
-        graph->mapToPhysicalAt(cycle, set);
+        graph->performMapping(qid, phys);
       }
+
+      // New physical qubits will be captured in the LifeTimeAnalysis frame,
+      // no need to capture here
+      graph->mapToPhysicalAt(cycle, set);
     }
 
     return set.popFrame();
@@ -1177,8 +1164,7 @@ public:
     builder.setInsertionPointToStart(newBlock);
 
     for (uint cycle = 0; cycle < height; cycle++)
-      for (auto graph : graphs)
-        graph->codeGenAt(cycle, builder, set);
+      graph->codeGenAt(cycle, builder, set);
 
     terminator->genTerminator(builder, set);
 
@@ -1190,19 +1176,14 @@ public:
   void print() {
     llvm::outs() << "Block:\n";
     block->dump();
-    llvm::outs() << "Block graphs:\n";
-    for (auto graph : graphs)
-      graph->print();
+    llvm::outs() << "Block graph:\n";
+    graph->print();
     llvm::outs() << "End block\n";
   }
 
   void updateHeight() {
-    height = 0;
-    for (auto graph : graphs) {
-      graph->updateHeight();
-      if (graph->getHeight() > height)
-        height = graph->getHeight();
-    }
+    graph->updateHeight();
+    height = graph->getHeight();
   }
 
   // void performAnalysis(LifeTimeAnalysis &set) {
@@ -1237,29 +1218,24 @@ public:
       auto last_use = getLastUseOf(alloc);
       if (first_use == last_use && first_use->isContainer()) {
         // Move alloc inside
-        auto graph = graphMap[alloc];
         auto root = graph->getRootForQID(alloc);
         auto init = graph->getAllocForQID(alloc);
         first_use->moveAllocIntoBlock(init, root, alloc);
         // Qid is no longer used in this block, remove related metadata
         graph->removeQID(alloc);
-        graphMap.erase(graphMap.find(alloc));
       }
     }
 
     // Outside-in, so recur only after applying pass to this block
-    for (auto graph : graphs)
-      graph->contractAllocsPass();
+    graph->contractAllocsPass();
   }
 
   void performLiftingPass() {
-    for (auto graph : graphs)
-      graph->performLiftingPass();
+    graph->performLiftingPass();
   }
 
   void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root,
                           VirtualQID alloc) {
-    auto graph = graphMap[alloc];
     for (uint i = 0; i < argdnodes.size(); i++)
       if (argdnodes[i]->qids.contains(alloc))
         argdnodes.erase(argdnodes.begin() + i);
@@ -1269,8 +1245,7 @@ public:
   }
 
   void schedulingPass() {
-    for (auto graph : graphs)
-      graph->schedulingPass();
+    graph->schedulingPass();
   }
 };
 
@@ -1561,7 +1536,7 @@ public:
       argdnodes.push_back(dnode);
     }
 
-    SetVector<DependencyNode *> roots;
+    DenseMap<DependencyNode *, Operation *> roots;
     TerminatorDependencyNode *terminator;
     for (auto &op : b->getOperations()) {
       bool isTerminator = (&op == b->getTerminator());
@@ -1571,26 +1546,23 @@ public:
         return nullptr;
 
       if (isEndOp(&op))
-        roots.insert(node);
+        roots[node] = &op;
 
       if (isTerminator) {
         assert(op.hasTrait<mlir::OpTrait::IsTerminator>() &&
                "Illegal terminator op!");
         terminator = static_cast<TerminatorDependencyNode *>(node);
-        if (terminator->isQuantumDependent())
-          roots.insert(terminator);
       }
     }
 
-    SmallVector<DependencyGraph *> graphs;
-    while (!roots.empty()) {
-      DependencyGraph *new_graph = new DependencyGraph(roots.front());
-      roots.set_subtract(new_graph->getRoots());
-      if (new_graph->getRoots().size() > 0)
-        graphs.push_back(new_graph);
-    }
+    DependencyGraph *new_graph = new DependencyGraph(terminator);
+    auto included = new_graph->getRoots();
 
-    return new DependencyBlock(argdnodes, graphs, b, terminator);
+    for (auto [root, op] : roots)
+      if (!included.contains(root))
+        op->emitWarning("DependencyAnalysisPass: Wire is dead code and its operations will be deleted (did you forget to return a value?)");
+
+    return new DependencyBlock(argdnodes, new_graph, b, terminator);
   }
 
   /// Creates and returns a new dependency node for \p op, connecting it to the
@@ -1685,7 +1657,7 @@ struct DependencyAnalysisPass
         LifeTimeAnalysis set(name);
         // Move allocs in as deep as possible
         body->contractAllocsPass();
-        // Lift common operations
+        // Lift common operations out of `if`s
         body->performLiftingPass();
         // Update heights after lifting pass
         body->updateHeight();
