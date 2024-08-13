@@ -119,7 +119,7 @@ func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cu
   return
 }
 
-// BASE-LABEL:   func.func @__nvqpp__mlirgen__comprehensive()
+// BASE-LABEL:   func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cudaq-kernel", requiredQubits = "7", requiredResults = "7"} {
 // BASE-DAG:       %[[VAL_0:.*]] = arith.constant 1.6123000000000003 : f64
 // BASE-DAG:       %[[VAL_1:.*]] = arith.constant 3.6123000000000003 : f64
 // BASE-DAG:       %[[VAL_2:.*]] = arith.constant 4.612300e+00 : f64
@@ -195,79 +195,86 @@ func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cu
 // BASE:           %[[VAL_34:.*]] = cc.cast %[[VAL_33]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
 // BASE:           call @__quantum__qis__mz__body(%[[VAL_13]], %[[VAL_34]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
 // BASE:           %[[VAL_35:.*]] = cc.alloca i8
-// BASE:           %[[VAL_36:.*]] = cc.address_of @cstr.73696E676C65746F6E00 : !cc.ptr<i8>
-// BASE:           call @__quantum__rt__result_record_output(%[[VAL_34]], %[[VAL_36]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// BASE:           %[[VAL_37:.*]] = cc.undef i1
-// BASE:           %[[VAL_38:.*]] = cc.cast unsigned %[[VAL_37]] : (i1) -> i8
-// BASE:           cc.store %[[VAL_38]], %[[VAL_35]] : !cc.ptr<i8>
-// BASE:           %[[VAL_39:.*]] = cc.alloca !cc.array<i8 x 1>
-// BASE:           %[[VAL_40:.*]] = arith.constant 1 : i64
-// BASE:           %[[VAL_41:.*]] = cc.cast %[[VAL_40]] : (i64) -> !cc.ptr<none>
-// BASE:           %[[VAL_42:.*]] = cc.cast %[[VAL_41]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// BASE:           call @__quantum__qis__mz__body(%[[VAL_16]], %[[VAL_42]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// BASE:           %[[VAL_43:.*]] = cc.address_of @cstr.65696E7300 : !cc.ptr<i8>
-// BASE:           call @__quantum__rt__result_record_output(%[[VAL_42]], %[[VAL_43]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// BASE:           %[[VAL_44:.*]] = cc.undef i1
-// BASE:           %[[VAL_45:.*]] = cc.cast %[[VAL_39]] : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
-// BASE:           %[[VAL_46:.*]] = cc.cast unsigned %[[VAL_44]] : (i1) -> i8
-// BASE:           cc.store %[[VAL_46]], %[[VAL_45]] : !cc.ptr<i8>
-// BASE:           %[[VAL_47:.*]] = cc.alloca !cc.array<i8 x 2>
-// BASE:           %[[VAL_48:.*]] = arith.constant 2 : i64
-// BASE:           %[[VAL_49:.*]] = cc.cast %[[VAL_48]] : (i64) -> !cc.ptr<none>
-// BASE:           %[[VAL_50:.*]] = cc.cast %[[VAL_49]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// BASE:           call @__quantum__qis__mz__body(%[[VAL_19]], %[[VAL_50]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// BASE:           %[[VAL_51:.*]] = cc.address_of @cstr.64756200 : !cc.ptr<i8>
-// BASE:           call @__quantum__rt__result_record_output(%[[VAL_50]], %[[VAL_51]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// BASE:           %[[VAL_52:.*]] = cc.undef i1
-// BASE:           %[[VAL_53:.*]] = cc.cast %[[VAL_47]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// BASE:           %[[VAL_54:.*]] = cc.cast unsigned %[[VAL_52]] : (i1) -> i8
-// BASE:           cc.store %[[VAL_54]], %[[VAL_53]] : !cc.ptr<i8>
-// BASE:           %[[VAL_55:.*]] = arith.constant 3 : i64
-// BASE:           %[[VAL_56:.*]] = cc.cast %[[VAL_55]] : (i64) -> !cc.ptr<none>
-// BASE:           %[[VAL_57:.*]] = cc.cast %[[VAL_56]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// BASE:           call @__quantum__qis__mz__body(%[[VAL_22]], %[[VAL_57]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// BASE:           %[[VAL_58:.*]] = cc.address_of @cstr.64756200 : !cc.ptr<i8>
-// BASE:           call @__quantum__rt__result_record_output(%[[VAL_57]], %[[VAL_58]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// BASE:           %[[VAL_59:.*]] = cc.undef i1
-// BASE:           %[[VAL_60:.*]] = cc.compute_ptr %[[VAL_47]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// BASE:           %[[VAL_61:.*]] = cc.cast unsigned %[[VAL_59]] : (i1) -> i8
-// BASE:           cc.store %[[VAL_61]], %[[VAL_60]] : !cc.ptr<i8>
-// BASE:           %[[VAL_62:.*]] = cc.alloca !cc.array<i8 x 3>
-// BASE:           %[[VAL_63:.*]] = arith.constant 4 : i64
-// BASE:           %[[VAL_64:.*]] = cc.cast %[[VAL_63]] : (i64) -> !cc.ptr<none>
-// BASE:           %[[VAL_65:.*]] = cc.cast %[[VAL_64]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// BASE:           call @__quantum__qis__mz__body(%[[VAL_25]], %[[VAL_65]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// BASE:           %[[VAL_66:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<i8>
-// BASE:           call @__quantum__rt__result_record_output(%[[VAL_65]], %[[VAL_66]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// BASE:           %[[VAL_67:.*]] = cc.undef i1
-// BASE:           %[[VAL_68:.*]] = cc.cast %[[VAL_62]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// BASE:           %[[VAL_69:.*]] = cc.cast unsigned %[[VAL_67]] : (i1) -> i8
-// BASE:           cc.store %[[VAL_69]], %[[VAL_68]] : !cc.ptr<i8>
-// BASE:           %[[VAL_70:.*]] = arith.constant 5 : i64
-// BASE:           %[[VAL_71:.*]] = cc.cast %[[VAL_70]] : (i64) -> !cc.ptr<none>
-// BASE:           %[[VAL_72:.*]] = cc.cast %[[VAL_71]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// BASE:           call @__quantum__qis__mz__body(%[[VAL_28]], %[[VAL_72]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// BASE:           %[[VAL_73:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<i8>
-// BASE:           call @__quantum__rt__result_record_output(%[[VAL_72]], %[[VAL_73]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// BASE:           %[[VAL_74:.*]] = cc.undef i1
-// BASE:           %[[VAL_75:.*]] = cc.compute_ptr %[[VAL_62]][1] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// BASE:           %[[VAL_76:.*]] = cc.cast unsigned %[[VAL_74]] : (i1) -> i8
-// BASE:           cc.store %[[VAL_76]], %[[VAL_75]] : !cc.ptr<i8>
-// BASE:           %[[VAL_77:.*]] = arith.constant 6 : i64
-// BASE:           %[[VAL_78:.*]] = cc.cast %[[VAL_77]] : (i64) -> !cc.ptr<none>
-// BASE:           %[[VAL_79:.*]] = cc.cast %[[VAL_78]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// BASE:           call @__quantum__qis__mz__body(%[[VAL_31]], %[[VAL_79]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// BASE:           %[[VAL_80:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<i8>
-// BASE:           call @__quantum__rt__result_record_output(%[[VAL_79]], %[[VAL_80]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// BASE:           %[[VAL_81:.*]] = cc.undef i1
-// BASE:           %[[VAL_82:.*]] = cc.compute_ptr %[[VAL_62]][2] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// BASE:           %[[VAL_83:.*]] = cc.cast unsigned %[[VAL_81]] : (i1) -> i8
-// BASE:           cc.store %[[VAL_83]], %[[VAL_82]] : !cc.ptr<i8>
+// BASE:           %[[VAL_36:.*]] = cc.address_of @cstr.73696E676C65746F6E00 : !cc.ptr<!llvm.array<10 x i8>>
+// BASE:           %[[VAL_37:.*]] = cc.cast %[[VAL_36]] : (!cc.ptr<!llvm.array<10 x i8>>) -> !cc.ptr<i8>
+// BASE:           call @__quantum__rt__result_record_output(%[[VAL_34]], %[[VAL_37]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// BASE:           %[[VAL_38:.*]] = cc.undef i1
+// BASE:           %[[VAL_39:.*]] = cc.cast unsigned %[[VAL_38]] : (i1) -> i8
+// BASE:           cc.store %[[VAL_39]], %[[VAL_35]] : !cc.ptr<i8>
+// BASE:           %[[VAL_40:.*]] = cc.alloca !cc.array<i8 x 1>
+// BASE:           %[[VAL_41:.*]] = arith.constant 1 : i64
+// BASE:           %[[VAL_42:.*]] = cc.cast %[[VAL_41]] : (i64) -> !cc.ptr<none>
+// BASE:           %[[VAL_43:.*]] = cc.cast %[[VAL_42]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// BASE:           call @__quantum__qis__mz__body(%[[VAL_16]], %[[VAL_43]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// BASE:           %[[VAL_44:.*]] = cc.address_of @cstr.65696E7300 : !cc.ptr<!llvm.array<5 x i8>>
+// BASE:           %[[VAL_45:.*]] = cc.cast %[[VAL_44]] : (!cc.ptr<!llvm.array<5 x i8>>) -> !cc.ptr<i8>
+// BASE:           call @__quantum__rt__result_record_output(%[[VAL_43]], %[[VAL_45]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// BASE:           %[[VAL_46:.*]] = cc.undef i1
+// BASE:           %[[VAL_47:.*]] = cc.cast %[[VAL_40]] : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
+// BASE:           %[[VAL_48:.*]] = cc.cast unsigned %[[VAL_46]] : (i1) -> i8
+// BASE:           cc.store %[[VAL_48]], %[[VAL_47]] : !cc.ptr<i8>
+// BASE:           %[[VAL_49:.*]] = cc.alloca !cc.array<i8 x 2>
+// BASE:           %[[VAL_50:.*]] = arith.constant 2 : i64
+// BASE:           %[[VAL_51:.*]] = cc.cast %[[VAL_50]] : (i64) -> !cc.ptr<none>
+// BASE:           %[[VAL_52:.*]] = cc.cast %[[VAL_51]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// BASE:           call @__quantum__qis__mz__body(%[[VAL_19]], %[[VAL_52]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// BASE:           %[[VAL_53:.*]] = cc.address_of @cstr.64756200 : !cc.ptr<!llvm.array<4 x i8>>
+// BASE:           %[[VAL_54:.*]] = cc.cast %[[VAL_53]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// BASE:           call @__quantum__rt__result_record_output(%[[VAL_52]], %[[VAL_54]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// BASE:           %[[VAL_55:.*]] = cc.undef i1
+// BASE:           %[[VAL_56:.*]] = cc.cast %[[VAL_49]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// BASE:           %[[VAL_57:.*]] = cc.cast unsigned %[[VAL_55]] : (i1) -> i8
+// BASE:           cc.store %[[VAL_57]], %[[VAL_56]] : !cc.ptr<i8>
+// BASE:           %[[VAL_58:.*]] = arith.constant 3 : i64
+// BASE:           %[[VAL_59:.*]] = cc.cast %[[VAL_58]] : (i64) -> !cc.ptr<none>
+// BASE:           %[[VAL_60:.*]] = cc.cast %[[VAL_59]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// BASE:           call @__quantum__qis__mz__body(%[[VAL_22]], %[[VAL_60]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// BASE:           %[[VAL_61:.*]] = cc.address_of @cstr.64756200 : !cc.ptr<!llvm.array<4 x i8>>
+// BASE:           %[[VAL_62:.*]] = cc.cast %[[VAL_61]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// BASE:           call @__quantum__rt__result_record_output(%[[VAL_60]], %[[VAL_62]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// BASE:           %[[VAL_63:.*]] = cc.undef i1
+// BASE:           %[[VAL_64:.*]] = cc.compute_ptr %[[VAL_49]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// BASE:           %[[VAL_65:.*]] = cc.cast unsigned %[[VAL_63]] : (i1) -> i8
+// BASE:           cc.store %[[VAL_65]], %[[VAL_64]] : !cc.ptr<i8>
+// BASE:           %[[VAL_66:.*]] = cc.alloca !cc.array<i8 x 3>
+// BASE:           %[[VAL_67:.*]] = arith.constant 4 : i64
+// BASE:           %[[VAL_68:.*]] = cc.cast %[[VAL_67]] : (i64) -> !cc.ptr<none>
+// BASE:           %[[VAL_69:.*]] = cc.cast %[[VAL_68]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// BASE:           call @__quantum__qis__mz__body(%[[VAL_25]], %[[VAL_69]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// BASE:           %[[VAL_70:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<!llvm.array<5 x i8>>
+// BASE:           %[[VAL_71:.*]] = cc.cast %[[VAL_70]] : (!cc.ptr<!llvm.array<5 x i8>>) -> !cc.ptr<i8>
+// BASE:           call @__quantum__rt__result_record_output(%[[VAL_69]], %[[VAL_71]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// BASE:           %[[VAL_72:.*]] = cc.undef i1
+// BASE:           %[[VAL_73:.*]] = cc.cast %[[VAL_66]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// BASE:           %[[VAL_74:.*]] = cc.cast unsigned %[[VAL_72]] : (i1) -> i8
+// BASE:           cc.store %[[VAL_74]], %[[VAL_73]] : !cc.ptr<i8>
+// BASE:           %[[VAL_75:.*]] = arith.constant 5 : i64
+// BASE:           %[[VAL_76:.*]] = cc.cast %[[VAL_75]] : (i64) -> !cc.ptr<none>
+// BASE:           %[[VAL_77:.*]] = cc.cast %[[VAL_76]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// BASE:           call @__quantum__qis__mz__body(%[[VAL_28]], %[[VAL_77]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// BASE:           %[[VAL_78:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<!llvm.array<5 x i8>>
+// BASE:           %[[VAL_79:.*]] = cc.cast %[[VAL_78]] : (!cc.ptr<!llvm.array<5 x i8>>) -> !cc.ptr<i8>
+// BASE:           call @__quantum__rt__result_record_output(%[[VAL_77]], %[[VAL_79]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// BASE:           %[[VAL_80:.*]] = cc.undef i1
+// BASE:           %[[VAL_81:.*]] = cc.compute_ptr %[[VAL_66]][1] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// BASE:           %[[VAL_82:.*]] = cc.cast unsigned %[[VAL_80]] : (i1) -> i8
+// BASE:           cc.store %[[VAL_82]], %[[VAL_81]] : !cc.ptr<i8>
+// BASE:           %[[VAL_83:.*]] = arith.constant 6 : i64
+// BASE:           %[[VAL_84:.*]] = cc.cast %[[VAL_83]] : (i64) -> !cc.ptr<none>
+// BASE:           %[[VAL_85:.*]] = cc.cast %[[VAL_84]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// BASE:           call @__quantum__qis__mz__body(%[[VAL_31]], %[[VAL_85]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// BASE:           %[[VAL_86:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<!llvm.array<5 x i8>>
+// BASE:           %[[VAL_87:.*]] = cc.cast %[[VAL_86]] : (!cc.ptr<!llvm.array<5 x i8>>) -> !cc.ptr<i8>
+// BASE:           call @__quantum__rt__result_record_output(%[[VAL_85]], %[[VAL_87]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// BASE:           %[[VAL_88:.*]] = cc.undef i1
+// BASE:           %[[VAL_89:.*]] = cc.compute_ptr %[[VAL_66]][2] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// BASE:           %[[VAL_90:.*]] = cc.cast unsigned %[[VAL_88]] : (i1) -> i8
+// BASE:           cc.store %[[VAL_90]], %[[VAL_89]] : !cc.ptr<i8>
 // BASE:           return
 // BASE:         }
 
 
-// ADAPT-LABEL:   func.func @__nvqpp__mlirgen__comprehensive()
+// ADAPT-LABEL:   func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cudaq-kernel", requiredQubits = "7", requiredResults = "7"} {
 // ADAPT-DAG:       %[[VAL_0:.*]] = arith.constant 1.6123000000000003 : f64
 // ADAPT-DAG:       %[[VAL_1:.*]] = arith.constant 3.6123000000000003 : f64
 // ADAPT-DAG:       %[[VAL_2:.*]] = arith.constant 4.612300e+00 : f64
@@ -343,73 +350,80 @@ func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cu
 // ADAPT:           %[[VAL_34:.*]] = cc.cast %[[VAL_33]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
 // ADAPT:           call @__quantum__qis__mz__body(%[[VAL_13]], %[[VAL_34]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
 // ADAPT:           %[[VAL_35:.*]] = cc.alloca i8
-// ADAPT:           %[[VAL_36:.*]] = cc.address_of @cstr.73696E676C65746F6E00 : !cc.ptr<i8>
-// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_34]], %[[VAL_36]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// ADAPT:           %[[VAL_37:.*]] = call @__quantum__qis__read_result__body(%[[VAL_34]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
-// ADAPT:           %[[VAL_38:.*]] = cc.cast unsigned %[[VAL_37]] : (i1) -> i8
-// ADAPT:           cc.store %[[VAL_38]], %[[VAL_35]] : !cc.ptr<i8>
-// ADAPT:           %[[VAL_39:.*]] = cc.alloca !cc.array<i8 x 1>
-// ADAPT:           %[[VAL_40:.*]] = arith.constant 1 : i64
-// ADAPT:           %[[VAL_41:.*]] = cc.cast %[[VAL_40]] : (i64) -> !cc.ptr<none>
-// ADAPT:           %[[VAL_42:.*]] = cc.cast %[[VAL_41]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_16]], %[[VAL_42]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// ADAPT:           %[[VAL_43:.*]] = cc.address_of @cstr.65696E7300 : !cc.ptr<i8>
-// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_42]], %[[VAL_43]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// ADAPT:           %[[VAL_44:.*]] = call @__quantum__qis__read_result__body(%[[VAL_42]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
-// ADAPT:           %[[VAL_45:.*]] = cc.cast %[[VAL_39]] : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
-// ADAPT:           %[[VAL_46:.*]] = cc.cast unsigned %[[VAL_44]] : (i1) -> i8
-// ADAPT:           cc.store %[[VAL_46]], %[[VAL_45]] : !cc.ptr<i8>
-// ADAPT:           %[[VAL_47:.*]] = cc.alloca !cc.array<i8 x 2>
-// ADAPT:           %[[VAL_48:.*]] = arith.constant 2 : i64
-// ADAPT:           %[[VAL_49:.*]] = cc.cast %[[VAL_48]] : (i64) -> !cc.ptr<none>
-// ADAPT:           %[[VAL_50:.*]] = cc.cast %[[VAL_49]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_19]], %[[VAL_50]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// ADAPT:           %[[VAL_51:.*]] = cc.address_of @cstr.64756200 : !cc.ptr<i8>
-// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_50]], %[[VAL_51]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// ADAPT:           %[[VAL_52:.*]] = call @__quantum__qis__read_result__body(%[[VAL_50]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
-// ADAPT:           %[[VAL_53:.*]] = cc.cast %[[VAL_47]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// ADAPT:           %[[VAL_54:.*]] = cc.cast unsigned %[[VAL_52]] : (i1) -> i8
-// ADAPT:           cc.store %[[VAL_54]], %[[VAL_53]] : !cc.ptr<i8>
-// ADAPT:           %[[VAL_55:.*]] = arith.constant 3 : i64
-// ADAPT:           %[[VAL_56:.*]] = cc.cast %[[VAL_55]] : (i64) -> !cc.ptr<none>
-// ADAPT:           %[[VAL_57:.*]] = cc.cast %[[VAL_56]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_22]], %[[VAL_57]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// ADAPT:           %[[VAL_58:.*]] = cc.address_of @cstr.64756200 : !cc.ptr<i8>
-// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_57]], %[[VAL_58]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// ADAPT:           %[[VAL_59:.*]] = call @__quantum__qis__read_result__body(%[[VAL_57]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
-// ADAPT:           %[[VAL_60:.*]] = cc.compute_ptr %[[VAL_47]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// ADAPT:           %[[VAL_61:.*]] = cc.cast unsigned %[[VAL_59]] : (i1) -> i8
-// ADAPT:           cc.store %[[VAL_61]], %[[VAL_60]] : !cc.ptr<i8>
-// ADAPT:           %[[VAL_62:.*]] = cc.alloca !cc.array<i8 x 3>
-// ADAPT:           %[[VAL_63:.*]] = arith.constant 4 : i64
-// ADAPT:           %[[VAL_64:.*]] = cc.cast %[[VAL_63]] : (i64) -> !cc.ptr<none>
-// ADAPT:           %[[VAL_65:.*]] = cc.cast %[[VAL_64]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_25]], %[[VAL_65]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// ADAPT:           %[[VAL_66:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<i8>
-// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_65]], %[[VAL_66]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// ADAPT:           %[[VAL_67:.*]] = call @__quantum__qis__read_result__body(%[[VAL_65]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
-// ADAPT:           %[[VAL_68:.*]] = cc.cast %[[VAL_62]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// ADAPT:           %[[VAL_69:.*]] = cc.cast unsigned %[[VAL_67]] : (i1) -> i8
-// ADAPT:           cc.store %[[VAL_69]], %[[VAL_68]] : !cc.ptr<i8>
-// ADAPT:           %[[VAL_70:.*]] = arith.constant 5 : i64
-// ADAPT:           %[[VAL_71:.*]] = cc.cast %[[VAL_70]] : (i64) -> !cc.ptr<none>
-// ADAPT:           %[[VAL_72:.*]] = cc.cast %[[VAL_71]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_28]], %[[VAL_72]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// ADAPT:           %[[VAL_73:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<i8>
-// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_72]], %[[VAL_73]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// ADAPT:           %[[VAL_74:.*]] = call @__quantum__qis__read_result__body(%[[VAL_72]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
-// ADAPT:           %[[VAL_75:.*]] = cc.compute_ptr %[[VAL_62]][1] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// ADAPT:           %[[VAL_76:.*]] = cc.cast unsigned %[[VAL_74]] : (i1) -> i8
-// ADAPT:           cc.store %[[VAL_76]], %[[VAL_75]] : !cc.ptr<i8>
-// ADAPT:           %[[VAL_77:.*]] = arith.constant 6 : i64
-// ADAPT:           %[[VAL_78:.*]] = cc.cast %[[VAL_77]] : (i64) -> !cc.ptr<none>
-// ADAPT:           %[[VAL_79:.*]] = cc.cast %[[VAL_78]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
-// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_31]], %[[VAL_79]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
-// ADAPT:           %[[VAL_80:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<i8>
-// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_79]], %[[VAL_80]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
-// ADAPT:           %[[VAL_81:.*]] = call @__quantum__qis__read_result__body(%[[VAL_79]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
-// ADAPT:           %[[VAL_82:.*]] = cc.compute_ptr %[[VAL_62]][2] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// ADAPT:           %[[VAL_83:.*]] = cc.cast unsigned %[[VAL_81]] : (i1) -> i8
-// ADAPT:           cc.store %[[VAL_83]], %[[VAL_82]] : !cc.ptr<i8>
+// ADAPT:           %[[VAL_36:.*]] = cc.address_of @cstr.73696E676C65746F6E00 : !cc.ptr<!llvm.array<10 x i8>>
+// ADAPT:           %[[VAL_37:.*]] = cc.cast %[[VAL_36]] : (!cc.ptr<!llvm.array<10 x i8>>) -> !cc.ptr<i8>
+// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_34]], %[[VAL_37]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// ADAPT:           %[[VAL_38:.*]] = call @__quantum__qis__read_result__body(%[[VAL_34]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
+// ADAPT:           %[[VAL_39:.*]] = cc.cast unsigned %[[VAL_38]] : (i1) -> i8
+// ADAPT:           cc.store %[[VAL_39]], %[[VAL_35]] : !cc.ptr<i8>
+// ADAPT:           %[[VAL_40:.*]] = cc.alloca !cc.array<i8 x 1>
+// ADAPT:           %[[VAL_41:.*]] = arith.constant 1 : i64
+// ADAPT:           %[[VAL_42:.*]] = cc.cast %[[VAL_41]] : (i64) -> !cc.ptr<none>
+// ADAPT:           %[[VAL_43:.*]] = cc.cast %[[VAL_42]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_16]], %[[VAL_43]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// ADAPT:           %[[VAL_44:.*]] = cc.address_of @cstr.65696E7300 : !cc.ptr<!llvm.array<5 x i8>>
+// ADAPT:           %[[VAL_45:.*]] = cc.cast %[[VAL_44]] : (!cc.ptr<!llvm.array<5 x i8>>) -> !cc.ptr<i8>
+// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_43]], %[[VAL_45]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// ADAPT:           %[[VAL_46:.*]] = call @__quantum__qis__read_result__body(%[[VAL_43]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
+// ADAPT:           %[[VAL_47:.*]] = cc.cast %[[VAL_40]] : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
+// ADAPT:           %[[VAL_48:.*]] = cc.cast unsigned %[[VAL_46]] : (i1) -> i8
+// ADAPT:           cc.store %[[VAL_48]], %[[VAL_47]] : !cc.ptr<i8>
+// ADAPT:           %[[VAL_49:.*]] = cc.alloca !cc.array<i8 x 2>
+// ADAPT:           %[[VAL_50:.*]] = arith.constant 2 : i64
+// ADAPT:           %[[VAL_51:.*]] = cc.cast %[[VAL_50]] : (i64) -> !cc.ptr<none>
+// ADAPT:           %[[VAL_52:.*]] = cc.cast %[[VAL_51]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_19]], %[[VAL_52]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// ADAPT:           %[[VAL_53:.*]] = cc.address_of @cstr.64756200 : !cc.ptr<!llvm.array<4 x i8>>
+// ADAPT:           %[[VAL_54:.*]] = cc.cast %[[VAL_53]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_52]], %[[VAL_54]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// ADAPT:           %[[VAL_55:.*]] = call @__quantum__qis__read_result__body(%[[VAL_52]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
+// ADAPT:           %[[VAL_56:.*]] = cc.cast %[[VAL_49]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// ADAPT:           %[[VAL_57:.*]] = cc.cast unsigned %[[VAL_55]] : (i1) -> i8
+// ADAPT:           cc.store %[[VAL_57]], %[[VAL_56]] : !cc.ptr<i8>
+// ADAPT:           %[[VAL_58:.*]] = arith.constant 3 : i64
+// ADAPT:           %[[VAL_59:.*]] = cc.cast %[[VAL_58]] : (i64) -> !cc.ptr<none>
+// ADAPT:           %[[VAL_60:.*]] = cc.cast %[[VAL_59]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_22]], %[[VAL_60]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// ADAPT:           %[[VAL_61:.*]] = cc.address_of @cstr.64756200 : !cc.ptr<!llvm.array<4 x i8>>
+// ADAPT:           %[[VAL_62:.*]] = cc.cast %[[VAL_61]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_60]], %[[VAL_62]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// ADAPT:           %[[VAL_63:.*]] = call @__quantum__qis__read_result__body(%[[VAL_60]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
+// ADAPT:           %[[VAL_64:.*]] = cc.compute_ptr %[[VAL_49]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// ADAPT:           %[[VAL_65:.*]] = cc.cast unsigned %[[VAL_63]] : (i1) -> i8
+// ADAPT:           cc.store %[[VAL_65]], %[[VAL_64]] : !cc.ptr<i8>
+// ADAPT:           %[[VAL_66:.*]] = cc.alloca !cc.array<i8 x 3>
+// ADAPT:           %[[VAL_67:.*]] = arith.constant 4 : i64
+// ADAPT:           %[[VAL_68:.*]] = cc.cast %[[VAL_67]] : (i64) -> !cc.ptr<none>
+// ADAPT:           %[[VAL_69:.*]] = cc.cast %[[VAL_68]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_25]], %[[VAL_69]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// ADAPT:           %[[VAL_70:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<!llvm.array<5 x i8>>
+// ADAPT:           %[[VAL_71:.*]] = cc.cast %[[VAL_70]] : (!cc.ptr<!llvm.array<5 x i8>>) -> !cc.ptr<i8>
+// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_69]], %[[VAL_71]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// ADAPT:           %[[VAL_72:.*]] = call @__quantum__qis__read_result__body(%[[VAL_69]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
+// ADAPT:           %[[VAL_73:.*]] = cc.cast %[[VAL_66]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// ADAPT:           %[[VAL_74:.*]] = cc.cast unsigned %[[VAL_72]] : (i1) -> i8
+// ADAPT:           cc.store %[[VAL_74]], %[[VAL_73]] : !cc.ptr<i8>
+// ADAPT:           %[[VAL_75:.*]] = arith.constant 5 : i64
+// ADAPT:           %[[VAL_76:.*]] = cc.cast %[[VAL_75]] : (i64) -> !cc.ptr<none>
+// ADAPT:           %[[VAL_77:.*]] = cc.cast %[[VAL_76]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_28]], %[[VAL_77]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// ADAPT:           %[[VAL_78:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<!llvm.array<5 x i8>>
+// ADAPT:           %[[VAL_79:.*]] = cc.cast %[[VAL_78]] : (!cc.ptr<!llvm.array<5 x i8>>) -> !cc.ptr<i8>
+// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_77]], %[[VAL_79]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// ADAPT:           %[[VAL_80:.*]] = call @__quantum__qis__read_result__body(%[[VAL_77]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
+// ADAPT:           %[[VAL_81:.*]] = cc.compute_ptr %[[VAL_66]][1] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// ADAPT:           %[[VAL_82:.*]] = cc.cast unsigned %[[VAL_80]] : (i1) -> i8
+// ADAPT:           cc.store %[[VAL_82]], %[[VAL_81]] : !cc.ptr<i8>
+// ADAPT:           %[[VAL_83:.*]] = arith.constant 6 : i64
+// ADAPT:           %[[VAL_84:.*]] = cc.cast %[[VAL_83]] : (i64) -> !cc.ptr<none>
+// ADAPT:           %[[VAL_85:.*]] = cc.cast %[[VAL_84]] : (!cc.ptr<none>) -> !llvm.ptr<struct<"Result", opaque>>
+// ADAPT:           call @__quantum__qis__mz__body(%[[VAL_31]], %[[VAL_85]]) : (!llvm.ptr<struct<"Qubit", opaque>>, !llvm.ptr<struct<"Result", opaque>>) -> ()
+// ADAPT:           %[[VAL_86:.*]] = cc.address_of @cstr.7472697000 : !cc.ptr<!llvm.array<5 x i8>>
+// ADAPT:           %[[VAL_87:.*]] = cc.cast %[[VAL_86]] : (!cc.ptr<!llvm.array<5 x i8>>) -> !cc.ptr<i8>
+// ADAPT:           call @__quantum__rt__result_record_output(%[[VAL_85]], %[[VAL_87]]) : (!llvm.ptr<struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
+// ADAPT:           %[[VAL_88:.*]] = call @__quantum__qis__read_result__body(%[[VAL_85]]) : (!llvm.ptr<struct<"Result", opaque>>) -> i1
+// ADAPT:           %[[VAL_89:.*]] = cc.compute_ptr %[[VAL_66]][2] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// ADAPT:           %[[VAL_90:.*]] = cc.cast unsigned %[[VAL_88]] : (i1) -> i8
+// ADAPT:           cc.store %[[VAL_90]], %[[VAL_89]] : !cc.ptr<i8>
 // ADAPT:           return
-// ADAPT: }
+// ADAPT:         }
