@@ -391,7 +391,7 @@ protected:
 
   virtual void performLifting() {}
 
-  virtual void computeHeight() {
+  virtual void updateHeight() {
     height = 0;
     for (auto edge : dependencies) {
       if (edge->getHeight() > height)
@@ -626,7 +626,7 @@ public:
         qids.insert(edge.qid.value());
     }
 
-    computeHeight();
+    updateHeight();
   };
 
   void print() { printSubGraph(0); }
@@ -726,6 +726,18 @@ private:
     for (auto root : roots)
       nodes.set_union(root->getNodesAtCycle(cycle));
     return nodes;
+  }
+
+  void updateHeight(SetVector<DependencyNode *> &seen, DependencyNode *next) {
+    if (seen.contains(next))
+      return;
+
+    seen.insert(next);
+
+    for (auto dependency : next->dependencies)
+      updateHeight(seen, dependency.node);
+
+    next->updateHeight();
   }
 
 public:
@@ -904,7 +916,7 @@ public:
     if (old_root->dependencies.size() == 0)
       roots.remove(old_root);
 
-    root->computeHeight();
+    root->updateHeight();
 
     if (tallest == old_root)
       tallest = root;
@@ -931,6 +943,19 @@ public:
     }
 
     qids.remove(qid);
+  }
+
+  void updateHeight() {
+    total_height = 0;
+    tallest = nullptr;
+    SetVector<DependencyNode *> seen;
+    for (auto root : roots) {
+      updateHeight(seen, root);
+      if (!tallest || root->height > total_height) {
+        tallest = root;
+        total_height = root->height;
+      }
+    }
   }
 };
 
@@ -972,7 +997,7 @@ public:
 
     // numTicks won't be properly calculated by OpDependencyNode constructor,
     // so have to recompute height here
-    computeHeight();
+    updateHeight();
   };
 };
 
@@ -1069,7 +1094,7 @@ public:
       for (auto qid : graph->getQIDs())
         graphMap[qid] = graph;
 
-    computeHeight();
+    updateHeight();
   }
 
   uint getHeight() { return height; }
@@ -1166,9 +1191,10 @@ public:
     llvm::outs() << "End block\n";
   }
 
-  void computeHeight() {
+  void updateHeight() {
     height = 0;
     for (auto graph : graphs) {
+      graph->updateHeight();
       if (graph->getHeight() > height)
         height = graph->getHeight();
     }
@@ -1347,12 +1373,14 @@ protected:
         successor->codeGen(builder, set);
   };
 
-  void computeHeight() override {
+  void updateHeight() override {
     height = 0;
     for (auto edge : dependencies)
       if (edge->getHeight() > height)
         height = edge->getHeight();
     height += numTicks();
+    then_block->updateHeight();
+    else_block->updateHeight();
   }
 
 public:
@@ -1360,10 +1388,14 @@ public:
                    DependencyBlock *then_block, DependencyBlock *else_block)
       : OpDependencyNode(op.getOperation(), dependencies),
         then_block(then_block), else_block(else_block) {
+    results = SmallVector<mlir::Type>(op.getResultTypes());
     // numTicks won't be properly calculated by OpDependencyNode constructor,
     // so have to recompute height here
-    results = SmallVector<mlir::Type>(op.getResultTypes());
-    computeHeight();
+    height = 0;
+    for (auto edge : dependencies)
+      if (edge->getHeight() > height)
+        height = edge->getHeight();
+    height += numTicks();
   }
 
   void schedulingPass() override {
@@ -1423,8 +1455,8 @@ public:
   //   // Lift operations as possible
   //   performLifting();
   //   // Recompute block heights after lifting
-  //   then_block->computeHeight();
-  //   else_block->computeHeight();
+  //   then_block->updateHeight();
+  //   else_block->updateHeight();
   //   // TODO: mapToPhysical - update with context
   //   mapToPhysical(set);
   //   auto pqids = set.popFrame();
@@ -1644,10 +1676,12 @@ struct DependencyAnalysisPass
         OpBuilder builder(func);
         auto name = "wires";
         LifeTimeAnalysis set(name);
-        // First, move allocs in as deep as possible
+        // Move allocs in as deep as possible
         body->contractAllocsPass();
-        // Next, lift common operations
+        // Lift common operations
         body->performLiftingPass();
+        // Update heights after lifting pass
+        body->updateHeight();
         // Assign cycles to operations
         body->schedulingPass();
         // Using cycle information, map VirtualQIDs to PhysicalQIDs
