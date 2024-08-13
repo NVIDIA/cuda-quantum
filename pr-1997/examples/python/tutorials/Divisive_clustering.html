@@ -627,8 +627,8 @@ leverage coresets for clustering applications on quantum computers and use far f
 </pre></div>
 </div>
 </div>
-<p>Given a data set $X = (x_1, x_2, <span class="math">\cdots</span>, x_N) <span class="math notranslate nohighlight">\(, a coreset is weighted data set of much smaller size (\)</span>X’, w$) that represents <span class="math notranslate nohighlight">\(X\)</span> enough such that analysis of (<span class="math notranslate nohighlight">\(X', w\)</span>) can allow us to draw reasonable approximate conclusions about <span class="math notranslate nohighlight">\(X\)</span>. There are various approaches to build coresets. They can be found in Practical Coreset Construction for Machine Learning (<a class="reference external" href="https://arxiv.org/pdf/1703.06476.pdf">https://arxiv.org/pdf/1703.06476.pdf</a>) and New Streaming Algorithms for Coresets in Machine
-Learning (<a class="reference external" href="https://arxiv.org/pdf/1703.06476.pdf">https://arxiv.org/pdf/1703.06476.pdf</a>).</p>
+<p>Given a data set <span class="math notranslate nohighlight">\(X = (x_1, x_2, \cdots, x_N)\)</span>, a coreset is weighted data set of much smaller size (<span class="math notranslate nohighlight">\(X', w\)</span>) that represents <span class="math notranslate nohighlight">\(X\)</span> enough such that analysis of (<span class="math notranslate nohighlight">\(X', w\)</span>) can allow us to draw reasonable approximate conclusions about <span class="math notranslate nohighlight">\(X\)</span>. There are various approaches to build coresets. They can be found in Practical Coreset Construction for Machine Learning (<a class="reference external" href="https://arxiv.org/pdf/1703.06476.pdf">https://arxiv.org/pdf/1703.06476.pdf</a>) and New Streaming Algorithms for Coresets in Machine Learning
+(<a class="reference external" href="https://arxiv.org/pdf/1703.06476.pdf">https://arxiv.org/pdf/1703.06476.pdf</a>).</p>
 <p>Essentially, coreset construction boils down to finding the optimal coreset size and weights given some error tolerance. Given the constraints of a quantum computer, in this work, a coreset size is selected <span class="math notranslate nohighlight">\(a\)</span> <span class="math notranslate nohighlight">\(priori\)</span>, and the error is determined for each model.</p>
 <p>The following is an example <span class="math notranslate nohighlight">\(M=10\)</span> coreset constructed from a 1000-point data set and loaded into a pandas data frame. See the image below where the coreset is represented by the black stars, the size of which corresponds to the weights.</p>
 <div class="nbinput docutils container">
@@ -711,7 +711,7 @@ Using BFL2 method to generate coresets
 </section>
 <section id="Quantum-functions">
 <h2>Quantum functions<a class="headerlink" href="#Quantum-functions" title="Permalink to this heading">¶</a></h2>
-<p>The divisive clustering problem will be implemented on a quantum computer using a variational quantum algorithm (VQA) approach. A VQA takes a Hamiltonian (encoded with the optimization problem) and a parameterized ansatz and evaluates expectation values (quantum computer) that inform updates to the ansatz parameters (classical computer). The graph <span class="math notranslate nohighlight">\(G\)</span> (Code in the “src” file)is used to construct the Hamiltonian, derived specifically for the divisive clustering problem, and motivated by a
+<p>The divisive clustering problem will be implemented on a quantum computer using a variational quantum algorithm (VQA) approach. A VQA takes a Hamiltonian (encoded with the optimization problem) and a parameterized ansatz and evaluates expectation values (quantum computer) that inform updates to the ansatz parameters (classical computer). The graph <span class="math notranslate nohighlight">\(G\)</span> (Code in the “src” file) is used to construct the Hamiltonian, derived specifically for the divisive clustering problem, and motivated by a
 max-cut Hamiltonian. The <code class="docutils literal notranslate"><span class="pre">spin.z(i)</span></code> method in CUDA-Q adds a Pauli Z operation that acts on qubit <span class="math notranslate nohighlight">\(i\)</span> to the Hamiltonian.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -829,7 +829,7 @@ q4 : ┤ ry(0.791) ├─┤ rz(0.003569) ├───────────�
 
 </pre></div></div>
 </div>
-<p>The next step is to select a classical optimizer. There are multiple <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#optimizers">optimizers</a> built-in to CUDA-Q that can be selected. The cde below returns the optimizer with the proper number of initial parameters.</p>
+<p>The next step is to select a classical optimizer. There are multiple <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#optimizers">optimizers</a> built-in to CUDA-Q that can be selected. The code below returns the optimizer with the proper number of initial parameters.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
@@ -859,11 +859,11 @@ q4 : ┤ ry(0.791) ├─┤ rz(0.003569) ├───────────�
 </section>
 <section id="Divisive-Clustering-Function">
 <h2>Divisive Clustering Function<a class="headerlink" href="#Divisive-Clustering-Function" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">DivisiveClusteringVQA</span></code> class enables the procedure to iteratively bipartions the coreset points until each is its own cluster. If you wish to develop on top of this or see how the underlying code works, please see the <code class="docutils literal notranslate"><span class="pre">divisive_clustering.py</span></code> file in the src directory.</p>
-<p><code class="docutils literal notranslate"><span class="pre">run_divisive_clustering</span></code>, takes the current iteration’s coreset points that will be bipartitioned as inputs, extracts the appropriate weights and builds a graph <span class="math notranslate nohighlight">\(G\)</span>. The graph is then an input into the <code class="docutils literal notranslate"><span class="pre">get_counts_from_simulation</span></code> function.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">DivisiveClusteringVQA</span></code> class enables the procedure to iteratively bipartition the coreset points until each is its own cluster. If you wish to develop on top of this or see how the underlying code works, please see the <code class="docutils literal notranslate"><span class="pre">divisive_clustering.py</span></code> file in the src directory.</p>
+<p><code class="docutils literal notranslate"><span class="pre">run_divisive_clustering</span></code>, takes the current iteration’s coreset points that will be bipartitioned as inputs, extracts the appropriate weights, and builds a graph <span class="math notranslate nohighlight">\(G\)</span>. The graph is then an input into the <code class="docutils literal notranslate"><span class="pre">get_counts_from_simulation</span></code> function.</p>
 <p><code class="docutils literal notranslate"><span class="pre">get_counts_from_simulation</span></code> handles preparation and execution of the quantum simulation. First, it takes <span class="math notranslate nohighlight">\(G\)</span> and from it builds a spin Hamiltonian. Second, it defines a cost function, which in this case is a lambda function that returns the expectation value of our parameterized quantum circuit and the Hamiltonian. This value is obtained using the CUDA-Q <code class="docutils literal notranslate"><span class="pre">observe</span></code> command, accelerated by GPUs. After the expectation value is minimized, the quantum circuit corresponding to the optimal
 parameters is sampled using the CUDA-Q <code class="docutils literal notranslate"><span class="pre">sample</span></code> function. The bitstrings and their associated counts are returned by <code class="docutils literal notranslate"><span class="pre">get_counts_from_simulation</span></code>.</p>
-<p>A subset of these counts is evaluated to compute their exact cost. The best bitstring is returned and later used to assign the coreste points to one of two clusters.</p>
+<p>A subset of these counts is evaluated to compute their exact cost. The best bitstring is returned and later used to assign the coreset points to one of two clusters.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
@@ -970,9 +970,9 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 </pre></div>
 </div>
 </div>
-<p>An instance of the <code class="docutils literal notranslate"><span class="pre">DivisiveClusteringVQA</span></code> class is mostly constructed from variables previously discussed like the functions for building the Hamiltonians and quantum circuits. Parameters related tot he quantum simulation can also be specified here such as <code class="docutils literal notranslate"><span class="pre">circuit_depth</span></code> and <code class="docutils literal notranslate"><span class="pre">max_shots</span></code>. The <code class="docutils literal notranslate"><span class="pre">threshold_for_max_cut</span></code> parameter specifies what percent of the sample results from the quantum computer are checked for the best bitstring value.</p>
+<p>An instance of the <code class="docutils literal notranslate"><span class="pre">DivisiveClusteringVQA</span></code> class is mostly constructed from variables previously discussed like the functions for building the Hamiltonians and quantum circuits. Parameters related to the quantum simulation can also be specified here such as <code class="docutils literal notranslate"><span class="pre">circuit_depth</span></code> and <code class="docutils literal notranslate"><span class="pre">max_shots</span></code>. The <code class="docutils literal notranslate"><span class="pre">threshold_for_max_cut</span></code> parameter specifies what percent of the sample results from the quantum computer are checked for the best bitstring value.</p>
 <p>The other options specify advanced features like if the data is normalized and how the graph weights are computed.</p>
-<p>Finally, the <code class="docutils literal notranslate"><span class="pre">get_divisive_sequence</span></code> method performs the iterations and produces the clustering data which we will analyze below. Note that this postprocessing code is not exposed int his tutorial but can be found in the source code.</p>
+<p>Finally, the <code class="docutils literal notranslate"><span class="pre">get_divisive_sequence</span></code> method performs the iterations and produces the clustering data which we will analyze below. Note that this postprocessing code is not exposed in this tutorial but can be found in the source code.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
@@ -1009,7 +1009,7 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00, 13617.87it/s]
 </pre></div></div>
 </div>
-<p>The data can be nicely visualized with a Dendrogram which maps where the bipartitionings occurred. Early splits are generally mark divisions between the least like data.</p>
+<p>The data can be nicely visualized with a Dendrogram which maps where the bipartitionings occurred. Early splits generally mark divisions between the least similar data.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
@@ -1026,9 +1026,9 @@ parameters is sampled using the CUDA-Q <code class="docutils literal notranslate
 <img alt="../../../_images/examples_python_tutorials_Divisive_clustering_29_0.png" src="../../../_images/examples_python_tutorials_Divisive_clustering_29_0.png" />
 </div>
 </div>
-<p>Each branch point in the dendrogram aboves corresponds to the one of the plots below. Notice the first iterations are the most complicated and the final iterations become trivial bipartitioning of two points. Occasionally, especially in the first iteration, the partitioning might be puzzling at first glance. The data might be seem to naturally cluster into two groups just by looking at it. However, there are cases where a stray point seems to belong in the wrong cluster. There are two
-explanations for this. 1) The quantum sampling is approximate and stochastic. It is possible that too few shots were taken to samples the ground state of the problem. 2) It is important to remember that we are clustering coresets and not data points. There can be cases where it is optimal to pay a penalty by excluding a point based on proximity if the weights are small enough that the penalty has less impact. Usually, if a point looks unusually clustered and you go look at the original coresets
-plotted above, that point will have a small weight.</p>
+<p>Each branch point in the dendrogram aboves corresponds to one of the plots below. Notice the first iterations are the most complicated, and the final iterations become trivial bipartitioning of two points. Occasionally, especially in the first iteration, the partitioning might be puzzling at first glance. The data might seem to naturally cluster into two groups. However, there are cases where a stray point seems to belong in the wrong cluster. There are two explanations for this. 1) The quantum
+sampling is approximate and stochastic. It is possible that too few shots were taken to sample the ground state of the problem. 2) It is important to remember that we are clustering coresets and not data points. There can be cases where it is optimal to pay a penalty by excluding a point based on proximity if the weights are small enough that the penalty has less impact. Usually, if a point looks unusually clustered and you go look at the original coresets plotted above, that point will have a
+small weight.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
@@ -1044,8 +1044,8 @@ plotted above, that point will have a small weight.</p>
 <img alt="../../../_images/examples_python_tutorials_Divisive_clustering_31_0.png" src="../../../_images/examples_python_tutorials_Divisive_clustering_31_0.png" />
 </div>
 </div>
-<p>The hierarchical clustering can be converted to flat clustering by drawing a line perpendicular to the branches. Any data point that intersects the line is considered to be in the same cluster. The function below performs this task at threshold height of 1.5. If you want to use the number of clusters instead of height, you can use <code class="docutils literal notranslate"><span class="pre">dendo.get_clusters_using_k()</span></code> method. You pass the number of desired clusters as an argument. Figure below shows the clusters that are formed at threshold height of
-1.5.</p>
+<p>The hierarchical clustering can be converted to flat clustering by drawing a line perpendicular to the branches. Any data point that intersects the line is considered to be in the same cluster. The function below performs this task at threshold height of 1.5. If you want to use the number of clusters instead of height, you can use <code class="docutils literal notranslate"><span class="pre">dendo.get_clusters_using_k()</span></code> method. You pass the number of desired clusters as an argument. The figure below shows the clusters that are formed at threshold
+height of 1.5.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
@@ -1087,10 +1087,10 @@ plotted above, that point will have a small weight.</p>
 <img alt="../../../_images/examples_python_tutorials_Divisive_clustering_35_0.png" src="../../../_images/examples_python_tutorials_Divisive_clustering_35_0.png" />
 </div>
 </div>
-<p>The function below uses the <code class="docutils literal notranslate"><span class="pre">dendo.get_voronoi_tessalation()</span></code> method to convert the clusters into regions. <code class="docutils literal notranslate"><span class="pre">coreset_df</span></code>, <code class="docutils literal notranslate"><span class="pre">clusters</span></code> and <code class="docutils literal notranslate"><span class="pre">colors</span></code> need to be passed as the arguments to create the regions. This function creates a region for each coreset point separately and then colors them according to the clusters and colors passed as arguments. Another option is to create region using the centroids of the clusters. You need to pass <code class="docutils literal notranslate"><span class="pre">tesslation_by_cluster=True</span></code> to the function perform
-this task.</p>
+<p>The function below uses the <code class="docutils literal notranslate"><span class="pre">dendo.get_voronoi_tessalation()</span></code> method to convert the clusters into regions. <code class="docutils literal notranslate"><span class="pre">coreset_df</span></code>, <code class="docutils literal notranslate"><span class="pre">clusters</span></code> and <code class="docutils literal notranslate"><span class="pre">colors</span></code> need to be passed as the arguments to create the regions. This function creates a region for each coreset point separately and then colors them according to the clusters with colors passed as arguments. Another option is to create regions using the centroids of the clusters. You need to pass <code class="docutils literal notranslate"><span class="pre">tesslation_by_cluster=True</span></code> to the function to
+perform this task.</p>
 <p>Once the region creation is complete, you can use <code class="docutils literal notranslate"><span class="pre">plot_voironi()</span></code> method to plot the regions. The function takes the clusters and colors as arguments.</p>
-<p>Remembering that these regions were based on coresets, they can then overly the original data set be used to cluster the data based on the coreset analysis.</p>
+<p>Remembering that these regions were based on coresets, they can overlay the original data set and be used to cluster the data based on the coreset analysis.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
@@ -1110,7 +1110,7 @@ this task.</p>
 </section>
 <section id="QAOA-Implementation">
 <h2>QAOA Implementation<a class="headerlink" href="#QAOA-Implementation" title="Permalink to this heading">¶</a></h2>
-<p>CUDA-Q is designed to be a flexible tools for developers so they can test different implementations of the same code. For example, one can perform the same analysis, instead using a QAOA approach. Only the kernel needs to be changed as is done below.</p>
+<p>CUDA-Q is designed to be a flexible tool for developers so they can test different implementations of the same code. For example, one can perform the same analysis, instead using a QAOA approach. Only the kernel needs to be changed as is done below.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
