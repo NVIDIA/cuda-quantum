@@ -167,7 +167,8 @@ private:
   }
 
 public:
-  LifeTimeAnalysis(StringRef name) : name(name), lifetimes(), frames(), width(0) {}
+  LifeTimeAnalysis(StringRef name)
+      : name(name), lifetimes(), frames(), width(0) {}
 
   PhysicalQID mapToPhysical(VirtualQID qid, LifeTime *lifetime) {
     if (virToPhys.count(qid) == 1)
@@ -289,7 +290,9 @@ protected:
   virtual uint numTicks() = 0;
   virtual Value getResult(uint resultidx) = 0;
   virtual ValueRange getResults() = 0;
-  virtual SetVector<PhysicalQID> mapToPhysical(LifeTimeAnalysis &set) { return {}; }
+  virtual SetVector<PhysicalQID> mapToPhysical(LifeTimeAnalysis &set) {
+    return {};
+  }
   virtual void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) = 0;
 
   /// Recursively find nodes scheduled at a given cycle
@@ -377,7 +380,8 @@ protected:
     if (dependencies.size() != other->dependencies.size())
       return false;
     for (uint i = 0; i < dependencies.size(); i++) {
-      if (!dependencies[i].node->equivalentTo(other->dependencies[i].node) || dependencies[i]->isAlloc())
+      if (!dependencies[i].node->equivalentTo(other->dependencies[i].node) ||
+          dependencies[i]->isAlloc())
         return false;
     }
     return true;
@@ -419,11 +423,13 @@ public:
   }
 
   virtual void contractAllocsPass() {
-    assert(false && "contractAllocPass can only be called on an IfDependencyNode");
+    assert(false &&
+           "contractAllocPass can only be called on an IfDependencyNode");
   }
 
   virtual void performLiftingPass() {
-    assert(false && "performLiftingPass can only be called on an IfDependencyNode");
+    assert(false &&
+           "performLiftingPass can only be called on an IfDependencyNode");
   }
 
   virtual void mapToPhysical() {
@@ -431,11 +437,14 @@ public:
   }
 
   // virtual void performAnalysis(LifeTimeAnalysis &set) {
-  //   assert(false && "performAnalysis can only be called on an IfDependencyNode");
+  //   assert(false && "performAnalysis can only be called on an
+  //   IfDependencyNode");
   // }
 
-  virtual void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root, VirtualQID alloc) {
-    assert(false && "moveAllocIntoBlock can only be called on an IfDependencyNode");
+  virtual void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root,
+                                  VirtualQID alloc) {
+    assert(false &&
+           "moveAllocIntoBlock can only be called on an IfDependencyNode");
   }
 
   virtual std::string getOpName() = 0;
@@ -496,9 +505,7 @@ public:
     qids.insert(qid);
   };
 
-  virtual std::string getOpName() override {
-    return "init";
-  };
+  virtual std::string getOpName() override { return "init"; };
 };
 
 class OpDependencyNode : public DependencyNode {
@@ -831,7 +838,7 @@ public:
     for (auto container : containers)
       container->contractAllocsPass();
   }
-  
+
   /// Assigns a cycle to every quantum operation in each dependency graph
   /// (including `if`s containing quantum operations).
   ///
@@ -864,9 +871,11 @@ public:
   //     container->performAnalysis(set);
   // }
 
-  // TODO: Cleanup duplicated code to replace/swap nodes (here, in replaceRoot, and in IfDependencyNode::liftOp)
+  // TODO: Cleanup duplicated code to replace/swap nodes (here, in replaceRoot,
+  // and in IfDependencyNode::liftOp)
   void replaceLeafWithAlloc(VirtualQID qid, DependencyNode *leaf) {
-    assert(leaf->qids.contains(qid) && "Replacement dependency has a different QID!");
+    assert(leaf->qids.contains(qid) &&
+           "Replacement dependency has a different QID!");
     assert(leaf->isAlloc() && "replaceLeafWithAlloc passed non-alloc");
     auto first_use = getFirstUseOf(qid);
     auto old_leaf = leafs[qid];
@@ -884,7 +893,11 @@ public:
     auto last_use = getLastUseOf(qid);
     DependencyNode *old_root = getRootForQID(qid);
 
-    auto use = std::find_if(old_root->dependencies.begin(), old_root->dependencies.end(), [&](DependencyNode::DependencyEdge dep) -> bool { return dep.qid == qid; });
+    auto use = std::find_if(old_root->dependencies.begin(),
+                            old_root->dependencies.end(),
+                            [&](DependencyNode::DependencyEdge dep) -> bool {
+                              return dep.qid == qid;
+                            });
 
     root->dependencies[0] = *use;
     old_root->dependencies.erase(use);
@@ -970,9 +983,7 @@ class ArgDependencyNode : public DependencyNode {
 protected:
   BlockArgument barg;
 
-  void printNode() override {
-    barg.dump();
-  }
+  void printNode() override { barg.dump(); }
 
   bool isRoot() override { return false; }
   bool isLeaf() override { return true; }
@@ -1022,7 +1033,7 @@ protected:
     associated->dump();
   }
 
-  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override { };
+  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override{};
 
 public:
   TerminatorDependencyNode(Operation *terminator,
@@ -1128,7 +1139,8 @@ public:
       if (!argdnodes[i])
         continue;
       auto old_barg = argdnodes[i]->barg;
-      argdnodes[i]->barg = newBlock->addArgument(old_barg.getType(), old_barg.getLoc());
+      argdnodes[i]->barg =
+          newBlock->addArgument(old_barg.getType(), old_barg.getLoc());
       argdnodes[i]->hasCodeGen = true;
     }
 
@@ -1214,7 +1226,8 @@ public:
       graph->performLiftingPass();
   }
 
-  void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root, VirtualQID alloc) {
+  void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root,
+                          VirtualQID alloc) {
     auto graph = graphMap[alloc];
     for (uint i = 0; i < argdnodes.size(); i++)
       if (argdnodes[i]->qids.contains(alloc))
@@ -1251,9 +1264,7 @@ protected:
     return std::max(then_block->getHeight(), else_block->getHeight());
   }
 
-  bool isQuantumOp() override {
-    return numTicks() > 0;
-  }
+  bool isQuantumOp() override { return numTicks() > 0; }
 
   void liftOp(OpDependencyNode *op) {
     auto newDeps = SmallVector<DependencyEdge>();
@@ -1318,8 +1329,8 @@ protected:
     cudaq::cc::IfOp oldOp = dyn_cast<cudaq::cc::IfOp>(associated);
     auto operands = gatherOperands(builder, set);
 
-    auto newIf = builder.create<cudaq::cc::IfOp>(
-        oldOp->getLoc(), results, operands);
+    auto newIf =
+        builder.create<cudaq::cc::IfOp>(oldOp->getLoc(), results, operands);
     auto *then_region = &newIf.getThenRegion();
     then_block->codeGen(builder, then_region, set);
 
@@ -1421,7 +1432,8 @@ public:
 
   bool isContainer() override { return true; }
 
-  void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root, VirtualQID qid) override {
+  void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root,
+                          VirtualQID qid) override {
     assert(successors.contains(root) && "Illegal root for contractAlloc");
     assert(init->successors.contains(this) && "Illegal init for contractAlloc");
     auto alloc = static_cast<InitDependencyNode *>(init);
@@ -1432,7 +1444,10 @@ public:
     successors.remove(root);
     then_block->moveAllocIntoBlock(alloc, root, qid);
     else_block->moveAllocIntoBlock(alloc_copy, sink_copy, qid);
-    auto iter = std::find_if(dependencies.begin(), dependencies.end(), [init](DependencyNode::DependencyEdge edge) { return edge.node == init; });
+    auto iter = std::find_if(dependencies.begin(), dependencies.end(),
+                             [init](DependencyNode::DependencyEdge edge) {
+                               return edge.node == init;
+                             });
     auto offset = iter - dependencies.begin();
     associated->eraseOperand(offset);
     results.erase(results.begin() + offset);
@@ -1641,7 +1656,7 @@ struct DependencyAnalysisPass
         body->codeGen(builder, &func.getRegion(), set);
         builder.setInsertionPointToStart(mod.getBody());
         builder.create<quake::WireSetOp>(builder.getUnknownLoc(), name,
-                                        set.getCount(), ElementsAttr{});
+                                         set.getCount(), ElementsAttr{});
 
         // Replace old block
         oldBlock->erase();
