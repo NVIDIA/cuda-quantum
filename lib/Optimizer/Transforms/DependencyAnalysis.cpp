@@ -378,7 +378,7 @@ protected:
     if (dependencies.size() != other->dependencies.size())
       return false;
     for (uint i = 0; i < dependencies.size(); i++) {
-      if (!dependencies[i].node->equivalentTo(other->dependencies[i].node))
+      if (!dependencies[i].node->equivalentTo(other->dependencies[i].node) || dependencies[i]->isAlloc())
         return false;
     }
     return true;
@@ -504,9 +504,9 @@ protected:
 
   ValueRange getResults() override { return associated->getResults(); }
 
-  SmallVector<mlir::Value> gatherOperands(size_t num, OpBuilder &builder,
+  SmallVector<mlir::Value> gatherOperands(OpBuilder &builder,
                                           LifeTimeSet &set) {
-    SmallVector<mlir::Value> operands(num);
+    SmallVector<mlir::Value> operands(dependencies.size());
     for (size_t i = 0; i < dependencies.size(); i++) {
       auto dependency = dependencies[i];
 
@@ -539,7 +539,7 @@ protected:
           return;
 
     auto oldOp = associated;
-    auto operands = gatherOperands(oldOp->getNumOperands(), builder, set);
+    auto operands = gatherOperands(builder, set);
 
     associated =
         Operation::create(oldOp->getLoc(), oldOp->getName(),
@@ -557,7 +557,10 @@ protected:
   std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
     if (!isQuantumOp())
       return std::nullopt;
-    return dependencies[getOperandIDXFromResultIDX(resultidx, associated)].qid;
+    auto operand = getOperandIDXFromResultIDX(resultidx, associated);
+    if (operand >= dependencies.size())
+      return std::nullopt;
+    return dependencies[operand].qid;
   }
 
 public:
@@ -671,8 +674,6 @@ private:
 
     if (next->isAlloc()) {
       auto init = static_cast<InitDependencyNode *>(next);
-      assert(init &&
-             "DependencyNode claiming to be alloc is not actually an alloc");
       allocs[init->getQID()] = init;
     }
 
@@ -1032,12 +1033,11 @@ public:
   Block *codeGen(OpBuilder &builder, Region *region, LifeTimeSet &set) {
     // graphs[0]->print();
     Block *newBlock = builder.createBlock(region);
-    SmallVector<mlir::Location> locs;
-    for (auto arg : block->getArguments())
-      locs.push_back(arg.getLoc());
-    newBlock->addArguments(block->getArgumentTypes(), locs);
-    for (uint i = 0; i < newBlock->getNumArguments(); i++) {
-      argdnodes[i]->barg = newBlock->getArgument(i);
+    for (uint i = 0; i < argdnodes.size(); i++) {
+      if (!argdnodes[i])
+        continue;
+      auto old_barg = argdnodes[i]->barg;
+      argdnodes[i]->barg = newBlock->addArgument(old_barg.getType(), old_barg.getLoc());
       argdnodes[i]->hasCodeGen = true;
     }
     builder.setInsertionPointToStart(newBlock);
@@ -1087,6 +1087,7 @@ class IfDependencyNode : public OpDependencyNode {
 protected:
   DependencyBlock *then_block;
   DependencyBlock *else_block;
+  SmallVector<Type> results;
 
   // TODO: figure out nice way to display
   void printNode() override {
@@ -1102,10 +1103,6 @@ protected:
   }
 
   bool isQuantumOp() override {
-    for (auto type : associated->getResultTypes())
-      if (quake::isQuantumType(type))
-        return true;
-
     return numTicks() > 0;
   }
 
@@ -1208,16 +1205,16 @@ protected:
     if (hasCodeGen)
       return;
 
-    if (isSkip())
+    if (!isQuantumOp())
       for (auto dependency : dependencies)
         if (!dependency->hasCodeGen)
           return;
 
     cudaq::cc::IfOp oldOp = dyn_cast<cudaq::cc::IfOp>(associated);
-    auto operands = gatherOperands(oldOp->getNumOperands(), builder, set);
+    auto operands = gatherOperands(builder, set);
 
     auto newIf = builder.create<cudaq::cc::IfOp>(
-        oldOp->getLoc(), oldOp->getResultTypes(), operands);
+        oldOp->getLoc(), results, operands);
     auto *then_region = &newIf.getThenRegion();
     then_block->codeGen(builder, then_region, set);
 
@@ -1229,10 +1226,9 @@ protected:
     hasCodeGen = true;
 
     // Ensure classical values are generated
-    for (auto successor : successors) {
-      if (!successor->isSkip())
+    for (auto successor : successors)
+      if (successor->isSkip())
         successor->codeGen(builder, set);
-    }
   };
 
   void computeHeight() override {
@@ -1310,17 +1306,6 @@ bool validateOp(Operation *op) {
     return false;
   }
 
-  if (func.getArguments().size() != 0) {
-    func.emitOpError(
-        "function arguments not currently supported in dep-analysis");
-    return false;
-  }
-
-  if (func.getNumResults() != 0) {
-    func.emitOpError(
-        "non-void return types not currently supported in dep-analysis");
-    return false;
-  }
   return true;
 }
 
@@ -1403,8 +1388,11 @@ public:
         return nullptr;
       newNode =
           new IfDependencyNode(ifop, dependencies, then_block, else_block);
-    } else
+    } else if (isTerminator) {
+      newNode = new TerminatorDependencyNode(op, dependencies);
+    } else {
       newNode = new OpDependencyNode(op, dependencies);
+    }
 
     // Dnodeid is the next slot of the dnode vector
     auto id = perOp.size();
