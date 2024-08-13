@@ -570,8 +570,13 @@ protected:
     // This ensures that code gen is not too aggressive
     if (isSkip())
       for (auto dependency : dependencies)
-        if (!dependency->hasCodeGen)
-          return;
+        if (!dependency->hasCodeGen) {
+          if (dependency->isQuantumDependent())
+            // Wait for quantum op dependency to be codeGen'ed
+            return;
+          else
+            dependency->codeGen(builder, set);
+        }
 
     auto oldOp = associated;
     auto operands = gatherOperands(builder, set);
@@ -622,7 +627,7 @@ public:
       edge->successors.insert(this);
 
       // Update metadata
-      if (!isEndOp(op) && edge.qid.has_value())
+      if (edge.qid.has_value())
         qids.insert(edge.qid.value());
     }
 
@@ -641,8 +646,25 @@ public:
     return getResultIDXFromOperandIDX(operandidx, associated);
   }
 
-  /// Remove this dependency node by replacing successor dependencies with
-  /// the relevant dependency from this node.
+  /// Remove this dependency node from the path for \p qid by replacing successor
+  /// dependencies on \p qid with the relevant dependency from this node.
+  virtual void eraseQID(VirtualQID qid) {
+    for (auto successor : successors) {
+      for (uint j = 0; j < successor->dependencies.size(); j++) {
+        auto edge = successor->dependencies[j];
+        if (edge.node == this && edge.qid == qid) {
+          auto dep = getDependencyForResult(edge.resultidx);
+          successor->dependencies[j] = dep;
+          dep->successors.remove(this);
+          dep->successors.insert(successor);
+        }
+      }
+    }
+    qids.remove(qid);
+  }
+
+  /// Remove this dependency node from the graph by replacing all successor
+  /// dependencies with the relevant dependency from this node.
   void erase() {
     for (auto successor : successors) {
       for (uint j = 0; j < successor->dependencies.size(); j++) {
@@ -704,10 +726,11 @@ private:
     }
 
     seen.insert(next);
-    qids.set_union(next->qids);
 
-    if (next->isLeaf() && next->isQuantumOp())
+    if (next->isLeaf() && next->isQuantumOp()) {
       leafs.insert({next->qids.front(), next});
+      qids.set_union(next->qids);
+    }
 
     if (next->isAlloc()) {
       auto init = static_cast<InitDependencyNode *>(next);
@@ -937,22 +960,19 @@ public:
     last_use->successors.insert(root);
   }
 
-  void removeQID(VirtualQID qid) {
+  void removeAlloc(VirtualQID qid) {
     assert(allocs.count(qid) == 1 && "Given qid not allocated in graph");
     allocs.erase(allocs.find(qid));
     auto toRemove = getRootForQID(qid);
     roots.remove(toRemove);
     // Reset tallest if needed
-    if (toRemove == tallest) {
-      tallest = nullptr;
-      total_height = 0;
-      for (auto root : roots)
-        if (tallest == nullptr || root->getHeight() > total_height) {
-          tallest = root;
-          total_height = root->getHeight();
-        }
-    }
+    updateHeight();
 
+    removeQID(qid);
+  }
+
+  void removeQID(VirtualQID qid) {
+    leafs.erase(leafs.find(qid));
     qids.remove(qid);
   }
 
@@ -998,14 +1018,6 @@ protected:
 public:
   RootDependencyNode(quake::SinkOp op, SmallVector<DependencyEdge> dependencies)
       : OpDependencyNode(op, dependencies) {
-    // Should be ensured by assign-ids pass
-    assert(op->hasAttr("qid") && "quake.sink missing qid");
-    // It's useful to know precisely which VirtualQID this sinkOp is for
-    qids.clear();
-    // Lookup qid
-    auto qid = op->getAttrOfType<IntegerAttr>("qid").getUInt();
-    qids.insert(qid);
-
     // numTicks won't be properly calculated by OpDependencyNode constructor,
     // so have to recompute height here
     updateHeight();
@@ -1081,6 +1093,12 @@ public:
 
   void genTerminator(OpBuilder &builder, LifeTimeAnalysis &set) {
     OpDependencyNode::codeGen(builder, set);
+  }
+
+  void eraseQID(VirtualQID qid) override {
+    for (uint i = 0; i < dependencies.size(); i++)
+      if (dependencies[i].qid == qid)
+        dependencies.erase(dependencies.begin() + i);
   }
 };
 
@@ -1174,9 +1192,9 @@ public:
   }
 
   void print() {
-    llvm::outs() << "Block:\n";
-    block->dump();
-    llvm::outs() << "Block graph:\n";
+    llvm::outs() << "Block with (" << argdnodes.size() << ") args:\n";
+    //block->dump();
+    //llvm::outs() << "Block graph:\n";
     graph->print();
     llvm::outs() << "End block\n";
   }
@@ -1222,7 +1240,7 @@ public:
         auto init = graph->getAllocForQID(alloc);
         first_use->moveAllocIntoBlock(init, root, alloc);
         // Qid is no longer used in this block, remove related metadata
-        graph->removeQID(alloc);
+        graph->removeAlloc(alloc);
       }
     }
 
@@ -1247,6 +1265,17 @@ public:
   void schedulingPass() {
     graph->schedulingPass();
   }
+
+  void removeQID(VirtualQID qid) {
+    for (uint i = 0; i < argdnodes.size(); i++)
+      if (argdnodes[i]->qids.contains(qid)) {
+        argdnodes.erase(argdnodes.begin() + i);
+        break;
+      }
+
+    terminator->eraseQID(qid);
+    graph->removeQID(qid);
+  }
 };
 
 class IfDependencyNode : public OpDependencyNode {
@@ -1268,6 +1297,10 @@ protected:
 
   uint numTicks() override {
     return std::max(then_block->getHeight(), else_block->getHeight());
+  }
+
+  bool isSkip() override {
+    return numTicks() == 0;
   }
 
   bool isQuantumOp() override { return numTicks() > 0; }
@@ -1321,13 +1354,18 @@ protected:
     if (hasCodeGen)
       return;
 
-    if (!isQuantumOp())
-      for (auto dependency : dependencies)
-        if (!dependency->hasCodeGen)
-          return;
-
     cudaq::cc::IfOp oldOp = dyn_cast<cudaq::cc::IfOp>(associated);
     auto operands = gatherOperands(builder, set);
+
+    if (isSkip())
+      for (auto dependency : dependencies)
+        if (!dependency->hasCodeGen) {
+          if (dependency->isQuantumDependent())
+            // Wait for quantum op dependency to be codeGen'ed
+            return;
+          else
+            dependency->codeGen(builder, set);
+        }
 
     auto newIf =
         builder.create<cudaq::cc::IfOp>(oldOp->getLoc(), results, operands);
@@ -1382,6 +1420,16 @@ public:
     else_block->contractAllocsPass();
   }
 
+  void eraseQID(VirtualQID qid) override {
+    for (uint i = 0; i < dependencies.size(); i++)
+      if (dependencies[i].qid == qid)
+        results.erase(results.begin() + i - 1);
+
+    then_block->removeQID(qid);
+    else_block->removeQID(qid);
+    this->OpDependencyNode::eraseQID(qid);
+  }
+
   void performLiftingPass() override {
     then_block->performLiftingPass();
     else_block->performLiftingPass();
@@ -1395,8 +1443,11 @@ public:
         auto then_use = then_block->getFirstUseOf(qid);
         auto else_use = else_block->getFirstUseOf(qid);
 
-        if (!then_use || !else_use)
+        if (!then_use || !else_use) {
+          if (!then_use && !else_use)
+            eraseQID(qid);
           continue;
+        }
 
         if (then_use->equivalentTo(else_use)) {
           liftOp(then_use);
