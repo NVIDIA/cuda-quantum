@@ -278,8 +278,10 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
        llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
-    Type argTy = std::get<0>(iter.value());
     void *argPtr = std::get<1>(iter.value());
+    if (!argPtr)
+      continue;
+    Type argTy = std::get<0>(iter.value());
     unsigned i = iter.index();
     auto buildSubst = [&, i = i]<typename... Ts>(Ts &&...ts) {
       builder.setInsertionPointToEnd(substModule.getBody());
@@ -359,4 +361,34 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
     if (subst)
       substitutions.emplace_back(std::move(subst));
   }
+}
+
+void cudaq::opt::ArgumentConverter::gen(
+    const std::vector<void *> &arguments,
+    const std::unordered_set<unsigned> &exclusions) {
+  std::vector<void *> partialArgs;
+  for (auto iter : llvm::enumerate(arguments)) {
+    if (exclusions.contains(iter.index())) {
+      partialArgs.push_back(nullptr);
+      continue;
+    }
+    partialArgs.push_back(iter.value());
+  }
+  gen(partialArgs);
+}
+
+void cudaq::opt::ArgumentConverter::gen_drop_front(
+    const std::vector<void *> &arguments, unsigned numDrop) {
+  // If we're dropping all the arguments, we're done.
+  if (numDrop >= arguments.size())
+    return;
+  std::vector<void *> partialArgs;
+  for (void *arg : arguments) {
+    if (numDrop--) {
+      partialArgs.push_back(nullptr);
+      continue;
+    }
+    partialArgs.push_back(arg);
+  }
+  gen(partialArgs);
 }

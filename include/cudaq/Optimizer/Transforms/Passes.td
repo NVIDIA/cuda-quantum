@@ -12,26 +12,27 @@
 include "mlir/Pass/PassBase.td"
 
 def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
-  let summary = "Adds a topology-less `quake.wireset` to the module";
+  let summary = "Adds a topology-less `quake.wire_set` to the module.";
   let description = [{
-    Adds a `quake.wireset` operation without tological info to the module.
+    Adds a `quake.wire_set` operation without any topological information to the
+    ModuleOp.
   }];
 }
 
 def AssignWireIndices : Pass<"assign-wire-indices", "mlir::func::FuncOp"> {
-  let summary = "Replaces wires with wires from a `quake.wireset`";
+  let summary = "Replaces `null_wire` with `borrow_wire` from a `wire_set`.";
   let description = [{
-    Replaces all instances of `quake.null_wire_op` with `quake.borrow_wire_op`s
-    from a common `quake.wireset` without any topological information.
-    Each wire is assigned a unique identifier (the index into the
-    `quake.wireset`) through this process.
+    Replaces all instances of `quake.null_wire` with `quake.borrow_wire` from a
+    common `quake.wire_set` without any topological information.  Each wire is
+    assigned a unique identifier (the index into the `quake.wire_set`) through
+    this process.
   }];
 }
 
 def ApplyControlNegations :
     Pass<"apply-control-negations", "mlir::func::FuncOp"> {
   let summary =
-    "Replace all operations with negative controls with positive controls and X operations.";
+    "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
 
   let description = [{
     For every quantum operation with a negative control, replace that operation 
