@@ -31,7 +31,7 @@ public:
   void gen(const std::vector<void *> &arguments);
 
   /// Generate a substitution ModuleOp but include only the arguments that do
-  /// \em{not} appear in the set of \p exclusions.
+  /// not appear in the set of \p exclusions.
   void gen(const std::vector<void *> &arguments,
            const std::unordered_set<unsigned> &exclusions);
 
