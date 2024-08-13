@@ -648,8 +648,10 @@ public:
       for (uint j = 0; j < successor->dependencies.size(); j++) {
         auto edge = successor->dependencies[j];
         if (edge.node == this) {
-          successor->dependencies[j] = getDependencyForResult(edge.resultidx);
-          getDependencyForResult(edge.resultidx)->successors.insert(successor);
+          auto dep = getDependencyForResult(edge.resultidx);
+          successor->dependencies[j] = dep;
+          dep->successors.remove(this);
+          dep->successors.insert(successor);
         }
       }
     }
@@ -770,13 +772,18 @@ public:
 
   OpDependencyNode *getFirstUseOf(VirtualQID qid) {
     assert(qids.contains(qid) && "Given qid not in dependency graph");
-    return static_cast<OpDependencyNode *>(leafs[qid]->successors[0]);
+    DependencyNode *firstUse = leafs[qid]->successors[0];
+    if (firstUse->isRoot())
+      return nullptr;
+    return static_cast<OpDependencyNode *>(firstUse);
   }
 
   OpDependencyNode *getLastUseOf(VirtualQID qid) {
     assert(qids.contains(qid) && "Given qid not in dependency graph");
-    return static_cast<OpDependencyNode *>(
-        getRootForQID(qid)->dependencies[0].node);
+    DependencyNode *lastUse = getRootForQID(qid)->dependencies[0].node;
+    if (lastUse->isLeaf())
+      return nullptr;
+    return static_cast<OpDependencyNode *>(lastUse);
   }
 
   DependencyNode *getRootForQID(VirtualQID qid) {
@@ -1161,8 +1168,6 @@ public:
   Block *codeGen(OpBuilder &builder, Region *region, LifeTimeAnalysis &set) {
     Block *newBlock = builder.createBlock(region);
     for (uint i = 0; i < argdnodes.size(); i++) {
-      if (!argdnodes[i])
-        continue;
       auto old_barg = argdnodes[i]->barg;
       argdnodes[i]->barg =
           newBlock->addArgument(old_barg.getType(), old_barg.getLoc());
@@ -1257,7 +1262,7 @@ public:
     auto graph = graphMap[alloc];
     for (uint i = 0; i < argdnodes.size(); i++)
       if (argdnodes[i]->qids.contains(alloc))
-        argdnodes[i] = nullptr;
+        argdnodes.erase(argdnodes.begin() + i);
 
     graph->replaceLeafWithAlloc(alloc, init);
     graph->replaceRoot(alloc, root);
@@ -1295,6 +1300,7 @@ protected:
   void liftOp(OpDependencyNode *op) {
     auto newDeps = SmallVector<DependencyEdge>();
 
+    // Construct new dependencies
     for (uint i = 0; i < op->dependencies.size(); i++) {
       auto dependency = op->dependencies[i];
       assert(!dependency->isAlloc() && "TODO");
@@ -1309,22 +1315,15 @@ protected:
         newDeps.push_back(newDep);
         newDep->successors.remove(this);
         newDep->successors.insert(op);
+        arg->successors.remove(this);
 
         dependencies[num + 1] =
             DependencyEdge{op, op->getResultForDependency(i)};
-        // Patch successors
-        for (auto successor : op->successors) {
-          for (uint j = 0; j < successor->dependencies.size(); j++) {
-            auto edge = successor->dependencies[j];
-            if (edge.node == op)
-              successor->dependencies[j] =
-                  op->getDependencyForResult(edge.resultidx);
-          }
-          op->successors.remove(successor);
-          successors.insert(successor);
-        }
       }
     }
+
+    // Patch successors
+    op->erase();
 
     op->successors.insert(this);
     op->dependencies = newDeps;
@@ -1410,23 +1409,25 @@ public:
 
   void performLiftingPass() override {
     then_block->performLiftingPass();
-    // Lifting may affect height of internal blocks
-    then_block->computeHeight();
     else_block->performLiftingPass();
-    // Lifting may affect height of internal blocks
-    else_block->computeHeight();
+
+    bool run_more = true;
 
     // Inside out, so recur first, then apply pass to this node
-    for (auto qid : qids) {
-      auto then_use = then_block->getFirstUseOf(qid);
-      auto else_use = else_block->getFirstUseOf(qid);
+    while(run_more) {
+      run_more = false;
+      for (auto qid : qids) {
+        auto then_use = then_block->getFirstUseOf(qid);
+        auto else_use = else_block->getFirstUseOf(qid);
 
-      if (!then_use || !else_use)
-        continue;
+        if (!then_use || !else_use)
+          continue;
 
-      if (then_use->equivalentTo(else_use)) {
-        liftOp(then_use);
-        else_use->erase();
+        if (then_use->equivalentTo(else_use)) {
+          liftOp(then_use);
+          else_use->erase();
+          run_more = true;
+        }
       }
     }
 
@@ -1480,10 +1481,16 @@ public:
                              [init](DependencyNode::DependencyEdge edge) {
                                return edge.node == init;
                              });
-    auto offset = iter - dependencies.begin();
+    size_t offset = iter - dependencies.begin();
     associated->eraseOperand(offset);
     results.erase(results.begin() + offset);
     dependencies.erase(iter);
+
+    // Since we're removing a result, update the result indices of successors
+    for (auto successor : successors)
+      for (uint i = 0; i < successor->dependencies.size(); i++)
+        if (successor->dependencies[i].node == this && successor->dependencies[i].resultidx >= offset)
+          successor->dependencies[i].resultidx--;
   }
 };
 
