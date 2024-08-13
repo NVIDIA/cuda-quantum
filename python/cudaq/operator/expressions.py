@@ -154,7 +154,7 @@ class OperatorSum:
         return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
 
     # To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
-    def _to_spinop(self: OperatorSum, dimensions: Mapping[int, int], **kwargs: NumericType) -> cudaq_runtime.SpinOperator:
+    def _to_spinop(self: OperatorSum, dimensions: Mapping[int, int], **kwargs: NumericType) -> cudaq_runtime.SpinOperator | NumericType:
         if any((dim != 2 for dim in dimensions.values())):
             raise ValueError("incorrect dimensions - conversion to spin operator can only be done for qubits")
         return self._evaluate(_SpinArithmetics(**kwargs))

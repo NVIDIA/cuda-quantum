@@ -92,7 +92,6 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
             A tuple consisting of the permuted matrix as well as the sequence of degrees
             of freedom in canonical order.
         """
-        # FIXME: check endianness ... (in the sorting/states here, and in the matrix definitions)
         canon_degrees = _OperatorHelpers.canonicalize_degrees(op_degrees)
         if op_degrees != canon_degrees:
             # There may be a more efficient way, but I needed something correct first.
@@ -253,7 +252,7 @@ class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator | NumericT
             case "pauli_x": return cudaq_runtime.spin.x(op.degrees[0])
             case "pauli_y": return cudaq_runtime.spin.y(op.degrees[0])
             case "pauli_z": return cudaq_runtime.spin.z(op.degrees[0])
-            case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0]) # FIXME: DOESN'T EXIST
+            case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0])
             case "identity": 
                 assert len(op.degrees) == 1, "expecting identity to act on a single degree of freedom"
                 return cudaq_runtime.spin.i(op.degrees[0])

@@ -203,8 +203,9 @@ class AsyncEvolveResult:
 def _register_evolution_kernels(hamiltonian: Operator, schedule: Schedule) -> Generator[(str, Mapping[str, NumericType])]:
     # Evolution kernels can only be defined for qubits.
     dimensions = dict([(i, 2) for i in hamiltonian.degrees])
-    # FIXME: MAKE OPERATORS HASHABLE
-    # kernel_base_name = hash(hamiltonian)
+    # We could make operators hashable and try to use that to do some kernel caching, 
+    # but there is no guarantee that if the hash is equal, the operator is equal.
+    # Overall it feels like a better choice to just take a uuid here.
     kernel_base_name = "".join(filter(str.isalnum, str(uuid.uuid4())))
     for step_idx, parameters in enumerate(schedule):
         kernel_name = f"evolve_{kernel_base_name}_{step_idx}"
@@ -226,7 +227,8 @@ def _create_kernel(name: str,
     if initial_state is None:
         srcCode += f"\tqs = cudaq.qvector({num_qubits})\n"
     else:
-        # FIXME: precision
+        # I believe with Python 3, `str` on a floating point value should preserve precision.
+        # Hence, I would assume the same is also true for complex values.
         statevector = ', '.join([str(value) for value in initial_state])
         srcCode += f"\tqs = cudaq.qvector([{statevector}])\n"
     for operation_name, parameters in evolution:
@@ -253,7 +255,9 @@ def _create_kernels(name: str,
         else: srcCode = f"def {name}_{op_idx}(init_state: cudaq.State):\n"
 
         if op_idx == 0 and initial_state is None: qvec_arg = str(num_qubits)
-        elif op_idx == 0: qvec_arg = f"[{', '.join([str(value) for value in initial_state])}]" # FIXME: precision
+        # I believe with Python 3, `str` on a floating point value should preserve precision.
+        # Hence, I would assume the same is also true for complex values.
+        elif op_idx == 0: qvec_arg = f"[{', '.join([str(value) for value in initial_state])}]"
         else: qvec_arg = "init_state"
         srcCode += f"\tqs = cudaq.qvector({qvec_arg})\n"
 
