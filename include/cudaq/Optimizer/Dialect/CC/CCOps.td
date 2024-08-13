@@ -1604,4 +1604,52 @@ def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
      $stringLiteral `:` qualified(type(results)) attr-dict
   }];
 }
+
+def cc_ArgumentSubstitutionOp : CCOp<"arg_subst",
+  [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
+  let summary = "An argument substition.";
+  let description = [{
+    This operation is used to define computations to produce a particular value.
+    The last Op in the block is the result and specifies the result type.
+    The code in the block will be substituted into a FuncOp to replace an
+    argument. The argument is erased from the function's signature, specializing
+    the function into a new function of reduced arity. (Typically, all arguments
+    are erased turning the function into a nullary.)
+
+    For example, given a function
+    ```mlir
+      func.func @foo(%arg0: i32, %arg1: f32) ...
+    ```
+    and a set of argument substitutions for the scalar arguments
+    ```mlir
+      cc.arg_subst[0] {
+        %c42_i32 = arith.constant 42 : i32
+      }
+      cc.arg_subst[1] {
+        %cst = arith.constant 3.100000e+00 : f32
+      }
+    ```
+    the argument synthesis pass can substitute the arguments and create a new
+    nullary function
+    ```mlir
+      func.func @foo() {
+        %arg0 = arith.constant 42 : i32
+        %arg1 = arith.constant 3.1 : f32
+        ...
+    ```
+
+    Each arg_subst can hold an arbitrary block of code, allowing for the
+    construction of non-trivial values.
+
+    See also the `argument-synthesis` pass.
+  }];
+
+  let arguments = (ins
+    ConfinedAttr<I32Attr, [IntNonNegative]>:$position
+  );
+  let regions = (region SizedRegion<1>:$body);
+
+  let assemblyFormat = "`[` $position `]` $body attr-dict";
+}
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_CC_OPS

@@ -418,7 +418,7 @@ public:
     if (auto attr =
             getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
       dataLayoutSpec = cast<StringAttr>(attr);
-    auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+    llvm::DataLayout dataLayout{dataLayoutSpec};
     // Convert bufferTy to llvm.
     llvm::LLVMContext context;
     LLVMTypeConverter converter(funcTy.getContext());
