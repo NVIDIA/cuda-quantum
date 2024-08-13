@@ -119,12 +119,13 @@ void noise_model::add_channel(const std::string &quantumOp,
         std::to_string(channelDim) + " on " + std::to_string(nQubits) +
         " qubits.");
 
-  auto key = std::make_pair(quantumOp, qubits);
+  GateIdentifier key(quantumOp, qubits.size());
   auto iter = noiseModel.find(key);
   if (iter == noiseModel.end()) {
     cudaq::info("Adding new kraus_channel to noise_model ({}, {})", quantumOp,
                 qubits);
-    noiseModel.insert({key, {channel}});
+    NoiseMatcher noiseMatcher(qubits, {channel});
+    noiseModel.insert({key, {noiseMatcher}});
     return;
   }
 
@@ -132,13 +133,26 @@ void noise_model::add_channel(const std::string &quantumOp,
               "noise_model (qubits = {})",
               quantumOp, qubits);
 
-  iter->second.push_back(channel);
+  iter->second.front().noiseChannels.push_back(channel);
 }
+
+void noise_model::add_any_qubit_channel(const std::string &quantumOp,
+                                        const kraus_channel &channel,
+                                        int numControls) {}
+
+void noise_model::add_channel_with_predicate(
+    const std::string &quantumOp, const std::vector<std::size_t> &qubits,
+    const kraus_channel &channel) {}
+
+void noise_model::add_any_qubit_channel_with_predicate(
+    const std::string &quantumOp, const std::vector<std::size_t> &qubits,
+    const std::function<bool(const std::vector<double> &)> &pred,
+    const kraus_channel &channel) {}
 
 std::vector<kraus_channel>
 noise_model::get_channels(const std::string &quantumOp,
                           const std::vector<std::size_t> &qubits) const {
-  auto key = std::make_pair(quantumOp, qubits);
+  GateIdentifier key(quantumOp, qubits.size());
   auto iter = noiseModel.find(key);
   if (iter == noiseModel.end()) {
     cudaq::info("No kraus_channel available for {} on {}.", quantumOp, qubits);
@@ -146,7 +160,7 @@ noise_model::get_channels(const std::string &quantumOp,
   }
 
   cudaq::info("Found kraus_channel for {} on {}.", quantumOp, qubits);
-  return iter->second;
+  return iter->second.front().noiseChannels;
 }
 
 } // namespace cudaq

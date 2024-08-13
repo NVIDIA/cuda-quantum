@@ -12,6 +12,7 @@
 
 #include <array>
 #include <complex>
+#include <functional>
 #include <math.h>
 #include <unordered_map>
 #include <vector>
@@ -152,6 +153,24 @@ public:
   void push_back(kraus_op op);
 };
 
+struct GateIdentifier {
+  std::string name;
+  std::size_t numControls;
+  bool operator==(const GateIdentifier &other) const {
+    return other.name == name && other.numControls == numControls;
+  };
+};
+
+struct NoiseMatcher {
+  std::vector<std::size_t> qubitOperands;
+  std::function<bool(const std::vector<double> &)> predicate;
+  std::vector<kraus_channel> noiseChannels;
+
+  NoiseMatcher(const std::vector<std::size_t> &qubits,
+               const std::vector<kraus_channel> &ops)
+      : qubitOperands(qubits), noiseChannels(ops) {}
+};
+
 /// @brief The noise_model type keeps track of a set of
 /// kraus_channels to be applied after the execution of
 /// quantum operations. Each quantum operation maps
@@ -160,24 +179,20 @@ public:
 class noise_model {
 protected:
   /// @brief Noise Model data map key is a (quantum Op + qubits applied to)
-  using KeyT = std::pair<std::string, std::vector<std::size_t>>;
+  using KeyT = GateIdentifier;
+  using ValueT = std::vector<NoiseMatcher>;
 
-  /// @brief unordered_map will need a custom hash function
   struct KeyTHash {
-    template <class T, class U>
-    std::size_t operator()(const std::pair<T, U> &p) const {
-      auto hash = std::hash<T>{}(p.first);
-      hash ^= p.second.size();
-      for (auto &i : p.second) {
-        hash ^= i + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-      }
-      return hash;
+    std::size_t operator()(const GateIdentifier &p) const {
+      const std::string fullName =
+          p.name + "(" + std::to_string(p.numControls) + ")";
+      return std::hash<std::string>{}(fullName);
     }
   };
 
   /// @brief Useful typedef for the noise model data map
   using NoiseModelOpMap =
-      std::unordered_map<KeyT, std::vector<kraus_channel>, KeyTHash>;
+      std::unordered_map<KeyT, ValueT, KeyTHash>;
 
   static constexpr const char *availableOps[] = {
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
@@ -205,6 +220,16 @@ public:
                    const kraus_channel &channel) {
     add_channel(quantumOp, qubits, channel);
   }
+
+  void add_any_qubit_channel(const std::string &quantumOp,
+                             const kraus_channel &channel, int numControls = 0);
+  void add_channel_with_predicate(const std::string &quantumOp,
+                                  const std::vector<std::size_t> &qubits,
+                                  const kraus_channel &channel);
+  void add_any_qubit_channel_with_predicate(
+      const std::string &quantumOp, const std::vector<std::size_t> &qubits,
+      const std::function<bool(const std::vector<double> &)> &pred,
+      const kraus_channel &channel);
 
   /// @brief Add the provided kraus_channel to all
   /// specified quantum operations.
