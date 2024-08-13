@@ -1,8 +1,9 @@
 import numpy, scipy # type: ignore
 from numpy.typing import NDArray
+from typing import Sequence
 
 from .helpers import NumericType, _OperatorHelpers
-from .expressions import ProductOperator, ElementaryOperator, ScalarOperator
+from .expressions import OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # Operators as defined here (watch out of differences in convention): 
@@ -58,13 +59,13 @@ class operators:
     def const(cls, constant_value: NumericType) -> ScalarOperator:
         return ScalarOperator.const(constant_value)
     @classmethod
-    def zero(cls, degrees: list[int] | int = []) -> ScalarOperator | ElementaryOperator | ProductOperator:
+    def zero(cls, degrees: Sequence[int] | int = []) -> ScalarOperator | ElementaryOperator | ProductOperator:
         if isinstance(degrees, int): return ElementaryOperator.zero(degrees)
         elif len(degrees) == 0: return ScalarOperator.const(0)
         elif len(degrees) == 1: return ElementaryOperator.zero(degrees[0])
         else: return ProductOperator([ElementaryOperator.zero(degree) for degree in degrees])
     @classmethod
-    def identity(cls, degrees: list[int] | int = []) -> ScalarOperator | ElementaryOperator | ProductOperator:
+    def identity(cls, degrees: Sequence[int] | int = []) -> ScalarOperator | ElementaryOperator | ProductOperator:
         if isinstance(degrees, int): return ElementaryOperator.identity(degrees)
         elif len(degrees) == 0: return ScalarOperator.const(1)
         elif len(degrees) == 1: return ElementaryOperator.identity(degrees[0])
@@ -98,11 +99,6 @@ class pauli:
     ElementaryOperator.define("pauli_x", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(cudaq_runtime.spin.x(0).to_matrix()))
     ElementaryOperator.define("pauli_y", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(cudaq_runtime.spin.y(0).to_matrix()))
     ElementaryOperator.define("pauli_z", [2], lambda: _OperatorHelpers.cmatrix_to_nparray(cudaq_runtime.spin.z(0).to_matrix()))
-    # FIXME: add binding for spin.i to spinops
-    ElementaryOperator.define("pauli_i", [2], lambda: numpy.array([[1,0],[0,1]], dtype=numpy.complex128))
-    # FIXME: make these such that they are also considered spinops
-    ElementaryOperator.define("pauli_plus", [2], lambda: numpy.array([[0,1],[0,0]], dtype=numpy.complex128))
-    ElementaryOperator.define("pauli_minus", [2], lambda: numpy.array([[0,0],[1,0]], dtype=numpy.complex128))
 
     @classmethod
     def x(cls, degree: int) -> ElementaryOperator:
@@ -115,12 +111,11 @@ class pauli:
         return ElementaryOperator("pauli_z", [degree])
     @classmethod
     def i(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator("pauli_i", [degree])
+        return ElementaryOperator.identity(degree)
     @classmethod
-    def plus(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator("pauli_plus", [degree])
+    def plus(cls, degree: int) -> OperatorSum:
+        return (cls.x(degree) + ScalarOperator.const(1j) * cls.y(degree)) / 2
     @classmethod
-    def minus(cls, degree: int) -> ElementaryOperator:
-        return ElementaryOperator("pauli_minus", [degree])
-
+    def minus(cls, degree: int) -> OperatorSum:
+        return (cls.x(degree) - ScalarOperator.const(1j) * cls.y(degree)) / 2
 

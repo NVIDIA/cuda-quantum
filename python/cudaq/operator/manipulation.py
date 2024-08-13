@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy, re # type: ignore
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Generic, Iterable, Sequence, TypeVar
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
@@ -56,7 +56,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         operator expression.
         """
 
-        def __init__(self: MatrixArithmetics.Evaluated, degrees: Sequence[int], matrix: NDArray[numpy.complexfloating]) -> None:
+        def __init__(self: MatrixArithmetics.Evaluated, degrees: Iterable[int], matrix: NDArray[numpy.complexfloating]) -> None:
             """
             Instantiates an object that contains the matrix representation of an
             operator acting on the given degrees of freedom.
@@ -65,11 +65,11 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
                 degrees: The degrees of freedom that the matrix applies to.
                 matrix: The matrix representation of an evaluated operator.
             """
-            self._degrees = degrees
+            self._degrees = tuple(degrees)
             self._matrix = matrix
 
         @property
-        def degrees(self: MatrixArithmetics.Evaluated) -> Sequence[int]: 
+        def degrees(self: MatrixArithmetics.Evaluated) -> tuple[int]: 
             """
             The degrees of freedom that the matrix of the evaluated value applies to.
             """
@@ -83,7 +83,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
             """
             return self._matrix
 
-    def _canonicalize(self: MatrixArithmetics, op_matrix: NDArray[numpy.complexfloating], op_degrees: Sequence[int]) -> tuple[NDArray[numpy.complexfloating], Sequence[int]]:
+    def _canonicalize(self: MatrixArithmetics, op_matrix: NDArray[numpy.complexfloating], op_degrees: Iterable[int]) -> tuple[NDArray[numpy.complexfloating], tuple[int]]:
         """
         Given a matrix representation that acts on the given degrees or freedom, 
         sorts the degrees and permutes the matrix to match that canonical order.
@@ -113,7 +113,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         Computes the tensor product of two evaluate operators that act on different 
         degrees of freedom using `numpy.kron`.
         """
-        assert len(set(op1.degrees).intersection(op2.degrees)) == 0, \
+        assert len(frozenset(op1.degrees).intersection(op2.degrees)) == 0, \
             "Operators should not have common degrees of freedom."
         op_degrees = [*op1.degrees, *op2.degrees]
         op_matrix = numpy.kron(op1.matrix, op2.matrix)
@@ -196,7 +196,7 @@ class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
         operator expression as a `pauli_word`.
         """
 
-        def __init__(self: PauliWordConversion.Evaluated, degrees: Sequence[int], pauli_word: cudaq_runtime.pauli_word) -> None:
+        def __init__(self: PauliWordConversion.Evaluated, degrees: Iterable[int], pauli_word: cudaq_runtime.pauli_word) -> None:
             """
             Instantiates an object that contains the `pauli_word` representation of an
             operator acting on the given degrees of freedom.
@@ -205,11 +205,11 @@ class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
                 degrees: The degrees of freedom that the matrix applies to.
                 pauli_word: The `pauli_word` representation of an evaluated operator.
             """
-            self._degrees = degrees
+            self._degrees = tuple(degrees)
             self._pauli_word = pauli_word
 
         @property
-        def degrees(self: PauliWordConversion.Evaluated) -> Sequence[int]: 
+        def degrees(self: PauliWordConversion.Evaluated) -> tuple[int]: 
             """
             The degrees of freedom that the evaluated operator acts on.
             """

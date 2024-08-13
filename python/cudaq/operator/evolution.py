@@ -1,7 +1,6 @@
 from __future__ import annotations
 import numpy, scipy, sys, uuid
-from collections.abc import Mapping, Sequence
-from typing import Callable, Optional, Iterable
+from typing import Callable, Mapping, Optional, Sequence
 
 from .expressions import Operator
 from .helpers import _OperatorHelpers
@@ -21,8 +20,8 @@ class EvolveResult:
     # Shape support in the type annotation for ndarray data type is still under development:
     # https://github.com/numpy/numpy/issues/16544
     def __init__(self: EvolveResult, 
-                 state: cudaq_runtime.State | Iterable[cudaq_runtime.State],
-                 expectation: Optional[NDArray[cudaq_runtime.ObserveResult] | Iterable[NDArray[cudaq_runtime.ObserveResult]]] = None) -> None:
+                 state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
+                 expectation: Optional[NDArray[cudaq_runtime.ObserveResult] | Sequence[NDArray[cudaq_runtime.ObserveResult]]] = None) -> None:
         """
         Instantiates an EvolveResult representing the output generated when evolving a single 
         initial state under a set of operators. See `cudaq.evolve` for more detail.
@@ -64,7 +63,7 @@ class EvolveResult:
                 self._final_expectation_values = expectation[-1]
 
     @property
-    def intermediate_states(self: EvolveResult) -> Optional[Iterable[cudaq_runtime.State]]:
+    def intermediate_states(self: EvolveResult) -> Optional[Sequence[cudaq_runtime.State]]:
         """
         Stores all intermediate states, meaning the state after each step in a defined 
         schedule, produced by a call to `cudaq.evolve`, including the final state. 
@@ -83,7 +82,7 @@ class EvolveResult:
         return self._final_state
 
     @property
-    def expectation_values(self: EvolveResult) -> Optional[Iterable[NDArray[cudaq_runtime.ObserveResult]]]:
+    def expectation_values(self: EvolveResult) -> Optional[Sequence[NDArray[cudaq_runtime.ObserveResult]]]:
         """
         Stores the expectation values, that is the results from the calls to 
         `cudaq.observe`, at each step in the schedule produced by a call to 
@@ -112,8 +111,8 @@ class AsyncEvolveResult:
     """
 
     def __init__(self: AsyncEvolveResult, 
-                 state: cudaq_runtime.AsyncStateResult | Iterable[cudaq_runtime.AsyncStateResult],
-                 expectation: Optional[NDArray[cudaq_runtime.AsyncObserveResult] | Iterable[NDArray[cudaq_runtime.AsyncObserveResult]]] = None) -> None:
+                 state: cudaq_runtime.AsyncStateResult | Sequence[cudaq_runtime.AsyncStateResult],
+                 expectation: Optional[NDArray[cudaq_runtime.AsyncObserveResult] | Sequence[NDArray[cudaq_runtime.AsyncObserveResult]]] = None) -> None:
         """
         Creates a class instance that can be used to retrieve the evolution
         result produces by an calling the asynchronously executing function
@@ -160,7 +159,7 @@ class AsyncEvolveResult:
                 self._final_expectation_values = expectation[-1]
 
     @property
-    def intermediate_states(self: EvolveResult) -> Optional[Iterable[cudaq_runtime.AsyncStateResult]]:
+    def intermediate_states(self: EvolveResult) -> Optional[Sequence[cudaq_runtime.AsyncStateResult]]:
         """
         Stores the handle to all intermediate states, meaning the state after each step 
         in a defined schedule, produced by a call to `cudaq.evolve_async`, including the 
@@ -179,7 +178,7 @@ class AsyncEvolveResult:
         return self._final_state
 
     @property
-    def expectation_values(self: EvolveResult) -> Optional[Iterable[NDArray[cudaq_runtime.AsyncObserveResult]]]:
+    def expectation_values(self: EvolveResult) -> Optional[Sequence[NDArray[cudaq_runtime.AsyncObserveResult]]]:
         """
         Stores the handles to the expectation values, that is the results from the calls 
         to `cudaq.observe_async`, at each step in the schedule produced by a call to 
@@ -284,10 +283,10 @@ def _state_to_kernel():
 def evolve(hamiltonian: Operator, 
            dimensions: Mapping[int, int], 
            schedule: Schedule,
-           initial_state: cudaq_runtime.State | Iterable[cudaq_runtime.States],
-           collapse_operators: Iterable[Operator] = [],
-           observables: Iterable[Operator] = [], 
-           store_intermediate_results = False) -> EvolveResult | Iterable[EvolveResult]:
+           initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.States],
+           collapse_operators: Sequence[Operator] = [],
+           observables: Sequence[Operator] = [], 
+           store_intermediate_results = False) -> EvolveResult | Sequence[EvolveResult]:
     """
     Computes the time evolution of one or more initial state(s) under the defined 
     operator(s). 
@@ -298,7 +297,7 @@ def evolve(hamiltonian: Operator,
         dimensions: A mapping that specifies the number of levels, that is
             the dimension, of each degree of freedom that any of the operator 
             arguments acts on.
-        schedule: An iterable that generates a mapping of keyword arguments 
+        schedule: A sequence that generates a mapping of keyword arguments 
             to their respective value. The keyword arguments are the parameters
             needed to evaluate any of the operators passed to `evolve`.
             All required parameters for evaluating an operator and their
@@ -335,7 +334,7 @@ def evolve(hamiltonian: Operator,
         raise ValueError("collapse operators can only be defined when using the nvidia-dynamics target")
 
     state_to_kernel = _state_to_kernel()
-    def compute_expectations(cudaq_state: cudaq_runtime.State, parameters: Mapping[str, NumericType]) -> Iterable[cudaq_runtime.ObserveResult]:
+    def compute_expectations(cudaq_state: cudaq_runtime.State, parameters: Mapping[str, NumericType]) -> Sequence[cudaq_runtime.ObserveResult]:
         # FIXME: permit to compute expectation values for operators defined as matrix
         observable_spinops = [op._to_spinop(dimensions, **parameters) for op in observables]
         expectation_values: list[cudaq_runtime.ObserveResult] = []
@@ -362,10 +361,10 @@ def evolve(hamiltonian: Operator,
 def evolve_async(hamiltonian: Operator, 
            dimensions: Mapping[int, int], 
            schedule: Schedule,
-           initial_state: cudaq_runtime.State | Iterable[cudaq_runtime.State],
-           collapse_operators: Iterable[Operator] = [],
-           observables: Iterable[Operator] = [], 
-           store_intermediate_results = False) -> AsyncEvolveResult | Iterable[AsyncEvolveResult]:
+           initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
+           collapse_operators: Sequence[Operator] = [],
+           observables: Sequence[Operator] = [], 
+           store_intermediate_results = False) -> AsyncEvolveResult | Sequence[AsyncEvolveResult]:
     """
     Asynchronously computes the time evolution of one or more initial state(s) 
     under the defined operator(s). See `cudaq.evolve` for more details about the
@@ -393,7 +392,7 @@ def evolve_async(hamiltonian: Operator,
         raise ValueError("collapse operators can only be defined when using the nvidia-dynamics target")
 
     state_to_kernel = _state_to_kernel()
-    def compute_expectations(cudaq_state: cudaq_runtime.State, parameters: Mapping[str, NumericType]) -> Iterable[cudaq_runtime.ObserveResult]:
+    def compute_expectations(cudaq_state: cudaq_runtime.State, parameters: Mapping[str, NumericType]) -> Sequence[cudaq_runtime.ObserveResult]:
         # FIXME: permit to compute expectation values for operators defined as matrix
         observable_spinops = [op._to_spinop(dimensions, **parameters) for op in observables]
         expectation_values: list[cudaq_runtime.ObserveResult] = []

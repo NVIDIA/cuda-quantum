@@ -1,6 +1,5 @@
 from __future__ import annotations
-from collections.abc import Iterator
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Iterator, Optional
 
 from .helpers import NumericType
 
@@ -10,7 +9,7 @@ class Schedule(Iterator):
     an operator expression at different time steps.
     """
 
-    # The output type of the iterable steps must match the second argument of `get_value`.
+    # The type of the steps sequence must match the second argument of `get_value`.
     __slots__ = ['_steps', '_current_idx', '_parameters', '_get_value']
     def __init__(self: Schedule, steps: Iterable[Any], parameters: Iterable[str], get_value: Optional[Callable[[str, Any], NumericType]] = None) -> None:
         """
@@ -27,9 +26,9 @@ class Schedule(Iterator):
                 not provided, then the steps must be of a numeric type, and the value
                 of each parameter will be set to the step value. 
         """
-        self._steps = steps
+        self._steps = tuple(steps)
         self._current_idx = -1
-        self._parameters = parameters
+        self._parameters = tuple(parameters)
         if get_value is None:
             self._get_value : Callable[[str, Any], NumericType] = self._operator_parameter
         else:

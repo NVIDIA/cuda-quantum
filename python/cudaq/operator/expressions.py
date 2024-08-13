@@ -1,7 +1,6 @@
 from __future__ import annotations
-import inspect, numpy, operator # type: ignore
-from collections.abc import Mapping, Sequence
-from typing import Any, Callable, Generator, Optional
+import inspect, math, numpy # type: ignore
+from typing import Any, Callable, Generator, Iterable, Mapping, Optional, Sequence
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
@@ -17,12 +16,10 @@ class OperatorSum:
     they provide methods to convert them to data types that can.
     """
 
-    # FIXME: make OperatorSum and ProductOperator iterable
-    # FIXME: make Operators hashable (for caching purposes)
     # FIXME: implement a caching mechanism for to_matrix
 
     __slots__ = ['_terms']
-    def __init__(self: OperatorSum, terms: Sequence[ProductOperator] = []) -> None:
+    def __init__(self: OperatorSum, terms: Iterable[ProductOperator] = []) -> None:
         """
         Instantiates an operator expression that represents a sum of terms,
         where each term is a product of elementary and scalar operators. 
@@ -31,48 +28,67 @@ class OperatorSum:
             terms: The ProductOperators that should be summed up when 
                 evaluating the operator expression.
         """
-        if len(terms) == 0:
-            terms = [ProductOperator([ScalarOperator.const(0)])]
-        self._terms = terms
+        self._terms = tuple(terms)
+        if len(self._terms) == 0:
+            self._terms = (ProductOperator((ScalarOperator.const(0),)),)
+
+    def _canonical_terms(self: OperatorSum) -> Sequence[tuple[ScalarOperator | ElementaryOperator]]:
+        """
+        Helper function used to compute the operator hash and equality.
+        """
+        def canonicalize_product(prod: ProductOperator) -> tuple[ScalarOperator | ElementaryOperator]:
+            all_degrees = [degree for op in prod._operators for degree in op._degrees]
+            scalars = [op for op in prod._operators if isinstance(op, ScalarOperator)]
+            non_scalars = [op for op in prod._operators if not isinstance(op, ScalarOperator)]
+            if len(all_degrees) == len(frozenset(all_degrees)):
+                # Each operator acts on different degrees of freedom; they 
+                # hence commute and can be reordered arbitrarily.
+                non_scalars.sort(key = lambda op: op._degrees)
+            else:
+                # Some degrees exist multiple times; order the scalars, identities and zeros, 
+                # but do not otherwise try to reorder terms.
+                zero_ops = (op for op in non_scalars if op._id == "zero")
+                identity_ops = (op for op in non_scalars if op._id == "identity")
+                non_commuting = (op for op in non_scalars if op._id != "zero" and op._id != "identity")
+                non_scalars = [
+                    *sorted(zero_ops, key = lambda op: op._degrees), 
+                    *sorted(identity_ops, key = lambda op: op._degrees), 
+                    *non_commuting]
+            if len(scalars) > 1: return (math.prod(scalars), *non_scalars)
+            else: return (*scalars, *non_scalars)
+        # Operator addition is commutative and terms can hence be arbitrarily reordered.
+        return sorted((canonicalize_product(term) for term in self._terms), key = lambda ops: str(ProductOperator(ops)))
+
+    def canonicalize(self: OperatorSum) -> OperatorSum:
+        f"""
+        Creates a new {self.__class__.__name__} instance where all sub-terms are 
+        sorted in canonical order. The new instance is equivalent to the original one, 
+        meaning it has the same effect on any quantum system for any set of parameters. 
+        """
+        canonical_terms = (ProductOperator(operators) for operators in self._canonical_terms())
+        return OperatorSum(canonical_terms)
 
     def __eq__(self: OperatorSum, other: Any) -> bool:
-        """
+        f"""
         Returns:
-            True, if the other value is an OperatorSum with equivalent terms, 
-            and False otherwise. The equality takes into account that operator
-            addition is commutative, as is the product of two operators if they
-            act on different degrees of freedom.
+            True, if the other value is an {self.__class__.__name__} with equivalent 
+            terms, and False otherwise. The equality takes into account that operator
+            addition is commutative, as is the product of two operators if they act 
+            on different degrees of freedom.
             The equality comparison does *not* take commutation relations into 
             account, and does not try to reorder terms blockwise; it may hence 
             evaluate to False, even if two operators in reality are the same.
             If the equality evaluates to True, on the other hand, the operators 
             are guaranteed to represent the same transformation for all arguments.
         """
-        if type(other) == self.__class__:
-            def canonical_terms(prod: ProductOperator) -> Sequence[ElementaryOperator | ScalarOperator]:
-                all_degrees = [degree for op in prod._operators for degree in op._degrees]
-                if len(all_degrees) == 1: return prod._operators
-                elif len(all_degrees) != len(set(all_degrees)): 
-                    # Some degrees exist multiple times; order the scalars, 
-                    # but do not otherwise try to reorder terms.
-                    scalars = [op for op in prod._operators if isinstance(op, ScalarOperator)]
-                    non_scalars = [op for op in prod._operators if not isinstance(op, ScalarOperator)]
-                    scalars.sort(key = lambda op: str(op._constant_value))
-                    return [*scalars, *non_scalars]
-                return sorted(prod._operators, key = lambda op: list(op._degrees))
-
-            self_terms = (canonical_terms(term) for term in self._terms)
-            other_terms = (canonical_terms(term) for term in other._terms)
-            compare = lambda ops: "*".join([str(op) for op in ops])
-            return sorted(self_terms, key = compare) == sorted(other_terms, key = compare)
-        return False
+        return type(other) == self.__class__ and self._canonical_terms() == other._canonical_terms()
 
     @property
-    def degrees(self: OperatorSum) -> Sequence[int]:
+    def degrees(self: OperatorSum) -> tuple[int]:
         """
         The degrees of freedom that the operator acts on in canonical order.
         """
-        unique_degrees = set((degree for term in self._terms for op in term._operators for degree in op._degrees))
+        unique_degrees = frozenset((degree for term in self._terms for op in term._operators for degree in op._degrees))
         # Sorted in canonical order to match the to_matrix method.
         return _OperatorHelpers.canonicalize_degrees(unique_degrees)
 
@@ -97,11 +113,12 @@ class OperatorSum:
         be called when both operators act on the same degrees of freedom, and the tensor product
         will only be computed if they act on different degrees of freedom. 
         """
-        degrees = set([degree for term in self._terms for op in term._operators for degree in op._degrees])
+        degrees = frozenset((degree for term in self._terms for op in term._operators for degree in op._degrees))
         # We need to make sure all matrices are of the same size to sum them up.
         def padded_term(term: ProductOperator) -> ProductOperator:
+            op_degrees = [op_degree for op in term._operators for op_degree in op._degrees]
             for degree in degrees:
-                if not degree in [op_degree for op in term._operators for op_degree in op._degrees]:
+                if not degree in op_degrees:
                     term *= ElementaryOperator.identity(degree)
             return term
         sum = padded_term(self._terms[0])._evaluate(arithmetics)
@@ -155,24 +172,24 @@ class OperatorSum:
 
     def __mul__(self: OperatorSum, other: Any) -> OperatorSum:
         if type(other) == OperatorSum:
-            return OperatorSum([self_term * other_term for self_term in self._terms for other_term in other._terms])
+            return OperatorSum((self_term * other_term for self_term in self._terms for other_term in other._terms))
         elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
-            return OperatorSum([self_term * other for self_term in self._terms])
+            return OperatorSum((self_term * other for self_term in self._terms))
         return NotImplemented
 
     def __truediv__(self: OperatorSum, other: Any) -> OperatorSum:
         if type(other) == ScalarOperator or isinstance(other, (complex, float, int)):
-            return OperatorSum([term / other for term in self._terms])
+            return OperatorSum((term / other for term in self._terms))
         return NotImplemented
 
     def __add__(self: OperatorSum, other: Any) -> OperatorSum:
         if type(other) == OperatorSum:
-            return OperatorSum([*self._terms, *other._terms])
+            return OperatorSum((*self._terms, *other._terms))
         elif isinstance(other, (complex, float, int)):
-            other_term = ProductOperator([ScalarOperator.const(other)])
-            return OperatorSum([*self._terms, other_term])
+            other_term = ProductOperator((ScalarOperator.const(other),))
+            return OperatorSum((*self._terms, other_term))
         elif type(other) == ScalarOperator: # Elementary and product operators are handled by their classes.
-            return OperatorSum([*self._terms, ProductOperator([other])])
+            return OperatorSum((*self._terms, ProductOperator((other,))))
         return NotImplemented        
 
     def __sub__(self: OperatorSum, other: Any) -> OperatorSum:
@@ -180,19 +197,19 @@ class OperatorSum:
 
     def __rmul__(self: OperatorSum, other: Any) -> OperatorSum:
         if isinstance(other, (complex, float, int)):
-            return OperatorSum([self_term * other for self_term in self._terms])
+            return OperatorSum((self_term * other for self_term in self._terms))
         elif type(other) == ProductOperator:
-            return OperatorSum([other]) * self
+            return OperatorSum((other,)) * self
         elif type(other) == ScalarOperator or type(other) == ElementaryOperator:
-            return OperatorSum([ProductOperator([other])]) * self
+            return OperatorSum((ProductOperator((other,)),)) * self
         return NotImplemented
 
     def __radd__(self: OperatorSum, other: Any) -> OperatorSum:
         if isinstance(other, (complex, float, int)):
-            other_term = ProductOperator([ScalarOperator.const(other)])
-            return OperatorSum([other_term, *self._terms])
+            other_term = ProductOperator((ScalarOperator.const(other),))
+            return OperatorSum((other_term, *self._terms))
         elif type(other) == ScalarOperator: # Elementary and product operators are handled by their classes.
-            return OperatorSum([ProductOperator([other]), *self._terms])
+            return OperatorSum((ProductOperator((other,)), *self._terms))
         return NotImplemented
 
     def __rsub__(self: OperatorSum, other: Any) -> OperatorSum:
@@ -208,7 +225,7 @@ class ProductOperator(OperatorSum):
     """
 
     __slots__ = ['_operators']
-    def __init__(self: ProductOperator, atomic_operators : Sequence[ElementaryOperator | ScalarOperator] = []) -> None:
+    def __init__(self: ProductOperator, atomic_operators : Iterable[ElementaryOperator | ScalarOperator] = []) -> None:
         """
         Instantiates an operator expression that represents a product of elementary
         or scalar operators.
@@ -217,10 +234,10 @@ class ProductOperator(OperatorSum):
             atomic_operators: The operators of which to compute the product when 
                 evaluating the operator expression.
         """
-        if len(atomic_operators) == 0:
-            atomic_operators = [ScalarOperator.const(1)]
-        self._operators = atomic_operators
-        super().__init__([self])
+        self._operators = tuple(atomic_operators)
+        if len(self._operators) == 0:
+            self._operators = (ScalarOperator.const(1),)
+        super().__init__((self,))
 
     def _evaluate(self: ProductOperator, arithmetics : OperatorArithmetics[TEval]) -> TEval:
         """
@@ -230,7 +247,7 @@ class ProductOperator(OperatorSum):
         be called when both operators act on the same degrees of freedom, and the tensor product
         will only be computed if they act on different degrees of freedom. 
         """
-        def padded_op(op: ElementaryOperator | ScalarOperator, degrees: Sequence[int]):
+        def padded_op(op: ElementaryOperator | ScalarOperator, degrees: Iterable[int]):
             # Creating the tensor product with op being last is most efficient.
             def accumulate_ops() -> Generator[TEval]:
                 for degree in degrees:
@@ -243,7 +260,8 @@ class ProductOperator(OperatorSum):
                 padded = arithmetics.tensor(padded, value)
             return padded
         # Sorting the degrees to avoid unnecessary permutations during the padding.
-        degrees = _OperatorHelpers.canonicalize_degrees(set([degree for op in self._operators for degree in op._degrees]))
+        noncanon_degrees = frozenset((degree for op in self._operators for degree in op._degrees))
+        degrees = _OperatorHelpers.canonicalize_degrees(noncanon_degrees)
         evaluated = padded_op(self._operators[0], degrees)
         for op in self._operators[1:]:
             if len(op._degrees) != 1 or op != ElementaryOperator.identity(op._degrees[0]):
@@ -252,26 +270,26 @@ class ProductOperator(OperatorSum):
 
     def __mul__(self: ProductOperator, other: Any) -> ProductOperator:
         if type(other) == ProductOperator:
-            return ProductOperator([*self._operators, *other._operators])
+            return ProductOperator((*self._operators, *other._operators))
         elif isinstance(other, (complex, float, int)):
-            return ProductOperator([*self._operators, ScalarOperator.const(other)])
+            return ProductOperator((*self._operators, ScalarOperator.const(other)))
         elif type(other) == ElementaryOperator or type(other) == ScalarOperator:
-            return ProductOperator([*self._operators, other])
+            return ProductOperator((*self._operators, other))
         return NotImplemented
 
     def __truediv__(self: ProductOperator, other: Any) -> ProductOperator:
         if isinstance(other, (complex, float, int)):
             other_op = ScalarOperator.const(1 / other)
-            return ProductOperator([other_op, *self._operators])
+            return ProductOperator((other_op, *self._operators))
         if type(other) == ScalarOperator:
-            return ProductOperator([1 / other, *self._operators])
+            return ProductOperator((1 / other, *self._operators))
         return NotImplemented
 
     def __add__(self: ProductOperator, other: Any) -> OperatorSum:
         if type(other) == ProductOperator:
-            return OperatorSum([self, other])
+            return OperatorSum((self, other))
         elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
-            return OperatorSum([self]) + other
+            return OperatorSum((self,)) + other
         return NotImplemented
 
     def __sub__(self: ProductOperator, other: Any) -> OperatorSum:
@@ -279,16 +297,16 @@ class ProductOperator(OperatorSum):
 
     def __rmul__(self: ProductOperator, other: Any) -> ProductOperator:
         if isinstance(other, (complex, float, int)):
-            return ProductOperator([ScalarOperator.const(other), *self._operators])
+            return ProductOperator((ScalarOperator.const(other), *self._operators))
         elif type(other) == ScalarOperator or type(other) == ElementaryOperator:
-            return ProductOperator([other, *self._operators])
+            return ProductOperator((other, *self._operators))
         return NotImplemented
 
     def __radd__(self: ProductOperator, other: Any) -> OperatorSum:
         return self + other # Operator addition is commutative.
 
     def __rsub__(self: ProductOperator, other: Any) -> OperatorSum:
-        minus_self = ProductOperator([ScalarOperator.const(-1), *self._operators])
+        minus_self = ProductOperator((ScalarOperator.const(-1), *self._operators))
         return minus_self + other # Operator addition is commutative.
 
 class ElementaryOperator(ProductOperator):
@@ -358,7 +376,7 @@ class ElementaryOperator(ProductOperator):
 
             self._id = id
             self._parameters = parameters
-            self._expected_dimensions = expected_dimensions
+            self._expected_dimensions = tuple(expected_dimensions)
             self._generator = lambda dimensions, **kwargs: with_dimension_check(create, dimensions, **kwargs)
 
         @property
@@ -378,7 +396,7 @@ class ElementaryOperator(ProductOperator):
             return self._parameters
 
         @property
-        def expected_dimensions(self: ElementaryOperator.Definition) -> Sequence[int]:
+        def expected_dimensions(self: ElementaryOperator.Definition) -> tuple[int]:
             """
             The number of levels, that is the dimension, for each degree of freedom
             in canonical order that the operator acts on. A value of zero or less 
@@ -397,7 +415,7 @@ class ElementaryOperator(ProductOperator):
             return self._generator
 
     _ops : dict[str, ElementaryOperator.Definition] = {}
-    """
+    f"""
     Contains the generator for each defined ElementaryOperator.
     The generator takes a dictionary defining the dimensions for each degree of freedom,
     as well as keyword arguments for complex values.
@@ -437,7 +455,7 @@ class ElementaryOperator(ProductOperator):
                 on multiple degrees of freedom.
         """
         if op_id in cls._ops:
-            raise ValueError(f"an ElementaryOperator with id {op_id} already exists")
+            raise ValueError(f"an {cls.__name__} with id {op_id} already exists")
         cls._ops[op_id] = cls.Definition(op_id, expected_dimensions, create, cls._create_key)
 
     @classmethod
@@ -446,7 +464,7 @@ class ElementaryOperator(ProductOperator):
         if not op_id in cls._ops:
             cls.define(op_id, [0], 
                 lambda dim: numpy.zeros((dim, dim), dtype=numpy.complex128))
-        return cls(op_id, [degree])
+        return cls(op_id, (degree,))
 
     @classmethod
     def identity(cls, degree: int) -> ElementaryOperator:
@@ -454,10 +472,10 @@ class ElementaryOperator(ProductOperator):
         if not op_id in cls._ops:
             cls.define(op_id, [0], 
                 lambda dim: numpy.diag(numpy.ones(dim, dtype=numpy.complex128)))
-        return cls(op_id, [degree])
+        return cls(op_id, (degree,))
 
     __slots__ = ['_id', '_degrees']
-    def __init__(self: ElementaryOperator, operator_id: str, degrees: Sequence[int]) -> None:
+    def __init__(self: ElementaryOperator, operator_id: str, degrees: Iterable[int]) -> None:
         """
         Instantiates an elementary operator.
 
@@ -472,7 +490,7 @@ class ElementaryOperator(ProductOperator):
         num_degrees = len(self.expected_dimensions)
         if len(degrees) != num_degrees:
             raise ValueError(f"definition of {operator_id} acts on {num_degrees} degree(s) of freedom (given: {len(degrees)})")
-        super().__init__([self])
+        super().__init__((self,))
 
     def __eq__(self: OperatorSum, other: Any) -> bool:
         """
@@ -480,10 +498,7 @@ class ElementaryOperator(ProductOperator):
             True, if the other value is an elementary operator with the same id
             acting on the same degrees of freedom, and False otherwise.
         """
-        if type(other) == self.__class__:
-            attr_getters = [operator.attrgetter(attr) for attr in self.__slots__]
-            return all(getter(self) == getter(other) for getter in attr_getters)
-        return False
+        return type(other) == self.__class__ and self._id == other._id and self._degrees == other._degrees
 
     @property
     def id(self: ElementaryOperator) -> str:
@@ -501,7 +516,7 @@ class ElementaryOperator(ProductOperator):
         return ElementaryOperator._ops[self._id].parameters
 
     @property
-    def expected_dimensions(self: ElementaryOperator) -> Sequence[int]:
+    def expected_dimensions(self: ElementaryOperator) -> tuple[int]:
         """
         The number of levels, that is the dimension, for each degree of freedom
         in canonical order that the operator acts on. A value of zero or less 
@@ -541,43 +556,44 @@ class ElementaryOperator(ProductOperator):
     def __str__(self: ElementaryOperator) -> str:
         parameter_names = ", ".join(self.parameters)
         if parameter_names != "": parameter_names = f"({parameter_names})"
-        return f"{self._id}{parameter_names}{self._degrees}"
+        targets = ", ".join((str(degree) for degree in self._degrees))
+        return f"{self._id}{parameter_names}[{targets}]"
 
     def __mul__(self: ElementaryOperator, other: Any) -> ProductOperator:
         if type(other) == ElementaryOperator:
-            return ProductOperator([self, other])
+            return ProductOperator((self, other))
         elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
-            return ProductOperator([self]) * other
+            return ProductOperator((self,)) * other
         return NotImplemented
 
     def __truediv__(self: ElementaryOperator, other: Any) -> ProductOperator:
         if isinstance(other, (complex, float, int)):
             other_op = ScalarOperator.const(1 / other)
-            return ProductOperator([other_op, self])
+            return ProductOperator((other_op, self))
         if type(other) == ScalarOperator:
-            return ProductOperator([1 / other, self])
+            return ProductOperator((1 / other, self))
         return NotImplemented
 
     def __add__(self: ElementaryOperator, other: Any) -> OperatorSum:
         if type(other) == ElementaryOperator:
-            op1 = ProductOperator([self])
-            op2 = ProductOperator([other])
-            return OperatorSum([op1, op2])
+            op1 = ProductOperator((self,))
+            op2 = ProductOperator((other,))
+            return OperatorSum((op1, op2))
         elif isinstance(other, OperatorSum) or isinstance(other, (complex, float, int)):
-            return OperatorSum([ProductOperator([self])]) + other
+            return OperatorSum((ProductOperator((self,)),)) + other
         return NotImplemented
 
     def __sub__(self: ElementaryOperator, other: Any) -> OperatorSum:
         return self + (-1 * other)
 
     def __rmul__(self: ElementaryOperator, other: Any) -> ProductOperator:
-        return other * ProductOperator([self])
+        return other * ProductOperator((self,))
 
     def __radd__(self: ElementaryOperator, other: Any) -> OperatorSum:
         return self + other # Operator addition is commutative.
 
     def __rsub__(self: ElementaryOperator, other: Any) -> OperatorSum:
-        minus_self = ProductOperator([ScalarOperator.const(-1), self])
+        minus_self = ProductOperator((ScalarOperator.const(-1), self))
         return minus_self + other # Operator addition is commutative.
 
 class ScalarOperator(ProductOperator):
@@ -622,7 +638,7 @@ class ScalarOperator(ProductOperator):
             sub-operator is updated.
             """
             assert(create_key == ScalarOperator._create_key), \
-                   "operator definitions must be created using the `ScalarOperator.generator` setter"
+                   f"operator definitions must be created using the `{self.__class__.__name__}.generator` setter"
             # A variable number of arguments (i.e. *args) cannot be supported
             # for generators; it would prevent proper argument handling while 
             # supporting additions and multiplication of all kinds of operators.
@@ -662,6 +678,9 @@ class ScalarOperator(ProductOperator):
 
     @classmethod
     def const(cls, constant_value: NumericType) -> ScalarOperator:
+        """
+        Creates a scalar operator that has a constant value.
+        """
         instance = cls(lambda: constant_value)
         instance._constant_value = constant_value
         return instance
@@ -677,10 +696,10 @@ class ScalarOperator(ProductOperator):
                 arguments and must return a number. Each parameter must be passed
                 as a keyword argument when evaluating the operator. 
         """
-        self._degrees : Sequence[int] = []
+        self._degrees : tuple[int] = ()
         self._definition = ScalarOperator.Definition(generator, parameter_info, self._create_key)
         self._constant_value : Optional[NumericType] = None
-        super().__init__([self])
+        super().__init__((self,))
 
     def __eq__(self: ScalarOperator, other: Any) -> bool:
         """
@@ -784,94 +803,53 @@ class ScalarOperator(ProductOperator):
         parameter_names = ", ".join(self.parameters)
         return f"{self.generator.__name__ or 'f'}({parameter_names})"
 
-    def _compose(self: ScalarOperator, 
-                 fct: Callable[[NumericType], NumericType], 
-                 get_params: Optional[Callable[[], Mapping[str, str]]]) -> ScalarOperator:
+    def _compose(self: ScalarOperator, other: Any, fct: Callable[[NumericType, NumericType], NumericType]) -> ScalarOperator:
         """
         Helper function to avoid duplicate code in the various arithmetic 
         operations supported on a ScalarOperator.
         """
-        generator = lambda **kwargs: fct(self._invoke(**kwargs), **kwargs)
-        if get_params is None:
-            parameter_info = self._definition.parameters
-        else:
-            parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._definition.parameters(), get_params()])
-        return ScalarOperator(generator, parameter_info)
+        if isinstance(other, (complex, float, int)): 
+            if self._constant_value is None:
+                generator = lambda **kwargs: fct(self._invoke(**kwargs), other)
+                return ScalarOperator(generator, self._definition.parameters)
+            return ScalarOperator.const(fct(self._constant_value, other))
+        elif type(other) == ScalarOperator: 
+            if self._constant_value is None or other._constant_value is None:
+                generator = lambda **kwargs: fct(self._invoke(**kwargs), other._invoke(**kwargs))
+                parameter_info = lambda: _OperatorHelpers.aggregate_parameters([self._definition.parameters(), other._definition.parameters()])
+                return ScalarOperator(generator, parameter_info)
+            return ScalarOperator.const(fct(self._constant_value, other._constant_value))
+        return NotImplemented
 
     def __pow__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if type(other) == ScalarOperator:
-            fct = lambda value, **kwargs: value ** other._invoke(**kwargs)
-            return self._compose(fct, other._definition.parameters)
-        elif isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: value ** other
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v1 ** v2)
 
     def __mul__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if type(other) == ScalarOperator:
-            fct = lambda value, **kwargs: value * other._invoke(**kwargs)
-            return self._compose(fct, other._definition.parameters)
-        elif isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: value * other
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v1 * v2)
     
     def __truediv__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if type(other) == ScalarOperator:
-            fct = lambda value, **kwargs: value / other._invoke(**kwargs)
-            return self._compose(fct, other._definition.parameters)
-        elif isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: value / other
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v1 / v2)
 
     def __add__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if type(other) == ScalarOperator:
-            fct = lambda value, **kwargs: value + other._invoke(**kwargs)
-            return self._compose(fct, other._definition.parameters)
-        elif isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: value + other
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v1 + v2)
 
     def __sub__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if type(other) == ScalarOperator:
-            fct = lambda value, **kwargs: value - other._invoke(**kwargs)
-            return self._compose(fct, other._definition.parameters)
-        elif isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: value - other
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v1 - v2)
 
     def __rpow__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: other ** value
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v2 ** v1)
 
     def __rmul__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: other * value
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v2 * v1)
 
     def __rtruediv__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: other / value
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v2 / v1)
 
     def __radd__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: other + value
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v2 + v1)
 
     def __rsub__(self: ScalarOperator, other: Any) -> ScalarOperator:
-        if isinstance(other, (complex, float, int)):
-            fct = lambda value, **kwargs: other - value
-            return self._compose(fct, None)
-        return NotImplemented
+        return self._compose(other, lambda v1, v2: v2 - v1)
 
 # Doc strings for type alias are not supported in Python.
 # The string below hence merely serves to document it here;

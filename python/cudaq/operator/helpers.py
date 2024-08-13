@@ -1,6 +1,5 @@
 import inspect, itertools, numpy, os, re, sys # type: ignore
-from collections.abc import Mapping, Sequence
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence
 from numpy.typing import NDArray
 
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -69,7 +68,7 @@ class _OperatorHelpers:
         return param_docs.strip()
 
     @staticmethod
-    def args_from_kwargs(fct: Callable, **kwargs: Any):
+    def args_from_kwargs(fct: Callable, **kwargs: Any) -> tuple[Sequence[Any], Mapping[str, Any]]:
         """
         Extracts the positional argument and keyword only arguments 
         for the given function from the passed kwargs. 
@@ -82,7 +81,7 @@ class _OperatorHelpers:
         if consumes_kwargs:
             kwargs = kwargs.copy() # We will modify and return a copy
 
-        def find_in_kwargs(arg_name: str):
+        def find_in_kwargs(arg_name: str) -> Any:
             # Try to get the argument from the kwargs passed during operator 
             # evaluation.
             arg_value = kwargs.get(arg_name)
@@ -106,14 +105,14 @@ class _OperatorHelpers:
         elif len(arg_spec.kwonlyargs) > 0:
             # If we can't pass all remaining kwargs, 
             # we need to create a separate dictionary for kwonlyargs.
-            kwonlyargs = {}
+            kwonlyargs : dict[str, Any] = {}
             for arg_name in arg_spec.kwonlyargs:
                 kwonlyargs[arg_name] = find_in_kwargs(arg_name)
             return extracted_args, kwonlyargs
         return extracted_args, {}
 
     @staticmethod
-    def generate_all_states(degrees: Sequence[int], dimensions: Mapping[int, int]) -> Iterable[str]:
+    def generate_all_states(degrees: Sequence[int], dimensions: Mapping[int, int]) -> tuple[str]:
         """
         Generates all possible states for the given dimensions ordered according to 
         the sequence of degrees (ordering is relevant if dimensions differ).
@@ -124,10 +123,10 @@ class _OperatorHelpers:
         for d in degrees[1:]:
             prod = itertools.product(states, [str(state) for state in range(dimensions[d])])
             states = [current + [new] for current, new in prod]
-        return [''.join(state) for state in states]
+        return tuple((''.join(state) for state in states))
 
     @staticmethod
-    def permute_matrix(matrix: NDArray[numpy.complexfloating], permutation: Sequence[int]) -> None:
+    def permute_matrix(matrix: NDArray[numpy.complexfloating], permutation: Iterable[int]) -> None:
         """
         Permutes the given matrix according to the given permutation.
         If states is the current order of vector entries on which the given matrix
@@ -152,8 +151,8 @@ class _OperatorHelpers:
                 for column in range(cmatrix.num_columns())], dtype = numpy.complex128)
 
     @staticmethod
-    def canonicalize_degrees(degrees: Iterable[int]) -> Iterable[int]:
+    def canonicalize_degrees(degrees: Iterable[int]) -> tuple[int]:
         """
         Returns the degrees sorted in canonical order.
         """
-        return sorted(degrees, reverse = True)
+        return tuple(sorted(degrees, reverse = True))

@@ -1,4 +1,4 @@
-import cudaq, inspect, numpy, operator, sys, types, uuid
+import cudaq, inspect, numpy, operator, types, uuid
 from cudaq.operator import *
 from typing import Any, Optional
 
@@ -270,6 +270,18 @@ print(paulixy(0,0) + paulizy(0,0) == paulizy(0,0) + paulixy(0,0))
 print(paulixy(0,0) * paulizy(0,0) == paulizy(0,0) * paulixy(0,0))
 print(paulixy(1,1) * paulizy(0,0) == paulizy(0,0) * paulixy(1,1)) # We have multiple terms acting on the same degree of freedom, so we don't try to reorder here.
 print(paulixy(1,2) * paulizy(3,4) == paulizy(3,4) * paulixy(1,2))
+print(ScalarOperator.const(5) + ScalarOperator.const(3) == ScalarOperator.const(4) + ScalarOperator.const(4))
+print(ScalarOperator.const(6) * ScalarOperator.const(2) == ScalarOperator.const(4) * ScalarOperator.const(3))
+print((ScalarOperator.const(5) + ScalarOperator.const(3)) * elop == elop * (ScalarOperator.const(4) + ScalarOperator.const(4)))
+print(ScalarOperator.const(6) * ScalarOperator.const(2) + elop == elop + ScalarOperator.const(4) * ScalarOperator.const(3))
+print(ScalarOperator.const(6) * ScalarOperator.const(2) * elop == elop * ScalarOperator.const(4) * ScalarOperator.const(3))
+print(ScalarOperator.const(5) + 3 == 4 + ScalarOperator.const(4))
+print(ScalarOperator.const(6) * 2 == 4 * ScalarOperator.const(3))
+print((ScalarOperator.const(5) + 3) * elop == elop * (4 + ScalarOperator.const(4)))
+print(ScalarOperator.const(6) * 2 + elop == elop + 4 * ScalarOperator.const(3))
+print(ScalarOperator.const(6) * 2.0 * elop == elop * 4.0 * ScalarOperator.const(3))
+print(ScalarOperator.const(6) / 2 == ScalarOperator.const(3))
+
 
 def tranverse_field(num_qubits: int, field_strength: ScalarOperator) -> Operator:
     operator = OperatorSum()
@@ -346,5 +358,4 @@ schedule.reset()
 # FIXME: segfaults after completion - check after fixing the no associated state issue above
 #evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function], store_intermediate_results = True)
 #print(f"final expectation values: {[res.get().expectation() for res in evolution_result.final_expectation_values]}")
-
 
