@@ -13,6 +13,8 @@
 # and run this script from the home directory.
 # Check the logged output.
 
+unset OMPI_MCA_pml
+
 passed=0
 failed=0
 skipped=0

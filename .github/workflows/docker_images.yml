@@ -779,10 +779,8 @@ jobs:
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
           docker exec cuda-quantum bash -c "python3 -m pip install pandas scipy pandas seaborn"
-          docker exec cuda-quantum bash -c "echo $OMPI_MCA_pml"
           (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && set -o pipefail && bash validate_container.sh | tee /tmp/validation.out") && passed=true || passed=false
           docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
-          docker exec cuda-quantum bash -c "echo $OMPI_MCA_pml"
           docker stop cuda-quantum
 
           if ! $passed; then 
