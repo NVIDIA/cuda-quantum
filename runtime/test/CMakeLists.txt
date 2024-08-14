@@ -12,8 +12,7 @@ set(TEST_NAME test_argument_conversion)
 
 add_llvm_executable(${TEST_NAME} test_argument_conversion.cpp)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
-llvm_update_compile_flags(${TEST_NAME})
+target_compile_options(${TEST_NAME} PUBLIC -Wno-type-limits -fexceptions)
 
 target_include_directories(${TEST_NAME}
   PUBLIC
@@ -25,6 +24,8 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 target_link_libraries(${TEST_NAME}
   PUBLIC
     cudaq-mlir-runtime
+    nvqir-custatevec-fp64
+    cudaq-platform-default
 )
 
 set_property(TARGET ${TEST_NAME} PROPERTY FOLDER test)

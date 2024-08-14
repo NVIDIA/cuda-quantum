@@ -17,6 +17,34 @@
 
 using namespace mlir;
 
+cudaq::opt::StateData
+cudaq::opt::StateData::readStateData(const cudaq::state *state) {
+  auto precision = state->get_precision();
+  auto stateVector = state->get_tensor();
+  auto numElements = stateVector.get_num_elements();
+  auto elementSize = stateVector.element_size();
+
+  if (state->is_on_gpu()) {
+    if (precision == cudaq::SimulationState::precision::fp32) {
+      assert(elementSize == sizeof(std::complex<float>) &&
+             "Incorrect complex<float> element size");
+      auto *hostData = new std::complex<float>[numElements];
+      state->to_host(hostData, numElements);
+      return {hostData, numElements, elementSize, [](void *ptr) {
+                delete static_cast<std::complex<float> *>(ptr);
+              }};
+    }
+    assert(elementSize == sizeof(std::complex<double>) &&
+           "Incorrect complex<double> element size");
+    auto *hostData = new std::complex<double>[numElements];
+    state->to_host(hostData, numElements);
+    return {hostData, numElements, elementSize,
+            [](void *ptr) { delete static_cast<std::complex<double> *>(ptr); }};
+  }
+  auto hostData = state->get_tensor().data;
+  return {hostData, numElements, elementSize, [](void *ptr) {}};
+}
+
 template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
   return builder.create<arith::ConstantIntOp>(builder.getUnknownLoc(), v, bits);
@@ -84,27 +112,56 @@ static Value genConstant(OpBuilder &builder, const std::string &v,
   return builder.create<cudaq::cc::StdvecInitOp>(loc, chSpanTy, cast, size);
 }
 
+// Forward declare aggregate type builder as they can be recursive.
+static Value genConstant(OpBuilder &, cudaq::cc::StdvecType, void *,
+                         ModuleOp substMod, llvm::DataLayout &,
+                         const cudaq::opt::PlatformSettings &platform);
+static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *,
+                         ModuleOp substMod, llvm::DataLayout &,
+                         const cudaq::opt::PlatformSettings &platform);
+static Value genConstant(OpBuilder &, TupleType, void *, ModuleOp substMod,
+                         llvm::DataLayout &,
+                         const cudaq::opt::PlatformSettings &platform);
+static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
+                         ModuleOp substMod, llvm::DataLayout &,
+                         const cudaq::opt::PlatformSettings &platform);
+
 static Value genConstant(OpBuilder &builder, const cudaq::state *v,
-                         ModuleOp substMod) {
-  // TODO: do we materialize the data here or just add a symbolic reference into
-  // the unknown?
-  TODO("cudaq::state* argument synthesis");
+                         ModuleOp substMod, llvm::DataLayout &layout,
+                         const cudaq::opt::PlatformSettings &platform) {
+  if (platform.isSimulator && !platform.isRemote) {
+    // The program is executed in the same memory, use the pointer directly.
+    auto loc = builder.getUnknownLoc();
+    Value rawPtr = builder.create<arith::ConstantIntOp>(
+        loc, reinterpret_cast<std::intptr_t>(v), sizeof(void *) * 8);
+    auto stateTy = cudaq::cc::StateType::get(builder.getContext());
+    return builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
+  }
+  if (platform.isSimulator && platform.isRemote) {
+    // The program is executed remotely, materialize the simulation data
+    // into an array an use it instead of the state.
+    // Note: a later pass const-props `__nvqpp_cudaq_state_numberOfQubits`
+    // runtime calls.
+    auto ctx = builder.getContext();
+    auto stateData = cudaq::opt::StateData::readStateData(v);
+    auto eleTy = stateData.elementSize == sizeof(std::complex<double>)
+                     ? ComplexType::get(Float64Type::get(ctx))
+                     : ComplexType::get(Float32Type::get(ctx));
+    auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, stateData.size);
+    return genConstant(builder, arrTy, stateData.data, substMod, layout,
+                       platform);
+  }
+  // The program is executed on quantum hardware, state data is not available
+  // and needs to be regenerated or approximated.
+  TODO("cudaq::state* argument synthesis for quantum hardware");
   return {};
 }
 
-// Forward declare aggregate type builder as they can be recursive.
-static Value genConstant(OpBuilder &, cudaq::cc::StdvecType, void *,
-                         ModuleOp substMod, llvm::DataLayout &);
-static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *,
-                         ModuleOp substMod, llvm::DataLayout &);
-static Value genConstant(OpBuilder &, TupleType, void *, ModuleOp substMod,
-                         llvm::DataLayout &);
-static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
-                         ModuleOp substMod, llvm::DataLayout &);
-
 // Recursive step processing of aggregates.
 Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
-                      llvm::DataLayout &layout) {
+                      llvm::DataLayout &layout,
+                      const cudaq::opt::PlatformSettings &platform) {
   auto *ctx = builder.getContext();
   return TypeSwitch<Type, Value>(ty)
       .Case([&](IntegerType intTy) -> Value {
@@ -147,27 +204,28 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
       .Case([&](cudaq::cc::PointerType ptrTy) -> Value {
         if (ptrTy.getElementType() == cudaq::cc::StateType::get(ctx))
           return genConstant(builder, static_cast<const cudaq::state *>(p),
-                             substMod);
+                             substMod, layout, platform);
         return {};
       })
       .Case([&](cudaq::cc::StdvecType ty) {
-        return genConstant(builder, ty, p, substMod, layout);
+        return genConstant(builder, ty, p, substMod, layout, platform);
       })
       .Case([&](cudaq::cc::StructType ty) {
-        return genConstant(builder, ty, p, substMod, layout);
+        return genConstant(builder, ty, p, substMod, layout, platform);
       })
       .Case([&](cudaq::cc::ArrayType ty) {
-        return genConstant(builder, ty, p, substMod, layout);
+        return genConstant(builder, ty, p, substMod, layout, platform);
       })
       .Case([&](TupleType ty) {
-        return genConstant(builder, ty, p, substMod, layout);
+        return genConstant(builder, ty, p, substMod, layout, platform);
       })
       .Default({});
 }
 
 // Clang++ lays std::tuples out in reverse order.
 Value genConstant(OpBuilder &builder, TupleType tupTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout) {
+                  ModuleOp substMod, llvm::DataLayout &layout,
+                  const cudaq::opt::PlatformSettings &platform) {
   if (tupTy.getTypes().empty())
     return {};
   SmallVector<Type> members;
@@ -176,7 +234,7 @@ Value genConstant(OpBuilder &builder, TupleType tupTy, void *p,
   auto *ctx = builder.getContext();
   auto strTy = cudaq::cc::StructType::get(ctx, members);
   // FIXME: read out in reverse order, but build in forward order.
-  auto revCon = genConstant(builder, strTy, p, substMod, layout);
+  auto revCon = genConstant(builder, strTy, p, substMod, layout, platform);
   auto fwdTy = cudaq::cc::StructType::get(ctx, tupTy.getTypes());
   auto loc = builder.getUnknownLoc();
   Value aggie = builder.create<cudaq::cc::UndefOp>(loc, fwdTy);
@@ -191,7 +249,8 @@ Value genConstant(OpBuilder &builder, TupleType tupTy, void *p,
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout) {
+                  ModuleOp substMod, llvm::DataLayout &layout,
+                  const cudaq::opt::PlatformSettings &platform) {
   typedef const char *VectorType[3];
   VectorType *vecPtr = static_cast<VectorType *>(p);
   auto delta = (*vecPtr)[1] - (*vecPtr)[0];
@@ -210,7 +269,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
   for (std::int32_t i = 0; i < vecSize; ++i) {
     if (Value val = dispatchSubtype(
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
-            substMod, layout)) {
+            substMod, layout, platform)) {
       auto atLoc = builder.create<cudaq::cc::ComputePtrOp>(
           loc, elePtrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
       builder.create<cudaq::cc::StoreOp>(loc, val, atLoc);
@@ -222,7 +281,8 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout) {
+                  ModuleOp substMod, llvm::DataLayout &layout,
+                  const cudaq::opt::PlatformSettings &platform) {
   if (strTy.getMembers().empty())
     return {};
   const char *cursor = static_cast<const char *>(p);
@@ -234,14 +294,15 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
             builder, iter.value(),
             static_cast<void *>(const_cast<char *>(
                 cursor + cudaq::opt::getDataOffset(layout, strTy, i))),
-            substMod, layout))
+            substMod, layout, platform))
       aggie = builder.create<cudaq::cc::InsertValueOp>(loc, strTy, aggie, v, i);
   }
   return aggie;
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout) {
+                  ModuleOp substMod, llvm::DataLayout &layout,
+                  const cudaq::opt::PlatformSettings &platform) {
   if (arrTy.isUnknownSize())
     return {};
   auto eleTy = arrTy.getElementType();
@@ -253,7 +314,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
   for (std::size_t i = 0; i < arrSize; ++i) {
     if (Value v = dispatchSubtype(
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
-            substMod, layout))
+            substMod, layout, platform))
       aggie = builder.create<cudaq::cc::InsertValueOp>(loc, arrTy, aggie, v, i);
     cursor += eleSize;
   }
@@ -262,10 +323,11 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
 
 //===----------------------------------------------------------------------===//
 
-cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
-                                                 ModuleOp sourceModule)
+cudaq::opt::ArgumentConverter::ArgumentConverter(
+    StringRef kernelName, ModuleOp sourceModule,
+    const cudaq::opt::PlatformSettings &platform)
     : sourceModule(sourceModule), builder(sourceModule.getContext()),
-      kernelName(kernelName) {
+      kernelName(kernelName), platform(platform) {
   substModule = builder.create<ModuleOp>(builder.getUnknownLoc());
 }
 
@@ -340,20 +402,20 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == cc::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
-                                  substModule);
+                                  substModule, dataLayout, platform);
               return {};
             })
             .Case([&](cc::StdvecType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout);
+              return buildSubst(ty, argPtr, substModule, dataLayout, platform);
             })
             .Case([&](cc::StructType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout);
+              return buildSubst(ty, argPtr, substModule, dataLayout, platform);
             })
             .Case([&](cc::ArrayType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout);
+              return buildSubst(ty, argPtr, substModule, dataLayout, platform);
             })
             .Case([&](TupleType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout);
+              return buildSubst(ty, argPtr, substModule, dataLayout, platform);
             })
             .Default({});
     if (subst)

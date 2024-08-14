@@ -18,7 +18,9 @@
 #include "mlir/Parser/Parser.h"
 
 void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
-                  std::vector<void *> args) {
+                  std::vector<void *> args,
+                  const cudaq::opt::PlatformSettings &platform =
+                      cudaq::opt::PlatformSettings()) {
   std::string code = R"#(
 func.func private @callee(%0: )#" +
                      typeName + R"#()
@@ -32,7 +34,7 @@ func.func @__nvqpp__mlirgen__testy(%0: )#" +
   // Create the Module
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
   llvm::outs() << "Source module:\n" << *mod << '\n';
-  cudaq::opt::ArgumentConverter ab{"testy", *mod};
+  cudaq::opt::ArgumentConverter ab{"testy", *mod, platform};
 
   // Create the argument conversions
   ab.gen(args);
@@ -289,6 +291,56 @@ void test_recursive(mlir::MLIRContext *ctx) {
   // clang-format on
 }
 
+void test_state(mlir::MLIRContext *ctx) {
+  {
+    std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
+                                           0.,        0.,        0., 0.};
+    auto x = cudaq::state::from_data(data);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    // remote simulator
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v,
+                 cudaq::opt::PlatformSettings(true, true));
+    // local simulator
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v,
+                 cudaq::opt::PlatformSettings(false, true));
+  }
+
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+// CHECK:       Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = cc.undef !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_1:.*]] = complex.constant [0.70710678118654757, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_2:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_0]][0] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_3:.*]] = complex.constant [0.70710678118654757, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_3]], %[[VAL_2]][1] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_5:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_6:.*]] = cc.insert_value %[[VAL_5]], %[[VAL_4]][2] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_7:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_8:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_6]][3] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_9:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_10:.*]] = cc.insert_value %[[VAL_9]], %[[VAL_8]][4] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_11:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_12:.*]] = cc.insert_value %[[VAL_11]], %[[VAL_10]][5] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_13:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_13]], %[[VAL_12]][6] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_15:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK:           %[[VAL_16:.*]] = cc.insert_value %[[VAL_15]], %[[VAL_14]][7] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:         }
+
+// CHECK:       Source module:
+// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+// CHECK:       Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %c[[VAL_0:.*]]_i64 = arith.constant [[VAL_0]] : i64
+// CHECK:           %0 = cc.cast %c[[VAL_0]]_i64 : (i64) -> !cc.ptr<!cc.state>
+// CHECK:         }
+  // clang-format on
+}
+
 int main() {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
@@ -299,5 +351,6 @@ int main() {
   test_vectors(&context);
   test_aggregates(&context);
   test_recursive(&context);
+  test_state(&context);
   return 0;
 }
