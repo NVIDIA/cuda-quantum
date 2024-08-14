@@ -37,6 +37,9 @@ thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
+static thread_local std::map<Qubit *, Result *> measQB2Res;
+static thread_local std::map<Result *, Qubit *> measRes2QB;
+
 /// @brief Provide a holder for externally created
 /// CircuitSimulator pointers (like from Python) that
 /// will invoke clone on the simulator when requested, which
@@ -547,7 +550,9 @@ Result *__quantum__qis__mz(Qubit *q) {
   return b ? ResultOne : ResultZero;
 }
 
-Result *__quantum__qis__mz__body(Qubit *q) {
+Result *__quantum__qis__mz__body(Qubit *q, Result *r) {
+  measQB2Res[q] = r;
+  measRes2QB[r] = q;
   auto qI = qubitToSizeT(q);
   ScopedTraceWithContext("NVQIR::mz", qI);
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, "");
@@ -584,7 +589,11 @@ void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
   return;
 }
 
-void __quantum__rt__result_record_output(Result *, int8_t *) {}
+void __quantum__rt__result_record_output(Result *r, int8_t *name) {
+  if (name && qubitPtrIsIndex)
+    __quantum__qis__mz__to__register(measRes2QB[r],
+                                     reinterpret_cast<const char *>(name));
+}
 
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,
                                     Array *controls, Array *targets) {

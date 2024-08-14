@@ -18,6 +18,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "nlohmann/json.hpp"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
@@ -83,6 +84,14 @@ static std::string toQisCtlName(std::string &&name) {
   return std::string(qis_prefix) + std::move(name) +
          std::string(qis_ctl_suffix);
 }
+
+// Store by result to prevent collisions on a single qubit having
+// multiple measurements (Adaptive Profile)
+// map[result] --> [qb,regName]
+// Use std::map to keep these sorted in ascending order. While this isn't
+// required, it makes viewing the QIR easier.
+using OutputNamesType =
+    std::map<std::size_t, std::pair<std::size_t, std::string>>;
 
 template <typename OP>
 struct GeneralRewrite : OpConversionPattern<OP> {
@@ -196,8 +205,10 @@ struct WireSetRewrite : OpConversionPattern<quake::WireSetOp> {
 struct MzRewrite : OpConversionPattern<quake::MzOp> {
   using Base = OpConversionPattern;
   explicit MzRewrite(TypeConverter &typeConverter, unsigned &counter,
-                     MLIRContext *ctxt, PatternBenefit benefit = 1)
-      : Base(typeConverter, ctxt, benefit), resultCount(counter) {}
+                     OutputNamesType &resultQubitVals, MLIRContext *ctxt,
+                     PatternBenefit benefit = 1)
+      : Base(typeConverter, ctxt, benefit), resultCount(counter),
+        resultQubitVals(resultQubitVals) {}
 
   LogicalResult
   matchAndRewrite(quake::MzOp meas, OpAdaptor adaptor,
@@ -247,11 +258,24 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
                                     ValueRange{resultVal, nameValCStr});
     }
 
+    // Populate resultQubitVals[]
+    std::size_t qubitNum = 0;
+    Value v = adaptor.getTargets()[0];
+    while (auto tmpOp = v.getDefiningOp<cudaq::cc::CastOp>())
+      v = tmpOp.getOperand();
+    if (auto x = cudaq::opt::factory::getIntIfConstant(v))
+      qubitNum = *x;
+    std::string regNameStr;
+    if (regName)
+      regNameStr = regName->str();
+    resultQubitVals[resultCount - 1] = std::make_pair(qubitNum, regNameStr);
+
     return success();
   }
 
 private:
   unsigned &resultCount;
+  OutputNamesType &resultQubitVals;
 };
 
 struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
@@ -336,6 +360,7 @@ struct WireSetToProfileQIRPass
     RewritePatternSet patterns(context);
     QuakeTypeConverter quakeTypeConverter;
     unsigned resultCounter = 0;
+    OutputNamesType resultQubitVals;
     patterns.insert<GeneralRewrite<quake::HOp>, GeneralRewrite<quake::XOp>,
                     GeneralRewrite<quake::YOp>, GeneralRewrite<quake::ZOp>,
                     GeneralRewrite<quake::SOp>, GeneralRewrite<quake::TOp>,
@@ -344,7 +369,8 @@ struct WireSetToProfileQIRPass
                     GeneralRewrite<quake::U3Op>, GeneralRewrite<quake::SwapOp>,
                     GeneralRewrite<quake::PhasedRxOp>, BorrowWireRewrite,
                     ReturnWireRewrite>(quakeTypeConverter, context);
-    patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter, context);
+    patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
+                               resultQubitVals, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";
     patterns.insert<DiscriminateRewrite>(quakeTypeConverter, isAdaptiveProfile,
                                          regNameMap, context);
@@ -357,6 +383,12 @@ struct WireSetToProfileQIRPass
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
+
+    if (resultCounter > 0) {
+      nlohmann::json resultQubitJSON{resultQubitVals};
+      op->setAttr(cudaq::opt::QIROutputNamesAttrName,
+                  builder.getStringAttr(resultQubitJSON.dump()));
+    }
 
     if (highestIdentity)
       op->setAttr(cudaq::opt::QIRRequiredResultsAttrName,

@@ -239,6 +239,15 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     if (auto stringAttr = op->getAttr(cudaq::opt::QIRRequiredResultsAttrName)
                               .dyn_cast_or_null<mlir::StringAttr>())
       requiredResultsStrRef = stringAttr;
+    StringRef outputNamesStrRef;
+    std::string resultQubitJSONStr;
+    if (auto strAttr = op->getAttr(cudaq::opt::QIROutputNamesAttrName)
+                           .dyn_cast_or_null<mlir::StringAttr>()) {
+      outputNamesStrRef = strAttr;
+    } else {
+      resultQubitJSONStr = resultQubitJSON.dump();
+      outputNamesStrRef = resultQubitJSONStr;
+    }
 
     // QIR functions need certain attributes, add them here.
     // TODO: Update schema_id with valid value (issues #385 and #556)
@@ -249,7 +258,7 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
         rewriter.getStrArrayAttr(
             {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}),
         rewriter.getStrArrayAttr(
-            {cudaq::opt::QIROutputNamesAttrName, resultQubitJSON.dump()}),
+            {cudaq::opt::QIROutputNamesAttrName, outputNamesStrRef}),
         rewriter.getStrArrayAttr(
             // TODO: change to required_num_qubits once providers support it
             // (issues #385 and #556)
