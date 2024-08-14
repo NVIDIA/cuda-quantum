@@ -12,9 +12,19 @@
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 namespace cudaq {
+namespace details {
+// Test std::tuple layout.
+constexpr bool isTupleRecursivelyDefined() {
+  std::tuple<double, int, char> t;
+  return static_cast<void *>(&std::get<double>(t)) != static_cast<void *>(&t);
+}
+static bool TupleIsReverse = isTupleRecursivelyDefined();
+} // namespace details
+
 namespace __internal__ {
 std::string demangle_kernel(const char *);
 bool isLibraryMode(const std::string &);

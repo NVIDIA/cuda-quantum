@@ -13,6 +13,7 @@
 /// salient part of this tool.)
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Support/Verifier.h"
@@ -35,13 +36,10 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include <filesystem>
-#include <sstream>
 
 using namespace llvm;
 
 static constexpr const char toolName[] = "cudaq-quake";
-static constexpr const char mangledKernelNameMapAttrName[] =
-    "quake.mangled_name_map";
 
 //===----------------------------------------------------------------------===//
 // Command line options.
@@ -470,7 +468,7 @@ int main(int argc, char **argv) {
         names.emplace_back(mlir::StringAttr::get(&context, key),
                            mlir::StringAttr::get(&context, value));
       auto mapAttr = mlir::DictionaryAttr::get(&context, names);
-      moduleOp->setAttr(mangledKernelNameMapAttrName, mapAttr);
+      moduleOp->setAttr(cudaq::runtime::mangledNameMap, mapAttr);
     }
 
     // Running the verifier to make it easier to track down errors.
