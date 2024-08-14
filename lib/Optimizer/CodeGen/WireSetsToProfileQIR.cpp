@@ -202,6 +202,14 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
   LogicalResult
   matchAndRewrite(quake::MzOp meas, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+
+    bool measureFollowedByDiscriminate = [&]() {
+      for (auto user : meas->getResult(0).getUsers())
+        if (isa<quake::DiscriminateOp>(user))
+          return true;
+      return false;      
+    }();
+
     // FIXME: Must use sequentially assigned result ids
     std::string funcName = toQisBodyName(std::string("mz"));
     auto loc = meas.getLoc();
@@ -215,6 +223,30 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
         loc, std::nullopt, funcName,
         ValueRange{adaptor.getTargets()[0], resultVal});
     rewriter.replaceOp(meas, ValueRange{resultVal, adaptor.getTargets()[0]});
+
+    auto regName = meas.getRegisterName();
+    // Populate __quantum__rt__result_record_output if there is a register name
+    // without any downstream DiscriminateOp's.
+    if (regName && !measureFollowedByDiscriminate) {
+      cudaq::IRBuilder irb(rewriter.getContext());
+      auto mod = meas->getParentOfType<ModuleOp>();
+      // NB: This is thread safe as it should never do an insertion, just a
+      // lookup.
+      auto nameObj = irb.genCStringLiteralAppendNul(loc, mod, *regName);
+      auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
+                                                    regName->size() + 1);
+      auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
+      Value nameVal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrArrTy,
+                                                              nameObj.getName());
+      auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+      Value nameValCStr =
+          rewriter.create<cudaq::cc::CastOp>(loc, cstrTy, nameVal);
+
+      rewriter.create<func::CallOp>(loc, std::nullopt,
+                                    cudaq::opt::QIRRecordOutput,
+                                    ValueRange{resultVal, nameValCStr});
+    }
+
     return success();
   }
 
@@ -253,7 +285,7 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
         rewriter.create<cudaq::cc::CastOp>(loc, cstrTy, nameVal);
 
     rewriter.create<func::CallOp>(
-        loc, std::nullopt, "__quantum__rt__result_record_output",
+        loc, std::nullopt, cudaq::opt::QIRRecordOutput,
         ValueRange{adaptor.getMeasurement(), nameValCStr});
     if (isAdaptiveProfile) {
       std::string funcName = toQisBodyName(std::string("read_result"));
@@ -423,7 +455,7 @@ struct WireSetToProfileQIRPrepPass
     auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
     auto recordTy =
         FunctionType::get(ctx, TypeRange{resTy, i8PtrTy}, TypeRange{});
-    createNewDecl("__quantum__rt__result_record_output", recordTy);
+    createNewDecl(cudaq::opt::QIRRecordOutput, recordTy);
 
     auto invokeCtrlTy = FunctionType::get(
         ctx, TypeRange{builder.getI64Type(), i8PtrTy, qbTy, qbTy}, TypeRange{});
