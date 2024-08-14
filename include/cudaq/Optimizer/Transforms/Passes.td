@@ -302,6 +302,27 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     use of library side argument conversion and the argument synthesis pass.
     More generally, this option can be used when JIT compiling kernels on the
     client/host/local processor.
+
+    There are multiple code generation kinds that are supported for flexibility
+    and streamlining the kernel launch process. These tend to be related to the
+    target and runtime environment the compiler is being run in and can involve
+    some technical issues that require deeper understanding of the entire
+    process. In general, it is not recommended for user's to change this value.
+
+    ```
+    codegen kind   description
+
+      0            Hybrid. A combination of 1 and 2 that allowed early and
+                   streamlined JIT compilation but also supports return values
+                   and dynamic parameters.
+      1            Client-server interchange format. Supports kernels that
+                   return results and dynamic parameters.
+      2            Streamlined for JIT. The kernel will be converted to a
+                   nullary function with no results. Return values from the
+                   kernel are ignored, if present. All parameter values are to
+                   be inlined by the JIT compiler, so this codegen kind does not
+                   support any dynamic parameters.
+    ```
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -311,8 +332,8 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
       /*default=*/"\"-\"", "Name of output file.">,
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
-    Option<"altLaunchVersion", "alt-launch", "std::size_t", /*default=*/"1",
-      "Specify the version of altLaunchKernel to be used.">
+    Option<"codegenKind", "codegen", "std::size_t", /*default=*/"1",
+      "Set the kind of code to generate for the launches.">
   ];
 }
 
