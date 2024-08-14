@@ -54,12 +54,12 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 // CHECK:           %[[VAL_10:.*]] = cc.alloca i8{{\[}}%[[VAL_9]] : i64]
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>
 // CHECK:           cc.store %[[VAL_7]], %[[VAL_11]] : !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>
-// CHECK:           %[[VAL_12:.*]] = llvm.mlir.addressof @test_0.kernelName : !llvm.ptr<array<7 x i8>>
-// CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_14:.*]] = cc.func_ptr %[[VAL_4]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_8]][1] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>
 // CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_16]] : (!cc.ptr<!cc.struct<{!cc.ptr<i32>, i64}>>) -> i64
+// CHECK:           %[[VAL_12:.*]] = llvm.mlir.addressof @test_0.kernelName : !llvm.ptr<array<7 x i8>>
+// CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           call @altLaunchKernel(%[[VAL_13]], %[[VAL_14]], %[[VAL_15]], %[[VAL_9]], %[[VAL_17]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
 // CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>
 // CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_18]][1, 0] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>) -> !cc.ptr<!cc.ptr<i32>>
@@ -121,12 +121,12 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           %[[VAL_10:.*]] = cc.alloca i8{{\[}}%[[VAL_9]] : i64]
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>
 // CHECK:           cc.store %[[VAL_7]], %[[VAL_11]] : !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>
-// CHECK:           %[[VAL_12:.*]] = llvm.mlir.addressof @test_1.kernelName : !llvm.ptr<array<7 x i8>>
-// CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_14:.*]] = cc.func_ptr %[[VAL_4]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_8]][1] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>) -> !cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>
 // CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_16]] : (!cc.ptr<!cc.struct<{!cc.ptr<f64>, i64}>>) -> i64
+// CHECK:           %[[VAL_12:.*]] = llvm.mlir.addressof @test_1.kernelName : !llvm.ptr<array<7 x i8>>
+// CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           call @altLaunchKernel(%[[VAL_13]], %[[VAL_14]], %[[VAL_15]], %[[VAL_9]], %[[VAL_17]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
 // CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>
 // CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_18]][1, 0] : (!cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>) -> !cc.ptr<!cc.ptr<f64>>
