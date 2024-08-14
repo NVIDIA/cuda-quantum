@@ -11,6 +11,7 @@
 #include "cudaq.h"
 #include <iostream>
 #include <pybind11/complex.h>
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
 namespace cudaq {
@@ -58,10 +59,32 @@ void bindNoiseModel(py::module &mod) {
       .def(
           "add_channel",
           [](noise_model &self, std::string &opName,
-             std::vector<std::size_t> &qubits, kraus_channel &channel) {
-            self.add_channel(opName, qubits, channel);
-          },
+             std::vector<std::size_t> &qubits, kraus_channel &channel,
+             const std::function<bool(const std::vector<double> &)> &predicate =
+                 {}) { self.add_channel(opName, qubits, channel, predicate); },
           py::arg("operator"), py::arg("qubits"), py::arg("channel"),
+          py::arg("predicate") =
+              std::function<bool(const std::vector<double> &)>(),
+          R"#(Add the given :class:`KrausChannel` to be applied after invocation 
+of the specified quantum operation.
+
+Args:
+  operator (str): The quantum operator to apply the noise channel to.
+  qubits (List[int]): The qubit/s to apply the noise channel to.
+  channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply 
+    to the specified `operator` on the specified `qubits`.)#")
+      .def(
+          "add_all_qubit_channel",
+          [](noise_model &self, std::string &opName, kraus_channel &channel,
+             std::size_t num_controls = 0,
+             const std::function<bool(const std::vector<double> &)> &predicate =
+                 {}) {
+            self.add_all_qubit_channel(opName, channel,
+                                                      num_controls, predicate);
+          },
+          py::arg("operator"), py::arg("channel"), py::arg("num_controls") = 0,
+          py::arg("predicate") =
+              std::function<bool(const std::vector<double> &)>(),
           R"#(Add the given :class:`KrausChannel` to be applied after invocation 
 of the specified quantum operation.
 

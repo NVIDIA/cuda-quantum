@@ -100,9 +100,10 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
 std::vector<kraus_op> kraus_channel::get_ops() { return ops; }
 void kraus_channel::push_back(kraus_op op) { ops.push_back(op); }
 
-void noise_model::add_channel(const std::string &quantumOp,
-                              const std::vector<std::size_t> &qubits,
-                              const kraus_channel &channel) {
+void noise_model::add_channel(
+    const std::string &quantumOp, const std::vector<std::size_t> &qubits,
+    const kraus_channel &channel,
+    const std::function<bool(const std::vector<double> &)> &pred) {
 
   if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
       std::end(availableOps))
@@ -119,13 +120,12 @@ void noise_model::add_channel(const std::string &quantumOp,
         std::to_string(channelDim) + " on " + std::to_string(nQubits) +
         " qubits.");
 
-  GateIdentifier key(quantumOp, qubits.size());
+  auto key = std::make_pair(quantumOp, qubits);
   auto iter = noiseModel.find(key);
   if (iter == noiseModel.end()) {
     cudaq::info("Adding new kraus_channel to noise_model ({}, {})", quantumOp,
                 qubits);
-    NoiseMatcher noiseMatcher(qubits, {channel});
-    noiseModel.insert({key, {noiseMatcher}});
+    noiseModel.insert({key, {NoiseMatcher({channel}, pred)}});
     return;
   }
 
@@ -133,26 +133,38 @@ void noise_model::add_channel(const std::string &quantumOp,
               "noise_model (qubits = {})",
               quantumOp, qubits);
 
-  iter->second.front().noiseChannels.push_back(channel);
+  iter->second.push_back(NoiseMatcher({channel}, pred));
 }
 
-void noise_model::add_any_qubit_channel(const std::string &quantumOp,
-                                        const kraus_channel &channel,
-                                        int numControls) {}
+void noise_model::add_all_qubit_channel(
+    const std::string &quantumOp, const kraus_channel &channel, int numControls,
+    const std::function<bool(const std::vector<double> &)> &pred) {
+  if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
+      std::end(availableOps))
+    throw std::runtime_error(
+        "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
 
-void noise_model::add_channel_with_predicate(
-    const std::string &quantumOp, const std::vector<std::size_t> &qubits,
-    const kraus_channel &channel) {}
+  GateIdentifier key(quantumOp, numControls);
+  auto iter = defaultNoiseModel.find(key);
+  if (iter == defaultNoiseModel.end()) {
+    cudaq::info("Adding new all-qubit kraus_channel to noise_model ({}, number "
+                "of control bits = {})",
+                quantumOp, numControls);
+    defaultNoiseModel.insert({key, {NoiseMatcher({channel}, pred)}});
+    return;
+  }
 
-void noise_model::add_any_qubit_channel_with_predicate(
-    const std::string &quantumOp, const std::vector<std::size_t> &qubits,
-    const std::function<bool(const std::vector<double> &)> &pred,
-    const kraus_channel &channel) {}
+  cudaq::info("kraus_channel existed for {}, adding new kraus_channel to "
+              "noise_model (number of control bits = {})",
+              quantumOp, numControls);
+
+  iter->second.push_back(NoiseMatcher({channel}, pred));
+}
 
 std::vector<kraus_channel>
 noise_model::get_channels(const std::string &quantumOp,
                           const std::vector<std::size_t> &qubits) const {
-  GateIdentifier key(quantumOp, qubits.size());
+  auto key = std::make_pair(quantumOp, qubits);
   auto iter = noiseModel.find(key);
   if (iter == noiseModel.end()) {
     cudaq::info("No kraus_channel available for {} on {}.", quantumOp, qubits);
@@ -163,4 +175,73 @@ noise_model::get_channels(const std::string &quantumOp,
   return iter->second.front().noiseChannels;
 }
 
+std::vector<kraus_channel>
+noise_model::get_channels(const std::string &quantumOp,
+                          const std::vector<std::size_t> &controlQubits,
+                          const std::vector<std::size_t> &targetQubits,
+                          const std::vector<double> &params) const {
+  {
+    // Search qubit-specific noise settings
+    std::vector<std::size_t> qubits{controlQubits.begin(), controlQubits.end()};
+    qubits.insert(qubits.end(), targetQubits.begin(), targetQubits.end());
+    auto key = std::make_pair(quantumOp, qubits);
+    auto iter = noiseModel.find(key);
+    if (iter != noiseModel.end()) {
+      cudaq::info("Found kraus_channel for {} on {}.", quantumOp, qubits);
+
+      std::vector<kraus_channel> channels;
+      for (const auto &match : iter->second) {
+        if (!match.predicate || params.empty()) {
+          channels.insert(channels.end(), match.noiseChannels.begin(),
+                          match.noiseChannels.end());
+        } else {
+          const bool pred = match.predicate(params);
+          if (pred)
+            channels.insert(channels.end(), match.noiseChannels.begin(),
+                            match.noiseChannels.end());
+          else
+            cudaq::info(
+                "Reject kraus_channel for {} on {} due to predicate check on "
+                "the parameter values ({}).",
+                quantumOp, qubits, params);
+        }
+      }
+      return channels;
+    }
+  }
+
+  {
+    // Look up default noise channel
+    GateIdentifier key(quantumOp, controlQubits.size());
+    auto iter = defaultNoiseModel.find(key);
+    if (iter == defaultNoiseModel.end()) {
+      cudaq::info("No kraus_channel available for {} with {} control bits.",
+                  quantumOp, controlQubits.size());
+      return {};
+    }
+
+    cudaq::info(
+        "Found default kraus_channel setting for {} with {} control bits.",
+        quantumOp, controlQubits.size());
+
+    std::vector<kraus_channel> channels;
+    for (const auto &match : iter->second) {
+      if (!match.predicate || params.empty()) {
+        channels.insert(channels.end(), match.noiseChannels.begin(),
+                        match.noiseChannels.end());
+      } else {
+        const bool pred = match.predicate(params);
+        if (pred)
+          channels.insert(channels.end(), match.noiseChannels.begin(),
+                          match.noiseChannels.end());
+        else
+          cudaq::info("Reject kraus_channel for {} with {} control bits due to "
+                      "predicate check on "
+                      "the parameter values ({}).",
+                      quantumOp, controlQubits.size(), params);
+      }
+    }
+    return channels;
+  }
+}
 } // namespace cudaq

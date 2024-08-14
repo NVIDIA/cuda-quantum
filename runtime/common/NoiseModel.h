@@ -162,13 +162,12 @@ struct GateIdentifier {
 };
 
 struct NoiseMatcher {
-  std::vector<std::size_t> qubitOperands;
   std::function<bool(const std::vector<double> &)> predicate;
   std::vector<kraus_channel> noiseChannels;
 
-  NoiseMatcher(const std::vector<std::size_t> &qubits,
-               const std::vector<kraus_channel> &ops)
-      : qubitOperands(qubits), noiseChannels(ops) {}
+  NoiseMatcher(const std::vector<kraus_channel> &ops,
+               const std::function<bool(const std::vector<double> &)> &pre)
+      : predicate(pre), noiseChannels(ops) {}
 };
 
 /// @brief The noise_model type keeps track of a set of
@@ -179,10 +178,34 @@ struct NoiseMatcher {
 class noise_model {
 protected:
   /// @brief Noise Model data map key is a (quantum Op + qubits applied to)
-  using KeyT = GateIdentifier;
-  using ValueT = std::vector<NoiseMatcher>;
+  using KeyT = std::pair<std::string, std::vector<std::size_t>>;
 
+  /// @brief unordered_map will need a custom hash function
   struct KeyTHash {
+    template <class T, class U>
+    std::size_t operator()(const std::pair<T, U> &p) const {
+      auto hash = std::hash<T>{}(p.first);
+      hash ^= p.second.size();
+      for (auto &i : p.second) {
+        hash ^= i + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+      }
+      return hash;
+    }
+  };
+
+  /// @brief Useful typedef for the noise model data map
+  using NoiseModelOpMap =
+      std::unordered_map<KeyT, std::vector<NoiseMatcher>, KeyTHash>;
+
+  // The noise model is a mapping of quantum operation
+  // names to a Kraus channel applied after the operation is applied.
+  NoiseModelOpMap noiseModel;
+
+  // In addition to specific (gate + operands) map, we have a default map,
+  // which tracks noise channels attached to all operations of that type.
+  // This map is keyed by the gate-name + number of control bits, e.g., x(1)
+  // means cnot.
+  struct GateIdentifierHash {
     std::size_t operator()(const GateIdentifier &p) const {
       const std::string fullName =
           p.name + "(" + std::to_string(p.numControls) + ")";
@@ -191,15 +214,14 @@ protected:
   };
 
   /// @brief Useful typedef for the noise model data map
-  using NoiseModelOpMap =
-      std::unordered_map<KeyT, ValueT, KeyTHash>;
-
+  using DefaultNoiseModelOpMap =
+      std::unordered_map<GateIdentifier, std::vector<NoiseMatcher>,
+                         GateIdentifierHash>;
+  DefaultNoiseModelOpMap defaultNoiseModel;
   static constexpr const char *availableOps[] = {
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
 
-  // The noise model is a mapping of quantum operation
-  // names to a Kraus channel applied after the operation is applied.
-  NoiseModelOpMap noiseModel;
+ 
 
 public:
   /// @brief default constructor
@@ -212,36 +234,48 @@ public:
   /// @brief Add the Kraus channel to the specified one-qubit quantum
   /// operation. It applies to the quantumOp operation for the specified
   /// qubits in the kraus_channel.
-  void add_channel(const std::string &quantumOp,
-                   const std::vector<std::size_t> &qubits,
-                   const kraus_channel &channel);
-  void add_channel(const std::string &quantumOp,
-                   const std::vector<std::size_t> &&qubits,
-                   const kraus_channel &channel) {
-    add_channel(quantumOp, qubits, channel);
+  void add_channel(
+      const std::string &quantumOp, const std::vector<std::size_t> &qubits,
+      const kraus_channel &channel,
+      const std::function<bool(const std::vector<double> &)> &pred = {});
+  void add_channel(
+      const std::string &quantumOp, const std::vector<std::size_t> &&qubits,
+      const kraus_channel &channel,
+      const std::function<bool(const std::vector<double> &)> &pred = {}) {
+    add_channel(quantumOp, qubits, channel, pred);
   }
 
-  void add_any_qubit_channel(const std::string &quantumOp,
-                             const kraus_channel &channel, int numControls = 0);
-  void add_channel_with_predicate(const std::string &quantumOp,
-                                  const std::vector<std::size_t> &qubits,
-                                  const kraus_channel &channel);
-  void add_any_qubit_channel_with_predicate(
-      const std::string &quantumOp, const std::vector<std::size_t> &qubits,
-      const std::function<bool(const std::vector<double> &)> &pred,
-      const kraus_channel &channel);
+  void add_all_qubit_channel(
+      const std::string &quantumOp, const kraus_channel &channel,
+      int numControls = 0,
+      const std::function<bool(const std::vector<double> &)> &pred = {});
 
   /// @brief Add the provided kraus_channel to all
   /// specified quantum operations.
   template <typename... QuantumOp>
-  void add_channel(const std::vector<std::size_t> &qubits,
-                   const kraus_channel &channel) {
+  void add_channel(
+      const std::vector<std::size_t> &qubits, const kraus_channel &channel,
+      const std::function<bool(const std::vector<double> &)> &pred = {}) {
     std::vector<std::string> names;
     std::apply(
         [&](const auto &...elements) { (names.push_back(elements.name), ...); },
         std::tuple<QuantumOp...>());
     for (auto &name : names)
-      add_channel(name, qubits, channel);
+      add_channel(name, qubits, channel, pred);
+  }
+
+  /// @brief Add the provided kraus_channel to all
+  /// specified quantum operations.
+  template <typename... QuantumOp>
+  void add_all_qubit_channel(
+      const kraus_channel &channel, int numControls = 0,
+      const std::function<bool(const std::vector<double> &)> &pred = {}) {
+    std::vector<std::string> names;
+    std::apply(
+        [&](const auto &...elements) { (names.push_back(elements.name), ...); },
+        std::tuple<QuantumOp...>());
+    for (auto &name : names)
+      add_all_qubit_channel(name, channel, numControls, pred);
   }
 
   /// @brief Return relevant kraus_channels on the specified qubits for
@@ -257,6 +291,22 @@ public:
   get_channels(const std::vector<std::size_t> &qubits) const {
     QuantumOp op;
     return get_channels(op.name, qubits);
+  }
+  
+  std::vector<kraus_channel>
+  get_channels(const std::string &quantumOp,
+               const std::vector<std::size_t> &controlQubits,
+               const std::vector<std::size_t> &targetQubits,
+               const std::vector<double> &params = {}) const;
+
+  /// @brief Get all kraus_channels on the given qubits
+  template <typename QuantumOp>
+  std::vector<kraus_channel>
+  get_channels(const std::vector<std::size_t> &controlQubits,
+               const std::vector<std::size_t> &targetQubits,
+               const std::vector<double> &params = {}) const {
+    QuantumOp op;
+    return get_channels(op.name, controlQubits, targetQubits, params);
   }
 };
 
