@@ -13,7 +13,9 @@
 # and run this script from the home directory.
 # Check the logged output.
 
+echo $OMPI_MCA_pml
 unset OMPI_MCA_pml
+echo $OMPI_MCA_pml
 
 passed=0
 failed=0
