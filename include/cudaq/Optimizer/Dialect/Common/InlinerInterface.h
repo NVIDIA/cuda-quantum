@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/constants.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Region.h"
