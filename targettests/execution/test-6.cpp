@@ -8,6 +8,7 @@
 
 // REQUIRES: c++20
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -fkernel-exec-kind=2 --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>

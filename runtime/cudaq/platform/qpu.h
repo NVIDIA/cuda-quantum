@@ -174,6 +174,8 @@ public:
   /// as a struct-packed void pointer and its corresponding size.
   virtual void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                             void *args, std::uint64_t, std::uint64_t) = 0;
+  virtual void launchKernel(const std::string &name,
+                            const std::vector<void *> &rawArgs) = 0;
 
   /// Launch serialized code for remote execution. Subtypes that support this
   /// should override this function.
