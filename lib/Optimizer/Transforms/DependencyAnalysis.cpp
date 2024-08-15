@@ -109,74 +109,57 @@ public:
 class LifeTimeAnalysis {
 private:
   StringRef name;
-  SmallVector<SmallVector<LifeTime *>> lifetimes;
-  SmallVector<SetVector<PhysicalQID>> frames;
-  // DenseMap<size_t,LifeTime *> perQID;
-  DenseMap<VirtualQID, PhysicalQID> virToPhys;
-  size_t width;
+  SmallVector<LifeTime *> lifetimes;
+  SetVector<PhysicalQID> frame;
+  //DenseMap<VirtualQID, PhysicalQID> allocMap;
 
-  bool isInCurrentFrame(PhysicalQID pqid) {
-    return frames.back().contains(pqid);
-  }
-
-  void combineOrAdd(PhysicalQID pqid, LifeTime *lifetime) {
-    if (isInCurrentFrame(pqid))
-      lifetimes[pqid].back()->combine(lifetime);
-    else
-      lifetimes[pqid].push_back(lifetime);
-  }
-
-  /// Given a set of qubit lifetimes and a candidate lifetime,
-  /// tries to find a qubit to reuse, otherwise allocates a new qubit
+  /// Given a candidate lifetime, tries to find a qubit to reuse,
+  /// and otherwise allocates a new qubit
   PhysicalQID allocatePhysical(LifeTime *lifetime) {
-    std::optional<PhysicalQID> best_reuse = std::nullopt;
-    std::optional<PhysicalQID> empty = std::nullopt;
+    std::optional<size_t> best_reuse = std::nullopt;
+    std::optional<size_t> empty = std::nullopt;
     uint best_distance = INT_MAX;
+
     for (uint i = 0; i < lifetimes.size(); i++) {
-      if (lifetimes[i].empty()) {
+      if (!lifetimes[i]) {
         empty = i;
         continue;
       }
 
-      LifeTime *other = lifetimes[i].back();
+      auto other = lifetimes[i];
       auto distance = lifetime->distance(other);
-      if (lifetime->isAfter(other) && distance < best_distance) {
+      if (!lifetime->isOverlapping(other) && distance < best_distance) {
         best_reuse = i;
         best_distance = distance;
       }
     }
 
-    PhysicalQID physical = INT_MAX;
-
     // Reuse a qubit based on its lifetime in the same scope
-    if (best_reuse.has_value()) {
-      physical = best_reuse.value();
-    } else if (empty.has_value()) {
-      // Reuse a qubit based on its lifetime in a different scope
-      physical = empty.value();
-    } else {
-      // Fall back: allocate a new qubit
-      physical = lifetimes.size();
-      lifetimes.push_back({});
-      if (lifetimes.size() > width)
-        width = lifetimes.size();
+    if (best_reuse) {
+      auto physical = best_reuse.value();
+      lifetimes[physical]->combine(lifetime);
+      return physical;
     }
 
-    combineOrAdd(physical, lifetime);
-    return physical;
+    // Reuse a qubit without a lifetime (used in a different frame)
+    if (empty) {
+      auto physical = empty.value();
+      lifetimes[physical] = lifetime;
+      return physical;
+    }
+
+    // Fall back: allocate a new qubit
+    lifetimes.push_back(lifetime);
+    return lifetimes.size() - 1;
   }
 
 public:
   LifeTimeAnalysis(StringRef name)
-      : name(name), lifetimes(), frames(), width(0) {}
+      : name(name), lifetimes(), frame() {}
 
-  PhysicalQID mapToPhysical(VirtualQID qid, LifeTime *lifetime) {
-    if (virToPhys.count(qid) == 1)
-      return virToPhys[qid];
-
+  PhysicalQID allocatePhysical(VirtualQID qid, LifeTime *lifetime) {
     auto phys = allocatePhysical(lifetime);
-    frames.back().insert(phys);
-    virToPhys[qid] = phys;
+    frame.insert(phys);
     return phys;
   }
 
@@ -189,34 +172,28 @@ public:
   //   wirety, set, virToPhys[qid]);
   // }
 
-  void pushFrame() { frames.push_back({}); }
+  void pushFrame() {
+    // TODO: anything here?
+  }
 
   SetVector<PhysicalQID> popFrame() {
-    auto pqids = frames.back();
-    frames.pop_back();
-    for (auto pqid : pqids) {
-      lifetimes[pqid].pop_back();
-    }
+    for (uint i = 0; i < lifetimes.size(); i++)
+      lifetimes[i] = nullptr;
+    auto pqids = SetVector<PhysicalQID>(frame);
+    frame.clear();
     return pqids;
   }
 
-  void addOpaque(SetVector<PhysicalQID> pqids, LifeTime *lifetime) {
-    for (auto pqid : pqids) {
-      combineOrAdd(pqid, lifetime);
-      frames.back().insert(pqid);
-    }
+  void reallocatePhysical(PhysicalQID phys, LifeTime *lifetime) {
+    lifetimes[phys] = lifetime;
   }
 
-  size_t getCount() { return width; }
+  size_t getCount() { return lifetimes.size(); }
 
   void print() {
-    llvm::outs() << "# qubits: " << width << ", # frames: " << frames.size()
-                 << ", cycles: ";
+    llvm::outs() << "# qubits: " << getCount() << ", cycles: ";
     for (size_t i = 0; i < lifetimes.size(); i++)
-      if (lifetimes[i].empty())
-        llvm::outs() << "E ";
-      else
-        llvm::outs() << lifetimes[i].back()->getEnd() << " ";
+        llvm::outs() << lifetimes[i]->getBegin() << " - " << lifetimes[i]->getEnd() << " ";
     llvm::outs() << "\n";
   }
 
@@ -432,8 +409,8 @@ public:
            "performLiftingPass can only be called on an IfDependencyNode");
   }
 
-  virtual void mapToPhysical() {
-    assert(false && "mapToPhysical can only be called on an IfDependencyNode");
+  virtual void allocationPass(LifeTimeAnalysis &set) {
+    assert(false && "allocationPass can only be called on an IfDependencyNode");
   }
 
   // virtual void performAnalysis(LifeTimeAnalysis &set) {
@@ -486,7 +463,7 @@ protected:
     hasCodeGen = true;
   }
 
-  void performMapping(PhysicalQID phys) { pqid = phys; }
+  void assignToPhysical(PhysicalQID phys) { pqid = phys; }
 
   VirtualQID getQID() { return qids.front(); }
 
@@ -829,36 +806,30 @@ public:
       node->codeGen(builder, set);
   }
 
-  SetVector<PhysicalQID> mapToPhysicalAt(uint cycle, LifeTimeAnalysis &set) {
-    SetVector<DependencyNode *> nodes = getNodesAtCycle(cycle);
-
-    SetVector<PhysicalQID> pqids;
-
-    for (auto node : nodes)
-      pqids.set_union(node->mapToPhysical(set));
-
-    return pqids;
+  void allocationPass(LifeTimeAnalysis &set) {
+    for (auto container : containers)
+      container->allocationPass(set);
   }
 
   uint getHeight() { return total_height; }
 
-  SmallVector<VirtualQID> getFirstUsedAtCycle(uint cycle) {
-    SmallVector<VirtualQID> fresh;
-    for (auto [qid, _] : allocs)
-      if (getFirstUseOf(qid)->cycle == cycle)
-        fresh.push_back(qid);
+  // SmallVector<VirtualQID> getFirstUsedAtCycle(uint cycle) {
+  //   SmallVector<VirtualQID> fresh;
+  //   for (auto [qid, _] : allocs)
+  //     if (getFirstUseOf(qid)->cycle == cycle)
+  //       fresh.push_back(qid);
 
-    return fresh;
-  }
+  //   return fresh;
+  // }
 
-  SmallVector<VirtualQID> getLastUsedAtCycle(uint cycle) {
-    SmallVector<VirtualQID> stale;
-    for (auto [qid, _] : allocs)
-      if (getLastUseOf(qid)->cycle == cycle)
-        stale.push_back(qid);
+  // SmallVector<VirtualQID> getLastUsedAtCycle(uint cycle) {
+  //   SmallVector<VirtualQID> stale;
+  //   for (auto [qid, _] : allocs)
+  //     if (getLastUseOf(qid)->cycle == cycle)
+  //       stale.push_back(qid);
 
-    return stale;
-  }
+  //   return stale;
+  // }
 
   SetVector<VirtualQID> getAllocs() {
     SetVector<VirtualQID> allocated;
@@ -867,9 +838,9 @@ public:
     return allocated;
   }
 
-  void performMapping(VirtualQID qid, PhysicalQID phys) {
+  void assignToPhysical(VirtualQID qid, PhysicalQID phys) {
     if (allocs.count(qid) == 1)
-      allocs[qid]->performMapping(phys);
+      allocs[qid]->assignToPhysical(phys);
   }
 
   /// Qubits allocated within a dependency block that are only used inside an
@@ -919,20 +890,20 @@ public:
 
   // TODO: Cleanup duplicated code to replace/swap nodes (here, in replaceRoot,
   // and in IfDependencyNode::liftOp)
-  void replaceLeafWithAlloc(VirtualQID qid, DependencyNode *leaf) {
-    assert(leaf->qids.contains(qid) &&
+  void replaceLeafWithAlloc(VirtualQID qid, DependencyNode *new_leaf) {
+    assert(new_leaf->qids.contains(qid) &&
            "Replacement dependency has a different QID!");
-    assert(leaf->isAlloc() && "replaceLeafWithAlloc passed non-alloc");
+    assert(new_leaf->isAlloc() && "replaceLeafWithAlloc passed non-alloc");
     auto first_use = getFirstUseOf(qid);
     auto old_leaf = leafs[qid];
-    leafs[qid] = leaf;
+    leafs[qid] = new_leaf;
     for (uint i = 0; i < first_use->dependencies.size(); i++)
       if (first_use->dependencies[i].node == old_leaf)
-        first_use->dependencies[i] = DependencyNode::DependencyEdge(leaf, 0);
+        first_use->dependencies[i] = DependencyNode::DependencyEdge(new_leaf, 0);
     old_leaf->successors.remove(first_use);
-    leaf->successors.clear();
-    leaf->successors.insert(first_use);
-    allocs[qid] = static_cast<InitDependencyNode *>(leaf);
+    new_leaf->successors.clear();
+    new_leaf->successors.insert(first_use);
+    allocs[qid] = static_cast<InitDependencyNode *>(new_leaf);
   }
 
   void replaceRoot(VirtualQID qid, DependencyNode *root) {
@@ -1142,31 +1113,26 @@ public:
     return graph->getLastUseOf(qid);
   }
 
-  SetVector<PhysicalQID> mapToPhysical(LifeTimeAnalysis &set) {
-    set.pushFrame();
-    for (uint cycle = 0; cycle < height; cycle++) {
-      for (auto qid : graph->getFirstUsedAtCycle(cycle)) {
-        auto lifetime = graph->getLifeTimeForQID(qid);
-        LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
-        LLVM_DEBUG(llvm::dbgs()
-                    << " is in use from cycle " << lifetime->getBegin());
-        LLVM_DEBUG(llvm::dbgs() << " through cycle " << lifetime->getEnd());
-        LLVM_DEBUG(llvm::dbgs() << "\n");
+  void allocationPass(LifeTimeAnalysis &set) {
+    // Perform mapping inside-out
+    // New physical qubits will be captured by `set`
+    graph->allocationPass(set);
 
-        auto phys = set.mapToPhysical(qid, lifetime);
-        LLVM_DEBUG(llvm::dbgs()
-                    << "\tIt is mapped to the physical qubit " << phys);
-        LLVM_DEBUG(llvm::dbgs() << "\n\n");
+    for (auto qid : getAllocs()) {
+      auto lifetime = graph->getLifeTimeForQID(qid);
+      LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
+      LLVM_DEBUG(llvm::dbgs()
+                  << " is in use from cycle " << lifetime->getBegin());
+      LLVM_DEBUG(llvm::dbgs() << " through cycle " << lifetime->getEnd());
+      LLVM_DEBUG(llvm::dbgs() << "\n");
 
-        graph->performMapping(qid, phys);
-      }
+      auto phys = set.allocatePhysical(qid, lifetime);
+      LLVM_DEBUG(llvm::dbgs()
+                  << "\tIt is mapped to the physical qubit " << phys);
+      LLVM_DEBUG(llvm::dbgs() << "\n\n");
 
-      // New physical qubits will be captured in the LifeTimeAnalysis frame,
-      // no need to capture here
-      graph->mapToPhysicalAt(cycle, set);
+      graph->assignToPhysical(qid, phys);
     }
-
-    return set.popFrame();
   }
 
   /// Up to caller to move builder outside block after construction
@@ -1253,13 +1219,13 @@ public:
   }
 
   void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root,
-                          VirtualQID alloc) {
+                          VirtualQID qid) {
     for (uint i = 0; i < argdnodes.size(); i++)
-      if (argdnodes[i]->qids.contains(alloc))
+      if (argdnodes[i]->qids.contains(qid))
         argdnodes.erase(argdnodes.begin() + i);
 
-    graph->replaceLeafWithAlloc(alloc, init);
-    graph->replaceRoot(alloc, root);
+    graph->replaceLeafWithAlloc(qid, init);
+    graph->replaceRoot(qid, root);
   }
 
   void schedulingPass() {
@@ -1337,17 +1303,33 @@ protected:
     op->dependencies = newDeps;
   }
 
-  SetVector<PhysicalQID> mapToPhysical(LifeTimeAnalysis &set) override {
-    set.pushFrame();
+  void combineAllocs(SetVector<PhysicalQID> then_allocs, SetVector<PhysicalQID> else_allocs, LifeTimeAnalysis &set) {
+    SetVector<PhysicalQID> combined;
+    /*while (!then_allocs.empty() && !else_allocs.empty()) {
+      auto then_alloc = then_allocs.front();
+      then_allocs.erase(then_allocs.begin());
+      auto else_alloc = else_allocs.front();
+      else_allocs.erase(else_allocs.begin());
+      combined.insert(then_alloc);
+    }*/
+    combined.set_union(then_allocs);
+    combined.set_union(else_allocs);
+    
+    for (auto pqid : combined)
+      set.reallocatePhysical(pqid, new LifeTime(cycle, cycle + numTicks()));
+  }
+
+  void allocationPass(LifeTimeAnalysis &set) override {
     then_block->setCycle(cycle);
     else_block->setCycle(cycle);
-    auto pqids1 = then_block->mapToPhysical(set);
-    auto pqids2 = else_block->mapToPhysical(set);
-    set.popFrame();
+    //set.pushFrame();
+    then_block->allocationPass(set);
+    auto then_allocs = set.popFrame();
+    //set.pushFrame();
+    else_block->allocationPass(set);
+    auto else_allocs = set.popFrame();
     // TODO: function for combining pqids
-    pqids1.set_union(pqids2);
-    set.addOpaque(pqids1, new LifeTime(cycle, cycle + numTicks()));
-    return pqids1;
+    combineAllocs(then_allocs, else_allocs, set);
   };
 
   void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override {
@@ -1714,8 +1696,10 @@ struct DependencyAnalysisPass
         body->updateHeight();
         // Assign cycles to operations
         body->schedulingPass();
-        // Using cycle information, map VirtualQIDs to PhysicalQIDs
-        body->mapToPhysical(set);
+        // Using cycle information, allocate physical qubits
+        body->allocationPass(set);
+        // Use allocation information to update allocations
+        //body->assignPhysicalPass(set);
         // Finally, perform code generation to move back to quake
         body->codeGen(builder, &func.getRegion(), set);
         builder.setInsertionPointToStart(mod.getBody());
