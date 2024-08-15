@@ -164,15 +164,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -578,170 +570,15 @@
 <li><p>A variational quantum eigensolver that uses the quantum-number-preserving ansatz proposed by <a class="reference external" href="https://doi.org/10.1088/1367-2630/ac2cb3">Anselmetti et al. (2021)</a> to generate a quantum trial wave function <span class="math notranslate nohighlight">\(|\Psi_T\rangle\)</span> using CUDA Quantum.</p></li>
 <li><p>An Auxiliary-Field Quantum Monte Carlo simulation that realizes a classical imaginary time evolution and collects the ground state energy estimates.</p></li>
 </ol>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Package installs</span>
-
 <span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2
-<span class="c1">#!pip install openfermion==1.6.1</span>
-<span class="c1">#!pip install ipie==0.7.1</span>
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">ipie</span><span class="o">==</span><span class="m">0</span>.7.1
 </pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Relevant imports</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
-
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-
-<span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">ao2mo</span><span class="p">,</span> <span class="n">mcscf</span>
-
-<span class="kn">from</span> <span class="nn">openfermion</span> <span class="kn">import</span> <span class="n">jordan_wigner</span><span class="p">,</span> <span class="n">generate_hamiltonian</span>
-
-<span class="kn">from</span> <span class="nn">src.vqe_cudaq_qnp</span> <span class="kn">import</span> <span class="n">VQE</span><span class="p">,</span> <span class="n">get_cudaq_hamiltonian</span>
-<span class="kn">from</span> <span class="nn">src.utils_ipie</span> <span class="kn">import</span> <span class="n">get_coeff_wf</span><span class="p">,</span> <span class="n">gen_ipie_input_from_pyscf_chk</span>
-
-<span class="kn">from</span> <span class="nn">ipie.hamiltonians.generic</span> <span class="kn">import</span> <span class="n">Generic</span> <span class="k">as</span> <span class="n">HamGeneric</span>
-<span class="kn">from</span> <span class="nn">ipie.qmc.afqmc</span> <span class="kn">import</span> <span class="n">AFQMC</span>
-<span class="kn">from</span> <span class="nn">ipie.systems.generic</span> <span class="kn">import</span> <span class="n">Generic</span>
-<span class="kn">from</span> <span class="nn">ipie.trial_wavefunction.particle_hole</span> <span class="kn">import</span> <span class="n">ParticleHole</span>
-<span class="kn">from</span> <span class="nn">ipie.analysis.extraction</span> <span class="kn">import</span> <span class="n">extract_observable</span>
-
-<span class="kn">from</span> <span class="nn">ipie.config</span> <span class="kn">import</span> <span class="n">config</span>
-
-<span class="c1"># Ipie has recently added GPU support however this remains a bit tricky to use as it requires manual installation of several packages.</span>
-<span class="c1"># Once this is streamlined, we can set the GPU option to True in the tutorial.</span>
-<span class="n">config</span><span class="o">.</span><span class="n">update_option</span><span class="p">(</span><span class="s2">&quot;use_gpu&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-<br/></pre></div>
-</div>
-</div>
-<p>We start by defining the structure of the molecule, the basis set, and its spin. We build the molecule object with PySCF and run a preliminary Hartree-Fock computation. Here we choose as an example a <a class="reference external" href="https://doi.org/10.1021/acs.jctc.3c01375">chelating agent</a> representing a relevant class of substances industrially produced at large scales. Their use ranges, among the others, from water softeners in cleaning applications, modulators of redox behaviour in oxidative bleaching, scale
-suppressants, soil remediation and ligands for catalysts. In particular we focus here in a Fe(III)-NTA complex whose structure is given in the file imported below.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the molecular structure and the basis set for the Fenta molecule.</span>
-
-<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;src/geo_fenta.xyz&quot;</span>
-<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
-<span class="n">spin</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">5</span>
-<span class="n">num_active_electrons</span> <span class="o">=</span> <span class="mi">5</span>
-
-<span class="c1"># You can swap to O3 which is a smaller system and takes less computational resources and time to run.</span>
-
-<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;src/geo_o3.xyz&quot;</span>
-<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
-<span class="n">spin</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">9</span>
-<span class="n">num_active_electrons</span> <span class="o">=</span> <span class="mi">12</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># PYSCF helps to build the molecule and run Hartree-Fock.</span>
-
-<span class="c1"># Define the molecule.</span>
-<span class="n">molecule</span> <span class="o">=</span> <span class="n">gto</span><span class="o">.</span><span class="n">M</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">atom</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="n">spin</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-<span class="c1"># Restriced open shell HF.</span>
-<span class="n">hartee_fock</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">ROHF</span><span class="p">(</span><span class="n">molecule</span><span class="p">)</span>
-<span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span> <span class="o">=</span> <span class="s2">&quot;src/output.chk&quot;</span>
-
-<span class="c1"># Run Hartree-Fock.</span>
-<span class="n">hartee_fock</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
--224.34048064812256
-</pre></div></div>
-</div>
-<section id="Hamiltonian-preparation-for-VQE">
-<h2>Hamiltonian preparation for VQE<a class="headerlink" href="#Hamiltonian-preparation-for-VQE" title="Permalink to this heading">¶</a></h2>
-<p>Since this molecule contains of around 600 orbitals (which would correspond to 1200 qubits) and 143 total electrons, it is impossible to perform a full VQE with full statevector simulation. Therefore, we need to identify an active space with fewer orbitals and electrons that contribute to the strongly interacting part of the whole molecule. We then run a post Hartree-Fock computation with the PySCF’s built-in CASCI method in order to obtain the one-body (<span class="math notranslate nohighlight">\(t_{pq}\)</span>) and two-body
-(<span class="math notranslate nohighlight">\(V_{prqs}\)</span>) integrals that define the molecular Hamiltonian in the active space:</p>
-<div class="math notranslate nohighlight">
-\[H= \sum_{pq}t_{pq}\hat{a}_{p}^\dagger \hat {a}_{q}+\sum_{pqrs}  V_{prqs}\hat a_{p}^\dagger \hat a_{q}^\dagger \hat a_{s}\hat a_{r} \tag{1}\]</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run a CASCI simulation for computing the Hamiltonian in the active space.</span>
-<span class="n">casci</span> <span class="o">=</span> <span class="n">mcscf</span><span class="o">.</span><span class="n">CASCI</span><span class="p">(</span><span class="n">hartee_fock</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">,</span> <span class="n">num_active_electrons</span><span class="p">)</span>
-<span class="n">casci</span><span class="o">.</span><span class="n">fix_spin_</span><span class="p">(</span><span class="n">ss</span><span class="o">=</span><span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">spin</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">spin</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
-
-
-<span class="c1"># Executes the kernel to compute the hamiltonian in the active space.</span>
-<span class="n">casci</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-
-<span class="c1"># Compute the one-body (h1) and two-body integrals (tbi) as shown in equation 1.</span>
-<span class="n">h1</span><span class="p">,</span> <span class="n">energy_core</span> <span class="o">=</span> <span class="n">casci</span><span class="o">.</span><span class="n">get_h1eff</span><span class="p">()</span>
-
-<span class="n">h2</span> <span class="o">=</span> <span class="n">casci</span><span class="o">.</span><span class="n">get_h2eff</span><span class="p">()</span>
-<span class="n">h2_no_symmetry</span> <span class="o">=</span> <span class="n">ao2mo</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">)</span>
-
-<span class="c1"># V_pqrs terms in H.</span>
-<span class="n">tbi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h2_no_symmetry</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
-
-<span class="c1"># Compute the hamiltonian and convert it to a CUDA-Q operator.</span>
-<span class="n">mol_ham</span> <span class="o">=</span> <span class="n">generate_hamiltonian</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">energy_core</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-<span class="n">jw_hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner</span><span class="p">(</span><span class="n">mol_ham</span><span class="p">)</span>
-<span class="n">hamiltonian</span><span class="p">,</span> <span class="n">constant_term</span> <span class="o">=</span> <span class="n">get_cudaq_hamiltonian</span><span class="p">(</span><span class="n">jw_hamiltonian</span><span class="p">)</span>
-<br/></pre></div>
-</div>
-</div>
-</section>
-<section id="Run-VQE-with-CUDA-Q">
-<h2>Run VQE with CUDA-Q<a class="headerlink" href="#Run-VQE-with-CUDA-Q" title="Permalink to this heading">¶</a></h2>
-<p>We can now execute the VQE algorithm using the quantum number preserving ansatz. At the end of the VQE, we store the final statevector that will be used in the classical AFQMC computation as an initial guess.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define some options for the VQE.</span>
-<span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;n_vqe_layers&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
-    <span class="s1">&#39;energy_core&#39;</span><span class="p">:</span> <span class="n">constant_term</span><span class="p">,</span>
-    <span class="s1">&#39;return_final_state_vec&#39;</span><span class="p">:</span> <span class="kc">True</span>
-<span class="p">}</span>
-
-<span class="n">n_qubits</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_active_orbitals</span>
-
-<span class="n">vqe</span> <span class="o">=</span> <span class="n">VQE</span><span class="p">(</span><span class="n">n_qubits</span><span class="o">=</span><span class="n">n_qubits</span><span class="p">,</span>
-    <span class="n">num_active_electrons</span><span class="o">=</span><span class="n">num_active_electrons</span><span class="p">,</span>
-    <span class="n">spin</span><span class="o">=</span><span class="n">spin</span><span class="p">,</span>
-    <span class="n">options</span><span class="o">=</span><span class="n">options</span>
-<span class="p">)</span>
-
-<span class="n">results</span> <span class="o">=</span> <span class="n">vqe</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
-
-<span class="c1"># Best energy from VQE.</span>
-<span class="n">optimized_energy</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;energy_optimized&#39;</span><span class="p">]</span>
-
-<span class="c1"># Final state vector.</span>
-<span class="n">final_state_vector</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;state_vec&quot;</span><span class="p">]</span>
-
-<span class="c1"># Energies during the optimization loop.</span>
-<span class="n">vqe_energies</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;callback_energies&quot;</span><span class="p">]</span>
-<br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -749,217 +586,90 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-# Using cudaq optimizer
-# Num Params: 16
-# Qubits: 18
-# N_layers: 1
-# Energy after the VQE: -224.39452185068708
+Requirement already satisfied: pyscf==2.6.2 in /usr/local/lib/python3.10/dist-packages (2.6.2)
+Requirement already satisfied: h5py&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from pyscf==2.6.2) (3.10.0)
+Requirement already satisfied: scipy!=1.5.0,!=1.5.1 in /usr/local/lib/python3.10/dist-packages (from pyscf==2.6.2) (1.10.1)
+Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/python3.10/dist-packages (from pyscf==2.6.2) (1.26.4)
+Requirement already satisfied: setuptools in /usr/lib/python3/dist-packages (from pyscf==2.6.2) (59.6.0)
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>Requirement already satisfied: openfermion==1.6.1 in /usr/local/lib/python3.10/dist-packages (1.6.1)
+Requirement already satisfied: requests&gt;=2.18 in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (2.31.0)
+Requirement already satisfied: sympy in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (1.13.1)
+Requirement already satisfied: h5py&gt;=2.8 in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (3.10.0)
+Requirement already satisfied: numpy&gt;=1.11.0 in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (1.26.4)
+Requirement already satisfied: deprecation in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (2.1.0)
+Requirement already satisfied: networkx in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (3.3)
+Requirement already satisfied: pubchempy in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (1.0.4)
+Requirement already satisfied: scipy&gt;=1.1.0 in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (1.10.1)
+Requirement already satisfied: cirq-core~=1.0 in /usr/local/lib/python3.10/dist-packages (from openfermion==1.6.1) (1.4.1)
+Requirement already satisfied: sortedcontainers~=2.0 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (2.4.0)
+Requirement already satisfied: matplotlib~=3.0 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (3.9.1)
+Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (2.2.2)
+Requirement already satisfied: duet&gt;=0.2.8 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (0.2.9)
+Requirement already satisfied: attrs&gt;=21.3.0 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (23.2.0)
+Requirement already satisfied: tqdm in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (4.66.4)
+Requirement already satisfied: typing-extensions&gt;=4.2 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion==1.6.1) (4.12.2)
+Requirement already satisfied: urllib3&lt;3,&gt;=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion==1.6.1) (2.2.2)
+Requirement already satisfied: charset-normalizer&lt;4,&gt;=2 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion==1.6.1) (3.3.2)
+Requirement already satisfied: certifi&gt;=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion==1.6.1) (2024.7.4)
+Requirement already satisfied: idna&lt;4,&gt;=2.5 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion==1.6.1) (3.7)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from deprecation-&gt;openfermion==1.6.1) (24.1)
+Requirement already satisfied: mpmath&lt;1.4,&gt;=1.1.0 in /usr/local/lib/python3.10/dist-packages (from sympy-&gt;openfermion==1.6.1) (1.3.0)
+Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (10.4.0)
+Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (1.4.5)
+Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (2.9.0.post0)
+Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (4.53.1)
+Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (0.12.1)
+Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (3.1.2)
+Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (1.2.1)
+Requirement already satisfied: tzdata&gt;=2022.7 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (2024.1)
+Requirement already satisfied: pytz&gt;=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (2024.1)
+Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib~=3.0-&gt;cirq-core~=1.0-&gt;openfermion==1.6.1) (1.16.0)
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>Collecting ipie==0.7.1
+  Downloading ipie-0.7.1-py3-none-any.whl (528 kB)
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">528.7/528.7 KB</span> <span class="ansi-red-fg">11.8 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (2.2.2)
+Requirement already satisfied: h5py&gt;=3.0.0 in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (3.10.0)
+Requirement already satisfied: scipy&gt;=1.3.0 in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (1.10.1)
+Requirement already satisfied: pytest in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (8.2.0)
+Collecting plum-dispatch
+  Downloading plum_dispatch-2.5.2-py3-none-any.whl (42 kB)
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">42.3/42.3 KB</span> <span class="ansi-red-fg">11.9 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+Requirement already satisfied: numpy&gt;=1.20.0 in /usr/local/lib/python3.10/dist-packages (from ipie==0.7.1) (1.26.4)
+Collecting numba
+  Downloading numba-0.60.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3.7 MB)
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">3.7/3.7 MB</span> <span class="ansi-red-fg">82.7 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+Collecting llvmlite&lt;0.44,&gt;=0.43.0dev0
+  Downloading llvmlite-0.43.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (43.9 MB)
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">43.9/43.9 MB</span> <span class="ansi-red-fg">55.8 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+Requirement already satisfied: tzdata&gt;=2022.7 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;ipie==0.7.1) (2024.1)
+Requirement already satisfied: python-dateutil&gt;=2.8.2 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;ipie==0.7.1) (2.9.0.post0)
+Requirement already satisfied: pytz&gt;=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;ipie==0.7.1) (2024.1)
+Collecting beartype&gt;=0.16.2
+  Downloading beartype-0.18.5-py3-none-any.whl (917 kB)
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">917.8/917.8 KB</span> <span class="ansi-red-fg">125.9 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+Requirement already satisfied: typing-extensions&gt;=4.9.0 in /usr/local/lib/python3.10/dist-packages (from plum-dispatch-&gt;ipie==0.7.1) (4.12.2)
+Requirement already satisfied: rich&gt;=10.0 in /usr/local/lib/python3.10/dist-packages (from plum-dispatch-&gt;ipie==0.7.1) (13.7.1)
+Requirement already satisfied: iniconfig in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (2.0.0)
+Requirement already satisfied: exceptiongroup&gt;=1.0.0rc8 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (1.2.2)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (24.1)
+Requirement already satisfied: pluggy&lt;2.0,&gt;=1.5 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (1.5.0)
+Requirement already satisfied: tomli&gt;=1 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;ipie==0.7.1) (2.0.1)
+Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.8.2-&gt;pandas-&gt;ipie==0.7.1) (1.16.0)
+Requirement already satisfied: pygments&lt;3.0.0,&gt;=2.13.0 in /usr/local/lib/python3.10/dist-packages (from rich&gt;=10.0-&gt;plum-dispatch-&gt;ipie==0.7.1) (2.18.0)
+Requirement already satisfied: markdown-it-py&gt;=2.2.0 in /usr/local/lib/python3.10/dist-packages (from rich&gt;=10.0-&gt;plum-dispatch-&gt;ipie==0.7.1) (2.2.0)
+Requirement already satisfied: mdurl~=0.1 in /usr/local/lib/python3.10/dist-packages (from markdown-it-py&gt;=2.2.0-&gt;rich&gt;=10.0-&gt;plum-dispatch-&gt;ipie==0.7.1) (0.1.2)
+Installing collected packages: llvmlite, beartype, numba, plum-dispatch, ipie
+  Attempting uninstall: llvmlite
+    Found existing installation: llvmlite 0.42.0
+    Uninstalling llvmlite-0.42.0:
+      Successfully uninstalled llvmlite-0.42.0
+Successfully installed beartype-0.18.5 ipie-0.7.1 llvmlite-0.43.0 numba-0.60.0 plum-dispatch-2.5.2
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>
 </pre></div></div>
 </div>
-</section>
-<section id="Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">
-<h2>Auxiliary Field Quantum Monte Carlo (AFQMC)<a class="headerlink" href="#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)" title="Permalink to this heading">¶</a></h2>
-<p>AFQMC is a numerical method for computing relevant properties of strongly interacting molecules. AFQMC is a type of Quantum Monte Carlo method that combines the use of random walks with an auxiliary field to simulate the imaginary-time evolution of a quantum system and drive it to the lowest energy state. This method can provide accurate results for ground-state properties of a wide range of physical systems, including atoms, molecules, and solids. Here we summarize the main features of AFQMC
-while a detailed introduction to can be found <a class="reference external" href="https://www.cond-mat.de/events/correl13/manuscripts/zhang.pdf">here</a>.</p>
-<p>We consider the electronic Hamiltonian in the second quantization <span class="math">\begin{equation}
-H = {H}_1 + {H}_2
-=\sum_{pq} h_{pq} {a}_{p}^{\dagger} {a}_{q} + \frac{1}{2} \sum_{pqrs} v_{pqrs}{a}_{p}^{\dagger} {a}_r {a}^{\dagger}_{q} {a}_s \tag{2}
-\end{equation}</span> where <span class="math notranslate nohighlight">\({a}_{p}^{\dagger}\)</span> and <span class="math notranslate nohighlight">\({a}_{q}\)</span> are fermionic creation and annihilation operators of orbitals <span class="math notranslate nohighlight">\(p\)</span> and <span class="math notranslate nohighlight">\(q\)</span>, respectively. The terms $h_{pq} $ and <span class="math notranslate nohighlight">\(v_{pqrs}\)</span> are the matrix elements of the one-body, <span class="math notranslate nohighlight">\(H_1\)</span>, and two-body, <span class="math notranslate nohighlight">\(H_2\)</span>, interactions of <span class="math notranslate nohighlight">\(H\)</span>, respectively. Here, we omit the spin indices for simplicity.</p>
-<p>AFQMC realizes an imaginary time propagation of an initial state (chosen as a Slater determinant) <span class="math notranslate nohighlight">\(\ket{\Psi_{I}}\)</span> towards the ground state <span class="math notranslate nohighlight">\(\ket{\Psi_0}\)</span> of a given hamiltonian, <span class="math notranslate nohighlight">\(H\)</span>, with <span class="math">\begin{equation}
-\ket{\Psi_0} \sim\lim_{n \to \infty} \left[ e^{-\Delta\tau H  }  \right]^{n} \ket{\Psi_{I}}
-\tag{3}
-\end{equation}</span> where <span class="math notranslate nohighlight">\(\Delta\tau\)</span> is the imaginary time step.</p>
-<p>AFQMC relies on decomposing the two-body interactions <span class="math notranslate nohighlight">\(H_2\)</span> in terms of sum of squares of one-body operators <span class="math notranslate nohighlight">\({v}_\gamma\)</span> such that the Hamiltonian <span class="math notranslate nohighlight">\({H}\)</span> becomes <span class="math">\begin{equation}
-H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
-\tag{4}
-\end{equation}</span> with ${v}<em>0 = {H}1 $ and $ {v}:nbsphinx-math:`gamma `= i :nbsphinx-math:`sum`</em>{pq} L<sup>{:nbsphinx-math:</sup>gamma`}{pq} {a}{p}`{<span class="math">\dagger</span>}{a}_{q}. $ The <span class="math notranslate nohighlight">\(N_\gamma\)</span> matrices <span class="math notranslate nohighlight">\(L^{\gamma}_{pq}\)</span> are called Cholesky vectors as they are obtained via a Cholesky decomposition of the two-body matrix elements <span class="math notranslate nohighlight">\(v_{pqrs}\)</span> via <span class="math notranslate nohighlight">\(v_{pqrs} = \sum_{\gamma=1}^{N_\gamma} L^{\gamma}_{pr} L^{\gamma}_{qs}\)</span>.</p>
-<p>The imaginary time propagation evolves an ensemble of walkers <span class="math notranslate nohighlight">\(\{\phi^{(n)}\}\)</span> (that are Slater determinants) and allows one to access observables of the system. For example, the local energy <span class="math">\begin{equation}
-\mathcal{E}_{\text{loc}}(\phi^{(n)}) = \frac{\bra{\Psi_\mathrm{T}}H\ket{\phi^{(n)}}}{\braket{\Psi_\mathrm{T}| \phi^{(n)}}}
-\tag{5}
-\end{equation}</span> defined as the mixed expectation value of the Hamiltonian with the trial wave function <span class="math notranslate nohighlight">\(\ket{\Psi_\mathrm{T}}\)</span>.</p>
-<p>The trial wavefunction can be in general a single or a multi-Slater determinant coming from VQE for example. This might help in achieving more accurate ground state energy estimates.</p>
-<p>The implementation of AFQMC we use here is from <a class="reference external" href="https://github.com/JoonhoLee-Group/ipie">ipie</a> that supports both CPUs and GPUs and requires the following steps:</p>
-<ol class="arabic simple">
-<li><p>Preparation of the molecular Hamiltonian by performing the Cholesky decomposition</p></li>
-<li><p>Preparation of the trial state from the VQE wavefunction</p></li>
-<li><p>Executing AFQMC</p></li>
-</ol>
-</section>
-<section id="Preparation-of-the-molecular-Hamiltonian">
-<h2>Preparation of the molecular Hamiltonian<a class="headerlink" href="#Preparation-of-the-molecular-Hamiltonian" title="Permalink to this heading">¶</a></h2>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># AFQMC.</span>
-
-<span class="c1"># Generate the input Hamiltonian for ipie from the checkpoint file from pyscf.</span>
-<span class="n">ipie_hamiltonian</span> <span class="o">=</span> <span class="n">gen_ipie_input_from_pyscf_chk</span><span class="p">(</span><span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span><span class="p">,</span>
-                                                <span class="n">mcscf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                                <span class="n">chol_cut</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
-
-
-<span class="n">h1e</span><span class="p">,</span> <span class="n">cholesky_vectors</span><span class="p">,</span> <span class="n">e0</span> <span class="o">=</span> <span class="n">ipie_hamiltonian</span>
-
-
-<span class="n">num_basis</span> <span class="o">=</span> <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="n">num_chol</span> <span class="o">=</span> <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-
-<span class="n">system</span> <span class="o">=</span> <span class="n">Generic</span><span class="p">(</span><span class="n">nelec</span><span class="o">=</span><span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">)</span>
-
-
-<span class="n">afqmc_hamiltonian</span> <span class="o">=</span> <span class="n">HamGeneric</span><span class="p">(</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">h1e</span><span class="p">,</span> <span class="n">h1e</span><span class="p">]),</span>
-    <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">num_basis</span> <span class="o">*</span> <span class="n">num_basis</span><span class="p">,</span> <span class="n">num_chol</span><span class="p">)),</span>
-    <span class="n">e0</span>
-<span class="p">)</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-# Number of electrons in simulation: (12, 12)
-</pre></div></div>
-</div>
-</section>
-<section id="Preparation-of-the-trial-wave-function">
-<h2>Preparation of the trial wave function<a class="headerlink" href="#Preparation-of-the-trial-wave-function" title="Permalink to this heading">¶</a></h2>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build the trial wavefunction from the state vector computed via VQE.</span>
-<span class="n">wavefunction</span> <span class="o">=</span> <span class="n">get_coeff_wf</span><span class="p">(</span><span class="n">final_state_vector</span><span class="p">,</span>
-    <span class="n">n_active_elec</span><span class="o">=</span><span class="n">num_active_electrons</span><span class="p">,</span>
-    <span class="n">spin</span><span class="o">=</span><span class="n">spin</span>
-<span class="p">)</span>
-
-
-<span class="n">trial</span> <span class="o">=</span> <span class="n">ParticleHole</span><span class="p">(</span><span class="n">wavefunction</span><span class="p">,</span>
-    <span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">,</span>
-    <span class="n">num_basis</span><span class="p">,</span>
-    <span class="n">num_dets_for_props</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">wavefunction</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
-<span class="p">)</span>
-
-
-<span class="n">trial</span><span class="o">.</span><span class="n">compute_trial_energy</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="n">trial</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
-<span class="n">trial</span><span class="o">.</span><span class="n">half_rotate</span><span class="p">(</span><span class="n">afqmc_hamiltonian</span><span class="p">)</span>
-<br/></pre></div>
-</div>
-</div>
-</section>
-<section id="Setup-of-the-AFQMC-parameters">
-<h2>Setup of the AFQMC parameters<a class="headerlink" href="#Setup-of-the-AFQMC-parameters" title="Permalink to this heading">¶</a></h2>
-<p>Here we can choose the input options like the timestep <span class="math notranslate nohighlight">\(\Delta\tau\)</span>, the total number of walkers <code class="docutils literal notranslate"><span class="pre">num_walkers</span></code> and the total number of AFQMC iterations <code class="docutils literal notranslate"><span class="pre">num_blocks</span></code>.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup the AFQMC parameters.</span>
-<span class="n">afqmc_msd</span> <span class="o">=</span> <span class="n">AFQMC</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">,</span>
-    <span class="n">afqmc_hamiltonian</span><span class="p">,</span>
-    <span class="n">trial</span><span class="p">,</span>
-    <span class="n">num_walkers</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">num_steps_per_block</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
-    <span class="n">num_blocks</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-    <span class="n">timestep</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
-    <span class="n">stabilize_freq</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-    <span class="n">seed</span><span class="o">=</span><span class="mi">96264512</span><span class="p">,</span>
-    <span class="n">pop_control_freq</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
-<span class="p">)</span>
-
-
-<span class="c1"># Run the AFQMC.</span>
-<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">estimator_filename</span> <span class="o">=</span> <span class="s1">&#39;src/estimates.0.h5&#39;</span><span class="p">)</span>
-<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">finalise</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-
-<span class="c1"># Extract the energies.</span>
-<span class="n">qmc_data</span> <span class="o">=</span> <span class="n">extract_observable</span><span class="p">(</span><span class="n">afqmc_msd</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">)</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-# random seed is 96264512
-            Block                   Weight            WeightFactor            HybridEnergy                  ENumer                  EDenom                  ETotal                  E1Body                  E2Body
-                0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2439591027234594e+04  1.0000000000000000e+02 -2.2439591027234593e+02 -3.7639365204494345e+02  1.5199774177259764e+02
-                1   4.2256000496349890e+02  1.4117556098169348e+03 -1.1708529801936599e+02 -2.2475068683927871e+04  1.0000000000000001e+02 -2.2475068683927867e+02 -3.7647338399999575e+02  1.5172269716071702e+02
-                2   1.0031454047700036e+02  3.8294888392783992e+02 -1.1739541589478384e+02 -2.2490659867194303e+04  1.0000000000000000e+02 -2.2490659867194304e+02 -3.7651565111708385e+02  1.5160905244514078e+02
-                3   9.9898923466161108e+01  1.0007646011785047e+02 -1.1733240634757561e+02 -2.2497152891732869e+04  9.9999999999999972e+01 -2.2497152891732878e+02 -3.7660590259940312e+02  1.5163437368207443e+02
-                4   1.0009044647445315e+02  1.0004665927540412e+02 -1.1745287610119324e+02 -2.2496909286062455e+04  1.0000000000000000e+02 -2.2496909286062456e+02 -3.7677071066118924e+02  1.5180161780056466e+02
-                5   9.9997180824454517e+01  1.0010484120650688e+02 -1.1749099020043148e+02 -2.2504007171732861e+04  1.0000000000000001e+02 -2.2504007171732857e+02 -3.7664614156352451e+02  1.5160606984619599e+02
-                6   1.0011557063573420e+02  1.0018019433319050e+02 -1.1766148584545164e+02 -2.2514203758836516e+04  1.0000000000000000e+02 -2.2514203758836516e+02 -3.7662625674428324e+02  1.5148421915591803e+02
-                7   9.9931525416193196e+01  9.9916034573988441e+01 -1.1760841118584931e+02 -2.2517036833412742e+04  9.9999999999999986e+01 -2.2517036833412746e+02 -3.7661843516895709e+02  1.5144806683482960e+02
-                8   9.9903476578190407e+01  9.9912313163381626e+01 -1.1757234978043282e+02 -2.2518386978926406e+04  1.0000000000000003e+02 -2.2518386978926398e+02 -3.7676621990356125e+02  1.5158235011429718e+02
-                9   1.0011930350745835e+02  1.0011945880130199e+02 -1.1775810163433050e+02 -2.2513361143529906e+04  1.0000000000000001e+02 -2.2513361143529903e+02 -3.7678765964969222e+02  1.5165404821439310e+02
-               10   9.9637781105330944e+01  9.9240633759774937e+01 -1.1745700500053621e+02 -2.2518535254251710e+04  1.0000000000000001e+02 -2.2518535254251708e+02 -3.7689330685415564e+02  1.5170795431163862e+02
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the energies.</span>
-
-<span class="n">vqe_y</span> <span class="o">=</span> <span class="n">vqe_energies</span>
-<span class="n">vqe_x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vqe_y</span><span class="p">)))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vqe_x</span><span class="p">,</span> <span class="n">vqe_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;VQE&quot;</span><span class="p">)</span>
-
-<span class="n">afqmc_y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qmc_data</span><span class="p">[</span><span class="s2">&quot;ETotal&quot;</span><span class="p">])</span>
-<span class="n">afqmc_x</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">vqe_x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">afqmc_y</span><span class="p">)))]</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">afqmc_x</span><span class="p">,</span> <span class="n">afqmc_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;AFQMC&quot;</span><span class="p">)</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Optimization steps&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Energy [Ha]&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7a9769507370&gt;
-
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../../_images/examples_python_tutorials_afqmc_22_1.png" src="../../../_images/examples_python_tutorials_afqmc_22_1.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 89cc268013cd97ded9e8c9f675bf805a8bca3554)
-</pre></div></div>
-</div>
-</section>
 </section>
 
 
