@@ -23,6 +23,8 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -179,6 +181,47 @@ struct BorrowWireRewrite : OpConversionPattern<quake::BorrowWireOp> {
     return success();
   }
 };
+
+struct BranchRewrite : OpConversionPattern<cf::BranchOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cf::BranchOp branchOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto qubitTy = cudaq::opt::getQubitType(rewriter.getContext());
+    rewriter.startRootUpdate(branchOp);
+    if (branchOp.getSuccessor())
+      for (auto arg : branchOp.getSuccessor()->getArguments())
+        if (isa<quake::WireType>(arg.getType()))
+          arg.setType(qubitTy);
+    for (auto operand : branchOp.getOperands())
+      if (isa<quake::WireType>(operand.getType()))
+        operand.setType(qubitTy);
+    rewriter.finalizeRootUpdate(branchOp);
+    return success();
+  }
+};
+
+struct CondBranchRewrite : OpConversionPattern<cf::CondBranchOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cf::CondBranchOp branchOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto qubitTy = cudaq::opt::getQubitType(rewriter.getContext());
+    rewriter.startRootUpdate(branchOp);
+    for (auto suc : branchOp.getSuccessors())
+      for (auto arg : suc->getArguments())
+        if (isa<quake::WireType>(arg.getType()))
+          arg.setType(qubitTy);
+    for (auto operand : branchOp.getOperands())
+      if (isa<quake::WireType>(operand.getType()))
+        operand.setType(qubitTy);
+    rewriter.finalizeRootUpdate(branchOp);
+    return success();
+  }
+};
+
 
 struct ReturnWireRewrite : OpConversionPattern<quake::ReturnWireOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -361,7 +404,8 @@ struct WireSetToProfileQIRPass
     QuakeTypeConverter quakeTypeConverter;
     unsigned resultCounter = 0;
     OutputNamesType resultQubitVals;
-    patterns.insert<GeneralRewrite<quake::HOp>, GeneralRewrite<quake::XOp>,
+    patterns.insert<BranchRewrite, CondBranchRewrite,
+                    GeneralRewrite<quake::HOp>, GeneralRewrite<quake::XOp>,
                     GeneralRewrite<quake::YOp>, GeneralRewrite<quake::ZOp>,
                     GeneralRewrite<quake::SOp>, GeneralRewrite<quake::TOp>,
                     GeneralRewrite<quake::RxOp>, GeneralRewrite<quake::RyOp>,
