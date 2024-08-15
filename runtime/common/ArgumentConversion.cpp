@@ -130,7 +130,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                          ModuleOp substMod, llvm::DataLayout &layout,
                          const cudaq::opt::PlatformSettings &platform) {
   if (platform.isSimulator && !platform.isRemote) {
-    // The program is executed in the same memory, use the pointer directly.
+    // The program is executed in the same address space, use the pointer
+    // directly.
     auto loc = builder.getUnknownLoc();
     Value rawPtr = builder.create<arith::ConstantIntOp>(
         loc, reinterpret_cast<std::intptr_t>(v), sizeof(void *) * 8);
@@ -140,9 +141,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   }
   if (platform.isSimulator && platform.isRemote) {
     // The program is executed remotely, materialize the simulation data
-    // into an array an use it instead of the state.
-    // Note: a later pass const-props `__nvqpp_cudaq_state_numberOfQubits`
-    // runtime calls.
+    // into an array and use it instead of the state.
     auto ctx = builder.getContext();
     auto stateData = cudaq::opt::StateData::readStateData(v);
     auto eleTy = stateData.elementSize == sizeof(std::complex<double>)
@@ -152,8 +151,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     return genConstant(builder, arrTy, stateData.data, substMod, layout,
                        platform);
   }
-  // The program is executed on quantum hardware, state data is not available
-  // and needs to be regenerated or approximated.
+  // The program is executed on quantum hardware, state data is not
+  // available and needs to be regenerated.
   TODO("cudaq::state* argument synthesis for quantum hardware");
   return {};
 }
