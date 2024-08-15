@@ -98,9 +98,11 @@ struct AddWiresetPass
   void runOnOperation() override {
     ModuleOp mod = getOperation();
     OpBuilder builder(mod.getBodyRegion());
-    builder.create<quake::WireSetOp>(builder.getUnknownLoc(),
-                                     cudaq::opt::topologyAgnosticWiresetName,
-                                     INT_MAX, ElementsAttr{});
+    if (!mod.lookupSymbol<quake::WireSetOp>(
+            cudaq::opt::topologyAgnosticWiresetName))
+      builder.create<quake::WireSetOp>(builder.getUnknownLoc(),
+                                       cudaq::opt::topologyAgnosticWiresetName,
+                                       INT_MAX, ElementsAttr{});
   }
 };
 

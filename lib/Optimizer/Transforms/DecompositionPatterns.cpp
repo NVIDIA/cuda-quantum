@@ -1059,8 +1059,6 @@ struct RyToPhasedRx : public OpRewritePattern<quake::RyOp> {
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
-    if (!quake::isAllReferences(op))
-      return failure();
 
     // Op info
     Location loc = op->getLoc();
@@ -1073,6 +1071,17 @@ struct RyToPhasedRx : public OpRewritePattern<quake::RyOp> {
     // Necessary/Helpful constants
     ValueRange noControls;
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
+
+    if (!quake::isAllReferences(op)) {
+      auto wireTy = quake::WireType::get(rewriter.getContext());
+      std::array<Value, 2> parameters = {angle, pi_2};
+      auto newOp = rewriter.create<quake::PhasedRxOp>(
+          loc, TypeRange{wireTy}, /*is_adj=*/false, parameters, noControls,
+          target, DenseBoolArrayAttr{});
+      op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
+      rewriter.eraseOp(op);
+      return success();
+    }
 
     ValueRange parameters = {angle, pi_2};
     rewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);

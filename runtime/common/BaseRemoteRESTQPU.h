@@ -22,6 +22,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/TargetConfig.h"
@@ -472,6 +473,9 @@ public:
         // Create a new Module to clone the ansatz into it
         auto tmpModuleOp = builder.create<mlir::ModuleOp>();
         tmpModuleOp.push_back(ansatz.clone());
+        moduleOp.walk([&](quake::WireSetOp wireSetOp) {
+          tmpModuleOp.push_back(wireSetOp.clone());
+        });
 
         // Extract the binary symplectic encoding
         auto [binarySymplecticForm, coeffs] = term.get_raw_data();
@@ -487,7 +491,14 @@ public:
           pm.enableIRPrinting();
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
-        runPassPipeline(passPipelineConfig, tmpModuleOp);
+        // The full pass pipeline was run above, but the ansatz pass can
+        // introduce gates that aren't supported by the backend, so we need to
+        // re-run the gate set mapping if that existed in the original pass
+        // pipeline.
+        auto csvSplit = cudaq::split(passPipelineConfig, ',');
+        for (auto &pass : csvSplit)
+          if (pass.ends_with("-gate-set-mapping"))
+            runPassPipeline(pass, tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else
