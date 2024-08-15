@@ -62,8 +62,7 @@ public:
   mlir::LogicalResult operator()(mlir::Operation *op,
                                  llvm::raw_string_ostream &output,
                                  const std::string &additionalPasses,
-                                 bool printIR,
-                                 bool printIntermediateMLIR,
+                                 bool printIR, bool printIntermediateMLIR,
                                  bool printStats) const {
     return function(op, output, additionalPasses, printIR,
                     printIntermediateMLIR, printStats);
