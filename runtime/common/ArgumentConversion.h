@@ -16,6 +16,7 @@
 
 namespace cudaq::opt {
 
+/// @brief Owner wrapper for data extracted from a simulation state.
 class StateData {
 public:
   typedef void (*Deleter)(void *);
