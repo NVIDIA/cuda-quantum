@@ -273,7 +273,8 @@ protected:
   virtual void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) = 0;
 
   /// Recursively find nodes scheduled at a given cycle
-  SetVector<DependencyNode *> getNodesAtCycle(uint _cycle, SetVector<DependencyNode *> &seen) {
+  SetVector<DependencyNode *>
+  getNodesAtCycle(uint _cycle, SetVector<DependencyNode *> &seen) {
     SetVector<DependencyNode *> nodes;
 
     if (cycle < _cycle || seen.contains(this))
@@ -994,7 +995,8 @@ protected:
   }
 
 public:
-  RootDependencyNode(quake::ReturnWireOp op, SmallVector<DependencyEdge> dependencies)
+  RootDependencyNode(quake::ReturnWireOp op,
+                     SmallVector<DependencyEdge> dependencies)
       : OpDependencyNode(op, dependencies) {
     // numTicks won't be properly calculated by OpDependencyNode constructor,
     // so have to recompute height here
@@ -1671,9 +1673,10 @@ struct DependencyAnalysisPass
       if (auto func = dyn_cast<func::FuncOp>(op)) {
         if (!func->hasAttr("cudaq-kernel"))
           continue;
-        
+
         if (func.getNumResults() == 0) {
-          func->emitRemark("Function marked 'cudaq-kernel' returns no results, qubit management skipped.");
+          func->emitRemark("Function marked 'cudaq-kernel' returns no results, "
+                           "qubit management skipped.");
           continue;
         }
 

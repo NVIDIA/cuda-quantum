@@ -471,10 +471,9 @@ void registerToQIRTranslation() {
       [](mlir::Operation *op, llvm::raw_string_ostream &output,                \
          const std::string &additionalPasses, bool printIR,                    \
          bool printIntermediateMLIR, bool printStats) {                        \
-        return qirProfileTranslationFunction(_profile, op, output,             \
-                                             additionalPasses, printIR,        \
-                                             printIntermediateMLIR,            \
-                                             printStats);                      \
+        return qirProfileTranslationFunction(                                  \
+            _profile, op, output, additionalPasses, printIR,                   \
+            printIntermediateMLIR, printStats);                                \
       })
 
   // Base Profile and Adaptive Profile are very similar, so they use the same
