@@ -16,7 +16,6 @@ add_cudaq_library(OptTransforms
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
-  AssignIDs.cpp
   BasisConversion.cpp
   CombineQuantumAlloc.cpp
   ConstPropComplex.cpp

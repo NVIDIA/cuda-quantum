@@ -100,18 +100,7 @@ def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
     "mlir::cf::ControlFlowDialect"];
 }
 
-def AssignIDs : Pass<"assign-ids", "mlir::func::FuncOp"> {
-  let summary = "Generate and assign unique identifiers for virtual qubits.";
-  let description = [{
-   Attachs a matching unique ID attribute to each `quake.null_wire` and
-   corresponding `quake.sink`. This is used in DependencyAnalysis to associate
-   allocations and deallocations for tracking qubit lifetimes.
-  }];
-
-  let dependentDialects = ["quake::QuakeDialect"];
-}
-
-def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
+def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.
@@ -226,7 +215,7 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   ];
 }
 
-def DependencyAnalysis : Pass<"dep-analysis", "mlir::func::FuncOp"> {
+def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
   let summary = "Maps qubits and reorders operations based on dependency graph.";
   let description = [{
     A dependency graph is a Directed Acyclic Graph (DAG) where each node
