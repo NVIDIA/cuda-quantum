@@ -111,7 +111,7 @@ private:
   StringRef name;
   SmallVector<LifeTime *> lifetimes;
   SetVector<PhysicalQID> frame;
-  //DenseMap<VirtualQID, PhysicalQID> allocMap;
+  // DenseMap<VirtualQID, PhysicalQID> allocMap;
 
   /// Given a candidate lifetime, tries to find a qubit to reuse,
   /// and otherwise allocates a new qubit
@@ -154,8 +154,7 @@ private:
   }
 
 public:
-  LifeTimeAnalysis(StringRef name)
-      : name(name), lifetimes(), frame() {}
+  LifeTimeAnalysis(StringRef name) : name(name), lifetimes(), frame() {}
 
   PhysicalQID allocatePhysical(VirtualQID qid, LifeTime *lifetime) {
     auto phys = allocatePhysical(lifetime);
@@ -193,7 +192,8 @@ public:
   void print() {
     llvm::outs() << "# qubits: " << getCount() << ", cycles: ";
     for (size_t i = 0; i < lifetimes.size(); i++)
-        llvm::outs() << lifetimes[i]->getBegin() << " - " << lifetimes[i]->getEnd() << " ";
+      llvm::outs() << lifetimes[i]->getBegin() << " - "
+                   << lifetimes[i]->getEnd() << " ";
     llvm::outs() << "\n";
   }
 
@@ -623,8 +623,9 @@ public:
     return getResultIDXFromOperandIDX(operandidx, associated);
   }
 
-  /// Remove this dependency node from the path for \p qid by replacing successor
-  /// dependencies on \p qid with the relevant dependency from this node.
+  /// Remove this dependency node from the path for \p qid by replacing
+  /// successor dependencies on \p qid with the relevant dependency from this
+  /// node.
   virtual void eraseQID(VirtualQID qid) {
     for (auto successor : successors) {
       for (uint j = 0; j < successor->dependencies.size(); j++) {
@@ -861,7 +862,8 @@ public:
   /// TODO: should be able to parallelize this across all blocks
   void schedulingPass() {
     if (!tallest) {
-      assert(roots.empty() && "updateHeight not invoked before scheduling graph!");
+      assert(roots.empty() &&
+             "updateHeight not invoked before scheduling graph!");
       return;
     }
     for (auto container : containers)
@@ -899,7 +901,8 @@ public:
     leafs[qid] = new_leaf;
     for (uint i = 0; i < first_use->dependencies.size(); i++)
       if (first_use->dependencies[i].node == old_leaf)
-        first_use->dependencies[i] = DependencyNode::DependencyEdge(new_leaf, 0);
+        first_use->dependencies[i] =
+            DependencyNode::DependencyEdge(new_leaf, 0);
     old_leaf->successors.remove(first_use);
     new_leaf->successors.clear();
     new_leaf->successors.insert(first_use);
@@ -1093,17 +1096,11 @@ public:
 
   uint getHeight() { return height; }
 
-  void setCycle(uint cycle) {
-    graph->setCycleOffset(cycle);
-  }
+  void setCycle(uint cycle) { graph->setCycleOffset(cycle); }
 
-  SetVector<VirtualQID> getAllocs() {
-    return graph->getAllocs();
-  }
+  SetVector<VirtualQID> getAllocs() { return graph->getAllocs(); }
 
-  SetVector<VirtualQID> getQIDs() {
-    return graph->getQIDs();
-  }
+  SetVector<VirtualQID> getQIDs() { return graph->getQIDs(); }
 
   OpDependencyNode *getFirstUseOf(VirtualQID qid) {
     return graph->getFirstUseOf(qid);
@@ -1122,13 +1119,13 @@ public:
       auto lifetime = graph->getLifeTimeForQID(qid);
       LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
       LLVM_DEBUG(llvm::dbgs()
-                  << " is in use from cycle " << lifetime->getBegin());
+                 << " is in use from cycle " << lifetime->getBegin());
       LLVM_DEBUG(llvm::dbgs() << " through cycle " << lifetime->getEnd());
       LLVM_DEBUG(llvm::dbgs() << "\n");
 
       auto phys = set.allocatePhysical(qid, lifetime);
       LLVM_DEBUG(llvm::dbgs()
-                  << "\tIt is mapped to the physical qubit " << phys);
+                 << "\tIt is mapped to the physical qubit " << phys);
       LLVM_DEBUG(llvm::dbgs() << "\n\n");
 
       graph->assignToPhysical(qid, phys);
@@ -1159,8 +1156,8 @@ public:
 
   void print() {
     llvm::outs() << "Block with (" << argdnodes.size() << ") args:\n";
-    //block->dump();
-    //llvm::outs() << "Block graph:\n";
+    // block->dump();
+    // llvm::outs() << "Block graph:\n";
     graph->print();
     llvm::outs() << "End block\n";
   }
@@ -1214,9 +1211,7 @@ public:
     graph->contractAllocsPass();
   }
 
-  void performLiftingPass() {
-    graph->performLiftingPass();
-  }
+  void performLiftingPass() { graph->performLiftingPass(); }
 
   void moveAllocIntoBlock(DependencyNode *init, DependencyNode *root,
                           VirtualQID qid) {
@@ -1228,9 +1223,7 @@ public:
     graph->replaceRoot(qid, root);
   }
 
-  void schedulingPass() {
-    graph->schedulingPass();
-  }
+  void schedulingPass() { graph->schedulingPass(); }
 
   void removeQID(VirtualQID qid) {
     for (uint i = 0; i < argdnodes.size(); i++)
@@ -1265,9 +1258,7 @@ protected:
     return std::max(then_block->getHeight(), else_block->getHeight());
   }
 
-  bool isSkip() override {
-    return numTicks() == 0;
-  }
+  bool isSkip() override { return numTicks() == 0; }
 
   bool isQuantumOp() override { return numTicks() > 0; }
 
@@ -1303,7 +1294,9 @@ protected:
     op->dependencies = newDeps;
   }
 
-  void combineAllocs(SetVector<PhysicalQID> then_allocs, SetVector<PhysicalQID> else_allocs, LifeTimeAnalysis &set) {
+  void combineAllocs(SetVector<PhysicalQID> then_allocs,
+                     SetVector<PhysicalQID> else_allocs,
+                     LifeTimeAnalysis &set) {
     SetVector<PhysicalQID> combined;
     /*while (!then_allocs.empty() && !else_allocs.empty()) {
       auto then_alloc = then_allocs.front();
@@ -1314,7 +1307,7 @@ protected:
     }*/
     combined.set_union(then_allocs);
     combined.set_union(else_allocs);
-    
+
     for (auto pqid : combined)
       set.reallocatePhysical(pqid, new LifeTime(cycle, cycle + numTicks()));
   }
@@ -1322,10 +1315,10 @@ protected:
   void allocationPass(LifeTimeAnalysis &set) override {
     then_block->setCycle(cycle);
     else_block->setCycle(cycle);
-    //set.pushFrame();
+    // set.pushFrame();
     then_block->allocationPass(set);
     auto then_allocs = set.popFrame();
-    //set.pushFrame();
+    // set.pushFrame();
     else_block->allocationPass(set);
     auto else_allocs = set.popFrame();
     // TODO: function for combining pqids
@@ -1419,7 +1412,7 @@ public:
     bool run_more = true;
 
     // Inside out, so recur first, then apply pass to this node
-    while(run_more) {
+    while (run_more) {
       run_more = false;
       for (auto qid : qids) {
         auto then_use = then_block->getFirstUseOf(qid);
@@ -1497,7 +1490,8 @@ public:
     // Since we're removing a result, update the result indices of successors
     for (auto successor : successors)
       for (uint i = 0; i < successor->dependencies.size(); i++)
-        if (successor->dependencies[i].node == this && successor->dependencies[i].resultidx >= offset)
+        if (successor->dependencies[i].node == this &&
+            successor->dependencies[i].resultidx >= offset)
           successor->dependencies[i].resultidx--;
   }
 };
@@ -1593,7 +1587,9 @@ public:
 
     for (auto [root, op] : roots)
       if (!included.contains(root))
-        op->emitWarning("DependencyAnalysisPass: Wire is dead code and its operations will be deleted (did you forget to return a value?)");
+        op->emitWarning(
+            "DependencyAnalysisPass: Wire is dead code and its operations will "
+            "be deleted (did you forget to return a value?)");
 
     return new DependencyBlock(argdnodes, new_graph, b, terminator);
   }
@@ -1699,7 +1695,7 @@ struct DependencyAnalysisPass
         // Using cycle information, allocate physical qubits
         body->allocationPass(set);
         // Use allocation information to update allocations
-        //body->assignPhysicalPass(set);
+        // body->assignPhysicalPass(set);
         // Finally, perform code generation to move back to quake
         body->codeGen(builder, &func.getRegion(), set);
         builder.setInsertionPointToStart(mod.getBody());
