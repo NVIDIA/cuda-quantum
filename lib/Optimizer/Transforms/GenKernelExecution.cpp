@@ -287,18 +287,13 @@ public:
 
   Value genComputeReturnOffset(Location loc, OpBuilder &builder,
                                FunctionType funcTy,
-                               cudaq::cc::StructType msgStructTy,
-                               Value nullSt) {
-    auto i64Ty = builder.getI64Type();
+                               cudaq::cc::StructType msgStructTy) {
     if (funcTy.getNumResults() == 0)
       return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
-    auto members = msgStructTy.getMembers();
     std::int32_t numKernelArgs = funcTy.getNumInputs();
-    auto resTy = cudaq::cc::PointerType::get(members[numKernelArgs]);
-    auto gep = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, resTy, nullSt,
-        SmallVector<cudaq::cc::ComputePtrArg>{numKernelArgs});
-    return builder.create<cudaq::cc::CastOp>(loc, i64Ty, gep);
+    auto i64Ty = builder.getI64Type();
+    return builder.create<cudaq::cc::OffsetOfOp>(
+        loc, i64Ty, msgStructTy, ArrayRef<std::int32_t>{numKernelArgs});
   }
 
   /// Create a function that determines the return value offset in the message
@@ -315,11 +310,8 @@ public:
     OpBuilder::InsertionGuard guard(builder);
     auto *entry = returnOffsetFunc.addEntryBlock();
     builder.setInsertionPointToStart(entry);
-    auto ptrTy = cudaq::cc::PointerType::get(msgStructTy);
-    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto basePtr = builder.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
     auto result =
-        genComputeReturnOffset(loc, builder, devKernelTy, msgStructTy, basePtr);
+        genComputeReturnOffset(loc, builder, devKernelTy, msgStructTy);
     builder.create<func::ReturnOp>(loc, result);
   }
 
@@ -1272,7 +1264,6 @@ public:
 
       // Compute the struct size without the trailing bytes, structSize, and
       // with the trailing bytes, extendedStructSize.
-      auto nullSt = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, zero);
       Value structSize =
           builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, structTy);
       extendedStructSize =
@@ -1332,15 +1323,13 @@ public:
       castLoadThunk =
           builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrI8Ty, loadThunk);
       castTemp = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, temp);
-      resultOffset =
-          genComputeReturnOffset(loc, builder, devFuncTy, structTy, nullSt);
+      resultOffset = genComputeReturnOffset(loc, builder, devFuncTy, structTy);
     }
 
     Value vecArgPtrs;
     if (isCodegenArgumentGather(codegenKind)) {
       // 1) Allocate and initialize a std::vector<void*> object.
-      const unsigned count =
-          cudaq::cc::numberOfHiddenArgs(addThisPtr, hiddenSRet);
+      const unsigned count = devFuncTy.getInputs().size();
       auto stdVec = builder.create<cudaq::cc::AllocaOp>(
           loc, cudaq::opt::factory::stlVectorType(ptrI8Ty));
       auto arrPtrTy = cudaq::cc::ArrayType::get(ctx, ptrI8Ty, count);
