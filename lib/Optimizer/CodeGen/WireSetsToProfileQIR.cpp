@@ -109,13 +109,46 @@ struct GeneralRewrite : OpConversionPattern<OP> {
       }
       return toQisCtlName(std::move(instName));
     }(); // NB: instName is dead
-    SmallVector<Value> qubits(adaptor.getControls().begin(),
-                              adaptor.getControls().end());
-    qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
-    rewriter.create<func::CallOp>(loc, std::nullopt, funcName,
-                                  adaptor.getOperands());
-    rewriter.replaceOp(qop, qubits);
-    return success();
+    if (funcName.ends_with(qis_ctl_suffix) &&
+        adaptor.getControls().size() == 1 && adaptor.getTargets().size() == 1) {
+      auto *ctx = rewriter.getContext();
+      auto qbTy = cudaq::opt::getQubitType(ctx);
+      auto arrTy = cudaq::opt::getArrayType(ctx);
+      SmallVector<Type> argTys = {arrTy, qbTy};
+      ModuleOp mod = qop->template getParentOfType<ModuleOp>();
+      FlatSymbolRefAttr qisFuncSymbol;
+      if (auto f = mod.lookupSymbol<func::FuncOp>(funcName)) {
+        auto fTy = f.getFunctionType();
+        auto fSym = f.getSymNameAttr();
+        qisFuncSymbol = FlatSymbolRefAttr::get(ctx, funcName);
+        Value fVal = rewriter.create<func::ConstantOp>(loc, fTy, fSym);
+        auto ptrI8Ty = cudaq::cc::PointerType::get(rewriter.getI8Type());
+        Value fPtrVal =
+            rewriter.create<cudaq::cc::FuncToPtrOp>(loc, ptrI8Ty, fVal);
+        Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+        SmallVector<Value> callParamVals{one, fPtrVal,
+                                         *adaptor.getControls().begin(),
+                                         *adaptor.getTargets().begin()};
+        SmallVector<Value> qubits(adaptor.getControls().begin(),
+                                  adaptor.getControls().end());
+        qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
+        rewriter.create<func::CallOp>(loc, std::nullopt,
+                                      cudaq::opt::NVQIRInvokeWithControlBits,
+                                      callParamVals);
+        rewriter.replaceOp(qop, qubits);
+        return success();
+      }
+      return failure();
+    } else {
+      SmallVector<Value> qubits(adaptor.getControls().begin(),
+                                adaptor.getControls().end());
+      qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
+      rewriter.create<func::CallOp>(loc, std::nullopt, funcName,
+                                    adaptor.getOperands());
+      rewriter.replaceOp(qop, qubits);
+      return success();
+    }
+    return failure();
   }
 };
 
@@ -277,8 +310,8 @@ struct WireSetToProfileQIRPass
                     GeneralRewrite<quake::RxOp>, GeneralRewrite<quake::RyOp>,
                     GeneralRewrite<quake::RzOp>, GeneralRewrite<quake::R1Op>,
                     GeneralRewrite<quake::U3Op>, GeneralRewrite<quake::SwapOp>,
-                    BorrowWireRewrite, ReturnWireRewrite>(quakeTypeConverter,
-                                                          context);
+                    GeneralRewrite<quake::PhasedRxOp>, BorrowWireRewrite,
+                    ReturnWireRewrite>(quakeTypeConverter, context);
     patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";
     patterns.insert<DiscriminateRewrite>(quakeTypeConverter, isAdaptiveProfile,
@@ -362,6 +395,12 @@ struct WireSetToProfileQIRPrepPass
     addDecls("rz", param1Targ1Ty, param1Targ1CtrlTy);
     addDecls("r1", param1Targ1Ty, param1Targ1CtrlTy);
 
+    auto param2Targ1Ty =
+        FunctionType::get(ctx, TypeRange{f64Ty, f64Ty, qbTy}, TypeRange{});
+    auto param2Targ1CtrlTy =
+        FunctionType::get(ctx, TypeRange{f64Ty, f64Ty, qbTy, qbTy}, TypeRange{});
+    addDecls("phased_rx", param2Targ1Ty, param2Targ1CtrlTy);
+
     auto param3Targ1Ty = FunctionType::get(
         ctx, TypeRange{f64Ty, f64Ty, f64Ty, qbTy}, TypeRange{});
     auto param3Targ1CtrlTy = FunctionType::get(
@@ -385,6 +424,10 @@ struct WireSetToProfileQIRPrepPass
     auto recordTy =
         FunctionType::get(ctx, TypeRange{resTy, i8PtrTy}, TypeRange{});
     createNewDecl("__quantum__rt__result_record_output", recordTy);
+
+    auto invokeCtrlTy = FunctionType::get(
+        ctx, TypeRange{builder.getI64Type(), i8PtrTy, qbTy, qbTy}, TypeRange{});
+    createNewDecl(cudaq::opt::NVQIRInvokeWithControlBits, invokeCtrlTy);
 
     unsigned counter = 0;
     op.walk([&](quake::MzOp meas) {
@@ -507,7 +550,10 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPost());
   // Perform final cleanup for other dialect conversions (like func.func)
   pm.addPass(cudaq::opt::createConvertToQIR());
-  cudaq::opt::addQIRProfilePipeline(pm, profile, /*performPrep=*/false);
+  if (profile.starts_with("qir"))
+    cudaq::opt::addQIRProfilePipeline(pm, profile, /*performPrep=*/false);
+  // else
+  //   cudaq::opt::addQIRProfilePipeline(pm, "qir-base", /*performPrep=*/false);
 }
 
 // Pipeline option: let the user specify the profile name.

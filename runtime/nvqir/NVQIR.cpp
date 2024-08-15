@@ -123,7 +123,10 @@ std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
   for (std::size_t i = 0; i < arr->size(); i++) {
     auto arrayPtr = (*arr)[i];
     Qubit *idxVal = *reinterpret_cast<Qubit **>(arrayPtr);
-    ret.push_back(idxVal->idx);
+    if (qubitPtrIsIndex)
+      ret.push_back((intptr_t)idxVal);
+    else
+      ret.push_back(idxVal->idx);
   }
   return ret;
 }
@@ -486,6 +489,10 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
       std::cos(theta / 2.), -i * std::exp(-i * phi) * std::sin(theta / 2.),
       -i * std::exp(i * phi) * std::sin(theta / 2.), std::cos(theta / 2.)};
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
+}
+
+void __quantum__qis__phased_rx__body(double theta, double phi, Qubit *q) {
+  __quantum__qis__phased_rx(theta, phi, q);
 }
 
 auto u3_matrix = [](double theta, double phi, double lambda) {

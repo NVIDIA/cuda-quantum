@@ -114,12 +114,9 @@ struct HToPhasedRx : public OpRewritePattern<quake::HOp> {
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
-    if (!quake::isAllReferences(op))
-      return failure();
 
     // Op info
     Location loc = op->getLoc();
-    Value target = op.getTarget();
 
     // Necessary/Helpful constants
     ValueRange noControls;
@@ -128,6 +125,27 @@ struct HToPhasedRx : public OpRewritePattern<quake::HOp> {
     Value pi_2 = createConstant(loc, M_PI_2, rewriter.getF64Type(), rewriter);
 
     std::array<Value, 2> parameters = {pi_2, pi_2};
+
+    if (!quake::isAllReferences(op)) {
+      auto wireTy = quake::WireType::get(rewriter.getContext());
+      std::array<Value, 2> parameters = {pi_2, pi_2};
+      auto op1 = rewriter.create<quake::PhasedRxOp>(
+          loc, TypeRange{wireTy}, false, parameters, noControls,
+          op.getOperand(0), DenseBoolArrayAttr{});
+      parameters[0] = pi;
+      parameters[1] = zero;
+      auto op2 = rewriter.create<quake::PhasedRxOp>(
+          loc, TypeRange{wireTy}, false, parameters, noControls,
+          op1.getResult(0), DenseBoolArrayAttr{});
+
+      op.getResult(0).replaceAllUsesWith(op2.getResult(0));
+      rewriter.eraseOp(op);
+      return success();
+    }
+
+    // Op info
+    Value target = op.getTarget();
+
     rewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
     parameters[0] = pi;
     parameters[1] = zero;
@@ -250,11 +268,26 @@ struct SwapToCX : public OpRewritePattern<quake::SwapOp> {
 
   LogicalResult matchAndRewrite(quake::SwapOp op,
                                 PatternRewriter &rewriter) const override {
-    if (!quake::isAllReferences(op))
-      return failure();
+    Location loc = op->getLoc();
+    if (!quake::isAllReferences(op)) {
+      auto wireTy = quake::WireType::get(rewriter.getContext());
+      auto op1 = rewriter.create<quake::XOp>(loc, TypeRange{wireTy, wireTy},
+                                             /*is_adj=*/false, ValueRange{},
+                                             op.getOperand(0), op.getOperand(1),
+                                             DenseBoolArrayAttr{});
+      auto op2 = rewriter.create<quake::XOp>(
+          loc, TypeRange{wireTy, wireTy}, false, ValueRange{}, op1.getResult(1),
+          op1.getResult(0), DenseBoolArrayAttr{});
+      auto op3 = rewriter.create<quake::XOp>(
+          loc, TypeRange{wireTy, wireTy}, false, ValueRange{}, op2.getResult(1),
+          op2.getResult(0), DenseBoolArrayAttr{});
+      op.getResult(0).replaceAllUsesWith(op3.getResult(0));
+      op.getResult(1).replaceAllUsesWith(op3.getResult(1));
+      rewriter.eraseOp(op);
+      return success();
+    }
 
     // Op info
-    Location loc = op->getLoc();
     Value a = op.getTarget(0);
     Value b = op.getTarget(1);
 
@@ -469,13 +502,33 @@ struct CXToCZ : public OpRewritePattern<quake::XOp> {
 
   LogicalResult matchAndRewrite(quake::XOp op,
                                 PatternRewriter &rewriter) const override {
-    if (!quake::isAllReferences(op))
-      return failure();
+    Location loc = op->getLoc();
+    if (!quake::isAllReferences(op)) {
+      auto wireTy = quake::WireType::get(rewriter.getContext());
+      auto op1 = rewriter.create<quake::HOp>(loc, TypeRange{wireTy},
+                                             /*is_adj=*/false, ValueRange{},
+                                             ValueRange{}, op.getOperand(1),
+                                             DenseBoolArrayAttr{});
+      auto op2 = rewriter.create<quake::ZOp>(loc, TypeRange{wireTy, wireTy},
+                                             /*is_adj=*/false, ValueRange{},
+                                             op.getOperand(0), op1.getResult(0),
+                                             DenseBoolArrayAttr{});
+      auto op3 = rewriter.create<quake::HOp>(loc, TypeRange{wireTy},
+                                             /*is_adj=*/false, ValueRange{},
+                                             ValueRange{}, op2.getResult(1),
+                                             DenseBoolArrayAttr{});
+      Value finalControlVal = op2.getResult(0);
+      Value finalTargetVal = op3.getResult(0);
+      op.getResult(0).replaceAllUsesWith(finalControlVal);
+      op.getResult(1).replaceAllUsesWith(finalTargetVal);
+      rewriter.eraseOp(op);
+      return success();
+    }
+
     if (failed(checkNumControls(op, 1)))
       return failure();
 
     // Op info
-    Location loc = op->getLoc();
     Value target = op.getTarget();
     auto negControl = false;
     auto negatedControls = op.getNegatedQubitControls();
