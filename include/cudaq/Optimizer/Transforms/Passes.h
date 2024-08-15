@@ -57,9 +57,9 @@ inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
 /// Helper function to build an argument synthesis pass. The names of the
 /// functions and the substitutions text can be built as an unzipped pair of
 /// lists.
-std::unique_ptr<mlir::Pass> createArgumentSynthesisPass(
-    const mlir::ArrayRef<mlir::StringRef> &funcNames,
-    const mlir::ArrayRef<mlir::StringRef> &substitutions);
+std::unique_ptr<mlir::Pass>
+createArgumentSynthesisPass(mlir::ArrayRef<mlir::StringRef> funcNames,
+                            mlir::ArrayRef<mlir::StringRef> substitutions);
 
 // declarative passes
 #define GEN_PASS_DECL
