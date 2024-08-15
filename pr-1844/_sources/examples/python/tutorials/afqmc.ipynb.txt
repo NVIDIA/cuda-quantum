@@ -26,7 +26,9 @@
     "# Package installs\n",
     "!pip install pyscf==2.6.2\n",
     "!pip install openfermion==1.6.1\n",
-    "!pip install ipie==0.7.1"
+    "!pip install ipie==0.7.1\n",
+    "\n",
+    "from pyscf import gto, scf, ao2mo, mcscf"
    ]
   },
   {
