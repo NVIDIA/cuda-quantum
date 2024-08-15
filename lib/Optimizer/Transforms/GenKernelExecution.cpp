@@ -1329,8 +1329,7 @@ public:
     Value vecArgPtrs;
     if (isCodegenArgumentGather(codegenKind)) {
       // 1) Allocate and initialize a std::vector<void*> object.
-      const unsigned count =
-          cudaq::cc::numberOfHiddenArgs(addThisPtr, hiddenSRet);
+      const unsigned count = devFuncTy.getInputs().size();
       auto stdVec = builder.create<cudaq::cc::AllocaOp>(
           loc, cudaq::opt::factory::stlVectorType(ptrI8Ty));
       auto arrPtrTy = cudaq::cc::ArrayType::get(ctx, ptrI8Ty, count);
