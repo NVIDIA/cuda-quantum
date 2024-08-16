@@ -109,6 +109,8 @@ private:
       Value wire = op.getResult();
       // Wires are linear types that must be used exactly once, so traverse
       // those uses until the end of the linear operators.
+      // FIXME - if this is made to be generic, then it needs to be updated to
+      // support ResetOp, which is not an operator interface (I don't think).
       while (auto gate = dyn_cast<quake::OperatorInterface>(*wire.getUsers().begin())) {
         std::size_t qopNum = 0;
         auto controls = gate.getControls();
