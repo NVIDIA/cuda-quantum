@@ -175,16 +175,17 @@ public:
             moduleOp.push_back(funcOp.clone());
         }
         // Add globals defined in the module.
-        if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
+        if (auto globalOp = dyn_cast<cc::GlobalOp>(op))
           moduleOp.push_back(globalOp.clone());
       }
 
       if (rawArgs || args) {
         mlir::PassManager pm(&mlirContext);
-        if (!rawArgs->empty()) {
+        if (rawArgs && !rawArgs->empty()) {
           cudaq::info("Run Argument Synth.\n");
-          cudaq::opt::ArgumentConverter argCon(name, moduleOp);
-          std::string kernName = cudaq::runtime::cudaqGenPrefixName + name;
+          opt::ArgumentConverter argCon(name, moduleOp);
+          argCon.gen_drop_front(*rawArgs, startingArgIdx);
+          std::string kernName = runtime::cudaqGenPrefixName + name;
           mlir::SmallVector<mlir::StringRef> kernels = {kernName};
           std::string substBuff;
           llvm::raw_string_ostream ss(substBuff);
@@ -194,8 +195,7 @@ public:
               opt::createArgumentSynthesisPass(kernels, substs));
         } else if (args) {
           cudaq::info("Run Quake Synth.\n");
-          pm.addPass(
-              cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx));
+          pm.addPass(opt::createQuakeSynthesizer(name, args, startingArgIdx));
         }
         pm.addPass(mlir::createCanonicalizerPass());
         if (enablePrintMLIREachPass) {
@@ -228,7 +228,7 @@ public:
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
             ").");
 
-      cudaq::opt::addPipelineConvertToQIR(pm);
+      opt::addPipelineConvertToQIR(pm);
 
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error(
