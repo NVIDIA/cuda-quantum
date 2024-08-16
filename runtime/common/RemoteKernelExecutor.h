@@ -96,7 +96,8 @@ public:
               const int vqe_n_params, const std::string &backendSimName,
               const std::string &kernelName, void (*kernelFunc)(void *),
               const void *kernelArgs, std::uint64_t argsSize,
-              std::string *optionalErrorMsg = nullptr) = 0;
+              std::string *optionalErrorMsg = nullptr,
+              const std::vector<void *> *rawArgs = nullptr) = 0;
   // Destructor
   virtual ~RemoteRuntimeClient() = default;
 };
