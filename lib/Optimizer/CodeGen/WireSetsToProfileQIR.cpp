@@ -182,6 +182,22 @@ struct BorrowWireRewrite : OpConversionPattern<quake::BorrowWireOp> {
   }
 };
 
+struct ResetRewrite : OpConversionPattern<quake::ResetOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::ResetOp reset, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Value> qubits{adaptor.getTargets()};
+    auto loc = reset.getLoc();
+    std::string funcName = toQisBodyName(std::string("reset"));
+    rewriter.create<func::CallOp>(loc, std::nullopt, funcName,
+                                  adaptor.getOperands());
+    rewriter.replaceOp(reset, qubits);
+    return success();
+  }
+};
+
 struct BranchRewrite : OpConversionPattern<cf::BranchOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -412,7 +428,8 @@ struct WireSetToProfileQIRPass
                     GeneralRewrite<quake::RzOp>, GeneralRewrite<quake::R1Op>,
                     GeneralRewrite<quake::U3Op>, GeneralRewrite<quake::SwapOp>,
                     GeneralRewrite<quake::PhasedRxOp>, BorrowWireRewrite,
-                    ReturnWireRewrite>(quakeTypeConverter, context);
+                    ResetRewrite, ReturnWireRewrite>(quakeTypeConverter,
+                                                     context);
     patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
                                resultQubitVals, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";
@@ -492,6 +509,7 @@ struct WireSetToProfileQIRPrepPass
     addDecls("t", targ1Ty, targ1CtrlTy);
     addDecls("sdg", targ1Ty, targ1CtrlTy);
     addDecls("tdg", targ1Ty, targ1CtrlTy);
+    addBodyDecl("reset", targ1Ty);
 
     auto f64Ty = builder.getF64Type();
     auto param1Targ1Ty =

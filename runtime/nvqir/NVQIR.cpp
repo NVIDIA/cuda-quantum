@@ -543,6 +543,10 @@ void __quantum__qis__reset(Qubit *q) {
   nvqir::getCircuitSimulatorInternal()->resetQubit(qI);
 }
 
+void __quantum__qis__reset__body(Qubit *q) {
+  __quantum__qis__reset(q);
+}
+
 Result *__quantum__qis__mz(Qubit *q) {
   auto qI = qubitToSizeT(q);
   ScopedTraceWithContext("NVQIR::mz", qI);
