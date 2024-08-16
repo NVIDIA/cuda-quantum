@@ -84,14 +84,15 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
       other_phase++;
   }
 
-  auto _phase = orig_phase + other_phase;
+  // Calculate the phase resulting from the non-commutative operations
   int sum = 0;
-  for (auto a : tmp2)
-    if (a)
+  for (std::size_t i = 0; i < numQubits; i++)
+    if ((row[i] && other_row[i + numQubits]) ||
+        (row[i + numQubits] && other_row[i]))
       sum++;
 
-  _phase += 2 * sum;
-  // Based on the phase, figure out an extra coeff to apply
+  auto _phase = orig_phase + other_phase + 2 * sum;
+  // Adjust phase based on non-commutative nature of Pauli matrices
   for (std::size_t i = 0; i < numQubits; i++)
     if (tmp[i] && tmp[i + numQubits])
       _phase -= 1;
