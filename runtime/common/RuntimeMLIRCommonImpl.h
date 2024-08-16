@@ -618,7 +618,7 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
 
     // At the end of the function, deallocate the qubits and restore the
     // simulator state.
-    builder.setInsertionPoint(block.getTerminator());
+    builder.setInsertionPoint(std::prev(blocks.end())->getTerminator());
     builder.create<mlir::LLVM::CallOp>(
         loc, mlir::TypeRange{voidTy}, releaseSymbol,
         mlir::ValueRange{qubitAlloc.getResult()});
