@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include <optional>
-#include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 #include "py_EvolveResult.h"
 #include "common/EvolveResult.h"
 #include "cudaq/algorithms/evolve.h"
@@ -22,8 +22,11 @@ void bindEvolveResult(py::module &mod) {
       mod, "EvolveResult",
       "Stores the execution data from an invocation of :func:`evolve`.\n")
       .def(py::init<state>())
+      .def(py::init<std::vector<state>>())
+      .def(py::init<state, std::vector<observe_result>>())
+      .def(py::init<std::vector<state>, std::vector<std::vector<observe_result>>>())
       .def(
-          "get_final_state", [](evolve_result &self) { return self.get_final_state(); },
+          "final_state", [](evolve_result &self) { return self.get_final_state(); },
           "Stores the final state produced by a call to :func:`evolve`. "
           "Represent the state of a quantum system after time evolution under "
           "a set of operators, see the :func:`evolve` documentation for more "
@@ -34,7 +37,13 @@ void bindEvolveResult(py::module &mod) {
           "in a defined schedule, produced by a call to :func:`evolve`, "
           "including the final state. This property is only populated if "
           "saving intermediate results was requested in the call to "
-          ":func:`evolve`.\n");
+          ":func:`evolve`.\n")
+      .def(
+          "final_expectation_values", [](evolve_result &self) { return self.get_final_expectation_values(); },
+          "")
+      .def(
+          "expectation_values", [](evolve_result &self) { return self.get_expectation_values(); },
+          "");
 
   py::class_<async_evolve_result>(
       mod, "AsyncEvolveResult",

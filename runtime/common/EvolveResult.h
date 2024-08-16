@@ -35,18 +35,25 @@ protected:
 
 public:
 
-  //evolve_result(std::vector<std::unique_ptr<state>> states, 
-  //              std::vector<std::vector<observe_result>> expectations = {}) {
-  //  intermediate_states = states;
-  //  expectation_values = expectations;
-  //}
+  evolve_result(state state)
+    : final_state(state) {}
 
-  evolve_result(state state, std::optional<std::vector<observe_result>> expectations = {})
-    : final_state(state), final_expectation_values(expectations) {}
+  evolve_result(state state, std::vector<observe_result> expectations)
+    : final_state(state), 
+      final_expectation_values(std::make_optional<std::vector<observe_result>>(expectations)) {}
+
+  evolve_result(std::vector<state> states) 
+    : final_state(states.back()), 
+      intermediate_states(std::make_optional<std::vector<state>>(states)) {}
+
+  evolve_result(std::vector<state> states, 
+                std::vector<std::vector<observe_result>> expectations) 
+    : final_state(states.back()),
+      intermediate_states(std::make_optional<std::vector<state>>(states)), 
+      final_expectation_values(std::make_optional<std::vector<observe_result>>(expectations.back())),
+      expectation_values(std::make_optional<std::vector<std::vector<observe_result>>>(expectations)) {}
 
   state get_final_state() { 
-    if (intermediate_states.has_value())
-      return intermediate_states.value().back();
     return final_state; 
   }
 
@@ -55,8 +62,6 @@ public:
   }
 
   std::optional<std::vector<observe_result>> get_final_expectation_values() { 
-    if (expectation_values.has_value())
-      return expectation_values.value().back();
     return final_expectation_values;
   }
 

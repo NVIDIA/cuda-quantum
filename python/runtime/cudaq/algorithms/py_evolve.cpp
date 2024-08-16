@@ -21,35 +21,34 @@ namespace cudaq {
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
-evolve_result pyEvolve(py::object kernel, py::args args) {
+evolve_result pyEvolve(py::object kernel, std::vector<spin_op> observables = {}) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
-  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+  auto *argData = new cudaq::OpaqueArguments();
 
   return evolve([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
-  });
+  }, observables);
 }
 
-async_evolve_result pyEvolveAsync(py::object kernel, py::args args, std::size_t qpu_id) {
+async_evolve_result pyEvolveAsync(py::object kernel, std::vector<spin_op> observables = {}, std::size_t qpu_id = 0) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
-  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+  auto *argData = new cudaq::OpaqueArguments();
 
   py::gil_scoped_release release;
   return evolve_async(
       [kernelMod, argData, kernelName]() mutable {
         pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
         delete argData;
-      },
-      qpu_id);
+      }, observables, qpu_id);
 }
 
 /// @brief Bind the get_state cudaq function
@@ -57,17 +56,30 @@ void bindPyEvolve(py::module &mod) {
 
   mod.def(
       "evolve",
-      [&](py::object kernel, py::args args) {
-        return pyEvolve(kernel, args);
+      [](py::object kernel) {
+        return pyEvolve(kernel);
+      },
+      "");
+  mod.def(
+      "evolve",
+      [](py::object kernel, std::vector<spin_op> observables) {
+        return pyEvolve(kernel, observables);
       },
       "");
 
   mod.def(
       "evolve_async",
-      [](py::object kernel, py::args args, std::size_t qpu_id) {
-        return pyEvolveAsync(kernel, args, qpu_id);
+      [](py::object kernel, std::size_t qpu_id) {
+        return pyEvolveAsync(kernel, {}, qpu_id);
       },
-      py::arg("kernel"), py::kw_only(), py::arg("qpu_id") = 0,
+      py::arg("kernel"), py::arg("qpu_id") = 0,
+      "");
+  mod.def(
+      "evolve_async",
+      [](py::object kernel, std::vector<spin_op> observables, std::size_t qpu_id) {
+        return pyEvolveAsync(kernel, observables, qpu_id);
+      },
+      py::arg("kernel"), py::arg("observables"), py::arg("qpu_id") = 0,
       "");
 }
 
