@@ -424,13 +424,11 @@ public:
         opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
         std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-        mlir::StringRef sr{kernName};
-        mlir::SmallVector<mlir::StringRef> kernels = {sr};
+        mlir::SmallVector<mlir::StringRef> kernels = {kernName};
         std::string substBuff;
         llvm::raw_string_ostream ss(substBuff);
         ss << argCon.getSubstitutionModule();
-        mlir::StringRef su{substBuff};
-        mlir::SmallVector<mlir::StringRef> substs = {su};
+        mlir::SmallVector<mlir::StringRef> substs = {substBuff};
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createArgumentSynthesisPass(kernels, substs));
       } else if (updatedArgs) {
