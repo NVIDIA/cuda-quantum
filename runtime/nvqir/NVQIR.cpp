@@ -37,8 +37,13 @@ thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
+// The following maps are used to map Qubits to Results, and Results to boolean
+// values. The pointer values may be integers if they are referring to Base
+// Profile or Adaptive Profile QIR programs, so it is generally not safe to
+// dereference them.
 static thread_local std::map<Qubit *, Result *> measQB2Res;
 static thread_local std::map<Result *, Qubit *> measRes2QB;
+static thread_local std::map<Result *, Result> measRes2Val;
 
 /// @brief Provide a holder for externally created
 /// CircuitSimulator pointers (like from Python) that
@@ -560,15 +565,15 @@ Result *__quantum__qis__mz__body(Qubit *q, Result *r) {
   auto qI = qubitToSizeT(q);
   ScopedTraceWithContext("NVQIR::mz", qI);
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, "");
+  measRes2Val[r] = b;
   return b ? ResultOne : ResultZero;
 }
 
 bool __quantum__qis__read_result__body(Result *result) {
-  // TODO: implement post-measurement result retrieval. This is not needed for
-  // typical simulator operation (other than to have it defined), but it may be
-  // useful in the future.
-  // https://github.com/NVIDIA/cuda-quantum/issues/758
-  ScopedTraceWithContext("NVQIR::read_result (stubbed out)");
+  ScopedTraceWithContext("NVQIR::read_result");
+  auto iter = measRes2Val.find(result);
+  if (iter != measRes2Val.end())
+    return iter->second;
   return ResultZeroVal;
 }
 
@@ -860,6 +865,14 @@ void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits) {
       }
     }
   }
+}
+
+/// @brief Cleanup an result maps at the end of a QIR program to avoid leaking
+/// results into the next program.
+void __quantum__rt__clear_result_maps() {
+  measQB2Res.clear();
+  measRes2QB.clear();
+  measRes2Val.clear();
 }
 
 /// @brief Utility function used by Quake->QIR to pack a single Qubit pointer

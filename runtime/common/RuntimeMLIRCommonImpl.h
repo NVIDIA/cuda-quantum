@@ -578,6 +578,10 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
       cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::QIRsetDynamicQubitManagement, {voidTy}, {boolTy},
           dyn_cast<mlir::ModuleOp>(module));
+  mlir::FlatSymbolRefAttr clearResultMapsSymbol =
+      cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRClearResultMaps, {voidTy}, {},
+          dyn_cast<mlir::ModuleOp>(module));
 
   // Iterate through all operations in the ModuleOp
   mlir::SmallVector<mlir::LLVM::LLVMFuncOp> funcs;
@@ -625,6 +629,9 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
     builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
                                        setDynamicSymbol,
                                        mlir::ValueRange{origMode.getResult()});
+    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
+                                       clearResultMapsSymbol,
+                                       mlir::ValueRange{});
   }
 }
 

@@ -84,6 +84,10 @@ static constexpr const char QIRsetDynamicQubitManagement[] =
 static constexpr const char QIRRecordOutput[] =
     "__quantum__rt__result_record_output";
 
+/// Custom NVQIR method to cleanup result maps in between consecutive programs.
+static constexpr const char QIRClearResultMaps[] =
+    "__quantum__rt__clear_result_maps";
+
 inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
                                        mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMStructType::getOpaque(type, context);
