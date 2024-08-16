@@ -484,7 +484,7 @@ protected:
   Operation *associated;
   bool quantumOp;
 
-  void printNode() override {
+  virtual void printNode() override {
     llvm::outs() << "QIDs: ";
     bool printComma = false;
     for (auto qid : qids) {
@@ -499,8 +499,8 @@ protected:
     associated->dump();
   }
 
-  uint numTicks() override { return isQuantumOp() ? 1 : 0; }
-  bool isQuantumOp() override { return quantumOp; }
+  virtual uint numTicks() override { return isQuantumOp() ? 1 : 0; }
+  virtual bool isQuantumOp() override { return quantumOp; }
 
   Value getResult(uint resultidx) override {
     return associated->getResult(resultidx);
@@ -638,6 +638,7 @@ public:
   /// dependencies with the relevant dependency from this node.
   void erase() {
     for (auto successor : successors) {
+      bool remove = true;
       for (uint j = 0; j < successor->dependencies.size(); j++) {
         auto edge = successor->dependencies[j];
         if (edge.node == this) {
@@ -646,9 +647,14 @@ public:
             auto dep = getDependencyForResult(edge.resultidx);
             successor->dependencies[j] = dep;
             dep->successors.insert(successor);
+          } else {
+            remove = false;
           }
         }
       }
+
+      if (remove)
+        successors.remove(successor);
     }
 
     for (auto dependency : dependencies) {
@@ -929,8 +935,6 @@ public:
     // Qubit is defined here, return the first use
     if (defining->isAlloc()) {
       auto alloc = static_cast<InitDependencyNode *>(defining);
-      llvm::outs() << "QID: " << alloc->getQID() << ", QUBIT: " << qubit
-                   << "\n";
       return getFirstUseOfQID(alloc->getQID());
     }
 
@@ -1212,6 +1216,8 @@ protected:
     associated->dump();
   }
 
+  uint numTicks() override { return 0; }
+
   bool isQuantumOp() override { return qids.size() > 0; }
 
   void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override{};
@@ -1347,12 +1353,6 @@ public:
     // The analysis works inside-out, so first resolve all nested `if`s
     graph->performAnalysis(set);
 
-    llvm::outs() << "Graph QIDs: ";
-    for (auto qid : graph->getQIDs()) {
-      llvm::outs() << qid << " ";
-    }
-    llvm::outs() << "\n";
-
     // Update metadata after the analysis
     graph->updateLeafs();
     updateHeight();
@@ -1446,10 +1446,10 @@ protected:
 
   // TODO: figure out nice way to display
   void printNode() override {
-    // this->OpDependencyNode::printNode();
-    llvm::outs() << "If with results:\n";
-    for (auto result : results)
-      result.dump();
+    this->OpDependencyNode::printNode();
+    // llvm::outs() << "If with results:\n";
+    // for (auto result : results)
+    //   result.dump();
     llvm::outs() << "Then ";
     then_block->print();
     llvm::outs() << "Else ";
@@ -1520,17 +1520,11 @@ protected:
       auto else_discriminate = else_op->successors.front()->isQuantumOp()
                                    ? else_op->successors.back()
                                    : else_op->successors.front();
-      llvm::outs() << "Replacing ";
-      else_discriminate->printNode();
-      llvm::outs() << "With ";
-      then_discriminate->printNode();
       else_discriminate->replaceWith(DependencyEdge{then_discriminate, 0});
     }
 
     then_op->erase();
     else_op->erase();
-    then_block->print();
-    else_block->print();
 
     // Patch successors
     then_op->successors.insert(this);
@@ -1557,18 +1551,18 @@ protected:
     if (hasCodeGen)
       return;
 
-    cudaq::cc::IfOp oldOp = dyn_cast<cudaq::cc::IfOp>(associated);
-    auto operands = gatherOperands(builder, set);
-
     if (isSkip())
       for (auto dependency : dependencies)
         if (!dependency->hasCodeGen) {
+          // Wait for quantum op dependency to be codeGen'ed
           if (dependency->isQuantumDependent())
-            // Wait for quantum op dependency to be codeGen'ed
             return;
           else
             dependency->codeGen(builder, set);
         }
+
+    cudaq::cc::IfOp oldOp = dyn_cast<cudaq::cc::IfOp>(associated);
+    auto operands = gatherOperands(builder, set);
 
     hasCodeGen = true;
 
@@ -1610,12 +1604,15 @@ public:
       : OpDependencyNode(op.getOperation(), dependencies),
         then_block(then_block), else_block(else_block) {
     results = SmallVector<mlir::Type>(op.getResultTypes());
-    // numTicks won't be properly calculated by OpDependencyNode constructor,
-    // so have to recompute height here
+    // Unfortunately, some metadata won't be computed properly by
+    // OpDependencyNode constructor, so recompute here
     height = 0;
-    for (auto edge : dependencies)
+    for (auto edge : dependencies) {
       if (edge->getHeight() > height)
         height = edge->getHeight();
+      if (edge.qid.has_value() && isQuantumOp())
+        qids.insert(edge.qid.value());
+    }
     height += numTicks();
   }
 
@@ -1640,7 +1637,7 @@ public:
   void performLiftingPass(DependencyGraph *parent) {
     bool lifted = false;
 
-    // First, lift qubits, turning them into qids within the branches
+    // First, lift allocated qubits, after which they will be dealt with as QIDs
     auto liftableQubits = SetVector<PhysicalQID>();
     liftableQubits.set_union(then_block->getAllocatedQubits());
     liftableQubits.set_union(else_block->getAllocatedQubits());
@@ -1648,9 +1645,8 @@ public:
       auto then_use = then_block->getFirstUseOfQubit(qubit);
       auto else_use = else_block->getFirstUseOfQubit(qubit);
 
-      if (!then_use || !else_use) {
+      if (!then_use || !else_use)
         continue;
-      }
 
       if (then_use->equivalentTo(else_use)) {
         auto all_skips = true;
@@ -1707,28 +1703,10 @@ public:
       }
     }
 
-    // Alloc case todo
-    // for (auto then_alloc : then_allocs) {
-    //   llvm::outs() << "QID: " << then_alloc << "\n";
-    //   auto then_use = then_block->getFirstUseOf(then_alloc);
-    //   // if (then_use->cycle > 0)
-    //   //   continue;
-    //   then_use->printNode();
-    //   for (auto else_alloc : else_allocs) {
-    //     auto else_use = else_block->getFirstUseOf(else_alloc);
-    //     else_use->printNode();
-    //     if (then_use->equivalentTo(else_use))
-    //       llvm::outs() << "The operation on alloc " << then_alloc << "/" <<
-    //       else_alloc << " can be lifted!\n";
-    //   }
-    // }
-
     // Recompute inner block metadata after lifting
     if (lifted) {
       then_block->updateHeight();
       else_block->updateHeight();
-      // then_block->updateLeafs();
-      // else_block->updateLeafs();
       then_block->schedulingPass();
       else_block->schedulingPass();
     }
