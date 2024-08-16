@@ -31,12 +31,15 @@ std::vector<int> bitStringToIntVec(const std::string &bitString) {
   return result;
 }
 } // namespace
+
 namespace cudaq {
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
+
 cudaq::KernelArgsHolder pyCreateNativeKernel(const std::string &, MlirModule,
                                              cudaq::OpaqueArguments &);
+
 /// @brief If we have any implicit device-to-host data transfers
 /// we will store that data here and ensure it is deleted properly.
 std::vector<std::unique_ptr<void, std::function<void(void *)>>>
@@ -48,10 +51,9 @@ state pyGetState(py::object kernel, py::args args) {
     kernel.attr("compile")();
 
   auto kernelName = kernel.attr("name").cast<std::string>();
-  args = simplifiedValidateInputArguments(args);
-
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+
   return details::extractState([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
@@ -674,18 +676,13 @@ for more information on this programming pattern.)#")
       [](py::object kernel, py::args args, std::size_t qpu_id) {
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
-        auto &platform = cudaq::get_platform();
+
         auto kernelName = kernel.attr("name").cast<std::string>();
         auto kernelMod = kernel.attr("module").cast<MlirModule>();
-        auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
-        args = simplifiedValidateInputArguments(args);
-
-        // The provided kernel is a builder or MLIR kernel
-        auto *argData = new cudaq::OpaqueArguments();
-        cudaq::packArgs(*argData, args, kernelFunc,
-                        [](OpaqueArguments &, py::object &) { return false; });
+        auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 
         // Launch the asynchronous execution.
+        auto &platform = cudaq::get_platform();
         py::gil_scoped_release release;
         return details::runGetStateAsync(
             [kernelMod, argData, kernelName]() mutable {

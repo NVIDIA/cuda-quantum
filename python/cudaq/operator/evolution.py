@@ -12,6 +12,8 @@ from ..runtime.observe import observe
 
 # To be implemented in C++ and bindings will be generated.
 # If multiple initial states were passed, a sequence of evolution results is returned.
+# Setting up Python callbacks, if we want to do that:
+# https://stackoverflow.com/questions/70603855/how-to-set-python-function-as-callback-for-c-using-pybind11
 class EvolveResult:
     """
     Stores the execution data from an invocation of `cudaq.evolve`.
@@ -408,15 +410,16 @@ def evolve_async(hamiltonian: Operator,
     if store_intermediate_results:
         evolution = _create_kernels("time_evolution", hamiltonian, schedule, initial_state)
         states, expectations = [], []
+        current_state = None
         for kernel, parameters in evolution:
-            if len(states) == 0: intermediate_state = cudaq_runtime.get_state_async(kernel)
+            if current_state is None: intermediate_state = cudaq_runtime.get_state_async(kernel)
             else: # FIXME: can we manually create a AsyncStateResult to not wait here?
                 # FIXME: inlining the expression to get the previous state here causes a segfault
-                previous_state = states[-1].get()
-                intermediate_state = cudaq_runtime.get_state_async(kernel, previous_state)
+                intermediate_state = cudaq_runtime.get_state_async(kernel, current_state)
             states.append(intermediate_state)
             # FIXME: can we make this so that we don't have to get the state here?
-            if len(observables) > 0: expectations.append(compute_expectations(intermediate_state.get(), parameters))
+            current_state = intermediate_state.get()
+            if len(observables) > 0: expectations.append(compute_expectations(current_state, parameters))
         return AsyncEvolveResult(states, expectations)
     else:
         kernel, parameters = _create_kernel("time_evolution", hamiltonian, schedule, initial_state)
