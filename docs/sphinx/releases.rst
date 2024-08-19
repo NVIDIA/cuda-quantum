@@ -8,7 +8,7 @@ The latest version of CUDA-Q is on the main branch of our `GitHub repository <ht
 
 - `Docker image (nightly builds) <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
-- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examplesBROKENLINK>`__
 
 **0.8.0**
 
