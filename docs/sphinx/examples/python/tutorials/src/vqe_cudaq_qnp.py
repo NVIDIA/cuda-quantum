@@ -4,9 +4,6 @@
 import numpy as np
 import cudaq
 from cudaq import spin as spin_op
-import openfermion as of
-from openfermion.hamiltonians import s_squared_operator
-from openfermion.transforms import jordan_wigner
 
 
 class VQE(object):
