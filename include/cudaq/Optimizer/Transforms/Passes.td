@@ -583,9 +583,9 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
 
-    Note 1: this pass requires strictly value semantics for any quantum
-    operations. It will throw an error if any memory reference semantics are
-    present on quantum operations.
+    Note 1: this pass requires strictly value semantics (in the form of wire
+    sets) for any quantum operations. It will throw an error if any memory
+    reference semantics are present on quantum operations.
 
     Note 2: this pass can introduce ancilla qubits.
 
