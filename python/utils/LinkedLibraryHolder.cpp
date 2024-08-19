@@ -481,7 +481,7 @@ void LinkedLibraryHolder::setTarget(
     std::filesystem::path libPath =
         cudaqLibPath / fmt::format("libcudaq-em-photonics.{}", libSuffix);
     auto *em = getUniquePluginInstance<ExecutionManager>(
-        "getExecutionManager_photonics", libPath.c_str());
+        "getRegisteredExecutionManager_photonics", libPath.c_str());
     setExecutionManagerInternal(em);
   } else {
     resetExecutionManagerInternal();

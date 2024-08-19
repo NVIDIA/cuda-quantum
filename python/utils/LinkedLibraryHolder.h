@@ -24,8 +24,6 @@ namespace cudaq {
 
 class quantum_platform;
 
-class ExecutionManager;
-
 /// @brief A RuntimeTarget encapsulates an available
 /// backend simulator and quantum_platform for CUDA-Q
 /// kernel execution.

@@ -192,16 +192,19 @@ public:
   virtual ~ExecutionManager() = default;
 };
 
-/// Get the default execution manager instance.
-ExecutionManager *getExecutionManager();
+// Function declaration, implemented by the macro expansion below
+ExecutionManager *getRegisteredExecutionManager();
 
+// Function declaration, implemented elsewhere
 ExecutionManager *getExecutionManagerInternal();
-inline ExecutionManager &get_execution_manager() {
+
+// Get the execution manager instance.
+inline ExecutionManager *getExecutionManager() {
   ExecutionManager *em = getExecutionManagerInternal();
   if (em) {
-    return *em;
+    return em;
   }
-  return *getExecutionManager();
+  return getRegisteredExecutionManager();
 }
 
 } // namespace cudaq
@@ -214,14 +217,14 @@ inline ExecutionManager &get_execution_manager() {
 #define CONCAT_INNER(a, b) a##b
 #define CUDAQ_REGISTER_EXECUTION_MANAGER(Manager, Name)                        \
   namespace cudaq {                                                            \
-  ExecutionManager *getExecutionManager() {                                    \
+  ExecutionManager *getRegisteredExecutionManager() {                          \
     thread_local static std::unique_ptr<ExecutionManager> qis_manager =        \
         std::make_unique<Manager>();                                           \
     return qis_manager.get();                                                  \
   }                                                                            \
   }                                                                            \
   extern "C" {                                                                 \
-  cudaq::ExecutionManager *CONCAT(getExecutionManager_, Name)() {              \
+  cudaq::ExecutionManager *CONCAT(getRegisteredExecutionManager_, Name)() {    \
     thread_local static std::unique_ptr<cudaq::ExecutionManager> qis_manager = \
         std::make_unique<cudaq::Manager>();                                    \
     return qis_manager.get();                                                  \

@@ -183,7 +183,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   photonicsSubmodule.def(
       "allocate_qudit",
       [](std::size_t &level) {
-        return cudaq::get_execution_manager().allocateQudit(level);
+        return cudaq::getExecutionManager()->allocateQudit(level);
       },
       "Allocate a qudit of given level.", py::arg("level"));
   photonicsSubmodule.def(
@@ -194,15 +194,15 @@ PYBIND11_MODULE(_quakeDialects, m) {
         for (auto t : targets) {
           targetInfo.push_back(cudaq::QuditInfo(t[0], t[1]));
         }
-        cudaq::get_execution_manager().apply(name, params, {}, targetInfo,
-                                             false, cudaq::spin_op());
+        cudaq::getExecutionManager()->apply(name, params, {}, targetInfo, false,
+                                            cudaq::spin_op());
       },
       "Apply the input photonics operation on the target qudits.",
       py::arg("name"), py::arg("params"), py::arg("targets"));
   photonicsSubmodule.def(
       "measure",
       [](std::size_t level, std::size_t id, const std::string &regName) {
-        return cudaq::get_execution_manager().measure(
+        return cudaq::getExecutionManager()->measure(
             cudaq::QuditInfo(level, id), regName);
       },
       "Measure the input qudit(s).", py::arg("level"), py::arg("qudit"),
@@ -210,7 +210,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   photonicsSubmodule.def(
       "release_qudit",
       [](std::size_t level, std::size_t id) {
-        cudaq::get_execution_manager().returnQudit(cudaq::QuditInfo(level, id));
+        cudaq::getExecutionManager()->returnQudit(cudaq::QuditInfo(level, id));
       },
       "Release a qudit of given id.", py::arg("level"), py::arg("id"));
 
