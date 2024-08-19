@@ -13,7 +13,7 @@ src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publishing.yml/bad
 />
 
 <img align="left"
-src="https://github.com/NVIDIA-DOESNOTEXIST/cuda-quantum/actions/workflows/documentation.yml/badge.svg?branch=main"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/documentation.yml/badge.svg?branch=main"
 /> <br/>
 
 <a href="https://zenodo.org/badge/latestdoi/614026597"><img align="left"
