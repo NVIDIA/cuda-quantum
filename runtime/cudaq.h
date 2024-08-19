@@ -22,7 +22,7 @@ constexpr bool isTupleRecursivelyDefined() {
   std::tuple<double, int, char> t;
   return static_cast<void *>(&std::get<double>(t)) != static_cast<void *>(&t);
 }
-static bool TupleIsReverse = isTupleRecursivelyDefined();
+[[maybe_unused]] static bool TupleIsReverse = isTupleRecursivelyDefined();
 } // namespace details
 
 namespace __internal__ {
