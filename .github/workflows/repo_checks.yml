@@ -25,7 +25,8 @@ jobs:
           if ${{ github.event_name == 'pull_request' }}; then
             # Call rst2myst an appropriate files modified in this PR.
             diff_base=${{ github.event.pull_request.base.sha }}
-            git rev-list HEAD..$diff_base # fails the step if something went wrong
+            echo "## Changed docs/sphinx files" >> $GITHUB_STEP_SUMMARY
+            git diff --diff-filter=d --name-only $diff_base -- docs/sphinx >> $GITHUB_STEP_SUMMARY
             git diff --diff-filter=d --name-only $diff_base -- docs/sphinx | tr '\n' '\0' | xargs -0 rst2myst convert --raise-on-warning
           else
             # Call rst2myst an all files.
