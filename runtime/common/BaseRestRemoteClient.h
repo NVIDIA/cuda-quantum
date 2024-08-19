@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
 #include "common/Logger.h"
@@ -18,6 +19,7 @@
 #include "common/UnzipUtils.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
@@ -116,12 +118,10 @@ public:
     return cudaq::RestRequest::REST_PAYLOAD_VERSION;
   }
 
-  std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
-                                     const std::string &name,
-                                     void (*kernelFunc)(void *),
-                                     const void *args,
-                                     std::uint64_t voidStarSize,
-                                     std::size_t startingArgIdx) {
+  std::string constructKernelPayload(
+      mlir::MLIRContext &mlirContext, const std::string &name,
+      void (*kernelFunc)(void *), const void *args, std::uint64_t voidStarSize,
+      std::size_t startingArgIdx, const std::vector<void *> *rawArgs) {
     enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
 
@@ -175,15 +175,28 @@ public:
             moduleOp.push_back(funcOp.clone());
         }
         // Add globals defined in the module.
-        if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
+        if (auto globalOp = dyn_cast<cc::GlobalOp>(op))
           moduleOp.push_back(globalOp.clone());
       }
 
-      if (args) {
-        cudaq::info("Run Quake Synth.\n");
+      if (rawArgs || args) {
         mlir::PassManager pm(&mlirContext);
-        pm.addPass(
-            cudaq::opt::createQuakeSynthesizer(name, args, startingArgIdx));
+        if (rawArgs && !rawArgs->empty()) {
+          cudaq::info("Run Argument Synth.\n");
+          opt::ArgumentConverter argCon(name, moduleOp);
+          argCon.gen_drop_front(*rawArgs, startingArgIdx);
+          std::string kernName = runtime::cudaqGenPrefixName + name;
+          mlir::SmallVector<mlir::StringRef> kernels = {kernName};
+          std::string substBuff;
+          llvm::raw_string_ostream ss(substBuff);
+          ss << argCon.getSubstitutionModule();
+          mlir::SmallVector<mlir::StringRef> substs = {substBuff};
+          pm.addNestedPass<mlir::func::FuncOp>(
+              opt::createArgumentSynthesisPass(kernels, substs));
+        } else if (args) {
+          cudaq::info("Run Quake Synth.\n");
+          pm.addPass(opt::createQuakeSynthesizer(name, args, startingArgIdx));
+        }
         pm.addPass(mlir::createCanonicalizerPass());
         if (enablePrintMLIREachPass) {
           moduleOp.getContext()->disableMultithreading();
@@ -215,7 +228,7 @@ public:
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
             ").");
 
-      cudaq::opt::addPipelineConvertToQIR(pm);
+      opt::addPipelineConvertToQIR(pm);
 
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error(
@@ -234,7 +247,8 @@ public:
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,
       const void *kernelArgs, cudaq::gradient *gradient,
-      cudaq::optimizer &optimizer, const int n_params) {
+      cudaq::optimizer &optimizer, const int n_params,
+      const std::vector<void *> *rawArgs) {
     cudaq::RestRequest request(io_context, version());
 
     request.opt = RestRequestOptFields();
@@ -251,7 +265,7 @@ public:
     request.code =
         constructKernelPayload(mlirContext, kernelName, /*kernelFunc=*/nullptr,
                                /*kernelArgs=*/kernelArgs,
-                               /*argsSize=*/0, /*startingArgIdx=*/1);
+                               /*argsSize=*/0, /*startingArgIdx=*/1, rawArgs);
     request.simulator = backendSimName;
     // Remote server seed
     // Note: unlike local executions whereby a static instance of the simulator
@@ -276,7 +290,7 @@ public:
       cudaq::SerializedCodeExecutionContext *serializedCodeContext,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), const void *kernelArgs,
-      std::uint64_t argsSize) {
+      std::uint64_t argsSize, const std::vector<void *> *rawArgs) {
 
     cudaq::RestRequest request(io_context, version());
     if (serializedCodeContext)
@@ -320,20 +334,20 @@ public:
       stateIrPayload1.entryPoint = kernelName1;
       stateIrPayload1.ir =
           constructKernelPayload(mlirContext, kernelName1, nullptr, args1,
-                                 argsSize1, /*startingArgIdx=*/0);
+                                 argsSize1, /*startingArgIdx=*/0, nullptr);
       stateIrPayload2.entryPoint = kernelName2;
       stateIrPayload2.ir =
           constructKernelPayload(mlirContext, kernelName2, nullptr, args2,
-                                 argsSize2, /*startingArgIdx=*/0);
+                                 argsSize2, /*startingArgIdx=*/0, nullptr);
       // First kernel of the overlap calculation
       request.code = stateIrPayload1.ir;
       request.entryPoint = stateIrPayload1.entryPoint;
       // Second kernel of the overlap calculation
       request.overlapKernel = stateIrPayload2;
     } else if (serializedCodeContext == nullptr) {
-      request.code =
-          constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                 kernelArgs, argsSize, /*startingArgIdx=*/0);
+      request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
+                                            kernelArgs, argsSize,
+                                            /*startingArgIdx=*/0, rawArgs);
     }
     request.simulator = backendSimName;
     // Remote server seed
@@ -362,7 +376,8 @@ public:
               const int vqe_n_params, const std::string &backendSimName,
               const std::string &kernelName, void (*kernelFunc)(void *),
               const void *kernelArgs, std::uint64_t argsSize,
-              std::string *optionalErrorMsg) override {
+              std::string *optionalErrorMsg,
+              const std::vector<void *> *rawArgs) override {
     if (isDisallowed(io_context.name))
       throw std::runtime_error(
           io_context.name +
@@ -372,10 +387,10 @@ public:
       if (vqe_n_params > 0)
         return constructVQEJobRequest(mlirContext, io_context, backendSimName,
                                       kernelName, kernelArgs, vqe_gradient,
-                                      *vqe_optimizer, vqe_n_params);
+                                      *vqe_optimizer, vqe_n_params, rawArgs);
       return constructJobRequest(mlirContext, io_context, serializedCodeContext,
                                  backendSimName, kernelName, kernelFunc,
-                                 kernelArgs, argsSize);
+                                 kernelArgs, argsSize, rawArgs);
     }();
 
     if (request.code.empty() && (serializedCodeContext == nullptr ||
@@ -909,7 +924,8 @@ public:
               const int vqe_n_params, const std::string &backendSimName,
               const std::string &kernelName, void (*kernelFunc)(void *),
               const void *kernelArgs, std::uint64_t argsSize,
-              std::string *optionalErrorMsg) override {
+              std::string *optionalErrorMsg,
+              const std::vector<void *> *rawArgs) override {
     if (isDisallowed(io_context.name))
       throw std::runtime_error(
           io_context.name +
@@ -941,10 +957,10 @@ public:
       if (vqe_n_params > 0)
         return constructVQEJobRequest(mlirContext, io_context, backendSimName,
                                       kernelName, kernelArgs, vqe_gradient,
-                                      *vqe_optimizer, vqe_n_params);
+                                      *vqe_optimizer, vqe_n_params, rawArgs);
       return constructJobRequest(mlirContext, io_context, serializedCodeContext,
                                  backendSimName, kernelName, kernelFunc,
-                                 kernelArgs, argsSize);
+                                 kernelArgs, argsSize, rawArgs);
     }();
 
     if (request.code.empty() && (serializedCodeContext == nullptr ||
