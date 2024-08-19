@@ -576,7 +576,7 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createLowerToCFGPass()";
 }
 
-def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
+def MappingPass: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
   let summary = "Perform qubit mapping to account for connectivity constraints";
   let description = [{
     Some backends cannot support any-to-any multi-qubit operations, so this pass
@@ -595,15 +595,26 @@ def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
   }];
 
   let options = [
-    Option<"device", "device", "std::string", /*default=*/"\"-\"",
-      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
-    Option<"debug", "debug", "bool", /*default=*/"false", "Enable debug for qubit-mapping pass algorithm">,
     Option<"extendedLayerSize", "extendedLayerSize", "unsigned", /*default=*/"20", "Extended layer size">,
     Option<"extendedLayerWeight", "extendedLayerWeight", "float", /*default=*/"0.5", "Extended layer weight">,
     Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5", "Decay delta">,
     Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5", "Number of rounds before decay is reset">
   ];
 }
+
+def MappingPrep: Pass<"qubit-mapping-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare module for qubit mapping.";
+  let description = [{
+    Insert the required topology-aware `quake.wire_set` operation that
+    corresponds to the requested device.
+  }];
+
+  let options = [
+    Option<"device", "device", "std::string", /*default=*/"\"-\"",
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
+  ];
+}
+
 
 def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
   let summary = "Converts memory-SSA to register-SSA form.";

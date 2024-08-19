@@ -33,10 +33,13 @@ using cudaq::QuantumMeasure;
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MAPPINGPASS
+#define GEN_PASS_DEF_MAPPINGPREP
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 namespace {
+
+constexpr StringRef mappedWireSetName("mapped_wireset");
 
 //===----------------------------------------------------------------------===//
 // Placement
@@ -436,8 +439,8 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
 // Pass implementation
 //===----------------------------------------------------------------------===//
 
-struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
-  using MappingPassBase::MappingPassBase;
+struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
+  using MappingPrepBase::MappingPrepBase;
 
   /// Device dimensions that come from inside the `device` option parenthesis,
   /// like X and Y for star(X,Y)
@@ -448,9 +451,6 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
   /// If the deviceTopoType is File, this is the path to the file.
   StringRef deviceFilename;
-
-  /// A shared mutex across all instances of this pass.
-  std::shared_ptr<std::mutex> passMutex = nullptr;
 
   virtual LogicalResult initialize(MLIRContext *context) override {
     // Initialize prior to parsing
@@ -520,18 +520,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       return failure();
     }
 
-    passMutex = std::make_shared<std::mutex>();
-
     return success();
-  }
-
-  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
-  /// nullptr.
-  void addOpAndUsersToList(Operation *op,
-                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
-    opsToMoveToEnd.push_back(op);
-    for (auto user : op->getUsers())
-      addOpAndUsersToList(user, opsToMoveToEnd);
   }
 
   /// Create an adjacency matrix attribute for a WireSetOp.
@@ -564,8 +553,6 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
   }
 
   quake::WireSetOp insertWireSetOpForDevice(Device &d, ModuleOp mod) {
-    constexpr StringRef mappedWireSetName("mapped_wireset");
-    std::scoped_lock<std::mutex> lock(*passMutex);
     if (auto wires = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName))
       return wires;
 
@@ -579,14 +566,46 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
   }
 
   void runOnOperation() override {
+    auto mod = getOperation();
 
-    // Allow enabling debug via pass option `debug`
-#ifndef NDEBUG
-    if (debug) {
-      llvm::DebugFlag = true;
-      llvm::setCurrentDebugType(DEBUG_TYPE);
-    }
-#endif
+    if (deviceTopoType == Bypass)
+      return;
+
+    // Get grid dimensions
+    std::size_t x = deviceDim[0];
+    std::size_t y = deviceDim[1];
+
+    // These are captured in the user help (device options in Passes.td), so if
+    // you update this, be sure to update that as well.
+    Device d;
+    if (deviceTopoType == Path)
+      d = Device::path(x);
+    else if (deviceTopoType == Ring)
+      d = Device::ring(x);
+    else if (deviceTopoType == Star)
+      d = Device::star(/*numQubits=*/x, /*centerQubit=*/y);
+    else if (deviceTopoType == Grid)
+      d = Device::grid(/*width=*/x, /*height=*/y);
+    else if (deviceTopoType == File)
+      d = Device::file(deviceFilename);
+
+    insertWireSetOpForDevice(d, mod);
+  }
+};
+
+struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
+  using MappingPassBase::MappingPassBase;
+
+  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
+  /// nullptr.
+  void addOpAndUsersToList(Operation *op,
+                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
+    opsToMoveToEnd.push_back(op);
+    for (auto user : op->getUsers())
+      addOpAndUsersToList(user, opsToMoveToEnd);
+  }
+
+  void runOnOperation() override {
 
     auto func = getOperation();
     auto &blocks = func.getBlocks();
@@ -594,9 +613,6 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // Current limitations:
     //  * Can only map a entry-point kernel
     //  * The kernel can only have one block
-
-    if (deviceTopoType == Bypass)
-      return;
 
     // FIXME: Add the ability to handle multiple blocks.
     if (blocks.size() > 1) {
@@ -636,23 +652,12 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     Block &block = *blocks.begin();
     auto mod = block.getParentOp()->getParentOfType<ModuleOp>();
 
-    // Get grid dimensions
-    std::size_t x = deviceDim[0];
-    std::size_t y = deviceDim[1];
-
-    // These are captured in the user help (device options in Passes.td), so if
-    // you update this, be sure to update that as well.
     Device d;
-    if (deviceTopoType == Path)
-      d = Device::path(x);
-    else if (deviceTopoType == Ring)
-      d = Device::ring(x);
-    else if (deviceTopoType == Star)
-      d = Device::star(/*numQubits=*/x, /*centerQubit=*/y);
-    else if (deviceTopoType == Grid)
-      d = Device::grid(/*width=*/x, /*height=*/y);
-    else if (deviceTopoType == File)
-      d = Device::file(deviceFilename);
+    auto wireSetOp = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName);
+    if (wireSetOp)
+      if (auto adj = dyn_cast_or_null<SparseElementsAttr>(
+              wireSetOp.getAdjacencyAttr()))
+        d = Device::attr(adj);
 
     if (d.getNumQubits() == 0) {
       func.emitError("Trying to target an empty device.");
@@ -734,12 +739,9 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       return;
     }
 
-    // Create a new WireSet and make all existing borrow_wire ops use it
-    // instead.
-    auto wireSetOp = insertWireSetOpForDevice(d, mod);
-    auto newWireSetName = wireSetOp.getSymName();
+    // Make all existing borrow_wire ops use the mapped wire set.
     func.walk([&](quake::BorrowWireOp borrowOp) {
-      borrowOp.setSetName(newWireSetName);
+      borrowOp.setSetName(mappedWireSetName);
     });
 
     // We've made it past all the initial checks. Remove the returns now. They
@@ -787,8 +789,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     builder.setInsertionPointAfter(lastSource);
     for (unsigned i = 0; i < d.getNumQubits(); i++) {
       if (!sources[i]) {
-        auto borrowOp = builder.create<quake::BorrowWireOp>(unknownLoc, wireTy,
-                                                            newWireSetName, i);
+        auto borrowOp = builder.create<quake::BorrowWireOp>(
+            unknownLoc, wireTy, mappedWireSetName, i);
         wireToVirtualQ[borrowOp.getResult()] = Placement::VirtualQ(i);
         sources[i] = borrowOp;
       }
@@ -885,3 +887,44 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 };
 
 } // namespace
+
+namespace cudaq::opt {
+/// This options structure is mostly a mirror copy of the options in
+/// MappingPass, but we've also added the `device` option from MappingPrep.
+struct MappingPipelineOptions
+    : public PassPipelineOptions<MappingPipelineOptions> {
+  PassOptions::Option<std::string> device{*this, "device", llvm::cl::desc(""),
+                                          llvm::cl::init("-")};
+  PassOptions::Option<unsigned> extendedLayerSize{*this, "extendedLayerSize",
+                                                  llvm::cl::desc("")};
+  PassOptions::Option<float> extendedLayerWeight{*this, "extendedLayerWeight",
+                                                 llvm::cl::desc("")};
+  PassOptions::Option<float> decayDelta{*this, "decayDelta",
+                                        llvm::cl::desc("")};
+  PassOptions::Option<unsigned> roundsDecayReset{*this, "roundsDecayReset",
+                                                 llvm::cl::desc("")};
+};
+
+/// Register the mapping pipeline. Route the appropriate options to the
+/// appropriate pass in the pass pipeline.
+void registerMappingPipeline() {
+  PassPipelineRegistration<cudaq::opt::MappingPipelineOptions>(
+      "qubit-mapping", "Perform qubit mapping pass pipeline.",
+      [](OpPassManager &pm, const MappingPipelineOptions &opt) {
+        MappingPrepOptions prepOpt;
+        if (opt.device.hasValue())
+          prepOpt.device = opt.device;
+        pm.addPass(cudaq::opt::createMappingPrep(prepOpt));
+        MappingPassOptions mpo;
+        if (opt.extendedLayerSize.hasValue())
+          mpo.extendedLayerSize = opt.extendedLayerSize;
+        if (opt.extendedLayerWeight.hasValue())
+          mpo.extendedLayerWeight = opt.extendedLayerWeight;
+        if (opt.decayDelta.hasValue())
+          mpo.decayDelta = opt.decayDelta;
+        if (opt.roundsDecayReset.hasValue())
+          mpo.roundsDecayReset = opt.roundsDecayReset;
+        pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingPass(mpo));
+      });
+}
+} // namespace cudaq::opt
