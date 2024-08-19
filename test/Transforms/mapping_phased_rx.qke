@@ -9,12 +9,13 @@
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,2)' %s | FileCheck %s
 
 module {
+  quake.wire_set @wires[2147483647]
   func.func @__nvqpp__mlirgen__ghzILm2EE() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %cst = arith.constant 1.5707963267948966 : f64
     %cst_0 = arith.constant 3.1415926535897931 : f64
     %cst_1 = arith.constant 0.000000e+00 : f64
-    %0 = quake.null_wire
-    %1 = quake.null_wire
+    %0 = quake.borrow_wire @wires[0] : !quake.wire
+    %1 = quake.borrow_wire @wires[1] : !quake.wire
     %2 = quake.phased_rx (%cst, %cst) %0 : (f64, f64, !quake.wire) -> !quake.wire
     %3 = quake.phased_rx (%cst_0, %cst_1) %2 : (f64, f64, !quake.wire) -> !quake.wire
     %4 = quake.phased_rx (%cst, %cst) %1 : (f64, f64, !quake.wire) -> !quake.wire
@@ -23,8 +24,8 @@ module {
     %7 = quake.phased_rx (%cst, %cst) %6#1 : (f64, f64, !quake.wire) -> !quake.wire
     %8 = quake.phased_rx (%cst_0, %cst_1) %7 : (f64, f64, !quake.wire) -> !quake.wire
     %bits, %wires = quake.mz %6#0 name "result": (!quake.wire) -> (!quake.measure, !quake.wire)
-    quake.sink %wires : !quake.wire
-    quake.sink %8 : !quake.wire
+    quake.return_wire %wires : !quake.wire
+    quake.return_wire %8 : !quake.wire
     return
   }
 }
@@ -33,9 +34,9 @@ module {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK:           %[[VAL_3:.*]] = quake.null_wire
-// CHECK:           %[[VAL_4:.*]] = quake.null_wire
-// CHECK:           %[[VAL_5:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:           %[[VAL_4:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:           %[[VAL_5:.*]] = quake.borrow_wire @mapped_wireset
 // CHECK:           %[[VAL_6:.*]] = quake.phased_rx (%[[VAL_0]], %[[VAL_0]]) %[[VAL_3]] : (f64, f64, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_7:.*]] = quake.phased_rx (%[[VAL_1]], %[[VAL_2]]) %[[VAL_6]] : (f64, f64, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_8:.*]] = quake.phased_rx (%[[VAL_0]], %[[VAL_0]]) %[[VAL_4]] : (f64, f64, !quake.wire) -> !quake.wire
@@ -45,8 +46,8 @@ module {
 // CHECK:           %[[VAL_12:.*]] = quake.phased_rx (%[[VAL_0]], %[[VAL_0]]) %[[VAL_11]]#1 : (f64, f64, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_13:.*]] = quake.phased_rx (%[[VAL_1]], %[[VAL_2]]) %[[VAL_12]] : (f64, f64, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_14:.*]], %[[VAL_15:.*]] = quake.mz %[[VAL_11]]#0 name "result" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           quake.sink %[[VAL_10]]#0 : !quake.wire
-// CHECK:           quake.sink %[[VAL_13]] : !quake.wire
-// CHECK:           quake.sink %[[VAL_15]] : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_10]]#0 : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_13]] : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_15]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
