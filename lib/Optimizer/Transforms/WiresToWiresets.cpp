@@ -82,6 +82,11 @@ struct AssignWireIndicesPass
       return;
     }
 
+    // Only run on the entrypoint, the expectation is that inlining has been
+    // done already, so there should only be one kernel remaining.
+    if (!func->hasAttr("cudaq-entrypoint"))
+      return;
+
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     unsigned x = 0;
