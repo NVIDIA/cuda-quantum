@@ -17,38 +17,12 @@
 
 namespace cudaq::opt {
 
-/// @brief Owner wrapper for data extracted from a simulation state.
-class StateData {
-public:
-  typedef void (*Deleter)(void *);
-  void *data;
-  Deleter deleter;
-  std::size_t size;
-  std::size_t elementSize;
-
-  static StateData readStateData(const cudaq::state *state);
-
-  StateData(void *data, std::size_t size, std::size_t elementSize,
-            Deleter deleter)
-      : data(data), deleter(deleter), size(size), elementSize(elementSize) {}
-
-  ~StateData() { deleter(data); }
-};
-
-/// @brief Platform settings determine how to convert state pointers.
-struct PlatformSettings {
-  bool isRemote;
-  bool isSimulator;
-  PlatformSettings(bool isRemote = false, bool isSimulator = false)
-      : isRemote(isRemote), isSimulator(isSimulator) {}
-};
-
 class ArgumentConverter {
 public:
   /// Build an instance to create argument substitutions for a specified \p
   /// kernelName in \p sourceModule.
   ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule,
-                    const PlatformSettings &platform = PlatformSettings());
+                    bool isSimulator = true);
 
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
@@ -79,7 +53,7 @@ private:
   mlir::OpBuilder builder;
   mlir::StringRef kernelName;
   mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
-  PlatformSettings platform;
+  bool isSimulator;
 };
 
 } // namespace cudaq::opt

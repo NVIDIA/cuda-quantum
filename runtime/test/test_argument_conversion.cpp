@@ -11,6 +11,7 @@
 
 // RUN: test_argument_conversion | FileCheck %s
 
+#include "FakeSimulationState.h"
 #include "common/ArgumentConversion.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -18,9 +19,7 @@
 #include "mlir/Parser/Parser.h"
 
 void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
-                  std::vector<void *> args,
-                  const cudaq::opt::PlatformSettings &platform =
-                      cudaq::opt::PlatformSettings()) {
+                  std::vector<void *> args) {
   std::string code = R"#(
 func.func private @callee(%0: )#" +
                      typeName + R"#()
@@ -34,7 +33,7 @@ func.func @__nvqpp__mlirgen__testy(%0: )#" +
   // Create the Module
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
   llvm::outs() << "Source module:\n" << *mod << '\n';
-  cudaq::opt::ArgumentConverter ab{"testy", *mod, platform};
+  cudaq::opt::ArgumentConverter ab{"testy", *mod};
 
   // Create the argument conversions
   ab.gen(args);
@@ -295,14 +294,10 @@ void test_state(mlir::MLIRContext *ctx) {
   {
     std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
                                            0.,        0.,        0., 0.};
-    auto x = cudaq::state::from_data(data);
+    auto x =
+        cudaq::state(new cudaq::FakeSimulationState(data.size(), data.data()));
     std::vector<void *> v = {static_cast<void *>(&x)};
-    // remote simulator
-    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v,
-                 cudaq::opt::PlatformSettings(true, true));
-    // local simulator
-    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v,
-                 cudaq::opt::PlatformSettings(false, true));
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v);
   }
 
   // clang-format off
@@ -330,14 +325,6 @@ void test_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_16:.*]] = cc.insert_value %[[VAL_15]], %[[VAL_14]][7] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
 // CHECK:         }
 
-// CHECK:       Source module:
-// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
-// CHECK:       Substitution module:
-
-// CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %c[[VAL_0:.*]]_i64 = arith.constant [[VAL_0]] : i64
-// CHECK:           %0 = cc.cast %c[[VAL_0]]_i64 : (i64) -> !cc.ptr<!cc.state>
-// CHECK:         }
   // clang-format on
 }
 

@@ -24,8 +24,6 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 target_link_libraries(${TEST_NAME}
   PUBLIC
     cudaq-mlir-runtime
-    nvqir-custatevec-fp64
-    cudaq-platform-default
 )
 
 set_property(TARGET ${TEST_NAME} PROPERTY FOLDER test)

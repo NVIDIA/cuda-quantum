@@ -18,6 +18,28 @@ skipIfNvidiaNotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason='Could not find nvidia in installation')
 
+# synthesis
+
+
+def test_kernel_synthesis_complex():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 1. / np.sqrt(2.), 0., 0.],
+                 dtype=cudaq.complex())
+    state = cudaq.State.from_data(c)
+
+    @cudaq.kernel
+    def kernel(vec: cudaq.State):
+        q = cudaq.qvector(vec)
+
+    synthesized = cudaq.synthesize(kernel, state)
+    counts = cudaq.sample(synthesized)
+    print(counts)
+    assert '10' in counts
+    assert '00' in counts
+
+
 # float
 
 
@@ -410,6 +432,7 @@ def test_inner_kernels_state():
     assert '1100' in counts
     assert '0011' in counts
     assert '0000' in counts
+
 
 def test_invalid_arg_error_msg():
     cudaq.reset_target()
