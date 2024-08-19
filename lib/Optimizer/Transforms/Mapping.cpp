@@ -659,8 +659,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     Block &block = *blocks.begin();
 
     Device d;
-    if (auto adj = dyn_cast_or_null<SparseElementsAttr>(
-            wireSetOp.getAdjacencyAttr()))
+    if (auto adj =
+            dyn_cast_or_null<SparseElementsAttr>(wireSetOp.getAdjacencyAttr()))
       d = Device::attr(adj);
 
     if (d.getNumQubits() == 0) {
