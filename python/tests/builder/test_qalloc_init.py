@@ -171,6 +171,25 @@ def test_kernel_complex_params_rotate_f64():
     assert '10' in counts
 
 
+@skipIfNvidiaFP64NotInstalled
+def test_kernel_complex_force_kron():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    c = [0. + 0j] * 1024
+    c[1023] = 1j
+
+    kernel, vec = cudaq.make_kernel(list[complex])
+    p = kernel.qalloc(1)
+    q = kernel.qalloc(vec)
+    kernel.mz(p)
+    kernel.mz(q)
+
+    counts = cudaq.sample(kernel, c)
+    assert len(counts) == 1
+    assert '01111111111' in counts
+
+
 @skipIfNvidiaNotInstalled
 def test_kernel_complex_params_rotate_f32():
     cudaq.reset_target()

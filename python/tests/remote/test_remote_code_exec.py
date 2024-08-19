@@ -8,16 +8,25 @@
 import pytest
 import os
 import sys
-import requests
 import subprocess
 import time
-import psutil
 import numpy as np
 
 import cudaq
 from cudaq import spin
 import numpy as np
 
+try:
+    import requests
+    import psutil
+    have_requests = True
+except ImportError:
+    have_requests = False
+
+skipIfModulesNotInstalled = pytest.mark.skipif(
+    not have_requests,
+    reason="please install requests and/or psutil for these tests")
+    
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
     sys.version_info < (3, 9),
@@ -109,12 +118,14 @@ def do_something():
     cudaq.__clearKernelRegistries()
 
 
+@skipIfModulesNotInstalled
 def test_setup():
     target = cudaq.get_target()
     numQpus = target.num_qpus()
     assert numQpus == 1
 
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 def test_optimizer():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -152,6 +163,7 @@ def test_optimizer():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 def test_optimizer_nested_kernels():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -201,6 +213,7 @@ def test_optimizer_nested_kernels():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 @pytest.mark.parametrize(
     "optimizer", [cudaq.optimizers.COBYLA(),
@@ -232,6 +245,7 @@ def test_simple_vqe(optimizer):
                                                  parameter))
 
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 @pytest.mark.parametrize(
     "optimizer", [cudaq.optimizers.COBYLA(),
@@ -269,6 +283,7 @@ def test_simple_vqe_nested_kernels(optimizer):
                                                  parameter))
 
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 def test_complex_vqe_inline_lambda():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -298,6 +313,7 @@ def test_complex_vqe_inline_lambda():
     assert assert_close(parameter[0], 0.5840908448487905, 1e-3)
 
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 def test_vqe_perf_warning():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -324,6 +340,7 @@ def test_vqe_perf_warning():
 
 
 # This is a helper function used by parameterized tests below.
+@skipIfModulesNotInstalled
 @pytest.mark.skip
 def test_complex_vqe_named_lambda(optimizer, gradient):
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -356,6 +373,7 @@ def test_complex_vqe_named_lambda(optimizer, gradient):
                                                  parameter))
 
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 @pytest.mark.parametrize("optimizer", [
     cudaq.optimizers.LBFGS(),
@@ -368,6 +386,7 @@ def test_complex_vqe_named_lambda_sweep_opt(optimizer):
                                   cudaq.gradients.CentralDifference())
 
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 @pytest.mark.parametrize("gradient", [
     cudaq.gradients.CentralDifference(),
@@ -377,6 +396,7 @@ def test_complex_vqe_named_lambda_sweep_opt(optimizer):
 def test_complex_vqe_named_lambda_sweep_grad(gradient):
     test_complex_vqe_named_lambda(cudaq.optimizers.Adam(), gradient)
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 def test_state_preparation():
 
@@ -391,6 +411,7 @@ def test_state_preparation():
     assert not '01' in counts
     assert not '11' in counts
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 def test_state_preparation_builder():
     kernel, state = cudaq.make_kernel(list[complex])
@@ -403,6 +424,7 @@ def test_state_preparation_builder():
     assert not '01' in counts
     assert not '11' in counts
 
+@skipIfModulesNotInstalled
 @skipIfPythonLessThan39
 @pytest.mark.skip(reason="https://github.com/NVIDIA/cuda-quantum/issues/1924")
 def test_arbitrary_unitary_synthesis():

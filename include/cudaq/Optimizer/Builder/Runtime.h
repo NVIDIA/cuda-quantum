@@ -23,7 +23,8 @@ static constexpr unsigned cudaqGenPrefixLength = sizeof(cudaqGenPrefixName) - 1;
 /// compile time (see `cudaqGenPrefixName`) or it can be rewritten to call back
 /// to the runtime library (and be handled at runtime).
 static constexpr const char launchKernelFuncName[] = "altLaunchKernel";
-static constexpr const char launchKernelVersion2FuncName[] =
-    "altLaunchKernelUsingLocalJIT";
+static constexpr const char launchKernelStreamlinedFuncName[] =
+    "streamlinedLaunchKernel";
+static constexpr const char launchKernelHybridFuncName[] = "hybridLaunchKernel";
 
 } // namespace cudaq::runtime

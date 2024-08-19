@@ -147,7 +147,7 @@ public:
           rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
     }
 
-    std::vector<mlir::Operation *> toErase;
+    SmallVector<Operation *> toErase;
 
     // Rewalk all the uses of alloc, u, which must be cc.cast or cc.compute_ptr.
     // For each,u, remove a store and replace a load with a cc.extract_value.
