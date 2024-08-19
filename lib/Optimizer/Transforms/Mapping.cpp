@@ -613,6 +613,14 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     //  * Can only map a entry-point kernel
     //  * The kernel can only have one block
 
+    auto mod = func->getParentOfType<ModuleOp>();
+    auto wireSetOp = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName);
+    if (!wireSetOp) {
+      // Silently return without error if no mapped wire set is found in the
+      // module.
+      return;
+    }
+
     // FIXME: Add the ability to handle multiple blocks.
     if (blocks.size() > 1) {
       func.emitError("The mapper cannot handle multiple blocks");
@@ -649,14 +657,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // Sanity checks and create a wire to virtual qubit mapping.
     Block &block = *blocks.begin();
-    auto mod = block.getParentOp()->getParentOfType<ModuleOp>();
 
     Device d;
-    auto wireSetOp = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName);
-    if (wireSetOp)
-      if (auto adj = dyn_cast_or_null<SparseElementsAttr>(
-              wireSetOp.getAdjacencyAttr()))
-        d = Device::attr(adj);
+    if (auto adj = dyn_cast_or_null<SparseElementsAttr>(
+            wireSetOp.getAdjacencyAttr()))
+      d = Device::attr(adj);
 
     if (d.getNumQubits() == 0) {
       func.emitError("Trying to target an empty device.");
