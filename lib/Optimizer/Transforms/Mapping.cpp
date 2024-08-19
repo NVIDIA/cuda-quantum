@@ -16,7 +16,6 @@
 #include "llvm/Support/ScopedPrinter.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Transforms/TopologicalSortUtils.h"
-#include <mutex>
 
 #define DEBUG_TYPE "quantum-mapper"
 
@@ -895,9 +894,7 @@ struct MappingPipelineOptions
     : public PassPipelineOptions<MappingPipelineOptions> {
 
 #define DECLARE_SUB_OPTION(_PARENT_STRUCT, _FIELD)                             \
-  PassOptions::Option<decltype(_PARENT_STRUCT::_FIELD)> _FIELD {               \
-    *this, #_FIELD                                                             \
-  }
+  PassOptions::Option<decltype(_PARENT_STRUCT::_FIELD)> _FIELD{*this, #_FIELD}
   DECLARE_SUB_OPTION(MappingPrepOptions, device);
   DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerSize);
   DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerWeight);
