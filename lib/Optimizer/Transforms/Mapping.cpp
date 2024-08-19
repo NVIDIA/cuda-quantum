@@ -32,7 +32,7 @@ using cudaq::QuantumMeasure;
 //===----------------------------------------------------------------------===//
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_MAPPINGPASS
+#define GEN_PASS_DEF_MAPPINGFUNC
 #define GEN_PASS_DEF_MAPPINGPREP
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
@@ -593,8 +593,8 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
   }
 };
 
-struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
-  using MappingPassBase::MappingPassBase;
+struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
+  using MappingFuncBase::MappingFuncBase;
 
   /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
   /// nullptr.
@@ -890,20 +890,28 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
 namespace cudaq::opt {
 /// This options structure is mostly a mirror copy of the options in
-/// MappingPass, but we've also added the `device` option from MappingPrep.
+/// MappingFunc, but we've also added the `device` option from MappingPrep.
 struct MappingPipelineOptions
     : public PassPipelineOptions<MappingPipelineOptions> {
-  PassOptions::Option<std::string> device{*this, "device", llvm::cl::desc(""),
-                                          llvm::cl::init("-")};
-  PassOptions::Option<unsigned> extendedLayerSize{*this, "extendedLayerSize",
-                                                  llvm::cl::desc("")};
-  PassOptions::Option<float> extendedLayerWeight{*this, "extendedLayerWeight",
-                                                 llvm::cl::desc("")};
-  PassOptions::Option<float> decayDelta{*this, "decayDelta",
-                                        llvm::cl::desc("")};
-  PassOptions::Option<unsigned> roundsDecayReset{*this, "roundsDecayReset",
-                                                 llvm::cl::desc("")};
+
+#define DECLARE_SUB_OPTION(_PARENT_STRUCT, _FIELD)                             \
+  PassOptions::Option<decltype(_PARENT_STRUCT::_FIELD)> _FIELD {               \
+    *this, #_FIELD                                                             \
+  }
+  DECLARE_SUB_OPTION(MappingPrepOptions, device);
+  DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerSize);
+  DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerWeight);
+  DECLARE_SUB_OPTION(MappingFuncOptions, decayDelta);
+  DECLARE_SUB_OPTION(MappingFuncOptions, roundsDecayReset);
 };
+
+// Helper macro to set MappingFuncOptions field if the corresponding field in
+// MappingPipelineOptions is set.
+#define SET_IF_EXISTS(_NEW_OPTS_STRUCT, _ORIG_STRUCT, _FIELD)                  \
+  do {                                                                         \
+    if (_ORIG_STRUCT._FIELD.hasValue())                                        \
+      _NEW_OPTS_STRUCT._FIELD = _ORIG_STRUCT._FIELD;                           \
+  } while (0)
 
 /// Register the mapping pipeline. Route the appropriate options to the
 /// appropriate pass in the pass pipeline.
@@ -911,20 +919,18 @@ void registerMappingPipeline() {
   PassPipelineRegistration<cudaq::opt::MappingPipelineOptions>(
       "qubit-mapping", "Perform qubit mapping pass pipeline.",
       [](OpPassManager &pm, const MappingPipelineOptions &opt) {
+        // Add the prep pass
         MappingPrepOptions prepOpt;
-        if (opt.device.hasValue())
-          prepOpt.device = opt.device;
+        SET_IF_EXISTS(prepOpt, opt, device);
         pm.addPass(cudaq::opt::createMappingPrep(prepOpt));
-        MappingPassOptions mpo;
-        if (opt.extendedLayerSize.hasValue())
-          mpo.extendedLayerSize = opt.extendedLayerSize;
-        if (opt.extendedLayerWeight.hasValue())
-          mpo.extendedLayerWeight = opt.extendedLayerWeight;
-        if (opt.decayDelta.hasValue())
-          mpo.decayDelta = opt.decayDelta;
-        if (opt.roundsDecayReset.hasValue())
-          mpo.roundsDecayReset = opt.roundsDecayReset;
-        pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingPass(mpo));
+
+        // Add the per-function pass
+        MappingFuncOptions funcOpts;
+        SET_IF_EXISTS(funcOpts, opt, extendedLayerSize);
+        SET_IF_EXISTS(funcOpts, opt, extendedLayerWeight);
+        SET_IF_EXISTS(funcOpts, opt, decayDelta);
+        SET_IF_EXISTS(funcOpts, opt, roundsDecayReset);
+        pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingFunc(funcOpts));
       });
 }
 } // namespace cudaq::opt

@@ -576,7 +576,7 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createLowerToCFGPass()";
 }
 
-def MappingPass: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
+def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
   let summary = "Perform qubit mapping to account for connectivity constraints";
   let description = [{
     Some backends cannot support any-to-any multi-qubit operations, so this pass
