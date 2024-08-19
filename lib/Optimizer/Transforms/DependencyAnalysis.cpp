@@ -322,8 +322,6 @@ protected:
     return true;
   }
 
-  virtual std::optional<VirtualQID> getQIDForResult(size_t resultidx) = 0;
-
   virtual void updateHeight() {
     height = 0;
     for (auto edge : dependencies) {
@@ -397,6 +395,8 @@ public:
   /// successor dependencies on \p qid with the relevant dependency from this
   /// node.
   virtual void eraseQID(VirtualQID qid) = 0;
+
+  virtual std::optional<VirtualQID> getQIDForResult(size_t resultidx) = 0;
 };
 
 class InitDependencyNode : public DependencyNode {
@@ -438,11 +438,6 @@ protected:
 
   VirtualQID getQID() { return qids.front(); }
 
-  std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
-    assert(resultidx == 0 && "Invalid resultidx");
-    return std::optional(getQID());
-  }
-
 public:
   InitDependencyNode(quake::BorrowWireOp op) : wire(op.getResult()) {
     // Should be ensured by assign-ids pass
@@ -474,6 +469,11 @@ public:
     if (qubit)
       qubits.insert(qubit.value());
     return qubits;
+  }
+
+  std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
+    assert(resultidx == 0 && "Invalid resultidx");
+    return std::optional(getQID());
   }
 };
 
@@ -561,15 +561,6 @@ protected:
     for (auto successor : successors)
       if (successor->isSkip())
         successor->codeGen(builder, set);
-  }
-
-  std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
-    if (!isQuantumOp())
-      return std::nullopt;
-    auto operand = getOperandIDXFromResultIDX(resultidx, associated);
-    if (operand >= dependencies.size())
-      return std::nullopt;
-    return dependencies[operand].qid;
   }
 
 public:
@@ -679,6 +670,15 @@ public:
     }
     return associated->getName().getStringRef().str();
   };
+
+  virtual std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
+    if (!isQuantumOp())
+      return std::nullopt;
+    auto operand = getOperandIDXFromResultIDX(resultidx, associated);
+    if (operand >= dependencies.size())
+      return std::nullopt;
+    return dependencies[operand].qid;
+  }
 };
 
 class DependencyGraph {
@@ -822,6 +822,7 @@ private:
     if (leafs.count(old_qid) == 1) {
       auto first_use = getFirstUseOfQID(old_qid);
       auto old_leaf = leafs[old_qid];
+
       // TODO: use replaceWith
       for (uint i = 0; i < first_use->dependencies.size(); i++)
         if (first_use->dependencies[i].node == old_leaf)
@@ -847,8 +848,8 @@ private:
     assert(new_root->isRoot() && "Invalid root!");
 
     if (qids.contains(qid)) {
-      auto last_use = getLastUseOfQID(qid);
       DependencyNode *old_root = getRootForQID(qid);
+      auto last_use = getLastUseOfQID(qid);
 
       for (uint i = 0; i < old_root->dependencies.size(); i++) {
         auto edge = old_root->dependencies[i];
@@ -864,6 +865,7 @@ private:
 
       last_use->successors.remove(old_root);
       last_use->successors.insert(new_root);
+      old_root->qids.remove(qid);
     }
 
     new_root->qids.insert(new_qid);
@@ -923,7 +925,15 @@ public:
 
   OpDependencyNode *getLastUseOfQID(VirtualQID qid) {
     assert(qids.contains(qid) && "Given qid not in dependency graph");
-    DependencyNode *lastUse = getRootForQID(qid)->dependencies[0].node;
+
+    DependencyNode *root = getRootForQID(qid);
+    DependencyNode *lastUse;
+    for (auto dependency : root->dependencies) {
+      if (dependency.qid == qid) {
+        lastUse = dependency.node;
+        break;
+      }
+    }
     if (lastUse->isLeaf())
       return nullptr;
     return static_cast<OpDependencyNode *>(lastUse);
@@ -1096,17 +1106,17 @@ public:
     }
   }
 
-  void updateLeafs() {
-    for (auto qid : qids) {
-      auto leaf = leafs[qid];
-      if (leaf->successors.empty()) {
-        leafs.erase(leafs.find(qid));
-        if (allocs.count(qid) == 1)
-          allocs.erase(allocs.find(qid));
-        qids.remove(qid);
-      }
-    }
-  }
+  // void updateLeafs() {
+  //   for (auto qid : qids) {
+  //     auto leaf = leafs[qid];
+  //     if (leaf->successors.empty()) {
+  //       leafs.erase(leafs.find(qid));
+  //       if (allocs.count(qid) == 1)
+  //         allocs.erase(allocs.find(qid));
+  //       qids.remove(qid);
+  //     }
+  //   }
+  // }
 };
 
 class RootDependencyNode : public OpDependencyNode {
@@ -1155,6 +1165,7 @@ class ArgDependencyNode : public DependencyNode {
 
 protected:
   BlockArgument barg;
+  uint argNum;
 
   void printNode() override {
     if (qids.size() > 0)
@@ -1176,21 +1187,25 @@ protected:
 
   void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override{};
 
-  std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
-    assert(resultidx == 0 && "Invalid resultidx");
-    if (qids.size() == 1)
-      return std::optional(qids.front());
-    return std::nullopt;
-  }
-
 public:
-  ArgDependencyNode(BlockArgument arg, DependencyEdge val) : barg(arg) {
+  ArgDependencyNode(BlockArgument arg)
+      : barg(arg), argNum(arg.getArgNumber()) {}
+
+  ArgDependencyNode(BlockArgument arg, uint num) : barg(arg), argNum(num) {}
+
+  ArgDependencyNode(BlockArgument arg, DependencyEdge val)
+      : ArgDependencyNode(arg) {
     auto qid = val->getQIDForResult(val.resultidx);
     if (qid.has_value())
       qids.insert(qid.value());
   }
 
-  ArgDependencyNode(BlockArgument arg) : barg(arg) {}
+  ArgDependencyNode(BlockArgument arg, DependencyEdge val, uint num)
+      : barg(arg), argNum(num) {
+    auto qid = val->getQIDForResult(val.resultidx);
+    if (qid.has_value())
+      qids.insert(qid.value());
+  }
 
   virtual std::string getOpName() override {
     return std::to_string(barg.getArgNumber()).append("arg");
@@ -1199,6 +1214,15 @@ public:
   void eraseQID(VirtualQID qid) override {
     assert(false && "Can't call eraseQID with an ArgDependencyNode");
   }
+
+  std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
+    assert(resultidx == 0 && "Invalid resultidx");
+    if (qids.size() == 1)
+      return std::optional(qids.front());
+    return std::nullopt;
+  }
+
+  uint getArgNumber() { return argNum; }
 };
 
 class TerminatorDependencyNode : public OpDependencyNode {
@@ -1228,6 +1252,9 @@ public:
       : OpDependencyNode(terminator, dependencies) {
     assert(terminator->hasTrait<mlir::OpTrait::ReturnLike>() &&
            "Invalid terminator");
+    for (auto dependency : dependencies)
+      if (dependency.qid.has_value())
+        qids.insert(dependency.qid.value());
   }
 
   void genTerminator(OpBuilder &builder, LifeTimeAnalysis &set) {
@@ -1239,6 +1266,11 @@ public:
       if (dependencies[i].qid == qid)
         dependencies.erase(dependencies.begin() + i);
     qids.remove(qid);
+  }
+
+  std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
+    assert(resultidx < dependencies.size() && "Invalid ressultidx");
+    return dependencies[resultidx].qid;
   }
 };
 
@@ -1286,10 +1318,6 @@ public:
     return graph->getRootForQID(qid);
   }
 
-  DependencyNode *getRoot(VirtualQID qid) {
-    return graph->getLastUseOfQID(qid);
-  }
-
   void allocatePhyiscalQubits(LifeTimeAnalysis &set) {
     for (auto qubit : graph->getQubits()) {
       auto lifetime = graph->getLifeTimeForQubit(qubit);
@@ -1298,6 +1326,10 @@ public:
 
     // New physical qubits will be captured by `set`
     for (auto qid : getAllocs()) {
+      auto leaf = graph->getAllocForQID(qid);
+      if (!leaf->getQubits().empty())
+        continue;
+
       auto lifetime = graph->getLifeTimeForQID(qid);
       LLVM_DEBUG(llvm::dbgs() << "Qid " << qid);
       LLVM_DEBUG(llvm::dbgs()
@@ -1321,6 +1353,7 @@ public:
       auto old_barg = argdnodes[i]->barg;
       argdnodes[i]->barg =
           newBlock->addArgument(old_barg.getType(), old_barg.getLoc());
+      assert(argdnodes[i]->barg.getArgNumber() == argdnodes[i]->argNum);
       argdnodes[i]->hasCodeGen = true;
     }
 
@@ -1354,7 +1387,7 @@ public:
     graph->performAnalysis(set);
 
     // Update metadata after the analysis
-    graph->updateLeafs();
+    // graph->updateLeafs();
     updateHeight();
     // Schedule the nodes for lifetime analysis
     schedulingPass();
@@ -1389,10 +1422,7 @@ public:
   }
 
   void lowerAlloc(DependencyNode *init, DependencyNode *root, VirtualQID qid) {
-    for (uint i = 0; i < argdnodes.size(); i++)
-      if (argdnodes[i]->qids.contains(qid))
-        argdnodes.erase(argdnodes.begin() + i);
-
+    removeArgument(qid);
     graph->replaceLeafAndRoot(qid, init, root);
   }
 
@@ -1406,11 +1436,7 @@ public:
   void schedulingPass() { graph->schedulingPass(); }
 
   void removeQID(VirtualQID qid) {
-    for (uint i = 0; i < argdnodes.size(); i++)
-      if (argdnodes[i]->qids.contains(qid)) {
-        argdnodes.erase(argdnodes.begin() + i);
-        break;
-      }
+    removeArgument(qid);
 
     terminator->eraseQID(qid);
     graph->removeQID(qid);
@@ -1425,7 +1451,8 @@ public:
   DependencyNode *addArgument(DependencyNode::DependencyEdge incoming) {
     auto new_barg = block->addArgument(incoming.getValue().getType(),
                                        incoming.getValue().getLoc());
-    auto new_argdnode = new ArgDependencyNode(new_barg, incoming);
+    auto new_argdnode =
+        new ArgDependencyNode(new_barg, incoming, argdnodes.size());
     argdnodes.push_back(new_argdnode);
     return new_argdnode;
   }
@@ -1435,6 +1462,18 @@ public:
     auto new_argdnode = new ArgDependencyNode(new_barg);
     argdnodes.push_back(new_argdnode);
     return new_argdnode;
+  }
+
+  void removeArgument(VirtualQID qid) {
+    for (uint i = 0; i < argdnodes.size(); i++)
+      if (argdnodes[i]->qids.contains(qid)) {
+        argdnodes.erase(argdnodes.begin() + i);
+        break;
+      }
+  }
+
+  std::optional<VirtualQID> getQIDForResult(size_t resultidx) {
+    return terminator->getQIDForResult(resultidx);
   }
 };
 
@@ -1499,7 +1538,7 @@ protected:
       } else if (dependency->isLeaf()) {
         ArgDependencyNode *arg =
             static_cast<ArgDependencyNode *>(dependency.node);
-        auto num = arg->barg.getArgNumber();
+        auto num = arg->getArgNumber();
         auto newDep = dependencies[num + 1];
         newDep->successors.remove(this);
         newDep->successors.insert(then_op);
@@ -1596,6 +1635,10 @@ protected:
     qubits.set_union(then_block->getQubits());
     qubits.set_union(else_block->getQubits());
     return qubits;
+  }
+
+  std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
+    return then_block->getQIDForResult(resultidx);
   }
 
 public:
@@ -1735,18 +1778,17 @@ public:
                   VirtualQID qid) override {
     assert(successors.contains(root) && "Illegal root for contractAlloc");
     assert(init->successors.contains(this) && "Illegal init for contractAlloc");
+    root->dependencies.erase(root->dependencies.begin());
+    init->successors.clear();
+    successors.remove(root);
     auto alloc = static_cast<InitDependencyNode *>(init);
     auto alloc_copy = new InitDependencyNode(*alloc);
     auto sink = static_cast<RootDependencyNode *>(root);
     auto sink_copy = new RootDependencyNode(*sink);
-    init->successors.clear();
-    successors.remove(root);
     then_block->lowerAlloc(alloc, root, qid);
     else_block->lowerAlloc(alloc_copy, sink_copy, qid);
     auto iter = std::find_if(dependencies.begin(), dependencies.end(),
-                             [init](DependencyNode::DependencyEdge edge) {
-                               return edge.node == init;
-                             });
+                             [init](auto edge) { return edge.node == init; });
     size_t offset = iter - dependencies.begin();
     associated->eraseOperand(offset);
     results.erase(results.begin() + offset);
