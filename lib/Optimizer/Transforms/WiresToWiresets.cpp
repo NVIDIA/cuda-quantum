@@ -77,8 +77,10 @@ struct AssignWireIndicesPass
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     unsigned x = 0;
-    patterns.insert<NullWirePat>(ctx, &x,
-                                 cudaq::opt::topologyAgnosticWiresetName);
+    std::string wireSetName =
+        cudaq::opt::topologyAgnosticWireSetPrefix + func.getName().str();
+
+    patterns.insert<NullWirePat>(ctx, &x, wireSetName);
     patterns.insert<SinkOpPat>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<quake::QuakeDialect>();
@@ -98,9 +100,15 @@ struct AddWiresetPass
   void runOnOperation() override {
     ModuleOp mod = getOperation();
     OpBuilder builder(mod.getBodyRegion());
-    builder.create<quake::WireSetOp>(builder.getUnknownLoc(),
-                                     cudaq::opt::topologyAgnosticWiresetName,
-                                     INT_MAX, ElementsAttr{});
+    mod.walk([&](func::FuncOp func) {
+      std::string wireSetName =
+          cudaq::opt::topologyAgnosticWireSetPrefix + func.getName().str();
+      if (!mod.lookupSymbol<quake::WireSetOp>(wireSetName)) {
+        auto wireSetOp = builder.create<quake::WireSetOp>(
+            builder.getUnknownLoc(), wireSetName, INT_MAX, ElementsAttr{});
+        wireSetOp.setPrivate();
+      }
+    });
   }
 };
 

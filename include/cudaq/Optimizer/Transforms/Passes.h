@@ -80,7 +80,7 @@ inline std::unique_ptr<mlir::Pass> createQuantumMemToReg() {
   return createMemToReg(m2rOpt);
 }
 
-/// Name of `quake.wire_set` generated prior to mapping
-static constexpr const char topologyAgnosticWiresetName[] = "wires";
+/// Prefix of `quake.wire_set` generated for each function prior to mapping
+static constexpr const char topologyAgnosticWireSetPrefix[] = "wires_";
 
 } // namespace cudaq::opt
