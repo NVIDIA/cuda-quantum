@@ -1,6 +1,7 @@
 on:
   workflow_dispatch:
   pull_request:
+  workflow_call:
 
 name: "Basic content checks"
 
@@ -17,15 +18,27 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Convert reStructuredText files to Markdown
+        id: convert
         run: |
           pip install "rst-to-myst[sphinx]==0.4.0"
-          find docs/sphinx/ -type f -name "*.rst" -print0 | xargs -0 rst2myst convert --raise-on-warning
+          echo "is_pr=$([[ ${{ github.event_name }} == 'pull_request' ]] && echo 'yes' || echo 'no')"
+          if ${{ github.event_name == 'pull_request' }}; then
+            # Call rst2myst an appropriate files modified in this PR.
+            diff_base=${{ github.event.pull_request.base.sha }}
+            git rev-list HEAD..$diff_base # fails the step if something went wrong
+            git diff --diff-filter=d --name-only $diff_base -- docs/sphinx | tr '\n' '\0' | xargs -0 rst2myst convert --raise-on-warning
+          else
+            # Call rst2myst an all files.
+            find docs/sphinx/ -type f -name "*.rst" -print0 | xargs -0 rst2myst convert --raise-on-warning
+          fi
 
       - name: Check links in Markdown files
         uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           use-verbose-mode: "yes"
           config-file: ".github/workflows/config/md_link_check_config.json"        
+          check-modified-files-only: "${{ steps.convert.outputs.is_pr }}"
+          base-branch: "main"
 
   license_headers:
     name: Check license headers

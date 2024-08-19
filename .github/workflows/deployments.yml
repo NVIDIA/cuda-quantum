@@ -162,6 +162,11 @@ jobs:
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
 
+  repo_checks:
+    name: Repo checks
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
+    uses: ./.github/workflows/repo_checks.yml
+
   devdeps:
     name: Build dev dependencies
     needs: metadata
