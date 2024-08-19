@@ -12,10 +12,10 @@
 include "mlir/Pass/PassBase.td"
 
 def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
-  let summary = "Adds topology-less `quake.wire_set`s to the module.";
+  let summary = "Adds a topology-less `quake.wire_set` to the module.";
   let description = [{
-    Adds `quake.wire_set` operations without any topological information to the
-    ModuleOp (one for each function).
+    Adds a `quake.wire_set` operation without any topological information to the
+    ModuleOp.
   }];
 }
 
