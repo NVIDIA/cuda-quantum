@@ -23,7 +23,7 @@ jobs:
         id: convert
         run: |
           pip install "rst-to-myst[sphinx]==0.4.0"
-          echo "is_pr=$([[ ${{ github.event_name }} == 'pull_request' ]] && echo 'yes' || echo 'no')"
+          echo "is_pr=$([[ '${{ github.event_name }}'' == 'pull_request' ]] && echo 'yes' || echo 'no')" >> $GITHUB_OUTPUT
           if ${{ github.event_name == 'pull_request' }}; then
             # Call rst2myst an appropriate files modified in this PR.
             diff_base=${{ github.event.pull_request.base.sha }}
