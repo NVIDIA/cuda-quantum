@@ -687,6 +687,16 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         finalQubitWire[id] = qop.getResult();
         sources[id] = qop;
         lastSource = &op;
+      } else if (dyn_cast<quake::NullWireOp>(op)) {
+        op.emitOpError(
+            "the mapper requires borrow operations and prohibits null wires");
+        signalPassFailure();
+        return;
+      } else if (dyn_cast<quake::AllocaOp>(op)) {
+        op.emitOpError("the mapper requires borrow operations and prohibits "
+                       "reference semantics");
+        signalPassFailure();
+        return;
       } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
         if (!quake::isLinearValueForm(&op)) {
