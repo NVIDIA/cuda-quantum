@@ -1571,48 +1571,34 @@ public:
     return initFun;
   }
 
-  void runOnOperation() override {
-    auto module = getOperation();
-    DataLayoutAnalysis dla(module); // caches module's data layout information.
-    dataLayout = &dla.getAtOrAbove(module);
-    std::error_code ec;
-    llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
-    if (ec) {
-      llvm::errs() << "Failed to open output file '" << outputFilename << "'\n";
-      std::exit(ec.value());
-    }
+  // Load the prototypes of runtime functions that we may call into the Module.
+  LogicalResult loadPrototypes() {
+    ModuleOp module = getOperation();
     auto *ctx = module.getContext();
     auto builder = OpBuilder::atBlockEnd(module.getBody());
     auto mangledNameMap =
-        module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map");
+        module->getAttrOfType<DictionaryAttr>(cudaq::runtime::mangledNameMap);
     if (!mangledNameMap || mangledNameMap.empty())
-      return;
+      return failure();
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
     switch (codegenKind) {
     case 0:
       if (failed(irBuilder.loadIntrinsic(
-              module, cudaq::runtime::launchKernelHybridFuncName))) {
-        module.emitError("could not load altLaunchKernel intrinsic.");
-        return;
-      }
+              module, cudaq::runtime::launchKernelHybridFuncName)))
+        return module.emitError("could not load altLaunchKernel intrinsic.");
       break;
     case 1:
-      if (failed(irBuilder.loadIntrinsic(
-              module, cudaq::runtime::launchKernelFuncName))) {
-        module.emitError("could not load altLaunchKernel intrinsic.");
-        return;
-      }
+      if (failed(irBuilder.loadIntrinsic(module,
+                                         cudaq::runtime::launchKernelFuncName)))
+        return module.emitError("could not load altLaunchKernel intrinsic.");
       break;
     case 2:
       if (failed(irBuilder.loadIntrinsic(
-              module, cudaq::runtime::launchKernelStreamlinedFuncName))) {
-        module.emitError("could not load altLaunchKernel intrinsic.");
-        return;
-      }
+              module, cudaq::runtime::launchKernelStreamlinedFuncName)))
+        return module.emitError("could not load altLaunchKernel intrinsic.");
       break;
     default:
-      module.emitError("invalid codegen kind value.");
-      return;
+      return module.emitError("invalid codegen kind value.");
     }
 
     auto loc = module.getLoc();
@@ -1625,40 +1611,45 @@ public:
         FunctionType::get(ctx, {ptrType, ptrType}, {}));
     regArgs.setPrivate();
 
-    if (failed(irBuilder.loadIntrinsic(module, "malloc"))) {
-      module.emitError("could not load malloc");
-      return;
-    }
-    if (failed(irBuilder.loadIntrinsic(module, "free"))) {
-      module.emitError("could not load free");
-      return;
-    }
-    if (failed(irBuilder.loadIntrinsic(module,
-                                       cudaq::stdvecBoolCtorFromInitList))) {
-      module.emitError(std::string("could not load ") +
-                       cudaq::stdvecBoolCtorFromInitList);
-      return;
-    }
-    if (failed(irBuilder.loadIntrinsic(module,
-                                       cudaq::stdvecBoolUnpackToInitList))) {
-      module.emitError(std::string("could not load ") +
-                       cudaq::stdvecBoolUnpackToInitList);
-      return;
-    }
-    if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic))) {
-      module.emitError(std::string("could not load ") +
-                       cudaq::llvmMemCopyIntrinsic);
-      return;
-    }
-    if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_zeroDynamicResult"))) {
-      module.emitError("could not load __nvqpp_zeroDynamicResult");
-      return;
-    }
+    if (failed(irBuilder.loadIntrinsic(module, "malloc")))
+      return module.emitError("could not load malloc");
+    if (failed(irBuilder.loadIntrinsic(module, "free")))
+      return module.emitError("could not load free");
     if (failed(
-            irBuilder.loadIntrinsic(module, "__nvqpp_createDynamicResult"))) {
-      module.emitError("could not load __nvqpp_createDynamicResult");
-      return;
+            irBuilder.loadIntrinsic(module, cudaq::stdvecBoolCtorFromInitList)))
+      return module.emitError(std::string("could not load ") +
+                              cudaq::stdvecBoolCtorFromInitList);
+    if (failed(
+            irBuilder.loadIntrinsic(module, cudaq::stdvecBoolUnpackToInitList)))
+      return module.emitError(std::string("could not load ") +
+                              cudaq::stdvecBoolUnpackToInitList);
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic)))
+      return module.emitError(std::string("could not load ") +
+                              cudaq::llvmMemCopyIntrinsic);
+    if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_zeroDynamicResult")))
+      return module.emitError("could not load __nvqpp_zeroDynamicResult");
+    if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_createDynamicResult")))
+      return module.emitError("could not load __nvqpp_createDynamicResult");
+    return success();
+  }
+
+  void runOnOperation() override {
+    auto module = getOperation();
+    auto *ctx = module.getContext();
+    auto builder = OpBuilder::atBlockEnd(module.getBody());
+    auto mangledNameMap =
+        module->getAttrOfType<DictionaryAttr>(cudaq::runtime::mangledNameMap);
+    DataLayoutAnalysis dla(module); // caches module's data layout information.
+    dataLayout = &dla.getAtOrAbove(module);
+    std::error_code ec;
+    llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
+    if (ec) {
+      llvm::errs() << "Failed to open output file '" << outputFilename << "'\n";
+      std::exit(ec.value());
     }
+
+    if (failed(loadPrototypes()))
+      return;
 
     // Gather a work list of functions that are entry-point kernels.
     SmallVector<func::FuncOp> workList;
