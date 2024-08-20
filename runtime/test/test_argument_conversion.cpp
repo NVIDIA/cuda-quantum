@@ -323,8 +323,13 @@ void test_state(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_13]], %[[VAL_12]][6] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
 // CHECK:           %[[VAL_15:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
 // CHECK:           %[[VAL_16:.*]] = cc.insert_value %[[VAL_15]], %[[VAL_14]][7] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
+// CHECK:           %[[VAL_17:.*]] = arith.constant 8 : i64
+// CHECK:           %[[VAL_18:.*]] = cc.alloca !cc.array<complex<f64> x 8>
+// CHECK:           cc.store %[[VAL_16]], %[[VAL_18]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!cc.ptr<!cc.array<complex<f64> x 8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_20:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_19]], %[[VAL_17]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+// CHECK            %[[VAL_21:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
 // CHECK:         }
-
   // clang-format on
 }
 

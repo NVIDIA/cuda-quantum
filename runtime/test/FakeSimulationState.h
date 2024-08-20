@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/qis/state.h"
-
+#include <cassert>
 #include <memory>
 
 namespace cudaq {
@@ -15,18 +15,18 @@ namespace cudaq {
 class FakeSimulationState : public SimulationState {
 private:
   std::size_t size = 0;
-  void* data = 0;
+  void *data = 0;
   std::size_t dataType = 0;
-  
+
 public:
   virtual std::unique_ptr<SimulationState>
-  createFromSizeAndPtr(std::size_t size, void * data, std::size_t dataType) {
+  createFromSizeAndPtr(std::size_t size, void *data, std::size_t dataType) {
     std::runtime_error("Not implemented");
     return std::make_unique<FakeSimulationState>(size, data);
   }
 
   FakeSimulationState() = default;
-  FakeSimulationState(std::size_t size, void * data): size(size), data(data) {}
+  FakeSimulationState(std::size_t size, void *data) : size(size), data(data) {}
 
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromData(const state_data &data) override {
@@ -44,9 +44,7 @@ public:
     return std::vector<Tensor>();
   }
 
-  virtual std::size_t getNumTensors() const override {
-    return 1;
-  }
+  virtual std::size_t getNumTensors() const override { return 1; }
 
   virtual std::size_t getNumQubits() const override {
     return std::countr_zero(size);
@@ -60,7 +58,7 @@ public:
   virtual std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
     std::runtime_error("Not implemented");
-      return 0;
+    return 0;
   }
 
   virtual std::vector<std::complex<double>>
@@ -82,15 +80,14 @@ public:
   }
 
   virtual std::complex<double>
-  operator()(std::size_t tensorIdx, const std::vector<std::size_t> &indices) override {
+  operator()(std::size_t tensorIdx,
+             const std::vector<std::size_t> &indices) override {
     assert(tensorIdx == 0);
-    assert (indices.size() == 1);
-    return *(static_cast<std::complex<double>*>(data) + indices[0]); 
+    assert(indices.size() == 1);
+    return *(static_cast<std::complex<double> *>(data) + indices[0]);
   }
 
-  virtual std::size_t getNumElements() const override {
-    return size;
-  }
+  virtual std::size_t getNumElements() const override { return size; }
 
   virtual bool isDeviceData() const { return false; }
 

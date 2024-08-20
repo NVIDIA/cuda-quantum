@@ -46,6 +46,12 @@ static constexpr const char stdvecBoolUnpackToInitList[] =
 static constexpr const char getNumQubitsFromCudaqState[] =
     "__nvqpp_cudaq_state_numberOfQubits";
 
+// Create a new state from data.
+static constexpr const char createCudaqStateFromDataFP64[] =
+    "__nvqpp_cudaq_state_createFromData_fp64";
+static constexpr const char createCudaqStateFromDataFP32[] =
+    "__nvqpp_cudaq_state_createFromData_fp32";
+
 /// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
 /// the transformation of both quantum and classical computation. Different
 /// features of the CUDA-Q programming model are lowered into different dialects

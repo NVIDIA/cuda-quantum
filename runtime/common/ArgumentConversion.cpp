@@ -99,20 +99,48 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                          bool isSimulator) {
   if (isSimulator) {
     // The program is executed remotely, materialize the simulation data
-    // into an array and use it instead of the state.
+    // into an array and create a new state from it.
     auto ctx = builder.getContext();
+    auto loc = builder.getUnknownLoc();
     auto size = 1ULL << v->get_num_qubits();
-
-    std::complex<double> data[size];
-    for (std::size_t i = 0; i < size; i++) {
-      data[i] = ((*v)({i}, 0));
-    }
-
-    auto eleTy = v->get_precision() == cudaq::SimulationState::precision::fp64
-                     ? ComplexType::get(Float64Type::get(ctx))
-                     : ComplexType::get(Float32Type::get(ctx));
+    auto is64Bit =
+        v->get_precision() == cudaq::SimulationState::precision::fp64;
+    auto eleTy = is64Bit ? ComplexType::get(Float64Type::get(ctx))
+                         : ComplexType::get(Float32Type::get(ctx));
     auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, size);
-    return genConstant(builder, arrTy, data, substMod, layout);
+
+    auto genConArray = [&]<typename T>() -> Value {
+      std::complex<T> data[size];
+      for (std::size_t i = 0; i < size; i++) {
+        data[i] = (*v)({i}, 0);
+      }
+      return genConstant(builder, arrTy, data, substMod, layout);
+    };
+
+    auto conArr = is64Bit ? genConArray.template operator()<double>()
+                          : genConArray.template operator()<float>();
+
+    cudaq::IRBuilder irBuilder(ctx);
+    auto createState = is64Bit ? cudaq::createCudaqStateFromDataFP64
+                               : cudaq::createCudaqStateFromDataFP32;
+    auto result = irBuilder.loadIntrinsic(substMod, createState);
+    assert(succeeded(result) && "loading intrinsic should never fail");
+
+    auto arrSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+    auto stateTy = cudaq::cc::StateType::get(ctx);
+    auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
+    auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
+    auto buffer = builder.create<cudaq::cc::AllocaOp>(loc, arrTy);
+    builder.create<cudaq::cc::StoreOp>(loc, conArr, buffer);
+
+    auto cast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
+    auto statePtr = builder
+                        .create<func::CallOp>(loc, statePtrTy, createState,
+                                              ValueRange{cast, arrSize})
+                        .getResult(0);
+
+    // TODO: Delete the new state before exit.
+    return builder.create<cudaq::cc::CastOp>(loc, statePtrTy, statePtr);
   }
   // The program is executed on quantum hardware, state data is not
   // available and needs to be regenerated.

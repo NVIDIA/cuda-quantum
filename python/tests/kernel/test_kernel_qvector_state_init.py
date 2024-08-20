@@ -23,10 +23,9 @@ skipIfNvidiaNotInstalled = pytest.mark.skipif(
 
 def test_kernel_synthesis_complex():
     cudaq.reset_target()
-    cudaq.set_target('nvidia')
 
     c = np.array([1. / np.sqrt(2.) + 0j, 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex())
+                    dtype=cudaq.complex())
     state = cudaq.State.from_data(c)
 
     @cudaq.kernel

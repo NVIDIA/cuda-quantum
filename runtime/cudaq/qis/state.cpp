@@ -111,6 +111,17 @@ extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
   return obj->get_num_qubits();
 }
+state *__nvqpp_cudaq_state_createFromData_fp64(void *data, std::size_t size) {
+  auto d = reinterpret_cast<std::complex<double> *>(data);
+  return new state(
+      state::from_data(std::vector<std::complex<double>>(d, d + size)));
+}
+state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
+  std::cout << "Creating state from data: " << std::endl;
+  auto d = reinterpret_cast<std::complex<float> *>(data);
+  return new state(
+      state::from_data(std::vector<std::complex<float>>(d, d + size)));
+}
 }
 
 } // namespace cudaq
