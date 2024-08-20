@@ -20,6 +20,11 @@
 
 using namespace mlir;
 
+#define RAW(X) quake::X
+#define RAW_MEASURE_OPS MEASURE_OPS(RAW)
+#define RAW_GATE_OPS GATE_OPS(RAW)
+#define RAW_QUANTUM_OPS QUANTUM_OPS(RAW)
+
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
@@ -32,20 +37,8 @@ namespace {
 typedef size_t PhysicalQID;
 typedef size_t VirtualQID;
 
-[[maybe_unused]] bool isMeasureOp(Operation *op) {
-  return isa<quake::MxOp>(*op) || isa<quake::MyOp>(*op) ||
-         isa<quake::MzOp>(*op);
-}
-
-[[maybe_unused]] bool isBeginOp(Operation *op) {
-  return isa<quake::NullWireOp>(*op);
-}
-
-[[maybe_unused]] bool isEndOp(Operation *op) { return isa<quake::SinkOp>(*op); }
-
-[[maybe_unused]] size_t getOperandIDXFromResultIDX(size_t resultidx,
-                                                   Operation *op) {
-  if (isMeasureOp(op))
+size_t getOperandIDXFromResultIDX(size_t resultidx, Operation *op) {
+  if (isa<RAW_MEASURE_OPS>(op))
     return 0;
   if (isa<quake::SwapOp>(op))
     return (resultidx == 0 ? 1 : 0);
@@ -59,9 +52,8 @@ typedef size_t VirtualQID;
   return resultidx;
 }
 
-[[maybe_unused]] size_t getResultIDXFromOperandIDX(size_t operand_idx,
-                                                   Operation *op) {
-  if (isMeasureOp(op))
+size_t getResultIDXFromOperandIDX(size_t operand_idx, Operation *op) {
+  if (isa<RAW_MEASURE_OPS>(op))
     return 1;
   if (isa<quake::SwapOp>(op))
     return (operand_idx == 0 ? 1 : 0);
@@ -162,20 +154,7 @@ public:
     return phys;
   }
 
-  // quake::BorrowWireOp genBorrow(VirtualQID qid, OpBuilder &builder) {
-  //   // auto phys = mapToPhysical(lifetime);
-  //   // frames.back().insert(phys);
-
-  //   auto wirety = quake::WireType::get(builder.getContext());
-  //   return builder.create<quake::BorrowWireOp>(builder.getUnknownLoc(),
-  //   wirety, set, virToPhys[qid]);
-  // }
-
-  void pushFrame() {
-    // TODO: anything here?
-  }
-
-  SetVector<PhysicalQID> popFrame() {
+  SetVector<PhysicalQID> getAllocated() {
     for (uint i = 0; i < lifetimes.size(); i++)
       lifetimes[i] = nullptr;
     auto pqids = SetVector<PhysicalQID>(frame);
@@ -208,6 +187,7 @@ class DependencyNode {
   friend class IfDependencyNode;
   friend class ArgDependencyNode;
   friend class RootDependencyNode;
+  friend class InitDependencyNode;
 
 public:
   struct DependencyEdge {
@@ -222,6 +202,7 @@ public:
     // target). Resultidx tracks this information.
     size_t resultidx;
     std::optional<VirtualQID> qid;
+    std::optional<PhysicalQID> qubit;
 
     DependencyEdge() : node(nullptr), resultidx(INT_MAX), qid(std::nullopt) {}
 
@@ -272,15 +253,6 @@ protected:
   }
   virtual void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) = 0;
 
-  void replaceDependency(DependencyEdge old, DependencyEdge new_edge) {
-    for (uint j = 0; j < dependencies.size(); j++) {
-      auto edge = dependencies[j];
-      if (edge.node == old.node && edge.resultidx == old.resultidx) {
-        dependencies[j] = new_edge;
-      }
-    }
-  }
-
   /// Recursively find nodes scheduled at a given cycle
   SetVector<DependencyNode *>
   getNodesAtCycle(uint _cycle, SetVector<DependencyNode *> &seen) {
@@ -308,7 +280,7 @@ protected:
     return nodes;
   }
 
-  virtual bool equivalentTo(DependencyNode *other) {
+  virtual bool prefixEquivalentTo(DependencyNode *other) {
     if (getOpName() != other->getOpName())
       return false;
     if (height != other->height)
@@ -316,8 +288,31 @@ protected:
     if (dependencies.size() != other->dependencies.size())
       return false;
     for (uint i = 0; i < dependencies.size(); i++) {
-      if (!dependencies[i].node->equivalentTo(other->dependencies[i].node))
+      if (dependencies[i].qid != other->dependencies[i].qid) {
+        if (!dependencies[i].qubit.has_value())
+          return false;
+        if (dependencies[i].qubit != other->dependencies[i].qubit)
+          return false;
+      }
+      if (!dependencies[i].node->prefixEquivalentTo(
+              other->dependencies[i].node))
         return false;
+    }
+    return true;
+  }
+
+  virtual bool postfixEquivalentTo(DependencyNode *other) {
+    if (getOpName() != other->getOpName())
+      return false;
+    if (dependencies.size() != other->dependencies.size())
+      return false;
+    for (uint i = 0; i < dependencies.size(); i++) {
+      if (dependencies[i].qid != other->dependencies[i].qid) {
+        if (!dependencies[i].qubit.has_value())
+          return false;
+        if (dependencies[i].qubit != other->dependencies[i].qubit)
+          return false;
+      }
     }
     return true;
   }
@@ -346,6 +341,34 @@ protected:
         }
       }
     }
+  }
+
+  virtual void updateWithPhysical(VirtualQID qid, PhysicalQID qubit) {
+    for (auto dependency : dependencies) {
+      if (dependency.qid && dependency.qid == qid) {
+        dependency.qubit = qubit;
+        break;
+      }
+    }
+
+    for (auto successor : successors)
+      if (successor->qids.contains(qid))
+        successor->updateWithPhysical(qid, qubit);
+  }
+
+  void updateQID(VirtualQID old_qid, VirtualQID new_qid) {
+    qids.remove(old_qid);
+    qids.insert(new_qid);
+    for (auto dependency : dependencies) {
+      if (dependency.qid && dependency.qid == old_qid) {
+        dependency.qid = new_qid;
+        break;
+      }
+    }
+
+    for (auto successor : successors)
+      if (successor->qids.contains(old_qid))
+        successor->updateQID(old_qid, new_qid);
   }
 
 public:
@@ -409,7 +432,7 @@ protected:
   void printNode() override {
     llvm::outs() << "Initial value for QID " << getQID();
     if (qubit)
-      llvm::outs() << "=" << qubit.value();
+      llvm::outs() << " -> phys: " << qubit.value();
     llvm::outs() << ": ";
     wire.dump();
   }
@@ -434,7 +457,10 @@ protected:
     hasCodeGen = true;
   }
 
-  void assignToPhysical(PhysicalQID phys) { qubit = phys; }
+  void assignToPhysical(PhysicalQID phys) {
+    qubit = phys;
+    updateWithPhysical(getQID(), phys);
+  }
 
   VirtualQID getQID() { return qids.front(); }
 
@@ -451,7 +477,7 @@ public:
 
   std::string getOpName() override { return "init"; };
 
-  bool equivalentTo(DependencyNode *other) override {
+  bool prefixEquivalentTo(DependencyNode *other) override {
     if (!other->isAlloc())
       return false;
 
@@ -529,10 +555,21 @@ protected:
     return operands;
   }
 
+  virtual void genOp(OpBuilder &builder, LifeTimeAnalysis &set) {
+    auto oldOp = associated;
+    auto operands = gatherOperands(builder, set);
+
+    associated =
+        Operation::create(oldOp->getLoc(), oldOp->getName(),
+                          oldOp->getResultTypes(), operands, oldOp->getAttrs());
+    associated->removeAttr("dnodeid");
+    builder.insert(associated);
+  }
+
   /// Generates a new operation for this node in the dependency graph
   /// using the dependencies of the node as operands.
   virtual void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override {
-    if (hasCodeGen)
+    if (hasCodeGen && isQuantumDependent())
       return;
 
     // Non-quake operations have code generated aggressively
@@ -547,14 +584,7 @@ protected:
             dependency->codeGen(builder, set);
         }
 
-    auto oldOp = associated;
-    auto operands = gatherOperands(builder, set);
-
-    associated =
-        Operation::create(oldOp->getLoc(), oldOp->getName(),
-                          oldOp->getResultTypes(), operands, oldOp->getAttrs());
-    associated->removeAttr("dnodeid");
-    builder.insert(associated);
+    genOp(builder, set);
     hasCodeGen = true;
 
     // Ensure classical values are generated
@@ -573,7 +603,7 @@ public:
     dependencies = _dependencies;
 
     quantumOp = isQuakeOperation(op);
-    if (dyn_cast<quake::DiscriminateOp>(op))
+    if (isa<quake::DiscriminateOp>(op))
       quantumOp = false;
 
     height = 0;
@@ -607,6 +637,7 @@ public:
   }
 
   virtual void eraseQID(VirtualQID qid) override {
+    qids.remove(qid);
     for (auto successor : successors) {
       for (uint j = 0; j < successor->dependencies.size(); j++) {
         auto edge = successor->dependencies[j];
@@ -619,10 +650,10 @@ public:
           // TODO: only remove if all paths from dep are removed
           dep->successors.remove(this);
           dep->successors.insert(successor);
+          return;
         }
       }
     }
-    qids.remove(qid);
   }
 
   /// Remove this dependency node from the graph by replacing all successor
@@ -925,7 +956,6 @@ public:
 
   OpDependencyNode *getLastUseOfQID(VirtualQID qid) {
     assert(qids.contains(qid) && "Given qid not in dependency graph");
-
     DependencyNode *root = getRootForQID(qid);
     DependencyNode *lastUse;
     for (auto dependency : root->dependencies) {
@@ -1085,6 +1115,7 @@ public:
 
     if (new_qid != qid) {
       qids.remove(qid);
+      new_leaf->updateQID(qid, new_qid);
     }
   }
 
@@ -1133,15 +1164,13 @@ protected:
 
   uint numTicks() override { return 0; }
 
-  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override {
-    assert(!hasCodeGen && "Returning same wire twice");
+  void genOp(OpBuilder &builder, LifeTimeAnalysis &set) override {
     auto wire = dependencies[0].getValue();
     auto newOp =
         builder.create<quake::ReturnWireOp>(builder.getUnknownLoc(), wire);
     newOp->setAttrs(associated->getAttrs());
     newOp->removeAttr("dnodeid");
     associated = newOp;
-    hasCodeGen = true;
   }
 
 public:
@@ -1503,9 +1532,75 @@ protected:
 
   bool isQuantumOp() override { return numTicks() > 0; }
 
-  void liftOp(OpDependencyNode *then_op, OpDependencyNode *else_op,
-              DependencyGraph *parent) {
+  void liftOpAfter(OpDependencyNode *then_op, OpDependencyNode *else_op,
+                   DependencyGraph *parent) {
     auto newDeps = SmallVector<DependencyEdge>();
+    auto allocated = then_block->getAllocatedQubits();
+    assert(then_op->dependencies.size() == then_op->successors.size());
+    for (uint i = 0; i < then_op->dependencies.size(); i++) {
+      auto dependency = then_op->dependencies[i];
+      assert(dependency.qid && "Lifting operations with classical input after "
+                               "blocks is not yet supported.");
+
+      auto then_qid = dependency.qid.value();
+      then_op->eraseQID(then_qid);
+
+      // Lift allocated qubit
+      if (dependency.qubit && allocated.contains(dependency.qubit.value())) {
+        auto else_qid = else_op->dependencies[i].qid.value();
+        // Remove virtual allocs from inner blocks
+        auto lifted_alloc = dependency.node;
+        auto lifted_root = then_block->getRootForQID(then_qid);
+        then_block->liftAlloc(then_qid, lifted_alloc);
+        else_block->liftAlloc(else_qid, lifted_alloc);
+
+        // Add virtual alloc to current scope
+        parent->replaceLeafAndRoot(then_qid, lifted_alloc, lifted_root);
+        DependencyEdge newEdge(then_op, then_op->getResultForDependency(i));
+        lifted_root->dependencies.push_back(newEdge);
+        lifted_alloc->successors.insert(this);
+        qids.insert(then_qid);
+
+        newDeps.push_back(DependencyEdge{this, results.size()});
+        dependencies.push_back(DependencyEdge{lifted_alloc, 0});
+        then_op->successors.insert(lifted_root);
+        results.push_back(dependency.getValue().getType());
+      } else {
+        auto resultidx = then_op->getResultForDependency(i);
+        for (auto successor : successors) {
+          for (uint i = 0; i < successor->dependencies.size(); i++)
+            if (successor->dependencies[i].node == this &&
+                successor->dependencies[i].qid == dependency.qid) {
+              newDeps.push_back(successor->dependencies[i]);
+              successor->dependencies[i] = DependencyEdge{then_op, resultidx};
+              break;
+            }
+        }
+      }
+
+      then_op->qids.insert(then_qid);
+    }
+
+    successors.insert(then_op);
+    then_op->dependencies = newDeps;
+    else_op->erase();
+  }
+
+  void liftOpBefore(OpDependencyNode *then_op, OpDependencyNode *else_op,
+                    DependencyGraph *parent) {
+    auto newDeps = SmallVector<DependencyEdge>();
+
+    // Measure ops are a delicate special case because of the classical measure
+    // result. When lifting before, we can lift the discriminate op as well.
+    if (isa<RAW_MEASURE_OPS>(then_op->associated)) {
+      auto then_discriminate = then_op->successors.front()->isQuantumOp()
+                                   ? then_op->successors.back()
+                                   : then_op->successors.front();
+      auto else_discriminate = else_op->successors.front()->isQuantumOp()
+                                   ? else_op->successors.back()
+                                   : else_op->successors.front();
+      else_discriminate->replaceWith(DependencyEdge{then_discriminate, 0});
+    }
 
     // Construct new dependencies
     for (uint i = 0; i < then_op->dependencies.size(); i++) {
@@ -1524,8 +1619,6 @@ protected:
         this->successors.insert(lifted_root);
         parent->replaceLeafAndRoot(then_qid, lifted_alloc, lifted_root);
         qids.insert(then_qid);
-
-        // Lifted alloc means adding a dependency and return value
         newDeps.push_back(dependency);
         DependencyEdge newEdge(then_op, then_op->getResultForDependency(i));
         dependencies.push_back(newEdge);
@@ -1550,18 +1643,6 @@ protected:
       }
     }
 
-    // Measure ops are a delicate special case because of the classical result
-    // Thus, have to patch up the discriminate op as well
-    if (isMeasureOp(then_op->associated)) {
-      auto then_discriminate = then_op->successors.front()->isQuantumOp()
-                                   ? then_op->successors.back()
-                                   : then_op->successors.front();
-      auto else_discriminate = else_op->successors.front()->isQuantumOp()
-                                   ? else_op->successors.back()
-                                   : else_op->successors.front();
-      else_discriminate->replaceWith(DependencyEdge{then_discriminate, 0});
-    }
-
     then_op->erase();
     else_op->erase();
 
@@ -1579,31 +1660,11 @@ protected:
 
     for (auto qubit : combined)
       graph->addPhysicalAllocation(this, qubit);
-
-    // TODO: gotta store usage info, collect later
-    // for (auto pqid : combined)
-    //  set.reallocatePhysical(pqid, new LifeTime(cycle.value(), cycle.value() +
-    //  numTicks()));
   }
 
-  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override {
-    if (hasCodeGen)
-      return;
-
-    if (isSkip())
-      for (auto dependency : dependencies)
-        if (!dependency->hasCodeGen) {
-          // Wait for quantum op dependency to be codeGen'ed
-          if (dependency->isQuantumDependent())
-            return;
-          else
-            dependency->codeGen(builder, set);
-        }
-
+  void genOp(OpBuilder &builder, LifeTimeAnalysis &set) override {
     cudaq::cc::IfOp oldOp = dyn_cast<cudaq::cc::IfOp>(associated);
     auto operands = gatherOperands(builder, set);
-
-    hasCodeGen = true;
 
     auto newIf =
         builder.create<cudaq::cc::IfOp>(oldOp->getLoc(), results, operands);
@@ -1615,19 +1676,6 @@ protected:
 
     associated = newIf;
     builder.setInsertionPointAfter(associated);
-
-    // Ensure classical values are generated
-    for (auto successor : successors)
-      if (successor->isSkip())
-        successor->codeGen(builder, set);
-  };
-
-  void updateHeight() override {
-    height = 0;
-    for (auto edge : dependencies)
-      if (edge->getHeight() > height)
-        height = edge->getHeight();
-    height += numTicks();
   }
 
   SetVector<PhysicalQID> getQubits() override {
@@ -1677,6 +1725,59 @@ public:
       dependencies[0]->successors.remove(this);
   }
 
+  bool tryLiftingBefore(OpDependencyNode *then_use, OpDependencyNode *else_use,
+                        DependencyGraph *parent) {
+    if (!then_use || !else_use)
+      return false;
+
+    if (then_use->prefixEquivalentTo(else_use)) {
+      // If two nodes are equivalent, all their dependencies will be too,
+      // but we can't lift them until all their dependencies have been lifted,
+      // so we skip them for now.
+      for (auto dependency : then_use->dependencies)
+        if (!dependency->isSkip())
+          return false;
+
+      liftOpBefore(then_use, else_use, parent);
+      return true;
+    }
+
+    return false;
+  }
+
+  bool tryLiftingAfter(OpDependencyNode *then_use, OpDependencyNode *else_use,
+                       DependencyGraph *parent) {
+    // TODO: measure ops are a delicate special case because of the classical
+    // measure result. When lifting before, we can lift the discriminate op as
+    // well. However, it may have interactions with other classical values, and
+    // then be "returned" from the `if`
+    if (isa<RAW_MEASURE_OPS>(then_use->associated))
+      return false;
+
+    if (!then_use || !else_use)
+      return false;
+
+    if (then_use->postfixEquivalentTo(else_use)) {
+      // If two nodes are equivalent, all their successors should be too
+      // but we can't lift them until all their successors have been lifted,
+      // so we skip them for now.
+      for (auto successor : then_use->successors)
+        if (!successor->isSkip())
+          return false;
+      // TODO: Classical input from within the if scope poses an issue for
+      // lifting for a similar reason as measures
+      for (auto dependency : then_use->dependencies)
+        if (!dependency->isQuantumOp())
+          return false;
+
+      liftOpAfter(then_use, else_use, parent);
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Finds and lifts common operations from the then and else branches
   void performLiftingPass(DependencyGraph *parent) {
     bool lifted = false;
 
@@ -1688,29 +1789,25 @@ public:
       auto then_use = then_block->getFirstUseOfQubit(qubit);
       auto else_use = else_block->getFirstUseOfQubit(qubit);
 
-      if (!then_use || !else_use)
-        continue;
-
-      if (then_use->equivalentTo(else_use)) {
-        auto all_skips = true;
-        for (auto dependency : then_use->dependencies)
-          if (!dependency->isSkip())
-            all_skips = false;
-
-        // If two nodes are equivalent, all their dependencies will be too,
-        // but we can't lift them until all their dependencies have been lifted,
-        // so we skip them for now.
-        if (!all_skips)
-          continue;
-
+      if (tryLiftingBefore(then_use, else_use, parent)) {
         lifted = true;
-        liftOp(then_use, else_use, parent);
+        continue;
+      }
+
+      then_use = then_block->getLastUseOfQubit(qubit);
+      else_use = else_block->getLastUseOfQubit(qubit);
+
+      if (tryLiftingAfter(then_use, else_use, parent)) {
+        lifted = true;
+        continue;
       }
     }
 
+    // Now, try lifting all QIDs
     bool run_more = true;
     auto unliftableQIDs = SetVector<VirtualQID>();
 
+    // Lifting operations may reveal more liftable operations!
     while (run_more) {
       run_more = false;
       auto liftableQIDs = SetVector<VirtualQID>(qids);
@@ -1720,28 +1817,17 @@ public:
         auto then_use = then_block->getFirstUseOfQID(qid);
         auto else_use = else_block->getFirstUseOfQID(qid);
 
-        if (!then_use || !else_use) {
-          unliftableQIDs.insert(qid);
+        if (tryLiftingBefore(then_use, else_use, parent)) {
+          lifted = true;
           continue;
         }
 
-        if (then_use->equivalentTo(else_use)) {
-          run_more = true;
-          auto all_skips = true;
-          for (auto dependency : then_use->dependencies)
-            if (!dependency->isSkip())
-              all_skips = false;
+        then_use = then_block->getLastUseOfQID(qid);
+        else_use = else_block->getLastUseOfQID(qid);
 
-          // If two nodes are equivalent, all their dependencies will be too,
-          // but we can't lift them until all their dependencies have been
-          // lifted, so we skip them for now.
-          if (!all_skips)
-            continue;
-
+        if (tryLiftingAfter(then_use, else_use, parent)) {
           lifted = true;
-          liftOp(then_use, else_use, parent);
-        } else {
-          unliftableQIDs.insert(qid);
+          continue;
         }
       }
     }
@@ -1755,25 +1841,35 @@ public:
     }
   }
 
+  /// Performs the analysis and optimizations on this `if` statement inside out:
+  /// * First, recurs on the then and else blocks
+  /// * Physical allocations from the two blocks are combined
+  /// * Common operations are lifted from the blocks
   void performAnalysis(LifeTimeAnalysis &set,
                        DependencyGraph *parent_graph) override {
     // Recur first, as analysis works inside-out
     then_block->performAnalysis(set);
     // Capture allocations from then_block analysis
-    auto pqids1 = set.popFrame();
+    auto pqids1 = set.getAllocated();
     else_block->performAnalysis(set);
     // Capture allocations from else_block analysis
-    auto pqids2 = set.popFrame();
+    auto pqids2 = set.getAllocated();
 
     // Combine then and else allocations
     combineAllocs(pqids1, pqids2, set, parent_graph);
 
-    // Lift common operations between if and else blocks
+    // Lift common operations between then and else blocks
     performLiftingPass(parent_graph);
   }
 
   bool isContainer() override { return true; }
 
+  /// Move a virtual wire allocated and de-allocated (but not used!) from an
+  /// outer scope to be allocated and de-allocated within both the then and else
+  /// blocks.
+  ///
+  /// As a result, removes the dependency on, and result for, \p qid from this
+  /// node
   void lowerAlloc(DependencyNode *init, DependencyNode *root,
                   VirtualQID qid) override {
     assert(successors.contains(root) && "Illegal root for contractAlloc");
@@ -1804,30 +1900,38 @@ public:
 };
 
 /// Validates that \p op meets the assumptions:
-/// * control flow operations are not allowed
+/// * operations are in linear value semantics
+/// * control flow operations (except `if`s) are not allowed
+/// * memory stores may be rearranged (this is not a hard error)
 bool validateOp(Operation *op) {
   if (isQuakeOperation(op) && !quake::isLinearValueForm(op) &&
-      !dyn_cast<quake::DiscriminateOp>(op)) {
-    op->emitOpError(
-        "dep-analysis requires all quake operations to be in value form");
+      !isa<quake::DiscriminateOp>(op)) {
+    op->emitOpError("DependencyAnalysisPass: requires all quake operations to "
+                    "be in value form");
     return false;
   }
 
-  if (op->getRegions().size() != 0 && !dyn_cast<cudaq::cc::IfOp>(op)) {
+  if (op->getRegions().size() != 0 && !isa<cudaq::cc::IfOp>(op)) {
     op->emitOpError(
-        "control flow operations not currently supported in dep-analysis");
+        "DependencyAnalysisPass: loops are not currently supported");
     return false;
   }
 
-  if (dyn_cast<mlir::BranchOpInterface>(op)) {
+  if (isa<mlir::BranchOpInterface>(op)) {
     op->emitOpError(
-        "branching operations not currently supported in dep-analysis");
+        "DependencyAnalysisPass: branching operations not currently supported");
     return false;
   }
 
-  if (dyn_cast<mlir::CallOpInterface>(op)) {
-    op->emitOpError("function calls not currently supported in dep-analysis");
+  if (isa<mlir::CallOpInterface>(op)) {
+    op->emitOpError(
+        "DependencyAnalysisPass: function calls not currently supported ");
     return false;
+  }
+
+  if (hasEffect<mlir::MemoryEffects::Write>(op) && !isQuakeOperation(op)) {
+    op->emitWarning("DependencyAnalysisPass: memory stores are volatile and "
+                    "may be reordered");
   }
 
   return true;
@@ -1835,11 +1939,10 @@ bool validateOp(Operation *op) {
 
 /// Validates that \p func meets the assumptions:
 /// * function bodies contain a single block
-/// * functions have no arguments
-/// * functions have no results
 [[maybe_unused]] bool validateFunc(func::FuncOp func) {
   if (func.getBlocks().size() != 1) {
-    func.emitOpError("multiple blocks not currently supported in dep-analysis");
+    func.emitOpError(
+        "DependencyAnalysisPass: multiple blocks not currently supported");
     return false;
   }
 
@@ -1850,10 +1953,17 @@ class DependencyAnalysisEngine {
 private:
   SmallVector<DependencyNode *> perOp;
   DenseMap<BlockArgument, ArgDependencyNode *> argMap;
+  SetVector<DependencyNode *> constants;
 
 public:
   DependencyAnalysisEngine() : perOp({}), argMap({}) {}
 
+  /// Creates a new dependency block for \p b by constructing a dependency graph
+  /// for the body of \p b starting from the block terminator.
+  ///
+  /// Any operation not somehow connected to the block terminator (this will
+  /// only happen if the entirety of a wire is irrelevant to the block
+  /// terminator, in which case it is considered to be dead code)
   DependencyBlock *
   visitBlock(mlir::Block *b,
              SmallVector<DependencyNode::DependencyEdge> dependencies) {
@@ -1879,7 +1989,7 @@ public:
       if (!node)
         return nullptr;
 
-      if (isEndOp(&op))
+      if (isa<quake::ReturnWireOp>(&op))
         roots[node] = &op;
 
       if (isTerminator) {
@@ -1928,6 +2038,8 @@ public:
       newNode = new TerminatorDependencyNode(op, dependencies);
     } else {
       newNode = new OpDependencyNode(op, dependencies);
+      if (!newNode->isQuantumDependent())
+        constants.insert(newNode);
     }
 
     // Dnodeid is the next slot of the dnode vector
@@ -1962,6 +2074,8 @@ public:
     auto dnode = perOp[id];
     return DependencyNode::DependencyEdge{dnode, resultidx};
   }
+
+  SetVector<DependencyNode *> &getConstants() { return constants; }
 };
 
 struct DependencyAnalysisPass
@@ -1989,6 +2103,8 @@ struct DependencyAnalysisPass
         auto body = engine.visitBlock(
             oldBlock, SmallVector<DependencyNode::DependencyEdge>());
 
+        auto constants = engine.getConstants();
+
         if (!body) {
           signalPassFailure();
           return;
@@ -1996,14 +2112,14 @@ struct DependencyAnalysisPass
 
         OpBuilder builder(func);
         LifeTimeAnalysis set(cudaq::opt::topologyAgnosticWiresetName);
-        // First, move allocs in as deep as possible, this is outside-in
+        // First, move allocs in as deep as possible. This is outside-in, so it
+        // is separated from the rest of the analysis passes.
         body->contractAllocsPass();
         // Next, do the scheduling, lifetime analysis/allocation, and lifting
         // passes inside-out
         body->performAnalysis(set);
         // Finally, perform code generation to move back to quake
         body->codeGen(builder, &func.getRegion(), set);
-        builder.setInsertionPointToStart(mod.getBody());
 
         // Replace old block
         oldBlock->erase();
