@@ -95,6 +95,9 @@ function f_option_handling {
 	-flower-to-cfg)
 		ENABLE_LOWER_TO_CFG=true
 		;;
+	-fkernel-exec-kind=*)
+		KERNEL_EXECUTION_KIND="{codegen=${1#*=}}"
+		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
 		ARGS="${ARGS} $1"
@@ -325,6 +328,7 @@ SHOW_VERSION=false
 ENABLE_UNWIND_LOWERING=true
 ENABLE_DEVICE_CODE_LOADERS=true
 ENABLE_KERNEL_EXECUTION=true
+KERNEL_EXECUTION_KIND=
 ENABLE_AGGRESSIVE_EARLY_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
@@ -680,7 +684,7 @@ if ${ENABLE_APPLY_SPECIALIZATION}; then
 fi
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_KIND}")
 fi
 if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 	RUN_OPT=true
