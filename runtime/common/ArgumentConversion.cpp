@@ -89,8 +89,6 @@ static Value genConstant(OpBuilder &, cudaq::cc::StdvecType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
-static Value genConstant(OpBuilder &, TupleType, void *, ModuleOp substMod,
-                         llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
 
@@ -199,35 +197,7 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
       .Case([&](cudaq::cc::ArrayType ty) {
         return genConstant(builder, ty, p, substMod, layout);
       })
-      .Case([&](TupleType ty) {
-        return genConstant(builder, ty, p, substMod, layout);
-      })
       .Default({});
-}
-
-// Clang++ lays std::tuples out in reverse order.
-Value genConstant(OpBuilder &builder, TupleType tupTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout) {
-  if (tupTy.getTypes().empty())
-    return {};
-  SmallVector<Type> members;
-  for (auto ty : llvm::reverse(tupTy.getTypes()))
-    members.emplace_back(ty);
-  auto *ctx = builder.getContext();
-  auto strTy = cudaq::cc::StructType::get(ctx, members);
-  // FIXME: read out in reverse order, but build in forward order.
-  auto revCon = genConstant(builder, strTy, p, substMod, layout);
-  auto fwdTy = cudaq::cc::StructType::get(ctx, tupTy.getTypes());
-  auto loc = builder.getUnknownLoc();
-  Value aggie = builder.create<cudaq::cc::UndefOp>(loc, fwdTy);
-  auto n = fwdTy.getMembers().size();
-  for (auto iter : llvm::enumerate(fwdTy.getMembers())) {
-    auto i = iter.index();
-    Value v = builder.create<cudaq::cc::ExtractValueOp>(loc, iter.value(),
-                                                        revCon, n - i - 1);
-    aggie = builder.create<cudaq::cc::InsertValueOp>(loc, fwdTy, aggie, v, i);
-  }
-  return aggie;
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
@@ -393,9 +363,6 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Case([&](cc::ArrayType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout);
-            })
-            .Case([&](TupleType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Default({});
