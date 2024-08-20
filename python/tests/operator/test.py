@@ -310,8 +310,8 @@ energy = hamiltonian
 magnetization = tranverse_field(num_qubits, operators.const(1)) / num_qubits
 cost_function = ising_chain(num_qubits, operators.const(coupling_coeff))
 
-uniform_superposition = numpy.ones(2**num_qubits, dtype=numpy.complex128) / numpy.sqrt(2**num_qubits)
-all_zero_state = numpy.array([1] + (2**num_qubits - 1) * [0], dtype=numpy.complex128)
+uniform_superposition = cudaq.State.from_data(numpy.ones(2**num_qubits, dtype=numpy.complex128) / numpy.sqrt(2**num_qubits))
+all_zero_state = cudaq.State.from_data(numpy.array([1] + (2**num_qubits - 1) * [0], dtype=numpy.complex128))
 
 steps = numpy.linspace(start_time, end_time, num_steps)
 schedule = Schedule(steps, ["time"])
@@ -322,40 +322,55 @@ schedule = Schedule(steps, ["time"])
 print("Evolve on default simulator:")
 schedule.reset()
 evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition)
-evolution_result.final_state.dump()
+evolution_result.final_state().dump()
+
 print("Evolve asynchronous on default simulator:")
 schedule.reset()
-evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition)
-evolution_result.final_state.get().dump()
-
-print("Evolve with intermediate states on default simulator:")
-schedule.reset()
-evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
-for state in evolution_result.intermediate_states: state.dump()
-evolution_result.final_state.dump()
-print("Evolve asynchronous with intermediate states on default simulator:")
-schedule.reset()
-# FIXME: trying to get a state results in a "no associated state"
-# Edit: I think the issue is calling state.get() twice.
-evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
-#for state in evolution_result.intermediate_states: 
-    #state.get().dump()
-evolution_result.final_state.get().dump()
+async_evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition)
+evolution_result = async_evolution_result.get()
+evolution_result.final_state().dump()
 
 print("Evolve + observe on default simulator:")
 schedule.reset()
 evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function])
-print(f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values]}")
+evolution_result.final_state().dump()
+print(f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values()]}")
 
 print("Evolve + observe asynchronous on default simulator:")
 schedule.reset()
-# FIXME: segfaults after completion - check after fixing the no associated state issue above
-#evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function])
-#print(f"final expectation values: {[res.get().expectation() for res in evolution_result.final_expectation_values]}")
+async_evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function])
+evolution_result = async_evolution_result.get()
+evolution_result.final_state().dump()
+print(f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values()]}")
+
+print("Evolve with intermediate states on default simulator:")
+schedule.reset()
+evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
+for state in evolution_result.intermediate_states(): state.dump()
+evolution_result.final_state().dump()
+
+print("Evolve asynchronous with intermediate states on default simulator:")
+schedule.reset()
+async_evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, store_intermediate_results = True)
+evolution_result = async_evolution_result.get()
+for state in evolution_result.intermediate_states(): state.dump()
+evolution_result.final_state().dump()
+
+print("Evolve + observe with intermediate results on default simulator:")
+schedule.reset()
+evolution_result = evolve(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function], store_intermediate_results = True)
+for state in evolution_result.intermediate_states(): state.dump()
+for expectations in evolution_result.expectation_values():
+    print(f"expectation values: {[res.expectation() for res in expectations]}")
+print(f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values()]}")
 
 print("Evolve + observe asynchronous with intermediate results on default simulator:")
 schedule.reset()
-# FIXME: segfaults after completion - check after fixing the no associated state issue above
-#evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function], store_intermediate_results = True)
-#print(f"final expectation values: {[res.get().expectation() for res in evolution_result.final_expectation_values]}")
+async_evolution_result = evolve_async(hamiltonian, dimensions, schedule, uniform_superposition, observables = [cost_function], store_intermediate_results = True)
+evolution_result = async_evolution_result.get()
+for state in evolution_result.intermediate_states(): state.dump()
+for expectations in evolution_result.expectation_values():
+    print(f"expectation values: {[res.expectation() for res in expectations]}")
+print(f"final expectation values: {[res.expectation() for res in evolution_result.final_expectation_values()]}")
+
 
