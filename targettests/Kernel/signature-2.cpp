@@ -126,6 +126,18 @@ struct SV {
   }
 };
 
+void show5(long john) { std::cout << john << ' '; }
+void show6(char actor) { std::cout << actor << '\n'; }
+
+struct T {
+  void operator()(std::tuple<int, long, double, char> tup) __qpu__ {
+    show3(std::get<0>(tup));
+    show5(std::get<1>(tup));
+    show4(std::get<double>(tup));
+    show6(std::get<3>(tup));
+  }
+};
+
 int main() {
   VectorOfStruct vsData = {{1, 1.0f, 95.0}, {2, 18.4f, 86.945}};
   VS{}(vsData);
@@ -136,6 +148,9 @@ int main() {
   StructOfVector svData = {{1, 10, 3, 100}, {1.2, 2.4, 4.8}};
   SV{}(svData);
 
+  std::tuple<int, long, double, char> t1{234, 89238, 3.14, 'Z'};
+  T{}(t1);
+
   return 0;
 }
 
@@ -144,3 +159,4 @@ int main() {
 // CHECK: A { 737 87.250 }; B { 0.750 639 }
 // CHECK: 1 10 3 100
 // CHECK: 1.200 2.400 4.800
+// CHECK: 234 89238 3.140 Z

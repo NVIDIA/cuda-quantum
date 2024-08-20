@@ -27,4 +27,6 @@ static constexpr const char launchKernelStreamlinedFuncName[] =
     "streamlinedLaunchKernel";
 static constexpr const char launchKernelHybridFuncName[] = "hybridLaunchKernel";
 
+static constexpr const char mangledNameMap[] = "quake.mangled_name_map";
+
 } // namespace cudaq::runtime
