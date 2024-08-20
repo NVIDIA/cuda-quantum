@@ -301,10 +301,8 @@ public:
   }
 
   bool isTupleReverseVar(clang::VarDecl *decl) {
-    if (cudaq::isInNamespace(decl, "cudaq")) {
-      auto name = decl->getName();
-      return name == "TupleIsReverse";
-    }
+    if (cudaq::isInNamespace(decl, "cudaq"))
+      return decl->getName().equals("TupleIsReverse");
     return false;
   }
 
