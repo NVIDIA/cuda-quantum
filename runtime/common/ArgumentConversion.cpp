@@ -139,7 +139,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                                               ValueRange{cast, arrSize})
                         .getResult(0);
 
-    // TODO: Delete the new state before exit.
+    // TODO: Delete the new state before function exit.
     return builder.create<cudaq::cc::CastOp>(loc, statePtrTy, statePtr);
   }
   // The program is executed on quantum hardware, state data is not

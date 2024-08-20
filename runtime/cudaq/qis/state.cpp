@@ -111,17 +111,33 @@ extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
   return obj->get_num_qubits();
 }
+
 state *__nvqpp_cudaq_state_createFromData_fp64(void *data, std::size_t size) {
   auto d = reinterpret_cast<std::complex<double> *>(data);
-  return new state(
-      state::from_data(std::vector<std::complex<double>>(d, d + size)));
-}
-state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
-  std::cout << "Creating state from data: " << std::endl;
-  auto d = reinterpret_cast<std::complex<float> *>(data);
-  return new state(
-      state::from_data(std::vector<std::complex<float>>(d, d + size)));
-}
+  auto current = std::vector<std::complex<float>>(d, d + size);
+
+  auto *simulator = cudaq::get_simulator();
+  if (simulator->isSinglePrecision()) {
+    auto converted =
+        std::vector<std::complex<float>>(current.begin(), current.end());
+    return new state(state::from_data(converted));
+  }
+
+  return new state(state::from_data(current));
 }
 
+state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
+  auto d = reinterpret_cast<std::complex<float> *>(data);
+  auto current = std::vector<std::complex<float>>(d, d + size);
+
+  auto *simulator = cudaq::get_simulator();
+  if (simulator->isDoublePrecision()) {
+    auto converted =
+        std::vector<std::complex<double>>(current.begin(), current.end());
+    return new state(state::from_data(converted));
+  }
+
+  return new state(state::from_data(current));
+}
+}
 } // namespace cudaq
