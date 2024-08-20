@@ -114,7 +114,7 @@ std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
 
 state *__nvqpp_cudaq_state_createFromData_fp64(void *data, std::size_t size) {
   auto d = reinterpret_cast<std::complex<double> *>(data);
-  auto current = std::vector<std::complex<float>>(d, d + size);
+  auto current = std::vector<std::complex<double>>(d, d + size);
 
   auto *simulator = cudaq::get_simulator();
   if (simulator->isSinglePrecision()) {
