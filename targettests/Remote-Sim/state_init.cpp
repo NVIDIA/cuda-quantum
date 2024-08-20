@@ -6,15 +6,23 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: remote-sim
+// REQUIRES: c++20
+
 // clang-format off
-// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 %s -o %t  && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void test(cudaq::state *inState) {
-  cudaq::qvector q(inState);
+__qpu__ void test_init_state() {
+  cudaq::qvector q(2);
+  ry(M_PI/2.0, q[0]);
+}
+
+__qpu__ void test_state_param(cudaq::state* state) {
+  cudaq::qvector q1(state);
 }
 
 void printCounts(cudaq::sample_result& result) {
@@ -30,13 +38,31 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
-  std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
+  std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0., 0., 0., 0., 0.};
+  std::vector<cudaq::complex> vec1{0., 0.,  0., 0., 0., 0., M_SQRT1_2, M_SQRT1_2};
   auto state = cudaq::state::from_data(vec);
+  auto state1 = cudaq::state::from_data(vec1);
   {
-    auto counts = cudaq::sample(test, &state);
+      // Passing state created from data as argument (kernel mode)
+      auto counts = cudaq::sample(test_state_param, &state);
+      printCounts(counts);
+
+      counts = cudaq::sample(test_state_param, &state1);
+      printCounts(counts);
+  }
+
+// CHECK: 000
+// CHECK: 100
+
+// CHECK: 011
+// CHECK: 111
+
+  {
+    // Passing state from another kernel as argument (kernel mode)
+    auto state = cudaq::get_state(test_init_state);
+    auto counts = cudaq::sample(test_state_param, &state);
     printCounts(counts);
   }
-  return 0;
 }
 
 // CHECK: 00
