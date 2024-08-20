@@ -43,7 +43,7 @@ public:
       final_expectation_values(std::make_optional<std::vector<observe_result>>(expectations)) {}
 
   evolve_result(std::vector<state> states) 
-    : final_state(states.back()), 
+    : final_state(states.back()), // FIXME: nice error when states is empty?
       intermediate_states(std::make_optional<std::vector<state>>(states)) {}
 
   evolve_result(std::vector<state> states, 
