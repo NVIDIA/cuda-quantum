@@ -2074,24 +2074,35 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       auto *stdGetSpec = cast<clang::FunctionDecl>(callee);
       auto &specArgs = *stdGetSpec->getTemplateSpecializationArgs();
       auto resultTy = cc::PointerType::get(peekType());
+      auto fixIfTuple = [&](std::int32_t &offset) {
+        if (tuplesAreReversed) {
+          auto *rd = x->getArg(0)->getType().getTypePtr()->getAsRecordDecl();
+          if (rd->getName().equals("tuple")) {
+            auto ptrTy = cast<cc::PointerType>(args[0].getType());
+            auto strTy = cast<cc::StructType>(ptrTy.getElementType());
+            offset = strTy.getMembers().size() - offset - 1;
+          }
+        }
+      };
       // The first specialization arg is either a type or an integer value.
       if (specArgs[0].getKind() == clang::TemplateArgument::ArgKind::Integral) {
+        std::int32_t offset = specArgs[0].getAsIntegral().getExtValue();
+        fixIfTuple(offset);
         auto ptr = builder.create<cc::ComputePtrOp>(
-            loc, resultTy, args[0],
-            ArrayRef<cc::ComputePtrArg>{static_cast<std::int32_t>(
-                specArgs[0].getAsIntegral().getExtValue())});
+            loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{offset});
         return pushValue(builder.create<cc::LoadOp>(loc, ptr));
       }
       auto *selectTy = specArgs[0].getAsType().getTypePtr();
       assert(specArgs[1].getKind() == clang::TemplateArgument::ArgKind::Pack);
-      int i = 0;
+      std::int32_t offset = 0;
       for (auto &templateArg : specArgs[1].pack_elements()) {
         if (templateArg.getAsType().getTypePtr() == selectTy) {
+          fixIfTuple(offset);
           auto ptr = builder.create<cc::ComputePtrOp>(
-              loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{i});
+              loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{offset});
           return pushValue(builder.create<cc::LoadOp>(loc, ptr));
         }
-        ++i;
+        ++offset;
       }
     }
   }

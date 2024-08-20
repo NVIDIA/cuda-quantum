@@ -265,6 +265,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           return false;
         members.push_back(popType());
       }
+      if (tuplesAreReversed)
+        std::reverse(members.begin(), members.end());
       return pushType(cc::StructType::get(ctx, members));
     }
     if (ignoredClass(x))
