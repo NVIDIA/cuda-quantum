@@ -10,198 +10,6 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_decorator import PyKernelDecorator
 from ..runtime.observe import observe
 
-# To be implemented in C++ and bindings will be generated.
-# If multiple initial states were passed, a sequence of evolution results is returned.
-# Setting up Python callbacks, if we want to do that:
-# https://stackoverflow.com/questions/70603855/how-to-set-python-function-as-callback-for-c-using-pybind11
-class EvolveResult:
-    """
-    Stores the execution data from an invocation of `cudaq.evolve`.
-    """
-
-    # Shape support in the type annotation for ndarray data type is still under development:
-    # https://github.com/numpy/numpy/issues/16544
-    def __init__(self: EvolveResult, 
-                 state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
-                 expectation: Optional[NDArray[cudaq_runtime.ObserveResult] | Sequence[NDArray[cudaq_runtime.ObserveResult]]] = None) -> None:
-        """
-        Instantiates an EvolveResult representing the output generated when evolving a single 
-        initial state under a set of operators. See `cudaq.evolve` for more detail.
-
-        Arguments:
-            state: A single state or a sequence of states of a quantum system. If a single 
-                state is given, it represents the final state of the system after time evolution.
-                If a sequence of states are given, they represent the state of the system after
-                each steps in the schedule specified in the call to `cudaq.evolve`.
-            expectation: An one-dimensional array of results from the call to 
-                `cudaq.observe` or a sequence of arrays thereof. If a single array 
-                is provided, it contains the results from the calls to `cudaq.observe`
-                at the end of the evolution for each observable defined in the call 
-                to `cudaq.evolve`. If a sequence of arrays is provided, they represent 
-                the results computed at each step in the schedule passed to 
-                `cudaq.evolve`.
-        """
-        if isinstance(state, cudaq_runtime.State):
-            self._intermediate_states = None
-            self._final_state = state
-        else:
-            if len(state) == 0:
-                raise ValueError("got an empty sequence of states")
-            self._intermediate_states = state
-            self._final_state = state[-1]
-        if expectation is None or len(expectation) == 0:
-            self._expectation_values = None
-            self._final_expectation_values : Optional[NDArray[cudaq_runtime.ObserveResult]] = None
-        else:
-            if isinstance(expectation[0], cudaq_runtime.ObserveResult):
-                if self._intermediate_states is not None:
-                    raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
-                self._expectation_values = None
-                self._final_expectation_values = expectation # type: ignore
-            else:
-                if self._intermediate_states is None:
-                    raise ValueError("no intermediate states were defined but intermediate expectation values are provided")
-                self._expectation_values = expectation
-                self._final_expectation_values = expectation[-1]
-
-    @property
-    def intermediate_states(self: EvolveResult) -> Optional[Sequence[cudaq_runtime.State]]:
-        """
-        Stores all intermediate states, meaning the state after each step in a defined 
-        schedule, produced by a call to `cudaq.evolve`, including the final state. 
-        This property is only populated saving intermediate results was requested in the 
-        call to `cudaq.evolve`.
-        """
-        return self._intermediate_states
-
-    @property
-    def final_state(self: EvolveResult) -> cudaq_runtime.State:
-        """
-        Stores the final state produced by a call to `cudaq.evolve`.
-        Represent the state of a quantum system after time evolution under a set of 
-        operators, see the `cudaq.evolve` documentation for more detail.
-        """
-        return self._final_state
-
-    @property
-    def expectation_values(self: EvolveResult) -> Optional[Sequence[NDArray[cudaq_runtime.ObserveResult]]]:
-        """
-        Stores the expectation values, that is the results from the calls to 
-        `cudaq.observe`, at each step in the schedule produced by a call to 
-        `cudaq.evolve`, including the final expectation values. Each entry 
-        corresponds to one observable provided in the `cudaq.evolve` call. 
-        This property is only populated saving intermediate results was requested in the 
-        call to `cudaq.evolve`. This value will be None if no intermediate results were 
-        requested, or if no observables were specified in the call.
-        """
-        return self._expectation_values
-
-    @property
-    def final_expectation_values(self: EvolveResult) -> Optional[NDArray[cudaq_runtime.ObserveResult]]:
-        """
-        Stores the final expectation values, that is the results produced by
-        calls to `cudaq.observe`, from a call to `cudaq.evolve`. Each entry 
-        corresponds to one observable provided in the `cudaq.evolve` call. 
-        This value will be None if no observables were specified in the call.
-        """
-        return self._final_expectation_values
-
-# To be implemented in C++ and bindings will be generated.
-class AsyncEvolveResult:
-    """
-    Stores the execution data from an invocation of `cudaq.evolve_async`.
-    """
-
-    def __init__(self: AsyncEvolveResult, 
-                 state: cudaq_runtime.AsyncStateResult | Sequence[cudaq_runtime.AsyncStateResult],
-                 expectation: Optional[NDArray[cudaq_runtime.AsyncObserveResult] | Sequence[NDArray[cudaq_runtime.AsyncObserveResult]]] = None) -> None:
-        """
-        Creates a class instance that can be used to retrieve the evolution
-        result produces by an calling the asynchronously executing function
-        `cudaq.evolve_async`. It models a future-like type whose 
-        `EvolveResult` may be accessed via an invocation of the `get`
-        method. 
-
-        Arguments:
-            state: A single handle for retrieving the state of a quantum system, 
-                or a sequence of handle. If a single handle is given, its value 
-                represents the final state of the system after time evolution.
-                If a sequence of handles are given, they represent the state of 
-                the system after each steps in the schedule specified in the call 
-                to `cudaq.evolve_async`.
-            expectation: An one-dimensional array of results from the call to 
-                `cudaq.observe_async` or a sequence of arrays thereof. If a single 
-                array is provided, it contains the results from the calls to 
-                `cudaq.observe_async` at the end of the evolution for each observable 
-                defined in the call to `cudaq.evolve_async`. If a sequence of arrays 
-                is provided, they represent the results computed at each step in the 
-                schedule passed to `cudaq.evolve_async`.
-        """
-        if isinstance(state, cudaq_runtime.AsyncStateResult):
-            self._intermediate_states = None
-            self._final_state = state
-        else:
-            if len(state) == 0:
-                raise ValueError("got an empty sequence of states")
-            self._intermediate_states = state
-            self._final_state = state[-1]
-        if expectation is None or len(expectation) == 0:
-            self._expectation_values = None
-            self._final_expectation_values : Optional[NDArray[cudaq_runtime.ObserveResult]] = None
-        else:
-            if isinstance(expectation[0], cudaq_runtime.AsyncObserveResult):
-                if self._intermediate_states is not None:
-                    raise ValueError("intermediate states were defined but no intermediate expectation values are provided")
-                self._expectation_values = None
-                self._final_expectation_values = expectation # type: ignore
-            else:
-                if self._intermediate_states is None:
-                    raise ValueError("no intermediate states were defined but intermediate expectation values are provided")
-                self._expectation_values = expectation
-                self._final_expectation_values = expectation[-1]
-
-    @property
-    def intermediate_states(self: EvolveResult) -> Optional[Sequence[cudaq_runtime.AsyncStateResult]]:
-        """
-        Stores the handle to all intermediate states, meaning the state after each step 
-        in a defined schedule, produced by a call to `cudaq.evolve_async`, including the 
-        final state. This property is only populated saving intermediate results was 
-        requested in the call to `cudaq.evolve_async`.
-        """
-        return self._intermediate_states
-
-    @property
-    def final_state(self: EvolveResult) -> cudaq_runtime.AsyncStateResult:
-        """
-        Stores the handle to the final state produced by a call to `cudaq.evolve_async`.
-        Its value represent the state of a quantum system after time evolution under a 
-        set of operators, see the `cudaq.evolve_async` documentation for more detail.
-        """
-        return self._final_state
-
-    @property
-    def expectation_values(self: EvolveResult) -> Optional[Sequence[NDArray[cudaq_runtime.AsyncObserveResult]]]:
-        """
-        Stores the handles to the expectation values, that is the results from the calls 
-        to `cudaq.observe_async`, at each step in the schedule produced by a call to 
-        `cudaq.evolve_async`, including the final expectation values. Each entry 
-        corresponds to one observable provided in the `cudaq.evolve_async` call. This 
-        property is only populated saving intermediate results was requested in the 
-        call to `cudaq.evolve_async`. This value will be None if no intermediate results 
-        were requested, or if no observables were specified in the call.
-        """
-        return self._expectation_values
-
-    @property
-    def final_expectation_values(self: EvolveResult) -> Optional[NDArray[cudaq_runtime.AsyncObserveResult]]:
-        """
-        Stores the handles to the final expectation values, that is the results produced 
-        by calls to `cudaq.observe_async`, from a call to `cudaq.evolve_async`. Each 
-        entry corresponds to one observable provided in the `cudaq.evolve_async` call. 
-        This value will be None if no observables were specified in the call.
-        """
-        return self._final_expectation_values
-
 def _register_evolution_kernels(hamiltonian: Operator, schedule: Schedule) -> Generator[(str, Mapping[str, NumericType])]:
     # Evolution kernels can only be defined for qubits.
     dimensions = dict([(i, 2) for i in hamiltonian.degrees])
@@ -221,18 +29,11 @@ def _register_evolution_kernels(hamiltonian: Operator, schedule: Schedule) -> Ge
 
 def _create_kernel(name: str, 
                    hamiltonian: Operator, 
-                   schedule: Schedule, 
-                   initial_state = None) -> tuple[PyKernelDecorator, Mapping[str, NumericType]]:
+                   schedule: Schedule) -> tuple[PyKernelDecorator, Mapping[str, NumericType]]:
     evolution = _register_evolution_kernels(hamiltonian, schedule)
     num_qubits = len(hamiltonian.degrees)
-    srcCode = f"def {name}():\n"
-    if initial_state is None:
-        srcCode += f"\tqs = cudaq.qvector({num_qubits})\n"
-    else:
-        # I believe with Python 3, `str` on a floating point value should preserve precision.
-        # Hence, I would assume the same is also true for complex values.
-        statevector = ', '.join([str(value) for value in initial_state])
-        srcCode += f"\tqs = cudaq.qvector([{statevector}])\n"
+    srcCode = f"def {name}(init_state: cudaq.State):\n"
+    srcCode += f"\tqs = cudaq.qvector(init_state)\n"
     for operation_name, parameters in evolution:
         # FIXME: It would be nice if a registered operation could take a vector of qubits.
         arguments = [f"qs[{i}]" for i in range(num_qubits)]
@@ -242,48 +43,26 @@ def _create_kernel(name: str,
     kernel = PyKernelDecorator("evolution_kernel",
                                kernelName = name,
                                funcSrc = srcCode,
-                               signature = {},
+                               signature = { "init_state": cudaq_runtime.State },
                                location = (__file__, sys._getframe().f_lineno))
     return kernel, parameters
 
 def _create_kernels(name: str, 
                     hamiltonian: Operator, 
-                    schedule: Schedule, 
-                    initial_state = None) -> Generator[tuple[PyKernelDecorator, Mapping[str, NumericType]]]:
+                    schedule: Schedule) -> Generator[tuple[PyKernelDecorator, Mapping[str, NumericType]]]:
     evolution = _register_evolution_kernels(hamiltonian, schedule)
     num_qubits = len(hamiltonian.degrees)
     for op_idx, (operation_name, parameters) in enumerate(evolution):
-        if op_idx == 0: srcCode = f"def {name}_{op_idx}():\n"
-        else: srcCode = f"def {name}_{op_idx}(init_state: cudaq.State):\n"
-
-        if op_idx == 0 and initial_state is None: qvec_arg = str(num_qubits)
-        # I believe with Python 3, `str` on a floating point value should preserve precision.
-        # Hence, I would assume the same is also true for complex values.
-        elif op_idx == 0: qvec_arg = f"[{', '.join([str(value) for value in initial_state])}]"
-        else: qvec_arg = "init_state"
-        srcCode += f"\tqs = cudaq.qvector({qvec_arg})\n"
-
+        srcCode = f"def {name}_{op_idx}(init_state: cudaq.State):\n"
+        srcCode += f"\tqs = cudaq.qvector(init_state)\n"
         arguments = [f"qs[{i}]" for i in range(num_qubits)]
         srcCode += f"\t{operation_name}({', '.join(arguments)})\n"
-
-        signature : dict[str, Any] = {}
-        if op_idx != 0: signature["init_state"] = cudaq_runtime.State
         kernel = PyKernelDecorator(f"evolution_kernel",
                                    kernelName = f"{name}_{op_idx}",
                                    funcSrc = srcCode,
-                                   signature = signature,
+                                   signature = { "init_state": cudaq_runtime.State },
                                    location = (__file__, sys._getframe().f_lineno))
         yield kernel, parameters
-
-def _state_to_kernel():
-    kernel_name = "gen_" + "".join(filter(str.isalnum, str(uuid.uuid4())))
-    srcCode = f"def {kernel_name}(init_state: cudaq.State):\n"
-    srcCode += f"\tqs = cudaq.qvector(init_state)\n"
-    return PyKernelDecorator(f"state_kernel",
-                             kernelName = kernel_name,
-                             funcSrc = srcCode,
-                             signature = {"init_state": cudaq_runtime.State},
-                             location = (__file__, sys._getframe().f_lineno))
 
 # Top level API for the CUDA-Q master equation solver.
 def evolve(hamiltonian: Operator, 
@@ -292,7 +71,7 @@ def evolve(hamiltonian: Operator,
            initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.States],
            collapse_operators: Sequence[Operator] = [],
            observables: Sequence[Operator] = [], 
-           store_intermediate_results = False) -> EvolveResult | Sequence[EvolveResult]:
+           store_intermediate_results = False) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     """
     Computes the time evolution of one or more initial state(s) under the defined 
     operator(s). 
@@ -333,36 +112,31 @@ def evolve(hamiltonian: Operator,
     # Unless we are using cuSuperoperator for the execution, 
     # we can only handle qubits at this time.
     if any(dimension != 2 for dimension in dimensions.values()):
+        # FIXME: tensornet can potentially handle qudits
         raise ValueError("computing the time evolution is only possible for qubits; use the nvidia-dynamics target to simulate time evolution of arbitrary d-level systems")
     # Unless we are using cuSuperoperator for the execution, 
     # we cannot handle simulating the effect of collapse operators.
     if len(collapse_operators) > 0:
         raise ValueError("collapse operators can only be defined when using the nvidia-dynamics target")
 
-    state_to_kernel = _state_to_kernel()
-    def compute_expectations(cudaq_state: cudaq_runtime.State, parameters: Mapping[str, NumericType]) -> Sequence[cudaq_runtime.ObserveResult]:
+    # FIXME: deal with a sequence of initial states
+    if store_intermediate_results:
+        evolution = _create_kernels("time_evolution", hamiltonian, schedule)
+        kernels, observable_spinops = [], []
+        for kernel, parameters in evolution:
+            kernels.append(kernel)
+            # FIXME: make it possible to create these only during execution
+            # Setting up Python callbacks, if we want to do that:
+            # https://stackoverflow.com/questions/70603855/how-to-set-python-function-as-callback-for-c-using-pybind11
+            observable_spinops.append([op._to_spinop(dimensions, **parameters) for op in observables])
+        if len(observables) == 0: return cudaq_runtime.evolve(initial_state, kernels)
+        return cudaq_runtime.evolve(initial_state, kernels, observable_spinops)
+    else:
+        kernel, parameters = _create_kernel("time_evolution", hamiltonian, schedule)
+        if len(observables) == 0: return cudaq_runtime.evolve(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
         observable_spinops = [op._to_spinop(dimensions, **parameters) for op in observables]
-        expectation_values: list[cudaq_runtime.ObserveResult] = []
-        for observable in observable_spinops:
-            expectation = observe(state_to_kernel, observable, cudaq_state)
-            expectation_values.append(expectation)
-        return expectation_values
-
-    if store_intermediate_results:
-        evolution = _create_kernels("time_evolution", hamiltonian, schedule, initial_state)
-        states, expectations = [], []
-        for kernel, parameters in evolution:
-            if len(states) == 0: intermediate_state = cudaq_runtime.get_state(kernel)
-            else: intermediate_state = cudaq_runtime.get_state(kernel, states[-1])
-            states.append(intermediate_state)
-            if len(observables) > 0: expectations.append(compute_expectations(intermediate_state, parameters))
-        return EvolveResult(states, expectations)
-    else:
-        kernel, parameters = _create_kernel("time_evolution", hamiltonian, schedule, initial_state)
-        final_state = cudaq_runtime.get_state(kernel)
-        if len(observables) == 0: return EvolveResult(final_state)
-        else: return EvolveResult(final_state, compute_expectations(final_state, parameters))
+        return cudaq_runtime.evolve(initial_state, kernel, observable_spinops)
 
 def evolve_async(hamiltonian: Operator, 
            dimensions: Mapping[int, int], 
@@ -370,7 +144,7 @@ def evolve_async(hamiltonian: Operator,
            initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
            collapse_operators: Sequence[Operator] = [],
            observables: Sequence[Operator] = [], 
-           store_intermediate_results = False) -> AsyncEvolveResult | Sequence[AsyncEvolveResult]:
+           store_intermediate_results = False) -> cudaq_runtime.AsyncEvolveResult | Sequence[cudaq_runtime.AsyncEvolveResult]:
     """
     Asynchronously computes the time evolution of one or more initial state(s) 
     under the defined operator(s). See `cudaq.evolve` for more details about the
@@ -391,40 +165,29 @@ def evolve_async(hamiltonian: Operator,
     # Unless we are using cuSuperoperator for the execution, 
     # we can only handle qubits at this time.
     if any(dimension != 2 for dimension in dimensions.values()):
+        # FIXME: tensornet can potentially handle qudits
         raise ValueError("computing the time evolution is only possible for qubits; use the nvidia-dynamics target to simulate time evolution of arbitrary d-level systems")
     # Unless we are using cuSuperoperator for the execution, 
     # we cannot handle simulating the effect of collapse operators.
     if len(collapse_operators) > 0:
         raise ValueError("collapse operators can only be defined when using the nvidia-dynamics target")
 
-    state_to_kernel = _state_to_kernel()
-    def compute_expectations(cudaq_state: cudaq_runtime.State, parameters: Mapping[str, NumericType]) -> Sequence[cudaq_runtime.ObserveResult]:
+    # FIXME: deal with a sequence of initial states
+    if store_intermediate_results:
+        evolution = _create_kernels("time_evolution", hamiltonian, schedule)
+        kernels, observable_spinops = [], []
+        for kernel, parameters in evolution:
+            kernels.append(kernel)
+            # FIXME: make it possible to create these only during execution
+            # Setting up Python callbacks, if we want to do that:
+            # https://stackoverflow.com/questions/70603855/how-to-set-python-function-as-callback-for-c-using-pybind11
+            observable_spinops.append([op._to_spinop(dimensions, **parameters) for op in observables])
+        if len(observables) == 0: return cudaq_runtime.evolve_async(initial_state, kernels)
+        return cudaq_runtime.evolve_async(initial_state, kernels, observable_spinops)
+    else:
+        kernel, parameters = _create_kernel("time_evolution", hamiltonian, schedule)
+        if len(observables) == 0: return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
         observable_spinops = [op._to_spinop(dimensions, **parameters) for op in observables]
-        expectation_values: list[cudaq_runtime.ObserveResult] = []
-        for observable in observable_spinops:
-            expectation = cudaq_runtime.observe_async(state_to_kernel, observable, cudaq_state)
-            expectation_values.append(expectation)
-        return expectation_values
+        return cudaq_runtime.evolve_async(initial_state, kernel, observable_spinops)
 
-    if store_intermediate_results:
-        evolution = _create_kernels("time_evolution", hamiltonian, schedule, initial_state)
-        states, expectations = [], []
-        current_state = None
-        for kernel, parameters in evolution:
-            if current_state is None: intermediate_state = cudaq_runtime.get_state_async(kernel)
-            else: # FIXME: can we manually create a AsyncStateResult to not wait here?
-                # FIXME: inlining the expression to get the previous state here causes a segfault
-                intermediate_state = cudaq_runtime.get_state_async(kernel, current_state)
-            states.append(intermediate_state)
-            # FIXME: can we make this so that we don't have to get the state here?
-            current_state = intermediate_state.get()
-            if len(observables) > 0: expectations.append(compute_expectations(current_state, parameters))
-        return AsyncEvolveResult(states, expectations)
-    else:
-        kernel, parameters = _create_kernel("time_evolution", hamiltonian, schedule, initial_state)
-        final_state = cudaq_runtime.get_state_async(kernel)
-        if len(observables) > 0:
-            # FIXME: can we make this so that we don't have to get the state here?
-            return AsyncEvolveResult(final_state, compute_expectations(final_state.get(), parameters))
-        return AsyncEvolveResult(final_state)
