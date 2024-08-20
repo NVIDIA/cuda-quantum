@@ -1913,25 +1913,29 @@ bool validateOp(Operation *op) {
 
   if (op->getRegions().size() != 0 && !isa<cudaq::cc::IfOp>(op)) {
     op->emitOpError(
-        "DependencyAnalysisPass: loops are not currently supported");
+        "DependencyAnalysisPass: loops are not supported");
     return false;
   }
 
   if (isa<mlir::BranchOpInterface>(op)) {
     op->emitOpError(
-        "DependencyAnalysisPass: branching operations not currently supported");
+        "DependencyAnalysisPass: branching operations are not supported");
     return false;
   }
 
   if (isa<mlir::CallOpInterface>(op)) {
     op->emitOpError(
-        "DependencyAnalysisPass: function calls not currently supported ");
+        "DependencyAnalysisPass: function calls are not supported ");
     return false;
   }
 
   if (hasEffect<mlir::MemoryEffects::Write>(op) && !isQuakeOperation(op)) {
     op->emitWarning("DependencyAnalysisPass: memory stores are volatile and "
                     "may be reordered");
+  }
+
+  if (isa<quake::NullWireOp>(op)) {
+    op->emitWarning("DependencyAnalysisPass: `null_wire` are not supported");
   }
 
   return true;
@@ -1942,7 +1946,7 @@ bool validateOp(Operation *op) {
 [[maybe_unused]] bool validateFunc(func::FuncOp func) {
   if (func.getBlocks().size() != 1) {
     func.emitOpError(
-        "DependencyAnalysisPass: multiple blocks not currently supported");
+        "DependencyAnalysisPass: multiple blocks are not supported");
     return false;
   }
 
