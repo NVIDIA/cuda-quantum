@@ -95,7 +95,7 @@ void kronprod(uint32_t n_blocks, int32_t threads_per_block,
               void *arr0) {
   cudaKronprod<<<n_blocks, threads_per_block>>>(
     tsize1, reinterpret_cast<const CudaDataType *>(arr1), 
-    (1UL << tsize2), reinterpret_cast<const CudaDataType *>(arr2),
+    tsize2, reinterpret_cast<const CudaDataType *>(arr2),
     reinterpret_cast<CudaDataType *>(arr0));
 }
 

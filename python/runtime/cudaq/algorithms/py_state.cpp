@@ -442,7 +442,7 @@ index pair.
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitude of |0101>, assuming this is a 4-qubit state.
-  amplitude = state.amplitude([0,1,0,1])#")
+  amplitude = state.amplitude([0,1,0,1]))#")
       .def(
           "amplitude",
           [](state &s, const std::string &bitString) {
@@ -456,7 +456,7 @@ index pair.
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitude of |0101>, assuming this is a 4-qubit state.
-  amplitude = state.amplitude('0101')#")
+  amplitude = state.amplitude('0101'))#")
       .def(
           "amplitudes",
           [](state &s, const std::vector<std::vector<int>> &basisStates) {
@@ -470,7 +470,7 @@ index pair.
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitude of |0101> and |1010>, assuming this is a 4-qubit state.
-  amplitudes = state.amplitudes([[0,1,0,1], [1,0,1,0])#")
+  amplitudes = state.amplitudes([[0,1,0,1], [1,0,1,0]]))#")
       .def(
           "amplitudes",
           [](state &s, const std::vector<std::string> &bitStrings) {
@@ -488,7 +488,7 @@ index pair.
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitudes of |0101> and |1010>, assuming this is a 4-qubit state.
-  amplitudes = state.amplitudes(['0101', '1010'])#")
+  amplitudes = state.amplitudes(['0101', '1010']))#")
       .def(
           "dump",
           [](state &self) {
