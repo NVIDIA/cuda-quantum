@@ -16,11 +16,11 @@ class FakeSimulationState : public SimulationState {
 private:
   std::size_t size = 0;
   void *data = 0;
-  std::size_t dataType = 0;
 
 public:
   virtual std::unique_ptr<SimulationState>
-  createFromSizeAndPtr(std::size_t size, void *data, std::size_t dataType) {
+  createFromSizeAndPtr(std::size_t size, void *data,
+                       std::size_t dataType) override {
     std::runtime_error("Not implemented");
     return std::make_unique<FakeSimulationState>(size, data);
   }
@@ -89,18 +89,18 @@ public:
 
   virtual std::size_t getNumElements() const override { return size; }
 
-  virtual bool isDeviceData() const { return false; }
+  virtual bool isDeviceData() const override { return false; }
 
-  virtual bool isArrayLike() const { return true; }
+  virtual bool isArrayLike() const override { return true; }
 
   virtual void toHost(std::complex<double> *clientAllocatedData,
-                      std::size_t numElements) const {
+                      std::size_t numElements) const override {
     throw std::runtime_error(
         "SimulationState::toHost complex128 not implemented.");
   }
 
   virtual void toHost(std::complex<float> *clientAllocatedData,
-                      std::size_t numElements) const {
+                      std::size_t numElements) const override {
     throw std::runtime_error(
         "SimulationState::toHost complex64 not implemented.");
   }
