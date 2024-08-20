@@ -566,8 +566,13 @@
 <section id="Qubit-Visualization">
 <h2>Qubit Visualization<a class="headerlink" href="#Qubit-Visualization" title="Permalink to this heading">¶</a></h2>
 <p>What are the possible states a qubit can be in and how can we build up a visual cue to help us make sense of quantum states and their evolution?</p>
-<p>We know our qubit can have two distinct states: <span class="math notranslate nohighlight">\(\ket{0}\)</span> and <span class="math notranslate nohighlight">\(\ket{1}\)</span>. Maybe we need a one-dimensional line whose vertices can represent each of the states. We also know that qubits can be in an equal superposition states: <span class="math notranslate nohighlight">\(\ket{+}\)</span> and <span class="math notranslate nohighlight">\(\ket{-}\)</span>. This now forces us to extend our 1D line to a 2D Cartesian coordinate system. If you dive deeper you will learn about the existence of states like <span class="math notranslate nohighlight">\(\ket{+i}\)</span> and <span class="math notranslate nohighlight">\(\ket{-i}\)</span>, this calls for a 3D extension.</p>
-<p>It turns out that a sphere is able to depict all the possible states of a single qubit. This is called a Bloch sphere.</p>
+<p>We know our qubit can have two distinct states: <span class="math notranslate nohighlight">\(\ket{0}\)</span> and <span class="math notranslate nohighlight">\(\ket{1}\)</span>. If these were the only two states, we could represent them as two vectors on a one-dimensional line (i.e., the z-axis in the image below). We also know that qubits can be in an equal superposition of states: <span class="math notranslate nohighlight">\(\ket{+}\)</span> and <span class="math notranslate nohighlight">\(\ket{-}\)</span>. In order to capture all of the states in equal superposition, we will need a 2D plane (i.e., the <span class="math notranslate nohighlight">\(xy\)</span>-plane in the image below). If you dive deeper you will learn
+about the existence of other states that will call for a 3D extension.</p>
+<p>In general, a quantum state can be written in the form <span class="math notranslate nohighlight">\(\ket{\psi} = \cos(\frac{\theta}{2})\ket{0}+e^{i\varphi}\sin(\frac{\theta}{2})\ket{1}\)</span> where <span class="math notranslate nohighlight">\(\theta\)</span> is a real number between <span class="math notranslate nohighlight">\(0\)</span> and <span class="math notranslate nohighlight">\(\pi\)</span> and <span class="math notranslate nohighlight">\(\varphi\)</span> is a real value between <span class="math notranslate nohighlight">\(0\)</span> and <span class="math notranslate nohighlight">\(2\pi\)</span>. For example, the minus state, <span class="math notranslate nohighlight">\(\ket{-} = \frac{1}{\sqrt{2}}\ket{0}- \frac{1}{\sqrt{2}}\ket{1}\)</span>, can be rewritten as</p>
+<div class="math notranslate nohighlight">
+\[\ket{-}  = \cos(\frac{\theta}{2})\ket{0}+e^{i\varphi}\sin(\frac{\theta}{2})\ket{1}\text{ with }\theta = \frac{\pi}{2}\text{ and }\varphi = \pi.\]</div>
+<p>This can be visualized in the image below as a unit vector pointing in the direction of the negative <span class="math notranslate nohighlight">\(x\)</span>-axis.</p>
+<p>Using spherical coordinates, it is possible to depict all the possible states of a single qubit on a sphere. This is called a Bloch sphere.</p>
 <p><img alt="Bloch Sphere" class="no-scaled-link" src="../../../_images/Bloch_sphere.png" style="width: 300px; height: 300px;" /></p>
 <p>Let us try to showcase the functionality to render such a 3D representation with CUDA-Q. First, let us define a single-qubit kernel that returns a different state each time. This kernel uses random rotations.</p>
 <p>Note: CUDA-Q uses the <a class="reference external" href="https://qutip.org">QuTiP</a> library to render Bloch spheres. The following code will throw an error if QuTiP is not installed.</p>
@@ -605,18 +610,18 @@
 Tools not found, installing. Please restart your kernel after this is done.
 Collecting qutip&gt;=5
   Downloading qutip-5.0.3.post1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (28.0 MB)
-     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">97.6 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">65.8 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
 Requirement already satisfied: matplotlib&gt;=3.5 in /usr/local/lib/python3.10/dist-packages (3.9.2)
-Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (24.1)
 Requirement already satisfied: scipy&gt;=1.9 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.10.1)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (24.1)
 Requirement already satisfied: numpy&gt;=1.22 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.26.4)
-Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
 Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (2.9.0.post0)
-Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.2)
-Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.5)
-Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.2.1)
+Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
 Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (4.53.1)
 Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (10.4.0)
+Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.2.1)
+Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.2)
+Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.5)
 Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib&gt;=3.5) (1.16.0)
 Installing collected packages: qutip
 Successfully installed qutip-5.0.3.post1
