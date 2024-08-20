@@ -8,8 +8,6 @@
 
 // RUN: cudaq-opt --lower-to-cfg %s | cudaq-opt | FileCheck %s
 
-module {
-
 func.func private @f1()
 func.func private @f2()
 
@@ -300,4 +298,91 @@ func.func @scope_with_cf2() {
 // CHECK:           return
 // CHECK:         }
 
+
+func.func @test_wired_through_if() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %3 = cc.undef i1
+  %2:2 = cc.if (%3) ((%4 = %0, %5 = %1)) -> (!quake.wire, !quake.wire) {
+    %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#1, %6#0 : !quake.wire, !quake.wire
+  } else {
+    %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#0, %6#1 : !quake.wire, !quake.wire
+  }
+  quake.sink %2#0 : !quake.wire
+  quake.sink %2#1 : !quake.wire
+  return
 }
+
+// CHECK-LABEL:   func.func @test_wired_through_if() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = cc.undef i1
+// CHECK:           cf.cond_br %[[VAL_2]], ^bb1(%[[VAL_0]], %[[VAL_1]] : !quake.wire, !quake.wire), ^bb2(%[[VAL_0]], %[[VAL_1]] : !quake.wire, !quake.wire)
+// CHECK:         ^bb1(%[[VAL_3:.*]]: !quake.wire, %[[VAL_4:.*]]: !quake.wire):
+// CHECK:           %[[VAL_5:.*]]:2 = quake.x {{\[}}%[[VAL_3]]] %[[VAL_4]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           cf.br ^bb3(%[[VAL_5]]#1, %[[VAL_5]]#0 : !quake.wire, !quake.wire)
+// CHECK:         ^bb2(%[[VAL_6:.*]]: !quake.wire, %[[VAL_7:.*]]: !quake.wire):
+// CHECK:           %[[VAL_8:.*]]:2 = quake.x {{\[}}%[[VAL_6]]] %[[VAL_7]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           cf.br ^bb3(%[[VAL_8]]#0, %[[VAL_8]]#1 : !quake.wire, !quake.wire)
+// CHECK:         ^bb3(%[[VAL_9:.*]]: !quake.wire, %[[VAL_10:.*]]: !quake.wire):
+// CHECK:           cf.br ^bb4
+// CHECK:         ^bb4:
+// CHECK:           quake.sink %[[VAL_9]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_10]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func @test_wired_a_bit_loopy() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = cc.loop while ((%4 = %0, %5 = %1) -> (!quake.wire, !quake.wire)) {
+    %3 = cc.undef i1
+    cc.condition %3 (%4, %5 : !quake.wire, !quake.wire)
+  } do {
+   ^bb1(%4: !quake.wire, %5: !quake.wire):
+    %7 = cc.undef i1
+    cf.cond_br %7, ^bb2(%4, %5 : !quake.wire, !quake.wire), ^bb3(%5, %4 : !quake.wire, !quake.wire)
+   ^bb2(%14: !quake.wire, %15: !quake.wire):
+    %16:2 = quake.x [%14] %15 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %16#1, %16#0 : !quake.wire, !quake.wire
+   ^bb3(%24: !quake.wire, %25: !quake.wire):
+    %26:2 = quake.y [%24] %25 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %26#1, %26#0 : !quake.wire, !quake.wire
+  } step {
+   ^bb1(%4: !quake.wire, %5: !quake.wire):
+    %6:2 = quake.z [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#0, %6#1 : !quake.wire, !quake.wire
+  }
+  quake.sink %2#0 : !quake.wire
+  quake.sink %2#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @test_wired_a_bit_loopy() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           cf.br ^bb1(%[[VAL_0]], %[[VAL_1]] : !quake.wire, !quake.wire)
+// CHECK:         ^bb1(%[[VAL_2:.*]]: !quake.wire, %[[VAL_3:.*]]: !quake.wire):
+// CHECK:           %[[VAL_4:.*]] = cc.undef i1
+// CHECK:           cf.cond_br %[[VAL_4]], ^bb2(%[[VAL_2]], %[[VAL_3]] : !quake.wire, !quake.wire), ^bb6(%[[VAL_2]], %[[VAL_3]] : !quake.wire, !quake.wire)
+// CHECK:         ^bb2(%[[VAL_5:.*]]: !quake.wire, %[[VAL_6:.*]]: !quake.wire):
+// CHECK:           %[[VAL_7:.*]] = cc.undef i1
+// CHECK:           cf.cond_br %[[VAL_7]], ^bb3(%[[VAL_5]], %[[VAL_6]] : !quake.wire, !quake.wire), ^bb4(%[[VAL_6]], %[[VAL_5]] : !quake.wire, !quake.wire)
+// CHECK:         ^bb3(%[[VAL_8:.*]]: !quake.wire, %[[VAL_9:.*]]: !quake.wire):
+// CHECK:           %[[VAL_10:.*]]:2 = quake.x {{\[}}%[[VAL_8]]] %[[VAL_9]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           cf.br ^bb5(%[[VAL_10]]#1, %[[VAL_10]]#0 : !quake.wire, !quake.wire)
+// CHECK:         ^bb4(%[[VAL_11:.*]]: !quake.wire, %[[VAL_12:.*]]: !quake.wire):
+// CHECK:           %[[VAL_13:.*]]:2 = quake.y {{\[}}%[[VAL_11]]] %[[VAL_12]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           cf.br ^bb5(%[[VAL_13]]#1, %[[VAL_13]]#0 : !quake.wire, !quake.wire)
+// CHECK:         ^bb5(%[[VAL_14:.*]]: !quake.wire, %[[VAL_15:.*]]: !quake.wire):
+// CHECK:           %[[VAL_16:.*]]:2 = quake.z {{\[}}%[[VAL_14]]] %[[VAL_15]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           cf.br ^bb1(%[[VAL_16]]#0, %[[VAL_16]]#1 : !quake.wire, !quake.wire)
+// CHECK:         ^bb6(%[[VAL_17:.*]]: !quake.wire, %[[VAL_18:.*]]: !quake.wire):
+// CHECK:           cf.br ^bb7
+// CHECK:         ^bb7:
+// CHECK:           quake.sink %[[VAL_17]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_18]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
