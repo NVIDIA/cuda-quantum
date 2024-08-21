@@ -495,6 +495,33 @@ public:
   }
 };
 
+class OffsetOfOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::OffsetOfOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  // Use the GEP approach for now. LLVM is planning to remove support for this
+  // at some point. See: https://github.com/llvm/llvm-project/issues/71507
+  LogicalResult
+  matchAndRewrite(cudaq::cc::OffsetOfOp offsetOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto inputTy = offsetOp.getInputType();
+    SmallVector<cudaq::cc::ComputePtrArg> args;
+    for (std::int32_t i : offsetOp.getConstantIndices())
+      args.push_back(i);
+    auto resultTy = offsetOp.getType();
+    auto loc = offsetOp.getLoc();
+    // TODO: replace this with some target-specific memory layout computation
+    // when we upgrade to a newer MLIR.
+    auto zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto ptrTy = cudaq::cc::PointerType::get(inputTy);
+    auto nul = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
+    Value nextPtr =
+        rewriter.create<cudaq::cc::ComputePtrOp>(loc, ptrTy, nul, args);
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(offsetOp, resultTy, nextPtr);
+    return success();
+  }
+};
+
 class StdvecDataOpPattern
     : public ConvertOpToLLVMPattern<cudaq::cc::StdvecDataOp> {
 public:
@@ -647,7 +674,8 @@ void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
                   ComputePtrOpPattern, CreateStringLiteralOpPattern,
                   ExtractValueOpPattern, FuncToPtrOpPattern, GlobalOpPattern,
                   InsertValueOpPattern, InstantiateCallableOpPattern,
-                  LoadOpPattern, PoisonOpPattern, SizeOfOpPattern,
-                  StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-                  StoreOpPattern, UndefOpPattern>(typeConverter);
+                  LoadOpPattern, OffsetOfOpPattern, PoisonOpPattern,
+                  SizeOfOpPattern, StdvecDataOpPattern, StdvecInitOpPattern,
+                  StdvecSizeOpPattern, StoreOpPattern, UndefOpPattern>(
+      typeConverter);
 }
