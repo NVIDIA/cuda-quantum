@@ -1911,8 +1911,7 @@ bool validateOp(Operation *op) {
   }
 
   if (op->getRegions().size() != 0 && !isa<cudaq::cc::IfOp>(op)) {
-    op->emitOpError(
-        "DependencyAnalysisPass: loops are not supported");
+    op->emitOpError("DependencyAnalysisPass: loops are not supported");
     return false;
   }
 
