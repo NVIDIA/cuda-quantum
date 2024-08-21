@@ -1716,7 +1716,6 @@ public:
     then_block->removeQID(qid);
     else_block->removeQID(qid);
     this->OpDependencyNode::eraseQID(qid);
-
     if (results.empty())
       dependencies[0]->successors.remove(this);
   }
@@ -1979,6 +1978,7 @@ public:
       argMap[targ] = dnode;
       argdnodes.push_back(dnode);
     }
+  }
 
     DenseMap<DependencyNode *, Operation *> roots;
     TerminatorDependencyNode *terminator;
