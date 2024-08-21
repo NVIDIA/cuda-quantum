@@ -576,13 +576,9 @@ protected:
     // This ensures that code gen is not too aggressive
     if (isSkip())
       for (auto dependency : dependencies)
-        if (!dependency->hasCodeGen) {
-          if (dependency->isQuantumDependent())
-            // Wait for quantum op dependency to be codeGen'ed
-            return;
-          else
-            dependency->codeGen(builder, set);
-        }
+        if (!dependency->hasCodeGen && dependency->isQuantumDependent())
+          // Wait for quantum op dependency to be codeGen'ed
+          return;
 
     genOp(builder, set);
     hasCodeGen = true;
