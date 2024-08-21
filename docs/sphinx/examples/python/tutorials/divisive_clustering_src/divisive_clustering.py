@@ -1250,8 +1250,8 @@ class Voironi_Tessalation:
         for j, region in enumerate(regions):
             polygon = vertices[region]
             color = self.coreset_df.color[j]
-        # Uncomment this line for debugging
-        # `breakpoint()`
+            # Uncomment this line for debugging
+            # `breakpoint()`
 
             plt.fill(*zip(*polygon), alpha=0.4, color=color, linewidth=0)
             if show_annotation:
