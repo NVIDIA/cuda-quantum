@@ -15,9 +15,7 @@ from ..runtime.observe import observe
 from .integrator import BaseIntegrator
 from .cuso_solver import evolve_me
 
-def _compute_step_matrix(hamiltonian: Operator, parameters: Mapping[str, NumericType]) -> NDArray[complexfloating]:
-    # FIXME: Evolution kernels can only be defined for qubits.
-    dimensions = dict([(i, 2) for i in hamiltonian.degrees])
+def _compute_step_matrix(hamiltonian: Operator, dimensions: Mapping[int, int], parameters: Mapping[str, NumericType]) -> NDArray[complexfloating]:
     op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
     # FIXME: Use approximative approach (series expansion, integrator), 
     # and maybe use GPU acceleration for matrix manipulations if it makes sense.
@@ -123,7 +121,7 @@ def evolve(
 
     num_qubits = len(hamiltonian.degrees)
     parameters = [mapping for mapping in schedule]
-    compute_step_matrix = lambda step_parameters: _compute_step_matrix(hamiltonian, step_parameters)
+    compute_step_matrix = lambda step_parameters: _compute_step_matrix(hamiltonian, dimensions, step_parameters)
 
     # FIXME: deal with a sequence of initial states
     if store_intermediate_results:
@@ -186,7 +184,7 @@ def evolve_async(
 
     num_qubits = len(hamiltonian.degrees)
     parameters = [mapping for mapping in schedule]
-    compute_step_matrix = lambda step_parameters: _compute_step_matrix(hamiltonian, step_parameters)
+    compute_step_matrix = lambda step_parameters: _compute_step_matrix(hamiltonian, dimensions, step_parameters)
 
     # FIXME: deal with a sequence of initial states
     if store_intermediate_results:
