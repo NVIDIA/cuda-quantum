@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "JITExecutionCache.h"
+#include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -22,7 +24,6 @@
 #include "cudaq/platform/qpu.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
-
 #include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
@@ -31,7 +32,6 @@
 #include "mlir/InitAllPasses.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
-
 #include <fmt/core.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -510,8 +510,17 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto enablePrintMLIREachPass =
       getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
+  cudaq::opt::ArgumentConverter argCon(name, unwrap(module));
+  argCon.gen(runtimeArgs.getArgs());
+  std::string kernName = cudaq::runtime::cudaqGenPrefixName + name;
+  SmallVector<StringRef> kernels = {kernName};
+  std::string substBuff;
+  llvm::raw_string_ostream ss(substBuff);
+  ss << argCon.getSubstitutionModule();
+  SmallVector<StringRef> substs = {substBuff};
   PassManager pm(context);
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, true));
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createArgumentSynthesisPass(kernels, substs));
   pm.addPass(createCanonicalizerPass());
 
   // Run state preparation for quantum devices only.

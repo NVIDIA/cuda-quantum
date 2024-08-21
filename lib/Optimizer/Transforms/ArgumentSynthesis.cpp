@@ -73,8 +73,9 @@ public:
     assert(*substMod && "module must have been created");
 
     // 2. Go through the Module and process each substitution.
-    std::vector<bool> processedArgs(func.getFunctionType().getNumInputs());
-    std::vector<std::tuple<unsigned, Value, Value>> replacements;
+    SmallVector<bool> processedArgs(func.getFunctionType().getNumInputs());
+    SmallVector<std::tuple<unsigned, Value, Value>> replacements;
+    BitVector replacedArgs(processedArgs.size());
     for (auto &op : *substMod) {
       auto subst = dyn_cast<cudaq::cc::ArgumentSubstitutionOp>(op);
       if (!subst) {
@@ -103,6 +104,17 @@ public:
       // OK, substitute the code for the argument.
       Block &entry = func.getRegion().front();
       processedArgs[pos] = true;
+      if (subst.getBody().front().empty()) {
+        // No code is present. Erase the argument if it is not used.
+        const auto numUses =
+            std::distance(entry.getArgument(pos).getUses().begin(),
+                          entry.getArgument(pos).getUses().end());
+        LLVM_DEBUG(llvm::dbgs() << "maybe erasing an unused argument ("
+                                << std::to_string(numUses) << ")\n");
+        if (numUses == 0)
+          replacedArgs.set(pos);
+        continue;
+      }
       OpBuilder builder{ctx};
       Block *splitBlock = entry.splitBlock(entry.begin());
       builder.setInsertionPointToEnd(&entry);
@@ -126,7 +138,6 @@ public:
     // function is still dead and can be removed by a DCE.
 
     // 3. Replace the block argument values with the freshly inserted new code.
-    BitVector replacedArgs(processedArgs.size());
     for (auto [pos, fromVal, toVal] : replacements) {
       replacedArgs.set(pos);
       fromVal.replaceAllUsesWith(toVal);
@@ -142,9 +153,9 @@ public:
 // Helper function that takes an unzipped pair of lists of function names and
 // substitution code strings. This is meant to make adding this pass to a
 // pipeline easier from within a tool (such as the JIT compiler).
-std::unique_ptr<mlir::Pass> cudaq::opt::createArgumentSynthesisPass(
-    const ArrayRef<StringRef> &funcNames,
-    const ArrayRef<StringRef> &substitutions) {
+std::unique_ptr<mlir::Pass>
+cudaq::opt::createArgumentSynthesisPass(ArrayRef<StringRef> funcNames,
+                                        ArrayRef<StringRef> substitutions) {
   SmallVector<std::string> pairs;
   if (funcNames.size() == substitutions.size())
     for (auto [name, text] : llvm::zip(funcNames, substitutions))

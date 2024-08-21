@@ -72,6 +72,8 @@ struct RegToMemAnalysis {
 
   ArrayRef<quake::NullWireOp> getNullWires() const { return nullWires; }
 
+  ArrayRef<quake::BorrowWireOp> getBorrowWires() const { return borrowWires; }
+
   ArrayRef<quake::UnwrapOp> getUnwrapReferences() const { return unwrapRefs; }
 
   SmallVector<BlockArgument> getBlockArguments() const {
@@ -135,6 +137,11 @@ private:
         nullWires.push_back(nwire);
         eqClasses.insert(toOpaque(nwire));
         ++cardinality;
+      } else if (auto borrow = dyn_cast<quake::BorrowWireOp>(op)) {
+        LLVM_DEBUG(llvm::dbgs() << "adding borrow : " << borrow << '\n');
+        borrowWires.push_back(borrow);
+        eqClasses.insert(toOpaque(borrow));
+        ++cardinality;
       } else if (auto unwrap = dyn_cast<quake::UnwrapOp>(op)) {
         LLVM_DEBUG(llvm::dbgs() << "adding unwrap: " << unwrap << '\n');
         unwrapRefs.push_back(unwrap);
@@ -161,6 +168,8 @@ private:
         insertToEqClass(reset.getTargets(), reset.getResult(0));
       } else if (auto sink = dyn_cast<quake::SinkOp>(op)) {
         insertToEqClass(sink.getTarget());
+      } else if (auto ret = dyn_cast<quake::ReturnWireOp>(op)) {
+        insertToEqClass(ret.getTarget());
       }
     });
     LLVM_DEBUG(llvm::dbgs() << "The cardinality " << cardinality
@@ -191,6 +200,7 @@ private:
   }
 
   SmallVector<quake::NullWireOp> nullWires;
+  SmallVector<quake::BorrowWireOp> borrowWires;
   SmallVector<quake::UnwrapOp> unwrapRefs;
   llvm::EquivalenceClasses<void *> eqClasses;
   DenseMap<void *, unsigned> setIds;
@@ -242,7 +252,8 @@ public:
       eraseWrapUsers(op);
       rewriter.create<quake::ResetOp>(loc, TypeRange{}, targ);
       rewriter.eraseOp(op);
-    } else if constexpr (std::is_same_v<OP, quake::SinkOp>) {
+    } else if constexpr (std::is_same_v<OP, quake::SinkOp> ||
+                         std::is_same_v<OP, quake::ReturnWireOp>) {
       auto targ = findLookupValue(op.getTarget());
       eraseWrapUsers(op);
       rewriter.replaceOpWithNewOp<quake::DeallocOp>(op, targ);
@@ -297,6 +308,19 @@ public:
         return;
       }
     }
+    for (auto bwire : analysis.getBorrowWires()) {
+      OpBuilder builder(bwire);
+      auto qrefTy = quake::RefType::get(ctx);
+      Value a =
+          builder.create<quake::AllocaOp>(bwire.getLoc(), qrefTy, Value{});
+      if (auto opt = analysis.idFromValue(bwire)) {
+        allocas[*opt] = a;
+      } else {
+        bwire.emitOpError("analysis failed (borrow_wire)\n");
+        signalPassFailure();
+        return;
+      }
+    }
     for (auto unwrap : analysis.getUnwrapReferences()) {
       if (auto opt = analysis.idFromValue(unwrap)) {
         allocas[*opt] = unwrap.getRefValue();
@@ -317,11 +341,14 @@ public:
     // gate in memory-ssa form.
     RewritePatternSet patterns(ctx);
     patterns.insert<NOWRAP_QUANTUM_OPS, CollapseWrappers<quake::ResetOp>,
-                    CollapseWrappers<quake::SinkOp>>(ctx, analysis, allocas);
+                    CollapseWrappers<quake::SinkOp>,
+                    CollapseWrappers<quake::ReturnWireOp>>(ctx, analysis,
+                                                           allocas);
     ConversionTarget target(*ctx);
     target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, quake::ResetOp>(
         [](Operation *op) { return quake::isAllReferences(op); });
     target.addIllegalOp<quake::SinkOp>();
+    target.addIllegalOp<quake::ReturnWireOp>();
     target.addLegalOp<quake::DeallocOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {
       emitError(func.getLoc(), "error converting to memory form\n");
@@ -335,7 +362,8 @@ public:
     for (auto ba : analysis.getBlockArguments())
       eraseBlockArgumentFromBlock(ba);
     func.walk([&](Operation *op) {
-      if (isa<quake::NullWireOp, quake::UnwrapOp>(op) && op->getUses().empty())
+      if (isa<quake::NullWireOp, quake::BorrowWireOp, quake::UnwrapOp>(op) &&
+          op->getUses().empty())
         op->erase();
     });
     LLVM_DEBUG(llvm::dbgs() << "After cleanup:\n" << func << "\n\n");
