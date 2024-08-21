@@ -24,6 +24,8 @@ enum TargetFeatureFlag : unsigned {
   flagsFP64 = 0x0002,
   flagsMgpu = 0x0004,
   flagsMqpu = 0x0008,
+  flagsDepAnalysis = 0x0010,
+  flagsQPP = 0x0020,
 };
 
 /// @brief Configuration argument type annotation

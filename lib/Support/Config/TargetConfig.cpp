@@ -32,7 +32,9 @@ static std::unordered_map<std::string, cudaq::config::TargetFeatureFlag>
     stringToFeatureFlag{{"fp32", cudaq::config::flagsFP32},
                         {"fp64", cudaq::config::flagsFP64},
                         {"mgpu", cudaq::config::flagsMgpu},
-                        {"mqpu", cudaq::config::flagsMqpu}};
+                        {"mqpu", cudaq::config::flagsMqpu},
+                        {"dep-analysis", cudaq::config::flagsDepAnalysis},
+                        {"qpp", cudaq::config::flagsQPP}};
 }
 
 /// @brief Convert the backend config entry into nvq++ compatible script.
