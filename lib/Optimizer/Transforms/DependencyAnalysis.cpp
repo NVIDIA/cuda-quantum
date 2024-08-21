@@ -589,7 +589,7 @@ protected:
 
     // Ensure classical values are generated
     for (auto successor : successors)
-      if (successor->isSkip())
+      if (successor->isSkip() && isQuantumDependent())
         successor->codeGen(builder, set);
   }
 
