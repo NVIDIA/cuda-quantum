@@ -19,7 +19,7 @@
 # - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-gcc11-main
-FROM $base_image as wheelbuild
+FROM $base_image AS wheelbuild
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
