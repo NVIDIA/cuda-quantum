@@ -31,7 +31,6 @@ private:
   friend class state_helper;
 
 public:
-  explicit state() : internal(std::shared_ptr<SimulationState>()) {}
   /// @brief The constructor, takes the simulation data and owns it
   explicit state(SimulationState *ptrToOwn)
       : internal(std::shared_ptr<SimulationState>(ptrToOwn)) {}
