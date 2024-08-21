@@ -75,7 +75,7 @@ def _check_args(q: PyQudit | List[PyQudit]):
 
 def qudit(level: int) -> PyQudit:
     """
-    API to define a d-level qudit in a `PhotonicsKernel`. All the qudits within
+    API to define a d-level qudit in a `PhotonicsHandler`. All the qudits within
     a kernel are of the same level.
 
     Args:
@@ -178,11 +178,11 @@ def mz(qudits: PyQudit | List[PyQudit], register_name=''):
         ]
 
 
-class PhotonicsKernel(object):
+class PhotonicsHandler(object):
     """
-    The `PhotonicsKernel` class serves as to process CUDA-Q kernels for the 
+    The `PhotonicsHandler` class serves as to process CUDA-Q kernels for the 
     `photonics` target.
-    The target must be set to `photonics` prior to defining a `PhotonicsKernel`.
+    The target must be set to `photonics` prior to invoking a `PhotonicsHandler`.
 
     The quantum operations in this kernel apply to qudits defined by 
     `qudit(level=N)` or a list of qudits. The qudits within a kernel must be of

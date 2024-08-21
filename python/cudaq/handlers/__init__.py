@@ -6,4 +6,4 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .photonics_kernel import PhotonicsKernel
+from .photonics_kernel import PhotonicsHandler

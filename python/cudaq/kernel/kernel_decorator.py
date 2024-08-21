@@ -18,7 +18,7 @@ from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstR
 from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .captured_data import CapturedDataStorage
-from ..handlers import PhotonicsKernel
+from ..handlers import PhotonicsHandler
 
 import numpy as np
 
@@ -344,9 +344,25 @@ class PyKernelDecorator(object):
 
     def __call__(self, *args):
         """
-        Invoke the CUDA-Q kernel. JIT compilation of the 
-        kernel AST to MLIR will occur here if it has not already occurred. 
+        Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR 
+        will occur here if it has not already occurred, except when the target
+        requires custom handling.
         """
+
+        # Check if target is set
+        try:
+            target_name = cudaq_runtime.get_target().name
+        except RuntimeError:
+            target_name = None
+
+        if 'photonics' == target_name:
+            if self.kernelFunction is None:
+                raise RuntimeError(
+                    "The 'photonics' target must be used with a valid function."
+                )
+            PhotonicsHandler(self.kernelFunction)()
+            return
+
         # Prepare captured state storage for the run
         self.capturedDataStorage = self.createStorage()
 
@@ -453,18 +469,6 @@ def kernel(function=None, **kwargs):
 
     Verbose logging can be enabled via `verbose=True`. 
     """
-
-    # Check if target is set
-    try:
-        target_name = cudaq_runtime.get_target().name
-    except RuntimeError:
-        target_name = None
-
-    if 'photonics' == target_name:
-        if function is None:
-            raise RuntimeError(
-                "The 'photonics' target must be used with a valid function.")
-        return PhotonicsKernel(function)
 
     if function:
         return PyKernelDecorator(function)
