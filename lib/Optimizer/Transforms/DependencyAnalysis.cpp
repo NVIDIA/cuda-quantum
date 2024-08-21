@@ -130,6 +130,7 @@ private:
     if (best_reuse) {
       auto physical = best_reuse.value();
       lifetimes[physical]->combine(lifetime);
+      delete lifetime;
       return physical;
     }
 
@@ -148,6 +149,12 @@ private:
 public:
   LifeTimeAnalysis(StringRef name) : name(name), lifetimes(), frame() {}
 
+  ~ LifeTimeAnalysis() {
+    for (auto lifetime : lifetimes)
+      if (lifetime)
+        delete lifetime;
+  }
+
   PhysicalQID allocatePhysical(VirtualQID qid, LifeTime *lifetime) {
     auto phys = allocatePhysical(lifetime);
     frame.insert(phys);
@@ -155,8 +162,11 @@ public:
   }
 
   SetVector<PhysicalQID> getAllocated() {
-    for (uint i = 0; i < lifetimes.size(); i++)
+    for (uint i = 0; i < lifetimes.size(); i++) {
+      if (lifetimes[i])
+        delete lifetimes[i];
       lifetimes[i] = nullptr;
+    }
     auto pqids = SetVector<PhysicalQID>(frame);
     frame.clear();
     return pqids;
@@ -374,6 +384,8 @@ protected:
 public:
   DependencyNode() : successors(), dependencies({}), qids({}), height(0) {}
 
+  virtual ~ DependencyNode() {};
+
   virtual bool isAlloc() { return false; }
 
   uint getHeight() { return height; };
@@ -472,6 +484,8 @@ public:
     auto qid = op.getIdentity();
     qids.insert(qid);
   };
+
+  ~ InitDependencyNode() override {}
 
   bool isAlloc() override { return true; }
 
@@ -620,6 +634,8 @@ public:
     updateHeight();
   };
 
+  virtual ~ OpDependencyNode() override {}
+
   void print() { printSubGraph(0); }
 
   uint getHeight() { return height; }
@@ -719,6 +735,7 @@ private:
   bool isScheduled = false;
   DependencyNode *tallest = nullptr;
   SetVector<DependencyNode *> containers;
+  SetVector<DependencyNode *> allNodes;
 
   /// Starting from \p next, searches through \p next's family
   /// (excluding already seen nodes) to find all the interconnected roots
@@ -726,8 +743,13 @@ private:
   /// Also fills in metadata about the height of the graph, and the qids in the
   /// graph.
   void gatherRoots(SetVector<DependencyNode *> &seen, DependencyNode *next) {
-    if (seen.contains(next) || !next->isQuantumDependent())
+    if (seen.contains(next))
       return;
+
+    if (!next->isQuantumDependent()) {
+      seen.insert(next);
+      return;
+    }
 
     if (next->isRoot()) {
       roots.insert(next);
@@ -908,6 +930,14 @@ public:
     gatherRoots(seen, root);
     if (roots.size() == 0)
       return;
+    allNodes = seen;
+  }
+
+  ~ DependencyGraph () {
+    for (auto node : allNodes)
+      // ArgDependencyNodes are handled by the block and skipped here
+      if (!node->isLeaf() || !node->isQuantumOp() || node->isAlloc())
+        delete node;
   }
 
   SetVector<DependencyNode *> &getRoots() { return roots; }
@@ -1178,6 +1208,8 @@ public:
     updateHeight();
   };
 
+  ~ RootDependencyNode() override {}
+
   void eraseQID(VirtualQID qid) override {
     if (qids.contains(qid))
       dependencies.clear();
@@ -1232,6 +1264,8 @@ public:
       qids.insert(qid.value());
   }
 
+  ~ ArgDependencyNode() override {}
+
   virtual std::string getOpName() override {
     return std::to_string(barg.getArgNumber()).append("arg");
   };
@@ -1282,6 +1316,8 @@ public:
         qids.insert(dependency.qid.value());
   }
 
+  ~ TerminatorDependencyNode() override {}
+
   void genTerminator(OpBuilder &builder, LifeTimeAnalysis &set) {
     OpDependencyNode::codeGen(builder, set);
   }
@@ -1315,6 +1351,14 @@ public:
       : argdnodes(argdnodes), graph(graph), block(block),
         terminator(terminator), pqids() {
     height = graph->getHeight();
+  }
+
+  ~ DependencyBlock() {
+    // Terminator is cleaned up by graph since it must be a root
+    delete graph;
+    // Arguments are not handled by the graph since they may not show up in the graph
+    for (auto argdnode : argdnodes)
+     delete argdnode;
   }
 
   uint getHeight() { return height; }
@@ -1701,6 +1745,11 @@ public:
         qids.insert(edge.qid.value());
     }
     height += numTicks();
+  }
+
+  ~ IfDependencyNode() override {
+    delete then_block;
+    delete else_block;
   }
 
   void contractAllocsPass() override {
@@ -2119,6 +2168,8 @@ struct DependencyAnalysisPass
         body->performAnalysis(set);
         // Finally, perform code generation to move back to quake
         body->codeGen(builder, &func.getRegion(), set);
+
+        delete body;
 
         // Replace old block
         oldBlock->erase();
