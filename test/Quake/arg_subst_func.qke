@@ -1,0 +1,148 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --argument-synthesis=functions=foo:%S/arg_subst.txt,blink:%S/arg_subst.txt,testy1:%S/arg_subst-1.txt,testy2:%S/arg_subst-2.txt,testy3:%S/arg_subst-3.txt,testy4:%S/arg_subst-4.txt --canonicalize %s | FileCheck %s
+
+func.func private @bar(i32)
+func.func private @baz(f32)
+
+func.func @foo(%arg0: i32, %arg1: f32) {
+  call @bar(%arg0) : (i32) -> ()
+  call @baz(%arg1) : (f32) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @foo() {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 42 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 3.100000e+00 : f32
+// CHECK:           call @bar(%[[VAL_0]]) : (i32) -> ()
+// CHECK:           call @baz(%[[VAL_1]]) : (f32) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @blink(%arg0: i32, %arg1: i32) {
+  call @bar(%arg0) : (i32) -> ()
+  call @bar(%arg1) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @blink(
+// CHECK-SAME:        %[[VAL_0:.*]]: i32) {
+// CHECK:           %[[VAL_1:.*]] = arith.constant 42 : i32
+// CHECK:           call @bar(%[[VAL_1]]) : (i32) -> ()
+// CHECK:           call @bar(%[[VAL_0]]) : (i32) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee1(!cc.charspan)
+func.func @testy1(%arg0: !cc.charspan) {
+  call @callee1(%arg0) : (!cc.charspan) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @testy1() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 10 : i64
+// CHECK:           %[[VAL_1:.*]] = cc.address_of @cstr.48692C2074686572652100 : !cc.ptr<!llvm.array<11 x i8>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.array<11 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_3:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_0]] : (!cc.ptr<i8>, i64) -> !cc.charspan
+// CHECK:           call @callee1(%[[VAL_3]]) : (!cc.charspan) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee2(!cc.stdvec<i32>)
+func.func @testy2(%arg0: !cc.stdvec<i32>) {
+  call @callee2(%arg0) : (!cc.stdvec<i32>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @testy2() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 4 : i64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 48879 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 42 : i32
+// CHECK:           %[[VAL_3:.*]] = arith.constant 51966 : i32
+// CHECK:           %[[VAL_4:.*]] = arith.constant 14581 : i32
+// CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i32 x 4>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_5]][2] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_8]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_5]][3] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_9]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_5]], %[[VAL_0]] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.stdvec<i32>
+// CHECK:           call @callee2(%[[VAL_10]]) : (!cc.stdvec<i32>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee3(!cc.struct<{i32, f64, i8, i16}>)
+func.func @testy3(%arg0: !cc.struct<{i32, f64, i8, i16}>) {
+  call @callee3(%arg0) : (!cc.struct<{i32, f64, i8, i16}>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @testy3() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant -1314 : i16
+// CHECK:           %[[VAL_1:.*]] = arith.constant 65 : i8
+// CHECK:           %[[VAL_2:.*]] = arith.constant 87.654499999999998 : f64
+// CHECK:           %[[VAL_3:.*]] = arith.constant -889275714 : i32
+// CHECK:           %[[VAL_4:.*]] = cc.undef !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_5:.*]] = cc.insert_value %[[VAL_3]], %[[VAL_4]][0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_6:.*]] = cc.insert_value %[[VAL_2]], %[[VAL_5]][1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_7:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_6]][2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_8:.*]] = cc.insert_value %[[VAL_0]], %[[VAL_7]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           call @callee3(%[[VAL_8]]) : (!cc.struct<{i32, f64, i8, i16}>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee4(!cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>)
+func.func @testy4(%arg0: !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) {
+  call @callee4(%arg0) : (!cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @testy4() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 747 : i16
+// CHECK:           %[[VAL_2:.*]] = arith.constant 67 : i8
+// CHECK:           %[[VAL_3:.*]] = arith.constant 782934.78922999999 : f64
+// CHECK:           %[[VAL_4:.*]] = arith.constant 90210 : i32
+// CHECK:           %[[VAL_5:.*]] = arith.constant 2778 : i16
+// CHECK:           %[[VAL_6:.*]] = arith.constant 66 : i8
+// CHECK:           %[[VAL_7:.*]] = arith.constant 2.389450e+04 : f64
+// CHECK:           %[[VAL_8:.*]] = arith.constant 5412 : i32
+// CHECK:           %[[VAL_9:.*]] = arith.constant -1314 : i16
+// CHECK:           %[[VAL_10:.*]] = arith.constant 65 : i8
+// CHECK:           %[[VAL_11:.*]] = arith.constant 87.654499999999998 : f64
+// CHECK:           %[[VAL_12:.*]] = arith.constant -889275714 : i32
+// CHECK:           %[[VAL_13:.*]] = cc.alloca !cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>
+// CHECK:           %[[VAL_14:.*]] = cc.undef !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_15:.*]] = cc.insert_value %[[VAL_12]], %[[VAL_14]][0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_16:.*]] = cc.insert_value %[[VAL_11]], %[[VAL_15]][1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_17:.*]] = cc.insert_value %[[VAL_10]], %[[VAL_16]][2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_18:.*]] = cc.insert_value %[[VAL_9]], %[[VAL_17]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
+// CHECK:           cc.store %[[VAL_18]], %[[VAL_19]] : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
+// CHECK:           %[[VAL_20:.*]] = cc.undef !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_21:.*]] = cc.insert_value %[[VAL_8]], %[[VAL_20]][0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_22:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_21]][1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_23:.*]] = cc.insert_value %[[VAL_6]], %[[VAL_22]][2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_24:.*]] = cc.insert_value %[[VAL_5]], %[[VAL_23]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_25:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
+// CHECK:           cc.store %[[VAL_24]], %[[VAL_25]] : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
+// CHECK:           %[[VAL_26:.*]] = cc.undef !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_27:.*]] = cc.insert_value %[[VAL_4]], %[[VAL_26]][0] : (!cc.struct<{i32, f64, i8, i16}>, i32) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_28:.*]] = cc.insert_value %[[VAL_3]], %[[VAL_27]][1] : (!cc.struct<{i32, f64, i8, i16}>, f64) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_29:.*]] = cc.insert_value %[[VAL_2]], %[[VAL_28]][2] : (!cc.struct<{i32, f64, i8, i16}>, i8) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_30:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_29]][3] : (!cc.struct<{i32, f64, i8, i16}>, i16) -> !cc.struct<{i32, f64, i8, i16}>
+// CHECK:           %[[VAL_31:.*]] = cc.compute_ptr %[[VAL_13]][2] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
+// CHECK:           cc.store %[[VAL_30]], %[[VAL_31]] : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
+// CHECK:           %[[VAL_32:.*]] = cc.stdvec_init %[[VAL_13]], %[[VAL_0]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>, i64) -> !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>
+// CHECK:           call @callee4(%[[VAL_32]]) : (!cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) -> ()
+// CHECK:           return
+// CHECK:         }

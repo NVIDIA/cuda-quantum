@@ -163,6 +163,19 @@ void quantum_platform::launchKernel(std::string kernelName,
   qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset);
 }
 
+void quantum_platform::launchKernel(std::string kernelName,
+                                    const std::vector<void *> &rawArgs) {
+  std::size_t qpu_id = 0;
+
+  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+  auto iter = threadToQpuId.find(tid);
+  if (iter != threadToQpuId.end())
+    qpu_id = iter->second;
+
+  auto &qpu = platformQPUs[qpu_id];
+  qpu->launchKernel(kernelName, rawArgs);
+}
+
 void quantum_platform::launchSerializedCodeExecution(
     const std::string &name,
     cudaq::SerializedCodeExecutionContext &serializeCodeExecutionObject) {
@@ -200,4 +213,13 @@ void cudaq::altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
   std::string kernName = kernelName;
   platform.launchKernel(kernName, kernelFunc, kernelArgs, argsSize,
                         resultOffset);
+}
+
+void cudaq::streamlinedLaunchKernel(const char *kernelName,
+                                    const std::vector<void *> &rawArgs) {
+  std::size_t argsSize = rawArgs.size();
+  ScopedTraceWithContext("streamlinedLaunchKernel", kernelName, argsSize);
+  auto &platform = *cudaq::getQuantumPlatformInternal();
+  std::string kernName = kernelName;
+  platform.launchKernel(kernName, rawArgs);
 }
