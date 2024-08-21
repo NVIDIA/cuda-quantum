@@ -46,7 +46,7 @@ print("Measurement distribution:" + str(results))
 #[Begin Sample3]
 most_probable_result = results.most_probable()
 probability = results.probability(most_probable_result)
-print("Most probably result: " + most_probable_result)
+print("Most probable result: " + most_probable_result)
 print("Measured with probability " + str(probability), end='\n\n')
 #[End Sample3]
 

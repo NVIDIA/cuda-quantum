@@ -30,7 +30,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Deutsch’s Algorithm" href="../examples/python/tutorials/deutschs_algorithm.html" />
+    <link rel="next" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" href="../examples/python/tutorials/afqmc.html" />
     <link rel="prev" title="Using Quantum Hardware Providers" href="examples/hardware_providers.html" /> 
 </head>
 
@@ -162,6 +162,15 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">   Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -181,13 +190,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html">Hadamard Test</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html#A--Numerical-result-as-a-reference:">A- Numerical result as a reference:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html#B--Using-sample-algorithmic-primitive-to-sample-the-ancilla-qubit-and-compute-the-expectation-value.">B- Using <code class="docutils literal notranslate"><span class="pre">sample</span></code> algorithmic primitive to sample the ancilla qubit and compute the expectation value.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html#C--Use-multi-GPUs-to-compute-the-matrix-elements">C- Use multi-GPUs to compute the matrix elements</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html#Diagonalize-the-matrix-using-for-example-Numpy-or-CuPy.-In-this-example,-since-we-are-having-2x2-matrix,-we-use-numpy.">Diagonalize the matrix using for example Numpy or CuPy. In this example, since we are having 2x2 matrix, we use numpy.</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html">Hadamard Test and Application</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html#Using-observe-algorithmic-primitive-to-compute-the-expectation-value-for-ancilla-qubits.">Using <code class="docutils literal notranslate"><span class="pre">observe</span></code> algorithmic primitive to compute the expectation value for ancilla qubits.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/hadamard_test.html#Use-multi-GPUs-to-compute-multiple-Hadamard-test-in-parallel">Use multi-GPUs to compute multiple Hadamard test in parallel</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -551,7 +557,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="examples/hardware_providers.html" class="btn btn-neutral float-left" title="Using Quantum Hardware Providers" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../examples/python/tutorials/deutschs_algorithm.html" class="btn btn-neutral float-right" title="Deutsch’s Algorithm" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../examples/python/tutorials/afqmc.html" class="btn btn-neutral float-right" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -563,6 +569,10 @@
 <p>Tutorials that give an in depth view of CUDA-Q and its applications in Python.</p>
 <div class="toctree-wrapper compound">
 <div class="nbsphinx-gallery">
+<a class="reference internal" href="../examples/python/tutorials/afqmc.html"None>
+  <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
+  <div>Quantum Enhanced Auxiliary Field Quantum Monte Carlo</div>
+</a>
 <a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html">
   <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
   <div>Deutsch’s Algorithm</div>
@@ -585,7 +595,7 @@
 </a>
 <a class="reference internal" href="../examples/python/tutorials/hadamard_test.html">
   <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
-  <div>Hadamard Test</div>
+  <div>Hadamard Test and Application</div>
 </a>
 <a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html"None>
   <div><img alt="" src="../_images/hybrid.png"></div>
@@ -620,7 +630,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="examples/hardware_providers.html" class="btn btn-neutral float-left" title="Using Quantum Hardware Providers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../examples/python/tutorials/deutschs_algorithm.html" class="btn btn-neutral float-right" title="Deutsch’s Algorithm" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../examples/python/tutorials/afqmc.html" class="btn btn-neutral float-right" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
