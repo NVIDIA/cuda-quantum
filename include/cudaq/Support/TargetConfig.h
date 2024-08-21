@@ -69,6 +69,8 @@ struct BackendEndConfigEntry {
   std::optional<bool> LibraryMode;
   /// IR lowering configuration (hardware REST QPU)
   std::string PlatformLoweringConfig;
+  /// Exact cudaq-opt passes for pseudo-targets
+  std::string TargetPassPipeline;
   /// Codegen emission configuration (hardware REST QPU)
   std::string CodegenEmission;
   /// Post code generation IR passes configuration (hardware REST QPU)
