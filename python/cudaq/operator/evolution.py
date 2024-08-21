@@ -179,13 +179,8 @@ def evolve(
         kernels, observable_spinops = [], []
         for kernel, parameters in evolution:
             kernels.append(kernel)
-            # FIXME: make it possible to create these only during execution
-            # Setting up Python callbacks, if we want to do that:
-            # https://stackoverflow.com/questions/70603855/how-to-set-python-function-as-callback-for-c-using-pybind11
-            observable_spinops.append(
-                [op._to_spinop(dimensions, **parameters) for op in observables])
-        if len(observables) == 0:
-            return cudaq_runtime.evolve(initial_state, kernels)
+            observable_spinops.append([lambda: op._to_spinop(dimensions, **parameters) for op in observables])
+        if len(observables) == 0: return cudaq_runtime.evolve(initial_state, kernels)
         return cudaq_runtime.evolve(initial_state, kernels, observable_spinops)
     else:
         kernel, parameters = _create_kernel("time_evolution", hamiltonian,
@@ -193,9 +188,7 @@ def evolve(
         if len(observables) == 0:
             return cudaq_runtime.evolve(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
-        observable_spinops = [
-            op._to_spinop(dimensions, **parameters) for op in observables
-        ]
+        observable_spinops = [lambda: op._to_spinop(dimensions, **parameters) for op in observables]
         return cudaq_runtime.evolve(initial_state, kernel, observable_spinops)
 
 
@@ -247,23 +240,15 @@ def evolve_async(
         kernels, observable_spinops = [], []
         for kernel, parameters in evolution:
             kernels.append(kernel)
-            # FIXME: make it possible to create these only during execution
-            # Setting up Python callbacks, if we want to do that:
-            # https://stackoverflow.com/questions/70603855/how-to-set-python-function-as-callback-for-c-using-pybind11
-            observable_spinops.append(
-                [op._to_spinop(dimensions, **parameters) for op in observables])
-        if len(observables) == 0:
-            return cudaq_runtime.evolve_async(initial_state, kernels)
-        return cudaq_runtime.evolve_async(initial_state, kernels,
-                                          observable_spinops)
+            observable_spinops.append([lambda: op._to_spinop(dimensions, **parameters) for op in observables])
+        if len(observables) == 0: return cudaq_runtime.evolve_async(initial_state, kernels)
+        return cudaq_runtime.evolve_async(initial_state, kernels, observable_spinops)
     else:
         kernel, parameters = _create_kernel("time_evolution", hamiltonian,
                                             schedule)
         if len(observables) == 0:
             return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
-        observable_spinops = [
-            op._to_spinop(dimensions, **parameters) for op in observables
-        ]
-        return cudaq_runtime.evolve_async(initial_state, kernel,
-                                          observable_spinops)
+        observable_spinops = [lambda: op._to_spinop(dimensions, **parameters) for op in observables]
+        return cudaq_runtime.evolve_async(initial_state, kernel, observable_spinops)
+

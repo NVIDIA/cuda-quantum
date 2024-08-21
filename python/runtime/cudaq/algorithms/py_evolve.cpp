@@ -15,13 +15,16 @@
 #include "mlir/CAPI/IR.h"
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 namespace cudaq {
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
-evolve_result pyEvolve(state initial_state, py::object kernel, std::vector<spin_op> observables = {}) {
+evolve_result pyEvolve(state initial_state, 
+                       py::object kernel, 
+                       std::vector<std::function<spin_op()>> observables = {}) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
@@ -37,7 +40,9 @@ evolve_result pyEvolve(state initial_state, py::object kernel, std::vector<spin_
   return res;
 }
 
-evolve_result pyEvolve(state initial_state, std::vector<py::object> kernels, std::vector<std::vector<spin_op>> observables = {}) {
+evolve_result pyEvolve(state initial_state, 
+                       std::vector<py::object> kernels, 
+                       std::vector<std::vector<std::function<spin_op()>>> observables = {}) {
   std::vector<std::function<void(state)>> launchFcts = {};
   for (py::object kernel : kernels) {
     if (py::hasattr(kernel, "compile"))
@@ -57,7 +62,10 @@ evolve_result pyEvolve(state initial_state, std::vector<py::object> kernels, std
   return evolve(initial_state, launchFcts, observables);
 }
 
-async_evolve_result pyEvolveAsync(state initial_state, py::object kernel, std::vector<spin_op> observables = {}, std::size_t qpu_id = 0) {
+async_evolve_result pyEvolveAsync(state initial_state, 
+                                  py::object kernel, 
+                                  std::vector<std::function<spin_op()>> observables = {}, 
+                                  std::size_t qpu_id = 0) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
@@ -74,7 +82,10 @@ async_evolve_result pyEvolveAsync(state initial_state, py::object kernel, std::v
     }, observables, qpu_id);
 }
 
-async_evolve_result pyEvolveAsync(state initial_state, std::vector<py::object> kernels, std::vector<std::vector<spin_op>> observables = {}, std::size_t qpu_id = 0) {
+async_evolve_result pyEvolveAsync(state initial_state, 
+                                  std::vector<py::object> kernels, 
+                                  std::vector<std::vector<std::function<spin_op()>>> observables = {}, 
+                                  std::size_t qpu_id = 0) {
   std::vector<std::function<void(state)>> launchFcts = {};
   for (py::object kernel : kernels) {
     if (py::hasattr(kernel, "compile"))
@@ -108,7 +119,7 @@ void bindPyEvolve(py::module &mod) {
       "");
   mod.def(
       "evolve",
-      [](state initial_state, std::vector<py::object> kernels, std::vector<std::vector<spin_op>> observables) {
+      [](state initial_state, std::vector<py::object> kernels, std::vector<std::vector<std::function<spin_op()>>> observables) {
         return pyEvolve(initial_state, kernels, observables);
       },
       "");
@@ -120,7 +131,7 @@ void bindPyEvolve(py::module &mod) {
       "");
   mod.def(
       "evolve",
-      [](state initial_state, py::object kernel, std::vector<spin_op> observables) {
+      [](state initial_state, py::object kernel, std::vector<std::function<spin_op()>> observables) {
         return pyEvolve(initial_state, kernel, observables);
       },
       "");
@@ -136,7 +147,7 @@ void bindPyEvolve(py::module &mod) {
       "");
   mod.def(
       "evolve_async",
-      [](state initial_state, std::vector<py::object> kernels, std::vector<std::vector<spin_op>> observables, std::size_t qpu_id) {
+      [](state initial_state, std::vector<py::object> kernels, std::vector<std::vector<std::function<spin_op()>>> observables, std::size_t qpu_id) {
         return pyEvolveAsync(initial_state, kernels, observables, qpu_id);
       },
       py::arg("initial_state"), py::arg("kernels"), py::arg("observables"), py::arg("qpu_id") = 0,
@@ -150,7 +161,7 @@ void bindPyEvolve(py::module &mod) {
       "");
   mod.def(
       "evolve_async",
-      [](state initial_state, py::object kernel, std::vector<spin_op> observables, std::size_t qpu_id) {
+      [](state initial_state, py::object kernel, std::vector<std::function<spin_op()>> observables, std::size_t qpu_id) {
         return pyEvolveAsync(initial_state, kernel, observables, qpu_id);
       },
       py::arg("initial_state"), py::arg("kernel"), py::arg("observables"), py::arg("qpu_id") = 0,
