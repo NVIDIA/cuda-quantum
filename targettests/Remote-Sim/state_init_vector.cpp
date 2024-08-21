@@ -17,15 +17,11 @@
 #include <iostream>
 
 __qpu__ void test_large_double_constant_array() {
-  auto numQubits = 19;
-  auto size = 1ULL << numQubits;
-  std::vector<double> vec(size);
-  for (std::size_t i = 0; i < size; ++i) {
-    if (i == 0 || i == 1) {
-      vec[i] = M_SQRT1_2;
-    } else {
-      vec[i] = 0;
-    }
+  std::vector<double> vec(1ULL << 19);
+  vec[0]= M_SQRT1_2/vec.size();
+  vec[1]= M_SQRT1_2/vec.size();
+  for (std::size_t i = 2; i < vec.size(); i++) {
+    vec[i]= 0;
   }
   cudaq::qvector v(vec);
 }
