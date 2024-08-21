@@ -57,11 +57,6 @@ Program Construction
     :special-members: __str__, __call__
 
 
-.. autoclass:: PhotonicsKernel
-    
-    .. automethod:: __call__
-
-
 .. autofunction:: kernel
     
 Kernel Execution
@@ -239,11 +234,3 @@ ORCA Submodule
 =============================
 
 .. automethod:: cudaq.orca::sample
-
-Photonics Submodule
-=============================
-
-.. automethod:: cudaq.photonics::allocate_qudit
-.. automethod:: cudaq.photonics::apply_operation
-.. automethod:: cudaq.photonics::measure
-.. automethod:: cudaq.photonics::release_qudit
