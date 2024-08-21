@@ -149,7 +149,7 @@ private:
 public:
   LifeTimeAnalysis(StringRef name) : name(name), lifetimes(), frame() {}
 
-  ~ LifeTimeAnalysis() {
+  ~LifeTimeAnalysis() {
     for (auto lifetime : lifetimes)
       if (lifetime)
         delete lifetime;
@@ -384,7 +384,7 @@ protected:
 public:
   DependencyNode() : successors(), dependencies({}), qids({}), height(0) {}
 
-  virtual ~ DependencyNode() {};
+  virtual ~DependencyNode(){};
 
   virtual bool isAlloc() { return false; }
 
@@ -485,7 +485,7 @@ public:
     qids.insert(qid);
   };
 
-  ~ InitDependencyNode() override {}
+  ~InitDependencyNode() override {}
 
   bool isAlloc() override { return true; }
 
@@ -634,7 +634,7 @@ public:
     updateHeight();
   };
 
-  virtual ~ OpDependencyNode() override {}
+  virtual ~OpDependencyNode() override {}
 
   void print() { printSubGraph(0); }
 
@@ -732,7 +732,6 @@ private:
   SetVector<VirtualQID> qids;
   DenseMap<PhysicalQID, DependencyNode *> qubits;
   uint total_height;
-  bool isScheduled = false;
   DependencyNode *tallest = nullptr;
   SetVector<DependencyNode *> containers;
   SetVector<DependencyNode *> allNodes;
@@ -933,7 +932,7 @@ public:
     allNodes = seen;
   }
 
-  ~ DependencyGraph () {
+  ~DependencyGraph() {
     for (auto node : allNodes)
       // ArgDependencyNodes are handled by the block and skipped here
       if (!node->isLeaf() || !node->isQuantumOp() || node->isAlloc())
@@ -1162,18 +1161,6 @@ public:
       }
     }
   }
-
-  // void updateLeafs() {
-  //   for (auto qid : qids) {
-  //     auto leaf = leafs[qid];
-  //     if (leaf->successors.empty()) {
-  //       leafs.erase(leafs.find(qid));
-  //       if (allocs.count(qid) == 1)
-  //         allocs.erase(allocs.find(qid));
-  //       qids.remove(qid);
-  //     }
-  //   }
-  // }
 };
 
 class RootDependencyNode : public OpDependencyNode {
@@ -1208,7 +1195,7 @@ public:
     updateHeight();
   };
 
-  ~ RootDependencyNode() override {}
+  ~RootDependencyNode() override {}
 
   void eraseQID(VirtualQID qid) override {
     if (qids.contains(qid))
@@ -1264,7 +1251,7 @@ public:
       qids.insert(qid.value());
   }
 
-  ~ ArgDependencyNode() override {}
+  ~ArgDependencyNode() override {}
 
   virtual std::string getOpName() override {
     return std::to_string(barg.getArgNumber()).append("arg");
@@ -1316,7 +1303,7 @@ public:
         qids.insert(dependency.qid.value());
   }
 
-  ~ TerminatorDependencyNode() override {}
+  ~TerminatorDependencyNode() override {}
 
   void genTerminator(OpBuilder &builder, LifeTimeAnalysis &set) {
     OpDependencyNode::codeGen(builder, set);
@@ -1353,12 +1340,13 @@ public:
     height = graph->getHeight();
   }
 
-  ~ DependencyBlock() {
+  ~DependencyBlock() {
     // Terminator is cleaned up by graph since it must be a root
     delete graph;
-    // Arguments are not handled by the graph since they may not show up in the graph
+    // Arguments are not handled by the graph since they may not show up in the
+    // graph
     for (auto argdnode : argdnodes)
-     delete argdnode;
+      delete argdnode;
   }
 
   uint getHeight() { return height; }
@@ -1747,7 +1735,7 @@ public:
     height += numTicks();
   }
 
-  ~ IfDependencyNode() override {
+  ~IfDependencyNode() override {
     delete then_block;
     delete else_block;
   }
@@ -2000,7 +1988,6 @@ class DependencyAnalysisEngine {
 private:
   SmallVector<DependencyNode *> perOp;
   DenseMap<BlockArgument, ArgDependencyNode *> argMap;
-  SetVector<DependencyNode *> constants;
 
 public:
   DependencyAnalysisEngine() : perOp({}), argMap({}) {}
@@ -2026,7 +2013,6 @@ public:
       argMap[targ] = dnode;
       argdnodes.push_back(dnode);
     }
-  }
 
     DenseMap<DependencyNode *, Operation *> roots;
     TerminatorDependencyNode *terminator = nullptr;
@@ -2050,11 +2036,15 @@ public:
     DependencyGraph *new_graph = new DependencyGraph(terminator);
     auto included = new_graph->getRoots();
 
-    for (auto [root, op] : roots)
-      if (!included.contains(root))
-        op->emitWarning(
-            "DependencyAnalysisPass: Wire is dead code and its operations will "
-            "be deleted (did you forget to return a value?)");
+    LLVM_DEBUG(for (auto [root, op]
+                    : roots) {
+      if (!included.contains(root)) {
+        llvm::dbgs()
+            << "DependencyAnalysisPass: Wire is dead code and its "
+            << "operations will be deleted (did you forget to return a value?)"
+            << root << "\n";
+      }
+    });
 
     return new DependencyBlock(argdnodes, new_graph, b, terminator);
   }
@@ -2086,8 +2076,6 @@ public:
       newNode = new TerminatorDependencyNode(op, dependencies);
     } else {
       newNode = new OpDependencyNode(op, dependencies);
-      if (!newNode->isQuantumDependent())
-        constants.insert(newNode);
     }
 
     // Dnodeid is the next slot of the dnode vector
@@ -2122,8 +2110,6 @@ public:
     auto dnode = perOp[id];
     return DependencyNode::DependencyEdge{dnode, resultidx};
   }
-
-  SetVector<DependencyNode *> &getConstants() { return constants; }
 };
 
 struct DependencyAnalysisPass
@@ -2150,8 +2136,6 @@ struct DependencyAnalysisPass
 
         auto body = engine.visitBlock(
             oldBlock, SmallVector<DependencyNode::DependencyEdge>());
-
-        auto constants = engine.getConstants();
 
         if (!body) {
           signalPassFailure();
