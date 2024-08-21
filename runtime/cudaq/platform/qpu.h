@@ -182,7 +182,7 @@ public:
                             const std::vector<void *> &rawArgs) {
     if (!isRemote())
       throw std::runtime_error("Wrong kernel launch point: Attempt to launch "
-                               "kernel in JIT mode on local "
+                               "kernel in streamlined for JIT mode on local "
                                "simulated QPU. This is not supported.");
   }
 
