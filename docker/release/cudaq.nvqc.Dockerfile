@@ -14,7 +14,7 @@
 
 # Base image is CUDA-Q image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest
-FROM $base_image as nvcf_image
+FROM $base_image AS nvcf_image
 
 # Run the tar command and then uncomment ADD cudaq.tar.gz ... in order to
 # override the installation.
