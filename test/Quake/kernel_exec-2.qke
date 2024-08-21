@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --kernel-execution %s | FileCheck %s
+// RUN: cudaq-opt --kernel-execution=codegen=1 %s | FileCheck %s
 
 module attributes {quake.mangled_name_map = {
 __nvqpp__mlirgen__function_hawaiian = "shirt",
