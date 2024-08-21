@@ -1965,8 +1965,11 @@ bool validateOp(Operation *op) {
                     "may be reordered");
   }
 
-  if (isa<quake::NullWireOp>(op)) {
-    op->emitWarning("DependencyAnalysisPass: `null_wire` are not supported");
+  if (hasEffect<mlir::MemoryEffects::Write> && isQuakeOperation(op) &&
+      !isa<quake::BorrowWireOp>(op)) {
+    op->emitOpError("DependencyAnalysisPass: `quake.borrow_wire` is only "
+                    "supported qubit allocation operation");
+    return false;
   }
 
   return true;
