@@ -240,16 +240,31 @@ public:
   void add_channel(const std::string &quantumOp,
                    const std::vector<std::size_t> &qubits,
                    const kraus_channel &channel);
+
+  /// @brief Add the Kraus channel as a callback to the specified quantum
+  /// operation.
+  // The callback function will be called with the gate operands and gate
+  // parameters whenever the specified quantum operation is executed. The
+  // callback function should return a concrete noise channel. This can be an
+  // empty noise channel if no noise is expected.
+  /// @param quantumOp Quantum operation that the noise channel applies to.
+  /// @param pred Callback function that generates a noise channel.
   void add_channel(const std::string &quantumOp, const PredicateFuncTy &pred);
 
+  /// @brief Add the Kraus channel that applies to a quantum operation on any
+  /// arbitrary qubits.
+  /// @param quantumOp Quantum operation that the noise channel applies to.
+  /// @param channel The Kraus channel to apply.
+  /// @param numControls Number of control qubits for the gate. Default is 0
+  /// (gate without a control modifier).
   void add_all_qubit_channel(const std::string &quantumOp,
                              const kraus_channel &channel, int numControls = 0);
 
   /// @brief Add the provided kraus_channel to all
   /// specified quantum operations.
   template <typename... QuantumOp>
-  void add_channel(
-      const std::vector<std::size_t> &qubits, const kraus_channel &channel) {
+  void add_channel(const std::vector<std::size_t> &qubits,
+                   const kraus_channel &channel) {
     std::vector<std::string> names;
     std::apply(
         [&](const auto &...elements) { (names.push_back(elements.name), ...); },
@@ -258,7 +273,7 @@ public:
       add_channel(name, qubits, channel);
   }
 
-  /// @brief Add the provided kraus_channel to all
+  /// @brief Add the provided kraus_channel callback to all
   /// specified quantum operations.
   template <typename... QuantumOp>
   void add_channel(const PredicateFuncTy &pred) {
@@ -271,10 +286,10 @@ public:
   }
 
   /// @brief Add the provided kraus_channel to all
-  /// specified quantum operations.
+  /// specified quantum operations applying on arbitrary qubits.
   template <typename... QuantumOp>
-  void add_all_qubit_channel(
-      const kraus_channel &channel, int numControls = 0) {
+  void add_all_qubit_channel(const kraus_channel &channel,
+                             int numControls = 0) {
     std::vector<std::string> names;
     std::apply(
         [&](const auto &...elements) { (names.push_back(elements.name), ...); },

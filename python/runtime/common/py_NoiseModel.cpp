@@ -74,18 +74,17 @@ Args:
       .def(
           "add_channel",
           [](noise_model &self, std::string &opName,
-             const noise_model::PredicateFuncTy& pre) {
+             const noise_model::PredicateFuncTy &pre) {
             self.add_channel(opName, pre);
           },
           py::arg("operator"), py::arg("pre"),
-          R"#(Add the given :class:`KrausChannel` to be applied after invocation 
+          R"#(Add the given :class:`KrausChannel` generator callback to be applied after invocation 
 of the specified quantum operation.
 
 Args:
   operator (str): The quantum operator to apply the noise channel to.
-  qubits (List[int]): The qubit/s to apply the noise channel to.
-  channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply 
-    to the specified `operator` on the specified `qubits`.)#")
+  pre (Callable): The callback which takes qubits operands and gate parameters and returns a concrete :class:`KrausChannel` to apply 
+    to the specified `operator`.)#")
       .def(
           "add_all_qubit_channel",
           [](noise_model &self, std::string &opName, kraus_channel &channel,
@@ -95,13 +94,13 @@ Args:
           py::arg("operator"), py::arg("channel"), py::arg("num_controls") = 0,
 
           R"#(Add the given :class:`KrausChannel` to be applied after invocation 
-of the specified quantum operation.
+of the specified quantum operation on arbitrary qubits.
 
 Args:
   operator (str): The quantum operator to apply the noise channel to.
-  qubits (List[int]): The qubit/s to apply the noise channel to.
   channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply 
-    to the specified `operator` on the specified `qubits`.)#")
+    to the specified `operator` on any arbitrary qubits.
+  num_controls: Number of control bits. Default is 0 (no control bits).)#")
       .def(
           "get_channels",
           [](noise_model self, const std::string &op,
