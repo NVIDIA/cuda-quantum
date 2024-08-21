@@ -6,9 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --kernel-execution %s | FileCheck %s
+// RUN: cudaq-opt --kernel-execution=codegen=1 %s | FileCheck %s
 // RUN: cudaq-opt --kernel-execution=codegen=2 %s | FileCheck --check-prefix=STREAM %s
-// RUN: cudaq-opt --kernel-execution=codegen=0 %s | FileCheck --check-prefix=HYBRID %s
+// RUN: cudaq-opt --kernel-execution %s | FileCheck --check-prefix=HYBRID %s
 
 module attributes {quake.mangled_name_map = {
   __nvqpp__mlirgen__ghz = "_ZN3ghzclEi"}} {

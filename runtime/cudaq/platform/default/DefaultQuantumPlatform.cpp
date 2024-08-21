@@ -39,11 +39,6 @@ public:
     kernelFunc(args);
   }
 
-  void launchKernel(const std::string &name,
-                    const std::vector<void *> &) override {
-    throw std::runtime_error("Wrong kernel launch point.");
-  }
-
   /// Overrides setExecutionContext to forward it to the ExecutionManager
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     ScopedTraceWithContext("DefaultPlatform::setExecutionContext",

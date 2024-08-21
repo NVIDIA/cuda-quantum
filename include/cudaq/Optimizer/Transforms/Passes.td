@@ -332,7 +332,7 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
       /*default=*/"\"-\"", "Name of output file.">,
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
-    Option<"codegenKind", "codegen", "std::size_t", /*default=*/"1",
+    Option<"codegenKind", "codegen", "std::size_t", /*default=*/"0",
       "Set the kind of code to generate for the launches.">
   ];
 }
