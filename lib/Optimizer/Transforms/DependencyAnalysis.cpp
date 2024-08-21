@@ -957,14 +957,14 @@ public:
   OpDependencyNode *getLastUseOfQID(VirtualQID qid) {
     assert(qids.contains(qid) && "Given qid not in dependency graph");
     DependencyNode *root = getRootForQID(qid);
-    DependencyNode *lastUse;
+    DependencyNode *lastUse = nullptr;
     for (auto dependency : root->dependencies) {
       if (dependency.qid == qid) {
         lastUse = dependency.node;
         break;
       }
     }
-    if (lastUse->isLeaf())
+    if (lastUse && lastUse->isLeaf())
       return nullptr;
     return static_cast<OpDependencyNode *>(lastUse);
   }
@@ -1911,8 +1911,7 @@ bool validateOp(Operation *op) {
   }
 
   if (op->getRegions().size() != 0 && !isa<cudaq::cc::IfOp>(op)) {
-    op->emitOpError(
-        "DependencyAnalysisPass: loops are not supported");
+    op->emitOpError("DependencyAnalysisPass: loops are not supported");
     return false;
   }
 
@@ -1982,10 +1981,9 @@ public:
       argMap[targ] = dnode;
       argdnodes.push_back(dnode);
     }
-  }
 
     DenseMap<DependencyNode *, Operation *> roots;
-    TerminatorDependencyNode *terminator;
+    TerminatorDependencyNode *terminator = nullptr;
     for (auto &op : b->getOperations()) {
       bool isTerminator = (&op == b->getTerminator());
       auto node = visitOp(&op, isTerminator);
