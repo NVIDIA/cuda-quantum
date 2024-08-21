@@ -1,0 +1,64 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --qubit-mapping=device=path\(3\) %s -split-input-file -verify-diagnostics
+
+// expected-error @+1 {{no borrow_wire ops found in test_00}}
+func.func @test_00() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3:2 = quake.x [%1] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.x [%4#1] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %4#0 : !quake.wire
+  quake.sink %5#0 : !quake.wire
+  quake.sink %5#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_01[10]
+
+func.func @test_01() {
+  %0 = quake.borrow_wire @wires_01[0] : !quake.wire
+  // expected-error @+1 {{the mapper requires borrow operations and prohibits null wires}}
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3:2 = quake.x [%1] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.x [%4#1] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %4#0 : !quake.wire
+  quake.sink %5#0 : !quake.wire
+  quake.return_wire %5#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02[10]
+
+func.func @test_02() {
+  %0 = quake.borrow_wire @wires_02[0] : !quake.wire
+  // expected-error @+1 {{the mapper requires borrow operations and prohibits reference semantics}}
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  %3 = quake.alloca !quake.ref
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_03[10]
+
+// expected-error @+1 {{no borrow_wire ops found in test_03}}
+func.func @test_03() {
+  return
+}

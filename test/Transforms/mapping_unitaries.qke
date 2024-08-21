@@ -6,26 +6,28 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --qubit-mapping=device=path %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=path\(10\) %s | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
 
 func.func @test_00() {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.null_wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
   %3:2 = quake.x [%1] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %5:2 = quake.x [%4#1] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %4#0 : !quake.wire
-  quake.sink %5#0 : !quake.wire
-  quake.sink %5#1 : !quake.wire
+  quake.return_wire %4#0 : !quake.wire
+  quake.return_wire %5#0 : !quake.wire
+  quake.return_wire %5#1 : !quake.wire
   return
 }
 
 func.func @test_01() {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.null_wire
-  %3 = quake.null_wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
   %4:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %5:2 = quake.x [%4#1] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %6:2 = quake.x [%5#0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
@@ -35,42 +37,42 @@ func.func @test_01() {
   %10:2 = quake.x [%9#0] %7#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %11:2 = quake.x [%9#1] %10#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %12:2 = quake.x [%8#0] %10#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %12#0 : !quake.wire
+  quake.return_wire %12#0 : !quake.wire
   %13:2 = quake.x [%11#1] %11#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %14:2 = quake.x [%12#1] %13#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %15:2 = quake.x [%13#1] %14#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %14#0 : !quake.wire
-  quake.sink %15#0 : !quake.wire
-  quake.sink %15#1 : !quake.wire
+  quake.return_wire %14#0 : !quake.wire
+  quake.return_wire %15#0 : !quake.wire
+  quake.return_wire %15#1 : !quake.wire
   return
 }
 
 func.func @test_02() {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.null_wire
-  %3 = quake.null_wire
-  %5 = quake.null_wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %5 = quake.borrow_wire @wires[4] : !quake.wire
   %6:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %7:2 = quake.x [%6#1] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %8:2 = quake.x [%7#0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %9:2 = quake.x [%7#1] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %10:2 = quake.x [%6#0] %8#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %10#0 : !quake.wire
+  quake.return_wire %10#0 : !quake.wire
   %11:2 = quake.x [%10#1] %9#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %11#1 : !quake.wire
+  quake.return_wire %11#1 : !quake.wire
   %12:2 = quake.x [%11#0] %8#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %9#1 : !quake.wire
-  quake.sink %12#0 : !quake.wire
-  quake.sink %12#1 : !quake.wire
+  quake.return_wire %9#1 : !quake.wire
+  quake.return_wire %12#0 : !quake.wire
+  quake.return_wire %12#1 : !quake.wire
   return
 }
 
 func.func @test_03() {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.null_wire
-  %3 = quake.null_wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
   %4:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %5:2 = quake.x [%4#1] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %6:2 = quake.x [%5#0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
@@ -86,24 +88,24 @@ func.func @test_03() {
   %16:2 = quake.x [%15#1] %15#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %17:2 = quake.x [%16#0] %14#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %18:2 = quake.x [%17#0] %12#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %16#1 : !quake.wire
-  quake.sink %17#1 : !quake.wire
-  quake.sink %18#0 : !quake.wire
-  quake.sink %18#1 : !quake.wire
+  quake.return_wire %16#1 : !quake.wire
+  quake.return_wire %17#1 : !quake.wire
+  quake.return_wire %18#0 : !quake.wire
+  quake.return_wire %18#1 : !quake.wire
   return
 }
 
 func.func @test_04() {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.null_wire
-  %3 = quake.null_wire
-  %4 = quake.null_wire
-  %5 = quake.null_wire
-  %6 = quake.null_wire
-  %7 = quake.null_wire
-  %8 = quake.null_wire
-  %9 = quake.null_wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %4 = quake.borrow_wire @wires[4] : !quake.wire
+  %5 = quake.borrow_wire @wires[5] : !quake.wire
+  %6 = quake.borrow_wire @wires[6] : !quake.wire
+  %7 = quake.borrow_wire @wires[7] : !quake.wire
+  %8 = quake.borrow_wire @wires[8] : !quake.wire
+  %9 = quake.borrow_wire @wires[9] : !quake.wire
   %10:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %11:2 = quake.x [%10#1] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %12:2 = quake.x [%11#0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
@@ -118,97 +120,97 @@ func.func @test_04() {
   %21:2 = quake.x [%10#0] %19#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %22:2 = quake.x [%21#1] %20#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %23:2 = quake.x [%22#0] %19#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %14#0 : !quake.wire
-  quake.sink %16#0 : !quake.wire
-  quake.sink %17#1 : !quake.wire
-  quake.sink %18#0 : !quake.wire
-  quake.sink %18#1 : !quake.wire
-  quake.sink %20#1 : !quake.wire
-  quake.sink %21#0 : !quake.wire
-  quake.sink %22#1 : !quake.wire
-  quake.sink %23#0 : !quake.wire
-  quake.sink %23#1 : !quake.wire
+  quake.return_wire %14#0 : !quake.wire
+  quake.return_wire %16#0 : !quake.wire
+  quake.return_wire %17#1 : !quake.wire
+  quake.return_wire %18#0 : !quake.wire
+  quake.return_wire %18#1 : !quake.wire
+  quake.return_wire %20#1 : !quake.wire
+  quake.return_wire %21#0 : !quake.wire
+  quake.return_wire %22#1 : !quake.wire
+  quake.return_wire %23#0 : !quake.wire
+  quake.return_wire %23#1 : !quake.wire
   return
 }
 
 func.func @test_05() {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.null_wire
-  %3 = quake.null_wire
-  %4 = quake.null_wire
-  %5 = quake.null_wire
-  %6 = quake.null_wire
-  %7 = quake.null_wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %4 = quake.borrow_wire @wires[4] : !quake.wire
+  %5 = quake.borrow_wire @wires[5] : !quake.wire
+  %6 = quake.borrow_wire @wires[6] : !quake.wire
+  %7 = quake.borrow_wire @wires[7] : !quake.wire
   %8:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %9:2 = quake.x [%8#1] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %10:2 = quake.x [%9#0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %11:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %12:2 = quake.x [%11#1] %6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %13:2 = quake.x [%12#0] %7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %8#0 : !quake.wire
-  quake.sink %9#1 : !quake.wire
-  quake.sink %10#0 : !quake.wire
-  quake.sink %10#1 : !quake.wire
-  quake.sink %11#0 : !quake.wire
-  quake.sink %12#1 : !quake.wire
-  quake.sink %13#0 : !quake.wire
-  quake.sink %13#1 : !quake.wire
+  quake.return_wire %8#0 : !quake.wire
+  quake.return_wire %9#1 : !quake.wire
+  quake.return_wire %10#0 : !quake.wire
+  quake.return_wire %10#1 : !quake.wire
+  quake.return_wire %11#0 : !quake.wire
+  quake.return_wire %12#1 : !quake.wire
+  quake.return_wire %13#0 : !quake.wire
+  quake.return_wire %13#1 : !quake.wire
   return
 }
 
 func.func @test_06() {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.null_wire
-  %3 = quake.null_wire
-  %4 = quake.null_wire
-  %5 = quake.null_wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %4 = quake.borrow_wire @wires[4] : !quake.wire
+  %5 = quake.borrow_wire @wires[5] : !quake.wire
   %6:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %7:2 = quake.x [%6#1] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %8:2 = quake.x [%6#0] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %9:2 = quake.x [%3] %8#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %10:2 = quake.x [%9#1] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %7#0 : !quake.wire
-  quake.sink %7#1 : !quake.wire
-  quake.sink %8#1 : !quake.wire
-  quake.sink %9#0 : !quake.wire
-  quake.sink %10#0 : !quake.wire
-  quake.sink %10#1 : !quake.wire
+  quake.return_wire %7#0 : !quake.wire
+  quake.return_wire %7#1 : !quake.wire
+  quake.return_wire %8#1 : !quake.wire
+  quake.return_wire %9#0 : !quake.wire
+  quake.return_wire %10#0 : !quake.wire
+  quake.return_wire %10#1 : !quake.wire
   return
 }
 
 func.func @test_07() {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.null_wire
-  %3 = quake.null_wire
-  %4 = quake.null_wire
-  %5 = quake.null_wire  
-  quake.sink %5 : !quake.wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %4 = quake.borrow_wire @wires[4] : !quake.wire
+  %5 = quake.borrow_wire @wires[5] : !quake.wire  
+  quake.return_wire %5 : !quake.wire
   %6:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %7:2 = quake.x [%6#1] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %8:2 = quake.x [%7#1] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %9:2 = quake.x [%8#1] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %10:2 = quake.x [%6#0] %9#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %7#0 : !quake.wire
-  quake.sink %8#0 : !quake.wire
-  quake.sink %9#0 : !quake.wire
-  quake.sink %10#0 : !quake.wire
-  quake.sink %10#1 : !quake.wire
+  quake.return_wire %7#0 : !quake.wire
+  quake.return_wire %8#0 : !quake.wire
+  quake.return_wire %9#0 : !quake.wire
+  quake.return_wire %10#0 : !quake.wire
+  quake.return_wire %10#1 : !quake.wire
   return
 }
 
 func.func @test_08() {
-  %0 = quake.null_wire
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
   %1 = quake.h %0 : (!quake.wire) -> !quake.wire
-  %2 = quake.null_wire
-  %3 = quake.null_wire
+  %2 = quake.borrow_wire @wires[1] : !quake.wire
+  %3 = quake.borrow_wire @wires[2] : !quake.wire
   %4:2 = quake.x [%1] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %5:2 = quake.x [%4#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %4#1 : !quake.wire
-  quake.sink %5#0 : !quake.wire
-  quake.sink %5#1 : !quake.wire
+  quake.return_wire %4#1 : !quake.wire
+  quake.return_wire %5#0 : !quake.wire
+  quake.return_wire %5#1 : !quake.wire
   return
 }
 
