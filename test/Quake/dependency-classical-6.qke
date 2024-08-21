@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
 
-func.func @test6() -> i1 attributes {"cudaq-kernel"} {
+func.func @test6() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2 = quake.h %1 : (!quake.wire) -> !quake.wire
@@ -23,7 +23,7 @@ func.func @test6() -> i1 attributes {"cudaq-kernel"} {
 
 // CHECK-LABEL:   quake.wire_set @wires[2147483647]
 
-// CHECK-LABEL:   func.func @test6() -> i1 attributes {"cudaq-kernel"} {
+// CHECK-LABEL:   func.func @test6() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // CHECK:           %[[VAL_1:.*]], %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1

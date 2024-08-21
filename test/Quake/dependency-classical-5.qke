@@ -9,7 +9,7 @@
 // RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
 // Ensures that %cst_0 as a constant is not enough to connect the graphs
 
-func.func @test5() -> !quake.measure attributes {"cudaq-kernel"} {
+func.func @test5() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %cst_0 = arith.constant 2.000000e+00 : f64
   %0 = quake.null_wire
   %1 = quake.null_wire
@@ -25,7 +25,7 @@ func.func @test5() -> !quake.measure attributes {"cudaq-kernel"} {
 
 // CHECK-LABEL:   quake.wire_set @wires[2147483647]
 
-// CHECK-LABEL:   func.func @test5() -> !quake.measure attributes {"cudaq-kernel"} {
+// CHECK-LABEL:   func.func @test5() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK:           %[[VAL_1:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // CHECK:           %[[VAL_2:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.wire) -> !quake.wire

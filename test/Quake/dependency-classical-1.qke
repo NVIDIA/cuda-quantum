@@ -10,7 +10,7 @@
 
 // -----
 
-func.func @test1() -> !quake.measure attributes {"cudaq-kernel"} {
+func.func @test1() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %cst_0 = arith.constant 2.000000e+00 : f64
   %0 = quake.null_wire
   %1 = quake.rx (%cst_0) %0 : (f64, !quake.wire) -> !quake.wire
@@ -21,7 +21,7 @@ func.func @test1() -> !quake.measure attributes {"cudaq-kernel"} {
 
 // CHECK-LABEL:   quake.wire_set @wires[2147483647]
 
-// CHECK-LABEL:   func.func @test1() -> !quake.measure attributes {"cudaq-kernel"} {
+// CHECK-LABEL:   func.func @test1() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK-DAG:       %[[VAL_1:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // CHECK:           %[[VAL_2:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.wire) -> !quake.wire

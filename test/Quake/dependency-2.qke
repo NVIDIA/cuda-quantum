@@ -10,7 +10,7 @@
 
 // This a test mostly for scheduling
 
-func.func @test1() -> i1 attributes {"cudaq-kernel"} {
+func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2 = quake.null_wire
@@ -33,7 +33,7 @@ func.func @test1() -> i1 attributes {"cudaq-kernel"} {
 
 // CHECK-LABEL:   quake.wire_set @wires[2147483647]
 
-// CHECK-LABEL:   func.func @test1() -> i1 attributes {"cudaq-kernel"} {
+// CHECK-LABEL:   func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[2] : !quake.wire
 // CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_2:.*]] = quake.borrow_wire @wires[1] : !quake.wire
