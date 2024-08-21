@@ -121,23 +121,20 @@ def evolve(
 
     num_qubits = len(hamiltonian.degrees)
     parameters = [mapping for mapping in schedule]
+    observable_spinops = [lambda step_parameters: op._to_spinop(dimensions, **step_parameters) for op in observables]
     compute_step_matrix = lambda step_parameters: _compute_step_matrix(hamiltonian, dimensions, step_parameters)
 
     # FIXME: deal with a sequence of initial states
     if store_intermediate_results:
         evolution = _evolution_kernel(num_qubits, compute_step_matrix, parameters, split_into_steps = True)
-        kernels, observable_spinops = [], []
-        for step_idx, kernel in enumerate(evolution):
-            kernels.append(kernel)
-            observable_spinops.append([lambda: op._to_spinop(dimensions, **parameters[step_idx]) for op in observables])
+        kernels = [kernel for kernel in evolution]
         if len(observables) == 0: return cudaq_runtime.evolve(initial_state, kernels)
-        return cudaq_runtime.evolve(initial_state, kernels, observable_spinops)
+        return cudaq_runtime.evolve(initial_state, kernels, parameters, observable_spinops)
     else:
         kernel = next(_evolution_kernel(num_qubits, compute_step_matrix, parameters))
         if len(observables) == 0: return cudaq_runtime.evolve(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
-        observable_spinops = [lambda: op._to_spinop(dimensions, **parameters[-1]) for op in observables]
-        return cudaq_runtime.evolve(initial_state, kernel, observable_spinops)
+        return cudaq_runtime.evolve(initial_state, kernel, parameters[-1], observable_spinops)
 
 
 def evolve_async(
@@ -184,21 +181,18 @@ def evolve_async(
 
     num_qubits = len(hamiltonian.degrees)
     parameters = [mapping for mapping in schedule]
+    observable_spinops = [lambda step_parameters: op._to_spinop(dimensions, **step_parameters) for op in observables]
     compute_step_matrix = lambda step_parameters: _compute_step_matrix(hamiltonian, dimensions, step_parameters)
 
     # FIXME: deal with a sequence of initial states
     if store_intermediate_results:
         evolution = _evolution_kernel(num_qubits, compute_step_matrix, parameters, split_into_steps = True)
-        kernels, observable_spinops = [], []
-        for step_idx, kernel in enumerate(evolution):
-            kernels.append(kernel)
-            observable_spinops.append([lambda: op._to_spinop(dimensions, **parameters[step_idx]) for op in observables])
+        kernels = [kernel for kernel in evolution]
         if len(observables) == 0: return cudaq_runtime.evolve_async(initial_state, kernels)
-        return cudaq_runtime.evolve_async(initial_state, kernels, observable_spinops)
+        return cudaq_runtime.evolve_async(initial_state, kernels, parameters, observable_spinops)
     else:
         kernel = next(_evolution_kernel(num_qubits, compute_step_matrix, parameters))
         if len(observables) == 0: return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
-        observable_spinops = [lambda: op._to_spinop(dimensions, **parameters[-1]) for op in observables]
-        return cudaq_runtime.evolve_async(initial_state, kernel, observable_spinops)
+        return cudaq_runtime.evolve_async(initial_state, kernel, parameters[-1], observable_spinops)
 
