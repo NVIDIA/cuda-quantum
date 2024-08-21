@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Diagnostics.h"
@@ -34,8 +35,8 @@ static bool isIndirectFunc(llvm::StringRef funcName,
 static std::optional<llvm::StringMap<llvm::StringRef>>
 getConversionMap(ModuleOp module) {
   llvm::StringMap<llvm::StringRef> result;
-  if (auto mangledNameMap =
-          module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map")) {
+  if (auto mangledNameMap = module->getAttrOfType<DictionaryAttr>(
+          cudaq::runtime::mangledNameMap)) {
     for (auto namedAttr : mangledNameMap) {
       auto key = namedAttr.getName();
       auto val = namedAttr.getValue().cast<StringAttr>().getValue();
