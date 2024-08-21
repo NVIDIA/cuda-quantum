@@ -72,7 +72,7 @@ LogicalResult quake::verifyWireArityAndCoarity(Operation *op) {
 }
 
 bool quake::isSupportedMappingOperation(Operation *op) {
-  return isa<OperatorInterface, MeasurementInterface, SinkOp>(op);
+  return isa<OperatorInterface, MeasurementInterface, SinkOp, ReturnWireOp>(op);
 }
 
 ValueRange quake::getQuantumTypesFromRange(ValueRange range) {
@@ -815,7 +815,7 @@ ParseResult quake::WireSetOp::parse(OpAsmParser &parser,
     if (parser.parseAttribute(sparseEle, getAdjacencyAttrName(result.name),
                               result.attributes))
       return failure();
-  if (parser.parseOptionalAttrDict(result.attributes))
+  if (parser.parseOptionalAttrDictWithKeyword(result.attributes))
     return failure();
   return success();
 }

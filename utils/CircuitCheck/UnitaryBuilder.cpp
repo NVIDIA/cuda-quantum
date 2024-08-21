@@ -29,6 +29,8 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   auto result = func.walk([&](Operation *op) {
     if (auto nullWireOp = dyn_cast<quake::NullWireOp>(op))
       return allocateQubits(nullWireOp.getResult());
+    if (auto borrowOp = dyn_cast<quake::BorrowWireOp>(op))
+      return allocateQubits(borrowOp.getResult());
     if (auto allocOp = dyn_cast<quake::AllocaOp>(op))
       return allocateQubits(allocOp.getResult());
     if (auto extractOp = dyn_cast<quake::ExtractRefOp>(op))

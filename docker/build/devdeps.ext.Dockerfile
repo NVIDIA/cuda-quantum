@@ -18,7 +18,7 @@
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:ompi-main
-FROM $ompidev_image as ompibuild
+FROM $ompidev_image AS ompibuild
 
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
