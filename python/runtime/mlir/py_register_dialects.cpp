@@ -48,6 +48,7 @@ void registerQuakeDialectAndTypes(py::module &m) {
           cudaq::opt::registerAggressiveEarlyInlining();
           cudaq::opt::registerUnrollingPipeline();
           cudaq::opt::registerTargetPipelines();
+          cudaq::opt::registerMappingPipeline();
           registered = true;
         }
       },
