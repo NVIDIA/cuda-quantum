@@ -734,7 +734,6 @@ private:
   uint total_height;
   DependencyNode *tallest = nullptr;
   SetVector<DependencyNode *> containers;
-  SetVector<DependencyNode *> allNodes;
 
   /// Starting from \p next, searches through \p next's family
   /// (excluding already seen nodes) to find all the interconnected roots
@@ -742,13 +741,8 @@ private:
   /// Also fills in metadata about the height of the graph, and the qids in the
   /// graph.
   void gatherRoots(SetVector<DependencyNode *> &seen, DependencyNode *next) {
-    if (seen.contains(next))
+    if (seen.contains(next) || !next->isQuantumDependent())
       return;
-
-    if (!next->isQuantumDependent()) {
-      seen.insert(next);
-      return;
-    }
 
     if (next->isRoot()) {
       roots.insert(next);
@@ -921,19 +915,33 @@ private:
     roots.insert(new_root);
   }
 
+  /// Gathers all the nodes in the graph into seen, starting from next
+  void gatherNodes(SetVector<DependencyNode *> &seen, DependencyNode *next) {
+    if (seen.contains(next) || !next->isQuantumDependent())
+      return;
+
+    seen.insert(next);
+
+    for (auto successor : next->successors)
+      gatherNodes(seen, successor);
+    for (auto dependency : next->dependencies)
+      gatherNodes(seen, dependency.node);
+  }
+
 public:
   DependencyGraph(DependencyNode *root) {
     total_height = 0;
     SetVector<DependencyNode *> seen;
     qids = SetVector<VirtualQID>();
     gatherRoots(seen, root);
-    if (roots.size() == 0)
-      return;
-    allNodes = seen;
   }
 
   ~DependencyGraph() {
-    for (auto node : allNodes)
+    SetVector<DependencyNode *> nodes;
+    for (auto root : roots)
+      gatherNodes(nodes, root);
+
+    for (auto node : nodes)
       // ArgDependencyNodes are handled by the block and skipped here
       if (!node->isLeaf() || !node->isQuantumOp() || node->isAlloc())
         delete node;
@@ -1612,6 +1620,7 @@ protected:
     successors.insert(then_op);
     then_op->dependencies = newDeps;
     else_op->erase();
+    delete else_op;
   }
 
   void liftOpBefore(OpDependencyNode *then_op, OpDependencyNode *else_op,
@@ -1673,6 +1682,7 @@ protected:
 
     then_op->erase();
     else_op->erase();
+    delete else_op;
 
     // Patch successors
     then_op->successors.insert(this);
