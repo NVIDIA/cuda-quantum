@@ -123,7 +123,7 @@ state *__nvqpp_cudaq_state_createFromData_fp64(void *data, std::size_t size) {
     return new state(state::from_data(converted));
   }
 
-  auto current = std::vector<std::complex<double>>(d, d + size);
+  std::vector<std::complex<double>> current(d, d + size);
   return new state(state::from_data(current));
 }
 
@@ -138,7 +138,7 @@ state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
     return new state(state::from_data(converted));
   }
 
-  auto current = std::vector<std::complex<float>>(d, d + size);
+  std::vector<std::complex<float>> current(d, d + size);
   return new state(state::from_data(current));
 }
 }

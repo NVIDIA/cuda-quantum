@@ -44,6 +44,8 @@ struct VerifyNVQIRCallOpsPass
           cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
           cudaq::opt::NVQIRPackSingleQubitInArray,
           cudaq::opt::NVQIRReleasePackedQubitArray,
+          cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,
+          cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64,
           cudaq::getNumQubitsFromCudaqState,
           cudaq::createCudaqStateFromDataFP64,
           cudaq::createCudaqStateFromDataFP32};

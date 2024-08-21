@@ -16,6 +16,20 @@
 #include <cudaq.h>
 #include <iostream>
 
+__qpu__ void test_large_double_constant_array() {
+  auto numQubits = 19;
+  auto size = 1ULL << numQubits;
+  std::vector<double> vec(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    if (i == 0 || i == 1) {
+      vec[i] = M_SQRT1_2;
+    } else {
+      vec[i] = 0;
+    }
+  }
+  cudaq::qvector v(vec);
+}
+
 __qpu__ void test_complex_constant_array() {
    cudaq::qvector v(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
 }
@@ -67,6 +81,13 @@ void printCounts(cudaq::sample_result& result) {
 }
 
 int main() {
+    {
+      auto counts = cudaq::sample(test_large_double_constant_array);
+      printCounts(counts);
+    }
+
+// CHECK: 0000000000000000000
+// CHECK: 1000000000000000000
     {
       auto counts = cudaq::sample(test_complex_constant_array);
       printCounts(counts);
