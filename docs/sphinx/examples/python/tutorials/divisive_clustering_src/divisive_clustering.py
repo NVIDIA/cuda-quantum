@@ -1251,7 +1251,7 @@ class Voironi_Tessalation:
             polygon = vertices[region]
             color = self.coreset_df.color[j]
         """
-        Optional Debugging Point: Uncomment the following line to pause execution at this point for debugging purposes.
+        **Optional Debugging Point:** Uncomment the following line to pause execution at this point for debugging purposes.
 
         breakpoint()
         """
