@@ -8,8 +8,14 @@
 
 set(LIBRARY_NAME cudaq-orca-qpu)
 message(STATUS "Building ORCA REST QPU.")
+set(ORCA_SRC
+  OrcaExecutor.cpp
+  OrcaServerHelper.cpp
+  OrcaRemoteRESTQPU.cpp 
+  OrcaQPU.cpp 
+)
 
-add_library(${LIBRARY_NAME} SHARED OrcaQPU.cpp)
+add_library(${LIBRARY_NAME} SHARED ${ORCA_SRC})
 
 target_include_directories(${LIBRARY_NAME} PRIVATE .
     PUBLIC 
