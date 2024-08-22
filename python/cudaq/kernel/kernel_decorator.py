@@ -469,7 +469,6 @@ def kernel(function=None, **kwargs):
 
     Verbose logging can be enabled via `verbose=True`. 
     """
-
     if function:
         return PyKernelDecorator(function)
     else:
