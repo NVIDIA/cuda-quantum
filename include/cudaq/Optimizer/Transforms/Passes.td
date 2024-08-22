@@ -886,6 +886,19 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
+def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::func::FuncOp"> {
+  let summary = 
+    "Convert a custom quantum operation into sequence of native quantum gates.";
+  let description = [{
+    Given a custom quantum operation specified in the form of its concrete
+    unitary matrix, convert it into a sequence of native quantum gates.
+
+    This pass will work only if the custom operation is unitary.
+    For example,
+    TODO - add example
+  }];
+}
+
 def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   let summary = "Lower global unwinding control-flow macros to a CFG.";
   let description = [{
