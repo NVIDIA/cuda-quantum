@@ -119,13 +119,12 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
 
     cudaq::IRBuilder irBuilder(ctx);
     auto genConArray = [&]<typename T>() -> Value {
-      auto data = std::make_unique<std::complex<T>[]>(size);
+      std::vector<std::complex<T>> vec(size);
       for (std::size_t i = 0; i < size; i++) {
-        data[i] = (*v)({i}, 0);
+        vec[i] = (*v)({i}, 0);
       }
       std::string name =
           kernelName.str() + ".rodata_synth_" + std::to_string(counter++);
-      std::vector<std::complex<T>> vec(data.get(), data.get() + size);
       irBuilder.genVectorOfConstants(loc, substMod, name, vec);
       auto conGlobal = builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
       return builder.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);

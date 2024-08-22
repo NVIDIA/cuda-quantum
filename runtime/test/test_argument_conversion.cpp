@@ -305,31 +305,18 @@ void test_state(mlir::MLIRContext *ctx) {
 // CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
 // CHECK:       Substitution module:
 
-// CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = cc.undef !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_1:.*]] = complex.constant [0.70710678118654757, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_2:.*]] = cc.insert_value %[[VAL_1]], %[[VAL_0]][0] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_3:.*]] = complex.constant [0.70710678118654757, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_3]], %[[VAL_2]][1] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_5:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_6:.*]] = cc.insert_value %[[VAL_5]], %[[VAL_4]][2] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_7:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_8:.*]] = cc.insert_value %[[VAL_7]], %[[VAL_6]][3] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_9:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_10:.*]] = cc.insert_value %[[VAL_9]], %[[VAL_8]][4] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_11:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_12:.*]] = cc.insert_value %[[VAL_11]], %[[VAL_10]][5] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_13:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_14:.*]] = cc.insert_value %[[VAL_13]], %[[VAL_12]][6] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_15:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_16:.*]] = cc.insert_value %[[VAL_15]], %[[VAL_14]][7] : (!cc.array<complex<f64> x 8>, complex<f64>) -> !cc.array<complex<f64> x 8>
-// CHECK:           %[[VAL_17:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_18:.*]] = cc.alloca !cc.array<complex<f64> x 8>
-// CHECK:           cc.store %[[VAL_16]], %[[VAL_18]] : !cc.ptr<!cc.array<complex<f64> x 8>>
-// CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!cc.ptr<!cc.array<complex<f64> x 8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_20:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_19]], %[[VAL_17]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-// CHECK            %[[VAL_21:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
+// CHECK-LABEL: cc.arg_subst[0] {
+// CHECK:         %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:         %[[VAL_1:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:         %[[VAL_2:.*]] = arith.constant 8 : i64
+// CHECK:         %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f64> x 8>
+// CHECK:         cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:         %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 8>>) -> !cc.ptr<i8>
+// CHECK:         %[[VAL_5:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_4]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+// CHECK:         %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
 // CHECK:         }
+// CHECK-DAG:     cc.global constant @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
+// CHECK-DAG:     func.func private @__nvqpp_cudaq_state_createFromData_fp64(!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
   // clang-format on
 }
 
