@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t
+// TODO-FIX-KERNEL-EXEC
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 --enable-mlir %s -o %t && %t
 
 #include <cudaq.h>
