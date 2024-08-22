@@ -1,0 +1,21 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
+
+func.func @test4() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %cst_0 = arith.constant 2.000000e+00 : f64
+  return %cst_0 : f64
+}
+
+// CHECK-LABEL:   quake.wire_set @wires[2147483647]
+
+// CHECK-LABEL:   func.func @test4() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           return %[[VAL_0]] : f64
+// CHECK:         }

@@ -8,24 +8,34 @@
 
 // RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
 
-// This is a basic dead-code check
-
-func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+func.func @test7() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.null_wire
   %1 = quake.null_wire
-  %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
-  quake.sink %0 : !quake.wire
+  %2 = quake.null_wire
+  %measOut, %wires = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %4 = arith.uitofp %3 : i1 to f64
+  %5 = quake.rx (%4) %1 : (f64, !quake.wire) -> !quake.wire
+  %6 = quake.rx (%4) %2 : (f64, !quake.wire) -> !quake.wire
   quake.sink %wires : !quake.wire
-  return %2 : i1
+  quake.sink %5 : !quake.wire
+  quake.sink %6 : !quake.wire
+  return %3 : i1
 }
 
 // CHECK-LABEL:   quake.wire_set @wires[2147483647]
 
-// CHECK-LABEL:   func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @test7() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // CHECK:           %[[VAL_1:.*]], %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_4:.*]] = arith.uitofp %[[VAL_3]] : i1 to f64
 // CHECK:           quake.return_wire %[[VAL_2]] : !quake.wire
+// CHECK:           %[[VAL_5:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[VAL_6:.*]] = quake.rx (%[[VAL_4]]) %[[VAL_5]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           quake.return_wire %[[VAL_6]] : !quake.wire
+// CHECK:           %[[VAL_7:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.rx (%[[VAL_4]]) %[[VAL_7]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           quake.return_wire %[[VAL_8]] : !quake.wire
 // CHECK:           return %[[VAL_3]] : i1
 // CHECK:         }
