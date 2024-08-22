@@ -10,6 +10,7 @@
 #include <cassert>
 #include <memory>
 
+/// @cond DO_NOT_DOCUMENT
 /// @brief Fake simulation state to use in tests.
 class FakeSimulationState : public cudaq::SimulationState {
 private:
@@ -106,3 +107,4 @@ public:
 
   virtual ~FakeSimulationState() {}
 };
+/// @endcond
