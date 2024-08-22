@@ -1,0 +1,34 @@
+name: CMake on s390x emulation (Big endian system)
+
+on: [push, pull_request]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: RelWithDebInfo
+
+jobs:
+  build-linux-s390x:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    runs-on: ubuntu-latest  
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: uraimo/run-on-arch-action@v2
+      name: Run commands
+      id: runcmd
+      with:
+        arch: s390x
+        distro: ubuntu_latest
+        install: |
+          apt-get update -q -y
+          apt-get -y install cmake
+          apt-get -y install make
+          apt-get -y install g++
+          apt-get -y install git
+        run: |
+          lscpu | grep Endian
+          cmake  -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} .
+          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+          cd ${{github.workspace}}/build
+          ctest -C ${{env.BUILD_TYPE}} --output-on-failure
