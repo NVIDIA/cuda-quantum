@@ -11,7 +11,7 @@
 // TODO: filecheck with statistics
 // TODO: should work properly with regtomem fixes
 
-// RUN: nvq++ --target opt-test  %s -o %t && %t
+// RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
 // XFAIL: *
 
 // Simple test, shouldn't affect anything

@@ -8,7 +8,7 @@
 
 #include <cudaq.h>
 
-// RUN: nvq++ --target opt-test %s -o %t && %t
+// RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
 // This passes but should x-fail (FIXME!)
 // X_FAIL: *
 
