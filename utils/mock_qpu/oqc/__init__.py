@@ -66,12 +66,6 @@ def getNumRequiredQubits(function):
                     "\"", ""))
 
 
-# Here we test that the login endpoint works
-@app.post("/auth")
-async def login(auth_info: AuthModel):
-    return {"access_token": "auth_token"}
-
-
 # Here we expose a way to post jobs,
 # Must have a Access Token, Job Program must be Adaptive Profile
 # with entry_point tag
@@ -81,6 +75,7 @@ async def postJob(
     # access_token: Union[str, None] = Header(alias="Authorization",default=None)
 ):
     global createdJobs, shots
+    print("task: ", task)
 
     # if access_token == None:
     # raise HTTPException(status_code(401), detail="Credentials not provided")

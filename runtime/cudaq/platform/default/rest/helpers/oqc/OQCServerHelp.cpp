@@ -150,11 +150,11 @@ void OQCServerHelper::initialize(BackendConfig config) {
       make_env_functor("OQC_URL", "https://sandbox.qcaas.oqc.app"));
   config["version"] = "v0.3";
   config["user_agent"] = "cudaq/0.3.0";
-  config["target"] = "Lucy";
+  config["oqc_user_agent"] = "QCaaS Client 3.7.0";
+  config["target"] = "qpu:uk:2:d865b5a184";
+      get_from_config(config, "device", make_env_functor("OQC_DEVICE"));;
   config["qubits"] = Machines.at(machine);
-  config["email"] =
-      get_from_config(config, "email", make_env_functor("OQC_EMAIL"));
-  config["password"] = make_env_functor("OQC_PASSWORD")();
+  config["auth_token"] = get_from_config(config, "auth_token", make_env_functor("OQC_AUTH_TOKEN"));
   // Construct the API job path
   config["job_path"] = "/tasks"; // config["url"] + "/tasks";
 
@@ -391,24 +391,11 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
 
 // Get the headers for the API requests
 RestHeaders OQCServerHelper::getHeaders() {
-  // Check if the necessary keys exist in the configuration
-  if (!keyExists("email") || !keyExists("password"))
-    throw std::runtime_error("Key doesn't exist in backendConfig.");
-
   // Construct the headers
   RestHeaders headers;
-  headers["Content-Type"] = "application/json";
 
-  nlohmann::json j;
-  j["email"] = backendConfig.at("email");
-  j["password"] = backendConfig.at("password");
-  nlohmann::json response =
-      client.post(backendConfig.at("url") + "/auth", "", j, headers,
-                  /*enableLossgging=*/false);
-  std::string key = response.at("access_token");
-  backendConfig["access_token"] = key;
-
-  headers["Authorization"] = "Bearer " + backendConfig["access_token"];
+  headers["Authentication-Token"] = backendConfig["access_token"];
+  headers["User-agent"] = backendConfig["oqc_user_agent"];
 
   // Return the headers
   return headers;

@@ -33,11 +33,12 @@ def assert_close(got) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
 
-    os.environ["OQC_PASSWORD"] = "password"
+    os.environ["OQC_AUTH_TOKEN"] = "fake_auth_token"
+    os.environ["OQC_DEVICE"] = "Toshiko1"
     # Set the targeted QPU
     cudaq.set_target('oqc',
                      url=f'http://localhost:{port}',
-                     email="email@email.com")
+                     auth_token="fake_auth_token")
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
