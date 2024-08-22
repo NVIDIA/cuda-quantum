@@ -11,7 +11,7 @@
 // TODO: filecheck with statistics
 // TODO: should work properly with regtomem fixes
 
-// RUN: nvq++ --enable-mlir -fno-lower-to-cfg --opt-pass 'func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),canonicalize,cse,add-wireset,func.func(assign-wire-indices),dep-analysis,func.func(regtomem),symbol-dce'  %s -o %t && %t
+// RUN: nvq++ --target opt-test  %s -o %t && %t
 // XFAIL: *
 
 // Simple test, shouldn't affect anything
