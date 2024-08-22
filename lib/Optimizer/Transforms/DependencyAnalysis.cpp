@@ -1738,8 +1738,6 @@ protected:
         then_op->eraseEdgeForQID(dependency.qid.value());
       } else if (!dependency->isQuantumOp()) {
         newDeps.push_back(dependency);
-        // Recursively update parent of implicitly lifted classical dependencies
-        dependency->updateParent(then_op->parent, parent);
       } else {
         assert(
             false &&
