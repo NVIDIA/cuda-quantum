@@ -27,9 +27,7 @@ void RemoteSimulationState::execute() const {
     // potential logging of the result of the API call.
     std::ostringstream remoteLogCout;
     platform.setLogStream(remoteLogCout);
-    platform.launchKernel(kernelName, nullptr,
-                          static_cast<void *>(argsBuffer.data()),
-                          argsBuffer.size(), 0);
+    platform.launchKernel(kernelName, args);
     platform.reset_exec_ctx();
     platform.resetLogStream();
     // Cache the info log if any.
@@ -44,6 +42,12 @@ RemoteSimulationState::~RemoteSimulationState() {
     printf("%s\n", platformExecutionLog.c_str());
     platformExecutionLog.clear();
   }
+
+  for (std::size_t counter = 0; auto &ptr : args)
+    deleters[counter++](ptr);
+
+  args.clear();
+  deleters.clear();
 }
 
 std::size_t RemoteSimulationState::getNumQubits() const {
@@ -124,10 +128,8 @@ void RemoteSimulationState::toHost(std::complex<float> *clientAllocatedData,
   }
 }
 
-std::tuple<std::string, void *, std::size_t>
-RemoteSimulationState::getKernelInfo() const {
-  return std::make_tuple(kernelName, static_cast<void *>(argsBuffer.data()),
-                         argsBuffer.size());
+std::pair<std::string, std::vector<void *>> RemoteSimulationState::getKernelInfo() const {
+  return std::make_pair(kernelName, args);
 }
 
 std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
@@ -150,9 +152,7 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
   // Perform the usual pattern set the context,
   // execute and then reset
   platform.set_exec_ctx(&context);
-  platform.launchKernel(kernelName, nullptr,
-                        static_cast<void *>(argsBuffer.data()),
-                        argsBuffer.size(), 0);
+  platform.launchKernel(kernelName, args);
   platform.reset_exec_ctx();
   std::vector<std::complex<double>> amplitudes;
   amplitudes.reserve(basisStates.size());

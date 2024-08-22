@@ -62,8 +62,6 @@ state pyGetState(py::object kernel, py::args args) {
 // Note: Python kernel arguments are wrapped hence need to be unwrapped
 // accordingly.
 class PyRemoteSimulationState : public RemoteSimulationState {
-  cudaq::ArgWrapper argsWrapper;
-  std::size_t argsSize;
   // Holder of args data for clean-up.
   cudaq::OpaqueArguments *argsData;
 
@@ -72,7 +70,7 @@ public:
                           cudaq::ArgWrapper args,
                           cudaq::OpaqueArguments *argsDataToOwn,
                           std::size_t size, std::size_t returnOffset)
-      : argsWrapper(args), argsSize(size), argsData(argsDataToOwn) {
+      : argsData(argsDataToOwn) {
     this->kernelName = in_kernelName;
   }
 
@@ -87,17 +85,14 @@ public:
       platform.set_exec_ctx(&context);
       // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
       // ArgWrapper pointer.
-      platform.launchKernel(kernelName, nullptr,
-                            reinterpret_cast<void *>(
-                                const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
-                            argsSize, 0);
+      platform.launchKernel(kernelName, argsData->getArgs());
       platform.reset_exec_ctx();
       state = std::move(context.simulationState);
     }
   }
 
-  std::tuple<std::string, void *, std::size_t> getKernelInfo() const override {
-    return {kernelName, argsWrapper.rawArgs, argsSize};
+  std::pair<std::string, std::vector<void *>> getKernelInfo() const override {
+    return {kernelName, argsData->getArgs()};
   }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override {
@@ -109,10 +104,7 @@ public:
         static_cast<const cudaq::SimulationState *>(this),
         static_cast<const cudaq::SimulationState *>(&otherState));
     platform.set_exec_ctx(&context);
-    platform.launchKernel(
-        kernelName, nullptr,
-        reinterpret_cast<void *>(const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
-        0, 0);
+    platform.launchKernel(kernelName, argsData->getArgs());
     platform.reset_exec_ctx();
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();
