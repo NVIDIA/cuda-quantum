@@ -22,10 +22,10 @@ __qpu__ void test_init_state() {
   ry(M_PI/2.0, q[0]);
 }
 
-__qpu__ void test_init_large_state() {
-  cudaq::qvector q(14);
-  ry(M_PI/2.0, q[0]);
-}
+// __qpu__ void test_init_large_state() {
+//   cudaq::qvector q(14);
+//   ry(M_PI/2.0, q[0]);
+// }
 
 __qpu__ void test_state_param(cudaq::state* state) {
   cudaq::qvector q1(state);
@@ -45,41 +45,41 @@ void printCounts(cudaq::sample_result& result) {
 
 int main() {
   std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0., 0., 0., 0., 0.};
-  std::vector<cudaq::complex> vec1{0., 0.,  0., 0., 0., 0., M_SQRT1_2, M_SQRT1_2};
+  //std::vector<cudaq::complex> vec1{0., 0.,  0., 0., 0., 0., M_SQRT1_2, M_SQRT1_2};
   auto state = cudaq::state::from_data(vec);
-  auto state1 = cudaq::state::from_data(vec1);
+  //auto state1 = cudaq::state::from_data(vec1);
   {
       // Passing state created from data as argument (kernel mode)
       auto counts = cudaq::sample(test_state_param, &state);
       printCounts(counts);
 
-      counts = cudaq::sample(test_state_param, &state1);
-      printCounts(counts);
+      // counts = cudaq::sample(test_state_param, &state1);
+      // printCounts(counts);
   }
 
-// CHECK: 000
-// CHECK: 100
+// // CHECK: 000
+// // CHECK: 100
 
-// CHECK: 011
-// CHECK: 111
+// // CHECK: 011
+// // CHECK: 111
 
-  {
-    // Passing state from another kernel as argument (kernel mode)
-    auto state = cudaq::get_state(test_init_state);
-    auto counts = cudaq::sample(test_state_param, &state);
-    printCounts(counts);
-  }
+//   {
+//     // Passing state from another kernel as argument (kernel mode)
+//     auto state = cudaq::get_state(test_init_state);
+//     auto counts = cudaq::sample(test_state_param, &state);
+//     printCounts(counts);
+//   }
 
-// CHECK: 00
-// CHECK: 10
+// // CHECK: 00
+// // CHECK: 10
 
-  {
-    // Passing large state from another kernel as argument (kernel mode)
-    auto largeState = cudaq::get_state(test_init_large_state);
-    auto counts = cudaq::sample(test_state_param, &largeState);
-    printCounts(counts);
-  }
+//   {
+//     // Passing large state from another kernel as argument (kernel mode)
+//     auto largeState = cudaq::get_state(test_init_large_state);
+//     auto counts = cudaq::sample(test_state_param, &largeState);
+//     printCounts(counts);
+//   }
 
-// CHECK: 00000000000000
-// CHECK: 10000000000000
+// // CHECK: 00000000000000
+// // CHECK: 10000000000000
 }

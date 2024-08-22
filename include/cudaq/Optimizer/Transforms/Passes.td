@@ -669,6 +669,15 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def OptimizeStateCreation : Pass<"optimize-state-creation", "mlir::ModuleOp"> {
+  let summary =
+    "Remove unnecessary creation of new states from data";
+  let description = [{
+    - Replace state by its data if possible
+    - Add state deletion in before exit if not possible to remove a new state
+  }];
+}
+
 def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
   let summary =
     "Convert state vector data into gates";
