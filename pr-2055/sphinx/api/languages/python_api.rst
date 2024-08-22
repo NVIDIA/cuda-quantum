@@ -56,7 +56,6 @@ Program Construction
     :members:
     :special-members: __str__, __call__
 
-
 .. autofunction:: kernel
     
 Kernel Execution
