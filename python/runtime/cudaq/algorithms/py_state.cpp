@@ -65,6 +65,7 @@ class PyRemoteSimulationState : public RemoteSimulationState {
   // Holder of args data for clean-up.
   cudaq::OpaqueArguments *argsData;
   mlir::ModuleOp kernelMod;
+
 public:
   PyRemoteSimulationState(const std::string &in_kernelName,
                           cudaq::ArgWrapper args,
