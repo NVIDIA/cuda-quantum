@@ -10,6 +10,7 @@
 #include <cassert>
 #include <memory>
 
+/// @brief Fake simulation state to use in tests.
 class FakeSimulationState : public cudaq::SimulationState {
 private:
   std::size_t size = 0;
