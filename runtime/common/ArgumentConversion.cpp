@@ -94,31 +94,46 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
 
 static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                          ModuleOp substMod, llvm::DataLayout &layout,
-                         bool isSimulator) {
+                         llvm::StringRef kernelName, bool isSimulator) {
   if (isSimulator) {
     // The program is executed remotely, materialize the simulation data
     // into an array and create a new state from it.
+    auto numQubits = v->get_num_qubits();
+
+    // We currently only synthesize small states.
+    if (numQubits > 14) {
+      TODO("large (>14 qubit) cudaq::state* argument synthesis for simulators");
+      return {};
+    }
+
+    auto size = 1ULL << numQubits;
     auto ctx = builder.getContext();
     auto loc = builder.getUnknownLoc();
-    auto size = 1ULL << v->get_num_qubits();
     auto is64Bit =
         v->get_precision() == cudaq::SimulationState::precision::fp64;
     auto eleTy = is64Bit ? ComplexType::get(Float64Type::get(ctx))
                          : ComplexType::get(Float32Type::get(ctx));
     auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, size);
+    static unsigned counter = 0;
+    auto ptrTy = cudaq::cc::PointerType::get(arrTy);
 
+    cudaq::IRBuilder irBuilder(ctx);
     auto genConArray = [&]<typename T>() -> Value {
-      std::complex<T> data[size];
+      auto data = std::make_unique<std::complex<T>[]>(size);
       for (std::size_t i = 0; i < size; i++) {
         data[i] = (*v)({i}, 0);
       }
-      return genConstant(builder, arrTy, data, substMod, layout);
+      std::string name =
+          kernelName.str() + ".rodata_synth_" + std::to_string(counter++);
+      std::vector<std::complex<T>> vec(data.get(), data.get() + size);
+      irBuilder.genVectorOfConstants(loc, substMod, name, vec);
+      auto conGlobal = builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
+      return builder.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
     };
 
     auto conArr = is64Bit ? genConArray.template operator()<double>()
                           : genConArray.template operator()<float>();
 
-    cudaq::IRBuilder irBuilder(ctx);
     auto createState = is64Bit ? cudaq::createCudaqStateFromDataFP64
                                : cudaq::createCudaqStateFromDataFP32;
     auto result = irBuilder.loadIntrinsic(substMod, createState);
@@ -353,7 +368,8 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == cc::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
-                                  substModule, dataLayout, isSimulator);
+                                  substModule, dataLayout, kernelName,
+                                  isSimulator);
               return {};
             })
             .Case([&](cc::StdvecType ty) {

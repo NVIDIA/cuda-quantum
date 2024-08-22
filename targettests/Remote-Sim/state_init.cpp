@@ -21,6 +21,11 @@ __qpu__ void test_init_state() {
   ry(M_PI/2.0, q[0]);
 }
 
+__qpu__ void test_init_large_state() {
+  cudaq::qvector q(14);
+  ry(M_PI/2.0, q[0]);
+}
+
 __qpu__ void test_state_param(cudaq::state* state) {
   cudaq::qvector q1(state);
 }
@@ -63,7 +68,17 @@ int main() {
     auto counts = cudaq::sample(test_state_param, &state);
     printCounts(counts);
   }
-}
 
 // CHECK: 00
 // CHECK: 10
+
+  {
+    // Passing large state from another kernel as argument (kernel mode)
+    auto largeState = cudaq::get_state(test_init_large_state);
+    auto counts = cudaq::sample(test_state_param, &largeState);
+    printCounts(counts);
+  }
+
+// CHECK: 00000000000000
+// CHECK: 10000000000000
+}

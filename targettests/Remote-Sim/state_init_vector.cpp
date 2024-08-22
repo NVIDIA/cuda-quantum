@@ -84,6 +84,7 @@ int main() {
 
 // CHECK: 0000000000000000000
 // CHECK: 1000000000000000000
+
     {
       auto counts = cudaq::sample(test_complex_constant_array);
       printCounts(counts);
