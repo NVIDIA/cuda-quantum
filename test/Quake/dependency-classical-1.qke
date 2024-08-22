@@ -8,24 +8,24 @@
 
 // RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
 
-// This is a basic dead-code check
+// -----
 
-func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+func.func @test1() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %cst_0 = arith.constant 2.000000e+00 : f64
   %0 = quake.null_wire
-  %1 = quake.null_wire
+  %1 = quake.rx (%cst_0) %0 : (f64, !quake.wire) -> !quake.wire
   %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
-  quake.sink %0 : !quake.wire
   quake.sink %wires : !quake.wire
-  return %2 : i1
+  return %measOut : !quake.measure
 }
 
 // CHECK-LABEL:   quake.wire_set @wires[2147483647]
 
-// CHECK-LABEL:   func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
-// CHECK:           %[[VAL_1:.*]], %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
-// CHECK:           quake.return_wire %[[VAL_2]] : !quake.wire
-// CHECK:           return %[[VAL_3]] : i1
+// CHECK-LABEL:   func.func @test1() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_3:.*]], %[[VAL_4:.*]] = quake.mz %[[VAL_2]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           quake.return_wire %[[VAL_4]] : !quake.wire
+// CHECK:           return %[[VAL_3]] : !quake.measure
 // CHECK:         }

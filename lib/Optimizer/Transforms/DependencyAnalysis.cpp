@@ -130,6 +130,7 @@ private:
     if (best_reuse) {
       auto physical = best_reuse.value();
       lifetimes[physical]->combine(lifetime);
+      delete lifetime;
       return physical;
     }
 
@@ -148,6 +149,12 @@ private:
 public:
   LifeTimeAnalysis(StringRef name) : name(name), lifetimes(), frame() {}
 
+  ~LifeTimeAnalysis() {
+    for (auto lifetime : lifetimes)
+      if (lifetime)
+        delete lifetime;
+  }
+
   PhysicalQID allocatePhysical(VirtualQID qid, LifeTime *lifetime) {
     auto phys = allocatePhysical(lifetime);
     frame.insert(phys);
@@ -155,8 +162,11 @@ public:
   }
 
   SetVector<PhysicalQID> getAllocated() {
-    for (uint i = 0; i < lifetimes.size(); i++)
+    for (uint i = 0; i < lifetimes.size(); i++) {
+      if (lifetimes[i])
+        delete lifetimes[i];
       lifetimes[i] = nullptr;
+    }
     auto pqids = SetVector<PhysicalQID>(frame);
     frame.clear();
     return pqids;
@@ -374,6 +384,8 @@ protected:
 public:
   DependencyNode() : successors(), dependencies({}), qids({}), height(0) {}
 
+  virtual ~DependencyNode(){};
+
   virtual bool isAlloc() { return false; }
 
   uint getHeight() { return height; };
@@ -472,6 +484,8 @@ public:
     auto qid = op.getIdentity();
     qids.insert(qid);
   };
+
+  ~InitDependencyNode() override {}
 
   bool isAlloc() override { return true; }
 
@@ -576,20 +590,16 @@ protected:
     // This ensures that code gen is not too aggressive
     if (isSkip())
       for (auto dependency : dependencies)
-        if (!dependency->hasCodeGen) {
-          if (dependency->isQuantumDependent())
-            // Wait for quantum op dependency to be codeGen'ed
-            return;
-          else
-            dependency->codeGen(builder, set);
-        }
+        if (!dependency->hasCodeGen && dependency->isQuantumDependent())
+          // Wait for quantum op dependency to be codeGen'ed
+          return;
 
     genOp(builder, set);
     hasCodeGen = true;
 
     // Ensure classical values are generated
     for (auto successor : successors)
-      if (successor->isSkip())
+      if (successor->isSkip() && isQuantumDependent())
         successor->codeGen(builder, set);
   }
 
@@ -623,6 +633,8 @@ public:
 
     updateHeight();
   };
+
+  virtual ~OpDependencyNode() override {}
 
   void print() { printSubGraph(0); }
 
@@ -720,7 +732,6 @@ private:
   SetVector<VirtualQID> qids;
   DenseMap<PhysicalQID, DependencyNode *> qubits;
   uint total_height;
-  bool isScheduled = false;
   DependencyNode *tallest = nullptr;
   SetVector<DependencyNode *> containers;
 
@@ -904,14 +915,36 @@ private:
     roots.insert(new_root);
   }
 
+  /// Gathers all the nodes in the graph into seen, starting from next
+  void gatherNodes(SetVector<DependencyNode *> &seen, DependencyNode *next) {
+    if (seen.contains(next) || !next->isQuantumDependent())
+      return;
+
+    seen.insert(next);
+
+    for (auto successor : next->successors)
+      gatherNodes(seen, successor);
+    for (auto dependency : next->dependencies)
+      gatherNodes(seen, dependency.node);
+  }
+
 public:
   DependencyGraph(DependencyNode *root) {
     total_height = 0;
     SetVector<DependencyNode *> seen;
     qids = SetVector<VirtualQID>();
     gatherRoots(seen, root);
-    if (roots.size() == 0)
-      return;
+  }
+
+  ~DependencyGraph() {
+    SetVector<DependencyNode *> nodes;
+    for (auto root : roots)
+      gatherNodes(nodes, root);
+
+    for (auto node : nodes)
+      // ArgDependencyNodes are handled by the block and skipped here
+      if (!node->isLeaf() || !node->isQuantumOp() || node->isAlloc())
+        delete node;
   }
 
   SetVector<DependencyNode *> &getRoots() { return roots; }
@@ -1136,18 +1169,6 @@ public:
       }
     }
   }
-
-  // void updateLeafs() {
-  //   for (auto qid : qids) {
-  //     auto leaf = leafs[qid];
-  //     if (leaf->successors.empty()) {
-  //       leafs.erase(leafs.find(qid));
-  //       if (allocs.count(qid) == 1)
-  //         allocs.erase(allocs.find(qid));
-  //       qids.remove(qid);
-  //     }
-  //   }
-  // }
 };
 
 class RootDependencyNode : public OpDependencyNode {
@@ -1181,6 +1202,8 @@ public:
     // so have to recompute height here
     updateHeight();
   };
+
+  ~RootDependencyNode() override {}
 
   void eraseQID(VirtualQID qid) override {
     if (qids.contains(qid))
@@ -1236,6 +1259,8 @@ public:
       qids.insert(qid.value());
   }
 
+  ~ArgDependencyNode() override {}
+
   virtual std::string getOpName() override {
     return std::to_string(barg.getArgNumber()).append("arg");
   };
@@ -1286,6 +1311,8 @@ public:
         qids.insert(dependency.qid.value());
   }
 
+  ~TerminatorDependencyNode() override {}
+
   void genTerminator(OpBuilder &builder, LifeTimeAnalysis &set) {
     OpDependencyNode::codeGen(builder, set);
   }
@@ -1319,6 +1346,15 @@ public:
       : argdnodes(argdnodes), graph(graph), block(block),
         terminator(terminator), pqids() {
     height = graph->getHeight();
+  }
+
+  ~DependencyBlock() {
+    // Terminator is cleaned up by graph since it must be a root
+    delete graph;
+    // Arguments are not handled by the graph since they may not show up in the
+    // graph
+    for (auto argdnode : argdnodes)
+      delete argdnode;
   }
 
   uint getHeight() { return height; }
@@ -1584,6 +1620,7 @@ protected:
     successors.insert(then_op);
     then_op->dependencies = newDeps;
     else_op->erase();
+    delete else_op;
   }
 
   void liftOpBefore(OpDependencyNode *then_op, OpDependencyNode *else_op,
@@ -1645,6 +1682,7 @@ protected:
 
     then_op->erase();
     else_op->erase();
+    delete else_op;
 
     // Patch successors
     then_op->successors.insert(this);
@@ -1705,6 +1743,11 @@ public:
         qids.insert(edge.qid.value());
     }
     height += numTicks();
+  }
+
+  ~IfDependencyNode() override {
+    delete then_block;
+    delete else_block;
   }
 
   void contractAllocsPass() override {
@@ -1932,8 +1975,11 @@ bool validateOp(Operation *op) {
                     "may be reordered");
   }
 
-  if (isa<quake::NullWireOp>(op)) {
-    op->emitWarning("DependencyAnalysisPass: `null_wire` are not supported");
+  if (hasEffect<mlir::MemoryEffects::Allocate>(op) && isQuakeOperation(op) &&
+      !isa<quake::BorrowWireOp>(op)) {
+    op->emitOpError("DependencyAnalysisPass: `quake.borrow_wire` is only "
+                    "supported qubit allocation operation");
+    return false;
   }
 
   return true;
@@ -1955,7 +2001,6 @@ class DependencyAnalysisEngine {
 private:
   SmallVector<DependencyNode *> perOp;
   DenseMap<BlockArgument, ArgDependencyNode *> argMap;
-  SetVector<DependencyNode *> constants;
 
 public:
   DependencyAnalysisEngine() : perOp({}), argMap({}) {}
@@ -2004,11 +2049,15 @@ public:
     DependencyGraph *new_graph = new DependencyGraph(terminator);
     auto included = new_graph->getRoots();
 
-    for (auto [root, op] : roots)
-      if (!included.contains(root))
-        op->emitWarning(
-            "DependencyAnalysisPass: Wire is dead code and its operations will "
-            "be deleted (did you forget to return a value?)");
+    LLVM_DEBUG(for (auto [root, op]
+                    : roots) {
+      if (!included.contains(root)) {
+        llvm::dbgs()
+            << "DependencyAnalysisPass: Wire is dead code and its "
+            << "operations will be deleted (did you forget to return a value?)"
+            << root << "\n";
+      }
+    });
 
     return new DependencyBlock(argdnodes, new_graph, b, terminator);
   }
@@ -2040,8 +2089,6 @@ public:
       newNode = new TerminatorDependencyNode(op, dependencies);
     } else {
       newNode = new OpDependencyNode(op, dependencies);
-      if (!newNode->isQuantumDependent())
-        constants.insert(newNode);
     }
 
     // Dnodeid is the next slot of the dnode vector
@@ -2076,8 +2123,6 @@ public:
     auto dnode = perOp[id];
     return DependencyNode::DependencyEdge{dnode, resultidx};
   }
-
-  SetVector<DependencyNode *> &getConstants() { return constants; }
 };
 
 struct DependencyAnalysisPass
@@ -2105,8 +2150,6 @@ struct DependencyAnalysisPass
         auto body = engine.visitBlock(
             oldBlock, SmallVector<DependencyNode::DependencyEdge>());
 
-        auto constants = engine.getConstants();
-
         if (!body) {
           signalPassFailure();
           return;
@@ -2122,6 +2165,8 @@ struct DependencyAnalysisPass
         body->performAnalysis(set);
         // Finally, perform code generation to move back to quake
         body->codeGen(builder, &func.getRegion(), set);
+
+        delete body;
 
         // Replace old block
         oldBlock->erase();
