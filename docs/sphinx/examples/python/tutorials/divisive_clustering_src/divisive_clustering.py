@@ -12,6 +12,7 @@ from scipy.stats import multivariate_normal
 from sklearn.cluster import KMeans
 from tqdm import tqdm
 
+np.random.seed(10)
 
 class Coreset:
 
