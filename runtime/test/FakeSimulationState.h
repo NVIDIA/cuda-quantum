@@ -10,9 +10,7 @@
 #include <cassert>
 #include <memory>
 
-namespace cudaq {
-
-class FakeSimulationState : public SimulationState {
+class FakeSimulationState : public cudaq::SimulationState {
 private:
   std::size_t size = 0;
   void *data = 0;
@@ -29,7 +27,7 @@ public:
   FakeSimulationState(std::size_t size, void *data) : size(size), data(data) {}
 
   virtual std::unique_ptr<cudaq::SimulationState>
-  createFromData(const state_data &data) override {
+  createFromData(const cudaq::state_data &data) override {
     std::runtime_error("Not implemented");
     return std::make_unique<FakeSimulationState>(0, nullptr);
   }
@@ -107,5 +105,3 @@ public:
 
   virtual ~FakeSimulationState() {}
 };
-
-} // namespace cudaq

@@ -294,8 +294,7 @@ void test_state(mlir::MLIRContext *ctx) {
   {
     std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
                                            0.,        0.,        0., 0.};
-    auto x =
-        cudaq::state(new cudaq::FakeSimulationState(data.size(), data.data()));
+    auto x = cudaq::state(new FakeSimulationState(data.size(), data.data()));
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.ptr<!cc.state>", v);
   }
