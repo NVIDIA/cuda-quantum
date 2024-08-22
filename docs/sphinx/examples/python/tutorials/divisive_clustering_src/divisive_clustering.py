@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 np.random.seed(10)
 
+
 class Coreset:
 
     def __init__(
