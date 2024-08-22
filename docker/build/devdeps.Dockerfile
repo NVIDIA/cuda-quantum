@@ -26,7 +26,7 @@
 ARG base_image=ubuntu:22.04
 
 # [CUDA-Q Dependencies]
-FROM ${base_image} as prereqs
+FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
 ARG toolchain=gcc11
 

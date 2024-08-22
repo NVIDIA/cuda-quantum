@@ -107,6 +107,20 @@ def test_cupy_to_state():
     assert np.isclose(result, 1.0, atol=1e-3)
 
 
+def test_cupy_to_state_without_dtype():
+    cp_data = cp.array([.707107, 0, 0, .707107])
+    state_from_cupy = cudaq.State.from_data(cp_data)
+    state_from_cupy.dump()
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(2)
+    kernel.h(q[0])
+    kernel.cx(q[0], q[1])
+    # State is on the GPU, this is nvidia target
+    state = cudaq.get_state(kernel)
+    result = state.overlap(state_from_cupy)
+    assert np.isclose(result, 1.0, atol=1e-3)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

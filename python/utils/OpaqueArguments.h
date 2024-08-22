@@ -10,12 +10,16 @@
 
 #include "PyTypes.h"
 #include "common/FmtCore.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/pauli_word.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/CAPI/IR.h"
+#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Target/LLVMIR/TypeToLLVM.h"
 #include <chrono>
 #include <complex>
 #include <functional>
@@ -39,6 +43,8 @@ namespace cudaq {
 class OpaqueArguments {
 public:
   using OpaqueArgDeleter = std::function<void(void *)>;
+
+  const std::vector<void *> &getArgs() const { return args; }
 
 private:
   /// @brief The opaque argument pointers
@@ -185,6 +191,87 @@ inline std::string mlirTypeToString(mlir::Type ty) {
   return msg;
 }
 
+/// @brief Return the size and member variable offsets for the input struct.
+inline std::pair<std::size_t, std::vector<std::size_t>>
+getTargetLayout(func::FuncOp func, cudaq::cc::StructType structTy) {
+  auto mod = func->getParentOfType<ModuleOp>();
+  StringRef dataLayoutSpec = "";
+  if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
+    dataLayoutSpec = cast<StringAttr>(attr);
+  auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+  // Convert bufferTy to llvm.
+  llvm::LLVMContext context;
+  LLVMTypeConverter converter(func.getContext());
+  cudaq::opt::initializeTypeConversions(converter);
+  auto llvmDialectTy = converter.convertType(structTy);
+  LLVM::TypeToLLVMIRTranslator translator(context);
+  auto *llvmStructTy =
+      cast<llvm::StructType>(translator.translateType(llvmDialectTy));
+  auto *layout = dataLayout.getStructLayout(llvmStructTy);
+  auto strSize = layout->getSizeInBytes();
+  std::vector<std::size_t> fieldOffsets;
+  for (std::size_t i = 0, I = structTy.getMembers().size(); i != I; ++i)
+    fieldOffsets.emplace_back(layout->getElementOffset(i));
+  return {strSize, fieldOffsets};
+}
+
+/// @brief For the current struct member variable type, insert the
+/// value into the dynamically-constructed struct.
+inline void handleStructMemberVariable(void *data, std::size_t offset,
+                                       Type memberType, py::object value) {
+  auto appendValue = [](void *data, auto &&value, std::size_t offset) {
+    std::memcpy(((char *)data) + offset, &value,
+                sizeof(std::remove_cvref_t<decltype(value)>));
+  };
+  llvm::TypeSwitch<Type, void>(memberType)
+      .Case([&](IntegerType ty) {
+        if (ty.isInteger(1)) {
+          appendValue(data, value.cast<py::bool_>(), offset);
+          return;
+        }
+        appendValue(data, (std::size_t)value.cast<py::int_>(), offset);
+      })
+      .Case([&](mlir::Float64Type ty) {
+        appendValue(data, (double)value.cast<py::float_>(), offset);
+      })
+      .Case([&](cudaq::cc::StdvecType ty) {
+        auto appendVectorValue = []<typename T>(py::object value, void *data,
+                                                std::size_t offset, T) {
+          auto asList = value.cast<py::list>();
+          std::vector<double> *values = new std::vector<double>(asList.size());
+          for (std::size_t i = 0; auto &v : asList)
+            (*values)[i++] = v.cast<double>();
+
+          std::memcpy(((char *)data) + offset, values, 16);
+        };
+
+        TypeSwitch<Type, void>(ty.getElementType())
+            .Case([&](IntegerType type) {
+              if (type.isInteger(1)) {
+                appendVectorValue(value, data, offset, bool());
+                return;
+              }
+
+              appendVectorValue(value, data, offset, std::size_t());
+              return;
+            })
+            .Case([&](FloatType type) {
+              if (type.isF32()) {
+                appendVectorValue(value, data, offset, float());
+                return;
+              }
+
+              appendVectorValue(value, data, offset, double());
+              return;
+            });
+      })
+      .Default([&](Type ty) {
+        ty.dump();
+        throw std::runtime_error(
+            "Type not supported for custom struct in kernel.");
+      });
+}
+
 inline void packArgs(OpaqueArguments &argData, py::args args,
                      mlir::func::FuncOp kernelFuncOp,
                      const std::function<bool(OpaqueArguments &argData,
@@ -254,6 +341,22 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
                                      py::str(arg).cast<std::string>() +
                                      " Type: " + mlirTypeToString(ty));
           }
+        })
+        .Case([&](cudaq::cc::StructType ty) {
+          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+          auto memberTys = ty.getMembers();
+          auto allocatedArg = std::malloc(size);
+          py::dict attributes = arg.attr("__annotations__").cast<py::dict>();
+          for (std::size_t i = 0;
+               const auto &[attr_name, unused] : attributes) {
+            py::object attr_value =
+                arg.attr(attr_name.cast<std::string>().c_str());
+            handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
+                                       attr_value);
+            i++;
+          }
+
+          argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
         })
         .Case([&](cudaq::cc::StdvecType ty) {
           checkArgumentType<py::list>(arg, i);

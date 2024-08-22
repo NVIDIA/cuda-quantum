@@ -6,11 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os, time
+import cudaq
+import pytest
+import os
 from cudaq import spin
 import numpy as np
 from typing import List
-from multiprocessing import Process
 
 
 def assert_close(got) -> bool:
