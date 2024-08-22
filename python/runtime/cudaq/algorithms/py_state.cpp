@@ -64,13 +64,13 @@ state pyGetState(py::object kernel, py::args args) {
 class PyRemoteSimulationState : public RemoteSimulationState {
   // Holder of args data for clean-up.
   cudaq::OpaqueArguments *argsData;
-
+  mlir::ModuleOp kernelMod;
 public:
   PyRemoteSimulationState(const std::string &in_kernelName,
                           cudaq::ArgWrapper args,
                           cudaq::OpaqueArguments *argsDataToOwn,
                           std::size_t size, std::size_t returnOffset)
-      : argsData(argsDataToOwn) {
+      : argsData(argsDataToOwn), kernelMod(args.mod) {
     this->kernelName = in_kernelName;
   }
 
@@ -84,8 +84,12 @@ public:
       // execute and then reset
       platform.set_exec_ctx(&context);
       // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
-      // ArgWrapper pointer.
-      platform.launchKernel(kernelName, argsData->getArgs());
+      // ModuleOp pointer as the first element in the args array in StreamLined
+      // mode.
+      auto args = argsData->getArgs();
+      args.insert(args.begin(),
+                  const_cast<void *>(static_cast<const void *>(&kernelMod)));
+      platform.launchKernel(kernelName, args);
       platform.reset_exec_ctx();
       state = std::move(context.simulationState);
     }
@@ -104,7 +108,10 @@ public:
         static_cast<const cudaq::SimulationState *>(this),
         static_cast<const cudaq::SimulationState *>(&otherState));
     platform.set_exec_ctx(&context);
-    platform.launchKernel(kernelName, argsData->getArgs());
+    auto args = argsData->getArgs();
+    args.insert(args.begin(),
+                const_cast<void *>(static_cast<const void *>(&kernelMod)));
+    platform.launchKernel(kernelName, args);
     platform.reset_exec_ctx();
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();
