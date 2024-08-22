@@ -429,7 +429,7 @@ public:
   /// Remove this dependency node from the path for \p qid by replacing
   /// successor dependencies on \p qid with the relevant dependency from this
   /// node.
-  virtual void eraseQID(VirtualQID qid) = 0;
+  virtual void eraseEdgeForQID(VirtualQID qid) = 0;
 
   virtual std::optional<VirtualQID> getQIDForResult(size_t resultidx) = 0;
 };
@@ -500,8 +500,8 @@ public:
     return qubit && other_init->qubit && qubit == other_init->qubit;
   }
 
-  void eraseQID(VirtualQID qid) override {
-    assert(false && "Can't call eraseQID with an InitDependencyNode");
+  void eraseEdgeForQID(VirtualQID qid) override {
+    assert(false && "Can't call eraseEdgeForQID with an InitDependencyNode");
   }
 
   SetVector<PhysicalQID> getQubits() override {
@@ -640,7 +640,7 @@ public:
 
   uint getHeight() { return height; }
 
-  DependencyEdge getDependencyForResult(size_t resultidx) {
+  virtual DependencyEdge getDependencyForResult(size_t resultidx) {
     return dependencies[getOperandIDXFromResultIDX(resultidx, associated)];
   }
 
@@ -648,28 +648,58 @@ public:
     return getResultIDXFromOperandIDX(operandidx, associated);
   }
 
-  virtual void eraseQID(VirtualQID qid) override {
-    qids.remove(qid);
+  virtual void eraseEdgeForQID(VirtualQID qid) override {
+    DependencyNode *dependency = nullptr;
+
     for (auto successor : successors) {
+      // Special case: don't patch discriminate for a measure
+      if (!successor->isQuantumOp())
+        continue;
+
+      bool remove = true;
       for (uint j = 0; j < successor->dependencies.size(); j++) {
         auto edge = successor->dependencies[j];
-        if (edge.node == this && edge.qid == qid) {
-          auto operandIDX =
-              getOperandIDXFromResultIDX(edge.resultidx, associated);
-          auto dep = dependencies[operandIDX];
-          successor->dependencies[j] = dep;
-          dependencies.erase(dependencies.begin() + operandIDX);
-          // TODO: only remove if all paths from dep are removed
-          dep->successors.remove(this);
-          dep->successors.insert(successor);
-          return;
+        if (edge.node == this) {
+          if (edge.qid == qid) {
+            auto dep = getDependencyForResult(edge.resultidx);
+            successor->dependencies[j] = dep;
+            dependency = dep.node;
+            //dependencies.erase(dependencies.begin() + operandIDX);
+            dependency->successors.insert(successor);
+          } else {
+            remove = false;
+          }
         }
       }
+
+      if (remove) {
+        successors.remove(successor);
+        successor->updateHeight();
+      }
+    }
+
+    if (dependency) {
+      bool remove = true;
+      for (uint i = 0; i < dependencies.size(); i++)
+        if (dependencies[i].node == dependency) {
+          // Remove index
+          if (dependencies[i].qid == qid)
+            dependencies.erase(dependencies.begin() + i);
+          // We still depend on dependency for other QIDs
+          else
+            remove = false;
+        }
+
+      // Only remove this as a successor from dependency if this was the last
+      // QID from dependency we depended on
+      if (remove)
+        dependency->successors.remove(this);
     }
   }
 
-  /// Remove this dependency node from the graph by replacing all successor
-  /// dependencies with the relevant dependency from this node.
+  /// Removes this dependency node from the graph by replacing all successor
+  /// dependencies with the relevant dependency from this node. Also deletes
+  /// this node and any classical values that only this node depends on.
   void erase() {
     for (auto successor : successors) {
       bool remove = true;
@@ -687,14 +717,18 @@ public:
         }
       }
 
-      if (remove)
+      if (remove) {
         successors.remove(successor);
+        successor->updateHeight();
+      }
     }
 
+    // TODO: clean up classical dependencies properly
     for (auto dependency : dependencies) {
       dependency->successors.remove(this);
-      if (dependency->successors.empty() && !dependency->isLeaf())
+      if (dependency->successors.empty() && !dependency->isLeaf()) {
         static_cast<OpDependencyNode *>(dependency.node)->erase();
+      }
     }
   }
 
@@ -872,8 +906,12 @@ private:
               DependencyNode::DependencyEdge(new_leaf, 0);
       old_leaf->successors.remove(first_use);
       new_leaf->successors.insert(first_use);
-      if (old_leaf->isAlloc())
+      if (old_leaf->isAlloc()) {
         allocs.erase(allocs.find(old_qid));
+        auto alloc = static_cast<InitDependencyNode *>(old_leaf);
+        if (alloc->qubit)
+          qubits.erase(qubits.find(alloc->qubit.value()));
+      }
     }
 
     leafs[new_qid] = new_leaf;
@@ -1006,10 +1044,8 @@ public:
     assert(qubits.count(qubit) == 1 && "Given qubit not in dependency graph");
     auto defining = qubits[qubit];
     // Qubit is defined here, return the first use
-    if (defining->isAlloc()) {
-      auto alloc = static_cast<InitDependencyNode *>(defining);
-      return getFirstUseOfQID(alloc->getQID());
-    }
+    if (defining->isAlloc())
+      return static_cast<OpDependencyNode *>(defining->successors.front());
 
     // Qubit is defined in a container which is an OpDependencyNode
     return static_cast<OpDependencyNode *>(defining);
@@ -1205,7 +1241,7 @@ public:
 
   ~RootDependencyNode() override {}
 
-  void eraseQID(VirtualQID qid) override {
+  void eraseEdgeForQID(VirtualQID qid) override {
     if (qids.contains(qid))
       dependencies.clear();
   }
@@ -1265,8 +1301,8 @@ public:
     return std::to_string(barg.getArgNumber()).append("arg");
   };
 
-  void eraseQID(VirtualQID qid) override {
-    assert(false && "Can't call eraseQID with an ArgDependencyNode");
+  void eraseEdgeForQID(VirtualQID qid) override {
+    assert(false && "Can't call eraseEdgeForQID with an ArgDependencyNode");
   }
 
   std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
@@ -1317,15 +1353,15 @@ public:
     OpDependencyNode::codeGen(builder, set);
   }
 
-  void eraseQID(VirtualQID qid) override {
+  void eraseEdgeForQID(VirtualQID qid) override {
     for (uint i = 0; i < dependencies.size(); i++)
       if (dependencies[i].qid == qid)
         dependencies.erase(dependencies.begin() + i);
-    qids.remove(qid);
   }
 
   std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
-    assert(resultidx < dependencies.size() && "Invalid ressultidx");
+    if (resultidx >= dependencies.size())
+      return std::nullopt;
     return dependencies[resultidx].qid;
   }
 };
@@ -1487,8 +1523,8 @@ public:
   }
 
   void lowerAlloc(DependencyNode *init, DependencyNode *root, VirtualQID qid) {
-    removeArgument(qid);
     graph->replaceLeafAndRoot(qid, init, root);
+    removeArgument(qid);
   }
 
   void liftAlloc(VirtualQID qid, DependencyNode *lifted_alloc) {
@@ -1503,7 +1539,7 @@ public:
   void removeQID(VirtualQID qid) {
     removeArgument(qid);
 
-    terminator->eraseQID(qid);
+    terminator->eraseEdgeForQID(qid);
     graph->removeQID(qid);
   }
 
@@ -1532,6 +1568,7 @@ public:
   void removeArgument(VirtualQID qid) {
     for (uint i = 0; i < argdnodes.size(); i++)
       if (argdnodes[i]->qids.contains(qid)) {
+        delete argdnodes[i];
         argdnodes.erase(argdnodes.begin() + i);
         break;
       }
@@ -1573,13 +1610,14 @@ protected:
     auto newDeps = SmallVector<DependencyEdge>();
     auto allocated = then_block->getAllocatedQubits();
     assert(then_op->dependencies.size() == then_op->successors.size());
+
     for (uint i = 0; i < then_op->dependencies.size(); i++) {
       auto dependency = then_op->dependencies[i];
       assert(dependency.qid && "Lifting operations with classical input after "
                                "blocks is not yet supported.");
 
       auto then_qid = dependency.qid.value();
-      then_op->eraseQID(then_qid);
+      then_op->eraseEdgeForQID(then_qid);
 
       // Lift allocated qubit
       if (dependency.qubit && allocated.contains(dependency.qubit.value())) {
@@ -1637,12 +1675,16 @@ protected:
                                    ? else_op->successors.back()
                                    : else_op->successors.front();
       else_discriminate->replaceWith(DependencyEdge{then_discriminate, 0});
+      delete else_discriminate;
     }
 
-    // Construct new dependencies
+    // Construct new dependencies for then_op based on the dependencies for this
+    // `if`
     for (uint i = 0; i < then_op->dependencies.size(); i++) {
       auto dependency = then_op->dependencies[i];
 
+      // If the dependency is an alloc, lift the physical wire to the parent
+      // graph
       if (dependency->isAlloc()) {
         auto then_qid = dependency.qid.value();
         auto else_qid = else_op->dependencies[i].qid.value();
@@ -1653,34 +1695,58 @@ protected:
         else_block->liftAlloc(else_qid, lifted_alloc);
 
         // Add virtual alloc to current scope
-        this->successors.insert(lifted_root);
         parent->replaceLeafAndRoot(then_qid, lifted_alloc, lifted_root);
         qids.insert(then_qid);
-        newDeps.push_back(dependency);
-        DependencyEdge newEdge(then_op, then_op->getResultForDependency(i));
-        dependencies.push_back(newEdge);
+        // Hook lifted_root to the relevant result wire from this
+        this->successors.insert(lifted_root);
         lifted_root->dependencies.push_back(
             DependencyEdge{this, results.size()});
-        lifted_alloc->successors.insert(then_op);
+        // Add a new result wire for the lifted wire which will flow to
+        // lifted_root
         results.push_back(dependency.getValue().getType());
-      } else if (!dependency->isQuantumOp()) {
+        // Hook lifted_alloc to then_op
+        lifted_alloc->successors.insert(then_op);
+        // This looks a little strange, but the node for dependency here is
+        // lifted_alloc (after being lifted to the parent), which is indeed the
+        // dependency we want to add here
         newDeps.push_back(dependency);
+        // Hook this to then_op by adding a new dependency for the lifted wire
+        DependencyEdge newEdge(then_op, then_op->getResultForDependency(i));
+        dependencies.push_back(newEdge);
+
+        // Remove then_op from the route for then_qid inside the block
+        then_op->eraseEdgeForQID(then_qid);
       } else if (dependency->isLeaf()) {
+        // The dependency is a block argument, and therefore reflects a
+        // dependency for this `if` First, find the relevant argument
         ArgDependencyNode *arg =
             static_cast<ArgDependencyNode *>(dependency.node);
         auto num = arg->getArgNumber();
+        // Then, get the dependency from this `if` for the relevant argument,
+        // this will be the new dependency for `then_op`
         auto newDep = dependencies[num + 1];
         newDep->successors.remove(this);
         newDep->successors.insert(then_op);
         newDeps.push_back(newDep);
         arg->successors.remove(then_op);
 
+        // Replace the dependency with the relevant result from the lifted node
         dependencies[num + 1] =
             DependencyEdge{then_op, then_op->getResultForDependency(i)};
+
+        // Remove then_op from the route for then_qid inside the block
+        then_op->eraseEdgeForQID(dependency.qid.value());
+      } else if (!dependency->isQuantumOp()) {
+        newDeps.push_back(dependency);
+        // Recursively update parent of implicitly lifted classical dependencies
+        dependency->updateParent(then_op->parent, parent);
+      } else {
+        assert(
+            false &&
+            "Trying to lift a quantum operation before dependency was lifted");
       }
     }
 
-    then_op->erase();
     else_op->erase();
     delete else_op;
 
@@ -1727,6 +1793,17 @@ protected:
     return then_block->getQIDForResult(resultidx);
   }
 
+  DependencyEdge getDependencyForResult(size_t resultidx) override {
+    auto qid = getQIDForResult(resultidx);
+    assert(qid.has_value() &&
+           "Cannot get dependency for classical result of if");
+    for (auto dependency : dependencies)
+      if (dependency.qid == qid.value())
+        return dependency;
+
+    assert(false && "Cannot find dependency for linear type result of if");
+  }
+
 public:
   IfDependencyNode(cudaq::cc::IfOp op, SmallVector<DependencyEdge> dependencies,
                    DependencyBlock *then_block, DependencyBlock *else_block)
@@ -1755,16 +1832,24 @@ public:
     else_block->contractAllocsPass();
   }
 
-  void eraseQID(VirtualQID qid) override {
-    for (uint i = 0; i < dependencies.size(); i++)
-      if (dependencies[i].qid == qid)
-        results.erase(results.begin() + i - 1);
+  void eraseEdgeForQID(VirtualQID qid) override {
+    // First, calculate which result to remove, but don't remove it yet
+    uint i = 0;
+    for (; i < results.size(); i++)
+      if (getQIDForResult(i) == qid)
+        break;
 
+    // Erase the actual edge with the blocks now set up properly
+    this->OpDependencyNode::eraseEdgeForQID(qid);
+
+    // Now, remove the QID from the blocks so that the blocks are set up
+    // properly
     then_block->removeQID(qid);
     else_block->removeQID(qid);
-    this->OpDependencyNode::eraseQID(qid);
-    if (results.empty())
-      dependencies[0]->successors.remove(this);
+
+    // Finally, remove the calculated result, which can no longer be calculated
+    // because it was removed from the blocks
+    results.erase(results.begin() + i);
   }
 
   bool tryLiftingBefore(OpDependencyNode *then_use, OpDependencyNode *else_use,
@@ -1776,9 +1861,8 @@ public:
       // If two nodes are equivalent, all their dependencies will be too,
       // but we can't lift them until all their dependencies have been lifted,
       // so we skip them for now.
-      for (auto dependency : then_use->dependencies)
-        if (!dependency->isSkip())
-          return false;
+      if (then_use->height > then_use->numTicks())
+        return false;
 
       liftOpBefore(then_use, else_use, parent);
       return true;
@@ -1859,8 +1943,17 @@ public:
         auto then_use = then_block->getFirstUseOfQID(qid);
         auto else_use = else_block->getFirstUseOfQID(qid);
 
+        // QID is no longer reference in the if, erase it
+        if (!then_use || !else_use) {
+          if (!then_use && !else_use)
+            eraseEdgeForQID(qid);
+          unliftableQIDs.insert(qid);
+          continue;
+        }
+
         if (tryLiftingBefore(then_use, else_use, parent)) {
           lifted = true;
+          run_more = true;
           continue;
         }
 
@@ -1869,6 +1962,7 @@ public:
 
         if (tryLiftingAfter(then_use, else_use, parent)) {
           lifted = true;
+          run_more = true;
           continue;
         }
       }
