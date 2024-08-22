@@ -42,6 +42,7 @@ add_cudaq_library(OptTransforms
   MemToReg.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
+  OptimizeStateCreation.cpp
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
   QuakeAddMetadata.cpp
