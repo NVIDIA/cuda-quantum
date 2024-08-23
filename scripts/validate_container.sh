@@ -261,7 +261,7 @@ echo "============================="
 # Divisive_clustering.ipynb notebook, so they are tested elsewhere and should be
 # excluded from this test. 
 # Same with afqmc.
-for ex in `find examples/ -name '*.py' -not -path '*/divisive_clustering_src/*'` -not -path '*/afqmc_src/*'`;
+for ex in `find examples/ -name '*.py' -not -path '*/divisive_clustering_src/*' -not -path '*/afqmc_src/*'`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
