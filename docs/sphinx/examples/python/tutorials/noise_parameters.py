@@ -2,15 +2,15 @@ import cudaq
 import numpy as np
 
 ### Hidden qubit parameters
-T1 = 1000  #ns
-T2 = 200  #ns
+T1 = 1000  # nanoseconds
+T2 = 200  # nanoseconds
 detuning_rate = np.pi / 250
 
 ### Define Kraus Channels
 
 
 def error_prob(t, T12):
-    error = 1 - np.exp(-t / T12)  #nanoseconds
+    error = 1 - np.exp(-t / T12)  # nanoseconds
     return error
 
 
@@ -56,17 +56,17 @@ def hidden_noise_model(t):
     #initialize the noise model
     noise_model = cudaq.NoiseModel()
 
-    ##add noise to r1 "delay"
+    ##add noise to `r1` "delay"
     noise_model.add_channel("r1", [0], t1_kraus(t, T1))
     noise_model.add_channel("r1", [0], t2_kraus(t, T2))
     noise_model.add_channel("r1", [0], coherent_z_kraus(t * detuning_rate))
 
-    ##add noise to rx
+    ##add noise to `rx`
     noise_model.add_channel("rx", [0], t1_kraus(t, T1))
     noise_model.add_channel("rx", [0], t2_kraus(t, T2))
     noise_model.add_channel("rx", [0], coherent_z_kraus(t * detuning_rate))
 
-    ##add noise to rz
+    ##add noise to `rz`
     noise_model.add_channel("rz", [0], t1_kraus(t, T1))
     noise_model.add_channel("rz", [0], t2_kraus(t, T2))
     noise_model.add_channel("rz", [0], coherent_z_kraus(t * detuning_rate))
