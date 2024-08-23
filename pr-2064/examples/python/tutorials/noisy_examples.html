@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noisy Qubit Modeling Using the CUDA-Q Density Matrix Simulator &mdash; NVIDIA CUDA-Q  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/cudaq_override.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/_static/cudaq_override.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/tabs.js"></script>
+        <script src="../../../_static/clipboard.min.js"></script>
+        <script src="../../../_static/copybutton.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Readout Error Mitigation" href="readout_error_mitigation.html" />
+    <link rel="prev" title="Noisy Simulation" href="noisy_simulations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #76b900" > 
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            NVIDIA CUDA-Q
+          </a>
+              <div class="version">
+                amd64-pr-2064
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+  <style>
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #76b900;
+    }
+
+    .wy-side-nav-search a:link, .wy-nav-top a:link {
+      color: #fff;
+    }
+    .wy-side-nav-search a:visited, .wy-nav-top a:visited {
+      color: #fff;
+    }
+    .wy-side-nav-search a:hover, .wy-nav-top a:hover {
+      color: #fff;
+    }
+
+    .wy-menu-vertical a:link, .wy-menu-vertical a:visited {
+      color: #d9d9d9
+    }
+
+    .wy-menu-vertical a:active {
+      background-color: #76b900
+    }
+
+    .wy-side-nav-search>div.version {
+      color: rgba(0, 0, 0, 0.3)
+    }
+
+    /* override table width restrictions */
+    .wy-table-responsive table td, .wy-table-responsive table th {
+        white-space: normal;
+    }
+
+    .wy-table-responsive {
+        margin-bottom: 24px;
+        max-width: 100%;
+        overflow: visible;
+    }
+  </style>
+  
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../using/quick_start.html">   Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../using/basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/basics/run_kernel.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/troubleshooting.html">   Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../using/examples/examples.html">   Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/introduction.html">   Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">   Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html#Qubit-Visualization">Qubit Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#available-targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#parallelization-across-multiple-processors">Parallelization across Multiple Processors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/vqe.html">   Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/cuquantum.html">   Simulations with cuQuantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/noisy_simulation.html">   Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#ionq">IonQ</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#iqm">IQM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#oqc">OQC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hadamard_test.html">Hadamard Test and Application</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Using-observe-algorithmic-primitive-to-compute-the-expectation-value-for-ancilla-qubits.">Using <code class="docutils literal notranslate"><span class="pre">observe</span></code> algorithmic primitive to compute the expectation value for ancilla qubits.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Use-multi-GPUs-to-compute-multiple-Hadamard-test-in-parallel">Use multi-GPUs to compute multiple Hadamard test in parallel</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maximum_vertex_weight_clique.html">Molecular docking via DC-QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Noisy Qubit Modeling Using the CUDA-Q Density Matrix Simulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Amplitude-calibration">Amplitude calibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Frequency-calibration">Frequency calibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#T_1-measurement"><span class="math notranslate nohighlight">\(T_1\)</span> measurement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#T_2^*-measurement"><span class="math notranslate nohighlight">\(T_2^*\)</span> measurement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#T_2-measurement"><span class="math notranslate nohighlight">\(T_2\)</span> measurement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Building-custom-noise-models-and-leveraging-CUDA-Q's-prebuilt-noise-models">Building custom noise models and leveraging CUDA-Q’s prebuilt noise models</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vqe_water_active_space.html">Water Molecule with Active Space (CPU vs. GPU)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#A--Classical-simulation-as-a-reference:-CCSD">A- Classical simulation as a reference: CCSD</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe_water_active_space.html#B--VQE-UCCSD:">B- VQE-UCCSD:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Divisive_clustering.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Data-preprocessing">Data preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Quantum-functions">Quantum functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#QAOA-Implementation">QAOA Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="H2-MRQKS.html">Multi-Reference Quantum Krylov Algorithm (H2 Example)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../using/backends/backends.html">   Backends</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/backends/simulators.html">   Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#features">Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/simulators.html#matrix-product-state">Matrix product state</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/simulators.html#default-simulator">Default Simulator</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/backends/hardware.html">   Quantum Hardware</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#ionq">IonQ</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#submission-from-c">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#submission-from-python">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id1">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id2">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id3">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id4">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id5">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id6">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#orca-computing">ORCA Computing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id8">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id9">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id11">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#id12">Submission from Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/backends/nvqc.html">   NVIDIA Quantum Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/nvqc.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/nvqc.html#faq">FAQ</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/backends/platform.html">   Multi-Processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/backends/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/backends/platform.html#accessing-simulated-quantum-state">Accessing Simulated Quantum State</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../using/install/install.html">   Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/install/local_installation.html">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#introduction">Introduction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#singularity">Singularity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#python-wheels">Python wheels</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#pre-built-binaries">Pre-built binaries</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#dgx-cloud">DGX Cloud</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#get-started">Get Started</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#use-jupyterlab">Use JupyterLab</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#use-vs-code">Use VS Code</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#additional-cuda-tools">Additional CUDA Tools</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#installation-via-pypi">Installation via PyPI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#installation-in-container-images">Installation In Container Images</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/local_installation.html#installing-pre-built-binaries">Installing Pre-built Binaries</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/install/data_center_install.html">Data Center Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#c-support">C++ Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#mpi">MPI</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../using/integration/integration.html">   Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/integration/cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/integration/libraries.html">Integrating with Third-Party Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/integration/libraries.html#calling-a-cuda-q-library-from-c">Calling a CUDA-Q library from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/integration/libraries.html#calling-an-c-library-from-cuda-q">Calling an C++ library from CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains">Interfacing between binaries compiled with a different toolchains</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../using/extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../specification/index.html">   Specifications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../specification/cudaq.html">   Language Specification</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/machine_model.html">1. Machine Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/namespace.html">2. Namespace and Standard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/types.html">3. Quantum Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/types.html#quantum-containers">3.3. Quantum Containers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/operators.html">4. Quantum Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/patterns.html">10. Quantum Patterns</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/patterns.html#compute-action-uncompute">10.1. Compute-Action-Uncompute</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/platform.html">11. Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/examples.html">13. Example Programs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/examples.html#hello-world-simple-bell-state">13.1. Hello World - Simple Bell State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/examples.html#ghz-state-preparation-and-sampling">13.2. GHZ State Preparation and Sampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/examples.html#quantum-phase-estimation">13.3. Quantum Phase Estimation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/examples.html#deuteron-binding-energy-parameter-sweep">13.4. Deuteron Binding Energy Parameter Sweep</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/examples.html#grover-s-algorithm">13.5. Grover’s Algorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/examples.html#iterative-phase-estimation">13.6. Iterative Phase Estimation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../specification/quake-dialect.html">   Quake Specification</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#motivation">Motivation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">   API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/languages/cpp_api.html">C++ API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#operators">Operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#quantum">Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#common">Common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#algorithms">Algorithms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#platform">Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#utilities">Utilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/languages/python_api.html">Python API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#program-construction">Program Construction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.PyKernelDecorator"><code class="docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.kernel"><code class="docutils literal notranslate"><span class="pre">kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#mpi-submodule">MPI Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.mpi.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/default_ops.html">Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#unitary-operations-on-qubits">Unitary Operations on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#x"><code class="code docutils literal notranslate"><span class="pre">x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#y"><code class="code docutils literal notranslate"><span class="pre">y</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#z"><code class="code docutils literal notranslate"><span class="pre">z</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#h"><code class="code docutils literal notranslate"><span class="pre">h</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#r1"><code class="code docutils literal notranslate"><span class="pre">r1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#rx"><code class="code docutils literal notranslate"><span class="pre">rx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#ry"><code class="code docutils literal notranslate"><span class="pre">ry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#rz"><code class="code docutils literal notranslate"><span class="pre">rz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#measurements-on-qubits">Measurements on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#mz"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#mx"><code class="code docutils literal notranslate"><span class="pre">mx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../versions.html">   Other Versions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">NVIDIA CUDA-Q</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
+      <li class="breadcrumb-item active">Noisy Qubit Modeling Using the CUDA-Q Density Matrix Simulator</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/examples/python/tutorials/noisy_examples.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="noisy_simulations.html" class="btn btn-neutral float-left" title="Noisy Simulation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="readout_error_mitigation.html" class="btn btn-neutral float-right" title="Readout Error Mitigation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Noisy-Qubit-Modeling-Using-the-CUDA-Q-Density-Matrix-Simulator">
+<h1>Noisy Qubit Modeling Using the CUDA-Q Density Matrix Simulator<a class="headerlink" href="#Noisy-Qubit-Modeling-Using-the-CUDA-Q-Density-Matrix-Simulator" title="Permalink to this heading">¶</a></h1>
+<p>This notebook will familiarize the user with the CUDA-Q density-matrix-cpu simulator and walk the user through a few simple (but fundamental!) exercises to back out important intrinsic properties of a qubit. We will simulate and examine a few properties of a ‘digital twin’ of a qubit using a custom noise model acting on a single qubit. The following workflow will simulate the calibration of a single qubit gate to generate a <span class="math notranslate nohighlight">\(\pi\)</span>-pulse, frequency calibration, as well as important coherence
+properties of the qubit like <span class="math notranslate nohighlight">\(T_1\)</span>, <span class="math notranslate nohighlight">\(T_2\)</span>, and <span class="math notranslate nohighlight">\(T_2^*\)</span>.</p>
+<p>There are many reasons a user would want to simulate this workflow! Imagine the user is granted access to a blackbox quantum processor with the ability to program basic quantum gates and do measurements. This setup is not unlike many popular QPU cloud providers that are publicly available, including many CUDA-Q hardware partners. In most cases, important characteristics like coherence, gate fidelities, and other qubit parameters are provided to the user. However, it is not uncommon that these
+quantities drift over the course of the day, or even over the course of an experiment.</p>
+<p>In many instances, the user may want to choose which qubits and gate fidelities will yield the highest fidelity for the user’s specific application to achieve the highest fidelity results. In other instances, the user may want to simply verify that the user-measured qubit parameters match the provided parameters. Often times, a simple experiment which detects if a qubit’s parameters has drifted (or in the worst case, gone bad) can save the user hours of debugging time down the road.</p>
+<p>This notebook will model these parameters in a single qubit using the density-matrix-cpu simulator and will also give guidance on how to implement a custom noise model. A GPU accelerated version of this simulator will be released in the future as well which will provide significant performance enhancements. Custom noise models are an incredibly useful tool for characterizing and building intuition for an experimental setup. Noise and crosstalk terms within a Hamiltonian or Lindbladian can be
+easily implemented as Kraus operators which act on specific quantum channels and can accurately model and predict behavior of real, physical qubits. With a good noise model, anomalous qubit behavior can be readily diagnosed, saving time and access to the real quantum hardware.</p>
+<p>We begin by importing <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> with a few other python packages and a ‘hidden’ noise model from the <code class="docutils literal notranslate"><span class="pre">noise_parameters</span></code> file</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">MethodType</span>
+
+<span class="kn">from</span> <span class="nn">noise_parameters</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+</div>
+<section id="Amplitude-calibration">
+<h2>Amplitude calibration<a class="headerlink" href="#Amplitude-calibration" title="Permalink to this heading">¶</a></h2>
+<p>In this exercise we will invoke a custom rx gate which models the ability to set the control pulse time and amplitude provided to the qubit. By varying either the pulse time or amplitude, we can smoothly evolve the qubit state around the X-axis. By measuring the qubit in the Z-basis, we should observe a Rabi oscillation. From this, we will be able to back out what amplitude and time should yield a <span class="math notranslate nohighlight">\(\pi\)</span> pulse.</p>
+<p>We define the function <code class="docutils literal notranslate"><span class="pre">noisy_rabi</span></code> which produces a single step of the Rabi experiment, setting an amplitude and time our custom rx gate.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Set the backend to the DM-CPU simulator</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;density-matrix-cpu&#39;</span><span class="p">)</span>
+
+
+<span class="c1">## Noisy rabi oscillation</span>
+<span class="k">def</span> <span class="nf">noisy_rabi</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">shots</span><span class="p">):</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1">## Add the hidden noise model and define the custom_rx gate</span>
+    <span class="n">noise_model</span> <span class="o">=</span> <span class="n">hidden_noise_model</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">custom_rx</span> <span class="o">=</span> <span class="n">MethodType</span><span class="p">(</span><span class="n">custom_rx</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="c1">## Vary rx rotation angle</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">custom_rx</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">)</span>
+    <span class="n">exp_z</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">exp_z</span>
+</pre></div>
+</div>
+</div>
+<p>Let’s do the experiment starting with an amplitude of 1 (arbitrary units) and a time window of 100 ns</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Amplitude</span>
+<span class="n">Amp</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="c1"># Time step</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">times</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">dt</span><span class="p">))</span>
+
+<span class="n">exp_z</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">:</span>
+    <span class="n">exp_z</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">noisy_rabi</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Amp</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">exp_z</span><span class="p">,</span> <span class="s1">&#39;--o&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Pulse duration (ns)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;&lt;Z&gt;&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;&lt;Z&gt;&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_noisy_examples_9_1.png" src="../../../_images/examples_python_tutorials_noisy_examples_9_1.png" />
+</div>
+</div>
+<p>We see the qubit oscillating very quickly with the assigned parameters. Let’s reduce the amplitude by a factor of 10. What happens?</p>
+<p>With a reduced amplitude we can clearly see the qubit evolving around the X-axis and we can calibrate the appropriate time it takes to apply a <span class="math notranslate nohighlight">\(\pi\)</span> pulse. Notice there is a slight decay in the qubit amplitude from the excited state (Z=-1) to the ground state (Z=+1) due to <span class="math notranslate nohighlight">\(T_1\)</span> decay.</p>
+<p>You can also experiment with a longer time window or holding the length of the pulse constant and varying the amplitude.</p>
+</section>
+<section id="Frequency-calibration">
+<h2>Frequency calibration<a class="headerlink" href="#Frequency-calibration" title="Permalink to this heading">¶</a></h2>
+<p>In this exercise we will model detecting if a qubit’s frequency is calibrated properly. The frequency of the control pulse is required to match the qubit frequency to a high degree of accuracy. If it is detuned, the qubit will appear to precess around the Z-axis. The rate of precession is equal to the detuning frequency.</p>
+<p>We will model this as an custom Identity gate (Id) which encodes the detuning error as a coherent Z rotation on the gate.</p>
+<p>We will apply a H gate to initialize the qubit in the equator of Bloch sphere and observe a slight precession around the Z axis. One way this precession can be corrected is with an appropriately calibrated rz gate.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Noisy precession</span>
+<span class="k">def</span> <span class="nf">noisy_precession</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">shots</span><span class="p">):</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">noise_model</span> <span class="o">=</span> <span class="n">hidden_noise_model</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span> <span class="o">=</span> <span class="n">MethodType</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="c1">## put qubit in equator</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1">## Wait for time &#39;time&#39;</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1">## Apply an Rz correction</span>
+    <span class="n">f_correction</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">rz</span><span class="p">(</span><span class="n">f_correction</span> <span class="o">*</span> <span class="n">time</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1">## Measure in y basis</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">my</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">)</span>
+    <span class="n">exp_y</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">exp_y</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">exp_y</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1"># Time step</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">times</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">dt</span><span class="p">))</span>
+
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">:</span>
+    <span class="n">exp_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">noisy_precession</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">exp_y</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Pulse duration (ns)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;&lt;Y&gt;&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-1.0, 1.0)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_noisy_examples_15_1.png" src="../../../_images/examples_python_tutorials_noisy_examples_15_1.png" />
+</div>
+</div>
+<p>We see the qubit slowly precessing about the Z-axis of the Bloch sphere indicating a slight detuning of the qubit frequency. Try adding a correction of <span class="math notranslate nohighlight">\(-\pi/250\)</span> per ns.</p>
+</section>
+<section id="T_1-measurement">
+<h2><span class="math notranslate nohighlight">\(T_1\)</span> measurement<a class="headerlink" href="#T_1-measurement" title="Permalink to this heading">¶</a></h2>
+<p>Let’s do a simple <span class="math notranslate nohighlight">\(T_1\)</span> measurement by exciting the qubit with an X gate, waiting for an Identity gate with time <code class="docutils literal notranslate"><span class="pre">time</span></code> and measuring the resulting Z population. Due to <span class="math notranslate nohighlight">\(T_1\)</span> decay, the Z population will slowly relax to the ground state over time.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## T1 experiment</span>
+<span class="k">def</span> <span class="nf">T1_exp</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">shots</span><span class="p">):</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">noise_model</span> <span class="o">=</span> <span class="n">hidden_noise_model</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span> <span class="o">=</span> <span class="n">MethodType</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="c1">## excite qubit</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1">## wait</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1">## measure in z basis</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">)</span>
+    <span class="n">exp_z</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">exp_z</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">exp_z</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1"># Time step</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="mi">5000</span>  <span class="c1">#ns</span>
+<span class="n">times</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">dt</span><span class="p">))</span>
+<span class="n">shots</span> <span class="o">=</span> <span class="mi">1000</span>
+
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">:</span>
+    <span class="n">exp_z</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T1_exp</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">exp_z</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time (ns)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;&lt;Z&gt;&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;&lt;Z&gt;&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_noisy_examples_21_1.png" src="../../../_images/examples_python_tutorials_noisy_examples_21_1.png" />
+</div>
+</div>
+</section>
+<section id="T_2^*-measurement">
+<h2><span class="math notranslate nohighlight">\(T_2^*\)</span> measurement<a class="headerlink" href="#T_2^*-measurement" title="Permalink to this heading">¶</a></h2>
+<p>Let’s look at an un-echoed <span class="math notranslate nohighlight">\(T_2\)</span> measurement, aka <span class="math notranslate nohighlight">\(T_2^*\)</span>. This is one measure of a qubit’s coherence. Often times a qubit can experience slow detuning noise, that is, noise that is constant over the course of a single experiment but varies over the course of repeated experiments. This slow noise can be cancelled out with standard control techniques like a Hahn echo and can boost the fidelity of an experiment when judiciously applied. Let’s look at the un-echoed measurement first.</p>
+<p>For this, we will prepare the qubit in the equator of the bloch sphere, wait for two time periods (you’ll see why in the next section), and read out the qubit in the X-basis.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## T2 experiment</span>
+<span class="k">def</span> <span class="nf">T2_star_exp</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">shots</span><span class="p">):</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">noise_model</span> <span class="o">=</span> <span class="n">hidden_noise_model</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span> <span class="o">=</span> <span class="n">MethodType</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="c1">## put qubit in equator</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1">## wait</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">kernel</span><span class="o">.</span><span class="n">mx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">)</span>
+    <span class="n">exp_x</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">exp_x</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">exp_x</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1"># Time step</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="mi">1500</span>  <span class="c1">#ns</span>
+<span class="n">times</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">dt</span><span class="p">))</span>
+<span class="n">shots</span> <span class="o">=</span> <span class="mi">1000</span>
+
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">:</span>
+    <span class="n">exp_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T2_star_exp</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">2</span> <span class="o">*</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">],</span> <span class="n">exp_x</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time (ns)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;&lt;X&gt;&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="o">-</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-1.1, 1.1)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_noisy_examples_26_1.png" src="../../../_images/examples_python_tutorials_noisy_examples_26_1.png" />
+</div>
+</div>
+<p>As expected, we see a decay in coherence. We also see an additional oscillation from a constant, coherent Z error source. In many cases this Z noise can slowly vary over the course of the experiment which manifests as a reduced <span class="math notranslate nohighlight">\(T^2\)</span> time. In the next experiment we will see we can cancel this noise source out by applying a simple X <span class="math notranslate nohighlight">\(\pi\)</span> pulse.</p>
+</section>
+<section id="T_2-measurement">
+<h2><span class="math notranslate nohighlight">\(T_2\)</span> measurement<a class="headerlink" href="#T_2-measurement" title="Permalink to this heading">¶</a></h2>
+<p>Let’s repeat the previous experiment and simply add a <span class="math notranslate nohighlight">\(X_\pi\)</span> pulse which will negate this noise source.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## T2 experiment</span>
+<span class="k">def</span> <span class="nf">T2_exp</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">shots</span><span class="p">):</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">noise_model</span> <span class="o">=</span> <span class="n">hidden_noise_model</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span> <span class="o">=</span> <span class="n">MethodType</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="c1">## put qubit in equator</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1">## wait</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">Id</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">kernel</span><span class="o">.</span><span class="n">mx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">)</span>
+    <span class="n">exp_x</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">exp_x</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">exp_x</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1"># Time step</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="mi">1500</span>  <span class="c1"># ns</span>
+<span class="n">times</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">dt</span><span class="p">))</span>
+<span class="n">shots</span> <span class="o">=</span> <span class="mi">1000</span>
+
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">:</span>
+    <span class="n">exp_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T2_exp</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">exp_x</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time (ns)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;&lt;X&gt;&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="o">-</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-1.1, 1.1)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/examples_python_tutorials_noisy_examples_32_1.png" src="../../../_images/examples_python_tutorials_noisy_examples_32_1.png" />
+</div>
+</div>
+<p>We see that adding the <span class="math notranslate nohighlight">\(\pi\)</span> pulse successfully canceled the additional noise source!</p>
+</section>
+<section id="Building-custom-noise-models-and-leveraging-CUDA-Q's-prebuilt-noise-models">
+<h2>Building custom noise models and leveraging CUDA-Q’s prebuilt noise models<a class="headerlink" href="#Building-custom-noise-models-and-leveraging-CUDA-Q's-prebuilt-noise-models" title="Permalink to this heading">¶</a></h2>
+<p>Let’s explore how to define custom noise models and apply them to gates. You can also leverage a variety of common noise models prebuilt in CUDA-Q. Noise models are implement as Kraus operators and channels acting on the density matrix. Earlier in the notebook we implemented a custom <span class="math notranslate nohighlight">\(T_1\)</span> decay channel. Let’s walk through the steps to implement this. We first define an error probability based on the gate length and a given <span class="math notranslate nohighlight">\(T_1\)</span> time.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">error_prob</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">T1</span><span class="p">):</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">t</span> <span class="o">/</span> <span class="n">T1</span><span class="p">)</span>  <span class="c1">#nanoseconds</span>
+    <span class="k">return</span> <span class="n">error</span>
+</pre></div>
+</div>
+</div>
+<p>Let’s now define the Kraus operators which send the |1&gt; state to the |0&gt; state in the density matrix with a probability given by our function <code class="docutils literal notranslate"><span class="pre">error_prob</span></code>. These are compiled into a Kraus channel.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Gate time</span>
+<span class="n">t</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1">#ns</span>
+<span class="n">T1</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1">#ns</span>
+
+<span class="n">t1_decay</span> <span class="o">=</span> <span class="n">error_prob</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">T1</span><span class="p">)</span>
+<span class="n">kraus_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t1_decay</span><span class="p">)]],</span>
+                   <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">,</span>
+                   <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+<span class="n">kraus_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">t1_decay</span><span class="p">)],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]],</span>
+                   <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">,</span>
+                   <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+<span class="n">kraus_chan</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">KrausChannel</span><span class="p">([</span><span class="n">kraus_0</span><span class="p">,</span> <span class="n">kraus_1</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<p>We instantiate our noise_model and can now add our Kraus channel to the gate and qubit of our choice</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+
+<span class="c1">## add noise to x</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t1_kraus</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">T1</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<p>We can do a sanity check below</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+None
+{ 0:94 1:906 }
+</pre></div></div>
+</div>
+<p>CUDA-Q includes common noise channels like depolarizing noise, dephasing noise, amplitude damping and others here <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/using/examples/noisy_simulation.html">https://nvidia.github.io/cuda-quantum/latest/using/examples/noisy_simulation.html</a></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+<span class="n">bit_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">BitFlipChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bit_flip</span><span class="p">)</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="c1"># Apply an X-gate to the qubit.</span>
+    <span class="c1"># It will remain in the |1&gt; state with a probability of `1 - p = 0.0`.</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="c1"># Measure.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+
+<span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
+<span class="c1"># Note: We must pass the noise model to sample via keyword.</span>
+<span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noisy_result</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{ 0:1000 }
+
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="noisy_simulations.html" class="btn btn-neutral float-left" title="Noisy Simulation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="readout_error_mitigation.html" class="btn btn-neutral float-right" title="Readout Error Mitigation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script>  
+
+  <style>
+  a:link, a:visited {
+    color: #76b900;
+  }
+
+  a:hover {
+    color: #8c0;
+  }
+
+  .rst-content dl:not(.docutils) dt {
+    background: rgba(118, 185, 0, 0.1);
+    color: rgba(59,93,0,1);
+    border-top: solid 3px rgba(59,93,0,1);
+  }
+  </style>
+  
+
+</body>
+</html>
