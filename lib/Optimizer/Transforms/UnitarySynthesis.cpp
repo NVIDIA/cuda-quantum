@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -56,6 +57,58 @@ readGlobalConstantArray(cudaq::cc::GlobalOp &global) {
   return result;
 }
 
+struct EulerAngles {
+  double alpha;
+  double beta;
+  double gamma;
+};
+
+struct BasisZYZ {
+
+  std::array<std::complex<double>, 4> matrix;
+  EulerAngles angles;
+  double phase;
+
+  /// This logic is based on https://arxiv.org/pdf/quant-ph/9503016 and its
+  /// corresponding explanation in https://threeplusone.com/pubs/on_gates.pdf,
+  /// Section 4.
+  void decompose() {
+    auto det = (matrix[0] * matrix[3]) - (matrix[1] * matrix[2]);
+    phase = 0.5 * std::atan2(det.imag(), det.real());
+
+    auto abs_00 = std::abs(matrix[0]);
+    auto abs_01 = std::abs(matrix[1]);
+
+    if (abs_00 >= abs_01)
+      angles.beta = 2 * std::acos(abs_00);
+    else
+      angles.beta = 2 * std::asin(abs_01);
+
+    double half_sum_alpha_gamma = 0.;
+    double divisor = std::cos(angles.beta / 2.);
+    if (0. != divisor) {
+      auto arg = matrix[3] / divisor;
+      half_sum_alpha_gamma = std::atan2(arg.imag(), arg.real());
+    }
+
+    double half_diff_alpha_gamma = 0.;
+    divisor = std::sin(angles.beta / 2.);
+    if (0. != divisor) {
+      auto arg = matrix[2] / divisor;
+      half_diff_alpha_gamma = std::atan2(arg.imag(), arg.real());
+    }
+
+    angles.alpha = half_sum_alpha_gamma + half_diff_alpha_gamma;
+    angles.gamma = half_sum_alpha_gamma - half_diff_alpha_gamma;
+
+    /// ASKME: Normalize all angles?
+  }
+
+  BasisZYZ(std::vector<std::complex<double>> vec) {
+    std::move(vec.begin(), vec.end(), matrix.begin());
+  }
+};
+
 class CustomUnitaryPattern
     : public OpRewritePattern<quake::CustomUnitarySymbolOp> {
 
@@ -65,8 +118,8 @@ public:
   LogicalResult matchAndRewrite(quake::CustomUnitarySymbolOp customOp,
                                 PatternRewriter &rewriter) const override {
 
-    auto parentModule = customOp->getParentOfType<ModuleOp>();
     // Fetch the unitary matrix generator for this custom operation
+    auto parentModule = customOp->getParentOfType<ModuleOp>();
     auto sref = customOp.getGenerator();
     StringRef generatorName = sref.getRootReference();
     auto globalOp =
@@ -77,9 +130,49 @@ public:
       return customOp.emitError(
           "Decomposition of only single qubit custom operations supported.");
 
-    // auto targets = customOp.getTargets();
-    // auto controls = customOp.getControls();
-    // Location loc = customOp->getLoc();
+    /// TODO: Maintain a cache of decomposed custom operations
+
+    // Use Euler angle decomposition for single qubit operation
+    auto zyz = BasisZYZ(unitary);
+    zyz.decompose();
+
+    // op info
+    Location loc = customOp->getLoc();
+    auto targets = customOp.getTargets();
+    auto controls = customOp.getControls();
+
+    /// TODO: Handle adjoint case
+
+    auto floatTy = cast<FloatType>(rewriter.getF64Type());
+
+    if (0. != zyz.angles.alpha) {
+      auto alpha = cudaq::opt::factory::createFloatConstant(
+          loc, rewriter, zyz.angles.alpha, floatTy);
+      rewriter.create<quake::RzOp>(loc, alpha, controls, targets);
+    }
+
+    if (0. != zyz.angles.beta) {
+      auto beta = cudaq::opt::factory::createFloatConstant(
+          loc, rewriter, zyz.angles.beta, floatTy);
+      rewriter.create<quake::RyOp>(loc, beta, controls, targets);
+    }
+
+    if (0. != zyz.angles.gamma) {
+      auto gamma = cudaq::opt::factory::createFloatConstant(
+          loc, rewriter, zyz.angles.gamma, floatTy);
+      rewriter.create<quake::RzOp>(loc, gamma, controls, targets);
+    }
+
+    /// ASKME: Apply global phase?
+    // if (0. != zyz.phase) {
+    //   auto phase = cudaq::opt::factory::createFloatConstant(loc, rewriter,
+    //                                                         zyz.phase,
+    //                                                         floatTy);
+    //   Value negPhase = rewriter.create<arith::NegFOp>(loc, phase);
+    //   rewriter.create<quake::R1Op>(loc, phase, controls, targets);
+    //   rewriter.create<quake::RzOp>(loc, negPhase, controls, targets);
+    // }
+
     rewriter.eraseOp(customOp);
     return success();
   }

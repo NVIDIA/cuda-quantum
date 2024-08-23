@@ -184,14 +184,36 @@ def test_arbitrary_unitary_synthesis():
     import numpy as np
     cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     @cudaq.kernel
-    def basic():
-        q = cudaq.qubit()
-        custom_h(q)
+    def basic_x():
+        qubit = cudaq.qubit()
+        custom_x(qubit)
 
-    with pytest.raises(RuntimeError) as error:
-        cudaq.sample(basic)
+    counts = cudaq.sample(basic_x)
+    counts.dump()
+    assert len(counts) == 1 and "1" in counts
+
+    @cudaq.kernel
+    def basic_h():
+        qubit = cudaq.qubit()
+        custom_h(qubit)
+
+    counts = cudaq.sample(basic_h)
+    counts.dump()
+    assert "0" in counts and "1" in counts
+
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        custom_h(qubits[0])
+        custom_x.ctrl(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell)
+    counts.dump()
+    assert len(counts) == 2
+    assert "00" in counts and "11" in counts
 
 
 # leave for gdb debugging
