@@ -175,6 +175,17 @@ public:
   virtual void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                             void *args, std::uint64_t, std::uint64_t) = 0;
 
+  /// Launch the kernel with given name and argument arrays.
+  // This is intended for remote QPUs whereby we need to JIT-compile the kernel
+  // with argument synthesis. Remote QPU implementation to override this.
+  virtual void launchKernel(const std::string &name,
+                            const std::vector<void *> &rawArgs) {
+    if (!isRemote())
+      throw std::runtime_error("Wrong kernel launch point: Attempt to launch "
+                               "kernel in streamlined for JIT mode on local "
+                               "simulated QPU. This is not supported.");
+  }
+
   /// Launch serialized code for remote execution. Subtypes that support this
   /// should override this function.
   virtual void launchSerializedCodeExecution(

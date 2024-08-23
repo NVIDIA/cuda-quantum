@@ -49,5 +49,5 @@ int main() {
 
 // For this test, we should see the mapping pass run, but there should be no
 // mapping_v2p attribute applied anywhere thereafter.
-// DISABLE: IR Dump Before MappingPass
+// DISABLE: IR Dump Before MappingFunc
 // DISABLE-NOT: mapping_v2p
