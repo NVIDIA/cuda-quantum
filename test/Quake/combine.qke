@@ -157,6 +157,15 @@ func.func @c() {
 // CHECK:           return
 // CHECK:         }
 
+// FACTOR-LABEL:  func.func @c() {
+// FACTOR:          %0 = quake.alloca !quake.ref
+// FACTOR:          %1 = quake.alloca !quake.ref
+// FACTOR:          %2 = quake.alloca !quake.ref
+// FACTOR:          %3 = quake.alloca !quake.ref
+// FACTOR:          quake.x %3 : (!quake.ref) -> ()
+// FACTOR:          return
+// FACTOR:        }
+
 func.func @d(%c2: i64, %c3: i64, %c1: i64, %off: i16) {
   %1 = quake.alloca !quake.veq<4>
   %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i64, i64) -> !quake.veq<2>

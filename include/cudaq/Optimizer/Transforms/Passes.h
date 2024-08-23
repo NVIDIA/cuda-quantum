@@ -29,6 +29,7 @@ void addAggressiveEarlyInlining(mlir::OpPassManager &pm);
 void registerAggressiveEarlyInlining();
 
 void registerUnrollingPipeline();
+void registerMappingPipeline();
 
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
@@ -57,9 +58,9 @@ inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
 /// Helper function to build an argument synthesis pass. The names of the
 /// functions and the substitutions text can be built as an unzipped pair of
 /// lists.
-std::unique_ptr<mlir::Pass> createArgumentSynthesisPass(
-    const mlir::ArrayRef<mlir::StringRef> &funcNames,
-    const mlir::ArrayRef<mlir::StringRef> &substitutions);
+std::unique_ptr<mlir::Pass>
+createArgumentSynthesisPass(mlir::ArrayRef<mlir::StringRef> funcNames,
+                            mlir::ArrayRef<mlir::StringRef> substitutions);
 
 // declarative passes
 #define GEN_PASS_DECL
@@ -79,5 +80,8 @@ inline std::unique_ptr<mlir::Pass> createQuantumMemToReg() {
   MemToRegOptions m2rOpt = {/*classical=*/false, /*quantum=*/true};
   return createMemToReg(m2rOpt);
 }
+
+/// Name of `quake.wire_set` generated prior to mapping
+static constexpr const char topologyAgnosticWiresetName[] = "wires";
 
 } // namespace cudaq::opt
