@@ -510,7 +510,12 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto enablePrintMLIREachPass =
       getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
-  cudaq::opt::ArgumentConverter argCon(name, unwrap(module));
+  auto &platform = cudaq::get_platform();
+  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
+  auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
+  auto isSimulator = isLocalSimulator || isRemoteSimulator;
+
+  cudaq::opt::ArgumentConverter argCon(name, unwrap(module), isSimulator);
   argCon.gen(runtimeArgs.getArgs());
   std::string kernName = cudaq::runtime::cudaqGenPrefixName + name;
   SmallVector<StringRef> kernels = {kernName};
@@ -523,11 +528,10 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
       cudaq::opt::createArgumentSynthesisPass(kernels, substs));
   pm.addPass(createCanonicalizerPass());
 
-  // Run state preparation for quantum devices only.
+  // Run state preparation for quantum devices (or their emulation) only.
   // Simulators have direct implementation of state initialization
   // in their runtime.
-  auto &platform = cudaq::get_platform();
-  if (!platform.is_simulator() || platform.is_emulated()) {
+  if (!isSimulator) {
     pm.addPass(cudaq::opt::createConstPropComplex());
     pm.addPass(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createStatePreparation());
