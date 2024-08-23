@@ -767,7 +767,6 @@ private:
   SetVector<VirtualQID> qids;
   DenseMap<PhysicalQID, DependencyNode *> qubits;
   uint total_height;
-  DependencyNode *tallest = nullptr;
   SetVector<DependencyNode *> containers;
 
   /// Starting from \p next, searches through \p next's family
@@ -781,10 +780,8 @@ private:
 
     if (next->isRoot()) {
       roots.insert(next);
-      if (next->height > total_height || tallest == nullptr) {
-        tallest = next;
+      if (next->height > total_height)
         total_height = next->height;
-      }
     }
 
     seen.insert(next);
@@ -1133,16 +1130,28 @@ public:
   /// Assigns a cycle to every quantum operation in each dependency graph
   /// (including `if`s containing quantum operations).
   ///
-  /// Currently works inside-out, but scheduling is order-agnostic
-  /// as inner-blocks don't rely on parent schedules, and vice-versa.
+  /// Every node must be assigned a schedule greater than or equal to the height
+  /// of each of its dependencies
+  ///
+  /// The current implementation of the scheduling algorithm can be found in
+  /// DependencyGraph::schedule
   void schedulingPass() {
-    if (!tallest) {
-      assert(roots.empty() &&
-             "updateHeight not invoked before scheduling graph!");
-      return;
-    }
     SetVector<DependencyNode *> seen;
-    schedule(seen, tallest, total_height);
+    // Schedule from the roots in order of height (starting from the tallest
+    // root)
+    auto sorted = SmallVector<DependencyNode *>({roots.begin(), roots.end()});
+    std::sort(sorted.begin(), sorted.end(),
+              [](auto x, auto y) { return x->getHeight() > y->getHeight(); });
+
+    // Every node visiting during scheduling will be in seen, so
+    // if the scheduling function has already visited the root then it will be
+    // skipped
+    for (auto root : sorted) {
+      // Can either schedule starting with a level of `root->getHeight()`, which
+      // will result in more operations at earlier cycles, or `total_height`,
+      // which will result in more operations at later cycles
+      schedule(seen, root, total_height);
+    }
   }
 
   void print() {
@@ -1196,14 +1205,11 @@ public:
 
   void updateHeight() {
     total_height = 0;
-    tallest = nullptr;
     SetVector<DependencyNode *> seen;
     for (auto root : roots) {
       updateHeight(seen, root);
-      if (!tallest || root->height > total_height) {
-        tallest = root;
+      if (root->height > total_height)
         total_height = root->height;
-      }
     }
   }
 };
@@ -1423,7 +1429,6 @@ private:
   DependencyGraph *graph;
   Block *block;
   TerminatorDependencyNode *terminator;
-  uint height;
   SetVector<size_t> pqids;
 
 public:
@@ -1431,9 +1436,7 @@ public:
                   DependencyGraph *graph, Block *block,
                   TerminatorDependencyNode *terminator)
       : argdnodes(argdnodes), graph(graph), block(block),
-        terminator(terminator), pqids() {
-    height = graph->getHeight();
-  }
+        terminator(terminator), pqids() {}
 
   ~DependencyBlock() {
     // Terminator is cleaned up by graph since it must be a root
@@ -1444,7 +1447,7 @@ public:
       delete argdnode;
   }
 
-  uint getHeight() { return height; }
+  uint getHeight() { return graph->getHeight(); }
 
   SetVector<VirtualQID> getAllocs() { return graph->getAllocs(); }
 
@@ -1511,7 +1514,7 @@ public:
 
     builder.setInsertionPointToStart(newBlock);
 
-    for (uint cycle = 0; cycle < height; cycle++)
+    for (uint cycle = 0; cycle < graph->getHeight(); cycle++)
       graph->codeGenAt(cycle, builder, set);
 
     terminator->genTerminator(builder, set);
@@ -1529,10 +1532,7 @@ public:
     llvm::outs() << "End block\n";
   }
 
-  void updateHeight() {
-    graph->updateHeight();
-    height = graph->getHeight();
-  }
+  void updateHeight() { graph->updateHeight(); }
 
   void performAnalysis(LifeTimeAnalysis &set) {
     // The analysis works inside-out, so first resolve all nested `if`s
@@ -1834,13 +1834,13 @@ protected:
 
   void combineAllocs(SetVector<PhysicalQID> then_allocs,
                      SetVector<PhysicalQID> else_allocs, LifeTimeAnalysis &set,
-                     DependencyGraph *graph) {
+                     DependencyGraph *parent) {
     SetVector<PhysicalQID> combined;
     combined.set_union(then_allocs);
     combined.set_union(else_allocs);
 
     for (auto qubit : combined)
-      graph->addPhysicalAllocation(this, qubit);
+      parent->addPhysicalAllocation(this, qubit);
   }
 
   void genOp(OpBuilder &builder, LifeTimeAnalysis &set) override {
@@ -2002,10 +2002,10 @@ public:
     bool lifted = false;
 
     // First, lift allocated qubits, after which they will be dealt with as QIDs
-    auto liftableQubits = SetVector<PhysicalQID>();
-    liftableQubits.set_union(then_block->getAllocatedQubits());
-    liftableQubits.set_union(else_block->getAllocatedQubits());
-    for (auto qubit : liftableQubits) {
+    for (auto qubit : getQubits()) {
+      if (!then_block->getAllocatedQubits().contains(qubit) ||
+          !else_block->getAllocatedQubits().contains(qubit))
+        continue;
       auto then_use = then_block->getFirstUseOfQubit(qubit);
       auto else_use = else_block->getFirstUseOfQubit(qubit);
 
