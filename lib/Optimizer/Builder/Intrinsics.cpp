@@ -241,6 +241,14 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %9 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
+    {cudaq::createCudaqStateFromDataFP32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
+  )#"},
+
+    {cudaq::createCudaqStateFromDataFP64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
+  )#"},
+
     {cudaq::getNumQubitsFromCudaqState, {}, R"#(
   func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!cc.state>) -> i64
   )#"},
@@ -293,19 +301,33 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %3 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
-    {cudaq::runtime::launchKernelFuncName, // altLaunchKernel
+    // altLaunchKernel(kernelName, thunk, commBuffer, buffSize, resultOffset)
+    {cudaq::runtime::launchKernelFuncName,
      {},
      R"#(
   func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ())#"},
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
+    // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
+    //                    resultOffset, vectorArgPtrs)
+    {cudaq::runtime::launchKernelHybridFuncName,
+     {},
+     R"#(
+  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> ())#"},
+
     {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
      {},
      R"#(
   func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
 
-    {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"}};
+    {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
+
+    // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
+    {cudaq::runtime::launchKernelStreamlinedFuncName,
+     {},
+     R"#(
+  func.func private @streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>) -> ())#"}};
 
 static constexpr std::size_t intrinsicTableSize =
     sizeof(intrinsicTable) / sizeof(IntrinsicCode);

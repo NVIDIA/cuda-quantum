@@ -105,9 +105,22 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
+  void launchKernel(const std::string &name,
+                    const std::vector<void *> &rawArgs) override {
+    launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs);
+  }
+
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset) override {
+    launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
+                     nullptr);
+  }
+
+  void launchKernelImpl(const std::string &name, void (*kernelFunc)(void *),
+                        void *args, std::uint64_t voidStarSize,
+                        std::uint64_t resultOffset,
+                        const std::vector<void *> *rawArgs) {
     cudaq::info(
         "BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
         "(simulator = {})",
@@ -140,7 +153,7 @@ public:
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-        m_simName, name, kernelFunc, args, voidStarSize, &errorMsg);
+        m_simName, name, kernelFunc, args, voidStarSize, &errorMsg, rawArgs);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     if (isDirectInvocation &&

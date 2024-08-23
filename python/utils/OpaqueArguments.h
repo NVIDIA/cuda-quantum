@@ -44,6 +44,8 @@ class OpaqueArguments {
 public:
   using OpaqueArgDeleter = std::function<void(void *)>;
 
+  const std::vector<void *> &getArgs() const { return args; }
+
 private:
   /// @brief The opaque argument pointers
   std::vector<void *> args;

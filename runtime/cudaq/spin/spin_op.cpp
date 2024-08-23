@@ -73,7 +73,8 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
     tmp[i] = row[i] ^ other_row[i];
 
   for (std::size_t i = 0; i < numQubits; i++)
-    tmp2[i] = row[i] && other_row[numQubits + i];
+    tmp2[i] = (row[i] && other_row[numQubits + i]) ||
+              (row[i + numQubits] && other_row[i]);
 
   int orig_phase = 0, other_phase = 0;
   for (std::size_t i = 0; i < numQubits; i++) {
@@ -84,13 +85,12 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
       other_phase++;
   }
 
-  auto _phase = orig_phase + other_phase;
   int sum = 0;
   for (auto a : tmp2)
     if (a)
       sum++;
 
-  _phase += 2 * sum;
+  auto _phase = orig_phase + other_phase + 2 * sum;
   // Based on the phase, figure out an extra coeff to apply
   for (std::size_t i = 0; i < numQubits; i++)
     if (tmp[i] && tmp[i + numQubits])
