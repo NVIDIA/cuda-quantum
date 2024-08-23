@@ -161,6 +161,15 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/tutorials.html">   Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -180,13 +189,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html">Hadamard Test</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html#A--Numerical-result-as-a-reference:">A- Numerical result as a reference:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html#B--Using-sample-algorithmic-primitive-to-sample-the-ancilla-qubit-and-compute-the-expectation-value.">B- Using <code class="docutils literal notranslate"><span class="pre">sample</span></code> algorithmic primitive to sample the ancilla qubit and compute the expectation value.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html#C--Use-multi-GPUs-to-compute-the-matrix-elements">C- Use multi-GPUs to compute the matrix elements</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html#Diagonalize-the-matrix-using-for-example-Numpy-or-CuPy.-In-this-example,-since-we-are-having-2x2-matrix,-we-use-numpy.">Diagonalize the matrix using for example Numpy or CuPy. In this example, since we are having 2x2 matrix, we use numpy.</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html">Hadamard Test and Application</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html#Using-observe-algorithmic-primitive-to-compute-the-expectation-value-for-ancilla-qubits.">Using <code class="docutils literal notranslate"><span class="pre">observe</span></code> algorithmic primitive to compute the expectation value for ancilla qubits.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/hadamard_test.html#Use-multi-GPUs-to-compute-multiple-Hadamard-test-in-parallel">Use multi-GPUs to compute multiple Hadamard test in parallel</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -1351,7 +1357,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <span class="c1"># Create a simulation state.</span>
 <span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="c1"># Return the amplitude of |0101&gt;, assuming this is a 4-qubit state.</span>
-<span class="n">amplitude</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitude</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">amplitude</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitude</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
 </pre></div>
 </div>
 <ol class="arabic" start="2">
@@ -1367,7 +1373,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <span class="c1"># Create a simulation state.</span>
 <span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="c1"># Return the amplitude of |0101&gt;, assuming this is a 4-qubit state.</span>
-<span class="n">amplitude</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitude</span><span class="p">(</span><span class="s1">&#39;0101&#39;</span>
+<span class="n">amplitude</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitude</span><span class="p">(</span><span class="s1">&#39;0101&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1389,7 +1395,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <span class="c1"># Create a simulation state.</span>
 <span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="c1"># Return the amplitude of |0101&gt; and |1010&gt;, assuming this is a 4-qubit state.</span>
-<span class="n">amplitudes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">amplitudes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]])</span>
 </pre></div>
 </div>
 <ol class="arabic" start="2">
@@ -1405,7 +1411,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <span class="c1"># Create a simulation state.</span>
 <span class="n">state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="c1"># Return the amplitudes of |0101&gt; and |1010&gt;, assuming this is a 4-qubit state.</span>
-<span class="n">amplitudes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([</span><span class="s1">&#39;0101&#39;</span><span class="p">,</span> <span class="s1">&#39;1010&#39;</span><span class="p">]</span>
+<span class="n">amplitudes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([</span><span class="s1">&#39;0101&#39;</span><span class="p">,</span> <span class="s1">&#39;1010&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1428,7 +1434,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <ol class="arabic">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.0)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
@@ -1437,7 +1443,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <ol class="arabic" start="2">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.0)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
@@ -1532,7 +1538,7 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <ol class="arabic" start="2">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.0)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.12)"><span class="pre">complex</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.12)"><span class="pre">complex</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
@@ -2086,7 +2092,7 @@ from the <code class="code docutils literal notranslate"><span class="pre">start
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">77413067</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3890253304</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
@@ -3159,7 +3165,15 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.BitFlipChannel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">BitFlipChannel</span></span><a class="headerlink" href="#cudaq.BitFlipChannel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Models the decoherence of the qubit state. Its constructor expects a float value, <code class="code docutils literal notranslate"><span class="pre">probability</span></code>, representing the probability that the qubit flips from the 1-state to the 0-state, or vice versa. E.g, the probability of a random X-180 rotation being applied to the qubit. The probability of the qubit remaining in the same state is therefore <code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">probability</span></code>.</p>
+<dd><p>Models the decoherence of the qubit state. Its constructor expects a
+float value, <code class="code docutils literal notranslate"><span class="pre">probability</span></code>, representing the probability that the qubit
+flips from the 1-state to the 0-state, or vice versa. E.g, the
+probability of a random X-180 rotation being applied to the qubit.</p>
+<p>The Kraus Channels are thereby defined to be:</p>
+<p>K_0 = sqrt(1 - probability) * I</p>
+<p>K_1 = sqrt(probability ) * X</p>
+<p>The probability of the qubit remaining in the same state is therefore <code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span>
+<span class="pre">probability</span></code>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.BitFlipChannel.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.BitFlipChannel.__init__" title="Permalink to this definition">¶</a></dt>
@@ -3176,7 +3190,14 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.PhaseFlipChannel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">PhaseFlipChannel</span></span><a class="headerlink" href="#cudaq.PhaseFlipChannel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Models the decoherence of the qubit phase. Its constructor expects a float value, <code class="code docutils literal notranslate"><span class="pre">probability</span></code>, representing the probability of a random Z-180 rotation being applied to the qubit. The probability of the qubit phase remaining untouched is therefore <code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">probability</span></code>.</p>
+<dd><p>Models the decoherence of the qubit phase. Its constructor expects a
+float value, <code class="code docutils literal notranslate"><span class="pre">probability</span></code>, representing the probability of a random
+Z-180 rotation being applied to the qubit.</p>
+<p>The Kraus Channels are thereby defined to be:</p>
+<p>K_0 = sqrt(1 - probability) * I</p>
+<p>K_1 = sqrt(probability ) * Z</p>
+<p>The probability of the qubit phase remaining untouched is therefore
+<code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">probability</span></code>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PhaseFlipChannel.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PhaseFlipChannel.__init__" title="Permalink to this definition">¶</a></dt>
@@ -3193,7 +3214,21 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.DepolarizationChannel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">DepolarizationChannel</span></span><a class="headerlink" href="#cudaq.DepolarizationChannel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Models the decoherence of the qubit state and phase into a mixture of the computational basis states, <code class="code docutils literal notranslate"><span class="pre">|0&gt;</span></code> and <code class="code docutils literal notranslate"><span class="pre">|1&gt;</span></code>. Its constructor expects a float value, <code class="code docutils literal notranslate"><span class="pre">probability</span></code>, representing the probability that this decay will occur. The qubit will remain untouched, therefore, with a probability of <code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">probability</span></code>.</p>
+<dd><p>Models the decoherence of the qubit state and phase into a mixture ”
+of the computational basis states, <code class="code docutils literal notranslate"><span class="pre">|0&gt;</span></code> and <code class="code docutils literal notranslate"><span class="pre">|1&gt;</span></code>.</p>
+<p>The Kraus Channels are thereby defined to be:</p>
+<p>K_0 = sqrt(1 - probability) * I</p>
+<p>K_1 = sqrt(probability / 3) * X</p>
+<p>K_2 = sqrt(probability / 3) * Y</p>
+<p>K_3 = sqrt(probability / 3) * Z</p>
+<p>where I, X, Y, Z are the 2x2 Pauli matrices.</p>
+<p>The constructor expects a float value, <code class="code docutils literal notranslate"><span class="pre">probability</span></code>, representing the
+probability the state decay will occur. The qubit will remain untouched,
+therefore, with a probability of <code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">probability</span></code>. And the X,Y,Z operators
+will be applied with a probability of <code class="code docutils literal notranslate"><span class="pre">probability</span> <span class="pre">/</span> <span class="pre">3</span></code>.</p>
+<p>For <code class="code docutils literal notranslate"><span class="pre">probability</span> <span class="pre">=</span> <span class="pre">0.0</span></code>, the channel will behave noise-free.
+For <code class="code docutils literal notranslate"><span class="pre">probability</span> <span class="pre">=</span> <span class="pre">0.75</span></code>, the channel will fully depolarize the state.
+For <code class="code docutils literal notranslate"><span class="pre">proability</span> <span class="pre">=</span> <span class="pre">1.0</span></code>, the channel will be uniform.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.DepolarizationChannel.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.DepolarizationChannel.__init__" title="Permalink to this definition">¶</a></dt>
@@ -3210,7 +3245,15 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.AmplitudeDampingChannel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">AmplitudeDampingChannel</span></span><a class="headerlink" href="#cudaq.AmplitudeDampingChannel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Models the dissipation of energy due to system interactions with the environment. Its constructor expects a float value, <code class="code docutils literal notranslate"><span class="pre">probability</span></code>, representing the probablity that the qubit will decay to its ground state. The probability of the qubit remaining in the same state is therefore <code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">probability</span></code>.</p>
+<dd><p>Models the dissipation of energy due to system interactions with the
+environment.</p>
+<p>The Kraus Channels are thereby defined to be:</p>
+<p>K_0 = sqrt(1 - probability) * I</p>
+<p>K_1 = sqrt(probability) * 0.5 * (X + iY)</p>
+<p>Its constructor expects a float value, <code class="code docutils literal notranslate"><span class="pre">probability</span></code>,
+representing the probablity that the qubit will decay to its ground
+state. The probability of the qubit remaining in the same state is
+therefore <code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">probability</span></code>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.AmplitudeDampingChannel.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.AmplitudeDampingChannel.__init__" title="Permalink to this definition">¶</a></dt>

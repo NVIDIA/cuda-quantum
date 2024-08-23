@@ -18,7 +18,7 @@
     "import scipy\n",
     "\n",
     "# Single-node, single gpu\n",
-    "cudaq.set_target('nvidia')\n",
+    "cudaq.set_target(\"nvidia\")\n",
     "multi_gpu = False\n",
     "\n",
     "# Single-node, multi-GPU\n",

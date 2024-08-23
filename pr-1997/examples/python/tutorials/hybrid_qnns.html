@@ -33,7 +33,7 @@
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
     <link rel="next" title="Molecular docking via DC-QAOA" href="maximum_vertex_weight_clique.html" />
-    <link rel="prev" title="Hadamard Test" href="hadamard_test.html" /> 
+    <link rel="prev" title="Hadamard Test and Application" href="hadamard_test.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -164,6 +164,15 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
@@ -183,13 +192,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hadamard_test.html">Hadamard Test</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#A--Numerical-result-as-a-reference:">A- Numerical result as a reference:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#B--Using-sample-algorithmic-primitive-to-sample-the-ancilla-qubit-and-compute-the-expectation-value.">B- Using <code class="docutils literal notranslate"><span class="pre">sample</span></code> algorithmic primitive to sample the ancilla qubit and compute the expectation value.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#C--Use-multi-GPUs-to-compute-the-matrix-elements">C- Use multi-GPUs to compute the matrix elements</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="hadamard_test.html#Diagonalize-the-matrix-using-for-example-Numpy-or-CuPy.-In-this-example,-since-we-are-having-2x2-matrix,-we-use-numpy.">Diagonalize the matrix using for example Numpy or CuPy. In this example, since we are having 2x2 matrix, we use numpy.</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="hadamard_test.html">Hadamard Test and Application</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Using-observe-algorithmic-primitive-to-compute-the-expectation-value-for-ancilla-qubits.">Using <code class="docutils literal notranslate"><span class="pre">observe</span></code> algorithmic primitive to compute the expectation value for ancilla qubits.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Use-multi-GPUs-to-compute-multiple-Hadamard-test-in-parallel">Use multi-GPUs to compute multiple Hadamard test in parallel</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Hybrid Quantum Neural Networks</a></li>
@@ -554,7 +560,7 @@
             <a href="../../../_sources/examples/python/tutorials/hybrid_qnns.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="hadamard_test.html" class="btn btn-neutral float-left" title="Hadamard Test" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hadamard_test.html" class="btn btn-neutral float-left" title="Hadamard Test and Application" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="maximum_vertex_weight_clique.html" class="btn btn-neutral float-right" title="Molecular docking via DC-QAOA" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -980,7 +986,7 @@ CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="hadamard_test.html" class="btn btn-neutral float-left" title="Hadamard Test" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hadamard_test.html" class="btn btn-neutral float-left" title="Hadamard Test and Application" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="maximum_vertex_weight_clique.html" class="btn btn-neutral float-right" title="Molecular docking via DC-QAOA" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

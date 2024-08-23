@@ -11,11 +11,13 @@
     "\n",
     "What are the possible states a qubit can be in and how can we build up a visual cue to help us make sense of quantum states and their evolution?\n",
     "\n",
-    "We know our qubit can have two distinct states: $\\ket{0}$ and $\\ket{1}$. Maybe we need a one-dimensional line whose vertices can\n",
-    "represent each of the states. We also know that qubits can be in an equal superposition states: $\\ket{+}$ and $\\ket{-}$. This now forces us to extend our 1D line to a 2D Cartesian coordinate system. If you dive deeper you will learn about the existence of states like \n",
-    "$\\ket{+i}$ and $\\ket{-i}$, this calls for a 3D extension.\n",
+    "We know our qubit can have two distinct states: $\\ket{0}$ and $\\ket{1}$. If these were the only two states, we could represent them as two vectors on a one-dimensional line (i.e., the z-axis in the image below). We also know that qubits can be in an equal superposition of states: $\\ket{+}$ and $\\ket{-}$. In order to capture all of the states in equal superposition, we will need a 2D plane (i.e., the $xy$-plane in the image below). If you dive deeper you will learn about the existence of other states that will call for a 3D extension. \n",
     "\n",
-    "It turns out that a sphere is able to depict all the possible states of a single qubit. This is called a Bloch sphere. \n",
+    "In general, a quantum state can be written in the form $\\ket{\\psi} = \\cos(\\frac{\\theta}{2})\\ket{0}+e^{i\\varphi}\\sin(\\frac{\\theta}{2})\\ket{1}$ where $\\theta$ is a real number between $0$ and $\\pi$ and $\\varphi$ is a real value between $0$ and $2\\pi$.  For example, the minus state, $\\ket{-} = \\frac{1}{\\sqrt{2}}\\ket{0}- \\frac{1}{\\sqrt{2}}\\ket{1}$, can be rewritten as\n",
+    "$$\\ket{-}  = \\cos(\\frac{\\theta}{2})\\ket{0}+e^{i\\varphi}\\sin(\\frac{\\theta}{2})\\ket{1}\\text{ with }\\theta = \\frac{\\pi}{2}\\text{ and }\\varphi = \\pi.$$ \n",
+    "This can be visualized in the image below as a unit vector pointing in the direction of the negative $x$-axis.\n",
+    "\n",
+    "Using spherical coordinates, it is possible to depict all the possible states of a single qubit on a sphere. This is called a Bloch sphere. \n",
     "\n",
     "<img src=\"images/Bloch_sphere.png\" alt=\"Bloch Sphere\" width=\"300\" height=\"300\">\n"
    ]
