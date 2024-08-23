@@ -200,8 +200,10 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   // QPU. They do not support the full named QIR output recording functions.
   // Detect for the that difference here.
   bool mockServer = false;
-  if (results.begin().key() == "MOCK_SERVER_RESULTS")
+  if (results.begin().key() == "MOCK_SERVER_RESULTS"){
+    printf("this is mock server");
     mockServer = true;
+  }
 
   if (!mockServer)
     for (auto &[_, val] : output_names)
@@ -304,14 +306,8 @@ void AnyonServerHelper::refreshTokens(bool force_refresh) {
     if (refreshKey.empty())
       refreshKey = credentials;
   }
-
-  // If the time string is empty, let's add it
   if (timeStr.empty()) {
     timeStr = std::to_string(now.time_since_epoch().count());
-    std::ofstream out(credentialsPath);
-    out << "key:" << apiKey << '\n';
-    out << "refresh:" << refreshKey << '\n';
-    out << "time:" << timeStr << '\n';
   }
 
   // We first check how much time has elapsed since the
@@ -341,6 +337,14 @@ void AnyonServerHelper::refreshTokens(bool force_refresh) {
     out << "time:" << now.time_since_epoch().count() << '\n';
     timeStr = std::to_string(now.time_since_epoch().count());
   }
+    // If the time string is empty, let's add it
+  if (timeStr.empty()) {
+    timeStr = std::to_string(now.time_since_epoch().count());
+    std::ofstream out(credentialsPath);
+    out << "key:" << apiKey << '\n';
+    out << "refresh:" << refreshKey << '\n';
+    out << "time:" << timeStr << '\n';
+  }
 
 
 }
@@ -356,10 +360,10 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
   nlohmann::json jsoncreds;
   for (const std::string &l : lines) {
     std::vector<std::string> keyAndValue = cudaq::split(l, ':');
-    if (keyAndValue.size() != 2)
-      throw std::runtime_error("Ill-formed configuration file (" + path +
-                               "). Key-value pairs must be in `<key> : "
-                               "<value>` format. (One per line)");
+    // if (keyAndValue.size() != 2)
+    //   throw std::runtime_error("Ill-formed configuration file (" + path +
+    //                            "). Key-value pairs must be in `<key> : "
+    //                            "<value>` format. (One per line)");
     cudaq::trim(keyAndValue[0]);
     cudaq::trim(keyAndValue[1]);
     if (keyAndValue[0] == "key")
@@ -369,10 +373,13 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
     else if (keyAndValue[0] == "time")
       timeStr = keyAndValue[1];
     else if (keyAndValue[0] == "credentials"){ //If the config file doesn't contain key and refresh token, we will add the username password to apikey for BasicHttpAuthentication and generation of tokens
-      std::string linecontent = keyAndValue[1] + keyAndValue[2] + keyAndValue[2];
-      printf(linecontent.c_str());
+      std::string linecontent = keyAndValue[1] +":"+ keyAndValue[2]+":"+ keyAndValue[3];
+      printf("The credentials read from the .config file is: %s", linecontent.c_str());
       jsoncreds = json::parse(linecontent);
-      std::string authInfo = jsoncreds['username'] + ":" + jsoncreds['password'];
+      std::string delim(":");
+      std::string username = jsoncreds.at("username");
+      std::string passwd = jsoncreds.at("password");
+      std::string authInfo ="Basic " + username + delim + passwd;
       authInfo = base64::to_base64(authInfo);
       credentials = authInfo;
     }
@@ -383,8 +390,8 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
   // if (apiKey.empty())
   //   throw std::runtime_error("Empty API key in configuration file (" + path +
   //                            ").");
-  if (refreshKey.empty())
-    throw std::runtime_error("Empty refresh key or credentials in configuration file (" +
+  if (credentials.empty() && refreshKey.empty())
+    throw std::runtime_error("Empty credentials in configuration file (" +
                              path + ").");
   // The `time` key is not required.
 }

@@ -418,7 +418,7 @@ int main(int argc, char **argv) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   std::ofstream out(fileName);
-  out << "key: key\nrefresh: refresh\ntime: 0";
+  out << "key: key\nrefresh: refresh\ntime: 0\ncredentials: {\"username\":\"anchor\",\"password\":\"anchorPassword\"}";
   out.close();
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
