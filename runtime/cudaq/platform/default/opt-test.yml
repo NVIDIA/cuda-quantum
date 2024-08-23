@@ -8,7 +8,6 @@
 
 name: opt-test
 description: "Compiler Optimization Test Target"
-gpu-requirements: true
 
 target-arguments:
   - key: option
