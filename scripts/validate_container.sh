@@ -70,6 +70,10 @@ available_backends=`\
         if grep -q "library-mode-execution-manager: photonics" $file ; then 
           continue
         fi 
+        # Skip optimization test targets
+        if [[ $file == *"opt-test.yml" ]]; then
+          continue
+        fi
         platform=$(cat $file | grep "platform-qpu:")
         qpu=${platform##* }
         requirements=$(cat $file | grep "gpu-requirements:")
