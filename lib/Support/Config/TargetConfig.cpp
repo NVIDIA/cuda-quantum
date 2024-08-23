@@ -55,8 +55,8 @@ static std::string processSimBackendConfig(
            << configValue.PlatformLoweringConfig << "\"\n";
 
   if (!configValue.TargetPassPipeline.empty())
-    output << "TARGET_PASS_PIPELINE=\""
-           << configValue.TargetPassPipeline << "\"\n";
+    output << "TARGET_PASS_PIPELINE=\"" << configValue.TargetPassPipeline
+           << "\"\n";
 
   if (!configValue.CodegenEmission.empty())
     output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
