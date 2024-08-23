@@ -519,6 +519,7 @@ public:
 
 class OpDependencyNode : public DependencyNode {
   friend class IfDependencyNode;
+  friend class ShadowDependencyNode;
 
 protected:
   Operation *associated;
@@ -1315,6 +1316,56 @@ public:
   uint getArgNumber() { return argNum; }
 };
 
+class ShadowDependencyNode : public DependencyNode {
+  friend class DependencyBlock;
+  friend class IfDependencyNode;
+
+protected:
+  OpDependencyNode *shadowed;
+  DependencyEdge shadow_edge;
+
+  void printNode() override {
+    llvm::outs() << "Shadow dependency on: ";
+    shadowed->printNode();
+  }
+
+  bool isRoot() override { return false; }
+  bool isLeaf() override { return true; }
+  bool isQuantumOp() override { return false; }
+  uint numTicks() override { return 0; }
+
+  Value getResult(uint resultidx) override {
+    return shadowed->getResult(resultidx);
+  }
+
+  ValueRange getResults() override { return shadowed->getResults(); }
+
+  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override {
+    if (shadowed->hasCodeGen)
+      hasCodeGen = true;
+  };
+
+public:
+  ShadowDependencyNode(OpDependencyNode *shadowed, size_t resultidx)
+      : shadowed(shadowed), shadow_edge(shadowed, resultidx) {}
+
+  ~ShadowDependencyNode() override {}
+
+  virtual std::string getOpName() override {
+    return shadowed->getOpName().append("shadow");
+  };
+
+  void eraseEdgeForQID(VirtualQID qid) override {
+    assert(false && "Can't call eraseEdgeForQID with an ShadowDependencyNode");
+  }
+
+  std::optional<VirtualQID> getQIDForResult(size_t resultidx) override {
+    return std::nullopt;
+  }
+
+  DependencyEdge getShadowedEdge() { return shadow_edge; }
+};
+
 class TerminatorDependencyNode : public OpDependencyNode {
 protected:
   void printNode() override {
@@ -1492,6 +1543,7 @@ public:
     updateHeight();
     // Schedule the nodes for lifetime analysis
     schedulingPass();
+
     // Finally, perform lifetime analysis and allocate physical qubits
     // Allocations will be captured in `set`
     allocatePhyiscalQubits(set);
@@ -1584,6 +1636,7 @@ protected:
   DependencyBlock *then_block;
   DependencyBlock *else_block;
   SmallVector<Type> results;
+  SetVector<DependencyNode *> freevars;
 
   // TODO: figure out nice way to display
   void printNode() override {
@@ -1666,7 +1719,9 @@ protected:
     auto newDeps = SmallVector<DependencyEdge>();
 
     // Measure ops are a delicate special case because of the classical measure
-    // result. When lifting before, we can lift the discriminate op as well.
+    // result. When lifting before, we can lift the discriminate op as well,
+    // but, the classical result is now free in the body of the if (assuming it
+    // was used) so we must
     if (isa<RAW_MEASURE_OPS>(then_op->associated)) {
       auto then_discriminate = then_op->successors.front()->isQuantumOp()
                                    ? then_op->successors.back()
@@ -1674,7 +1729,14 @@ protected:
       auto else_discriminate = else_op->successors.front()->isQuantumOp()
                                    ? else_op->successors.back()
                                    : else_op->successors.front();
-      else_discriminate->replaceWith(DependencyEdge{then_discriminate, 0});
+      auto casted = static_cast<OpDependencyNode *>(then_discriminate);
+      auto newfreevar = new ShadowDependencyNode(casted, 0);
+      auto newEdge = DependencyEdge{newfreevar, 0};
+      then_discriminate->replaceWith(newEdge);
+      else_discriminate->replaceWith(newEdge);
+      dependencies.push_back(newEdge);
+      freevars.insert(newfreevar);
+
       delete else_discriminate;
     }
 
@@ -1683,9 +1745,26 @@ protected:
     for (uint i = 0; i < then_op->dependencies.size(); i++) {
       auto dependency = then_op->dependencies[i];
 
-      // If the dependency is an alloc, lift the physical wire to the parent
-      // graph
-      if (dependency->isAlloc()) {
+      if (freevars.contains(dependency.node)) {
+        // If the dependency is a free variable with this `if` as the frontier,
+        // then we can just use the value directly, instead of the shadowed
+        // value
+        auto shadowNode = static_cast<ShadowDependencyNode *>(dependency.node);
+        auto edge = shadowNode->getShadowedEdge();
+        newDeps.push_back(edge);
+        shadowNode->successors.remove(then_op);
+        // Remove shadowNode if it is no longer needed
+        if (shadowNode->successors.empty()) {
+          for (uint i = 0; i < dependencies.size(); i++)
+            if (dependencies[i].node == edge.node &&
+                dependencies[i].resultidx == edge.resultidx)
+              dependencies.erase(dependencies.begin() + i);
+          freevars.remove(shadowNode);
+          delete shadowNode;
+        }
+      } else if (dependency->isAlloc()) {
+        // If the dependency is an alloc, lift the physical wire to the
+        // parent graph
         auto then_qid = dependency.qid.value();
         auto else_qid = else_op->dependencies[i].qid.value();
         // Remove virtual allocs from inner blocks
@@ -1766,7 +1845,17 @@ protected:
 
   void genOp(OpBuilder &builder, LifeTimeAnalysis &set) override {
     cudaq::cc::IfOp oldOp = dyn_cast<cudaq::cc::IfOp>(associated);
+
     auto operands = gatherOperands(builder, set);
+
+    // Remove operands from shadow dependencies
+    // First operand must be conditional, skip it
+    for (uint i = 1; i < operands.size(); i++) {
+      if (!quake::isQuantumType(operands[i].getType())) {
+        operands.erase(operands.begin() + i);
+        i--;
+      }
+    }
 
     auto newIf =
         builder.create<cudaq::cc::IfOp>(oldOp->getLoc(), results, operands);
@@ -1803,10 +1892,17 @@ protected:
   }
 
 public:
-  IfDependencyNode(cudaq::cc::IfOp op, SmallVector<DependencyEdge> dependencies,
-                   DependencyBlock *then_block, DependencyBlock *else_block)
-      : OpDependencyNode(op.getOperation(), dependencies),
+  IfDependencyNode(cudaq::cc::IfOp op,
+                   SmallVector<DependencyEdge> _dependencies,
+                   DependencyBlock *then_block, DependencyBlock *else_block,
+                   SetVector<ShadowDependencyNode *> _freevars)
+      : OpDependencyNode(op.getOperation(), _dependencies),
         then_block(then_block), else_block(else_block) {
+    for (auto freevar : _freevars) {
+      dependencies.push_back(freevar->getShadowedEdge());
+      freevars.insert(freevar);
+    }
+
     results = SmallVector<mlir::Type>(op.getResultTypes());
     // Unfortunately, some metadata won't be computed properly by
     // OpDependencyNode constructor, so recompute here
@@ -2093,9 +2189,12 @@ class DependencyAnalysisEngine {
 private:
   SmallVector<DependencyNode *> perOp;
   DenseMap<BlockArgument, ArgDependencyNode *> argMap;
+  SmallVector<Operation *> ifStack;
+  DenseMap<Operation *, SetVector<ShadowDependencyNode *>> freeClassicals;
 
 public:
-  DependencyAnalysisEngine() : perOp({}), argMap({}) {}
+  DependencyAnalysisEngine()
+      : perOp({}), argMap({}), ifStack({}), freeClassicals({}) {}
 
   /// Creates a new dependency block for \p b by constructing a dependency graph
   /// for the body of \p b starting from the block terminator.
@@ -2171,12 +2270,19 @@ public:
     else if (auto sink = dyn_cast<quake::ReturnWireOp>(op))
       newNode = new RootDependencyNode(sink, dependencies);
     else if (auto ifop = dyn_cast<cudaq::cc::IfOp>(op)) {
+      freeClassicals[op] = SetVector<ShadowDependencyNode *>();
+      ifStack.push_back(op);
       auto then_block = visitBlock(ifop.getThenEntryBlock(), dependencies);
       auto else_block = visitBlock(ifop.getElseEntryBlock(), dependencies);
       if (!then_block || !else_block)
         return nullptr;
-      newNode =
-          new IfDependencyNode(ifop, dependencies, then_block, else_block);
+      ifStack.pop_back();
+
+      SetVector<ShadowDependencyNode *> freeIn = freeClassicals[op];
+      freeClassicals.erase(freeClassicals.find(op));
+
+      newNode = new IfDependencyNode(ifop, dependencies, then_block, else_block,
+                                     freeIn);
     } else if (isTerminator) {
       newNode = new TerminatorDependencyNode(op, dependencies);
     } else {
@@ -2202,10 +2308,11 @@ public:
       return DependencyNode::DependencyEdge{argMap[barg], 0};
 
     auto defOp = v.getDefiningOp();
-
-    auto resultidx = dyn_cast<OpResult>(v).getResultNumber();
     assert(defOp &&
            "Cannot handle value that is neither a BlockArgument nor OpResult");
+
+    auto resultidx = dyn_cast<OpResult>(v).getResultNumber();
+
     // Since we walk forward through the ast, every value should be defined
     // before it is used, so we should have already visited defOp,
     // and thus should have a memoized dnode for defOp, fail if not
@@ -2213,6 +2320,22 @@ public:
 
     auto id = defOp->getAttr("dnodeid").cast<IntegerAttr>().getUInt();
     auto dnode = perOp[id];
+
+    if (!ifStack.empty() && defOp->getParentOp() != ifStack.back() &&
+        dnode->isQuantumDependent()) {
+      auto opdnode = static_cast<OpDependencyNode *>(dnode);
+      auto shadow_node = new ShadowDependencyNode{opdnode, resultidx};
+
+      auto parent = ifStack.back();
+
+      while (parent->getParentOp() != defOp->getParentOp())
+        parent = parent->getParentOp();
+
+      freeClassicals[parent].insert(shadow_node);
+
+      return DependencyNode::DependencyEdge{shadow_node, resultidx};
+    }
+
     return DependencyNode::DependencyEdge{dnode, resultidx};
   }
 };
@@ -2259,7 +2382,6 @@ struct DependencyAnalysisPass
         body->codeGen(builder, &func.getRegion(), set);
 
         delete body;
-
         // Replace old block
         oldBlock->erase();
       }
