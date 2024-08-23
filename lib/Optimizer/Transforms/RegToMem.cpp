@@ -471,7 +471,7 @@ public:
     // 2) Replace each quake.null_wire with a quake.alloca.
     SmallVector<Value> allocas(analysis.getCardinality());
     SmallVector<Value> borrowAllocas;
-    for (auto *nwire : analysis.getWires()) {
+    for (auto *nwire : llvm::reverse(analysis.getWires())) {
       OpBuilder builder(ctx);
       const bool fromWire = isa<quake::BorrowWireOp>(nwire);
       if (fromWire)
