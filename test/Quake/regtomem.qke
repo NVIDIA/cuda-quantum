@@ -134,9 +134,9 @@ func.func @f3() {
 }
 
 // CHECK-LABEL:   func.func @f3() {
-// CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
-// CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
-// CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = cc.undef i1
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:           }
@@ -145,16 +145,16 @@ func.func @f3() {
 // CHECK:           } else {
 // CHECK:             quake.y [%[[VAL_2]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           }
-// CHECK:           quake.dealloc %[[VAL_2]] : !quake.ref
-// CHECK:           quake.dealloc %[[VAL_1]] : !quake.ref
-// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK-DAG:       quake.dealloc %[[VAL_2]] : !quake.ref
+// CHECK-DAG:       quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK-DAG:       quake.dealloc %[[VAL_0]] : !quake.ref
 // CHECK:           return
 // CHECK:         }
 
 // CFG-LABEL:   func.func @f3() {
-// CFG-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
-// CFG-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
-// CFG-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CFG:           %[[VAL_3:.*]] = cc.undef i1
 // CFG:           cf.cond_br %[[VAL_3]], ^bb1, ^bb2
 // CFG:         ^bb1:
@@ -170,8 +170,8 @@ func.func @f3() {
 // CFG:         ^bb5:
 // CFG:           cf.br ^bb6
 // CFG:         ^bb6:
-// CFG:           quake.dealloc %[[VAL_2]] : !quake.ref
-// CFG:           quake.dealloc %[[VAL_1]] : !quake.ref
-// CFG:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CFG-DAG:       quake.dealloc %[[VAL_2]] : !quake.ref
+// CFG-DAG:       quake.dealloc %[[VAL_1]] : !quake.ref
+// CFG-DAG:       quake.dealloc %[[VAL_0]] : !quake.ref
 // CFG:           return
 // CFG:         }
