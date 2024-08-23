@@ -669,7 +669,7 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
-def OptimizeStateCreation : Pass<"optimize-state-creation", "mlir::ModuleOp"> {
+def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   let summary =
     "Remove unnecessary creation of new states from data";
   let description = [{

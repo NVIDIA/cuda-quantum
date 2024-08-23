@@ -142,8 +142,6 @@ state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
   return new state(state::from_data(current));
 }
 
-void __nvqpp_cudaq_state_delete(state *obj) {
-  delete obj;
-}
+void __nvqpp_cudaq_state_delete(state *obj) { delete obj; }
 }
 } // namespace cudaq

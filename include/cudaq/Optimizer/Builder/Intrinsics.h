@@ -47,14 +47,13 @@ static constexpr const char getNumQubitsFromCudaqState[] =
     "__nvqpp_cudaq_state_numberOfQubits";
 
 // Create a new state from data.
-static constexpr const char createCudaqStateFromDataFP64[] =
+static constexpr const char createCudaqStateFromData64[] =
     "__nvqpp_cudaq_state_createFromData_fp64";
-static constexpr const char createCudaqStateFromDataFP32[] =
+static constexpr const char createCudaqStateFromData32[] =
     "__nvqpp_cudaq_state_createFromData_fp32";
 
 // Delete a state created by the runtime functions above.
-static constexpr const char deleteCudaqState[] =
-    "__nvqpp_cudaq_state_delete";
+static constexpr const char deleteCudaqState[] = "__nvqpp_cudaq_state_delete";
 
 /// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
 /// the transformation of both quantum and classical computation. Different

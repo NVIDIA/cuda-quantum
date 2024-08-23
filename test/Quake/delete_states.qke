@@ -1,0 +1,84 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -delete-states -canonicalize %s | FileCheck %s
+
+module {
+  func.func @__nvqpp__mlirgen__function_test_state_param._Z16test_state_paramPN5cudaq5stateE() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %c8_i64 = arith.constant 8 : i64
+    %0 = cc.address_of @function_test_state_param._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+    %1 = cc.load %0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+    %2 = cc.alloca !cc.array<complex<f32> x 8>
+    cc.store %1, %2 : !cc.ptr<!cc.array<complex<f32> x 8>>
+    %3 = cc.cast %2 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
+    %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+    %5 = call @__nvqpp_cudaq_state_numberOfQubits(%4) : (!cc.ptr<!cc.state>) -> i64
+    %6 = quake.alloca !quake.veq<?>[%5 : i64]
+    %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+    return
+  }
+  func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.ptr<!cc.state>) -> i64
+  cc.global constant @function_test_state_param._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00
+,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f32>>) : !cc.array<complex<f32> x 8>
+  func.func private @__nvqpp_cudaq_state_createFromData_fp32(!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_state_param._Z16test_state_paramPN5cudaq5stateE() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = cc.address_of @function_test_state_param._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+// CHECK:           %[[VAL_1:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.array<complex<f32> x 8>>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.array<complex<f32> x 8>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<!cc.array<complex<f32> x 8>>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_4:.*]] = quake.init_state %[[VAL_3]], %[[VAL_2]] : (!quake.veq<3>, !cc.ptr<!cc.array<complex<f32> x 8>>) -> !quake.veq<3>
+// CHECK:         }
+// CHECK-DAG:     cc.global constant @function_test_state_param._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f32>>) : !cc.array<complex<f32> x 8>
+
+  func.func @__nvqpp__mlirgen__sub_kernel(%arg : !cc.ptr<!cc.state>) attributes {"cudaq-kernel", no_this} {
+    %0 = call @__nvqpp_cudaq_state_numberOfQubits(%arg) : (!cc.ptr<!cc.state>) -> i64
+    %1 = quake.alloca !quake.veq<?>[%0 : i64]
+    %2 = quake.init_state %1, %arg : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+    return
+  }
+
+  func.func @__nvqpp__mlirgen__function_test_state_param1._Z16test_state_paramPN5cudaq5stateE() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %c8_i64 = arith.constant 8 : i64
+    %0 = cc.address_of @function_test_state_param1._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+    %1 = cc.load %0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+    %2 = cc.alloca !cc.array<complex<f32> x 8>
+    cc.store %1, %2 : !cc.ptr<!cc.array<complex<f32> x 8>>
+    %3 = cc.cast %2 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
+    %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+    call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> () // Why is this getting removed?
+    return
+  }
+
+  cc.global constant @function_test_state_param1._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00
+,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f32>>) : !cc.array<complex<f32> x 8>
+
+// CHECK:         func.func @__nvqpp__mlirgen__sub_kernel(%[[VAL_ARG:.*]]: !cc.ptr<!cc.state>) attributes {"cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_ARG]]) : (!cc.ptr<!cc.state>) -> i64
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<?>[%[[VAL_0]] : i64]
+// CHECK:           %[[VAL_2:.*]] = quake.init_state %[[VAL_1]], %[[VAL_ARG]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+// CHECK:           return
+// CHECK:          }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_state_param1._Z16test_state_paramPN5cudaq5stateE() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 8 : i64
+// CHECK:           %[[VAL_1:.*]] = cc.address_of @function_test_state_param1._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+// CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_1]] : !cc.ptr<!cc.array<complex<f32> x 8>>
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f32> x 8>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_3]] : !cc.ptr<!cc.array<complex<f32> x 8>>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_5:.*]] = call @__nvqpp_cudaq_state_createFromData_fp32(%[[VAL_4]], %[[VAL_0]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           call @__nvqpp__mlirgen__sub_kernel(%[[VAL_5]]) : (!cc.ptr<!cc.state>) -> ()
+// CHECK:           call @__nvqpp_cudaq_state_delete(%[[VAL_5]]) : (!cc.ptr<!cc.state>) -> ()
+// CHECK:           return
+// CHECK:         }
+// CHECK-DAG:     constant @function_test_state_param1._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f32>>) : !cc.array<complex<f32> x 8>
+// CHECK-DAG:     func.func private @__nvqpp_cudaq_state_delete(!cc.ptr<!cc.state>)
+}
+
