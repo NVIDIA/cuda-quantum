@@ -31,7 +31,7 @@ func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   return %12 : i1
 }
 
-// CHECK-LABEL:   quake.wire_set @wires[2147483647]
+// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
 
 // CHECK-LABEL:   func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[2] : !quake.wire
@@ -39,7 +39,7 @@ func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_2:.*]] = quake.borrow_wire @wires[1] : !quake.wire
 // CHECK:           %[[VAL_3:.*]] = quake.h %[[VAL_2]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_4:.*]] = quake.borrow_wire @wires[0] : !quake.wire
-// CHECK:           %[[VAL_5:.*]]:2 = quake.x [%[[VAL_4]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_5:.*]]:2 = quake.x {{\[}}%[[VAL_4]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[VAL_6:.*]] = quake.x %[[VAL_3]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_7:.*]] = quake.z %[[VAL_5]]#1 : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_8:.*]] = quake.y %[[VAL_6]] : (!quake.wire) -> !quake.wire
