@@ -645,23 +645,24 @@
     <span class="c1"># 0. Check to see if N is even.</span>
     <span class="k">if</span> <span class="n">N</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">divisor1</span> <span class="o">=</span> <span class="mi">2</span>
-        <span class="n">divisor2</span> <span class="o">=</span> <span class="n">N</span><span class="o">//</span><span class="mi">2</span>
+        <span class="n">divisor2</span> <span class="o">=</span> <span class="n">N</span> <span class="o">//</span> <span class="mi">2</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found factors:&quot;</span><span class="p">,</span> <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">)</span>
 
     <span class="n">attempts</span> <span class="o">=</span> <span class="p">[</span><span class="n">initial</span><span class="p">]</span>
-    <span class="k">while</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">while</span> <span class="p">(</span><span class="kc">True</span><span class="p">):</span>
         <span class="c1"># 1. Select a random integer between 2 and N-1</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">attempts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">a</span> <span class="o">=</span> <span class="n">initial</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">a</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attempts</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attempts</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">])</span>
 
         <span class="c1"># 2. See if it happens to factor N</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trying a =&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
-        <span class="n">divisor1</span> <span class="o">=</span> <span class="n">gcd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">divisor1</span> <span class="o">=</span> <span class="n">gcd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">divisor1</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">divisor2</span> <span class="o">=</span> <span class="n">N</span><span class="o">//</span><span class="n">divisor1</span>
+            <span class="n">divisor2</span> <span class="o">=</span> <span class="n">N</span> <span class="o">//</span> <span class="n">divisor1</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found factor by chance:&quot;</span><span class="p">,</span> <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">)</span>
             <span class="k">return</span> <span class="p">(</span><span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">)</span>
 
@@ -670,15 +671,15 @@
             <span class="n">r</span> <span class="o">=</span> <span class="n">find_order_quantum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">r</span> <span class="o">=</span> <span class="n">find_order_classical</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The order of a is&quot;</span><span class="p">,</span><span class="n">r</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The order of a is&quot;</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
 
         <span class="c1"># 4. If the order of a is found and it is</span>
         <span class="c1"># * even and</span>
         <span class="c1"># * not a^(r/2) = -1 (mod N),</span>
         <span class="c1"># then test a^(r/2)-1 and a^(r/2)+1 share potential factors with N.</span>
         <span class="c1"># We also want to rule out the case of finding the trivial factors: 1 and N.</span>
-        <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span> <span class="o">=</span> <span class="n">test_order</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">divisor1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span> <span class="c1"># test_order will return a 0 if no factor is found</span>
+        <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span> <span class="o">=</span> <span class="n">test_order</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">divisor1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>  <span class="c1"># test_order will return a 0 if no factor is found</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found factors of N:&quot;</span><span class="p">,</span> <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span>
 
@@ -719,17 +720,17 @@
 <span class="sd">    int, int factors of N, if found; 0,0 otherwise</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">r</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">r</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>  <span class="ow">and</span> <span class="n">a</span><span class="o">**</span><span class="n">r</span> <span class="o">%</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-       <span class="k">if</span> <span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="o">/</span><span class="mi">2</span><span class="p">)))</span> <span class="o">%</span> <span class="n">N</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-            <span class="n">possible_factors</span> <span class="o">=</span> <span class="p">[</span><span class="n">gcd</span><span class="p">(</span><span class="n">r</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">gcd</span><span class="p">(</span><span class="n">r</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">r</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">r</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a</span><span class="o">**</span><span class="n">r</span> <span class="o">%</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)))</span> <span class="o">%</span> <span class="n">N</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">possible_factors</span> <span class="o">=</span> <span class="p">[</span><span class="n">gcd</span><span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">gcd</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">)]</span>
             <span class="k">for</span> <span class="n">test_factor</span> <span class="ow">in</span> <span class="n">possible_factors</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">test_factor</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">test_factor</span> <span class="o">!=</span> <span class="n">N</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="n">test_factor</span><span class="p">,</span> <span class="n">N</span><span class="o">//</span><span class="n">test_factor</span>
+                    <span class="k">return</span> <span class="n">test_factor</span><span class="p">,</span> <span class="n">N</span> <span class="o">//</span> <span class="n">test_factor</span>
     <span class="c1"># period did not produce a factor</span>
     <span class="k">else</span><span class="p">:</span>
-       <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No non-trivial factor found&#39;</span><span class="p">)</span>
-       <span class="k">return</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
-</pre></div>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No non-trivial factor found&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+<br/></pre></div>
 </div>
 </div>
 <section id="Solving-the-order-finding-problem-classically">
@@ -767,11 +768,11 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">my_integer</span> <span class="o">=</span> <span class="mi">123</span> <span class="c1">#edit this value to try out a few examples</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">my_integer</span> <span class="o">=</span> <span class="mi">123</span>  <span class="c1">#edit this value to try out a few examples</span>
 <span class="c1"># Edit the value in the line below to try out different initial guesses for a.</span>
 <span class="c1"># What happens when you choose a = 42 for the integer 123?</span>
 <span class="c1"># What happens when you choose a = 100 for the integer 123?</span>
-<span class="n">initial_value_to_start</span> <span class="o">=</span> <span class="mi">42</span> <span class="c1">#edit this value</span>
+<span class="n">initial_value_to_start</span> <span class="o">=</span> <span class="mi">42</span>  <span class="c1">#edit this value</span>
 
 <span class="n">shors_algorithm</span><span class="p">(</span><span class="n">my_integer</span><span class="p">,</span> <span class="n">initial_value_to_start</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 </pre></div>
@@ -821,6 +822,7 @@ Found factor by chance: 3 41
             <span class="n">angle</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
             <span class="n">cr1</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="p">[</span><span class="n">qubits</span><span class="p">[</span><span class="n">j</span><span class="p">]],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
+
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">inverse_qft</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">adjoint</span><span class="p">(</span><span class="n">quantum_fourier_transform</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span>
@@ -850,7 +852,8 @@ Found factor by chance: 3 41
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">modular_exp_5_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>  <span class="n">control_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">modular_exp_5_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
+                     <span class="n">control_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Controlled modular exponentiation kernel used in Shor&#39;s algorithm</span>
 <span class="sd">    |x&gt; U^x |y&gt; = |x&gt; |(5^x)y mod 21&gt;</span>
 <span class="sd">    based off of the circuit diagram in</span>
@@ -860,7 +863,7 @@ Found factor by chance: 3 41
         <span class="n">ctrl_qubit</span> <span class="o">=</span> <span class="n">exponent</span><span class="p">[</span><span class="n">exp</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">exp</span><span class="p">)):</span>
             <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">modular_mult_5_21</span><span class="p">,</span> <span class="n">ctrl_qubit</span><span class="p">,</span> <span class="n">work</span><span class="p">)</span>
-<br/><br/><br/></pre></div>
+<br/></pre></div>
 </div>
 </div>
 <p>Verify in the code block below that the kernels defined above do in fact carry out multiplication and exponentiation with <span class="math notranslate nohighlight">\(a=5\)</span> and <span class="math notranslate nohighlight">\(N=21\)</span>.</p>
@@ -876,15 +879,19 @@ Found factor by chance: 3 41
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
         <span class="n">modular_mult_5_21</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
 
+
 <span class="n">shots</span> <span class="o">=</span> <span class="mi">200</span>
-<span class="n">iterations</span> <span class="o">=</span> <span class="mi">5</span> <span class="c1"># Determines the exponent in 5^x mod 21</span>
+<span class="n">iterations</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># Determines the exponent in 5^x mod 21</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">demonstrate_mod_exponentiation</span><span class="p">,</span> <span class="n">iterations</span><span class="p">))</span>
 
-<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">demonstrate_mod_exponentiation</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">demonstrate_mod_exponentiation</span><span class="p">,</span>
+                       <span class="n">iterations</span><span class="p">,</span>
+                       <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement results:&quot;</span><span class="p">,</span> <span class="n">results</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For x =</span><span class="si">{}</span><span class="s2">, 5^x mod 21 = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,(</span><span class="mi">5</span><span class="o">**</span><span class="n">iterations</span><span class="p">)</span> <span class="o">%</span> <span class="mi">21</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For x =</span><span class="si">{}</span><span class="s2">,the computed result of the circuit is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">most_probable</span><span class="p">(),</span><span class="mi">2</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For x =</span><span class="si">{}</span><span class="s2">, 5^x mod 21 = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="o">**</span><span class="n">iterations</span><span class="p">)</span> <span class="o">%</span> <span class="mi">21</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For x =</span><span class="si">{}</span><span class="s2">,the computed result of the circuit is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+    <span class="n">iterations</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">most_probable</span><span class="p">(),</span> <span class="mi">2</span><span class="p">)))</span>
 <br/></pre></div>
 </div>
 </div>
@@ -921,25 +928,25 @@ For x =5,the computed result of the circuit is 17
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">modular_exp_4_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
-<span class="w">     </span><span class="sd">&quot;&quot;&quot; Controlled modular exponentiation kernel used in Shor&#39;s algorithm</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Controlled modular exponentiation kernel used in Shor&#39;s algorithm</span>
 <span class="sd">     |x&gt; U^x |y&gt; = |x&gt; |(4^x)y mod 21&gt;</span>
 <span class="sd">     based off of the circuit diagram in https://arxiv.org/abs/2103.13855&quot;&quot;&quot;</span>
-     <span class="c1"># x = 1</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">exponent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># x = 1</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">exponent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-     <span class="c1"># x = 2</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">exponent</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">exponent</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># x = 2</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">exponent</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">exponent</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-     <span class="c1"># x = 4</span>
-     <span class="n">x</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">exponent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-     <span class="n">x</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">exponent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># x = 4</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">exponent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">exponent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
@@ -949,14 +956,16 @@ For x =5,the computed result of the circuit is 17
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span> <span class="nf">phase_kernel</span><span class="p">(</span><span class="n">control_register_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">work_register_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">N</span> <span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">phase_kernel</span><span class="p">(</span><span class="n">control_register_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">work_register_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">N</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Kernel to estimate the phase of the modular multiplication gate |x&gt; U |y&gt; = |x&gt; |a*y mod 21&gt; for a = 4 or 5</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">control_register_size</span> <span class="o">+</span> <span class="n">work_register_size</span><span class="p">)</span>
     <span class="n">control_register</span> <span class="o">=</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">control_register_size</span><span class="p">]</span>
-    <span class="n">work_register</span> <span class="o">=</span> <span class="n">qubits</span><span class="p">[</span><span class="n">control_register_size</span><span class="p">:</span><span class="n">control_register_size</span> <span class="o">+</span> <span class="n">work_register_size</span><span class="p">]</span>
+    <span class="n">work_register</span> <span class="o">=</span> <span class="n">qubits</span><span class="p">[</span><span class="n">control_register_size</span><span class="p">:</span><span class="n">control_register_size</span> <span class="o">+</span>
+                           <span class="n">work_register_size</span><span class="p">]</span>
 
     <span class="n">h</span><span class="p">(</span><span class="n">control_register</span><span class="p">)</span>
 
@@ -969,7 +978,7 @@ For x =5,the computed result of the circuit is 17
 
     <span class="c1"># Measure only the control_register and not the work_register</span>
     <span class="n">mz</span><span class="p">(</span><span class="n">control_register</span><span class="p">)</span>
-</pre></div>
+<br/></pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -978,15 +987,24 @@ For x =5,the computed result of the circuit is 17
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">control_register_size</span> <span class="o">=</span> <span class="mi">3</span>
 <span class="n">work_register_size</span> <span class="o">=</span> <span class="mi">5</span>
-<span class="n">values_for_a</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">]</span>
-<span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># change to 1 to select 5</span>
-<span class="n">N</span> <span class="o">=</span><span class="mi">21</span>
+<span class="n">values_for_a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># change to 1 to select 5</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">21</span>
 <span class="n">shots</span> <span class="o">=</span> <span class="mi">15000</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">phase_kernel</span><span class="p">,</span> <span class="n">control_register_size</span><span class="p">,</span> <span class="n">work_register_size</span><span class="p">,</span> <span class="n">values_for_a</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">N</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">phase_kernel</span><span class="p">,</span> <span class="n">control_register_size</span><span class="p">,</span> <span class="n">work_register_size</span><span class="p">,</span>
+               <span class="n">values_for_a</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">N</span><span class="p">))</span>
 
-<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">phase_kernel</span><span class="p">,</span> <span class="n">control_register_size</span><span class="p">,</span> <span class="n">work_register_size</span><span class="p">,</span> <span class="n">values_for_a</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">N</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement results for a=</span><span class="si">{}</span><span class="s2"> and N=</span><span class="si">{}</span><span class="s2"> with </span><span class="si">{}</span><span class="s2"> qubits in the control register &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">values_for_a</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span><span class="n">N</span><span class="p">,</span> <span class="n">control_register_size</span><span class="p">))</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">phase_kernel</span><span class="p">,</span>
+                       <span class="n">control_register_size</span><span class="p">,</span>
+                       <span class="n">work_register_size</span><span class="p">,</span>
+                       <span class="n">values_for_a</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                       <span class="n">N</span><span class="p">,</span>
+                       <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Measurement results for a=</span><span class="si">{}</span><span class="s2"> and N=</span><span class="si">{}</span><span class="s2"> with </span><span class="si">{}</span><span class="s2"> qubits in the control register &quot;</span>
+    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">values_for_a</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">N</span><span class="p">,</span> <span class="n">control_register_size</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1043,13 +1061,16 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 <span class="sd">    -------</span>
 <span class="sd">        dict[str, int]: keys are bitstrings and values are the respetive counts</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">results_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span><span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">sample_results</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">results_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sample_results</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="k">if</span> <span class="n">zeros</span> <span class="ow">in</span> <span class="n">results_dictionary</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="n">results_dictionary</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">zeros</span><span class="p">)</span>
-    <span class="n">sorted_results</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">results_dictionary</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">reverse</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)}</span>
+    <span class="n">sorted_results</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">results_dictionary</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="p">}</span>
     <span class="n">top_key</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">sorted_results</span><span class="p">))</span>
     <span class="n">max_value</span> <span class="o">=</span> <span class="n">sorted_results</span><span class="p">[</span><span class="n">top_key</span><span class="p">]</span>
-    <span class="n">top_results_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="n">top_key</span><span class="p">:</span><span class="n">max_value</span><span class="p">}</span>
+    <span class="n">top_results_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="n">top_key</span><span class="p">:</span> <span class="n">max_value</span><span class="p">}</span>
 
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sorted_results</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">results_dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">&gt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">threshold</span><span class="p">,</span> <span class="n">max_value</span><span class="p">):</span>
@@ -1083,7 +1104,7 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="k">def</span> <span class="nf">get_order_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">phase_nbits</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_order_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">phase_nbits</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Uses continued fractions to find the order of a mod N</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1108,21 +1129,22 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 
     <span class="n">f</span> <span class="o">=</span> <span class="n">fractions</span><span class="o">.</span><span class="n">Fraction</span><span class="o">.</span><span class="n">from_float</span><span class="p">(</span><span class="n">eigenphase</span><span class="p">)</span><span class="o">.</span><span class="n">limit_denominator</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">numerator</span> <span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">numerator</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">eigenphase</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">numerator</span><span class="o">/</span><span class="n">f</span><span class="o">.</span><span class="n">denominator</span><span class="p">)</span>
+    <span class="n">eigenphase</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">numerator</span> <span class="o">/</span> <span class="n">f</span><span class="o">.</span><span class="n">denominator</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">eigenphase</span><span class="p">)</span>
-    <span class="n">coefficients_continued_fraction</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">contfrac</span><span class="o">.</span><span class="n">continued_fraction</span><span class="p">(</span><span class="n">eigenphase</span><span class="p">))</span>
+    <span class="n">coefficients_continued_fraction</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="n">contfrac</span><span class="o">.</span><span class="n">continued_fraction</span><span class="p">(</span><span class="n">eigenphase</span><span class="p">))</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">coefficients_continued_fraction</span><span class="p">)</span>
     <span class="n">convergents_continued_fraction</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">contfrac</span><span class="o">.</span><span class="n">convergents</span><span class="p">(</span><span class="n">eigenphase</span><span class="p">))</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">convergents_continued_fraction</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">convergents_continued_fraction</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;testing order&#39;</span><span class="p">,</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;testing order&#39;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">a</span><span class="o">**</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found order:&#39;</span><span class="p">,</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-            <span class="k">return</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found order:&#39;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">return</span> <span class="kc">None</span>
-</pre></div>
+<br/></pre></div>
 </div>
 </div>
 <p>We are now ready to combine all the elements above into a function to find the order of <span class="math notranslate nohighlight">\(a\)</span> <span class="math notranslate nohighlight">\(\mod N\)</span> and test it in the factoring algoithm.</p>
@@ -1144,9 +1166,9 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">21</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">a</span> <span class="o">==</span><span class="mi">5</span> <span class="ow">and</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">21</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">21</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">and</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">21</span><span class="p">):</span>
         <span class="n">shots</span> <span class="o">=</span> <span class="mi">15000</span>
-        <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">N</span> <span class="o">==</span><span class="mi">21</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">21</span><span class="p">:</span>
             <span class="n">control_register_size</span> <span class="o">=</span> <span class="mi">3</span>
             <span class="n">work_register_size</span> <span class="o">=</span> <span class="mi">2</span>
         <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">and</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">21</span><span class="p">:</span>
@@ -1154,20 +1176,27 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
             <span class="n">work_register_size</span> <span class="o">=</span> <span class="mi">5</span>
 
         <span class="c1">#cudaq.set_random_seed(123)</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">phase_kernel</span><span class="p">,</span> <span class="n">control_register_size</span><span class="p">,</span> <span class="n">work_register_size</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">phase_kernel</span><span class="p">,</span>
+                               <span class="n">control_register_size</span><span class="p">,</span>
+                               <span class="n">work_register_size</span><span class="p">,</span>
+                               <span class="n">a</span><span class="p">,</span>
+                               <span class="n">N</span><span class="p">,</span>
+                               <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement results:&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
         <span class="c1"># We will want to ignore the all zero result</span>
-        <span class="n">zero_result</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">control_register_size</span><span class="p">])</span>
+        <span class="n">zero_result</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">control_register_size</span><span class="p">])</span>
         <span class="c1"># We&#39;ll only consider the top results from the sampling</span>
-        <span class="n">threshold</span> <span class="o">=</span> <span class="n">shots</span><span class="o">*</span><span class="p">(</span><span class="mf">.1</span><span class="p">)</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">shots</span> <span class="o">*</span> <span class="p">(</span><span class="mf">.1</span><span class="p">)</span>
         <span class="n">most_probable_bitpatterns</span> <span class="o">=</span> <span class="n">top_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">zero_result</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">most_probable_bitpatterns</span><span class="p">:</span>
 
-            <span class="n">phase</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trying nonzero bitpattern from the phase estimation:&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">phase</span><span class="p">)</span>
+            <span class="n">phase</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trying nonzero bitpattern from the phase estimation:&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span>
+                  <span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">phase</span><span class="p">)</span>
             <span class="n">r</span> <span class="o">=</span> <span class="n">get_order_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">control_register_size</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No period found.&#39;</span><span class="p">)</span>
@@ -1177,7 +1206,9 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
             <span class="k">return</span> <span class="n">r</span>
             <span class="k">break</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;A different quantum kernel is required for this choice of a and N.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">&quot;A different quantum kernel is required for this choice of a and N.&quot;</span>
+        <span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1186,7 +1217,7 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">my_integer</span> <span class="o">=</span> <span class="mi">21</span>
-<span class="n">initial_value_to_start</span> <span class="o">=</span> <span class="mi">4</span> <span class="c1"># Try replacing 5 with 4</span>
+<span class="n">initial_value_to_start</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># Try replacing 5 with 4</span>
 <span class="n">quantum</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="n">shors_algorithm</span><span class="p">(</span><span class="n">my_integer</span><span class="p">,</span> <span class="n">initial_value_to_start</span><span class="p">,</span> <span class="n">quantum</span><span class="p">)</span>
 </pre></div>
