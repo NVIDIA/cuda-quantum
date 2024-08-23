@@ -201,7 +201,7 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   // Detect for the that difference here.
   bool mockServer = false;
   if (results.begin().key() == "MOCK_SERVER_RESULTS"){
-    printf("this is mock server");
+    //printf("this is mock server");
     mockServer = true;
   }
 
@@ -374,7 +374,7 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
       timeStr = keyAndValue[1];
     else if (keyAndValue[0] == "credentials"){ //If the config file doesn't contain key and refresh token, we will add the username password to apikey for BasicHttpAuthentication and generation of tokens
       std::string linecontent = keyAndValue[1] +":"+ keyAndValue[2]+":"+ keyAndValue[3];
-      printf("The credentials read from the .config file is: %s", linecontent.c_str());
+      //printf("The credentials read from the .config file is: %s", linecontent.c_str());
       jsoncreds = json::parse(linecontent);
       std::string delim(":");
       std::string username = jsoncreds.at("username");

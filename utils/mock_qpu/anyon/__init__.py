@@ -136,7 +136,6 @@ async def getJob(jobId: str):
     # to mark these results specially (MOCK_SERVER_RESULTS) in order to allow
     # downstream code to recognize that this isn't from a true Quantinuum QPU.
     res = {"status": "completed", "results": {"MOCK_SERVER_RESULTS": retData}}
-    print(res)
     return res
 
 
