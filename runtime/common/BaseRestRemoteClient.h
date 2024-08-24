@@ -329,18 +329,18 @@ public:
       if (!castedState1 || !castedState2)
         throw std::runtime_error(
             "Invalid execution context: input states are not compatible");
-      auto [kernelName1, args1, argsSize1] = castedState1->getKernelInfo();
-      auto [kernelName2, args2, argsSize2] = castedState2->getKernelInfo();
+      auto [kernelName1, args1] = castedState1->getKernelInfo();
+      auto [kernelName2, args2] = castedState2->getKernelInfo();
       cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
 
       stateIrPayload1.entryPoint = kernelName1;
       stateIrPayload1.ir =
-          constructKernelPayload(mlirContext, kernelName1, nullptr, args1,
-                                 argsSize1, /*startingArgIdx=*/0, nullptr);
+          constructKernelPayload(mlirContext, kernelName1, nullptr, nullptr, 0,
+                                 /*startingArgIdx=*/0, &args1);
       stateIrPayload2.entryPoint = kernelName2;
       stateIrPayload2.ir =
-          constructKernelPayload(mlirContext, kernelName2, nullptr, args2,
-                                 argsSize2, /*startingArgIdx=*/0, nullptr);
+          constructKernelPayload(mlirContext, kernelName2, nullptr, nullptr, 0,
+                                 /*startingArgIdx=*/0, &args2);
       // First kernel of the overlap calculation
       request.code = stateIrPayload1.ir;
       request.entryPoint = stateIrPayload1.entryPoint;

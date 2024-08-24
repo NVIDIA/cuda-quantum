@@ -47,8 +47,8 @@ struct VerifyNVQIRCallOpsPass
           cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,
           cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64,
           cudaq::getNumQubitsFromCudaqState,
-          cudaq::createCudaqStateFromData64,
           cudaq::createCudaqStateFromData32,
+          cudaq::createCudaqStateFromData64,
           cudaq::deleteCudaqState};
       // It must be either NVQIR extension functions or in the allowed list.
       return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
