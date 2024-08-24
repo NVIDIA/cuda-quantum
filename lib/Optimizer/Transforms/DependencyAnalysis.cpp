@@ -361,10 +361,9 @@ protected:
 
   void replaceWith(DependencyEdge other) {
     for (auto successor : successors) {
-      for (uint j = 0; j < successor->dependencies.size(); j++) {
-        auto edge = successor->dependencies[j];
-        if (edge.node == this) {
-          successor->dependencies[j] = other;
+      for (auto &dependency : successor->dependencies) {
+        if (dependency.node == this) {
+          dependency = other;
           other->successors.remove(this);
           other->successors.insert(successor);
         }
@@ -723,13 +722,12 @@ public:
   void erase() {
     for (auto successor : successors) {
       bool remove = true;
-      for (uint j = 0; j < successor->dependencies.size(); j++) {
-        auto edge = successor->dependencies[j];
+      for (auto &edge : successor->dependencies) {
         if (edge.node == this) {
           // If the output isn't a linear type, then don't worry about moving it
           if (quake::isQuantumType(edge.getValue().getType())) {
             auto dep = getDependencyForResult(edge.resultidx);
-            successor->dependencies[j] = dep;
+            edge = dep;
             dep->successors.insert(successor);
           } else {
             remove = false;
@@ -743,11 +741,12 @@ public:
       }
     }
 
-    // TODO: clean up classical dependencies properly
+    // Clean up any unused constants
     for (auto dependency : dependencies) {
       dependency->successors.remove(this);
-      if (dependency->successors.empty() && !dependency->isLeaf()) {
+      if (dependency->successors.empty() && !dependency->isQuantumDependent()) {
         static_cast<OpDependencyNode *>(dependency.node)->erase();
+        delete dependency.node;
       }
     }
   }
@@ -913,14 +912,13 @@ private:
     assert(new_leaf->isLeaf() && "Invalid leaf!");
 
     if (leafs.count(old_qid) == 1) {
-      auto first_use = getFirstUseOfQID(old_qid);
       auto old_leaf = leafs[old_qid];
 
+      auto [first_use, idx] = old_leaf->getSuccessorAndEdgeIDXForQID(old_qid);
+
       // TODO: use replaceWith
-      for (uint i = 0; i < first_use->dependencies.size(); i++)
-        if (first_use->dependencies[i].node == old_leaf)
-          first_use->dependencies[i] =
-              DependencyNode::DependencyEdge(new_leaf, 0);
+      first_use->dependencies[idx] =
+          DependencyNode::DependencyEdge(new_leaf, 0);
       old_leaf->successors.remove(first_use);
       new_leaf->successors.insert(first_use);
       if (old_leaf->isAlloc()) {
@@ -940,33 +938,31 @@ private:
     }
   }
 
-  void replaceRoot(VirtualQID qid, VirtualQID new_qid,
+  void replaceRoot(VirtualQID old_qid, VirtualQID new_qid,
                    DependencyNode *new_root) {
     assert(new_root->isRoot() && "Invalid root!");
 
-    if (qids.contains(qid)) {
-      auto old_root = getRootForQID(qid);
-      auto last_use = getLastUseOfQID(qid);
+    if (qids.contains(old_qid)) {
+      auto last_use = getLastUseOfQID(old_qid);
 
-      for (uint i = 0; i < old_root->dependencies.size(); i++) {
-        auto edge = old_root->dependencies[i];
-        if (edge.qid == qid) {
-          new_root->dependencies.push_back(edge);
-          old_root->dependencies.erase(old_root->dependencies.begin() + i);
-          break;
-        }
-      }
+      auto [old_root, idx] = last_use->getSuccessorAndEdgeIDXForQID(old_qid);
 
-      if (old_root->dependencies.size() == 0)
-        roots.remove(old_root);
+      new_root->dependencies.push_back(old_root->dependencies[idx]);
+      old_root->dependencies.erase(old_root->dependencies.begin() + idx);
 
       last_use->successors.remove(old_root);
       last_use->successors.insert(new_root);
-      old_root->qids.remove(qid);
+
+      // If the terminator is somehow getting deleted, then the entire block
+      // must be empty, and then it will never be used
+      if (old_root->dependencies.size() == 0)
+        roots.remove(old_root);
+
+      old_root->qids.remove(old_qid);
     }
 
     new_root->qids.insert(new_qid);
-    new_root->qids.insert(qid);
+    // new_root->qids.insert(old_qid);
     roots.insert(new_root);
   }
 
@@ -1159,13 +1155,11 @@ public:
       auto new_alloc = getAllocForQID(qid);
       auto old_root = getRootForQubit(phys);
 
-      auto new_succ_and_edge = new_alloc->getSuccessorAndEdgeIDXForQID(qid);
-      auto successor = new_succ_and_edge.first;
-      auto edgeIDX = new_succ_and_edge.second;
+      auto [successor, idx] = new_alloc->getSuccessorAndEdgeIDXForQID(qid);
 
       // Replace new allocation with result value for old wire
       auto dep = old_root->dependencies[0];
-      successor->dependencies[edgeIDX] = dep;
+      successor->dependencies[idx] = dep;
       dep->successors.insert(successor);
       dep->successors.remove(old_root);
 
@@ -1181,13 +1175,11 @@ public:
       auto old_alloc = getAllocForQubit(phys);
       auto new_root = getRootForQID(qid);
 
-      auto old_succ_and_edge =
+      auto [successor, idx] =
           old_alloc->getSuccessorAndEdgeIDXForQID(old_alloc->getQID());
-      auto successor = old_succ_and_edge.first;
-      auto edgeIDX = old_succ_and_edge.second;
 
       auto dep = new_root->dependencies[0];
-      successor->dependencies[edgeIDX] = dep;
+      successor->dependencies[idx] = dep;
       dep->successors.insert(successor);
       dep->successors.remove(new_root);
 
@@ -1792,19 +1784,16 @@ protected:
                                "blocks is not yet supported.");
 
       auto then_qid = dependency.qid.value();
+      // Remove old edge from in this `if`
       then_op->eraseEdgeForQID(then_qid);
 
-      // Lift allocated qubit
+      // Add new edge from after this `if`
       auto resultidx = then_op->getResultForDependency(i);
-      for (auto successor : successors)
-        for (uint i = 0; i < successor->dependencies.size(); i++)
-          if (successor->dependencies[i].node == this &&
-              successor->dependencies[i].qid == dependency.qid) {
-            newDeps.push_back(successor->dependencies[i]);
-            successor->dependencies[i] = DependencyEdge{then_op, resultidx};
-            break;
-          }
+      auto [successor, idx] = getSuccessorAndEdgeIDXForQID(then_qid);
+      newDeps.push_back(successor->dependencies[idx]);
+      successor->dependencies[idx] = DependencyEdge{then_op, resultidx};
 
+      // Readd QID
       then_op->qids.insert(then_qid);
     }
 
