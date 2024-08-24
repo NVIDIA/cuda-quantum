@@ -220,6 +220,7 @@
 <li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="H2-MRQKS.html">Multi-Reference Quantum Krylov Algorithm (H2 Example)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/backends/backends.html">   Backends</a><ul>
@@ -599,8 +600,8 @@
 
 <span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">ao2mo</span><span class="p">,</span> <span class="n">mcscf</span>
 
-<span class="kn">from</span> <span class="nn">src.vqe_cudaq_qnp</span> <span class="kn">import</span> <span class="n">VQE</span><span class="p">,</span> <span class="n">get_cudaq_hamiltonian</span>
-<span class="kn">from</span> <span class="nn">src.utils_ipie</span> <span class="kn">import</span> <span class="n">get_coeff_wf</span><span class="p">,</span> <span class="n">gen_ipie_input_from_pyscf_chk</span>
+<span class="kn">from</span> <span class="nn">afqmc_src.vqe_cudaq_qnp</span> <span class="kn">import</span> <span class="n">VQE</span><span class="p">,</span> <span class="n">get_cudaq_hamiltonian</span>
+<span class="kn">from</span> <span class="nn">afqmc_src.utils_ipie</span> <span class="kn">import</span> <span class="n">get_coeff_wf</span><span class="p">,</span> <span class="n">gen_ipie_input_from_pyscf_chk</span>
 
 <span class="kn">from</span> <span class="nn">ipie.hamiltonians.generic</span> <span class="kn">import</span> <span class="n">Generic</span> <span class="k">as</span> <span class="n">HamGeneric</span>
 <span class="kn">from</span> <span class="nn">ipie.qmc.afqmc</span> <span class="kn">import</span> <span class="n">AFQMC</span>
@@ -626,7 +627,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the molecular structure and the basis set for the Fenta molecule.</span>
 
-<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;src/geo_fenta.xyz&quot;</span>
+<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/geo_fenta.xyz&quot;</span>
 <span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
 <span class="n">spin</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">5</span>
@@ -634,7 +635,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 
 <span class="c1"># You can swap to O3 which is a smaller system and takes less computational resources and time to run.</span>
 
-<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;src/geo_o3.xyz&quot;</span>
+<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/geo_o3.xyz&quot;</span>
 <span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
 <span class="n">spin</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">9</span>
@@ -653,7 +654,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 
 <span class="c1"># Restriced open shell HF.</span>
 <span class="n">hartee_fock</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">ROHF</span><span class="p">(</span><span class="n">molecule</span><span class="p">)</span>
-<span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span> <span class="o">=</span> <span class="s2">&quot;src/output.chk&quot;</span>
+<span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/output.chk&quot;</span>
 
 <span class="c1"># Run Hartree-Fock.</span>
 <span class="n">hartee_fock</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
@@ -666,7 +667,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
--224.34048064812245
+-224.34048064812262
 </pre></div></div>
 </div>
 <section id="Hamiltonian-preparation-for-VQE">
@@ -752,7 +753,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 # Num Params: 16
 # Qubits: 18
 # N_layers: 1
-# Energy after the VQE: -224.3926998830352
+# Energy after the VQE: -224.3901690611431
 </pre></div></div>
 </div>
 </section>
@@ -876,7 +877,7 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 
 
 <span class="c1"># Run the AFQMC.</span>
-<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">estimator_filename</span> <span class="o">=</span> <span class="s1">&#39;src/estimates.0.h5&#39;</span><span class="p">)</span>
+<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">estimator_filename</span> <span class="o">=</span> <span class="s1">&#39;afqmc_src/estimates.0.h5&#39;</span><span class="p">)</span>
 <span class="n">afqmc_msd</span><span class="o">.</span><span class="n">finalise</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 
@@ -892,17 +893,17 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 <div class="highlight"><pre>
 # random seed is 96264512
             Block                   Weight            WeightFactor            HybridEnergy                  ENumer                  EDenom                  ETotal                  E1Body                  E2Body
-                0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2440474833475844e+04  1.0000000000000000e+02 -2.2440474833475844e+02 -3.7639365216971441e+02  1.5198890383495583e+02
-                1   4.2243136724295840e+02  1.4111352538015647e+03 -1.1706587453647199e+02 -2.2475815411995434e+04  1.0000000000000000e+02 -2.2475815411995436e+02 -3.7647553637385266e+02  1.5171738225389828e+02
-                2   1.0031170675347687e+02  3.8278928957673060e+02 -1.1737451166143732e+02 -2.2491281828803054e+04  1.0000000000000000e+02 -2.2491281828803054e+02 -3.7652044141962244e+02  1.5160762313159196e+02
-                3   9.9897251153181060e+01  1.0007109151776878e+02 -1.1731110994412086e+02 -2.2497799156719888e+04  1.0000000000000000e+02 -2.2497799156719887e+02 -3.7661015848515297e+02  1.5163216691795418e+02
-                4   1.0008903318642547e+02  1.0004229364465529e+02 -1.1743127719028180e+02 -2.2497508617456722e+04  1.0000000000000000e+02 -2.2497508617456722e+02 -3.7677595649331067e+02  1.5180087031874356e+02
-                5   9.9996605525745039e+01  1.0010272949474228e+02 -1.1746990296069042e+02 -2.2504582061507692e+04  1.0000000000000001e+02 -2.2504582061507688e+02 -3.7665153235346526e+02  1.5160571173838829e+02
-                6   1.0011254258887075e+02  1.0017483684345871e+02 -1.1763876429459457e+02 -2.2514581314082043e+04  1.0000000000000000e+02 -2.2514581314082042e+02 -3.7663426702613344e+02  1.5148845388531296e+02
-                7   9.9928457034724943e+01  9.9908499343007676e+01 -1.1758362687039269e+02 -2.2517447174632791e+04  1.0000000000000000e+02 -2.2517447174632792e+02 -3.7662538302479038e+02  1.5145091127846254e+02
-                8   9.9903126164668137e+01  9.9911410200683974e+01 -1.1754847066192167e+02 -2.2518432403785569e+04  1.0000000000000000e+02 -2.2518432403785570e+02 -3.7677549496249651e+02  1.5159117092464081e+02
-                9   1.0011461067810892e+02  1.0011099130959934e+02 -1.1773137871282010e+02 -2.2513737823028405e+04  1.0000000000000000e+02 -2.2513737823028404e+02 -3.7679200521685516e+02  1.5165462698657115e+02
-               10   9.9639714467961483e+01  9.9243154673312134e+01 -1.1743325794078407e+02 -2.2518897510231673e+04  1.0000000000000000e+02 -2.2518897510231673e+02 -3.7689860950318899e+02  1.5170963440087232e+02
+                0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2440857214519274e+04  1.0000000000000000e+02 -2.2440857214519275e+02 -3.7639365236571126e+02  1.5198508022051851e+02
+                1   4.2236163323978462e+02  1.4108003803708052e+03 -1.1705550836048852e+02 -2.2476129978632798e+04  9.9999999999999986e+01 -2.2476129978632804e+02 -3.7647651634374250e+02  1.5171521655741444e+02
+                2   1.0031021642240592e+02  3.8270298551287897e+02 -1.1736348706942081e+02 -2.2491539833590265e+04  1.0000000000000001e+02 -2.2491539833590261e+02 -3.7652287235836400e+02  1.5160747402246139e+02
+                3   9.9896411716010476e+01  1.0006803820092617e+02 -1.1729991834244650e+02 -2.2498086858011950e+04  1.0000000000000001e+02 -2.2498086858011945e+02 -3.7661217900078998e+02  1.5163131042067059e+02
+                4   1.0008819642734720e+02  1.0003952238189274e+02 -1.1741988525943451e+02 -2.2497768126542338e+04  1.0000000000000001e+02 -2.2497768126542334e+02 -3.7677859321228260e+02  1.5180091194685932e+02
+                5   9.9996395539611001e+01  1.0010162124437146e+02 -1.1745900551679516e+02 -2.2504859704025963e+04  1.0000000000000003e+02 -2.2504859704025955e+02 -3.7665382466690920e+02  1.5160522762664974e+02
+                6   1.0011117020963695e+02  1.0017267435124782e+02 -1.1762740654751367e+02 -2.2514761055266557e+04  1.0000000000000000e+02 -2.2514761055266558e+02 -3.7663824192346226e+02  1.5149063137079673e+02
+                7   9.9926957189505018e+01  9.9904869631265882e+01 -1.1757145502349162e+02 -2.2517665690169804e+04  1.0000000000000000e+02 -2.2517665690169804e+02 -3.7662872023157632e+02  1.5145206332987829e+02
+                8   9.9902183781120897e+01  9.9910184942535295e+01 -1.1753639400107765e+02 -2.2518490004346189e+04  9.9999999999999986e+01 -2.2518490004346194e+02 -3.7677944704924283e+02  1.5159454700578092e+02
+                9   1.0011182782239581e+02  1.0010647250586344e+02 -1.1771801521929217e+02 -2.2513893408438777e+04  1.0000000000000001e+02 -2.2513893408438773e+02 -3.7679469177919265e+02  1.5165575769480495e+02
+               10   9.9639946364053955e+01  9.9242085331654422e+01 -1.1742082647888712e+02 -2.2519016506034994e+04  1.0000000000000003e+02 -2.2519016506034987e+02 -3.7690149012513956e+02  1.5171132506478972e+02
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -931,7 +932,7 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x737dd86716c0&gt;
+&lt;matplotlib.legend.Legend at 0x7ab848ece110&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -954,7 +955,7 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 9c4acf80526257f03f567668a3b42822451cfb7e)
+CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 57e1893b9a5b57ef1a1c2662bcf4527f87b9ef89)
 </pre></div></div>
 </div>
 </section>
