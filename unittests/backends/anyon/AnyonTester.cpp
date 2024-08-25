@@ -13,9 +13,9 @@
 #include <gtest/gtest.h>
 #include <regex>
 
-std::string mockPort = "62440";
+std::string mockPort = "5000";
 std::string backendStringTemplate =
-    "anyon;emulate;false;url;http://127.0.0.1:{};credentials;{}";
+    "anyon;emulate;false;url;http://host.docker.internal:{};credentials;{}";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
@@ -418,7 +418,8 @@ int main(int argc, char **argv) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   std::ofstream out(fileName);
-  out << "key: key\nrefresh: refresh\ntime: 0\ncredentials: {\"username\":\"anchor\",\"password\":\"anchorPassword\"}";
+  //out << "key: key\nrefresh: refresh\ntime: 0\ncredentials: {\"username\":\"anchor\",\"password\":\"Xwm@ue3I2n\"}";
+  out << "credentials: {\"username\":\"anchor\",\"password\":\"Xwm@ue3I2n\"}";
   out.close();
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();

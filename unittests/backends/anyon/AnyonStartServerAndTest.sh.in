@@ -13,14 +13,14 @@ checkServerConnection() {
 import socket
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", 62440))
+    s.connect(("host.docker.internal", 5000))
     s.close()
 except Exception:
     exit(1)
 EOF
 }
 # Launch the fake server
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/anyon/__init__.py &
+#PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/anyon/__init__.py &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0

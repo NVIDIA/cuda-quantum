@@ -137,7 +137,10 @@ AnyonServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 }
 
 std::string AnyonServerHelper::extractJobId(ServerMessage &postResponse) {
-  return postResponse["job_token"].get<std::string>();
+  //printf("Extracting ID\n");
+  std::string jobToken = postResponse[0]["job_token"].get<std::string>(); //The post response is an array [json_data, http_status_code]
+  //printf("Extracted ID %s\n",jobToken.c_str());
+  return jobToken;
 }
 
 std::string
@@ -150,15 +153,21 @@ std::string AnyonServerHelper::constructGetJobPath(std::string &jobId) {
 }
 
 bool AnyonServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  auto status = getJobResponse["status"].get<std::string>();
+  auto status = getJobResponse[0]["status"].get<std::string>(); //All job get and post responses at an array of [resdata, httpstatuscode]
   if (status == "failed") {
     std::string msg = "";
-    if (getJobResponse.count("error"))
-      msg = getJobResponse["error"]["text"].get<std::string>();
+    if (getJobResponse[0].count("error"))
+      msg = getJobResponse[0]["error"]["text"].get<std::string>();
     throw std::runtime_error("Job failed to execute msg = [" + msg + "]");
   }
-
-  return status == "completed";
+  else if (status == "waiting"){
+    return false;
+  }
+  else if (status == "executing"){
+    return false;
+  }
+  else
+    return status == "done";
 }
 
 cudaq::sample_result
@@ -322,15 +331,15 @@ void AnyonServerHelper::refreshTokens(bool force_refresh) {
   // If we are getting close to an 30 min, then we will refresh
   bool needsRefresh = secondsDuration.count() * (1. / 1800.) > .85;
   if (needsRefresh || force_refresh) {
-    cudaq::info("Refreshing id-token");
+    cudaq::info("Refreshing id_token");
     std::stringstream ss;
-    ss << "\"refresh-token\":\"" << refreshKey << "\"";
+    ss << "\"refresh_token\":\"" << refreshKey << "\"";
     auto headers = generateRequestHeader(refreshKey);
     nlohmann::json j;
-    j["refresh-token"] = refreshKey;
+    j["refresh_token"] = refreshKey;
     auto response_json = client.post(baseUrl, "login", j, headers);
-    apiKey = response_json["id-token"].get<std::string>();
-    refreshKey = response_json["refresh-token"].get<std::string>();
+    apiKey = response_json["id_token"].get<std::string>();
+    refreshKey = response_json["refresh_token"].get<std::string>();
     std::ofstream out(credentialsPath);
     out << "key:" << apiKey << '\n';
     out << "refresh:" << refreshKey << '\n';
@@ -379,9 +388,9 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
       std::string delim(":");
       std::string username = jsoncreds.at("username");
       std::string passwd = jsoncreds.at("password");
-      std::string authInfo ="Basic " + username + delim + passwd;
+      std::string authInfo = username + delim + passwd;
       authInfo = base64::to_base64(authInfo);
-      credentials = authInfo;
+      credentials = "Basic " + authInfo;
     }
     else
       throw std::runtime_error(
