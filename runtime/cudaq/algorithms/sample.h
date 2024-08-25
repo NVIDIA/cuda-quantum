@@ -186,6 +186,7 @@ struct sample_options {
   cudaq::noise_model noise;
 };
 
+/// @overload
 /// @brief Sample the given quantum kernel expression and return the
 /// mapping of observed bit strings to corresponding number of
 /// times observed.
@@ -226,6 +227,7 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
       .value();
 }
 
+/// @overload
 /// @brief Sample the given quantum kernel expression and return the
 /// mapping of observed bit strings to corresponding number of
 /// times observed. Specify the number of shots.

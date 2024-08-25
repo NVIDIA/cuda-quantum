@@ -54,12 +54,14 @@ concept ObserveCallValid =
     HasVoidReturnType<std::invoke_result_t<QuantumKernel, Args...>>;
 #endif
 
-/// Observe options to provide as an argument to the `observe()`,
+/// @brief Observe options to provide as an argument to the `observe()`,
 /// `async_observe()` functions.
 ///
 /// \p shots is the number of shots to run for the given kernel. The default of
 /// -1 means direct calculations for simulation backends. \p noise is the noise
 /// model to use for the observe operation.
+/// @param shots number of shots to run for the given kernel, or -1 if not applicable.
+/// @param noise noise model to use for the sample operation
 struct observe_options {
   int shots = -1;
   cudaq::noise_model noise;
@@ -208,6 +210,7 @@ inline auto distributeComputations(
 
 } // namespace details
 
+/// \overload
 /// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.
 #if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
@@ -275,6 +278,8 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
   return results;
 }
 
+// Doxygen: ignore overloads with `DistributionType`s, preferring the simpler ones
+/// @cond
 /// @brief Compute the expected value of `H` with respect to `kernel(Args...)`.
 /// Distribute the work `amongst` available QPUs on the platform in parallel.
 /// This distribution can occur on multi-GPU multi-node platforms, multi-GPU
@@ -396,7 +401,9 @@ observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
   return observe<DistributionType>(shots, std::forward<QuantumKernel>(kernel),
                                    H, std::forward<Args>(args)...);
 }
+/// \endcond
 
+/// \overload
 /// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.
 /// Specify the number of shots.
 #if CUDAQ_USE_STD20
@@ -570,6 +577,7 @@ auto observe_async(QuantumKernel &&kernel, spin_op &H, Args &&...args) {
                        std::forward<Args>(args)...);
 }
 
+/// @overload
 /// @brief Run the standard observe functionality over a set of `N`
 /// argument packs. For a kernel with signature `void(Args...)`, this
 /// function takes as input a set of `vector<Arg>...`, a vector for
@@ -612,6 +620,7 @@ std::vector<observe_result> observe(QuantumKernel &&kernel, spin_op H,
       numQpus, platform, functor, params);
 }
 
+/// @overload
 /// @brief Run the standard observe functionality over a set of N
 /// argument packs. For a kernel with signature `void(Args...)`, this
 /// function takes as input a set of `vector<Arg>...`, a vector for
