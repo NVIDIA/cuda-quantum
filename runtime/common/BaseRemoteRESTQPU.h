@@ -421,16 +421,14 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
-        opt::ArgumentConverter argCon(kernelName, moduleOp);
+        opt::ArgumentConverter argCon(kernelName, moduleOp, false);
         argCon.gen(rawArgs);
         std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-        mlir::StringRef sr{kernName};
-        mlir::SmallVector<mlir::StringRef> kernels = {sr};
+        mlir::SmallVector<mlir::StringRef> kernels = {kernName};
         std::string substBuff;
         llvm::raw_string_ostream ss(substBuff);
         ss << argCon.getSubstitutionModule();
-        mlir::StringRef su{substBuff};
-        mlir::SmallVector<mlir::StringRef> substs = {su};
+        mlir::SmallVector<mlir::StringRef> substs = {substBuff};
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createArgumentSynthesisPass(kernels, substs));
       } else if (updatedArgs) {

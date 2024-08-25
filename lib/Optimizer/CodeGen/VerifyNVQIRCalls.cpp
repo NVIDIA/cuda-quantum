@@ -43,7 +43,12 @@ struct VerifyNVQIRCallOpsPass
           cudaq::opt::NVQIRInvokeRotationWithControlBits,
           cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
           cudaq::opt::NVQIRPackSingleQubitInArray,
-          cudaq::opt::NVQIRReleasePackedQubitArray};
+          cudaq::opt::NVQIRReleasePackedQubitArray,
+          cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,
+          cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64,
+          cudaq::getNumQubitsFromCudaqState,
+          cudaq::createCudaqStateFromDataFP64,
+          cudaq::createCudaqStateFromDataFP32};
       // It must be either NVQIR extension functions or in the allowed list.
       return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
                  NVQIR_FUNCS.end() ||
