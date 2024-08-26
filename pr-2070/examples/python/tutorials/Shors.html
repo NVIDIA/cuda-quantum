@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Factoring Integers &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Factoring Integers With Shor’s Algorithm &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -221,16 +221,14 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="H2-MRQKS.html">Multi-Reference Quantum Krylov Algorithm (H2 Example)</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Factoring Integers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Shor's-algorithm">Shor’s algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Solving-the-order-finding-problem-classically">Solving the order-finding problem classically</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Solving-the-order-finding-problem-with-a-quantum-algorithm">Solving the order-finding problem with a quantum algorithm</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#Inverse-quantum-Fourier-transform">Inverse quantum Fourier transform</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#Quantum-kernels-for-modular-exponentiation">Quantum kernels for modular exponentiation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Factoring Integers With Shor’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Shor's-algorithm">Shor’s algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Solving-the-order-finding-problem-classically">Solving the order-finding problem classically</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Solving-the-order-finding-problem-with-a-quantum-algorithm">Solving the order-finding problem with a quantum algorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Determining-the-order-from-the-measurement-results-of-the-phase-kernel">Determining the order from the measurement results of the phase kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Postscript">Postscript</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#Determining-the-order-from-the-measurement-results-of-the-phase-kernel">Determining the order from the measurement results of the phase kernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Postscript">Postscript</a></li>
 </ul>
 </li>
 </ul>
@@ -567,7 +565,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Factoring Integers</li>
+      <li class="breadcrumb-item active">Factoring Integers With Shor’s Algorithm</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../../_sources/examples/python/tutorials/Shors.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -580,8 +578,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Factoring-Integers">
-<h1>Factoring Integers<a class="headerlink" href="#Factoring-Integers" title="Permalink to this heading">¶</a></h1>
+  <section id="Factoring-Integers-With-Shor's-Algorithm">
+<h1>Factoring Integers With Shor’s Algorithm<a class="headerlink" href="#Factoring-Integers-With-Shor's-Algorithm" title="Permalink to this heading">¶</a></h1>
 <p>The most famous application of quantum computers is factoring integers using Shor’s algorithm. This algorithm is particularly significant because an efficient factorization algorithm could potentially break modern asymmetric encryption schemes, such as RSA.</p>
 <p>For small integers, this quantum algorithm can be simulated on classical computers. The main challenge in classical implementation lies in the order-finding algorithm. We will first introduce the classical implementation of this algorithm as a preliminary step, and then proceed to explain the quantum order-finding algorithm.</p>
 <p>First let’s install some libraries.</p>
@@ -600,9 +598,8 @@
 <br/></pre></div>
 </div>
 </div>
-</section>
 <section id="Shor's-algorithm">
-<h1>Shor’s algorithm<a class="headerlink" href="#Shor's-algorithm" title="Permalink to this heading">¶</a></h1>
+<h2>Shor’s algorithm<a class="headerlink" href="#Shor's-algorithm" title="Permalink to this heading">¶</a></h2>
 <p>The factoring problem for an integer <span class="math notranslate nohighlight">\(N\)</span> aims to find integers <span class="math notranslate nohighlight">\(a_1\)</span>, <span class="math notranslate nohighlight">\(a_2\)</span> which are factors of <span class="math notranslate nohighlight">\(N\)</span>. This problem is interesting when <span class="math notranslate nohighlight">\(N\)</span> is not prime and the solutions <span class="math notranslate nohighlight">\(a_1\)</span> and <span class="math notranslate nohighlight">\(a_2\)</span> are non-trivial. In other words, we will attempt to find integers <span class="math notranslate nohighlight">\(a_1\)</span> and <span class="math notranslate nohighlight">\(a_2\)</span> satisfying <span class="math notranslate nohighlight">\(N=a_1\cdot a_2\)</span> with <span class="math notranslate nohighlight">\(a_1\neq 1\)</span> and <span class="math notranslate nohighlight">\(a_2\neq 1\)</span>.</p>
 <p>The algorithm consists of two ideas:</p>
 <ul class="simple">
@@ -619,7 +616,7 @@
 <li><p>If no factor is found, repeat steps 1 through 4 above.</p></li>
 </ol>
 <p>The function <code class="docutils literal notranslate"><span class="pre">shors_algorithm</span></code> below outlines these steps for both the classical and the quantum implementation of Shor’s algorithm. For the purposes of demonstration, we will also control the initial random integer selected in step 1 so that we can investigate cases in which the selected integer produces common divisors of <span class="math notranslate nohighlight">\(N\)</span> in step 4 and others in which step 4 produces no common factors.</p>
-<p><strong>Note about terminology:</strong> Some literature refers to the “period-finding problem” in Shor’s aglorithm. The order-finding problem, as we have described above, can be recast as finding the period of the function <span class="math notranslate nohighlight">\(f(x) = a^x\mod N\)</span>, by noticing that the period of <span class="math notranslate nohighlight">\(f(x)\)</span> is one more than the order of <span class="math notranslate nohighlight">\(a\mod N\)</span>. The period finding problem is more general than the order-finding problem since it aims to find the period of any periodic function, not just modular exponentiation.</p>
+<p><strong>Note about terminology:</strong> Some literature refers to the “period-finding problem” in Shor’s algorithm. The order-finding problem, as we have described above, can be recast as finding the period of the function <span class="math notranslate nohighlight">\(f(x) = a^x\mod N\)</span>, by noticing that the period of <span class="math notranslate nohighlight">\(f(x)\)</span> is one more than the order of <span class="math notranslate nohighlight">\(a\mod N\)</span>. The period finding problem is more general than the order-finding problem since it aims to find the period of any periodic function, not just modular exponentiation.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
@@ -701,7 +698,7 @@
 <div class="math notranslate nohighlight">
 \[a^{\frac{r}{2}}  \not\equiv -1\mod N
 \tag{3}\]</div>
-<p>is satisfied, then at least one of the terms <span class="math notranslate nohighlight">\(a^{\frac{r}{2}} - 1\)</span> or <span class="math notranslate nohighlight">\(a^{\frac{r}{2}} + 1\)</span> must share a common factor with <span class="math notranslate nohighlight">\(N\)</span>. <a class="reference external" href="https://arxiv.org/abs/quant-ph/9508027">Peter Shor</a> demonstrated that there is greater than a <span class="math notranslate nohighlight">\(50\%\)</span> chance of randomly selecting a value for <span class="math notranslate nohighlight">\(a\)</span> satifying these properties.</p>
+<p>is satisfied, then at least one of the terms <span class="math notranslate nohighlight">\(a^{\frac{r}{2}} - 1\)</span> or <span class="math notranslate nohighlight">\(a^{\frac{r}{2}} + 1\)</span> must share a common factor with <span class="math notranslate nohighlight">\(N\)</span>. <a class="reference external" href="https://arxiv.org/abs/quant-ph/9508027">Peter Shor</a> demonstrated that there is greater than a <span class="math notranslate nohighlight">\(50\%\)</span> chance of randomly selecting a value for <span class="math notranslate nohighlight">\(a\)</span> satisfying these properties.</p>
 <p>The code block below defines a function that tests whether <span class="math notranslate nohighlight">\(r\)</span> is even and whether equation <span class="math notranslate nohighlight">\((3)\)</span> is satisfied and searches for a non-trivial factor of <span class="math notranslate nohighlight">\(N\)</span>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
@@ -734,7 +731,7 @@
 </div>
 </div>
 <section id="Solving-the-order-finding-problem-classically">
-<h2>Solving the order-finding problem classically<a class="headerlink" href="#Solving-the-order-finding-problem-classically" title="Permalink to this heading">¶</a></h2>
+<h3>Solving the order-finding problem classically<a class="headerlink" href="#Solving-the-order-finding-problem-classically" title="Permalink to this heading">¶</a></h3>
 <p>The key component of Shor’s algorithm is an efficient quantum algorithm to find the order <span class="math notranslate nohighlight">\(r\)</span> of <span class="math notranslate nohighlight">\(a (\text{mod} N)\)</span>. While a straightforward classical algorithm can solve this problem, it is notably inefficient:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
@@ -798,14 +795,14 @@ Found factor by chance: 3 41
 </div>
 </section>
 <section id="Solving-the-order-finding-problem-with-a-quantum-algorithm">
-<h2>Solving the order-finding problem with a quantum algorithm<a class="headerlink" href="#Solving-the-order-finding-problem-with-a-quantum-algorithm" title="Permalink to this heading">¶</a></h2>
+<h3>Solving the order-finding problem with a quantum algorithm<a class="headerlink" href="#Solving-the-order-finding-problem-with-a-quantum-algorithm" title="Permalink to this heading">¶</a></h3>
 <p>The Fourier transform is a classical computation that provides a more efficient algorithm than the one encoded in <code class="docutils literal notranslate"><span class="pre">find_order_classical</span></code> for identifying the period of <span class="math notranslate nohighlight">\(f(x) = a^x\mod N\)</span>. The quantum version of the Fourier transform is the central idea of Shor’s Algorithm. This efficient quantum solution derives the period from a measurement of <span class="math notranslate nohighlight">\(n = \lceil log2(N) \rceil\)</span> qubits.</p>
 <p>The image below outlines the quantum kernel used to find the order of <span class="math notranslate nohighlight">\(a\)</span>. Notice the last step involves applying the Inverse Quantum Fourier Transform.</p>
 <p><img alt="image0" src="../../../_images/shor_circuit.png" /></p>
 <p>Figure. Circuit diagram for finding the phase of the modular multiplication gate $U|x:nbsphinx-math:<cite>rangle `= |a^x:nbsphinx-math:</cite>mod <cite>N:nbsphinx-math:</cite>rangle <cite>$, which will be used to compute the order of :math:`a</cite> modulo <span class="math notranslate nohighlight">\(N\)</span>. The number of qubits in the control register determines the accuracy of estimating the phase of <span class="math notranslate nohighlight">\(U\)</span>. The size of the work register depends on <span class="math notranslate nohighlight">\(N\)</span>. The goal of this section is to code the diagram as a kernel named <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code>.</p>
 <p>Notice that we will need to create a quantum kernel for the Inverse Quantum Fourier Transform. Additionally we’ll need to create a kernel for modular multiplication: <span class="math notranslate nohighlight">\(g(y) = ay \mod N\)</span>, which can be repeatedly applied <span class="math notranslate nohighlight">\(x\)</span>-times to <span class="math notranslate nohighlight">\(y=1\)</span> to carry our modular exponentation <span class="math notranslate nohighlight">\(f(x)=a^x\mod N\)</span>.</p>
 <section id="Inverse-quantum-Fourier-transform">
-<h3>Inverse quantum Fourier transform<a class="headerlink" href="#Inverse-quantum-Fourier-transform" title="Permalink to this heading">¶</a></h3>
+<h4>Inverse quantum Fourier transform<a class="headerlink" href="#Inverse-quantum-Fourier-transform" title="Permalink to this heading">¶</a></h4>
 <p>In the code block below we define a kernel for the quantum Fourier transform and then use <code class="docutils literal notranslate"><span class="pre">cudaq.adjoint</span></code> to create a kernel for the inverse quantum Fourier transform used in the quantum order-finding algorithm.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
@@ -831,12 +828,12 @@ Found factor by chance: 3 41
 </div>
 </section>
 <section id="Quantum-kernels-for-modular-exponentiation">
-<h3>Quantum kernels for modular exponentiation<a class="headerlink" href="#Quantum-kernels-for-modular-exponentiation" title="Permalink to this heading">¶</a></h3>
+<h4>Quantum kernels for modular exponentiation<a class="headerlink" href="#Quantum-kernels-for-modular-exponentiation" title="Permalink to this heading">¶</a></h4>
 <p>While Shor’s algorithm provably can factor numbers faster than known classical techniques, the resources required for implementing Shor’s algorithm are hefty. A full-scale implementation to factor an <span class="math notranslate nohighlight">\(L\)</span>-bit number could require a quantum kernel with <span class="math notranslate nohighlight">\(5L+1\)</span> qubits to achieve accuracy for the continued fractions part of the algoirthm and as many as <span class="math notranslate nohighlight">\(72L^3\)</span> quantum gates for the modular exponentiaion <a class="reference external" href="https://arxiv.org/pdf/quant-ph/9602016">(Beckman, Chari, Devabhaktuni, &amp; Preskill,
 1996)</a>. Both of these are well beyond the capabilities of modern quantum hardware for numbers of interest. Advancements to reduce the number of gates and qubits required focus on optimizing the kernel for <span class="math notranslate nohighlight">\(f(x) = a\cdot x \mod N\)</span> for properties of the number to be factored. The difficulty is to create efficient quantum kernels (in terms of qubit and gate count) that compute <span class="math notranslate nohighlight">\(a\cdot x \mod{N}\)</span>.</p>
 <p>For the purposes of this demonstration, we will consider only the order-finding problem for the values of <span class="math notranslate nohighlight">\(a\)</span> to be either <span class="math notranslate nohighlight">\(4\)</span> or <span class="math notranslate nohighlight">\(5\)</span> with <span class="math notranslate nohighlight">\(N=21\)</span>. We’ll be using the quantum circuits depicted in <a class="reference external" href="https://arxiv.org/abs/2103.13855">this paper</a> and <a class="reference external" href="https://physlab.org/wp-content/uploads/2023/05/Shor_s_Algorithm_23100113_Fin.pdf">this report</a>, respectively.</p>
 <section id="The-case-N-=-21-and-a-=-5:">
-<h4>The case N = 21 and a = 5:<a class="headerlink" href="#The-case-N-=-21-and-a-=-5:" title="Permalink to this heading">¶</a></h4>
+<h5>The case N = 21 and a = 5:<a class="headerlink" href="#The-case-N-=-21-and-a-=-5:" title="Permalink to this heading">¶</a></h5>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
@@ -871,7 +868,7 @@ Found factor by chance: 3 41
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Demonostrate iterated application of 5y mod 21 where y = 1</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Demonstrate iterated application of 5y mod 21 where y = 1</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">demonstrate_mod_exponentiation</span><span class="p">(</span><span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
@@ -920,7 +917,7 @@ For x =5,the computed result of the circuit is 17
 </div>
 </section>
 <section id="The-case-N-=-21-and-a-=-4:">
-<h4>The case N = 21 and a = 4:<a class="headerlink" href="#The-case-N-=-21-and-a-=-4:" title="Permalink to this heading">¶</a></h4>
+<h5>The case N = 21 and a = 4:<a class="headerlink" href="#The-case-N-=-21-and-a-=-4:" title="Permalink to this heading">¶</a></h5>
 <p>This is an example where the work register has been optimized to use fewer gates and qubits than would have been necessary through a straightforward implementation of modular multiplication as seen in the previous case.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
@@ -1049,7 +1046,7 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 </section>
 </section>
 <section id="Determining-the-order-from-the-measurement-results-of-the-phase-kernel">
-<h2>Determining the order from the measurement results of the phase kernel<a class="headerlink" href="#Determining-the-order-from-the-measurement-results-of-the-phase-kernel" title="Permalink to this heading">¶</a></h2>
+<h3>Determining the order from the measurement results of the phase kernel<a class="headerlink" href="#Determining-the-order-from-the-measurement-results-of-the-phase-kernel" title="Permalink to this heading">¶</a></h3>
 <p>The measurement results from sampling the <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code> can be used to estimate the phase of the operator <span class="math notranslate nohighlight">\(U|x\rangle = ax\mod N\)</span>. We will only be interested in the most probable non-zero outcomes of the sampling. Therefore, we’ll create a function <code class="docutils literal notranslate"><span class="pre">top_results</span></code> to extract those values.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
@@ -1059,7 +1056,7 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function to output the non-zero results whose counts are above the given threshold</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">        dict[str, int]: keys are bitstrings and values are the respetive counts</span>
+<span class="sd">        dict[str, int]: keys are bit-strings and values are the respective counts</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">results_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sample_results</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="k">if</span> <span class="n">zeros</span> <span class="ow">in</span> <span class="n">results_dictionary</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -1258,8 +1255,9 @@ Found factor by chance: 3 7
 </div>
 </section>
 <section id="Postscript">
-<h2>Postscript<a class="headerlink" href="#Postscript" title="Permalink to this heading">¶</a></h2>
+<h3>Postscript<a class="headerlink" href="#Postscript" title="Permalink to this heading">¶</a></h3>
 <p>Recent <a class="reference external" href="https://arxiv.org/abs/2308.06572">work of Oded Regev</a> improves Shor’s Algorithm by reducing the number of gates needed. You can read more about it <a class="reference external" href="https://www.quantamagazine.org/thirty-years-later-a-speed-boost-for-quantum-factoring-20231017/">here</a>.</p>
+</section>
 </section>
 </section>
 
