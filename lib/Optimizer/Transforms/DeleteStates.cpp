@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -29,7 +28,7 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-
+// clang-format off
 /// Remove synthesized states from MLIR, or add a delete call.
 /// For example:
 ///
@@ -67,16 +66,16 @@ using namespace mlir;
 ///   return
 /// }
 /// ```
-
+// clang-format on
 
 namespace {
 
-static bool isCall(Operation* callOp, std::vector<const char*> &&names) {
+static bool isCall(Operation *callOp, std::vector<const char *> &&names) {
   if (callOp) {
     if (auto createStateCall = dyn_cast<func::CallOp>(callOp)) {
       if (auto calleeAttr = createStateCall.getCalleeAttr()) {
         auto funcName = calleeAttr.getValue().str();
-        if (std::find(names.begin(), names.end(), funcName) != names.end()) 
+        if (std::find(names.begin(), names.end(), funcName) != names.end())
           return true;
       }
     }
@@ -84,17 +83,18 @@ static bool isCall(Operation* callOp, std::vector<const char*> &&names) {
   return false;
 }
 
-static bool isCreateStateCall(Operation* callOp) {
-  return isCall(callOp, {cudaq::createCudaqStateFromData64, cudaq::createCudaqStateFromData32});
+static bool isCreateStateCall(Operation *callOp) {
+  return isCall(callOp, {cudaq::createCudaqStateFromData64,
+                         cudaq::createCudaqStateFromData32});
 }
 
-static bool isNumberOfQubitsCall(Operation* callOp) {
+static bool isNumberOfQubitsCall(Operation *callOp) {
   return isCall(callOp, {cudaq::getNumQubitsFromCudaqState});
 }
 
 /// For a call to `__nvqpp_cudaq_state_createFromData_fpXX`, get the number of
 /// qubits allocated.
-static std::size_t getStateSize(Operation* callOp) {
+static std::size_t getStateSize(Operation *callOp) {
   if (isCreateStateCall(callOp)) {
     if (auto createStateCall = dyn_cast<func::CallOp>(callOp)) {
       auto sizeOperand = createStateCall.getOperand(1);
@@ -109,8 +109,9 @@ static std::size_t getStateSize(Operation* callOp) {
   return 0;
 }
 
+// clang-format off
 // Remove `__nvqpp_cudaq_state_numberOfQubits` calls.
-/// ```
+// ```
 // %1 = arith.constant 8 : i64
 // %2 = call @__nvqpp_cudaq_state_createFromData_fp32(%0, %1) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
 // %3 = call @__nvqpp_cudaq_state_numberOfQubits(%2) : (!cc.ptr<!cc.state>) -> i64
@@ -119,17 +120,20 @@ static std::size_t getStateSize(Operation* callOp) {
 // %1 = arith.constant 8 : i64
 // %2 = call @__nvqpp_cudaq_state_createFromData_fp32(%0, %1) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
 // %5 = arith.constant 3 : i64
-/// ```
+// ```
+// clang-format on
 class NumberOfQubitsPattern : public OpRewritePattern<func::CallOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(func::CallOp callOp, PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(func::CallOp callOp,
+                                PatternRewriter &rewriter) const override {
     if (isNumberOfQubitsCall(callOp)) {
       auto createStateOp = callOp.getOperand(0).getDefiningOp();
       if (isCreateStateCall(createStateOp)) {
         auto size = getStateSize(createStateOp);
-        rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(callOp, std::countr_zero(size), rewriter.getI64Type());
+        rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
+            callOp, std::countr_zero(size), rewriter.getI64Type());
         return success();
       }
     }
@@ -137,7 +141,7 @@ public:
   }
 };
 
-
+// clang-format off
 // Replace calls to `__nvqpp_cudaq_state_numberOfQubits` by a constant.
 // ```
 // %2 = cc.cast %1 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
@@ -150,11 +154,13 @@ public:
 // %4 = quake.alloca !quake.veq<?>[%0 : i64]
 // %5 = quake.init_state %4, %1 : (!quake.veq<?>, !cc.ptr<!cc.array<complex<f32> x 8>>) -> !quake.veq<?>
 // ```
+// clang-format on
 class StateToDataPattern : public OpRewritePattern<quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::InitializeStateOp initState, PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
+                                PatternRewriter &rewriter) const override {
     auto stateOp = initState.getOperand(1).getDefiningOp();
     auto targets = initState.getTargets();
 
@@ -162,7 +168,8 @@ public:
       auto dataOp = stateOp->getOperand(0);
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(dataOp.getDefiningOp()))
         dataOp = cast.getOperand();
-      rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(initState, targets.getType(), targets, dataOp);
+      rewriter.replaceOpWithNewOp<quake::InitializeStateOp>(
+          initState, targets.getType(), targets, dataOp);
       return success();
     }
     return failure();
@@ -186,8 +193,7 @@ public:
       RewritePatternSet patterns(ctx);
       patterns.insert<NumberOfQubitsPattern, StateToDataPattern>(ctx);
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "Before deleting states: " << func << '\n');
+      LLVM_DEBUG(llvm::dbgs() << "Before deleting states: " << func << '\n');
 
       if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                               std::move(patterns))))
@@ -198,13 +204,12 @@ public:
 
       func.walk([&](Operation *op) {
         if (isCreateStateCall(op)) {
-          if(op->getUses().empty()) 
+          if (op->getUses().empty())
             op->erase();
-          else 
+          else
             usedStates.push_back(op);
         }
       });
-
 
       // Call delete for used states on all function exits.
       if (!usedStates.empty()) {
@@ -216,18 +221,18 @@ public:
             auto deleteState = cudaq::deleteCudaqState;
             auto result = irBuilder.loadIntrinsic(module, deleteState);
             assert(succeeded(result) && "loading intrinsic should never fail");
-            
+
             builder.setInsertionPoint(op);
-            for (auto createStateOp: usedStates) {
+            for (auto createStateOp : usedStates) {
               auto results = cast<func::CallOp>(createStateOp).getResults();
-              builder.create<func::CallOp>(loc, std::nullopt, deleteState, results);
+              builder.create<func::CallOp>(loc, std::nullopt, deleteState,
+                                           results);
             }
           }
         });
       }
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "After deleting states: " << func << '\n');
+      LLVM_DEBUG(llvm::dbgs() << "After deleting states: " << func << '\n');
     }
   }
 };
