@@ -9,8 +9,6 @@
 #include <cudaq.h>
 
 // RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
-// This passes but should x-fail (FIXME!)
-// X_FAIL: *
 
 struct run_test {
   __qpu__ auto operator()() {
