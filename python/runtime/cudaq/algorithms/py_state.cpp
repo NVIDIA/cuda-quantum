@@ -62,17 +62,16 @@ state pyGetState(py::object kernel, py::args args) {
 // Note: Python kernel arguments are wrapped hence need to be unwrapped
 // accordingly.
 class PyRemoteSimulationState : public RemoteSimulationState {
-  cudaq::ArgWrapper argsWrapper;
-  std::size_t argsSize;
   // Holder of args data for clean-up.
   cudaq::OpaqueArguments *argsData;
+  mlir::ModuleOp kernelMod;
 
 public:
   PyRemoteSimulationState(const std::string &in_kernelName,
                           cudaq::ArgWrapper args,
                           cudaq::OpaqueArguments *argsDataToOwn,
                           std::size_t size, std::size_t returnOffset)
-      : argsWrapper(args), argsSize(size), argsData(argsDataToOwn) {
+      : argsData(argsDataToOwn), kernelMod(args.mod) {
     this->kernelName = in_kernelName;
   }
 
@@ -86,18 +85,19 @@ public:
       // execute and then reset
       platform.set_exec_ctx(&context);
       // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
-      // ArgWrapper pointer.
-      platform.launchKernel(kernelName, nullptr,
-                            reinterpret_cast<void *>(
-                                const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
-                            argsSize, 0);
+      // ModuleOp pointer as the first element in the args array in StreamLined
+      // mode.
+      auto args = argsData->getArgs();
+      args.insert(args.begin(),
+                  const_cast<void *>(static_cast<const void *>(&kernelMod)));
+      platform.launchKernel(kernelName, args);
       platform.reset_exec_ctx();
       state = std::move(context.simulationState);
     }
   }
 
-  std::tuple<std::string, void *, std::size_t> getKernelInfo() const override {
-    return {kernelName, argsWrapper.rawArgs, argsSize};
+  std::pair<std::string, std::vector<void *>> getKernelInfo() const override {
+    return {kernelName, argsData->getArgs()};
   }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override {
@@ -109,10 +109,10 @@ public:
         static_cast<const cudaq::SimulationState *>(this),
         static_cast<const cudaq::SimulationState *>(&otherState));
     platform.set_exec_ctx(&context);
-    platform.launchKernel(
-        kernelName, nullptr,
-        reinterpret_cast<void *>(const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
-        0, 0);
+    auto args = argsData->getArgs();
+    args.insert(args.begin(),
+                const_cast<void *>(static_cast<const void *>(&kernelMod)));
+    platform.launchKernel(kernelName, args);
     platform.reset_exec_ctx();
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();

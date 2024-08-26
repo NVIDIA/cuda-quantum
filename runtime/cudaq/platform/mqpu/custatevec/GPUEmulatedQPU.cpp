@@ -44,11 +44,6 @@ public:
     kernelFunc(args);
   }
 
-  void launchKernel(const std::string &name,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error("not implemented");
-  }
-
   /// Overrides setExecutionContext to forward it to the ExecutionManager
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     cudaSetDevice(qpu_id);
