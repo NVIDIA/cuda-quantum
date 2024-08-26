@@ -705,7 +705,7 @@ template <
         std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
 #endif
 void exp_pauli(double theta, QubitRange &&qubits,
-               cudaq::pauli_word &pauliWord) {
+               const cudaq::pauli_word &pauliWord) {
   exp_pauli(theta, qubits, pauliWord.str().c_str());
 }
 
