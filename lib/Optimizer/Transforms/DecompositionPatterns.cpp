@@ -64,8 +64,11 @@ public:
 
   template <typename OpTy>
   OpTy create(Location location, Value &target) {
-    auto op = rewriter ? rewriter->create<OpTy>(location, target)
-                       : builder->create<OpTy>(location, target);
+    OpTy op;
+    if (rewriter)
+      op = rewriter->create<OpTy>(location, target);
+    else if (builder)
+      op = builder->create<OpTy>(location, target);
     auto resultWires = op.getWires();
     if (resultWires.size() > 0)
       target = resultWires[0];
@@ -74,8 +77,11 @@ public:
 
   template <typename OpTy>
   OpTy create(Location location, bool is_adj, Value &target) {
-    auto op = rewriter ? rewriter->create<OpTy>(location, is_adj, target)
-                       : builder->create<OpTy>(location, is_adj, target);
+    OpTy op;
+    if (rewriter)
+      op = rewriter->create<OpTy>(location, is_adj, target);
+    else if (builder)
+      op = builder->create<OpTy>(location, is_adj, target);
     auto resultWires = op.getWires();
     if (resultWires.size() > 0)
       target = resultWires[0];
@@ -84,8 +90,11 @@ public:
 
   template <typename OpTy>
   OpTy create(Location location, Value &control, Value &target) {
-    auto op = rewriter ? rewriter->create<OpTy>(location, control, target)
-                       : builder->create<OpTy>(location, control, target);
+    OpTy op;
+    if (rewriter)
+      op = rewriter->create<OpTy>(location, control, target);
+    else if (builder)
+      op = builder->create<OpTy>(location, control, target);
     auto resultWires = op.getWires();
     if (resultWires.size() == 2) {
       control = resultWires[0];
@@ -97,10 +106,13 @@ public:
   template <typename OpTy>
   OpTy create(Location location, bool is_adj, ValueRange parameters,
               SmallVectorImpl<Value> &controls, Value &target) {
-    auto op = rewriter ? rewriter->create<OpTy>(location, is_adj, parameters,
-                                                controls, target)
-                       : builder->create<OpTy>(location, is_adj, parameters,
-                                               controls, target);
+    OpTy op;
+    if (rewriter)
+      op = rewriter->create<OpTy>(location, is_adj, parameters, controls,
+                                  target);
+    else if (builder)
+      op =
+          builder->create<OpTy>(location, is_adj, parameters, controls, target);
     auto resultWires = op.getWires();
     if (resultWires.size() == controls.size() + 1) {
       for (auto &&[c, r] : llvm::zip_equal(controls, resultWires.drop_back()))
@@ -113,10 +125,11 @@ public:
   template <typename OpTy>
   OpTy create(Location location, ValueRange parameters,
               SmallVectorImpl<Value> &controls, Value &target) {
-    auto op =
-        rewriter
-            ? rewriter->create<OpTy>(location, parameters, controls, target)
-            : builder->create<OpTy>(location, parameters, controls, target);
+    OpTy op;
+    if (rewriter)
+      op = rewriter->create<OpTy>(location, parameters, controls, target);
+    else if (builder)
+      op = builder->create<OpTy>(location, parameters, controls, target);
     auto resultWires = op.getWires();
     if (resultWires.size() == controls.size() + 1) {
       for (auto &&[c, r] : llvm::zip_equal(controls, resultWires.drop_back()))
@@ -129,8 +142,11 @@ public:
   template <typename OpTy>
   OpTy create(Location location, SmallVectorImpl<Value> &controls,
               Value &target) {
-    auto op = rewriter ? rewriter->create<OpTy>(location, controls, target)
-                       : builder->create<OpTy>(location, controls, target);
+    OpTy op;
+    if (rewriter)
+      op = rewriter->create<OpTy>(location, controls, target);
+    else if (builder)
+      op = builder->create<OpTy>(location, controls, target);
     auto resultWires = op.getWires();
     if (resultWires.size() == controls.size() + 1) {
       for (auto &&[c, r] : llvm::zip_equal(controls, resultWires.drop_back()))
@@ -142,8 +158,11 @@ public:
 
   template <typename OpTy>
   OpTy create(Location location, SmallVectorImpl<Value> &targets) {
-    auto op = rewriter ? rewriter->create<OpTy>(location, targets)
-                       : builder->create<OpTy>(location, targets);
+    OpTy op;
+    if (rewriter)
+      op = rewriter->create<OpTy>(location, targets);
+    else if (builder)
+      op = builder->create<OpTy>(location, targets);
     auto resultWires = op.getWires();
     if (resultWires.size() == targets.size())
       for (auto &&[t, r] : llvm::zip_equal(targets, resultWires))
