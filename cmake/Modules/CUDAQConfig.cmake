@@ -45,23 +45,68 @@ if (NOT CUDAQ_LIBRARY_MODE)
 endif() 
 
 # ---- TARGET EXPORTS ----
+# Prefer cusvsim libraries if they are present
+set (__base_nvtarget_name "custatevec") 
+find_library(CUDAQ_CUSVSIM_PATH NAMES cusvsim-fp32 HINTS ${CUDAQ_LIBRARY_DIR})
+if (CUDAQ_CUSVSIM_PATH)
+  set(__base_nvtarget_name "cusvsim")
+endif() 
+
+# NVIDIA Target
 add_library(cudaq::cudaq-nvidia-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 
+# NVIDIA FP64 Target
 add_library(cudaq::cudaq-nvidia-fp64-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-fp64-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 
+# NVIDIA MGPU Target
+add_library(cudaq::cudaq-nvidia-mgpu-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-mgpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-mgpu-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-mgpu-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# NVIDIA MGPU-FP64 Target
+add_library(cudaq::cudaq-nvidia-mgpu-fp64-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-mgpu-fp64-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-mgpu-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-mgpu-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# NVIDIA MQPU Target
+add_library(cudaq::cudaq-nvidia-mqpu-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-mqpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-mqpu;cudaq::cudaq-em-default")
+
+# NVIDIA MQPU FP64 Target
+add_library(cudaq::cudaq-nvidia-mqpu-fp64-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-mqpu-fp64-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-mqpu;cudaq::cudaq-em-default")
+
+# QPP CPU Target
 add_library(cudaq::cudaq-qpp-cpu-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-qpp-cpu-target PROPERTIES
   IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-qpp${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_SONAME "libnvqir-qpp${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# QPP CPU DensityMatrix Target
+add_library(cudaq::cudaq-qpp-density-matrix-cpu-target SHARED IMPORTED)
+  set_target_properties(cudaq::cudaq-qpp-density-matrix-cpu-target PROPERTIES
+    IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    IMPORTED_SONAME "libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 # -------------------------
 
 if(NOT TARGET cudaq::cudaq)
