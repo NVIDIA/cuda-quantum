@@ -22,6 +22,20 @@ set(LANG_FILES
   CMakeTestCUDAQCompiler.cmake
 )
 
+execute_process(
+  COMMAND git rev-parse HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tpls/fmt
+  OUTPUT_VARIABLE CUDAQ_FMTLIB_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Configure the file
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/NVQIRConfig.cmake.in
+  ${CMAKE_BINARY_DIR}/cmake/Modules/NVQIRConfig.cmake
+  @ONLY
+)
+
 install(FILES ${CONFIG_FILES} DESTINATION lib/cmake/cudaq)
 install(FILES ${LANG_FILES} DESTINATION lib/cmake/cudaq)
-install(FILES NVQIRConfig.cmake DESTINATION lib/cmake/nvqir)
+install(FILES ${CMAKE_BINARY_DIR}/cmake/Modules/NVQIRConfig.cmake DESTINATION lib/cmake/nvqir)
