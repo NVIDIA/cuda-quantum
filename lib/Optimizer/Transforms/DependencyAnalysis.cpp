@@ -1672,6 +1672,7 @@ public:
     // Look for contract-able allocations in this block
     for (auto alloc : getAllocs()) {
       auto first_use = getFirstUseOfQID(alloc);
+      assert(first_use && "Unused virtual qubit in block!");
       auto last_use = getLastUseOfQID(alloc);
       if (first_use == last_use && first_use->isContainer()) {
         // Move alloc inside
@@ -1691,6 +1692,11 @@ public:
   void lowerAlloc(DependencyNode *init, DependencyNode *root, VirtualQID qid) {
     graph->replaceLeafAndRoot(qid, init, root);
     removeArgument(qid);
+    // If the qid isn't used in the block, remove it
+    if (!graph->getFirstUseOfQID(qid)) {
+      graph->removeVirtualAlloc(qid);
+      graph->removeQID(qid);
+    }
   }
 
   void liftAlloc(VirtualQID qid, DependencyNode *lifted_alloc) {
@@ -2355,6 +2361,17 @@ public:
     DependencyGraph *new_graph = new DependencyGraph(terminator);
     auto included = new_graph->getRoots();
 
+    // In debug mode, alert about dead code wires
+    // TODO: If an unused wire flows through an `if` with a useful wire,
+    //       then the unused wire is considered useful as the parent context
+    //       doesn't know that it doesn't interact with anything inside the if,
+    //       it would be nice to have a "hasInteraction" predicate inside `if`s
+    //       to be able to detect this case and do a better job of removing
+    //       unused wires.
+    //
+    //       In fact, it may be possible to completely split `if`s into various
+    //       non-interacting sub-graphs, which may make solving this problem easier,
+    //       and may or may not present more optimization opportunities.
     LLVM_DEBUG(for (auto [root, op]
                     : roots) {
       if (!included.contains(root)) {
