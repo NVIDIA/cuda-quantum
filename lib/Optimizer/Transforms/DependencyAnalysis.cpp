@@ -263,8 +263,15 @@ protected:
   }
   virtual void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) = 0;
 
-  virtual std::pair<DependencyNode *, size_t>
-  getSuccessorAndEdgeIDXForQID(VirtualQID qid) {
+  std::optional<size_t> getDependencyForQID(VirtualQID qid) {
+    for (uint i = 0; i < dependencies.size(); i++)
+      if (dependencies[i].qid == qid)
+        return std::optional<size_t>(i);
+
+    return std::nullopt;
+  }
+
+  virtual DependencyNode *getSuccessorForQID(VirtualQID qid) {
     assert(qids.contains(qid) &&
            "Asking for a qid that doesn't flow through this operation!");
     for (auto successor : successors) {
@@ -272,11 +279,12 @@ protected:
       if (!successor->isQuantumOp())
         continue;
 
-      for (uint j = 0; j < successor->dependencies.size(); j++) {
-        auto edge = successor->dependencies[j];
-        if (edge.node == this && edge.qid == qid)
-          return std::make_pair(successor, j);
-      }
+      auto idx = successor->getDependencyForQID(qid);
+      // If the successor has a dependency for the given QID, ensure that the
+      // dependency is actually on this node, otherwise the QID flows through
+      // a different successor first, so this isn't the successor we're looking for
+      if (idx && successor->dependencies[idx.value()].node == this)
+        return successor;
     }
 
     assert(false && "Couldn't find successor for linear type!");
@@ -336,12 +344,12 @@ protected:
     if (dependencies.size() != other->dependencies.size())
       return false;
     for (uint i = 0; i < dependencies.size(); i++) {
-      if (dependencies[i].qid != other->dependencies[i].qid) {
-        if (!dependencies[i].qubit.has_value())
+      if (dependencies[i].qubit != other->dependencies[i].qubit)
           return false;
-        if (dependencies[i].qubit != other->dependencies[i].qubit)
+      if (dependencies[i].qid != other->dependencies[i].qid)
+        if (dependencies[i].qubit.has_value() ||
+            other->dependencies[i].qubit.has_value())
           return false;
-      }
     }
     return true;
   }
@@ -387,12 +395,11 @@ protected:
   void updateQID(VirtualQID old_qid, VirtualQID new_qid) {
     qids.remove(old_qid);
     qids.insert(new_qid);
-    for (uint i = 0; i < dependencies.size(); i++) {
-      if (dependencies[i].qid == old_qid) {
-        dependencies[i].qid = new_qid;
-        break;
-      }
-    }
+
+    auto idx = getDependencyForQID(old_qid);
+
+    if (idx)
+      dependencies[idx.value()].qid = new_qid;
 
     for (auto successor : successors)
       if (successor->qids.contains(old_qid))
@@ -669,51 +676,43 @@ public:
   }
 
   virtual void eraseEdgeForQID(VirtualQID qid) override {
-    DependencyNode *dependency = nullptr;
+    auto successor = getSuccessorForQID(qid);
+    auto idx = successor->getDependencyForQID(qid).value();
+    auto edge = successor->dependencies[idx];
+    auto dependency = getDependencyForResult(edge.resultidx);
+    successor->dependencies[idx] = dependency;
+    dependency->successors.insert(successor);
 
-    for (auto successor : successors) {
-      // Special case: don't patch discriminate for a measure
-      if (!successor->isQuantumOp())
-        continue;
+    bool remove = true;
 
-      bool remove = true;
-      for (uint j = 0; j < successor->dependencies.size(); j++) {
-        auto edge = successor->dependencies[j];
-        if (edge.node == this) {
-          if (edge.qid == qid) {
-            auto dep = getDependencyForResult(edge.resultidx);
-            successor->dependencies[j] = dep;
-            dependency = dep.node;
-            dependency->successors.insert(successor);
-          } else {
-            remove = false;
-          }
-        }
+    // Remove successor if it has no other dependencies on this
+    for (auto dependency : successor->dependencies)
+      if (dependency.node == this)
+        remove = false;
+
+    if (remove)
+      successors.remove(successor);
+
+    // Update successor's height after adding a new dependency
+    // This won't fix the height recursively, but is key for lifting
+    // as if a dependency was lifted, now the successor may be liftable
+    successor->updateHeight();
+
+    remove = true;
+    for (uint i = 0; i < dependencies.size(); i++)
+      if (dependencies[i].node == dependency.node) {
+        // Remove index
+        if (dependencies[i].qid == qid)
+          dependencies.erase(dependencies.begin() + i);
+        // We still depend on dependency for other QIDs
+        else
+          remove = false;
       }
 
-      if (remove) {
-        successors.remove(successor);
-        successor->updateHeight();
-      }
-    }
-
-    if (dependency) {
-      bool remove = true;
-      for (uint i = 0; i < dependencies.size(); i++)
-        if (dependencies[i].node == dependency) {
-          // Remove index
-          if (dependencies[i].qid == qid)
-            dependencies.erase(dependencies.begin() + i);
-          // We still depend on dependency for other QIDs
-          else
-            remove = false;
-        }
-
-      // Only remove this as a successor from dependency if this was the last
-      // QID from dependency we depended on
-      if (remove)
-        dependency->successors.remove(this);
-    }
+    // Only remove this as a successor from dependency if this was the last
+    // QID from dependency we depended on
+    if (remove)
+      dependency->successors.remove(this);
   }
 
   /// Removes this dependency node from the graph by replacing all successor
@@ -914,9 +913,9 @@ private:
     if (leafs.count(old_qid) == 1) {
       auto old_leaf = leafs[old_qid];
 
-      auto [first_use, idx] = old_leaf->getSuccessorAndEdgeIDXForQID(old_qid);
+      auto first_use = old_leaf->getSuccessorForQID(old_qid);
+      auto idx = first_use->getDependencyForQID(old_qid).value();
 
-      // TODO: use replaceWith
       first_use->dependencies[idx] =
           DependencyNode::DependencyEdge(new_leaf, 0);
       old_leaf->successors.remove(first_use);
@@ -943,15 +942,15 @@ private:
     assert(new_root->isRoot() && "Invalid root!");
 
     if (qids.contains(old_qid)) {
-      auto last_use = getLastUseOfQID(old_qid);
+      auto old_root = getRootForQID(old_qid);
+      auto idx = old_root->getDependencyForQID(old_qid).value();
 
-      auto [old_root, idx] = last_use->getSuccessorAndEdgeIDXForQID(old_qid);
+      auto dep = old_root->dependencies[idx];
+      dep->successors.remove(old_root);
+      dep->successors.insert(new_root);
 
-      new_root->dependencies.push_back(old_root->dependencies[idx]);
+      new_root->dependencies.push_back(dep);
       old_root->dependencies.erase(old_root->dependencies.begin() + idx);
-
-      last_use->successors.remove(old_root);
-      last_use->successors.insert(new_root);
 
       // If the terminator is somehow getting deleted, then the entire block
       // must be empty, and then it will never be used
@@ -1155,7 +1154,8 @@ public:
       auto new_alloc = getAllocForQID(qid);
       auto old_root = getRootForQubit(phys);
 
-      auto [successor, idx] = new_alloc->getSuccessorAndEdgeIDXForQID(qid);
+      auto successor = new_alloc->getSuccessorForQID(qid);
+      auto idx = successor->getDependencyForQID(qid).value();
 
       // Replace new allocation with result value for old wire
       auto dep = old_root->dependencies[0];
@@ -1175,8 +1175,8 @@ public:
       auto old_alloc = getAllocForQubit(phys);
       auto new_root = getRootForQID(qid);
 
-      auto [successor, idx] =
-          old_alloc->getSuccessorAndEdgeIDXForQID(old_alloc->getQID());
+      auto successor = old_alloc->getSuccessorForQID(old_alloc->getQID());
+      auto idx = successor->getDependencyForQID(old_alloc->getQID()).value();
 
       auto dep = new_root->dependencies[0];
       successor->dependencies[idx] = dep;
@@ -1795,7 +1795,8 @@ protected:
 
       // Add new edge from after this `if`
       auto resultidx = then_op->getResultForDependency(i);
-      auto [successor, idx] = getSuccessorAndEdgeIDXForQID(then_qid);
+      auto successor = getSuccessorForQID(then_qid);
+      auto idx = successor->getDependencyForQID(then_qid).value();
       newDeps.push_back(successor->dependencies[idx]);
       successor->dependencies[idx] = DependencyEdge{then_op, resultidx};
 
@@ -2232,14 +2233,12 @@ public:
     auto alloc_copy = new InitDependencyNode(*alloc);
     auto sink = static_cast<RootDependencyNode *>(root);
     auto sink_copy = new RootDependencyNode(*sink);
+    size_t offset = getDependencyForQID(qid).value();
+    associated->eraseOperand(offset);
+    results.erase(results.begin() + getResultForDependency(offset));
+    dependencies.erase(dependencies.begin() + offset);
     then_block->lowerAlloc(alloc, root, qid);
     else_block->lowerAlloc(alloc_copy, sink_copy, qid);
-    auto iter = std::find_if(dependencies.begin(), dependencies.end(),
-                             [init](auto edge) { return edge.node == init; });
-    size_t offset = iter - dependencies.begin();
-    associated->eraseOperand(offset);
-    results.erase(results.begin() + offset);
-    dependencies.erase(iter);
 
     // Since we're removing a result, update the result indices of successors
     for (auto successor : successors)
