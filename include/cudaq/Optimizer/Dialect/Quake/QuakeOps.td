@@ -852,7 +852,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets,
                    "mlir::DenseBoolArrayAttr":$negates), [{
-      return build($_builder, $_state, mlir::TypeRange{}, is_adj, parameters,
+      return build($_builder, $_state, static_cast<bool>(is_adj), parameters,
                    controls, targets, negates);
     }]>,
     OpBuilder<(ins "bool":$is_adj,
@@ -860,7 +860,17 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets,
                    "mlir::DenseBoolArrayAttr":$negates), [{
-      return build($_builder, $_state, mlir::TypeRange{}, is_adj, parameters,
+      // For each wire in the controls and targets, return an output wire
+      auto wireTy = WireType::get($_builder.getContext());
+      std::size_t numControlWires = 
+          std::count_if(controls.begin(), controls.end(),
+                [wireTy](const Value &v) { return v.getType() == wireTy; });
+      std::size_t numTargetWires = 
+          std::count_if(targets.begin(), targets.end(),
+                [wireTy](const Value &v) { return v.getType() == wireTy; });
+      auto numWireOperands = numControlWires + numTargetWires;
+      mlir::SmallVector<mlir::Type> resultTypes(numWireOperands, wireTy);
+      return build($_builder, $_state, resultTypes, is_adj, parameters,
                    controls, targets, negates);
     }]>,
     OpBuilder<(ins "bool":$is_adj,
