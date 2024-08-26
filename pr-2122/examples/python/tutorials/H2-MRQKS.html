@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quantum Enhanced Auxiliary Field Quantum Monte Carlo &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Multi-Reference Quantum Krylov Algorithm (H2 Example) &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Deutsch’s Algorithm" href="deutschs_algorithm.html" />
-    <link rel="prev" title="CUDA-Q Tutorials" href="../../../using/tutorials.html" /> 
+    <link rel="next" title="CUDA-Q Backends" href="../../../using/backends/backends.html" />
+    <link rel="prev" title="Divisive Clustering With Coresets Using CUDA-Q" href="Divisive_clustering.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -164,13 +164,13 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
@@ -220,7 +220,7 @@
 <li class="toctree-l3"><a class="reference internal" href="Divisive_clustering.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="H2-MRQKS.html">Multi-Reference Quantum Krylov Algorithm (H2 Example)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-Reference Quantum Krylov Algorithm (H2 Example)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/backends/backends.html">   Backends</a><ul>
@@ -555,398 +555,412 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
-      <li class="breadcrumb-item active">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</li>
+      <li class="breadcrumb-item active">Multi-Reference Quantum Krylov Algorithm (H2 Example)</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/examples/python/tutorials/afqmc.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/examples/python/tutorials/H2-MRQKS.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA-Q Tutorials" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="deutschs_algorithm.html" class="btn btn-neutral float-right" title="Deutsch’s Algorithm" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Divisive_clustering.html" class="btn btn-neutral float-left" title="Divisive Clustering With Coresets Using CUDA-Q" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Quantum-Enhanced-Auxiliary-Field-Quantum-Monte-Carlo">
-<h1>Quantum Enhanced Auxiliary Field Quantum Monte Carlo<a class="headerlink" href="#Quantum-Enhanced-Auxiliary-Field-Quantum-Monte-Carlo" title="Permalink to this heading">¶</a></h1>
-<p>This work was done in collaboration with the Next Generation Computing team at <a class="reference external" href="https://www.basf.com/global/en.html">BASF</a>.</p>
-<p>In this tutorial we implement a quantum-classical hybrid workflow for computing the ground state energies of a strongly interacting molecular system. The algorithm consists of two parts:</p>
-<ol class="arabic simple">
-<li><p>A variational quantum eigensolver that uses the quantum-number-preserving ansatz proposed by <a class="reference external" href="https://doi.org/10.1088/1367-2630/ac2cb3">Anselmetti et al. (2021)</a> to generate a quantum trial wave function <span class="math notranslate nohighlight">\(|\Psi_T\rangle\)</span> using CUDA Quantum.</p></li>
-<li><p>An Auxiliary-Field Quantum Monte Carlo simulation that realizes a classical imaginary time evolution and collects the ground state energy estimates.</p></li>
-</ol>
+  <section id="Multi-Reference-Quantum-Krylov-Algorithm-(H2-Example)">
+<h1>Multi-Reference Quantum Krylov Algorithm (H2 Example)<a class="headerlink" href="#Multi-Reference-Quantum-Krylov-Algorithm-(H2-Example)" title="Permalink to this heading">¶</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Package installs</span>
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">ipie</span><span class="o">==</span><span class="m">0</span>.7.1
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Relevant imports</span>
-
-<span class="kn">import</span> <span class="nn">cudaq</span>
-
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
 
-<span class="kn">from</span> <span class="nn">pyscf</span> <span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">ao2mo</span><span class="p">,</span> <span class="n">mcscf</span>
-
-<span class="kn">from</span> <span class="nn">afqmc_src.vqe_cudaq_qnp</span> <span class="kn">import</span> <span class="n">VQE</span><span class="p">,</span> <span class="n">get_cudaq_hamiltonian</span>
-<span class="kn">from</span> <span class="nn">afqmc_src.utils_ipie</span> <span class="kn">import</span> <span class="n">get_coeff_wf</span><span class="p">,</span> <span class="n">gen_ipie_input_from_pyscf_chk</span>
-
-<span class="kn">from</span> <span class="nn">ipie.hamiltonians.generic</span> <span class="kn">import</span> <span class="n">Generic</span> <span class="k">as</span> <span class="n">HamGeneric</span>
-<span class="kn">from</span> <span class="nn">ipie.qmc.afqmc</span> <span class="kn">import</span> <span class="n">AFQMC</span>
-<span class="kn">from</span> <span class="nn">ipie.systems.generic</span> <span class="kn">import</span> <span class="n">Generic</span>
-<span class="kn">from</span> <span class="nn">ipie.trial_wavefunction.particle_hole</span> <span class="kn">import</span> <span class="n">ParticleHole</span>
-<span class="kn">from</span> <span class="nn">ipie.analysis.extraction</span> <span class="kn">import</span> <span class="n">extract_observable</span>
-
-<span class="kn">from</span> <span class="nn">ipie.config</span> <span class="kn">import</span> <span class="n">config</span>
-
+<span class="c1"># Single-node, single gpu</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">multi_gpu</span> <span class="o">=</span> <span class="kc">False</span>
 
-<span class="c1"># Ipie has recently added GPU support however this remains a bit tricky to use as it requires manual installation of several packages.</span>
-<span class="c1"># Once this is streamlined, we can set the GPU option to True in the tutorial.</span>
-<span class="n">config</span><span class="o">.</span><span class="n">update_option</span><span class="p">(</span><span class="s2">&quot;use_gpu&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+<span class="c1"># Single-node, multi-GPU</span>
+<span class="c1">#cudaq.set_target(&quot;nvidia&quot;, option=&#39;mqpu,fp64&#39;)</span>
+<span class="c1">#multi_gpu = True</span>
 <br/></pre></div>
 </div>
 </div>
-<p>We start by defining the structure of the molecule, the basis set, and its spin. We build the molecule object with PySCF and run a preliminary Hartree-Fock computation. Here we choose as an example a <a class="reference external" href="https://doi.org/10.1021/acs.jctc.3c01375">chelating agent</a> representing a relevant class of substances industrially produced at large scales. Their use ranges, among the others, from water softeners in cleaning applications, modulators of redox behaviour in oxidative bleaching, scale
-suppressants, soil remediation and ligands for catalysts. In particular we focus here in a Fe(III)-NTA complex whose structure is given in the file imported below.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define H2 molecule</span>
+<span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.7474</span><span class="p">))]</span>
+
+<span class="n">hamiltonian</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">chemistry</span><span class="o">.</span><span class="n">create_molecular_hamiltonian</span><span class="p">(</span>
+    <span class="n">geometry</span><span class="p">,</span> <span class="s1">&#39;sto-3g&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+<span class="n">electron_count</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">n_electrons</span>
+<span class="n">qubits_num</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">n_orbitals</span>
+
+<span class="n">spin_ham_matrix</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">()</span>
+<span class="n">e</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">spin_ham_matrix</span><span class="p">)</span>
+
+<span class="c1"># Find the ground state energy and the corresponding eigenvector</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ground state energy (classical simulation)= &#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="s1">&#39;, index= &#39;</span><span class="p">,</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+<span class="n">min_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+<span class="c1"># Eigen vector can be used to initialize the qubits</span>
+<span class="n">vec</span> <span class="o">=</span> <span class="n">c</span><span class="p">[:,</span> <span class="n">min_indices</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Ground state energy (classical simulation)=  (-1.1371757102406848+0j) , index=  3
+</pre></div></div>
+</div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the molecular structure and the basis set for the Fenta molecule.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
+<span class="k">def</span> <span class="nf">termCoefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="n">result</span>
 
-<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/geo_fenta.xyz&quot;</span>
-<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
-<span class="n">spin</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">5</span>
-<span class="n">num_active_electrons</span> <span class="o">=</span> <span class="mi">5</span>
 
-<span class="c1"># You can swap to O3 which is a smaller system and takes less computational resources and time to run.</span>
+<span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
+<span class="k">def</span> <span class="nf">termWords</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">result</span>
 
-<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/geo_o3.xyz&quot;</span>
-<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
-<span class="n">spin</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">9</span>
-<span class="n">num_active_electrons</span> <span class="o">=</span> <span class="mi">12</span>
+
+<span class="n">coefficient</span> <span class="o">=</span> <span class="n">termCoefficients</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
+<span class="n">pauli_string</span> <span class="o">=</span> <span class="n">termWords</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># PYSCF helps to build the molecule and run Hartree-Fock.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">U_psi</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
+          <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
+    <span class="c1"># Compute U_m = exp(-i m dt H)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)):</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">dt</span> <span class="o">*</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-<span class="c1"># Define the molecule.</span>
-<span class="n">molecule</span> <span class="o">=</span> <span class="n">gto</span><span class="o">.</span><span class="n">M</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">atom</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="n">spin</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-<span class="c1"># Restriced open shell HF.</span>
-<span class="n">hartee_fock</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">ROHF</span><span class="p">(</span><span class="n">molecule</span><span class="p">)</span>
-<span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/output.chk&quot;</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">U_phi</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
+          <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
+    <span class="c1"># Compute U_n = exp(-i n dt H)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)):</span>
+        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">dt</span> <span class="o">*</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-<span class="c1"># Run Hartree-Fock.</span>
-<span class="n">hartee_fock</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">apply_pauli</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">word</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+
+    <span class="c1"># Add H (Hamiltonian operator)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">word</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">y</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">qfd_kernel</span><span class="p">(</span><span class="n">dt_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt_beta</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
+               <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">word_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+               <span class="n">vec</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]):</span>
+
+    <span class="n">ancilla</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">qreg</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
+
+    <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+
+    <span class="n">x</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_psi</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">dt_alpha</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">apply_pauli</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">word_list</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_phi</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">dt_beta</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
--224.34048064812262
-</pre></div></div>
 </div>
-<section id="Hamiltonian-preparation-for-VQE">
-<h2>Hamiltonian preparation for VQE<a class="headerlink" href="#Hamiltonian-preparation-for-VQE" title="Permalink to this heading">¶</a></h2>
-<p>Since this molecule contains of around 600 orbitals (which would correspond to 1200 qubits) and 143 total electrons, it is impossible to perform a full VQE with full statevector simulation. Therefore, we need to identify an active space with fewer orbitals and electrons that contribute to the strongly interacting part of the whole molecule. We then run a post Hartree-Fock computation with the PySCF’s built-in CASCI method in order to obtain the one-body (<span class="math notranslate nohighlight">\(t_{pq}\)</span>) and two-body
-(<span class="math notranslate nohighlight">\(V_{prqs}\)</span>) integrals that define the molecular Hamiltonian in the active space:</p>
-<div class="math notranslate nohighlight">
-\[H= \sum_{pq}t_{pq}\hat{a}_{p}^\dagger \hat {a}_{q}+\sum_{pqrs}  V_{prqs}\hat a_{p}^\dagger \hat a_{q}^\dagger \hat a_{s}\hat a_{r} \tag{1}\]</div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">openfermion.transforms</span> <span class="kn">import</span> <span class="n">jordan_wigner</span>
-<span class="kn">from</span> <span class="nn">openfermion</span> <span class="kn">import</span> <span class="n">generate_hamiltonian</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">pauli_str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">):</span>
 
-<span class="c1"># Run a CASCI simulation for computing the Hamiltonian in the active space.</span>
-<span class="n">casci</span> <span class="o">=</span> <span class="n">mcscf</span><span class="o">.</span><span class="n">CASCI</span><span class="p">(</span><span class="n">hartee_fock</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">,</span> <span class="n">num_active_electrons</span><span class="p">)</span>
-<span class="n">casci</span><span class="o">.</span><span class="n">fix_spin_</span><span class="p">(</span><span class="n">ss</span><span class="o">=</span><span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">spin</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">spin</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
-
-
-<span class="c1"># Executes the kernel to compute the hamiltonian in the active space.</span>
-<span class="n">casci</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-
-<span class="c1"># Compute the one-body (h1) and two-body integrals (tbi) as shown in equation 1.</span>
-<span class="n">h1</span><span class="p">,</span> <span class="n">energy_core</span> <span class="o">=</span> <span class="n">casci</span><span class="o">.</span><span class="n">get_h1eff</span><span class="p">()</span>
-
-<span class="n">h2</span> <span class="o">=</span> <span class="n">casci</span><span class="o">.</span><span class="n">get_h2eff</span><span class="p">()</span>
-<span class="n">h2_no_symmetry</span> <span class="o">=</span> <span class="n">ao2mo</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">)</span>
-
-<span class="c1"># V_pqrs terms in H.</span>
-<span class="n">tbi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h2_no_symmetry</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
-
-<span class="c1"># Compute the hamiltonian and convert it to a CUDA-Q operator.</span>
-<span class="n">mol_ham</span> <span class="o">=</span> <span class="n">generate_hamiltonian</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">energy_core</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-<span class="n">jw_hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner</span><span class="p">(</span><span class="n">mol_ham</span><span class="p">)</span>
-<span class="n">hamiltonian</span><span class="p">,</span> <span class="n">constant_term</span> <span class="o">=</span> <span class="n">get_cudaq_hamiltonian</span><span class="p">(</span><span class="n">jw_hamiltonian</span><span class="p">)</span>
-<br/></pre></div>
+    <span class="n">my_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
+            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
+            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;Y&#39;</span><span class="p">:</span>
+            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">my_list</span>
+</pre></div>
 </div>
 </div>
-</section>
-<section id="Run-VQE-with-CUDA-Q">
-<h2>Run VQE with CUDA-Q<a class="headerlink" href="#Run-VQE-with-CUDA-Q" title="Permalink to this heading">¶</a></h2>
-<p>We can now execute the VQE algorithm using the quantum number preserving ansatz. At the end of the VQE, we store the final statevector that will be used in the classical AFQMC computation as an initial guess.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define some options for the VQE.</span>
-<span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
- <span class="s1">&#39;n_vqe_layers&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
- <span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
- <span class="s1">&#39;energy_core&#39;</span><span class="p">:</span> <span class="n">constant_term</span><span class="p">,</span>
- <span class="s1">&#39;return_final_state_vec&#39;</span><span class="p">:</span> <span class="kc">True</span>
-<span class="p">}</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the spin-op x for real component and y for the imaginary component.</span>
 
-<span class="n">n_qubits</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_active_orbitals</span>
-
-<span class="n">vqe</span> <span class="o">=</span> <span class="n">VQE</span><span class="p">(</span><span class="n">n_qubits</span><span class="o">=</span><span class="n">n_qubits</span><span class="p">,</span>
- <span class="n">num_active_electrons</span><span class="o">=</span><span class="n">num_active_electrons</span><span class="p">,</span>
- <span class="n">spin</span><span class="o">=</span><span class="n">spin</span><span class="p">,</span>
- <span class="n">options</span><span class="o">=</span><span class="n">options</span>
-<span class="p">)</span>
-
-<span class="n">results</span> <span class="o">=</span> <span class="n">vqe</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
-
-<span class="c1"># Best energy from VQE.</span>
-<span class="n">optimized_energy</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;energy_optimized&#39;</span><span class="p">]</span>
-
-<span class="c1"># Final state vector.</span>
-<span class="n">final_state_vector</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;state_vec&quot;</span><span class="p">]</span>
-
-<span class="c1"># Energies during the optimization loop.</span>
-<span class="n">vqe_energies</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;callback_energies&quot;</span><span class="p">]</span>
-<br/></pre></div>
+<span class="n">x_0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">y_0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-# Using cudaq optimizer
-# Num Params: 16
-# Qubits: 18
-# N_layers: 1
-# Energy after the VQE: -224.3901690611431
-</pre></div></div>
-</div>
-</section>
-<section id="Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">
-<h2>Auxiliary Field Quantum Monte Carlo (AFQMC)<a class="headerlink" href="#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)" title="Permalink to this heading">¶</a></h2>
-<p>AFQMC is a numerical method for computing relevant properties of strongly interacting molecules. AFQMC is a type of Quantum Monte Carlo method that combines the use of random walks with an auxiliary field to simulate the imaginary-time evolution of a quantum system and drive it to the lowest energy state. This method can provide accurate results for ground-state properties of a wide range of physical systems, including atoms, molecules, and solids. Here we summarize the main features of AFQMC
-while a detailed introduction to can be found <a class="reference external" href="https://www.cond-mat.de/events/correl13/manuscripts/zhang.pdf">here</a>.</p>
-<p>We consider the electronic Hamiltonian in the second quantization <span class="math">\begin{equation}
-H = {H}_1 + {H}_2
-=\sum_{pq} h_{pq} {a}_{p}^{\dagger} {a}_{q} + \frac{1}{2} \sum_{pqrs} v_{pqrs}{a}_{p}^{\dagger} {a}_r {a}^{\dagger}_{q} {a}_s \tag{2}
-\end{equation}</span> where <span class="math notranslate nohighlight">\({a}_{p}^{\dagger}\)</span> and <span class="math notranslate nohighlight">\({a}_{q}\)</span> are fermionic creation and annihilation operators of orbitals <span class="math notranslate nohighlight">\(p\)</span> and <span class="math notranslate nohighlight">\(q\)</span>, respectively. The terms $h_{pq} $ and <span class="math notranslate nohighlight">\(v_{pqrs}\)</span> are the matrix elements of the one-body, <span class="math notranslate nohighlight">\(H_1\)</span>, and two-body, <span class="math notranslate nohighlight">\(H_2\)</span>, interactions of <span class="math notranslate nohighlight">\(H\)</span>, respectively. Here, we omit the spin indices for simplicity.</p>
-<p>AFQMC realizes an imaginary time propagation of an initial state (chosen as a Slater determinant) <span class="math notranslate nohighlight">\(\ket{\Psi_{I}}\)</span> towards the ground state <span class="math notranslate nohighlight">\(\ket{\Psi_0}\)</span> of a given hamiltonian, <span class="math notranslate nohighlight">\(H\)</span>, with <span class="math">\begin{equation}
-\ket{\Psi_0} \sim\lim_{n \to \infty} \left[ e^{-\Delta\tau H  }  \right]^{n} \ket{\Psi_{I}}
-\tag{3}
-\end{equation}</span> where <span class="math notranslate nohighlight">\(\Delta\tau\)</span> is the imaginary time step.</p>
-<p>AFQMC relies on decomposing the two-body interactions <span class="math notranslate nohighlight">\(H_2\)</span> in terms of sum of squares of one-body operators <span class="math notranslate nohighlight">\({v}_\gamma\)</span> such that the Hamiltonian <span class="math notranslate nohighlight">\({H}\)</span> becomes <span class="math">\begin{equation}
-H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
-\tag{4}
-\end{equation}</span> with ${v}<em>0 = {H}1 $ and $ {v}:nbsphinx-math:`gamma `= i :nbsphinx-math:`sum`</em>{pq} L<sup>{:nbsphinx-math:</sup>gamma`}{pq} {a}{p}`{<span class="math">\dagger</span>}{a}_{q}. $ The <span class="math notranslate nohighlight">\(N_\gamma\)</span> matrices <span class="math notranslate nohighlight">\(L^{\gamma}_{pq}\)</span> are called Cholesky vectors as they are obtained via a Cholesky decomposition of the two-body matrix elements <span class="math notranslate nohighlight">\(v_{pqrs}\)</span> via <span class="math notranslate nohighlight">\(v_{pqrs} = \sum_{\gamma=1}^{N_\gamma} L^{\gamma}_{pr} L^{\gamma}_{qs}\)</span>.</p>
-<p>The imaginary time propagation evolves an ensemble of walkers <span class="math notranslate nohighlight">\(\{\phi^{(n)}\}\)</span> (that are Slater determinants) and allows one to access observables of the system. For example, the local energy <span class="math">\begin{equation}
-\mathcal{E}_{\text{loc}}(\phi^{(n)}) = \frac{\bra{\Psi_\mathrm{T}}H\ket{\phi^{(n)}}}{\braket{\Psi_\mathrm{T}| \phi^{(n)}}}
-\tag{5}
-\end{equation}</span> defined as the mixed expectation value of the Hamiltonian with the trial wave function <span class="math notranslate nohighlight">\(\ket{\Psi_\mathrm{T}}\)</span>.</p>
-<p>The trial wavefunction can be in general a single or a multi-Slater determinant coming from VQE for example. This might help in achieving more accurate ground state energy estimates.</p>
-<p>The implementation of AFQMC we use here is from <a class="reference external" href="https://github.com/JoonhoLee-Group/ipie">ipie</a> that supports both CPUs and GPUs and requires the following steps:</p>
-<ol class="arabic simple">
-<li><p>Preparation of the molecular Hamiltonian by performing the Cholesky decomposition</p></li>
-<li><p>Preparation of the trial state from the VQE wavefunction</p></li>
-<li><p>Executing AFQMC</p></li>
-</ol>
-</section>
-<section id="Preparation-of-the-molecular-Hamiltonian">
-<h2>Preparation of the molecular Hamiltonian<a class="headerlink" href="#Preparation-of-the-molecular-Hamiltonian" title="Permalink to this heading">¶</a></h2>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># AFQMC.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Define parameters for the quantum Krylov space</span>
 
-<span class="c1"># Generate the input Hamiltonian for ipie from the checkpoint file from pyscf.</span>
-<span class="n">ipie_hamiltonian</span> <span class="o">=</span> <span class="n">gen_ipie_input_from_pyscf_chk</span><span class="p">(</span><span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span><span class="p">,</span>
-            <span class="n">mcscf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">chol_cut</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">0.5</span>
 
-
-<span class="n">h1e</span><span class="p">,</span> <span class="n">cholesky_vectors</span><span class="p">,</span> <span class="n">e0</span> <span class="o">=</span> <span class="n">ipie_hamiltonian</span>
-
-
-<span class="n">num_basis</span> <span class="o">=</span> <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="n">num_chol</span> <span class="o">=</span> <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-
-<span class="n">system</span> <span class="o">=</span> <span class="n">Generic</span><span class="p">(</span><span class="n">nelec</span><span class="o">=</span><span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">)</span>
-
-
-<span class="n">afqmc_hamiltonian</span> <span class="o">=</span> <span class="n">HamGeneric</span><span class="p">(</span>
- <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">h1e</span><span class="p">,</span> <span class="n">h1e</span><span class="p">]),</span>
- <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">num_basis</span> <span class="o">*</span> <span class="n">num_basis</span><span class="p">,</span> <span class="n">num_chol</span><span class="p">)),</span>
- <span class="n">e0</span>
-<span class="p">)</span>
-<br/></pre></div>
+<span class="c1"># Dimension of the Krylov space</span>
+<span class="n">m_qfd</span> <span class="o">=</span> <span class="mi">4</span>
+</pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-# Number of electrons in simulation: (12, 12)
-</pre></div></div>
-</div>
-</section>
-<section id="Preparation-of-the-trial-wave-function">
-<h2>Preparation of the trial wave function<a class="headerlink" href="#Preparation-of-the-trial-wave-function" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build the trial wavefunction from the state vector computed via VQE.</span>
-<span class="n">wavefunction</span> <span class="o">=</span> <span class="n">get_coeff_wf</span><span class="p">(</span><span class="n">final_state_vector</span><span class="p">,</span>
- <span class="n">n_active_elec</span><span class="o">=</span><span class="n">num_active_electrons</span><span class="p">,</span>
- <span class="n">spin</span><span class="o">=</span><span class="n">spin</span>
-<span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the basis overlap matrix</span>
 
 
-<span class="n">trial</span> <span class="o">=</span> <span class="n">ParticleHole</span><span class="p">(</span><span class="n">wavefunction</span><span class="p">,</span>
- <span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">,</span>
- <span class="n">num_basis</span><span class="p">,</span>
- <span class="n">num_dets_for_props</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">wavefunction</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
- <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
-<span class="p">)</span>
+<span class="c1">## Single GPU:</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">multi_gpu</span><span class="p">:</span>
 
+    <span class="c1"># Add identity operator to compute overlap of basis</span>
 
-<span class="n">trial</span><span class="o">.</span><span class="n">compute_trial_energy</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="n">trial</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
-<span class="n">trial</span><span class="o">.</span><span class="n">half_rotate</span><span class="p">(</span><span class="n">afqmc_hamiltonian</span><span class="p">)</span>
-<br/></pre></div>
+    <span class="n">observe_op</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
+        <span class="n">observe_op</span> <span class="o">*=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+
+    <span class="n">identity_word</span> <span class="o">=</span> <span class="n">observe_op</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
+    <span class="c1">#print(pauli_list)</span>
+
+    <span class="n">wf_overlap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
+        <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
+            <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
+                                    <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+            <span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
+                <span class="n">wf_overlap</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+
+<span class="k">else</span><span class="p">:</span>
+
+    <span class="c1">## Multi-GPU</span>
+
+    <span class="c1"># Compute the basis overlap matrix</span>
+
+    <span class="c1"># Add identity operator to compute overlap of basis</span>
+
+    <span class="n">observe_op</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
+        <span class="n">observe_op</span> <span class="o">*=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+
+    <span class="n">identity_word</span> <span class="o">=</span> <span class="n">observe_op</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
+    <span class="c1">#print(pauli_list)</span>
+
+    <span class="n">wf_overlap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+    <span class="n">collect_overlap_real</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">collect_overlap_img</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">count</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
+        <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
+            <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
+
+            <span class="n">count_id</span><span class="o">=</span><span class="n">count</span><span class="o">%</span><span class="k">2</span>
+            <span class="c1">#print(count_id)</span>
+            <span class="n">collect_overlap_real</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="n">x_0</span><span class="p">,</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
+                                    <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">count_id</span><span class="p">))</span>
+
+            <span class="n">collect_overlap_img</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="n">y_0</span><span class="p">,</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
+                                    <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">count_id</span><span class="o">+</span><span class="mi">2</span><span class="p">))</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">tot_dim</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">m_qfd</span><span class="p">):</span>
+            <span class="n">observe_result</span> <span class="o">=</span> <span class="n">collect_overlap_real</span><span class="p">[</span><span class="n">tot_dim</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">real_val</span> <span class="o">=</span> <span class="n">observe_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+            <span class="n">observe_result</span><span class="o">=</span><span class="n">collect_overlap_img</span><span class="p">[</span><span class="n">tot_dim</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">img_val</span><span class="o">=</span><span class="n">observe_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+            <span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">real_val</span> <span class="o">+</span> <span class="n">img_val</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
+                <span class="n">wf_overlap</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+
+            <span class="n">tot_dim</span> <span class="o">+=</span> <span class="mi">1</span>
+</pre></div>
 </div>
 </div>
-</section>
-<section id="Setup-of-the-AFQMC-parameters">
-<h2>Setup of the AFQMC parameters<a class="headerlink" href="#Setup-of-the-AFQMC-parameters" title="Permalink to this heading">¶</a></h2>
-<p>Here we can choose the input options like the timestep <span class="math notranslate nohighlight">\(\Delta\tau\)</span>, the total number of walkers <code class="docutils literal notranslate"><span class="pre">num_walkers</span></code> and the total number of AFQMC iterations <code class="docutils literal notranslate"><span class="pre">num_blocks</span></code>.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup the AFQMC parameters.</span>
-<span class="n">afqmc_msd</span> <span class="o">=</span> <span class="n">AFQMC</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">,</span>
- <span class="n">afqmc_hamiltonian</span><span class="p">,</span>
- <span class="n">trial</span><span class="p">,</span>
- <span class="n">num_walkers</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
- <span class="n">num_steps_per_block</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
- <span class="n">num_blocks</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
- <span class="n">timestep</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
- <span class="n">stabilize_freq</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
- <span class="n">seed</span><span class="o">=</span><span class="mi">96264512</span><span class="p">,</span>
- <span class="n">pop_control_freq</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
- <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
-<span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the matrix Hamiltonian</span>
 
 
-<span class="c1"># Run the AFQMC.</span>
-<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">estimator_filename</span> <span class="o">=</span> <span class="s1">&#39;afqmc_src/estimates.0.h5&#39;</span><span class="p">)</span>
-<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">finalise</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="c1">## Single GPU:</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">multi_gpu</span><span class="p">:</span>
+    <span class="n">ham_matrx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
+        <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
+            <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
+
+            <span class="n">tot_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">coef</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">):</span>
+                <span class="c1">#print(coef,word)</span>
+
+                <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
+                <span class="c1">#print(pauli_list)</span>
+
+                <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
+                                        <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">)</span>
+
+                <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+                <span class="c1">#print(temp)</span>
+                <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">imag</span> <span class="o">*</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+                <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
+                <span class="n">ham_matrx</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1">## Multi-GPU</span>
+
+    <span class="n">ham_matrx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
 
 
-<span class="c1"># Extract the energies.</span>
-<span class="n">qmc_data</span> <span class="o">=</span> <span class="n">extract_observable</span><span class="p">(</span><span class="n">afqmc_msd</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">)</span>
-<br/></pre></div>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
+        <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
+            <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
+
+            <span class="n">ham_matrix_real</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">ham_matrix_imag</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="n">count</span><span class="o">=</span><span class="mi">0</span>
+            <span class="n">tot_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">coef</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">):</span>
+                <span class="n">count_id</span><span class="o">=</span><span class="n">count</span><span class="o">%</span><span class="k">2</span>
+                <span class="c1">#print(coef,word)</span>
+
+                <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
+                <span class="c1">#print(pauli_list)</span>
+
+                <span class="n">ham_matrix_real</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="n">x_0</span><span class="p">,</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
+                                        <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">count_id</span><span class="p">))</span>
+                <span class="n">ham_matrix_imag</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="n">y_0</span><span class="p">,</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
+                                        <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">count_id</span><span class="o">+</span><span class="mi">2</span><span class="p">))</span>
+
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">coef</span> <span class="ow">in</span> <span class="n">coefficient</span><span class="p">:</span>
+
+                <span class="n">observe_result</span> <span class="o">=</span> <span class="n">ham_matrix_real</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="n">real_val</span> <span class="o">=</span> <span class="n">observe_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+                <span class="n">observe_result</span><span class="o">=</span><span class="n">ham_matrix_imag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="n">img_val</span><span class="o">=</span><span class="n">observe_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+                <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">real_val</span> <span class="o">*</span> <span class="n">coef</span><span class="o">.</span><span class="n">real</span>
+                <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">img_val</span> <span class="o">*</span> <span class="n">coef</span><span class="o">.</span><span class="n">imag</span>
+
+                <span class="n">i</span><span class="o">+=</span><span class="mi">1</span>
+
+            <span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
+                <span class="n">ham_matrx</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+</pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-# random seed is 96264512
-            Block                   Weight            WeightFactor            HybridEnergy                  ENumer                  EDenom                  ETotal                  E1Body                  E2Body
-                0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2440857214519274e+04  1.0000000000000000e+02 -2.2440857214519275e+02 -3.7639365236571126e+02  1.5198508022051851e+02
-                1   4.2236163323978462e+02  1.4108003803708052e+03 -1.1705550836048852e+02 -2.2476129978632798e+04  9.9999999999999986e+01 -2.2476129978632804e+02 -3.7647651634374250e+02  1.5171521655741444e+02
-                2   1.0031021642240592e+02  3.8270298551287897e+02 -1.1736348706942081e+02 -2.2491539833590265e+04  1.0000000000000001e+02 -2.2491539833590261e+02 -3.7652287235836400e+02  1.5160747402246139e+02
-                3   9.9896411716010476e+01  1.0006803820092617e+02 -1.1729991834244650e+02 -2.2498086858011950e+04  1.0000000000000001e+02 -2.2498086858011945e+02 -3.7661217900078998e+02  1.5163131042067059e+02
-                4   1.0008819642734720e+02  1.0003952238189274e+02 -1.1741988525943451e+02 -2.2497768126542338e+04  1.0000000000000001e+02 -2.2497768126542334e+02 -3.7677859321228260e+02  1.5180091194685932e+02
-                5   9.9996395539611001e+01  1.0010162124437146e+02 -1.1745900551679516e+02 -2.2504859704025963e+04  1.0000000000000003e+02 -2.2504859704025955e+02 -3.7665382466690920e+02  1.5160522762664974e+02
-                6   1.0011117020963695e+02  1.0017267435124782e+02 -1.1762740654751367e+02 -2.2514761055266557e+04  1.0000000000000000e+02 -2.2514761055266558e+02 -3.7663824192346226e+02  1.5149063137079673e+02
-                7   9.9926957189505018e+01  9.9904869631265882e+01 -1.1757145502349162e+02 -2.2517665690169804e+04  1.0000000000000000e+02 -2.2517665690169804e+02 -3.7662872023157632e+02  1.5145206332987829e+02
-                8   9.9902183781120897e+01  9.9910184942535295e+01 -1.1753639400107765e+02 -2.2518490004346189e+04  9.9999999999999986e+01 -2.2518490004346194e+02 -3.7677944704924283e+02  1.5159454700578092e+02
-                9   1.0011182782239581e+02  1.0010647250586344e+02 -1.1771801521929217e+02 -2.2513893408438777e+04  1.0000000000000001e+02 -2.2513893408438773e+02 -3.7679469177919265e+02  1.5165575769480495e+02
-               10   9.9639946364053955e+01  9.9242085331654422e+01 -1.1742082647888712e+02 -2.2519016506034994e+04  1.0000000000000003e+02 -2.2519016506034987e+02 -3.7690149012513956e+02  1.5171132506478972e+02
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the energies.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Diagonalize the matrix</span>
 
-<span class="n">vqe_y</span> <span class="o">=</span> <span class="n">vqe_energies</span>
-<span class="n">vqe_x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vqe_y</span><span class="p">)))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vqe_x</span><span class="p">,</span> <span class="n">vqe_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;VQE&quot;</span><span class="p">)</span>
 
-<span class="n">afqmc_y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qmc_data</span><span class="p">[</span><span class="s2">&quot;ETotal&quot;</span><span class="p">])</span>
-<span class="n">afqmc_x</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">vqe_x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">afqmc_y</span><span class="p">)))]</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">afqmc_x</span><span class="p">,</span> <span class="n">afqmc_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;AFQMC&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">eig</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+    <span class="c1">#Solver for generalized eigenvalue problem</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Optimization steps&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Energy [Ha]&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<br/></pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+    <span class="c1"># HC = SCE</span>
+
+    <span class="n">THRESHOLD</span> <span class="o">=</span> <span class="mf">1e-20</span>
+    <span class="n">s_diag</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">s_prime</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sii</span> <span class="ow">in</span> <span class="n">s_diag</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">sii</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-7</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;S may not be hermitian, large imag. eval component.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">sii</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">THRESHOLD</span><span class="p">:</span>
+            <span class="n">s_prime</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">sii</span><span class="p">))</span>
+
+    <span class="n">X_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">s_diag</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">s_prime</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s_diag</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s_prime</span><span class="p">)):</span>
+            <span class="n">X_prime</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s_prime</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="n">H_prime</span> <span class="o">=</span> <span class="p">(((</span><span class="n">X_prime</span><span class="o">.</span><span class="n">conjugate</span><span class="p">())</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_prime</span><span class="p">)</span>
+    <span class="n">e_prime</span><span class="p">,</span> <span class="n">C_prime</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">H_prime</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">X_prime</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C_prime</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">e_prime</span><span class="p">,</span> <span class="n">C</span>
 </pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7ab848ece110&gt;
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../../_images/examples_python_tutorials_afqmc_22_1.png" src="../../../_images/examples_python_tutorials_afqmc_22_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eigen_value</span><span class="p">,</span> <span class="n">eigen_vect</span> <span class="o">=</span> <span class="n">eig</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">],</span> <span class="n">wf_overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span>
+                                                                      <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Energy from QFD:&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">eigen_value</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -955,18 +969,18 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 57e1893b9a5b57ef1a1c2662bcf4527f87b9ef89)
+Energy from QFD:
+(-1.136755471242475-1.63528910693825e-20j)
 </pre></div></div>
 </div>
-</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA-Q Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="deutschs_algorithm.html" class="btn btn-neutral float-right" title="Deutsch’s Algorithm" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Divisive_clustering.html" class="btn btn-neutral float-left" title="Divisive Clustering With Coresets Using CUDA-Q" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
