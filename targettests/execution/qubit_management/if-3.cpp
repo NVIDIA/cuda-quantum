@@ -8,7 +8,7 @@
 
 #include <cudaq.h>
 
-// RUN: nvq++ --enable-mlir -fno-lower-to-cfg --opt-pass 'func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),canonicalize,cse,add-wireset,func.func(assign-wire-indices),dep-analysis,func.func(regtomem),symbol-dce'  %s -o %t && %t
+// RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
 // XFAIL: *
 
 struct run_test {
