@@ -23,4 +23,7 @@ int main() {
   for (auto &[k, v] : counts) {
     printf("Result / Count = %s : %lu\n", k.c_str(), v);
   }
+
+  auto state = cudaq::get_state(photonicsKernel{});
+  state.dump();
 }
