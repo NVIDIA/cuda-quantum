@@ -60,7 +60,8 @@ concept ObserveCallValid =
 /// \p shots is the number of shots to run for the given kernel. The default of
 /// -1 means direct calculations for simulation backends. \p noise is the noise
 /// model to use for the observe operation.
-/// @param shots number of shots to run for the given kernel, or -1 if not applicable.
+/// @param shots number of shots to run for the given kernel, or -1 if not
+/// applicable.
 /// @param noise noise model to use for the sample operation
 struct observe_options {
   int shots = -1;
@@ -278,7 +279,8 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
   return results;
 }
 
-// Doxygen: ignore overloads with `DistributionType`s, preferring the simpler ones
+// Doxygen: ignore overloads with `DistributionType`s, preferring the simpler
+// ones
 /// @cond
 /// @brief Compute the expected value of `H` with respect to `kernel(Args...)`.
 /// Distribute the work `amongst` available QPUs on the platform in parallel.
