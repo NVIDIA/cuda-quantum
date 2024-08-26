@@ -191,9 +191,8 @@ PYBIND11_MODULE(_quakeDialects, m) {
       [](const std::string &name, std::vector<double> &params,
          std::vector<std::vector<std::size_t>> &targets) {
         std::vector<cudaq::QuditInfo> targetInfo;
-        for (auto t : targets) {
-          targetInfo.push_back(cudaq::QuditInfo(t[0], t[1]));
-        }
+        for (auto &t : targets)
+          targetInfo.emplace_back(t[0], t[1]);
         cudaq::getExecutionManager()->apply(name, params, {}, targetInfo, false,
                                             cudaq::spin_op());
       },
