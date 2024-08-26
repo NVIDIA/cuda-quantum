@@ -223,3 +223,16 @@ void cudaq::streamlinedLaunchKernel(const char *kernelName,
   std::string kernName = kernelName;
   platform.launchKernel(kernName, rawArgs);
 }
+
+void cudaq::hybridLaunchKernel(const char *kernelName, void (*kernel)(void *),
+                               void *args, std::uint64_t argsSize,
+                               std::uint64_t resultOffset,
+                               const std::vector<void *> &rawArgs) {
+  ScopedTraceWithContext("hybridLaunchKernel", kernelName);
+  auto &platform = *cudaq::getQuantumPlatformInternal();
+  const std::string kernName = kernelName;
+  if (platform.is_remote(platform.get_current_qpu()))
+    platform.launchKernel(kernName, rawArgs);
+  else
+    platform.launchKernel(kernName, kernel, args, argsSize, resultOffset);
+}

@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --add-dealloc --kernel-execution --canonicalize %s | \
+// RUN: cudaq-opt --add-dealloc --kernel-execution=codegen=1 --canonicalize %s | \
 // RUN: cudaq-translate --convert-to=qir | FileCheck %s
 
 // NB: the mangled name map is required for the kernel-execution pass.

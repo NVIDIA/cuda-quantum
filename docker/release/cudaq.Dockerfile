@@ -24,7 +24,7 @@
 
 ARG base_image=ubuntu:22.04
 ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
-FROM $cudaqdev_image as cudaqbuild
+FROM $cudaqdev_image AS cudaqbuild
 
 # Unfortunately, there is no way to use the environment variables defined in the dev image
 # to determine where to copy files from. See also e.g. https://github.com/moby/moby/issues/37345

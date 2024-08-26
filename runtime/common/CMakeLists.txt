@@ -115,6 +115,7 @@ target_link_libraries(cudaq-mlir-runtime
   PUBLIC
     ${dialect_libs}
     ${conversion_libs}
+    nvqir
     CCDialect
     QuakeDialect
     OptCodeGen
