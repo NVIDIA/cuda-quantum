@@ -177,7 +177,7 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   // and its corresponding vector holds the measurement results in each shot:
   //      { "results" : { "r0" : ["0", "0", ...],
   //                      "r1" : ["1", "0", ...]  } }
-  auto results = postJobResponse["results"];
+  auto results = postJobResponse[0]["results"];
 
   cudaq::info("Results message: {}", results.dump());
 
