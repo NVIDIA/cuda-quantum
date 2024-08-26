@@ -664,7 +664,7 @@ state:</p>
 \[H \ket{0} =  \tfrac{1}{\sqrt{2}} \ket{0} + \tfrac{1}{\sqrt{2}} \ket{1}  \equiv \ket{+}\]</div>
 <div class="math notranslate nohighlight">
 \[\begin{split}\tfrac{1}{\sqrt{2}}\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; -1 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \tfrac{1}{\sqrt{2}} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} + \tfrac{1}{\sqrt{2}} \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix}.\end{split}\]</div>
-<p>The probability of finding the qubit in the 0 / 1 state is hence
+<p>The probability of finding the qubit in the <span class="math notranslate nohighlight">\(\ket{0}\)</span> or <span class="math notranslate nohighlight">\(\ket{1}\)</span> state is hence
 <span class="math notranslate nohighlight">\(\lvert \tfrac{1}{\sqrt{2}} \rvert ^2 = \tfrac{1}{2}\)</span>. Lets verify
 this with some code:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -758,8 +758,8 @@ all possible combinations of <span class="math notranslate nohighlight">\(\alpha
 measurement, wavefunction collapse yields either a classical 0 or 1.</p>
 <p>The mathematical theory devised to explain quantum phenomena tells us
 that the probability of observing the qubit in the state
-<span class="math notranslate nohighlight">\(\ket{0}\)</span> / <span class="math notranslate nohighlight">\(\ket{1}\)</span> yielding a classical 0 / 1 is
-<span class="math notranslate nohighlight">\(\lvert \alpha \rvert ^2\)</span> / <span class="math notranslate nohighlight">\(\lvert \beta \rvert ^2\)</span>.</p>
+<span class="math notranslate nohighlight">\(\ket{0}\)</span> or <span class="math notranslate nohighlight">\(\ket{1}\)</span>, yielding a classical 0 or 1, is
+<span class="math notranslate nohighlight">\(\lvert \alpha \rvert ^2\)</span> or <span class="math notranslate nohighlight">\(\lvert \beta \rvert ^2\)</span>, respectively.</p>
 <p>As we see in the example of the Hadamard gate above,
 the result 0 or 1 each is yielded roughly 50% of the times as predicted
 by the postulate stated above thus proving the theory.</p>
