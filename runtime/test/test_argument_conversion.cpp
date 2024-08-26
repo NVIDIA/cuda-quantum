@@ -11,6 +11,7 @@
 
 // RUN: test_argument_conversion | FileCheck %s
 
+#include "FakeSimulationState.h"
 #include "common/ArgumentConversion.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -289,6 +290,35 @@ void test_recursive(mlir::MLIRContext *ctx) {
   // clang-format on
 }
 
+void test_state(mlir::MLIRContext *ctx) {
+  {
+    std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
+                                           0.,        0.,        0., 0.};
+    auto x = cudaq::state(new FakeSimulationState(data.size(), data.data()));
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v);
+  }
+
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+// CHECK:       Substitution module:
+
+// CHECK-LABEL: cc.arg_subst[0] {
+// CHECK:         %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:         %[[VAL_1:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:         %[[VAL_2:.*]] = arith.constant 8 : i64
+// CHECK:         %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f64> x 8>
+// CHECK:         cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:         %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 8>>) -> !cc.ptr<i8>
+// CHECK:         %[[VAL_5:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_4]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+// CHECK:         %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
+// CHECK:         }
+// CHECK-DAG:     cc.global constant @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
+// CHECK-DAG:     func.func private @__nvqpp_cudaq_state_createFromData_fp64(!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+  // clang-format on
+}
+
 int main() {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
@@ -299,5 +329,6 @@ int main() {
   test_vectors(&context);
   test_aggregates(&context);
   test_recursive(&context);
+  test_state(&context);
   return 0;
 }

@@ -171,7 +171,7 @@ public:
     Device device;
     auto tensorType = attr.getType().dyn_cast<mlir::RankedTensorType>();
     if (!tensorType || tensorType.getRank() != 2 ||
-         tensorType.getShape()[0] != tensorType.getShape()[1] ||
+        tensorType.getShape()[0] != tensorType.getShape()[1] ||
         !tensorType.getElementType().isInteger(1)) {
       llvm::errs() << "Attribute is not an NxN tensor of i1\n";
       return device;

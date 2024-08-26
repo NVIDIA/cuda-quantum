@@ -346,6 +346,27 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     use of library side argument conversion and the argument synthesis pass.
     More generally, this option can be used when JIT compiling kernels on the
     client/host/local processor.
+
+    There are multiple code generation kinds that are supported for flexibility
+    and streamlining the kernel launch process. These tend to be related to the
+    target and runtime environment the compiler is being run in and can involve
+    some technical issues that require deeper understanding of the entire
+    process. In general, it is not recommended for user's to change this value.
+
+    ```
+    codegen kind   description
+
+      0            Hybrid. A combination of 1 and 2 that allowed early and
+                   streamlined JIT compilation but also supports return values
+                   and dynamic parameters.
+      1            Client-server interchange format. Supports kernels that
+                   return results and dynamic parameters.
+      2            Streamlined for JIT. The kernel will be converted to a
+                   nullary function with no results. Return values from the
+                   kernel are ignored, if present. All parameter values are to
+                   be inlined by the JIT compiler, so this codegen kind does not
+                   support any dynamic parameters.
+    ```
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -355,8 +376,8 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
       /*default=*/"\"-\"", "Name of output file.">,
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
-    Option<"altLaunchVersion", "alt-launch", "std::size_t", /*default=*/"1",
-      "Specify the version of altLaunchKernel to be used.">
+    Option<"codegenKind", "codegen", "std::size_t", /*default=*/"0",
+      "Set the kind of code to generate for the launches.">
   ];
 }
 
@@ -599,16 +620,16 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createLowerToCFGPass()";
 }
 
-def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
+def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
   let summary = "Perform qubit mapping to account for connectivity constraints";
   let description = [{
     Some backends cannot support any-to-any multi-qubit operations, so this pass
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
 
-    Note 1: this pass requires strictly value semantics for any quantum
-    operations. It will throw an error if any memory reference semantics are
-    present on quantum operations.
+    Note 1: this pass requires strictly value semantics (in the form of wire
+    sets) for any quantum operations. It will throw an error if any memory
+    reference semantics are present on quantum operations.
 
     Note 2: If the IR contains no measurements, this pass will inject
     measurements so that the post-mapping measurements correspond to all of the
@@ -616,15 +637,26 @@ def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
   }];
 
   let options = [
-    Option<"device", "device", "std::string", /*default=*/"\"-\"",
-      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
-    Option<"debug", "debug", "bool", /*default=*/"false", "Enable debug for qubit-mapping pass algorithm">,
     Option<"extendedLayerSize", "extendedLayerSize", "unsigned", /*default=*/"20", "Extended layer size">,
     Option<"extendedLayerWeight", "extendedLayerWeight", "float", /*default=*/"0.5", "Extended layer weight">,
     Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5", "Decay delta">,
     Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5", "Number of rounds before decay is reset">
   ];
 }
+
+def MappingPrep: Pass<"qubit-mapping-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare module for qubit mapping.";
+  let description = [{
+    Insert the required topology-aware `quake.wire_set` operation that
+    corresponds to the requested device.
+  }];
+
+  let options = [
+    Option<"device", "device", "std::string", /*default=*/"\"-\"",
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
+  ];
+}
+
 
 def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
   let summary = "Converts memory-SSA to register-SSA form.";

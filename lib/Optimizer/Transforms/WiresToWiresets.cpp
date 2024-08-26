@@ -8,6 +8,7 @@
 
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/Characteristics.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -74,6 +75,18 @@ struct AssignWireIndicesPass
   void runOnOperation() override {
     func::FuncOp func = getOperation();
 
+    // Only run on the entrypoint, the expectation is that inlining has been
+    // done already, so there should only be one kernel remaining.
+    if (!func->hasAttr(cudaq::entryPointAttrName))
+      return;
+
+    // TODO: someday we may want to allow calls to non-quantum functions
+    if (cudaq::opt::hasCallOp(func)) {
+      func.emitRemark(
+          "AssignWireIndicesPass function has calls, pass will not be run.");
+      return;
+    }
+
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     unsigned x = 0;
@@ -98,11 +111,10 @@ struct AddWiresetPass
   void runOnOperation() override {
     ModuleOp mod = getOperation();
     OpBuilder builder(mod.getBodyRegion());
-    if (!mod.lookupSymbol<quake::WireSetOp>(
-            cudaq::opt::topologyAgnosticWiresetName))
-      builder.create<quake::WireSetOp>(builder.getUnknownLoc(),
-                                       cudaq::opt::topologyAgnosticWiresetName,
-                                       INT_MAX, ElementsAttr{});
+    auto wireSetOp = builder.create<quake::WireSetOp>(
+        builder.getUnknownLoc(), cudaq::opt::topologyAgnosticWiresetName,
+        INT_MAX, ElementsAttr{});
+    wireSetOp.setPrivate();
   }
 };
 

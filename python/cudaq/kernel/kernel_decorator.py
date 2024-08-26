@@ -111,7 +111,7 @@ class PyKernelDecorator(object):
                     entryBlock = function.entry_block
                     self.argTypes = [v.type for v in entryBlock.arguments]
                     self.signature = {
-                        'arg{}'.format(i): mlirTypeToPyType(v.type)
+                        'arg{}'.format(i): mlirTypeToPyType(v)
                         for i, v in enumerate(self.argTypes)
                     }
                     self.returnType = self.signature[

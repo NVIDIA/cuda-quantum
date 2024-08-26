@@ -16,7 +16,6 @@
 #include "llvm/Support/ScopedPrinter.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Transforms/TopologicalSortUtils.h"
-#include <mutex>
 
 #define DEBUG_TYPE "quantum-mapper"
 
@@ -32,11 +31,14 @@ using cudaq::QuantumMeasure;
 //===----------------------------------------------------------------------===//
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_MAPPINGPASS
+#define GEN_PASS_DEF_MAPPINGFUNC
+#define GEN_PASS_DEF_MAPPINGPREP
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 namespace {
+
+constexpr StringRef mappedWireSetName("mapped_wireset");
 
 //===----------------------------------------------------------------------===//
 // Placement
@@ -436,8 +438,8 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
 // Pass implementation
 //===----------------------------------------------------------------------===//
 
-struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
-  using MappingPassBase::MappingPassBase;
+struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
+  using MappingPrepBase::MappingPrepBase;
 
   /// Device dimensions that come from inside the `device` option parenthesis,
   /// like X and Y for star(X,Y)
@@ -520,15 +522,6 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     return success();
   }
 
-  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
-  /// nullptr.
-  void addOpAndUsersToList(Operation *op,
-                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
-    opsToMoveToEnd.push_back(op);
-    for (auto user : op->getUsers())
-      addOpAndUsersToList(user, opsToMoveToEnd);
-  }
-
   /// Create an adjacency matrix attribute for a WireSetOp.
   SparseElementsAttr getAdjacencyFromDevice(Device &d, MLIRContext *ctx) {
     int numEdges = 0;
@@ -559,28 +552,59 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
   }
 
   quake::WireSetOp insertWireSetOpForDevice(Device &d, ModuleOp mod) {
-    constexpr StringRef mappedWireSetName("mapped_wireset");
-    static std::mutex z_mutex;
-    std::scoped_lock<std::mutex> lock(z_mutex);
     if (auto wires = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName))
       return wires;
 
     auto adjacency = getAdjacencyFromDevice(d, mod.getContext());
     OpBuilder builder(mod.getBodyRegion());
-    return builder.create<quake::WireSetOp>(builder.getUnknownLoc(),
-                                            mappedWireSetName, d.getNumQubits(),
-                                            adjacency);
+    auto wireSetOp = builder.create<quake::WireSetOp>(
+        builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits(),
+        adjacency);
+    wireSetOp.setPrivate();
+    return wireSetOp;
   }
 
   void runOnOperation() override {
+    auto mod = getOperation();
 
-    // Allow enabling debug via pass option `debug`
-#ifndef NDEBUG
-    if (debug) {
-      llvm::DebugFlag = true;
-      llvm::setCurrentDebugType(DEBUG_TYPE);
-    }
-#endif
+    if (deviceTopoType == Bypass)
+      return;
+
+    // Get grid dimensions
+    std::size_t x = deviceDim[0];
+    std::size_t y = deviceDim[1];
+
+    // These are captured in the user help (device options in Passes.td), so if
+    // you update this, be sure to update that as well.
+    Device d;
+    if (deviceTopoType == Path)
+      d = Device::path(x);
+    else if (deviceTopoType == Ring)
+      d = Device::ring(x);
+    else if (deviceTopoType == Star)
+      d = Device::star(/*numQubits=*/x, /*centerQubit=*/y);
+    else if (deviceTopoType == Grid)
+      d = Device::grid(/*width=*/x, /*height=*/y);
+    else if (deviceTopoType == File)
+      d = Device::file(deviceFilename);
+
+    insertWireSetOpForDevice(d, mod);
+  }
+};
+
+struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
+  using MappingFuncBase::MappingFuncBase;
+
+  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
+  /// nullptr.
+  void addOpAndUsersToList(Operation *op,
+                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
+    opsToMoveToEnd.push_back(op);
+    for (auto user : op->getUsers())
+      addOpAndUsersToList(user, opsToMoveToEnd);
+  }
+
+  void runOnOperation() override {
 
     auto func = getOperation();
     auto &blocks = func.getBlocks();
@@ -589,8 +613,13 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     //  * Can only map a entry-point kernel
     //  * The kernel can only have one block
 
-    if (deviceTopoType == Bypass)
+    auto mod = func->getParentOfType<ModuleOp>();
+    auto wireSetOp = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName);
+    if (!wireSetOp) {
+      // Silently return without error if no mapped wire set is found in the
+      // module.
       return;
+    }
 
     // FIXME: Add the ability to handle multiple blocks.
     if (blocks.size() > 1) {
@@ -628,25 +657,11 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
     // Sanity checks and create a wire to virtual qubit mapping.
     Block &block = *blocks.begin();
-    auto mod = block.getParentOp()->getParentOfType<ModuleOp>();
 
-    // Get grid dimensions
-    std::size_t x = deviceDim[0];
-    std::size_t y = deviceDim[1];
-
-    // These are captured in the user help (device options in Passes.td), so if
-    // you update this, be sure to update that as well.
     Device d;
-    if (deviceTopoType == Path)
-      d = Device::path(x);
-    else if (deviceTopoType == Ring)
-      d = Device::ring(x);
-    else if (deviceTopoType == Star)
-      d = Device::star(/*numQubits=*/x, /*centerQubit=*/y);
-    else if (deviceTopoType == Grid)
-      d = Device::grid(/*width=*/x, /*height=*/y);
-    else if (deviceTopoType == File)
-      d = Device::file(deviceFilename);
+    if (auto adj =
+            dyn_cast_or_null<SparseElementsAttr>(wireSetOp.getAdjacencyAttr()))
+      d = Device::attr(adj);
 
     if (d.getNumQubits() == 0) {
       func.emitError("Trying to target an empty device.");
@@ -672,6 +687,16 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         finalQubitWire[id] = qop.getResult();
         sources[id] = qop;
         lastSource = &op;
+      } else if (dyn_cast<quake::NullWireOp>(op)) {
+        op.emitOpError(
+            "the mapper requires borrow operations and prohibits null wires");
+        signalPassFailure();
+        return;
+      } else if (dyn_cast<quake::AllocaOp>(op)) {
+        op.emitOpError("the mapper requires borrow operations and prohibits "
+                       "reference semantics");
+        signalPassFailure();
+        return;
       } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
         if (!quake::isLinearValueForm(&op)) {
@@ -728,12 +753,9 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       return;
     }
 
-    // Create a new WireSet and make all existing borrow_wire ops use it
-    // instead.
-    auto wireSetOp = insertWireSetOpForDevice(d, mod);
-    auto newWireSetName = wireSetOp.getSymName();
+    // Make all existing borrow_wire ops use the mapped wire set.
     func.walk([&](quake::BorrowWireOp borrowOp) {
-      borrowOp.setSetName(newWireSetName);
+      borrowOp.setSetName(mappedWireSetName);
     });
 
     // We've made it past all the initial checks. Remove the returns now. They
@@ -781,8 +803,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     builder.setInsertionPointAfter(lastSource);
     for (unsigned i = 0; i < d.getNumQubits(); i++) {
       if (!sources[i]) {
-        auto borrowOp = builder.create<quake::BorrowWireOp>(unknownLoc, wireTy,
-                                                            newWireSetName, i);
+        auto borrowOp = builder.create<quake::BorrowWireOp>(
+            unknownLoc, wireTy, mappedWireSetName, i);
         wireToVirtualQ[borrowOp.getResult()] = Placement::VirtualQ(i);
         sources[i] = borrowOp;
       }
@@ -879,3 +901,48 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 };
 
 } // namespace
+
+namespace cudaq::opt {
+/// This options structure is mostly a mirror copy of the options in
+/// MappingFunc, but we've also added the `device` option from MappingPrep.
+struct MappingPipelineOptions
+    : public PassPipelineOptions<MappingPipelineOptions> {
+
+#define DECLARE_SUB_OPTION(_PARENT_STRUCT, _FIELD)                             \
+  PassOptions::Option<decltype(_PARENT_STRUCT::_FIELD)> _FIELD{*this, #_FIELD}
+  DECLARE_SUB_OPTION(MappingPrepOptions, device);
+  DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerSize);
+  DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerWeight);
+  DECLARE_SUB_OPTION(MappingFuncOptions, decayDelta);
+  DECLARE_SUB_OPTION(MappingFuncOptions, roundsDecayReset);
+};
+
+// Helper macro to set MappingFuncOptions field if the corresponding field in
+// MappingPipelineOptions is set.
+#define SET_IF_EXISTS(_NEW_OPTS_STRUCT, _ORIG_STRUCT, _FIELD)                  \
+  do {                                                                         \
+    if (_ORIG_STRUCT._FIELD.hasValue())                                        \
+      _NEW_OPTS_STRUCT._FIELD = _ORIG_STRUCT._FIELD;                           \
+  } while (0)
+
+/// Register the mapping pipeline. Route the appropriate options to the
+/// appropriate pass in the pass pipeline.
+void registerMappingPipeline() {
+  PassPipelineRegistration<cudaq::opt::MappingPipelineOptions>(
+      "qubit-mapping", "Perform qubit mapping pass pipeline.",
+      [](OpPassManager &pm, const MappingPipelineOptions &opt) {
+        // Add the prep pass
+        MappingPrepOptions prepOpt;
+        SET_IF_EXISTS(prepOpt, opt, device);
+        pm.addPass(cudaq::opt::createMappingPrep(prepOpt));
+
+        // Add the per-function pass
+        MappingFuncOptions funcOpts;
+        SET_IF_EXISTS(funcOpts, opt, extendedLayerSize);
+        SET_IF_EXISTS(funcOpts, opt, extendedLayerWeight);
+        SET_IF_EXISTS(funcOpts, opt, decayDelta);
+        SET_IF_EXISTS(funcOpts, opt, roundsDecayReset);
+        pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingFunc(funcOpts));
+      });
+}
+} // namespace cudaq::opt

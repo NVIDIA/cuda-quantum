@@ -110,6 +110,20 @@ struct MemoryAnalysis {
   }
 
 private:
+  bool nonEscapingDef(Operation *use, Value result) {
+    // Return false if not a def.
+    if (!isMemoryDef(use))
+      return false;
+    // Return true if not classical.
+    if (!result)
+      return true;
+    // Check that the address doesn't escape by storing it to a variable.
+    if (auto st = dyn_cast<cudaq::cc::StoreOp>(use))
+      return st.getValue() != result;
+    // Default assume this one escapes.
+    return false;
+  }
+
   void determineAllocSet(func::FuncOp func) {
     SmallVector<Operation *> allocations;
     auto qrefTy = quake::RefType::get(func.getContext());
@@ -129,8 +143,11 @@ private:
     });
     for (auto *a : allocations) {
       auto *add = a;
+      Value v;
+      if (auto alloc = dyn_cast<cudaq::cc::AllocaOp>(a))
+        v = alloc.getResult();
       for (auto *u : a->getUsers())
-        if (!isMemoryUse(u) && !isMemoryDef(u)) {
+        if (!isMemoryUse(u) && !nonEscapingDef(u, v)) {
           add = nullptr;
           break;
         }

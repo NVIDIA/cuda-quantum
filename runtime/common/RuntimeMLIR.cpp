@@ -84,6 +84,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     cudaq::opt::registerUnrollingPipeline();
     cudaq::opt::registerTargetPipelines();
     cudaq::opt::registerWireSetToProfileQIRPipeline();
+    cudaq::opt::registerMappingPipeline();
     mlirLLVMInitialized = true;
   }
 
