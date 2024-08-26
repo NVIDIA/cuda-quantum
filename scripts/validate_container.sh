@@ -263,8 +263,9 @@ echo "============================="
 # docs/sphinx/examples into the examples directory for the purposes of the
 # container validation. The divisive_clustering_src Python files are used by the
 # Divisive_clustering.ipynb notebook, so they are tested elsewhere and should be
-# excluded from this test.
-for ex in `find examples/ -name '*.py' -not -path '*/divisive_clustering_src/*'`;
+# excluded from this test. 
+# Same with afqmc.
+for ex in `find examples/ -name '*.py' -not -path '*/divisive_clustering_src/*' -not -path '*/afqmc_src/*'`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
