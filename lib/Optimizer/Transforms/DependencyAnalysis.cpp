@@ -34,7 +34,23 @@ namespace cudaq::opt {
 } // namespace cudaq::opt
 
 namespace {
+// TODO: Someday, it would probably make sense to make VirtualQIDs and
+// PhysicalQIDs be data structures with metadata, not just integer
+// identifiers. Some useful metadata would include the lifetime,
+// which graph they belong to, where the DependencyNode representing
+// their allocation is, etc...
+
+/// A `PhysicalQID` is an index that will be used when generating
+/// `quake.borrow_wire`s. It represents a physical wire.
 typedef size_t PhysicalQID;
+
+// TODO: Unfortunately, `contractAllocsPass` will currently duplicate
+// VirtualQIDs in the then and else blocks of an if, so they are only
+// unique per path, not per program, which could lead to multiple
+// different wires with the same VirtualQID after lifting allocs.
+
+/// A `VirtualQID` is a (mostly) unique identifier for a virtual wire.
+/// It is a handy way to refer to a specific virtual wire.
 typedef size_t VirtualQID;
 
 size_t getOperandIDXFromResultIDX(size_t resultidx, Operation *op) {
