@@ -65,45 +65,57 @@ actionOnBra(spin_op &term, const std::string &bitConfiguration) {
 std::pair<std::complex<double>, std::vector<bool>>
 mult(std::vector<bool> row, std::vector<bool> other_row,
      std::complex<double> &rowCoeff, std::complex<double> &otherCoeff) {
-  // This is term_i * otherTerm_j
-  std::vector<bool> tmp(row.size()), tmp2(row.size());
   std::size_t numQubits = row.size() / 2;
+  std::vector<bool> result(2 * numQubits);
+  int phase = 0;
 
-  for (std::size_t i = 0; i < 2 * numQubits; i++)
-    tmp[i] = row[i] ^ other_row[i];
-
-  for (std::size_t i = 0; i < numQubits; i++)
-    tmp2[i] = (row[i] && other_row[numQubits + i]) ||
-              (row[i + numQubits] && other_row[i]);
-
-  int orig_phase = 0, other_phase = 0;
+  // Calculate the result of teh Pauli multiplication and the phase shift
   for (std::size_t i = 0; i < numQubits; i++) {
-    if (row[i] && row[i + numQubits])
-      orig_phase++;
+    bool p1_x = row[i];
+    bool p1_z = row[i + numQubits];
+    bool p2_x = other_row[i];
+    bool p2_z = other_row[i + numQubits];
 
-    if (other_row[i] && other_row[i + numQubits])
-      other_phase++;
+    // Compute the resulting Pauli operator
+    result[i] = p1_x ^ p2_x;
+    result[i + numQubits] = p1_z ^ p2_z;
+
+    // Determine the phase contribution based on the Pauli multiplication table
+    // X * Z -> -iY
+    if (p1_x && p2_z)
+      phase -= 1;
+    // Z * X -> iY
+    if (p1_z && p2_x)
+      phase += 1;
+    // Y * X or Y * Z -> -Y
+    if (p1_z && p2_z && p1_x != p2_x) {
+      phase += 2;
+    }
   }
 
-  int sum = 0;
-  for (auto a : tmp2)
-    if (a)
-      sum++;
+  // Normalize the phase to a value in the range [0, 3]
+  phase %= 4;
+  if (phase < 0)
+    phase += 4;
 
-  auto _phase = orig_phase + other_phase + 2 * sum;
-  // Based on the phase, figure out an extra coeff to apply
-  for (std::size_t i = 0; i < numQubits; i++)
-    if (tmp[i] && tmp[i + numQubits])
-      _phase -= 1;
-
-  _phase %= 4;
   std::complex<double> imaginary(0, 1);
-  std::array<std::complex<double>, 4> phaseCoeffArr{1.0, -1. * imaginary, -1.0,
-                                                    imaginary};
-  auto phase_coeff = phaseCoeffArr[_phase];
-  auto coeff = rowCoeff;
-  coeff *= phase_coeff * otherCoeff;
-  return std::make_pair(coeff, tmp);
+  // Phase correction factors based on the total phase
+  std::array<std::complex<double>, 4> phaseCoeffArr{1.0, imaginary, -1.0, -1. * imaginary};
+
+  std::complex<double> phase_coeff = phaseCoeffArr[phase];
+  // Compute the final coefficient
+  std::complex<double> final_coeff = rowCoeff * phase_coeff * otherCoeff;
+
+  // Handle the "-0" issue
+  if (std::abs(final_coeff.real()) < 1e-12) {
+    final_coeff.real(0);
+  }
+
+  if (std::abs(final_coeff.imag()) < 1e-12) {
+    final_coeff.imag(0);
+  }
+
+  return std::make_pair(final_coeff, result);
 }
 } // namespace details
 
