@@ -39,6 +39,8 @@ static unsigned successorIndex(Operation *terminator, Block *successor) {
   return ~0u;
 }
 
+using BlockSet = SmallPtrSet<Block *, 4>;
+
 namespace {
 /// Register to memory analysis.
 ///
@@ -70,26 +72,9 @@ struct RegToMemAnalysis {
     return setIds.find(eqClasses.getLeaderValue(toOpaque(v)))->second;
   }
 
-  ArrayRef<quake::NullWireOp> getNullWires() const { return nullWires; }
-
-  ArrayRef<quake::BorrowWireOp> getBorrowWires() const { return borrowWires; }
+  ArrayRef<Operation *> getWires() const { return theWires; }
 
   ArrayRef<quake::UnwrapOp> getUnwrapReferences() const { return unwrapRefs; }
-
-  SmallVector<BlockArgument> getBlockArguments() const {
-    SmallVector<BlockArgument> result;
-    for (auto i = eqClasses.begin(); i != eqClasses.end(); ++i) {
-      if (!i->isLeader())
-        continue;
-      for (auto e = eqClasses.member_begin(i); e != eqClasses.member_end();
-           ++e) {
-        auto v = Value::getFromOpaquePointer(*e);
-        if (auto ba = v.dyn_cast_or_null<BlockArgument>())
-          result.push_back(ba);
-      }
-    }
-    return result;
-  }
 
 private:
   void *toOpaque(Value v) const { return v.getAsOpaquePointer(); }
@@ -125,22 +110,44 @@ private:
   }
 
   void insertToEqClass(Value v, Value u) {
+    LLVM_DEBUG(llvm::dbgs() << "add eqv of " << v << " and " << u << "\n");
     if (quake::isLinearValueForm(v) || isUnwrapRef(v))
       eqClasses.unionSets(toOpaque(v), toOpaque(u));
     insertBlockArgumentToEqClass(v);
   }
 
+  // Multiple borrows of the same wire count as only one unique wire. Ensure
+  // that we count them correctly.
+  void collectBorrowWires(func::FuncOp func) {
+    DenseMap<StringRef, DenseMap<std::int32_t, Value>> uniqBorrows;
+    func.walk([&](quake::BorrowWireOp borrow) {
+      LLVM_DEBUG(llvm::dbgs() << "adding borrow : " << borrow << '\n');
+      theWires.push_back(borrow.getOperation());
+      auto iter = uniqBorrows.find(borrow.getSetName());
+      if (iter == uniqBorrows.end()) {
+        uniqBorrows[borrow.getSetName()][borrow.getIdentity()] = borrow;
+        eqClasses.insert(toOpaque(borrow));
+        ++cardinality;
+        return;
+      }
+      auto iter2 = iter->second.find(borrow.getIdentity());
+      if (iter2 == iter->second.end()) {
+        uniqBorrows[borrow.getSetName()][borrow.getIdentity()] = borrow;
+        eqClasses.insert(toOpaque(borrow));
+        ++cardinality;
+        return;
+      }
+      insertToEqClass(iter2->second, borrow);
+    });
+  }
+
   void performAnalysis(func::FuncOp func) {
+    collectBorrowWires(func);
     func.walk([&](Operation *op) {
       if (auto nwire = dyn_cast<quake::NullWireOp>(op)) {
         LLVM_DEBUG(llvm::dbgs() << "adding |0> : " << nwire << '\n');
-        nullWires.push_back(nwire);
+        theWires.push_back(nwire.getOperation());
         eqClasses.insert(toOpaque(nwire));
-        ++cardinality;
-      } else if (auto borrow = dyn_cast<quake::BorrowWireOp>(op)) {
-        LLVM_DEBUG(llvm::dbgs() << "adding borrow : " << borrow << '\n');
-        borrowWires.push_back(borrow);
-        eqClasses.insert(toOpaque(borrow));
         ++cardinality;
       } else if (auto unwrap = dyn_cast<quake::UnwrapOp>(op)) {
         LLVM_DEBUG(llvm::dbgs() << "adding unwrap: " << unwrap << '\n');
@@ -170,6 +177,38 @@ private:
         insertToEqClass(sink.getTarget());
       } else if (auto ret = dyn_cast<quake::ReturnWireOp>(op)) {
         insertToEqClass(ret.getTarget());
+      } else if (auto ccif = dyn_cast<cudaq::cc::IfOp>(op)) {
+        if (!ccif.getLinearArgs().empty()) {
+          if (!ccif.hasThen() || !ccif.hasElse()) {
+            analysisFailed = true;
+            return;
+          }
+          for (auto [v, u] :
+               llvm::zip(ccif.getThenEntryArguments(), ccif.getLinearArgs()))
+            insertToEqClass(v, u);
+          for (auto [v, u] :
+               llvm::zip(ccif.getElseEntryArguments(), ccif.getLinearArgs()))
+            insertToEqClass(v, u);
+        }
+      } else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
+        if (auto ccif = dyn_cast<cudaq::cc::IfOp>(cont->getParentOp())) {
+          for (auto iter : llvm::enumerate(cont.getOperands()))
+            if (isa<quake::WireType>(iter.value().getType()))
+              insertToEqClass(ccif.getResult(iter.index()), iter.value());
+        } else {
+          analysisFailed = true;
+          return;
+        }
+      } else if (auto branch = dyn_cast<BranchOpInterface>(op)) {
+        const unsigned numSuccs = branch->getNumSuccessors();
+        for (unsigned i = 0; i < numSuccs; ++i) {
+          auto succOperands = branch.getSuccessorOperands(i);
+          for (auto [so, fo] :
+               llvm::zip(branch->getSuccessor(i)->getArguments(),
+                         succOperands.getForwardedOperands()))
+            if (isa<quake::WireType>(so.getType()))
+              insertToEqClass(so, fo);
+        }
       }
     });
     LLVM_DEBUG(llvm::dbgs() << "The cardinality " << cardinality
@@ -199,8 +238,7 @@ private:
     }
   }
 
-  SmallVector<quake::NullWireOp> nullWires;
-  SmallVector<quake::BorrowWireOp> borrowWires;
+  SmallVector<Operation *> theWires;
   SmallVector<quake::UnwrapOp> unwrapRefs;
   llvm::EquivalenceClasses<void *> eqClasses;
   DenseMap<void *, unsigned> setIds;
@@ -252,11 +290,11 @@ public:
       eraseWrapUsers(op);
       rewriter.create<quake::ResetOp>(loc, TypeRange{}, targ);
       rewriter.eraseOp(op);
-    } else if constexpr (std::is_same_v<OP, quake::SinkOp> ||
-                         std::is_same_v<OP, quake::ReturnWireOp>) {
+    } else if constexpr (std::is_same_v<OP, quake::SinkOp>) {
       auto targ = findLookupValue(op.getTarget());
-      eraseWrapUsers(op);
       rewriter.replaceOpWithNewOp<quake::DeallocOp>(op, targ);
+    } else if constexpr (std::is_same_v<OP, quake::ReturnWireOp>) {
+      rewriter.eraseOp(op);
     } else {
       auto ctrls = collect(op.getControls());
       auto targs = collect(op.getTargets());
@@ -265,6 +303,144 @@ public:
                           op.getNegatedQubitControlsAttr());
       rewriter.eraseOp(op);
     }
+    return success();
+  }
+
+  RegToMemAnalysis &analysis;
+  ArrayRef<Value> allocas;
+};
+
+struct EraseWiresBranch : public OpRewritePattern<cf::BranchOp> {
+  explicit EraseWiresBranch(MLIRContext *ctx, BlockSet &blocks)
+      : OpRewritePattern(ctx), blocks(blocks) {}
+
+  LogicalResult matchAndRewrite(cf::BranchOp branch,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<Value> newOperands;
+    for (auto v : branch.getDestOperands()) {
+      if (isa<quake::WireType>(v.getType()))
+        blocks.insert(branch.getDest());
+      else
+        newOperands.push_back(v);
+    }
+    rewriter.replaceOpWithNewOp<cf::BranchOp>(branch, newOperands,
+                                              branch.getDest());
+    return success();
+  }
+
+  BlockSet &blocks;
+};
+
+struct EraseWiresCondBranch : public OpRewritePattern<cf::CondBranchOp> {
+  explicit EraseWiresCondBranch(MLIRContext *ctx, BlockSet &blocks)
+      : OpRewritePattern(ctx), blocks(blocks) {}
+
+  LogicalResult matchAndRewrite(cf::CondBranchOp branch,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<Value> newTrueOperands;
+    for (auto v : branch.getTrueDestOperands()) {
+      if (isa<quake::WireType>(v.getType()))
+        blocks.insert(branch.getTrueDest());
+      else
+        newTrueOperands.push_back(v);
+    }
+    SmallVector<Value> newFalseOperands;
+    for (auto v : branch.getFalseDestOperands()) {
+      if (isa<quake::WireType>(v.getType()))
+        blocks.insert(branch.getFalseDest());
+      else
+        newFalseOperands.push_back(v);
+    }
+    rewriter.replaceOpWithNewOp<cf::CondBranchOp>(
+        branch, branch.getCondition(), newTrueOperands, newFalseOperands,
+        branch.getTrueDest(), branch.getFalseDest());
+    return success();
+  }
+  BlockSet &blocks;
+};
+
+struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
+  explicit EraseWiresIf(MLIRContext *ctx, RegToMemAnalysis &analysis,
+                        ArrayRef<Value> allocas)
+      : OpRewritePattern(ctx), analysis(analysis), allocas(allocas) {}
+
+  // Rewriting the cc.if operation is done in a single step here. It can
+  // probably be decomposed into smaller steps. We eliminate the original
+  // cc.if's wire arguments, entry block arguments, prune the cc.continue's
+  // return list, and replace any users of the wire outputs with quake.unwrap
+  // operations.
+  LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
+                                PatternRewriter &rewriter) const override {
+    auto *ctx = rewriter.getContext();
+    auto wireTy = quake::WireType::get(ctx);
+
+    // Create a new if operation, pruning the result type and discarding the
+    // operands of the original if operation.
+    SmallVector<Type> newIfTy;
+    for (auto ty : ifOp.getResultTypes())
+      if (ty != wireTy)
+        newIfTy.push_back(ty);
+    auto origThenArgs = ifOp.getThenRegion().front().getArguments();
+    auto origElseArgs = ifOp.getElseRegion().front().getArguments();
+    auto newIf = rewriter.create<cudaq::cc::IfOp>(
+        ifOp.getLoc(), newIfTy, ifOp.getCondition(),
+        [&](OpBuilder &, Location, Region &region) {
+          rewriter.inlineRegionBefore(ifOp.getThenRegion(), region,
+                                      region.end());
+        },
+        [&](OpBuilder &, Location, Region &region) {
+          rewriter.inlineRegionBefore(ifOp.getElseRegion(), region,
+                                      region.end());
+        });
+
+    // Erase entry block arguments and prune the cc.continue operations.
+    auto replaceArgsContinues = [&](Region &region,
+                                    MutableArrayRef<BlockArgument> origArgs) {
+      auto &entry = region.front();
+      const unsigned count = entry.getNumArguments();
+      {
+        OpBuilder builder(ctx);
+        builder.setInsertionPointToStart(&entry);
+        for (auto [arg, from] : llvm::zip(entry.getArguments(), origArgs)) {
+          auto id = analysis.idFromValue(from);
+          assert(id);
+          auto unwrap = builder.create<quake::UnwrapOp>(ifOp.getLoc(), wireTy,
+                                                        allocas[*id]);
+          arg.replaceAllUsesWith(unwrap);
+        }
+      }
+      entry.eraseArguments(0, count);
+      for (auto &block : region)
+        for (auto &op : block)
+          if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
+            SmallVector<Value> newOpnds;
+            OpBuilder builder(cont);
+            for (auto v : cont.getOperands())
+              if (v.getType() != wireTy)
+                newOpnds.push_back(v);
+            builder.create<cudaq::cc::ContinueOp>(cont.getLoc(), newOpnds);
+            rewriter.eraseOp(cont);
+          }
+    };
+    replaceArgsContinues(newIf.getThenRegion(), origThenArgs);
+    replaceArgsContinues(newIf.getElseRegion(), origElseArgs);
+
+    // Replace any original uses with uses of a mix of the new if op's values
+    // (if not type wire) or quake.unwrap operations (only if type wire).
+    SmallVector<Value> unwraps;
+    unsigned i = 0;
+    for (auto v : ifOp.getResults()) {
+      if (v.getType() == wireTy) {
+        auto id = analysis.idFromValue(v);
+        assert(id);
+        auto unwrap = rewriter.create<quake::UnwrapOp>(ifOp.getLoc(), wireTy,
+                                                       allocas[*id]);
+        unwraps.push_back(unwrap);
+      } else {
+        unwraps.push_back(newIf.getResult(i++));
+      }
+    }
+    rewriter.replaceOp(ifOp, unwraps);
     return success();
   }
 
@@ -287,36 +463,32 @@ public:
     // equivalence classes.
     RegToMemAnalysis analysis(func);
     if (analysis.failed()) {
-      LLVM_DEBUG(llvm::dbgs() << func << "\n");
-      func.emitOpError("register analysis failed\n");
-      signalPassFailure();
+      LLVM_DEBUG(llvm::dbgs()
+                 << "regtomem dataflow analysis for \"" << func.getName()
+                 << "\" failed.\nAll wire uses must remain disjoint from the "
+                    "source null/borrow to the sink/return operation.\n");
       return;
     }
 
     // 2) Replace each quake.null_wire with a quake.alloca.
     SmallVector<Value> allocas(analysis.getCardinality());
-    for (auto nwire : analysis.getNullWires()) {
-      OpBuilder builder(nwire);
+    SmallVector<Value> borrowAllocas;
+    for (auto *nwire : llvm::reverse(analysis.getWires())) {
+      OpBuilder builder(ctx);
+      const bool fromWire = isa<quake::BorrowWireOp>(nwire);
+      if (fromWire)
+        builder.setInsertionPointToStart(&func.getBody().front());
+      else
+        builder.setInsertionPoint(nwire);
       auto qrefTy = quake::RefType::get(ctx);
       Value a =
-          builder.create<quake::AllocaOp>(nwire.getLoc(), qrefTy, Value{});
-      if (auto opt = analysis.idFromValue(nwire)) {
+          builder.create<quake::AllocaOp>(nwire->getLoc(), qrefTy, Value{});
+      if (fromWire)
+        borrowAllocas.push_back(a);
+      if (auto opt = analysis.idFromValue(nwire->getResult(0))) {
         allocas[*opt] = a;
       } else {
-        nwire.emitOpError("analysis failed (null_wire)\n");
-        signalPassFailure();
-        return;
-      }
-    }
-    for (auto bwire : analysis.getBorrowWires()) {
-      OpBuilder builder(bwire);
-      auto qrefTy = quake::RefType::get(ctx);
-      Value a =
-          builder.create<quake::AllocaOp>(bwire.getLoc(), qrefTy, Value{});
-      if (auto opt = analysis.idFromValue(bwire)) {
-        allocas[*opt] = a;
-      } else {
-        bwire.emitOpError("analysis failed (borrow_wire)\n");
+        nwire->emitOpError("analysis failed: wire not seen\n");
         signalPassFailure();
         return;
       }
@@ -333,57 +505,62 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "After placing allocations:\n"
                             << func << "\n\n");
 
-    // 3) Erase any block arguments used to thread wire values.
-    for (auto ba : analysis.getBlockArguments())
-      eraseBlockArgumentFromBranch(ba);
-
-    // 4) Replace each gate pattern (either wrapped or value-ssa form) with a
+    // 3) Replace each gate pattern (either wrapped or value-ssa form) with a
     // gate in memory-ssa form.
+    auto hasNoWires = [](Operation *op) {
+      return op->getOperands().empty() ||
+             !std::any_of(op->getOperands().begin(), op->getOperands().end(),
+                          [](Value v) {
+                            return v && isa<quake::WireType>(v.getType());
+                          });
+    };
+    BlockSet fixupBlocks;
     RewritePatternSet patterns(ctx);
     patterns.insert<NOWRAP_QUANTUM_OPS, CollapseWrappers<quake::ResetOp>,
-                    CollapseWrappers<quake::SinkOp>,
-                    CollapseWrappers<quake::ReturnWireOp>>(ctx, analysis,
-                                                           allocas);
+                    CollapseWrappers<quake::ReturnWireOp>,
+                    CollapseWrappers<quake::SinkOp>, EraseWiresIf>(
+        ctx, analysis, allocas);
+    patterns.insert<EraseWiresBranch, EraseWiresCondBranch>(ctx, fixupBlocks);
     ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, quake::ResetOp>(
-        [](Operation *op) { return quake::isAllReferences(op); });
-    target.addIllegalOp<quake::SinkOp>();
-    target.addIllegalOp<quake::ReturnWireOp>();
-    target.addLegalOp<quake::DeallocOp>();
+    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, quake::ResetOp, cf::BranchOp,
+                                 cf::CondBranchOp, cudaq::cc::IfOp>(
+        [&](Operation *op) { return hasNoWires(op); });
+    target.addIllegalOp<quake::SinkOp, quake::ReturnWireOp>();
+    target.addLegalOp<quake::UnwrapOp, quake::DeallocOp>();
+    target.addLegalDialect<cudaq::cc::CCDialect>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {
-      emitError(func.getLoc(), "error converting to memory form\n");
+      func.emitError("error converting to memory form\n");
       signalPassFailure();
       return;
     }
     LLVM_DEBUG(llvm::dbgs() << "After converting to memory SSA form:\n"
                             << func << "\n\n");
 
-    // 4) Cleanup any unused block arguments, NullWireOp, or UnwrapOp.
-    for (auto ba : analysis.getBlockArguments())
-      eraseBlockArgumentFromBlock(ba);
+    // 4) Cleanup all the block arguments, NullWireOp, or UnwrapOp.
+    cleanupBlocks(fixupBlocks);
     func.walk([&](Operation *op) {
       if (isa<quake::NullWireOp, quake::BorrowWireOp, quake::UnwrapOp>(op) &&
           op->getUses().empty())
         op->erase();
+      if (isa<func::ReturnOp>(op) && !borrowAllocas.empty()) {
+        OpBuilder builder(op);
+        for (auto v : borrowAllocas)
+          builder.create<quake::DeallocOp>(func.getLoc(), v);
+      }
     });
     LLVM_DEBUG(llvm::dbgs() << "After cleanup:\n" << func << "\n\n");
   }
 
-  void eraseBlockArgumentFromBranch(BlockArgument ba) {
-    auto *block = ba.getOwner();
-    auto argNum = ba.getArgNumber();
-    for (auto *pred : block->getPredecessors()) {
-      auto *term = pred->getTerminator();
-      auto i = successorIndex(term, block);
-      auto succOperands = cast<BranchOpInterface>(term).getSuccessorOperands(i);
-      succOperands.erase(argNum);
+  void cleanupBlocks(const BlockSet &blocks) {
+    for (auto *b : blocks) {
+      unsigned i = 0;
+      for (auto arg : b->getArguments()) {
+        if (isa<quake::WireType>(arg.getType()))
+          b->eraseArgument(i);
+        else
+          ++i;
+      }
     }
-  }
-
-  void eraseBlockArgumentFromBlock(BlockArgument ba) {
-    if (auto *block = ba.getOwner())
-      if (!block->isEntryBlock())
-        block->eraseArgument(ba.getArgNumber());
   }
 };
 } // namespace

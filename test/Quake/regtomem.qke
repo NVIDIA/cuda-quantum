@@ -1,0 +1,244 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -regtomem %s | FileCheck %s
+// RUN: cudaq-opt -lower-to-cfg -regtomem %s | FileCheck --check-prefix=CFG %s
+
+func.func @f1() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %3 = cc.undef i1
+  %2:2 = cc.if (%3) ((%4 = %0, %5 = %1)) -> (!quake.wire, !quake.wire) {
+    %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#1, %6#0 : !quake.wire, !quake.wire
+  } else {
+    %6:2 = quake.y [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#1, %6#0 : !quake.wire, !quake.wire
+  }
+  quake.sink %2#0 : !quake.wire
+  quake.sink %2#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @f1() {
+// CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = cc.undef i1
+// CHECK:           cc.if(%[[VAL_2]]) {
+// CHECK:             quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           } else {
+// CHECK:             quake.y [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           }
+// CHECK:           quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+// CFG-LABEL:   func.func @f1() {
+// CFG-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CFG-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_2:.*]] = cc.undef i1
+// CFG:           cf.cond_br %[[VAL_2]], ^bb1, ^bb2
+// CFG:         ^bb1:
+// CFG:           quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CFG:           cf.br ^bb3
+// CFG:         ^bb2:
+// CFG:           quake.y [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CFG:           cf.br ^bb3
+// CFG:         ^bb3:
+// CFG:           cf.br ^bb4
+// CFG:         ^bb4:
+// CFG:           quake.dealloc %[[VAL_1]] : !quake.ref
+// CFG:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CFG:           return
+// CFG:         }
+
+
+// This one should not succeed.
+func.func @f2() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %3 = cc.undef i1
+  %2:2 = cc.if (%3) ((%4 = %0, %5 = %1)) -> (!quake.wire, !quake.wire) {
+    %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#1, %6#0 : !quake.wire, !quake.wire
+  } else {
+    %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#0, %6#1 : !quake.wire, !quake.wire
+  }
+  quake.sink %2#0 : !quake.wire
+  quake.sink %2#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @f2() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = cc.undef i1
+// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_2]]) ((%[[VAL_4:.*]] = %[[VAL_0]], %[[VAL_5:.*]] = %[[VAL_1]])) -> (!quake.wire, !quake.wire) {
+// CHECK:             %[[VAL_6:.*]]:2 = quake.x [%[[VAL_4]]] %[[VAL_5]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_6]]#1, %[[VAL_6]]#0 : !quake.wire, !quake.wire
+// CHECK:           } else {
+// CHECK:             %[[VAL_7:.*]]:2 = quake.x [%[[VAL_8:.*]]] %[[VAL_9:.*]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_7]]#0, %[[VAL_7]]#1 : !quake.wire, !quake.wire
+// CHECK:           }
+// CHECK:           quake.sink %[[VAL_10:.*]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_10]]#1 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// CFG-LABEL:   func.func @f2() {
+// CFG:           %[[VAL_0:.*]] = quake.null_wire
+// CFG:           %[[VAL_1:.*]] = quake.null_wire
+// CFG:           %[[VAL_2:.*]] = cc.undef i1
+// CFG:           cf.cond_br %[[VAL_2]], ^bb1(%[[VAL_0]], %[[VAL_1]] : !quake.wire, !quake.wire), ^bb2(%[[VAL_0]], %[[VAL_1]] : !quake.wire, !quake.wire)
+// CFG:         ^bb1(%[[VAL_3:.*]]: !quake.wire, %[[VAL_4:.*]]: !quake.wire):
+// CFG:           %[[VAL_5:.*]]:2 = quake.x [%[[VAL_3]]] %[[VAL_4]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CFG:           cf.br ^bb3(%[[VAL_5]]#1, %[[VAL_5]]#0 : !quake.wire, !quake.wire)
+// CFG:         ^bb2(%[[VAL_6:.*]]: !quake.wire, %[[VAL_7:.*]]: !quake.wire):
+// CFG:           %[[VAL_8:.*]]:2 = quake.x [%[[VAL_6]]] %[[VAL_7]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CFG:           cf.br ^bb3(%[[VAL_8]]#0, %[[VAL_8]]#1 : !quake.wire, !quake.wire)
+// CFG:         ^bb3(%[[VAL_9:.*]]: !quake.wire, %[[VAL_10:.*]]: !quake.wire):
+// CFG:           cf.br ^bb4
+// CFG:         ^bb4:
+// CFG:           quake.sink %[[VAL_9]] : !quake.wire
+// CFG:           quake.sink %[[VAL_10]] : !quake.wire
+// CFG:           return
+// CFG:         }
+
+quake.wire_set @ethereal[2]
+
+func.func @f3() {
+  %0 = quake.borrow_wire @ethereal[0] : !quake.wire
+  %3 = cc.undef i1
+  cc.if (%3) {
+    %1 = quake.borrow_wire @ethereal[1] : !quake.wire
+    quake.return_wire %1 : !quake.wire
+  }
+  %s = quake.borrow_wire @ethereal[1] : !quake.wire
+  %2:2 = cc.if (%3) ((%4 = %0, %5 = %s)) -> (!quake.wire, !quake.wire) {
+    %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#1, %6#0 : !quake.wire, !quake.wire
+  } else {
+    %6:2 = quake.y [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#1, %6#0 : !quake.wire, !quake.wire
+  }
+  quake.return_wire %2#0 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @f3() {
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_3:.*]] = cc.undef i1
+// CHECK:           cc.if(%[[VAL_3]]) {
+// CHECK:           }
+// CHECK:           cc.if(%[[VAL_3]]) {
+// CHECK:             quake.x [%[[VAL_2]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           } else {
+// CHECK:             quake.y [%[[VAL_2]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           }
+// CHECK-DAG:       quake.dealloc %[[VAL_2]] : !quake.ref
+// CHECK-DAG:       quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK-DAG:       quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+// CFG-LABEL:   func.func @f3() {
+// CFG:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_3:.*]] = cc.undef i1
+// CFG:           cf.cond_br %[[VAL_3]], ^bb1, ^bb2
+// CFG:         ^bb1:
+// CFG:           cf.br ^bb2
+// CFG:         ^bb2:
+// CFG:           cf.cond_br %[[VAL_3]], ^bb3, ^bb4
+// CFG:         ^bb3:
+// CFG:           quake.x [%[[VAL_2]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
+// CFG:           cf.br ^bb5
+// CFG:         ^bb4:
+// CFG:           quake.y [%[[VAL_2]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
+// CFG:           cf.br ^bb5
+// CFG:         ^bb5:
+// CFG:           cf.br ^bb6
+// CFG:         ^bb6:
+// CFG-DAG:       quake.dealloc %[[VAL_2]] : !quake.ref
+// CFG-DAG:       quake.dealloc %[[VAL_1]] : !quake.ref
+// CFG-DAG:       quake.dealloc %[[VAL_0]] : !quake.ref
+// CFG:           return
+// CFG:         }
+
+func.func @f4() {
+  %0 = quake.borrow_wire @ethereal[0] : !quake.wire
+  %3 = cc.undef i1
+  cc.if (%3) {
+    %1 = quake.borrow_wire @ethereal[1] : !quake.wire
+    quake.return_wire %1 : !quake.wire
+  }
+  %s = quake.borrow_wire @ethereal[1] : !quake.wire
+  %2:2 = cc.if (%3) ((%4 = %0, %5 = %s)) -> (!quake.wire, !quake.wire) {
+    %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %8 = quake.h  %6#0 : (!quake.wire) -> !quake.wire
+    cc.continue %6#1, %8 : !quake.wire, !quake.wire
+  } else {
+    %6:2 = quake.y [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#1, %6#0 : !quake.wire, !quake.wire
+  }
+  quake.return_wire %2#0 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @f4() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_3:.*]] = cc.undef i1
+// CHECK:           cc.if(%[[VAL_3]]) {
+// CHECK:           }
+// CHECK:           cc.if(%[[VAL_3]]) {
+// CHECK:             quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:             quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           } else {
+// CHECK:             quake.y [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           }
+// CHECK-DAG:       quake.dealloc %[[VAL_2]] : !quake.ref
+// CHECK-DAG:       quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK-DAG:       quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+// CFG-LABEL:   func.func @f4() {
+// CFG:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CFG:           %[[VAL_3:.*]] = cc.undef i1
+// CFG:           cf.cond_br %[[VAL_3]], ^bb1, ^bb2
+// CFG:         ^bb1:
+// CFG:           cf.br ^bb2
+// CFG:         ^bb2:
+// CFG:           cf.cond_br %[[VAL_3]], ^bb3, ^bb4
+// CFG:         ^bb3:
+// CFG:           quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CFG:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CFG:           cf.br ^bb5
+// CFG:         ^bb4:
+// CFG:           quake.y [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CFG:           cf.br ^bb5
+// CFG:         ^bb5:
+// CFG:           cf.br ^bb6
+// CFG:         ^bb6:
+// CFG-DAG:       quake.dealloc %[[VAL_2]] : !quake.ref
+// CFG-DAG:       quake.dealloc %[[VAL_1]] : !quake.ref
+// CFG-DAG:       quake.dealloc %[[VAL_0]] : !quake.ref
+// CFG:           return
+// CFG:         }
+
