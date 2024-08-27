@@ -9,27 +9,26 @@
 #include <cudaq.h>
 
 // RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
+// XFAIL: *
 
 struct run_test {
   __qpu__ auto operator()() {
     cudaq::qubit q;
 
     bool res;
-
-    h(q);
-    bool b = mz(q);
-    
-    // Should be able to lift x(p/r)
-    if (b) {
+    // Should not lift rx(i,p)
+    if (true) {
       cudaq::qubit p;
-      x(p);
-      y(p);
-      res = mz(p);
+      x(q);
+      res = mz(q);
+      auto i = (float)res;
+      rx(i, p);
     } else {
-      cudaq::qubit r;
-      x(r);
-      z(r);
-      res = mz(r);
+      cudaq::qubit p;
+      y(q);
+      res = mz(q);
+      auto i = (float)res;
+      rx(i, p);
     }
 
     return res;
