@@ -35,7 +35,14 @@ struct PhotonicsState : public cudaq::SimulationState {
 
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
-    throw "not supported for this photonics simulator";
+    /// TODO: Check basisState.size() matches qudit count
+
+    // Convert the basis state to an index value
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+    return state[idx];
   }
 
   Tensor getTensor(std::size_t tensorIdx = 0) const override {
@@ -65,7 +72,7 @@ struct PhotonicsState : public cudaq::SimulationState {
   void dump(std::ostream &os) const override { os << state << "\n"; }
 
   precision getPrecision() const override {
-    throw "not supported for this photonics simulator";
+    return cudaq::SimulationState::precision::fp64;
   }
 
   void destroyState() override {
