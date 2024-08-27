@@ -444,11 +444,6 @@ public:
     assert(false && "lowerAlloc can only be called on an IfDependencyNode");
   }
 
-  virtual void liftAlloc(DependencyNode *init, DependencyNode *root,
-                         VirtualQID alloc) {
-    assert(false && "liftAlloc can only be called on an IfDependencyNode");
-  }
-
   virtual std::string getOpName() = 0;
 
   virtual bool isContainer() { return false; }
