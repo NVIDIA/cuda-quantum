@@ -8,7 +8,7 @@
 
 #pragma once
 
-/// This file provides some common QIR attribute names for use in codegen.
+/// This file provides some common QIR attribute names for use in code gen.
 
 namespace cudaq::opt {
 
