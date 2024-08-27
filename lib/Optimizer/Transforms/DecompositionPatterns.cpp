@@ -11,7 +11,6 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "mlir/IR/Builders.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 
@@ -51,55 +50,83 @@ inline bool isAllWires(quake::OperatorInterface op) {
   return true;
 }
 
-/// @brief This is a wrapper class for `PatternRewriter::create<>()` and
-/// `OpBuilder::create<>()` for `QuakeOperator`s. If the controls and targets
-/// are `quake::WireType`, then this wrapper class's methods update the controls
-/// and targets in the `create` calls to the corresponding wires in the output.
-/// If they are NOT `WireType`, then the creates behave the exact same as a
-/// regular `PatternRewriter` or `OpBuilder`.
+/// @brief This is a wrapper class for `PatternRewriter::create<>()` for
+/// `QuakeOperator`s. If the controls and targets are `quake::WireType`, then
+/// this wrapper class's methods update the controls and targets in the `create`
+/// calls to the corresponding wires in the output. If they are NOT `WireType`,
+/// then the creates behave the exact same as a regular `PatternRewriter`.
 class QuakeOperatorCreator {
 public:
-  QuakeOperatorCreator(PatternRewriter &rewriter) : rewriter(&rewriter) {}
-  QuakeOperatorCreator(OpBuilder &builder) : builder(&builder) {}
+  QuakeOperatorCreator(PatternRewriter &rewriter) : rewriter(rewriter) {}
+
+  /// Construct a resultType (suitable to be pass into the `TypeRange wires`
+  /// builder for cases when you have one input ValueRange.
+  SmallVector<Type> getResultType(ValueRange operands) {
+    std::size_t numOutputWires =
+        std::count_if(operands.begin(), operands.end(), [](const Value &v) {
+          return v.getType().isa<quake::WireType>();
+        });
+
+    return SmallVector<Type>(numOutputWires,
+                             quake::WireType::get(rewriter.getContext()));
+  }
+
+  /// Construct a resultType (suitable to be pass into the `TypeRange wires`
+  /// builder for cases when you have two input ValueRanges.
+  SmallVector<Type> getResultType(ValueRange operands1, ValueRange operands2) {
+    std::size_t numOutputWires =
+        std::count_if(
+            operands1.begin(), operands1.end(),
+            [](const Value &v) { return v.getType().isa<quake::WireType>(); }) +
+        std::count_if(operands2.begin(), operands2.end(), [](const Value &v) {
+          return v.getType().isa<quake::WireType>();
+        });
+
+    return SmallVector<Type>(numOutputWires,
+                             quake::WireType::get(rewriter.getContext()));
+  }
 
   template <typename OpTy>
   OpTy create(Location location, Value &target) {
     OpTy op;
-    if (rewriter)
-      op = rewriter->create<OpTy>(location, target);
-    else if (builder)
-      op = builder->create<OpTy>(location, target);
+    op = rewriter.create<OpTy>(location, getResultType(target), false,
+                               ValueRange{}, ValueRange{}, target,
+                               DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
-    if (resultWires.size() > 0)
-      target = resultWires[0];
+    auto resultIt = resultWires.begin();
+    auto resultWiresEnd = resultWires.end();
+    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      target = *resultIt;
     return op;
   }
 
   template <typename OpTy>
   OpTy create(Location location, bool is_adj, Value &target) {
     OpTy op;
-    if (rewriter)
-      op = rewriter->create<OpTy>(location, is_adj, target);
-    else if (builder)
-      op = builder->create<OpTy>(location, is_adj, target);
+    op = rewriter.create<OpTy>(location, getResultType(target), is_adj,
+                               ValueRange{}, ValueRange{}, target,
+                               DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
-    if (resultWires.size() > 0)
-      target = resultWires[0];
+    auto resultIt = resultWires.begin();
+    auto resultWiresEnd = resultWires.end();
+    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      target = *resultIt;
     return op;
   }
 
   template <typename OpTy>
   OpTy create(Location location, Value &control, Value &target) {
     OpTy op;
-    if (rewriter)
-      op = rewriter->create<OpTy>(location, control, target);
-    else if (builder)
-      op = builder->create<OpTy>(location, control, target);
+    op = rewriter.create<OpTy>(location, getResultType(control, target), false,
+                               ValueRange{}, control, target,
+                               DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
-    if (resultWires.size() == 2) {
-      control = resultWires[0];
-      target = resultWires[1];
-    }
+    auto resultIt = resultWires.begin();
+    auto resultWiresEnd = resultWires.end();
+    if (control.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      control = *resultIt++;
+    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      target = *resultIt;
     return op;
   }
 
@@ -107,18 +134,17 @@ public:
   OpTy create(Location location, bool is_adj, ValueRange parameters,
               SmallVectorImpl<Value> &controls, Value &target) {
     OpTy op;
-    if (rewriter)
-      op = rewriter->create<OpTy>(location, is_adj, parameters, controls,
-                                  target);
-    else if (builder)
-      op =
-          builder->create<OpTy>(location, is_adj, parameters, controls, target);
+    op = rewriter.create<OpTy>(location, getResultType(controls, target),
+                               is_adj, parameters, controls, target,
+                               DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
-    if (resultWires.size() == controls.size() + 1) {
-      for (auto &&[c, r] : llvm::zip_equal(controls, resultWires.drop_back()))
-        c = r;
-      target = resultWires.back();
-    }
+    auto resultIt = resultWires.begin();
+    auto resultWiresEnd = resultWires.end();
+    for (auto &c : controls)
+      if (c.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+        c = *resultIt++;
+    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      target = *resultIt;
     return op;
   }
 
@@ -126,16 +152,17 @@ public:
   OpTy create(Location location, ValueRange parameters,
               SmallVectorImpl<Value> &controls, Value &target) {
     OpTy op;
-    if (rewriter)
-      op = rewriter->create<OpTy>(location, parameters, controls, target);
-    else if (builder)
-      op = builder->create<OpTy>(location, parameters, controls, target);
+    op = rewriter.create<OpTy>(location, getResultType(controls, target), false,
+                               parameters, controls, target,
+                               DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
-    if (resultWires.size() == controls.size() + 1) {
-      for (auto &&[c, r] : llvm::zip_equal(controls, resultWires.drop_back()))
-        c = r;
-      target = resultWires.back();
-    }
+    auto resultIt = resultWires.begin();
+    auto resultWiresEnd = resultWires.end();
+    for (auto &c : controls)
+      if (c.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+        c = *resultIt++;
+    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      target = *resultIt;
     return op;
   }
 
@@ -143,36 +170,37 @@ public:
   OpTy create(Location location, SmallVectorImpl<Value> &controls,
               Value &target) {
     OpTy op;
-    if (rewriter)
-      op = rewriter->create<OpTy>(location, controls, target);
-    else if (builder)
-      op = builder->create<OpTy>(location, controls, target);
+    op = rewriter.create<OpTy>(location, getResultType(controls, target), false,
+                               ValueRange{}, controls, target,
+                               DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
-    if (resultWires.size() == controls.size() + 1) {
-      for (auto &&[c, r] : llvm::zip_equal(controls, resultWires.drop_back()))
-        c = r;
-      target = resultWires.back();
-    }
+    auto resultIt = resultWires.begin();
+    auto resultWiresEnd = resultWires.end();
+    for (auto &c : controls)
+      if (c.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+        c = *resultIt++;
+    if (target.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+      target = *resultIt;
     return op;
   }
 
   template <typename OpTy>
   OpTy create(Location location, SmallVectorImpl<Value> &targets) {
     OpTy op;
-    if (rewriter)
-      op = rewriter->create<OpTy>(location, targets);
-    else if (builder)
-      op = builder->create<OpTy>(location, targets);
+    op = rewriter.create<OpTy>(location, getResultType(targets), false,
+                               ValueRange{}, ValueRange{}, targets,
+                               DenseBoolArrayAttr{});
     auto resultWires = op.getWires();
-    if (resultWires.size() == targets.size())
-      for (auto &&[t, r] : llvm::zip_equal(targets, resultWires))
-        t = r;
+    auto resultIt = resultWires.begin();
+    auto resultWiresEnd = resultWires.end();
+    for (auto &t : targets)
+      if (t.getType().isa<quake::WireType>() && resultIt != resultWiresEnd)
+        t = *resultIt++;
     return op;
   }
 
 private:
-  PatternRewriter *rewriter = nullptr;
-  OpBuilder *builder = nullptr;
+  PatternRewriter &rewriter;
 };
 
 /// Check whether the operation has the correct number of controls.
