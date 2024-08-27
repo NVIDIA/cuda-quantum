@@ -12,17 +12,24 @@
 
 struct run_test {
   __qpu__ auto operator()() {
-    cudaq::qubit p;
+    cudaq::qubit q;
 
+    bool res;
+    // Should not lift rx(i,p)
     if (true) {
-      rx(1., p);
-      z(p);
-      rx(1., p);
+      cudaq::qubit p;
+      x(q);
+      res = mz(q);
+      auto i = (float)res;
+      rx(i, p);
     } else {
-      rx(1., p);
-      y(p);
+      cudaq::qubit p;
+      y(q);
+      res = mz(q);
+      auto i = (float)res;
+      rx(i, p);
     }
-    auto res = mz(p);
+
     return res;
   }
 };
