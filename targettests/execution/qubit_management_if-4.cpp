@@ -8,28 +8,22 @@
 
 #include <cudaq.h>
 
-// RUN: nvq++ --enable-mlir -fno-lower-to-cfg --opt-pass 'func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),canonicalize,cse,add-wireset,func.func(assign-wire-indices),dep-analysis,lower-to-cfg,func.func(lower-to-cfg,regtomem),symbol-dce'  %s -o %t && %t
+// RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
 
 struct run_test {
   __qpu__ auto operator()() {
     cudaq::qubit q;
 
     bool res;
-
-    h(q);
-    bool b = mz(q);
-    
-    // Should be able to lift x(p/r)
-    if (b) {
-      cudaq::qubit p;
-      x(p);
-      y(p);
-      res = mz(p);
+    // Should be able to lift mz(q) before
+    if (true) {
+      x(q);
+      y(q);
+      res = true;
     } else {
-      cudaq::qubit r;
-      x(r);
-      z(r);
-      res = mz(r);
+      x(q);
+      y(q);
+      res = false;
     }
 
     return res;
