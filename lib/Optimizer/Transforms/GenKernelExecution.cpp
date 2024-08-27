@@ -1354,19 +1354,39 @@ public:
       // 2) Iterate over the arguments passed in and populate the vector.
       SmallVector<BlockArgument> blockArgs{dropAnyHiddenArguments(
           hostFuncEntryBlock->getArguments(), devFuncTy, addThisPtr)};
-      for (auto iter : llvm::enumerate(blockArgs)) {
-        std::int32_t i = iter.index();
+      unsigned j = 0;
+      for (std::int32_t i = 0, N = blockArgs.size(); i < N; ++i, ++j) {
+        auto blkArg = blockArgs[i];
         auto pos = builder.create<cudaq::cc::ComputePtrOp>(
             loc, ptrPtrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
-        auto blkArg = iter.value();
         if (isa<cudaq::cc::PointerType>(blkArg.getType())) {
           auto castArg =
               builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, blkArg);
           builder.create<cudaq::cc::StoreOp>(loc, castArg, pos);
           continue;
         }
-        auto temp = builder.create<cudaq::cc::AllocaOp>(loc, blkArg.getType());
-        builder.create<cudaq::cc::StoreOp>(loc, blkArg, temp);
+        Value temp;
+        if (cudaq::opt::factory::structUsesTwoArguments(
+                devFuncTy.getInput(j))) {
+          temp =
+              builder.create<cudaq::cc::AllocaOp>(loc, devFuncTy.getInput(j));
+          auto part1 = builder.create<cudaq::cc::CastOp>(
+              loc, cudaq::cc::PointerType::get(blkArg.getType()), temp);
+          builder.create<cudaq::cc::StoreOp>(loc, blkArg, part1);
+          auto blkArg2 = blockArgs[++i];
+          auto cast2 = builder.create<cudaq::cc::CastOp>(
+              loc,
+              cudaq::cc::PointerType::get(
+                  cudaq::cc::ArrayType::get(blkArg2.getType())),
+              temp);
+          auto part2 = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, cudaq::cc::PointerType::get(blkArg2.getType()), cast2,
+              ArrayRef<cudaq::cc::ComputePtrArg>{1});
+          builder.create<cudaq::cc::StoreOp>(loc, blkArg2, part2);
+        } else {
+          temp = builder.create<cudaq::cc::AllocaOp>(loc, blkArg.getType());
+          builder.create<cudaq::cc::StoreOp>(loc, blkArg, temp);
+        }
         auto castTemp = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, temp);
         builder.create<cudaq::cc::StoreOp>(loc, castTemp, pos);
       }
