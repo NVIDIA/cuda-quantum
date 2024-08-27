@@ -14,6 +14,7 @@
 #include "SimulationState.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
+#include "cudaq/platform/orca/OrcaFuture.h"
 #include <optional>
 #include <string_view>
 
@@ -61,6 +62,10 @@ public:
   /// @brief When execution asynchronously, store
   /// the expected results as a cudaq::future here.
   details::future futureResult;
+
+  /// @brief When execution asynchronously, store
+  /// the expected results as a cudaq::orca::details::Orcafuture here.
+  orca::details::Orcafuture orcaFutureResult;
 
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;

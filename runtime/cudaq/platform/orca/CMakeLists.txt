@@ -9,7 +9,7 @@
 set(LIBRARY_NAME cudaq-orca-qpu)
 message(STATUS "Building ORCA REST QPU.")
 set(ORCA_SRC
-  OrcaExecutor.cpp
+  OrcaFuture.cpp
   OrcaServerHelper.cpp
   OrcaRemoteRESTQPU.cpp 
   OrcaQPU.cpp 

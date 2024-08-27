@@ -14,6 +14,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "Registry.h"
+#include "cudaq/orca.h"
 #include <filesystem>
 
 namespace cudaq {
@@ -101,7 +102,30 @@ public:
   /// @brief Given a vector of compiled quantum codes for submission
   /// create and return the Job payload that is compatible with this server.
   virtual ServerJobPayload
-  createJob(std::vector<KernelExecution> &circuitCodes) = 0;
+  createJob(std::vector<KernelExecution> &circuitCodes) {
+    std::vector<ServerMessage> jobs;
+    ServerMessage job;
+    jobs.push_back(job);
+
+    std::map<std::string, std::string> headers;
+
+    // Return a tuple containing the job path, headers, and the job message
+    auto ret = std::make_tuple("", headers, jobs);
+    return ret;
+  };
+
+  /// @brief Create a job payload for the provided TBI parameters
+  virtual ServerJobPayload createJob(cudaq::orca::TBIParameters params) {
+    std::vector<ServerMessage> jobs;
+    ServerMessage job;
+    jobs.push_back(job);
+
+    std::map<std::string, std::string> headers;
+
+    // Return a tuple containing the job path, headers, and the job message
+    auto ret = std::make_tuple("", headers, jobs);
+    return ret;
+  };
 
   /// @brief Extract the job id from the server response from posting the job.
   virtual std::string extractJobId(ServerMessage &postResponse) = 0;

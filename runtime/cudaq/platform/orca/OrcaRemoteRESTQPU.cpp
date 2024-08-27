@@ -5,13 +5,13 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #include "OrcaRemoteRESTQPU.h"
-#include "common/Future.h"
+#include "OrcaFuture.h"
 #include "common/Logger.h"
-#include "common/Registry.h"
 #include "llvm/Support/Base64.h"
 
-namespace cudaq{
+namespace cudaq {
 /// @brief This setTargetBackend override is in charge of reading the
 /// specific target backend configuration file.
 void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
@@ -51,7 +51,7 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   /// pipeline.
   // Set the qpu name
   qpuName = mutableBackend;
-  serverHelper = registry::get<OrcaServerHelper>(qpuName);
+  serverHelper = registry::get<ServerHelper>(qpuName);
   serverHelper->initialize(backendConfig);
 
   // Give the server helper to the executor
@@ -74,39 +74,21 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
       *((struct cudaq::orca::TBIParameters *)args);
   std::size_t shots = params.n_samples;
 
-  setShots(shots);
   executionContext->shots = shots;
 
-  cudaq::details::future future;
-  future = executor->execute(params);
+  cudaq::orca::details::Orcafuture future;
+  future = executor->execute(params, kernelName);
 
   // Keep this asynchronous if requested
   if (executionContext->asyncExec) {
-    executionContext->futureResult = future;
+    executionContext->orcaFutureResult = future;
     return;
   }
 
   // Otherwise make this synchronous
   executionContext->result = future.get();
-
-  // // Create the Job Payload, composed of job post path, headers,
-  // // and the job json messages themselves
-  // auto [jobPostPath, headers, jobs] = serverHelper->createJob(params);
-  // auto job = jobs[0];
-  // cudaq::info("Job (name={}) created, posting to {}", kernelName,
-  // jobPostPath);
-
-  // // Post it, get the response
-  // auto response = client.post(jobPostPath, "", job, headers);
-  // cudaq::info("Job (name={}) posted, response was {}", kernelName,
-  //             response.dump());
-
-  // cudaq::sample_result counts = serverHelper->processResults(response);
-
-  // // return the results synchronously
-  // executionContext->result = counts;
 }
 
-} // namespace
-
+} // namespace cudaq
+// LLVM_INSTANTIATE_REGISTRY(cudaq::orca::OrcaRemoteRESTQPU::RegistryType)
 CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::OrcaRemoteRESTQPU, orca)

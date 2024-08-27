@@ -8,20 +8,15 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/FmtCore.h"
-
-#include "OrcaExecutor.h"
-#include "OrcaServerHelper.h"
-
+#include "common/Executor.h"
+#include "common/Future.h"
 #include "common/RestClient.h"
-#include "cudaq.h"
-#include "nvqpp_config.h"
+#include "common/ServerHelper.h"
+#include "cudaq/platform/qpu.h"
+
 #include "orca_qpu.h"
 
-#include "cudaq/platform/qpu.h"
-#include "cudaq/platform/quantum_platform.h"
-
-namespace cudaq{
+namespace cudaq {
 
 /// @brief The OrcaRemoteRESTQPU is a subtype of QPU that enables the
 /// execution of CUDA-Q kernels on remotely hosted quantum computing
@@ -45,11 +40,11 @@ protected:
   bool emulate = false;
 
   // Pointer to the concrete Executor for this QPU
-  std::unique_ptr<cudaq::orca::OrcaExecutor> executor;
+  std::unique_ptr<Executor> executor;
 
   /// @brief Pointer to the concrete ServerHelper, provides
   /// specific JSON payloads and POST/GET URL paths.
-  std::unique_ptr<cudaq::OrcaServerHelper> serverHelper;
+  std::unique_ptr<ServerHelper> serverHelper;
 
   /// @brief Mapping of general key-values for backend
   /// configuration.
@@ -57,15 +52,15 @@ protected:
 
 private:
   /// @brief RestClient used for HTTP requests.
-  cudaq::RestClient client;
+  RestClient client;
 
 public:
   /// @brief The constructor
   OrcaRemoteRESTQPU() : QPU() {
-    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    std::filesystem::path cudaqLibPath{getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     // Default is to run sampling via the remote rest call
-    executor = std::make_unique<cudaq::orca::OrcaExecutor>();
+    executor = std::make_unique<Executor>();
   }
 
   OrcaRemoteRESTQPU(OrcaRemoteRESTQPU &&) = delete;
@@ -125,4 +120,4 @@ public:
     throw std::runtime_error("launch kernel on raw args not implemented");
   }
 };
-} // namespace
+} // namespace cudaq

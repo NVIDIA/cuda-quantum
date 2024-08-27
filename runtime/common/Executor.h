@@ -10,6 +10,7 @@
 #include "common/ExecutionContext.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "cudaq/platform/orca/OrcaFuture.h"
 
 namespace cudaq {
 
@@ -42,6 +43,12 @@ public:
   /// @brief Execute the provided quantum codes and return a future object
   /// The caller can make this synchronous by just immediately calling .get().
   details::future execute(std::vector<KernelExecution> &codesToExecute);
+
+  /// @brief Execute the provided orca quantum parameters and return a future
+  /// object The caller can make this synchronous by just immediately calling
+  /// .get().
+  cudaq::orca::details::Orcafuture execute(cudaq::orca::TBIParameters params,
+                                           const std::string &kernelName);
 };
 
 } // namespace cudaq

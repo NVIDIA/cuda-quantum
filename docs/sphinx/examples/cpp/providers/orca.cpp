@@ -1,12 +1,15 @@
 // Compile and run with:
 // ```
-// nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x && ./out.x
+// nvq++ --target orca --orca-url $ORCA_ACCESS_URL orca.cpp -o out.x &&
+// CUDAQ_LOG_LEVEL=info ./out.x
 // ```
 // To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL
 // environment variable or pass the URL to the `--orca-url` flag.
 
 #include "cudaq/orca.h"
 #include "cudaq.h"
+
+#include <fstream>
 
 // define helper function to generate linear spaced vectors
 template <typename T>
@@ -65,6 +68,9 @@ int main() {
   auto counts =
       cudaq::orca::sample(input_state, loop_lengths, bs_angles, n_samples);
 
+  // Print the results
+  counts.dump();
+  
   // If the system includes phase shifters, the phase shifter angles can be
   // included in the call
 
@@ -73,8 +79,26 @@ int main() {
   //                                   ps_angles, n_samples);
   // ```
 
-  // Print the results
-  counts.dump();
+
+  // auto async_results =
+  //     cudaq::orca::sample_async(input_state, loop_lengths, bs_angles, n_samples);
+
+  // // Can write the future to file:
+  // {
+  //   std::ofstream out("saveMe.json");
+  //   out << async_results;
+  // }
+
+  // // Then come back and read it in later.
+  // cudaq::async_result<cudaq::sample_result> readIn;
+  // std::ifstream in("saveMe.json");
+  // in >> readIn;
+
+  // // Get the results of the read in future.
+  // auto async_counts = readIn.get();
+  // async_counts.dump();
+
+
 
   return 0;
 }

@@ -53,13 +53,9 @@ OrcaServerHelper::createJob(cudaq::orca::TBIParameters params) {
   return ret;
 }
 
-// ServerJobPayload
-// OrcaServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
-//   throw std::runtime_error("createJob on circuitCodes args not implemented");
-// }
-
 // Process the results from a job
-sample_result OrcaServerHelper::processResults(ServerMessage &postJobResponse) {
+sample_result OrcaServerHelper::processResults(ServerMessage &postJobResponse,
+                                               std::string &jobID) {
   auto results = postJobResponse.at("results");
 
   CountsDictionary counts;
@@ -110,18 +106,21 @@ std::string OrcaServerHelper::constructGetJobPath(std::string &jobId) {
 }
 
 bool OrcaServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  auto status = getJobResponse["status"].get<std::string>();
-  if (status == "failed") {
-    std::string msg = "";
-    if (getJobResponse.count("error"))
-      msg = getJobResponse["error"]["text"].get<std::string>();
-    throw std::runtime_error("Job failed to execute msg = [" + msg + "]");
+  cudaq::info("getJobResponse {}.", getJobResponse.dump());
+  std::string job_status = "";
+  auto error = getJobResponse["error_message"].is_null();
+  auto status = getJobResponse["job_status"].is_null();
+  // if (!status){
+  // job_status = getJobResponse["job_status"].get<std::string>();}
+  cudaq::info("status {}, error {}", status, error);
+  if (error & status) {
+    return true;
+  } else {
+    return false;
   }
-
-  return status == "completed";
 }
 
 } // namespace cudaq
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::OrcaServerHelper::RegistryType)
-CUDAQ_REGISTER_TYPE(cudaq::OrcaServerHelper, cudaq::OrcaServerHelper, orca)
+// LLVM_INSTANTIATE_REGISTRY(cudaq::orca::OrcaServerHelper::RegistryType)
+CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::OrcaServerHelper, orca)
