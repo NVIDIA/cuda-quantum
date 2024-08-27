@@ -119,7 +119,7 @@ func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cu
   return
 }
 
-// BASE-LABEL:   func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cudaq-kernel", requiredQubits = "7", requiredResults = "7"} {
+// BASE-LABEL:   func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cudaq-kernel", output_names = {{.*}}, requiredQubits = "7", requiredResults = "7"} {
 // BASE-DAG:       %[[VAL_0:.*]] = arith.constant 1.6123000000000003 : f64
 // BASE-DAG:       %[[VAL_1:.*]] = arith.constant 3.6123000000000003 : f64
 // BASE-DAG:       %[[VAL_2:.*]] = arith.constant 4.612300e+00 : f64
@@ -274,7 +274,7 @@ func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cu
 // BASE:         }
 
 
-// ADAPT-LABEL:   func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cudaq-kernel", requiredQubits = "7", requiredResults = "7"} {
+// ADAPT-LABEL:   func.func @__nvqpp__mlirgen__comprehensive() attributes {"cudaq-entrypoint", "cudaq-kernel", output_names = {{.*}}, requiredQubits = "7", requiredResults = "7"} {
 // ADAPT-DAG:       %[[VAL_0:.*]] = arith.constant 1.6123000000000003 : f64
 // ADAPT-DAG:       %[[VAL_1:.*]] = arith.constant 3.6123000000000003 : f64
 // ADAPT-DAG:       %[[VAL_2:.*]] = arith.constant 4.612300e+00 : f64
