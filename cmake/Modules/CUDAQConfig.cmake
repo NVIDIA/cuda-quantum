@@ -126,42 +126,15 @@ set_target_properties(cudaq::cudaq-builder PROPERTIES
 # Check for the presence of NVIDIA GPUs, if none
 # are found set the default target to qpp-cpu
 set(__tmp_cudaq_target "qpp-cpu")
-include(CheckLanguage)
-check_language(CUDA)
-if(CMAKE_CUDA_COMPILER)
-  enable_language(CUDA)
-  message(STATUS "CUDA compiler found: ${CMAKE_CUDA_COMPILER}")
-  set(CUDA_TEST_SOURCE "
-    #include <cuda_runtime.h>
-    #include <stdio.h>
-    int main() {
-      int deviceCount;
-      cudaError_t error = cudaGetDeviceCount(&deviceCount);
-      if (error != cudaSuccess) {
-        printf(\"cudaGetDeviceCount returned error %d: %s\\n\", error, cudaGetErrorString(error));
-        return 1;
-      }
-      printf(\"%d\", deviceCount);
-      return 0;
-    }
-  ")
-
-  set(CUDA_TEST_FILE "${CMAKE_BINARY_DIR}/platform/cuda_test.cu")
-  file(WRITE "${CUDA_TEST_FILE}" "${CUDA_TEST_SOURCE}")
-
-  try_run(RUN_RESULT COMPILE_RESULT
-    "${CMAKE_BINARY_DIR}" "${CUDA_TEST_FILE}"
-    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
-    LINK_LIBRARIES ${CMAKE_CUDA_RUNTIME_LIBRARY}
-    RUN_OUTPUT_VARIABLE GPU_COUNT
-  )
-
-  if(COMPILE_RESULT AND RUN_RESULT EQUAL 0)
+find_program(NVIDIA_SMI "nvidia-smi")
+if(NVIDIA_SMI)
+  execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if (${NGPUS} GREATER_EQUAL 1)
     # We have NVIDIA GPUs, set the NVIDIA target as the default
-    message(STATUS "Number of NVIDIA GPUs detected: ${GPU_COUNT}")
+    message(STATUS "Number of NVIDIA GPUs detected: ${NGPUS}")
     set(__tmp_cudaq_target "nvidia")
   endif()
-endif() 
+endif()
 
 set(CUDAQ_TARGET ${__tmp_cudaq_target} CACHE STRING "The CUDA Quantum target to compile for and execute on. Defaults to `${__tmp_cudaq_target}`")
 cudaq_set_target(${CUDAQ_TARGET})
