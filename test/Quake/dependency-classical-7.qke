@@ -23,19 +23,17 @@ func.func @test7() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   return %3 : i1
 }
 
-// CHECK-LABEL:   quake.wire_set @wires[2147483647]
+// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
 
 // CHECK-LABEL:   func.func @test7() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // CHECK:           %[[VAL_1:.*]], %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:           %[[VAL_4:.*]] = arith.uitofp %[[VAL_3]] : i1 to f64
-// CHECK:           quake.return_wire %[[VAL_2]] : !quake.wire
 // CHECK:           %[[VAL_5:.*]] = quake.borrow_wire @wires[1] : !quake.wire
 // CHECK:           %[[VAL_6:.*]] = quake.rx (%[[VAL_4]]) %[[VAL_5]] : (f64, !quake.wire) -> !quake.wire
 // CHECK:           quake.return_wire %[[VAL_6]] : !quake.wire
-// CHECK:           %[[VAL_7:.*]] = quake.borrow_wire @wires[0] : !quake.wire
-// CHECK:           %[[VAL_8:.*]] = quake.rx (%[[VAL_4]]) %[[VAL_7]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           quake.return_wire %[[VAL_8]] : !quake.wire
+// CHECK:           %[[VAL_7:.*]] = quake.rx (%[[VAL_4]]) %[[VAL_2]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           quake.return_wire %[[VAL_7]] : !quake.wire
 // CHECK:           return %[[VAL_3]] : i1
 // CHECK:         }

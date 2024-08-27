@@ -1,0 +1,136 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis -split-input-file %s | FileCheck %s
+
+// The second cc.if has a shadow dependency on the first if (and therefore first wire)
+// This test ensures that the shadow dependency is respected.
+
+func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+  %true = arith.constant true
+  %cst = arith.constant 1.000000e+00 : f32
+  %cst_0 = arith.constant 2.000000e+00 : f32
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+  %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %4 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %5 = cc.if(%4) -> f32 {
+    cc.continue %cst : f32
+  } else {
+    cc.continue %cst_0 : f32
+  }
+  %6 = cc.if(%true) ((%arg0 = %1)) -> !quake.wire {
+    %7 = cc.if(%true) ((%arg1 = %arg0)) -> !quake.wire {
+      %8 = quake.rx (%5) %arg1 : (f32, !quake.wire) -> !quake.wire
+      cc.continue %8 : !quake.wire
+    } else {
+      cc.continue %arg1 : !quake.wire
+    }
+    cc.continue %7 : !quake.wire
+  } else {
+    cc.continue %arg0 : !quake.wire
+  }
+  %measOut_1, %wires_2 = quake.mz %6 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %7 = quake.discriminate %measOut_1 : (!quake.measure) -> i1
+  quake.sink %wires : !quake.wire
+  quake.sink %wires_2 : !quake.wire
+  return %7 : i1
+}
+
+// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+
+// CHECK-LABEL:   func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.x %[[VAL_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_3:.*]], %[[VAL_4:.*]] = quake.mz %[[VAL_2]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_3]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_6:.*]] = cc.if(%[[VAL_5]]) -> f32 {
+// CHECK:             %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f32
+// CHECK:             cc.continue %[[VAL_7]] : f32
+// CHECK:           } else {
+// CHECK:             %[[VAL_8:.*]] = arith.constant 2.000000e+00 : f32
+// CHECK:             cc.continue %[[VAL_8]] : f32
+// CHECK:           }
+// CHECK:           %[[VAL_9:.*]] = arith.constant true
+// CHECK:           %[[VAL_10:.*]] = cc.if(%[[VAL_9]]) ((%[[VAL_11:.*]] = %[[VAL_4]])) -> !quake.wire {
+// CHECK:             %[[VAL_12:.*]] = arith.constant true
+// CHECK:             %[[VAL_13:.*]] = cc.if(%[[VAL_12]]) ((%[[VAL_14:.*]] = %[[VAL_11]])) -> !quake.wire {
+// CHECK:               %[[VAL_15:.*]] = quake.rx (%[[VAL_16:.*]]) %[[VAL_14]] : (f32, !quake.wire) -> !quake.wire
+// CHECK:               cc.continue %[[VAL_15]] : !quake.wire
+// CHECK:             } else {
+// CHECK:               cc.continue %[[VAL_17:.*]] : !quake.wire
+// CHECK:             }
+// CHECK:             cc.continue %[[VAL_18:.*]] : !quake.wire
+// CHECK:           } else {
+// CHECK:             cc.continue %[[VAL_19:.*]] : !quake.wire
+// CHECK:           }
+// CHECK:           %[[VAL_20:.*]], %[[VAL_21:.*]] = quake.mz %[[VAL_22:.*]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_23:.*]] = quake.discriminate %[[VAL_20]] : (!quake.measure) -> i1
+// CHECK:           quake.return_wire %[[VAL_21]] : !quake.wire
+// CHECK:           return %[[VAL_23]] : i1
+// CHECK:         }
+
+// -----
+
+// The second cc.if has a shadow dependency on the first if (and therefore first wire)
+// This test ensures that the shadow dependency is respected, and that the shadow
+// dependency is properly handled when lifting the op
+
+func.func @test2() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+  %true = arith.constant true
+  %cst = arith.constant 1.000000e+00 : f32
+  %cst_0 = arith.constant 2.000000e+00 : f32
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+  %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %4 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %5 = cc.if(%4) -> f32 {
+    cc.continue %cst : f32
+  } else {
+    cc.continue %cst_0 : f32
+  }
+  %6 = cc.if(%true) ((%arg0 = %1)) -> !quake.wire {
+    %8 = quake.rx (%5) %arg0 : (f32, !quake.wire) -> !quake.wire
+    cc.continue %8 : !quake.wire
+  } else {
+    %8 = quake.rx (%5) %arg0 : (f32, !quake.wire) -> !quake.wire
+    cc.continue %8 : !quake.wire
+  }
+  %measOut_1, %wires_2 = quake.mz %6 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %7 = quake.discriminate %measOut_1 : (!quake.measure) -> i1
+  quake.sink %wires : !quake.wire
+  quake.sink %wires_2 : !quake.wire
+  return %7 : i1
+}
+
+// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+
+// CHECK-LABEL:   func.func @test2() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.x %[[VAL_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_3:.*]], %[[VAL_4:.*]] = quake.mz %[[VAL_2]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_3]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_6:.*]] = cc.if(%[[VAL_5]]) -> f32 {
+// CHECK:             %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f32
+// CHECK:             cc.continue %[[VAL_7]] : f32
+// CHECK:           } else {
+// CHECK:             %[[VAL_8:.*]] = arith.constant 2.000000e+00 : f32
+// CHECK:             cc.continue %[[VAL_8]] : f32
+// CHECK:           }
+// CHECK:           %[[VAL_9:.*]] = quake.rx (%[[VAL_10:.*]]) %[[VAL_4]] : (f32, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_11:.*]], %[[VAL_12:.*]] = quake.mz %[[VAL_9]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_13:.*]] = quake.discriminate %[[VAL_11]] : (!quake.measure) -> i1
+// CHECK:           quake.return_wire %[[VAL_12]] : !quake.wire
+// CHECK:           return %[[VAL_13]] : i1
+// CHECK:         }

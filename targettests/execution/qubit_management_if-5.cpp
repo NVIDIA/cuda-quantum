@@ -8,25 +8,28 @@
 
 #include <cudaq.h>
 
-// RUN: nvq++ --enable-mlir -fno-lower-to-cfg --opt-pass 'func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),canonicalize,cse,add-wireset,func.func(assign-wire-indices),dep-analysis,func.func(regtomem),symbol-dce'  %s -o %t && %t
-// XFAIL: *
+// RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
 
 struct run_test {
   __qpu__ auto operator()() {
     cudaq::qubit q;
 
-    h(q);
-    bool b = mz(q);
-    // Should be able to lift x(q) after
-    if (b) {
-      y(q);
+    bool res;
+    // Should not lift rx(i,p)
+    if (true) {
+      cudaq::qubit p;
       x(q);
+      res = mz(q);
+      auto i = (float)res;
+      rx(i, p);
     } else {
-      h(q);
-      x(q);
+      cudaq::qubit p;
+      y(q);
+      res = mz(q);
+      auto i = (float)res;
+      rx(i, p);
     }
 
-    bool res = mz(q);
     return res;
   }
 };
