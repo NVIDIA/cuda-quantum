@@ -52,7 +52,7 @@ module {
     cc.store %1, %2 : !cc.ptr<!cc.array<complex<f32> x 8>>
     %3 = cc.cast %2 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
     %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-    call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> () // Why is this getting removed?
+    call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
     return
   }
 

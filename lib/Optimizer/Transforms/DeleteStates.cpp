@@ -28,46 +28,6 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-// clang-format off
-/// Remove synthesized states from MLIR, or add a delete call.
-/// For example:
-///
-/// Before DeleteStates (delete-states):
-/// ```
-/// func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-///   %c8_i64 = arith.constant 8 : i64
-///   %0 = cc.address_of @function_test_state_param._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-///   %1 = cc.load %0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-///   %2 = cc.alloca !cc.array<complex<f32> x 8>
-///   cc.store %1, %2 : !cc.ptr<!cc.array<complex<f32> x 8>>
-
-///   %3 = cc.cast %2 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
-///   %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-///   %5 = call @__nvqpp_cudaq_state_numberOfQubits(%4) : (!cc.ptr<!cc.state>) -> i64
-///   %6 = quake.alloca !quake.veq<?>[%5 : i64]
-///   %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
-
-///   return
-/// }
-/// ```
-///
-/// After DeleteStates (delete-states):
-/// ```
-/// module {
-/// func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-///   %c8_i64 = arith.constant 8 : i64
-///   %0 = cc.address_of @function_test_state_param._Z16test_state_paramPN5cudaq5stateE.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-///   %1 = cc.load %0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-///   %2 = cc.alloca !cc.array<complex<f32> x 8>
-///   cc.store %1, %2 : !cc.ptr<!cc.array<complex<f32> x 8>>
-
-///   %3 = quake.alloca !quake.veq<3>
-///   %4 = quake.init_state %3, %2 : (!quake.veq<3>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<3>
-///   return
-/// }
-/// ```
-// clang-format on
-
 namespace {
 
 static bool isCall(Operation *callOp, std::vector<const char *> &&names) {
@@ -84,8 +44,8 @@ static bool isCall(Operation *callOp, std::vector<const char *> &&names) {
 }
 
 static bool isCreateStateCall(Operation *callOp) {
-  return isCall(callOp, {cudaq::createCudaqStateFromData64,
-                         cudaq::createCudaqStateFromData32});
+  return isCall(callOp, {cudaq::createCudaqStateFromDataFP64,
+                         cudaq::createCudaqStateFromDataFP32});
 }
 
 static bool isNumberOfQubitsCall(Operation *callOp) {
@@ -110,17 +70,17 @@ static std::size_t getStateSize(Operation *callOp) {
 }
 
 // clang-format off
-// Remove `__nvqpp_cudaq_state_numberOfQubits` calls.
-// ```
-// %1 = arith.constant 8 : i64
-// %2 = call @__nvqpp_cudaq_state_createFromData_fp32(%0, %1) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-// %3 = call @__nvqpp_cudaq_state_numberOfQubits(%2) : (!cc.ptr<!cc.state>) -> i64
-// ...
-// ───────────────────────────────────────────
-// %1 = arith.constant 8 : i64
-// %2 = call @__nvqpp_cudaq_state_createFromData_fp32(%0, %1) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-// %5 = arith.constant 3 : i64
-// ```
+/// Remove `__nvqpp_cudaq_state_numberOfQubits` calls.
+/// ```
+/// %1 = arith.constant 8 : i64
+/// %2 = call @__nvqpp_cudaq_state_createFromData_fp32(%0, %1) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %3 = call @__nvqpp_cudaq_state_numberOfQubits(%2) : (!cc.ptr<!cc.state>) -> i64
+/// ...
+/// ───────────────────────────────────────────
+/// %1 = arith.constant 8 : i64
+/// %2 = call @__nvqpp_cudaq_state_createFromData_fp32(%0, %1) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %5 = arith.constant 3 : i64
+/// ```
 // clang-format on
 class NumberOfQubitsPattern : public OpRewritePattern<func::CallOp> {
 public:
@@ -142,18 +102,18 @@ public:
 };
 
 // clang-format off
-// Replace calls to `__nvqpp_cudaq_state_numberOfQubits` by a constant.
-// ```
-// %2 = cc.cast %1 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
-// %3 = call @__nvqpp_cudaq_state_createFromData_fp32(%2, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-// %4 = quake.alloca !quake.veq<?>[%0 : i64]
-// %5 = quake.init_state %4, %3 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
-// ───────────────────────────────────────────
-// ...
-// %3 = call @__nvqpp_cudaq_state_createFromData_fp32(%2, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-// %4 = quake.alloca !quake.veq<?>[%0 : i64]
-// %5 = quake.init_state %4, %1 : (!quake.veq<?>, !cc.ptr<!cc.array<complex<f32> x 8>>) -> !quake.veq<?>
-// ```
+/// Replace calls to `__nvqpp_cudaq_state_numberOfQubits` by a constant.
+/// ```
+/// %2 = cc.cast %1 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
+/// %3 = call @__nvqpp_cudaq_state_createFromData_fp32(%2, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %4 = quake.alloca !quake.veq<?>[%0 : i64]
+/// %5 = quake.init_state %4, %3 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+/// ───────────────────────────────────────────
+/// ...
+/// %3 = call @__nvqpp_cudaq_state_createFromData_fp32(%2, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %4 = quake.alloca !quake.veq<?>[%0 : i64]
+/// %5 = quake.init_state %4, %1 : (!quake.veq<?>, !cc.ptr<!cc.array<complex<f32> x 8>>) -> !quake.veq<?>
+/// ```
 // clang-format on
 class StateToDataPattern : public OpRewritePattern<quake::InitializeStateOp> {
 public:

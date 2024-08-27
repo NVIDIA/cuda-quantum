@@ -673,8 +673,65 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   let summary =
     "Remove unnecessary creation of new states from data";
   let description = [{
-    - Replace state by its data if possible
-    - Add state deletion in before exit if not possible to remove a new state
+    Argument synthesis for state pointers for remote simulation substitutes state
+    argument by a new state created from materialized data. The new state is not
+    always necessary, and is not deleted from the heap. This pass:
+
+    - Replaces state by its data if possible
+    - Adds delete calls before exits if not possible to replace a new state
+
+    For example, the new state is replaced by its data if only used in `quake.init_state`
+    instruction:
+
+    Before DeleteStates (delete-states):
+    ```
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      %c8_i64 = arith.constant 8 : i64
+      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+      %3 = cc.cast %0 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
+      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+      %5 = call @__nvqpp_cudaq_state_numberOfQubits(%4) : (!cc.ptr<!cc.state>) -> i64
+      %6 = quake.alloca !quake.veq<?>[%5 : i64]
+      %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+
+      return
+    }
+    ```
+
+    After DeleteStates (delete-states):
+    ```
+    module {
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      %c8_i64 = arith.constant 8 : i64
+      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+      %3 = quake.alloca !quake.veq<3>
+      %4 = quake.init_state %3, %0 : (!quake.veq<3>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<3>
+      return
+    }
+    ```
+
+    Otherwise, if state is used in another instructions and cannot be easily
+    replaced, the new state is deleted before exits:
+
+    Before DeleteStates (delete-states):
+    ```  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      ...
+      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
+      return
+    }
+    ```
+
+    After DeleteStates (delete-states):
+    ```
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      ...
+      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
+      call @__nvqpp_cudaq_state_delete(%4) : (!cc.ptr<!cc.state>) -> ()
+      return
+    }
+    ```
   }];
 }
 

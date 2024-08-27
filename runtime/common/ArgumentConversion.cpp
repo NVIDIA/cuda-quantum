@@ -133,8 +133,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto conArr = is64Bit ? genConArray.template operator()<double>()
                           : genConArray.template operator()<float>();
 
-    auto createState = is64Bit ? cudaq::createCudaqStateFromData64
-                               : cudaq::createCudaqStateFromData32;
+    auto createState = is64Bit ? cudaq::createCudaqStateFromDataFP64
+                               : cudaq::createCudaqStateFromDataFP32;
     auto result = irBuilder.loadIntrinsic(substMod, createState);
     assert(succeeded(result) && "loading intrinsic should never fail");
 

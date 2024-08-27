@@ -241,10 +241,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %9 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
-    {cudaq::createCudaqStateFromData32, {}, R"#(
+    {cudaq::createCudaqStateFromDataFP32, {}, R"#(
   func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
   )#"},
-    {cudaq::createCudaqStateFromData64, {}, R"#(
+    {cudaq::createCudaqStateFromDataFP64, {}, R"#(
   func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
   )#"},
 
