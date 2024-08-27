@@ -155,6 +155,9 @@ function show_help {
 --execution-manager=<mgr> | -em=<mgr> | -execution-manager=<mgr>
 	Set the execution manager to <mgr>.
 
+--disable-mlir-links
+    Disable linking to cudaq-mlir-runtime and cudaq-builder. 
+
 --target=<target> | -target=<target>
 	Set the Target name to <target>.
 
@@ -297,7 +300,7 @@ LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
 LLVM_QUANTUM_TARGET="qir"
 LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
-LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin"
+LINKLIBS="-lcudaq -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin"
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
@@ -333,6 +336,7 @@ ENABLE_AGGRESSIVE_EARLY_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
+ENABLE_MLIR_LIB_LINKING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -447,6 +451,9 @@ while [ $# -ne 0 ]; do
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
+		;;
+	--disable-mlir-links | -disable-mlir-links)
+	    ENABLE_MLIR_LIB_LINKING=false 
 		;;
 	# This is intentionally not included in the "show_help" documentation
 	# because it may change in the future.
@@ -649,6 +656,11 @@ fi
 
 # Configure the NVQIR link line if this is in refactored mode
 NVQIR_LIBS="${NVQIR_LIBS}${NVQIR_SIMULATION_BACKEND}"
+
+# Add the MLIR-related libraries if requested. 
+if ${ENABLE_MLIR_LIB_LINKING}; then 
+    LINKLIBS="${LINKLIBS} -lcudaq-mlir-runtime -lcudaq-builder"
+fi
 
 # Set the execution manager and the platform
 LINKLIBS="${LINKLIBS} -lcudaq-em-${LIBRARY_MODE_EXECUTION_MANAGER}"

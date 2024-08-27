@@ -380,26 +380,28 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
     for (auto ty : ifOp.getResultTypes())
       if (ty != wireTy)
         newIfTy.push_back(ty);
+    auto origThenArgs = ifOp.getThenRegion().front().getArguments();
+    auto origElseArgs = ifOp.getElseRegion().front().getArguments();
     auto newIf = rewriter.create<cudaq::cc::IfOp>(
         ifOp.getLoc(), newIfTy, ifOp.getCondition(),
         [&](OpBuilder &, Location, Region &region) {
-          rewriter.cloneRegionBefore(ifOp.getThenRegion(), region,
-                                     region.end());
+          rewriter.inlineRegionBefore(ifOp.getThenRegion(), region,
+                                      region.end());
         },
         [&](OpBuilder &, Location, Region &region) {
-          rewriter.cloneRegionBefore(ifOp.getElseRegion(), region,
-                                     region.end());
+          rewriter.inlineRegionBefore(ifOp.getElseRegion(), region,
+                                      region.end());
         });
 
     // Erase entry block arguments and prune the cc.continue operations.
-    auto replaceArgsContinues = [&](Region &region, Region &origRegion) {
+    auto replaceArgsContinues = [&](Region &region,
+                                    MutableArrayRef<BlockArgument> origArgs) {
       auto &entry = region.front();
       const unsigned count = entry.getNumArguments();
       {
         OpBuilder builder(ctx);
         builder.setInsertionPointToStart(&entry);
-        for (auto [arg, from] : llvm::zip(entry.getArguments(),
-                                          origRegion.front().getArguments())) {
+        for (auto [arg, from] : llvm::zip(entry.getArguments(), origArgs)) {
           auto id = analysis.idFromValue(from);
           assert(id);
           auto unwrap = builder.create<quake::UnwrapOp>(ifOp.getLoc(), wireTy,
@@ -420,8 +422,8 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
             rewriter.eraseOp(cont);
           }
     };
-    replaceArgsContinues(newIf.getThenRegion(), ifOp.getThenRegion());
-    replaceArgsContinues(newIf.getElseRegion(), ifOp.getElseRegion());
+    replaceArgsContinues(newIf.getThenRegion(), origThenArgs);
+    replaceArgsContinues(newIf.getElseRegion(), origElseArgs);
 
     // Replace any original uses with uses of a mix of the new if op's values
     // (if not type wire) or quake.unwrap operations (only if type wire).
