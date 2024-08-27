@@ -211,12 +211,8 @@ TEST(SpinOpTester, checkMultiplication) {
   tmp2.dump();
 
   EXPECT_EQ(2, tmp2.num_terms());
-<<<<<<< HEAD
-  expected = 13 * i(0) * i(1) * i(2) * i(3) + 12 * z(0) * z(1) * z(2) * z(3);
-=======
   expected =
       13 * i(0) * i(1) * i(2) * i(3) + 12 * z(0) * z(1) * z(2) * z(3);
->>>>>>> 9d04ea516 (* Adding a condition to skip 0 coefficient terms in mult operator)
   EXPECT_EQ(expected, tmp2);
 }
 
