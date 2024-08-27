@@ -158,15 +158,19 @@ def test_incorrect_matrix():
 
     with pytest.raises(RuntimeError) as error:
         cudaq.register_operation("foo", [])
-    assert "empty matrix" in repr(error)
+    assert "invalid matrix size" in repr(error)
 
     with pytest.raises(RuntimeError) as error:
         cudaq.register_operation("bar", [1, 0])
     assert "invalid matrix size" in repr(error)
 
     with pytest.raises(RuntimeError) as error:
-        cudaq.register_operation("invalid_op",
-                                 np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]))
+        cudaq.register_operation("baz", np.array([[1, 0, 0, 0], [1, 0, 0, 1]]))
+    assert "invalid matrix size" in repr(error)
+
+    with pytest.raises(RuntimeError) as error:
+        cudaq.register_operation("qux",
+                                 np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
     assert "invalid matrix size" in repr(error)
 
 

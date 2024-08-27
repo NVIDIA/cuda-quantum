@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from functools import partialmethod
+import math
 import numpy as np
 from typing import Callable, List
 
@@ -45,10 +46,9 @@ def register_operation(operation_name: str, unitary):
 
     matrix = matrix.flatten()
 
-    # Size must be a power of 2; at least 4 for 1-qubit operation
-    if matrix.size == 0:
-        raise RuntimeError("empty matrix provided.")
-    if matrix.size < 4 or (matrix.size & (matrix.size - 1)) != 0:
+    # Size must be a perfect square and power of 2; at least 4 for 1-qubit operation
+    if matrix.size < 4 or (matrix.size & (matrix.size - 1)) != 0 or (math.isqrt(
+            matrix.size)**2) != matrix.size:
         raise RuntimeError(
             "invalid matrix size, required 2^N * 2^N for N-qubit operation.")
 
