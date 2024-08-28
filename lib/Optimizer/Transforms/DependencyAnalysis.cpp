@@ -1259,15 +1259,9 @@ public:
 
     for (auto node : nodes)
       // ArgDependencyNodes are handled by the block and skipped here.
-      // ShadowDependencyNodes are deleted here currently
-      // TODO: arithmetic constants may belong to multiple graphs, in which case
-      // they'd be deleted multiple times. A relatively simple fix would be to
-      // remove successors for classical values as we delete their successors,
-      // and only delete the values themselves once they have no successors (or
-      // all their successors are part of this graph) Actually, a similar
-      // situation will occur for ShadowDependencyNodes, which are shared
-      // between the then and else blocks. A similar approach could be used with
-      // them.
+      // ShadowDependencyNodes are deleted here. This is safe, because
+      // a new ShadowDependencyNode is created for each use of a
+      // ShadowDependency (which may be undesirable eventually).
       if (!node->isLeaf() || !node->isQuantumDependent() || node->isAlloc())
         delete node;
   }
@@ -2046,6 +2040,10 @@ public:
   /// inside the `if`.
   ///
   /// Works outside-in, to contract as tightly as possible.
+  // TODO: pass unique counter to use to generate unique qids when
+  //       splitting wires per inner block, see
+  //       targettests/execution/qubit_management_bug_qids.cpp for
+  //       an example of how the current approach fails.
   void contractAllocsPass() {
     // Look for contract-able allocations in this block
     for (auto alloc : getVirtualAllocs()) {
@@ -2070,6 +2068,9 @@ public:
   /// Moves an alloc/de-alloc pair for the virtual wire \p qid into this block,
   /// Replacing the existing block argument and terminator dependencies for the
   /// wire.
+  // TODO: should probably take a new qid in addition to the old qid, so that
+  //       the qid can be changed when splitting so uniqueness of qids can be
+  //       maintained
   void lowerAlloc(DependencyNode *init, DependencyNode *root, VirtualQID qid) {
     // No need to clean up existing terminator (hopefully)
     graph->replaceLeafAndRoot(qid, init, root);
@@ -2172,6 +2173,9 @@ protected:
     if (!then_use || !else_use)
       return false;
 
+    // TODO: probably shouldn't try lifting containers
+    // see targettests/execution/qubit_management_bug_lifting_ifs.cpp
+
     if (then_use->prefixEquivalentTo(else_use)) {
       // If two nodes are equivalent, all their dependencies will be too,
       // but we can't lift them until all their dependencies have been lifted,
@@ -2201,6 +2205,9 @@ protected:
 
     if (!then_use || !else_use)
       return false;
+
+    // TODO: probably shouldn't try lifting containers
+    // see targettests/execution/qubit_management_bug_lifting_ifs.cpp
 
     if (then_use->postfixEquivalentTo(else_use)) {
       // If two nodes are equivalent, all their successors should be too
@@ -2707,8 +2714,10 @@ public:
     successors.remove(root);
     auto alloc = static_cast<InitDependencyNode *>(init);
     auto alloc_copy = new InitDependencyNode(*alloc);
-    auto sink = static_cast<RootDependencyNode *>(root);
-    auto sink_copy = new RootDependencyNode(*sink);
+    auto dealloc = static_cast<RootDependencyNode *>(root);
+    auto dealloc_copy = new RootDependencyNode(*dealloc);
+    // TODO: alloc_copy and dealloc_copy should be given a new unique QID
+    //       This should be updated in the else branch as well after lowering
     size_t offset = getDependencyForQID(qid).value();
     associated->eraseOperand(offset);
 
@@ -2718,7 +2727,7 @@ public:
 
     dependencies.erase(dependencies.begin() + offset);
     then_block->lowerAlloc(alloc, root, qid);
-    else_block->lowerAlloc(alloc_copy, sink_copy, qid);
+    else_block->lowerAlloc(alloc_copy, dealloc_copy, qid);
 
     // Since we're removing a result, update the result indices of successors
     for (auto successor : successors)
