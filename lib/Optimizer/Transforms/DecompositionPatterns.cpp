@@ -40,14 +40,11 @@ inline Value createDivF(Location loc, Value numerator, double denominator,
   return rewriter.create<arith::DivFOp>(loc, numerator, denominatorValue);
 }
 
-inline bool isAllWires(quake::OperatorInterface op) {
-  for (auto c : op.getControls())
-    if (!c.getType().isa<quake::WireType>())
-      return false;
-  for (auto t : op.getTargets())
-    if (!t.getType().isa<quake::WireType>())
-      return false;
-  return true;
+/// @brief Returns true if \p op contains any `ControlType` operands.
+inline bool containsControlTypes(quake::OperatorInterface op) {
+  return llvm::any_of(op.getControls(), [](const Value &v) {
+    return v.getType().isa<quake::ControlType>();
+  });
 }
 
 /// @brief This is a wrapper class for `PatternRewriter::create<>()` for
@@ -62,10 +59,9 @@ public:
   /// Construct a resultType (suitable to be pass into the `TypeRange wires`
   /// builder for cases when you have one input ValueRange.
   SmallVector<Type> getResultType(ValueRange operands) {
-    std::size_t numOutputWires =
-        std::count_if(operands.begin(), operands.end(), [](const Value &v) {
-          return v.getType().isa<quake::WireType>();
-        });
+    std::size_t numOutputWires = llvm::count_if(operands, [](const Value &v) {
+      return v.getType().isa<quake::WireType>();
+    });
 
     return SmallVector<Type>(numOutputWires,
                              quake::WireType::get(rewriter.getContext()));
@@ -75,15 +71,42 @@ public:
   /// builder for cases when you have two input ValueRanges.
   SmallVector<Type> getResultType(ValueRange operands1, ValueRange operands2) {
     std::size_t numOutputWires =
-        std::count_if(
-            operands1.begin(), operands1.end(),
+        llvm::count_if(
+            operands1,
             [](const Value &v) { return v.getType().isa<quake::WireType>(); }) +
-        std::count_if(operands2.begin(), operands2.end(), [](const Value &v) {
+        llvm::count_if(operands2, [](const Value &v) {
           return v.getType().isa<quake::WireType>();
         });
 
     return SmallVector<Type>(numOutputWires,
                              quake::WireType::get(rewriter.getContext()));
+  }
+
+  /// Pluck out the values from \p newValues whose type is `WireType` and
+  /// replace all the \p op uses with those values.
+  void selectWiresAndReplaceUses(Operation *op, ValueRange newValues) {
+    SmallVector<Value, 4> newWireValues;
+    for (const auto &v : newValues)
+      if (v.getType().isa<quake::WireType>())
+        newWireValues.push_back(v);
+    assert(op->getResults().size() == newWireValues.size() &&
+           "incorrect number of output wires provided");
+    op->replaceAllUsesWith(newWireValues);
+  }
+
+  /// Pluck out the values from \p controls and \p target whose type is
+  /// `WireType` and replace all the \p op uses with those values.
+  void selectWiresAndReplaceUses(Operation *op, ValueRange controls,
+                                 Value target) {
+    SmallVector<Value, 4> newWireValues;
+    for (const auto &v : controls)
+      if (v.getType().isa<quake::WireType>())
+        newWireValues.push_back(v);
+    if (target.getType().isa<quake::WireType>())
+      newWireValues.push_back(target);
+    assert(op->getResults().size() == newWireValues.size() &&
+           "incorrect number of output wires provided");
+    op->replaceAllUsesWith(newWireValues);
   }
 
   template <typename OpTy>
@@ -277,9 +300,6 @@ struct HToPhasedRx : public OpRewritePattern<quake::HOp> {
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
 
     // Op info
     Location loc = op->getLoc();
@@ -298,9 +318,7 @@ struct HToPhasedRx : public OpRewritePattern<quake::HOp> {
     parameters[1] = zero;
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -418,10 +436,6 @@ struct SwapToCX : public OpRewritePattern<quake::SwapOp> {
 
   LogicalResult matchAndRewrite(quake::SwapOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
-
     // Op info
     Location loc = op->getLoc();
     Value a = op.getTarget(0);
@@ -432,9 +446,7 @@ struct SwapToCX : public OpRewritePattern<quake::SwapOp> {
     qRewriter.create<quake::XOp>(loc, a, b);
     qRewriter.create<quake::XOp>(loc, b, a);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{a, b});
-
+    qRewriter.selectWiresAndReplaceUses(op, ValueRange{a, b});
     rewriter.eraseOp(op);
     return success();
   }
@@ -456,9 +468,6 @@ struct CHToCX : public OpRewritePattern<quake::HOp> {
 
   LogicalResult matchAndRewrite(quake::HOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
     if (failed(checkNumControls(op, 1)))
       return failure();
 
@@ -476,9 +485,7 @@ struct CHToCX : public OpRewritePattern<quake::HOp> {
     qRewriter.create<quake::HOp>(loc, target);
     qRewriter.create<quake::SOp>(loc, /*isAdj=*/true, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{control, target});
-
+    qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
     return success();
   }
@@ -501,9 +508,6 @@ struct SToPhasedRx : public OpRewritePattern<quake::SOp> {
   LogicalResult matchAndRewrite(quake::SOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
-      return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
       return failure();
 
     // Op info
@@ -528,9 +532,7 @@ struct SToPhasedRx : public OpRewritePattern<quake::SOp> {
     parameters[1] = zero;
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -549,10 +551,6 @@ struct SToR1 : public OpRewritePattern<quake::SOp> {
 
   LogicalResult matchAndRewrite(quake::SOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
-
     // Op info
     auto loc = op->getLoc();
     auto angle = createConstant(loc, op.isAdj() ? -M_PI_2 : M_PI_2,
@@ -563,11 +561,7 @@ struct SToR1 : public OpRewritePattern<quake::SOp> {
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::R1Op>(loc, angle, controls, target);
 
-    if (allWires) {
-      op.getResults().drop_back().replaceAllUsesWith(controls);
-      op.getResults().back().replaceAllUsesWith(target);
-    }
-
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -590,9 +584,6 @@ struct TToPhasedRx : public OpRewritePattern<quake::TOp> {
   LogicalResult matchAndRewrite(quake::TOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
-      return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
       return failure();
 
     // Op info
@@ -618,9 +609,7 @@ struct TToPhasedRx : public OpRewritePattern<quake::TOp> {
     parameters[1] = zero;
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -639,10 +628,6 @@ struct TToR1 : public OpRewritePattern<quake::TOp> {
 
   LogicalResult matchAndRewrite(quake::TOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
-
     // Op info
     auto loc = op->getLoc();
     auto angle = createConstant(loc, op.isAdj() ? -M_PI_4 : M_PI_4,
@@ -652,11 +637,7 @@ struct TToR1 : public OpRewritePattern<quake::TOp> {
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::R1Op>(loc, angle, controls, target);
 
-    if (allWires) {
-      op.getResults().drop_back().replaceAllUsesWith(controls);
-      op.getResults().back().replaceAllUsesWith(target);
-    }
-
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -678,10 +659,11 @@ struct CXToCZ : public OpRewritePattern<quake::XOp> {
 
   LogicalResult matchAndRewrite(quake::XOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
     if (failed(checkNumControls(op, 1)))
+      return failure();
+    // This decomposition does not support `quake.control` types because the
+    // input controls are used as targets during this transformation.
+    if (containsControlTypes(op))
       return failure();
 
     // Op info
@@ -702,11 +684,7 @@ struct CXToCZ : public OpRewritePattern<quake::XOp> {
       qRewriter.create<quake::XOp>(loc, controls);
     qRewriter.create<quake::HOp>(loc, target);
 
-    if (allWires) {
-      op.getResults().drop_back().replaceAllUsesWith(controls);
-      op.getResults().back().replaceAllUsesWith(target);
-    }
-
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -724,9 +702,6 @@ struct CCXToCCZ : public OpRewritePattern<quake::XOp> {
 
   LogicalResult matchAndRewrite(quake::XOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
     if (failed(checkNumControls(op, 2)))
       return failure();
 
@@ -741,11 +716,7 @@ struct CCXToCCZ : public OpRewritePattern<quake::XOp> {
     zOp.setNegatedQubitControls(op.getNegatedQubitControls());
     qRewriter.create<quake::HOp>(loc, target);
 
-    if (allWires) {
-      op.getResults().drop_back().replaceAllUsesWith(controls);
-      op.getResults().back().replaceAllUsesWith(target);
-    }
-
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -763,9 +734,6 @@ struct XToPhasedRx : public OpRewritePattern<quake::XOp> {
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
 
     // Op info
     Location loc = op->getLoc();
@@ -780,9 +748,7 @@ struct XToPhasedRx : public OpRewritePattern<quake::XOp> {
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -804,9 +770,6 @@ struct YToPhasedRx : public OpRewritePattern<quake::YOp> {
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
 
     // Op info
     Location loc = op->getLoc();
@@ -822,9 +785,7 @@ struct YToPhasedRx : public OpRewritePattern<quake::YOp> {
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -852,8 +813,9 @@ struct CCZToCX : public OpRewritePattern<quake::ZOp> {
 
   LogicalResult matchAndRewrite(quake::ZOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
+    // This decomposition does not support `quake.control` types because the
+    // input controls are used as targets during this transformation.
+    if (containsControlTypes(op))
       return failure();
 
     SmallVector<Value, 2> controls(2);
@@ -898,11 +860,7 @@ struct CCZToCX : public OpRewritePattern<quake::ZOp> {
 
     qRewriter.create<quake::TOp>(loc, /*isAdj=*/negC1, controls[0]);
 
-    if (allWires) {
-      op.getResults().drop_back().replaceAllUsesWith(controls);
-      op.getResults().back().replaceAllUsesWith(target);
-    }
-
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -920,8 +878,9 @@ struct CZToCX : public OpRewritePattern<quake::ZOp> {
 
   LogicalResult matchAndRewrite(quake::ZOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
+    // This decomposition does not support `quake.control` types because the
+    // input controls are used as targets during this transformation.
+    if (containsControlTypes(op))
       return failure();
     if (failed(checkNumControls(op, 1)))
       return failure();
@@ -944,11 +903,7 @@ struct CZToCX : public OpRewritePattern<quake::ZOp> {
       qRewriter.create<quake::XOp>(loc, controls);
     qRewriter.create<quake::HOp>(loc, target);
 
-    if (allWires) {
-      op.getResults().drop_back().replaceAllUsesWith(controls);
-      op.getResults().back().replaceAllUsesWith(target);
-    }
-
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -967,9 +922,6 @@ struct ZToPhasedRx : public OpRewritePattern<quake::ZOp> {
   LogicalResult matchAndRewrite(quake::ZOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
-      return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
       return failure();
 
     // Op info
@@ -993,9 +945,7 @@ struct ZToPhasedRx : public OpRewritePattern<quake::ZOp> {
     parameters[1] = zero;
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -1019,8 +969,7 @@ struct CR1ToCX : public OpRewritePattern<quake::R1Op> {
 
   LogicalResult matchAndRewrite(quake::R1Op op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
+    if (containsControlTypes(op))
       return failure();
 
     Value control;
@@ -1053,9 +1002,7 @@ struct CR1ToCX : public OpRewritePattern<quake::R1Op> {
     qRewriter.create<quake::XOp>(loc, control, target);
     qRewriter.create<quake::R1Op>(loc, halfAngle, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{control, target});
-
+    qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
     return success();
   }
@@ -1074,9 +1021,6 @@ struct R1ToPhasedRx : public OpRewritePattern<quake::R1Op> {
   LogicalResult matchAndRewrite(quake::R1Op op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
-      return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
       return failure();
 
     // Op info
@@ -1104,9 +1048,7 @@ struct R1ToPhasedRx : public OpRewritePattern<quake::R1Op> {
     parameters[1] = zero;
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -1131,10 +1073,6 @@ struct CRxToCX : public OpRewritePattern<quake::RxOp> {
 
   LogicalResult matchAndRewrite(quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
-
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
       return failure();
@@ -1169,9 +1107,7 @@ struct CRxToCX : public OpRewritePattern<quake::RxOp> {
     qRewriter.create<quake::RzOp>(loc, /*isAdj*/ negControl, negPI_2,
                                   noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{control, target});
-
+    qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
     return success();
   }
@@ -1188,9 +1124,6 @@ struct RxToPhasedRx : public OpRewritePattern<quake::RxOp> {
   LogicalResult matchAndRewrite(quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
-      return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
       return failure();
 
     // Op info
@@ -1209,9 +1142,7 @@ struct RxToPhasedRx : public OpRewritePattern<quake::RxOp> {
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -1234,10 +1165,6 @@ struct CRyToCX : public OpRewritePattern<quake::RyOp> {
 
   LogicalResult matchAndRewrite(quake::RyOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
-
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
       return failure();
@@ -1266,9 +1193,7 @@ struct CRyToCX : public OpRewritePattern<quake::RyOp> {
                                   noControls, target);
     qRewriter.create<quake::XOp>(loc, control, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{control, target});
-
+    qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
     return success();
   }
@@ -1285,9 +1210,6 @@ struct RyToPhasedRx : public OpRewritePattern<quake::RyOp> {
   LogicalResult matchAndRewrite(quake::RyOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
-      return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
       return failure();
 
     // Op info
@@ -1306,9 +1228,7 @@ struct RyToPhasedRx : public OpRewritePattern<quake::RyOp> {
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.getResults().replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -1331,10 +1251,6 @@ struct CRzToCX : public OpRewritePattern<quake::RzOp> {
 
   LogicalResult matchAndRewrite(quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
-
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
       return failure();
@@ -1363,9 +1279,7 @@ struct CRzToCX : public OpRewritePattern<quake::RzOp> {
                                   noControls, target);
     qRewriter.create<quake::XOp>(loc, control, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{control, target});
-
+    qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
     return success();
   }
@@ -1384,9 +1298,6 @@ struct RzToPhasedRx : public OpRewritePattern<quake::RzOp> {
   LogicalResult matchAndRewrite(quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
-      return failure();
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
       return failure();
 
     // Op info
@@ -1414,9 +1325,7 @@ struct RzToPhasedRx : public OpRewritePattern<quake::RzOp> {
     parameters[1] = zero;
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
-    if (allWires)
-      op.replaceAllUsesWith(ValueRange{target});
-
+    qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -1440,10 +1349,6 @@ struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
 
   LogicalResult matchAndRewrite(quake::U3Op op,
                                 PatternRewriter &rewriter) const override {
-    const bool allWires = isAllWires(op);
-    if (!quake::isAllReferences(op) && !allWires)
-      return failure();
-
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
@@ -1470,11 +1375,7 @@ struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
     qRewriter.create<quake::RxOp>(loc, negPi_2, controls, target);
     qRewriter.create<quake::RzOp>(loc, phi, controls, target);
 
-    if (allWires) {
-      op.getResults().drop_back().replaceAllUsesWith(controls);
-      op.getResults().back().replaceAllUsesWith(target);
-    }
-
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
