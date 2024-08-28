@@ -56,9 +56,8 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
   return details::future(ids, name, config);
 }
 
-cudaq::orca::details::Orcafuture
-Executor::execute(cudaq::orca::TBIParameters params,
-                  const std::string &kernelName) {
+details::future Executor::execute(cudaq::orca::TBIParameters params,
+                                  const std::string &kernelName) {
 
   serverHelper->setShots(shots);
 
@@ -71,8 +70,7 @@ Executor::execute(cudaq::orca::TBIParameters params,
   auto job = jobs[0];
   auto config = serverHelper->getConfig();
 
-  std::vector<cudaq::orca::details::Orcafuture::Job> ids;
-  // for (std::size_t i = 0; auto &job : jobs) {
+  std::vector<cudaq::details::future::Job> ids;
   cudaq::info("Job created, posting to {}", jobPostPath);
 
   // Post it, get the response
@@ -89,14 +87,8 @@ Executor::execute(cudaq::orca::TBIParameters params,
   ids.emplace_back(job_id, kernelName);
   config["output_names." + job_id] = kernelName;
 
-  // nlohmann::json jReorder = codesToExecute[i].mapping_reorder_idx;
-  // config["reorderIdx." + task_id] = jReorder.dump();
-
-  // i++;
-  // }
-
   config.insert({"shots", std::to_string(shots)});
   std::string name = serverHelper->name();
-  return cudaq::orca::details::Orcafuture(ids, name, config);
+  return cudaq::details::future(ids, name, config);
 }
 } // namespace cudaq

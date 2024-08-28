@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "OrcaRemoteRESTQPU.h"
-#include "OrcaFuture.h"
 #include "common/Logger.h"
 #include "llvm/Support/Base64.h"
 
@@ -76,12 +75,12 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
 
   executionContext->shots = shots;
 
-  cudaq::orca::details::Orcafuture future;
+  cudaq::details::future future;
   future = executor->execute(params, kernelName);
 
   // Keep this asynchronous if requested
   if (executionContext->asyncExec) {
-    executionContext->orcaFutureResult = future;
+    executionContext->futureResult = future;
     return;
   }
 
@@ -90,5 +89,4 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
 }
 
 } // namespace cudaq
-// LLVM_INSTANTIATE_REGISTRY(cudaq::orca::OrcaRemoteRESTQPU::RegistryType)
 CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::OrcaRemoteRESTQPU, orca)

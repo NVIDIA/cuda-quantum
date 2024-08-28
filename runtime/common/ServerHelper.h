@@ -102,17 +102,7 @@ public:
   /// @brief Given a vector of compiled quantum codes for submission
   /// create and return the Job payload that is compatible with this server.
   virtual ServerJobPayload
-  createJob(std::vector<KernelExecution> &circuitCodes) {
-    std::vector<ServerMessage> jobs;
-    ServerMessage job;
-    jobs.push_back(job);
-
-    std::map<std::string, std::string> headers;
-
-    // Return a tuple containing the job path, headers, and the job message
-    auto ret = std::make_tuple("", headers, jobs);
-    return ret;
-  };
+  createJob(std::vector<KernelExecution> &circuitCodes) = 0;
 
   /// @brief Create a job payload for the provided TBI parameters
   virtual ServerJobPayload createJob(cudaq::orca::TBIParameters params) {

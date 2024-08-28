@@ -57,8 +57,18 @@ public:
   ServerJobPayload createJob(cudaq::orca::TBIParameters params) override;
 
   // // /// @brief Create a job payload for the provided quantum codes
-  // ServerJobPayload
-  // createJob(std::vector<KernelExecution> &circuitCodes) override;
+  ServerJobPayload
+  createJob(std::vector<KernelExecution> &circuitCodes) override {
+    std::vector<ServerMessage> jobs;
+    ServerMessage job;
+    jobs.push_back(job);
+
+    std::map<std::string, std::string> headers;
+
+    // Return a tuple containing the job path, headers, and the job message
+    auto ret = std::make_tuple("", headers, jobs);
+    return ret;
+  };
 
   /// @brief Return the job id from the previous job post
   std::string extractJobId(ServerMessage &postResponse) override;
