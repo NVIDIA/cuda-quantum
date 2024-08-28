@@ -1366,7 +1366,9 @@ public:
           continue;
         }
         Value temp;
-        if (cudaq::opt::factory::structUsesTwoArguments(
+        if (cudaq::opt::factory::isX86_64(
+                hostFunc->getParentOfType<ModuleOp>()) &&
+            cudaq::opt::factory::structUsesTwoArguments(
                 devFuncTy.getInput(j))) {
           temp =
               builder.create<cudaq::cc::AllocaOp>(loc, devFuncTy.getInput(j));
