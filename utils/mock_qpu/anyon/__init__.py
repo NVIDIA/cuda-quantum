@@ -60,7 +60,7 @@ async def login(token: Union[str, None] = Header(alias="Authorization",
                                                  default=None)):
     if 'token' == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
-    return {"id-token": "hello", "refresh-token": "refreshToken"}
+    return {"id_token": "hello", "refresh_token": "refreshToken"}
 
 
 # Here we expose a way to post jobs,
@@ -112,7 +112,7 @@ async def postJob(job: Job,
     engine.remove_module(m)
 
     # Job "created", return the id
-    return {"job_token": newId}
+    return ({"job_token": newId},201)
 
 
 # Retrieve the job, simulate having to wait by counting to 3
@@ -124,7 +124,7 @@ async def getJob(jobId: str):
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
         countJobGetRequests += 1
-        return {"status": "running"}
+        return ({"status": "executing"}, 201)
 
     countJobGetRequests = 0
     name, counts = createdJobs[jobId]
@@ -135,7 +135,7 @@ async def getJob(jobId: str):
     # The simulators don't implement result recording features yet, so we have
     # to mark these results specially (MOCK_SERVER_RESULTS) in order to allow
     # downstream code to recognize that this isn't from a true Quantinuum QPU.
-    res = {"status": "completed", "results": {"MOCK_SERVER_RESULTS": retData}}
+    res = ({"status": "done", "results": {"MOCK_SERVER_RESULTS": retData}},201)
     return res
 
 
@@ -146,4 +146,5 @@ def startServer(port):
 
 if __name__ == '__main__':
     print("Server Starting")
-    startServer(62440)
+    startServer(5000)
+    #startServer(62440)

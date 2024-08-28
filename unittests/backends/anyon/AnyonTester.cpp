@@ -14,8 +14,13 @@
 #include <regex>
 
 std::string mockPort = "5000";
+// Uncomment this and connect to Anyon REST Server with authentication. You may need to change the "host.docker.internal" into anyon's server url
+// std::string backendStringTemplate =
+//     "anyon;emulate;false;url;http://host.docker.internal:{};credentials;{}";
+
+// Uncomment this and connect to mock_qpu backend server within the container (mock_qpu/anyon) under main/utils
 std::string backendStringTemplate =
-    "anyon;emulate;false;url;http://host.docker.internal:{};credentials;{}";
+    "anyon;emulate;false;url;http://localhost:{};credentials;{}";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
