@@ -171,43 +171,84 @@ void bindNoiseChannels(py::module &mod) {
 
   py::class_<depolarization_channel, kraus_channel>(
       mod, "DepolarizationChannel",
-      "Models the decoherence of the qubit state and phase into a mixture "
-      "of the computational basis states, `|0>` and `|1>`. Its constructor "
-      "expects a float value, `probability`, representing the probability "
-      "that this decay will occur. The qubit will remain untouched, "
-      "therefore, with a probability of `1 - probability`.")
+      R"#(Models the decoherence of the qubit state and phase into a mixture "
+      of the computational basis states, `|0>` and `|1>`.
+
+      The Kraus Channels are thereby defined to be:
+
+      K_0 = sqrt(1 - probability) * I
+
+      K_1 = sqrt(probability / 3) * X
+
+      K_2 = sqrt(probability / 3) * Y
+
+      K_3 = sqrt(probability / 3) * Z
+
+      where I, X, Y, Z are the 2x2 Pauli matrices.
+      
+      The constructor expects a float value, `probability`, representing the 
+      probability the state decay will occur. The qubit will remain untouched,
+      therefore, with a probability of `1 - probability`. And the X,Y,Z operators
+      will be applied with a probability of `probability / 3`.
+      
+      For `probability = 0.0`, the channel will behave noise-free. 
+      For `probability = 0.75`, the channel will fully depolarize the state.
+      For `proability = 1.0`, the channel will be uniform.)#")
       .def(py::init<double>(), py::arg("probability"),
            "Initialize the `DepolarizationChannel` with the provided "
            "`probability`.");
 
   py::class_<amplitude_damping_channel, kraus_channel>(
       mod, "AmplitudeDampingChannel",
-      "Models the dissipation of energy due to system interactions with the "
-      "environment. Its constructor expects a float value, `probability`, "
-      "representing the probablity that the qubit will decay to its ground "
-      "state. The probability of the qubit remaining in the same state is "
-      "therefore `1 - probability`.")
+      R"#(Models the dissipation of energy due to system interactions with the
+      environment. 
+
+      The Kraus Channels are thereby defined to be:
+
+      K_0 = sqrt(1 - probability) * I
+
+      K_1 = sqrt(probability) * 0.5 * (X + iY) 
+      
+      Its constructor expects a float value, `probability`,
+      representing the probablity that the qubit will decay to its ground
+      state. The probability of the qubit remaining in the same state is
+      therefore `1 - probability`.)#")
       .def(py::init<double>(), py::arg("probability"),
            "Initialize the `AmplitudeDampingChannel` with the provided "
            "`probability`.");
 
   py::class_<bit_flip_channel, kraus_channel>(
       mod, "BitFlipChannel",
-      "Models the decoherence of the qubit state. Its constructor expects a "
-      "float value, `probability`, representing the probability that the qubit "
-      "flips from the 1-state to the 0-state, or vice versa. E.g, the "
-      "probability of a random X-180 rotation being applied to the qubit. The "
-      "probability of the qubit remaining in the same state is therefore `1 - "
-      "probability`.")
+      R"#(Models the decoherence of the qubit state. Its constructor expects a 
+      float value, `probability`, representing the probability that the qubit 
+      flips from the 1-state to the 0-state, or vice versa. E.g, the 
+      probability of a random X-180 rotation being applied to the qubit. 
+      
+      The Kraus Channels are thereby defined to be:
+
+      K_0 = sqrt(1 - probability) * I
+
+      K_1 = sqrt(probability ) * X     
+      
+      The probability of the qubit remaining in the same state is therefore `1 - 
+      probability`.)#")
       .def(py::init<double>(), py::arg("probability"),
            "Initialize the `BitFlipChannel` with the provided `probability`.");
 
   py::class_<phase_flip_channel, kraus_channel>(
       mod, "PhaseFlipChannel",
-      "Models the decoherence of the qubit phase. Its constructor expects a "
-      "float value, `probability`, representing the probability of a random "
-      "Z-180 rotation being applied to the qubit. The probability of the qubit "
-      "phase remaining untouched is therefore `1 - probability`.")
+      R"#(Models the decoherence of the qubit phase. Its constructor expects a
+      float value, `probability`, representing the probability of a random
+      Z-180 rotation being applied to the qubit. 
+      
+      The Kraus Channels are thereby defined to be:
+
+      K_0 = sqrt(1 - probability) * I
+
+      K_1 = sqrt(probability ) * Z  
+
+      The probability of the qubit phase remaining untouched is therefore
+      `1 - probability`.)#")
       .def(
           py::init<double>(), py::arg("probability"),
           "Initialize the `PhaseFlipChannel` with the provided `probability`.");
