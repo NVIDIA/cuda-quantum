@@ -29,14 +29,36 @@ enum class MeasureBasis { I, X, Y, Z };
 void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
                        Value &qubit) {
   SmallVector<Value> targets{qubit};
-  if (basis == MeasureBasis::X) {
-    builder.create<quake::HOp>(loc, ValueRange{}, targets);
-  } else if (basis == MeasureBasis::Y) {
-    llvm::APFloat d(M_PI_2);
-    Value rotation =
-        builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
-    SmallVector<Value> params{rotation};
-    builder.create<quake::RyOp>(loc, params, ValueRange{}, targets);
+  if (quake::isLinearType(qubit.getType())) {
+    // Value semantics
+    auto wireTy = quake::WireType::get(builder.getContext());
+    if (basis == MeasureBasis::X) {
+      auto newOp = builder.create<quake::HOp>(
+          loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{}, ValueRange{},
+          targets, DenseBoolArrayAttr{});
+      qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
+      qubit = newOp.getResult(0);
+    } else if (basis == MeasureBasis::Y) {
+      llvm::APFloat d(M_PI_2);
+      Value rotation =
+          builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
+      auto newOp = builder.create<quake::RyOp>(
+          loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{rotation},
+          ValueRange{}, ValueRange{qubit}, DenseBoolArrayAttr{});
+      qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
+      qubit = newOp.getResult(0);
+    }
+  } else {
+    // Reference semantics
+    if (basis == MeasureBasis::X) {
+      builder.create<quake::HOp>(loc, ValueRange{}, targets);
+    } else if (basis == MeasureBasis::Y) {
+      llvm::APFloat d(M_PI_2);
+      Value rotation =
+          builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
+      SmallVector<Value> params{rotation};
+      builder.create<quake::RyOp>(loc, params, ValueRange{}, targets);
+    }
   }
 }
 
@@ -82,6 +104,38 @@ private:
       return;
 
     AnsatzMetadata data;
+
+    funcOp->walk([&](quake::BorrowWireOp op) {
+      Value wire = op.getResult();
+      // Wires are linear types that must be used exactly once, so traverse
+      // those uses until the end of the linear operators.
+      // NOTE - if this is ever moved to other passes that have different use
+      // cases than this one, then it needs to be updated to support ResetOp,
+      // which is not an operator interface (I don't think).
+      while (auto gate = dyn_cast<quake::OperatorInterface>(*wire.getUsers().begin())) {
+        std::size_t qopNum = 0;
+        auto controls = gate.getControls();
+        for (auto w : controls) {
+          if (w == wire)
+            break;
+          else
+            qopNum++;
+        }
+        if (qopNum >= controls.size()) {
+          for (auto w : gate.getTargets()) {
+            if (w == wire)
+              break;
+            else
+              qopNum++;
+          }
+        }
+        wire = gate.getWires()[qopNum];
+        if (wire.getUsers().empty())
+          break;
+      }
+      data.qubitValues.insert({data.nQubits++, wire});
+      return WalkResult::advance();
+    });
 
     // walk and find all quantum allocations
     auto walkResult = funcOp->walk([&](quake::AllocaOp op) {
@@ -186,12 +240,21 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
     // observe kernels, we remove them here since we are adding specific
     // measurements below.
     for (auto *op : iter->second.measurements) {
-      if (!op->getUsers().empty()) {
+      bool safeToRemove = [&]() {
+        for (auto user : op->getUsers())
+          if (!isa<quake::SinkOp, quake::ReturnWireOp>(user))
+            return false;
+        return true;
+      }();
+      if (!safeToRemove) {
         std::string msg =
             "Cannot observe kernel with non dangling measurements.\n";
         funcOp.emitError(msg);
         return failure();
       }
+      for (auto result : op->getResults())
+        if (quake::isLinearType(result.getType()))
+          result.replaceAllUsesWith(op->getOperand(0));
       op->erase();
     }
 
@@ -227,20 +290,30 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       auto qubitVal = seek->second;
 
       // append the measurement basis change ops
+      // Note: when using value semantics, qubitVal will be updated to the new
+      // wire here.
       appendMeasurement(basis, builder, loc, qubitVal);
 
       if (xElement + zElement != 0)
         qubitsToMeasure.push_back(qubitVal);
     }
 
+    auto measTy = quake::MeasureType::get(builder.getContext());
+    auto wireTy = quake::WireType::get(builder.getContext());
     for (auto &[measureNum, qubitToMeasure] :
          llvm::enumerate(qubitsToMeasure)) {
       // add the measure
       char regName[16];
       std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
-      auto measTy = quake::MeasureType::get(builder.getContext());
-      builder.create<quake::MzOp>(loc, measTy, qubitToMeasure,
-                                  builder.getStringAttr(regName));
+      if (quake::isLinearType(qubitToMeasure.getType())) {
+        auto newOp = builder.create<quake::MzOp>(
+            loc, TypeRange{measTy, wireTy}, ValueRange{qubitToMeasure},
+            builder.getStringAttr(regName));
+        qubitToMeasure.replaceAllUsesExcept(newOp.getResult(1), newOp);
+      } else {
+        builder.create<quake::MzOp>(loc, measTy, qubitToMeasure,
+                                    builder.getStringAttr(regName));
+      }
     }
 
     rewriter.finalizeRootUpdate(funcOp);
