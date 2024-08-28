@@ -220,7 +220,7 @@ public:
 
   std::size_t getCount() { return lifetimes.size(); }
 
-  void print() {
+  void dump() {
     llvm::outs() << "# qubits: " << getCount() << ", cycles: ";
     for (std::size_t i = 0; i < lifetimes.size(); i++)
       if (lifetimes[i])
@@ -269,13 +269,12 @@ class DependencyGraph;
 /// and manipulating the DAG. Finally, an IfDependencyNode contains a
 /// DependencyBlock each for the then and else branches.
 class DependencyNode {
+  // DependencyGraph performs manipulations/analyses over DependencyNodes
   friend class DependencyGraph;
+  // Needs access to successors/dependencies for various uses
   friend class OpDependencyNode;
+  // Needs access to successors/dependencies for lifting/lowering
   friend class IfDependencyNode;
-  friend class ArgDependencyNode;
-  friend class RootDependencyNode;
-  friend class TerminatorDependencyNode;
-  friend class InitDependencyNode;
 
 public:
   /// A DependencyEdge is a dependency on a specific result from a specific
@@ -326,17 +325,17 @@ protected:
   bool hasCodeGen = false;
   unsigned height;
 
-  virtual void printNode() = 0;
+  virtual void dumpNode() = 0;
 
-  void printSubGraph(int tabIndex) {
+  void dumpSubGraph(int tabIndex) {
     for (int i = 0; i < tabIndex; i++) {
       llvm::outs() << "\t";
     }
 
-    printNode();
+    dumpNode();
 
     for (auto dependency : dependencies)
-      dependency->printSubGraph(tabIndex + 1);
+      dependency->dumpSubGraph(tabIndex + 1);
   }
 
   /// Returns the MLIR value representing the result of this node at \p
@@ -391,7 +390,7 @@ public:
   /// will take and the heights of its dependencies
   unsigned getHeight() { return height; };
   /// Prints this node and its dependencies to llvm::outs()
-  void print() { printSubGraph(0); }
+  void dump() { dumpSubGraph(0); }
   /// Returns true if this node is a quantum operation/value or has a quantum
   /// operation as an ancestor. In fact, after inlining, Canonicalization, and
   /// CSE, this should only returns false for arithmetic constants.
@@ -632,14 +631,11 @@ public:
 /// doesn't apply anymore, but it's also not really clear that there would be
 /// any benefit to deriving since it overloads a lot of the functions anyway.
 class InitDependencyNode : public DependencyNode {
-  friend class DependencyGraph;
-  friend class IfDependencyNode;
-
 protected:
   Value wire;
   std::optional<PhysicalQID> qubit = std::nullopt;
 
-  void printNode() override {
+  void dumpNode() override {
     llvm::outs() << "Initial value for QID " << getQID();
     if (qubit)
       llvm::outs() << " -> phys: " << qubit.value();
@@ -666,13 +662,6 @@ protected:
     hasCodeGen = true;
   }
 
-  /// Assigns the physical qubit \p phys to this virtual wire, recursively
-  /// updating all dependencies on this node
-  void assignToPhysical(PhysicalQID phys) {
-    qubit = phys;
-    updateWithPhysical(getQID(), phys);
-  }
-
 public:
   InitDependencyNode(quake::BorrowWireOp op) : wire(op.getResult()) {
     // Lookup qid from op
@@ -694,6 +683,13 @@ public:
   ~InitDependencyNode() override {}
 
   bool isAlloc() override { return true; }
+
+  /// Assigns the physical qubit \p phys to this virtual wire, recursively
+  /// updating all dependencies on this node
+  void assignToPhysical(PhysicalQID phys) {
+    qubit = phys;
+    updateWithPhysical(getQID(), phys);
+  }
 
   bool prefixEquivalentTo(DependencyNode *other) override {
     if (!other->isAlloc())
@@ -733,7 +729,7 @@ protected:
   Operation *associated;
   bool quantumOp;
 
-  virtual void printNode() override {
+  virtual void dumpNode() override {
     llvm::outs() << "QIDs: ";
     bool printComma = false;
     for (auto qid : qids) {
@@ -972,7 +968,8 @@ public:
     }
   }
 
-  virtual std::optional<VirtualQID> getQIDForResult(std::size_t resultidx) override {
+  virtual std::optional<VirtualQID>
+  getQIDForResult(std::size_t resultidx) override {
     if (!isQuantumOp())
       return std::nullopt;
     auto operand = getOperandIDXFromResultIDX(resultidx, associated);
@@ -1175,8 +1172,8 @@ private:
       if (old_leaf->isAlloc()) {
         allocs.erase(allocs.find(old_qid));
         auto alloc = static_cast<InitDependencyNode *>(old_leaf);
-        if (alloc->qubit)
-          qubits.erase(qubits.find(alloc->qubit.value()));
+        if (alloc->getQubit())
+          qubits.erase(qubits.find(alloc->getQubit().value()));
       }
     }
 
@@ -1184,8 +1181,8 @@ private:
     if (new_leaf->isAlloc()) {
       auto alloc = static_cast<InitDependencyNode *>(new_leaf);
       allocs[new_qid] = alloc;
-      if (alloc->qubit)
-        qubits[alloc->qubit.value()] = alloc;
+      if (alloc->getQubit())
+        qubits[alloc->getQubit().value()] = alloc;
     }
   }
 
@@ -1566,10 +1563,10 @@ public:
     }
   }
 
-  void print() {
+  void dump() {
     llvm::outs() << "Graph Start\n";
     for (auto root : roots)
-      root->print();
+      root->dump();
     llvm::outs() << "Graph End\n";
   }
 
@@ -1652,7 +1649,7 @@ public:
 /// wire
 class RootDependencyNode : public OpDependencyNode {
 protected:
-  void printNode() override {
+  void dumpNode() override {
     llvm::outs() << "Dealloc for QID ";
     for (auto qid : qids)
       llvm::outs() << qid;
@@ -1703,13 +1700,12 @@ public:
 /// and therefore will always represent wires.
 class ArgDependencyNode : public DependencyNode {
   friend class DependencyBlock;
-  friend class IfDependencyNode;
 
 protected:
   BlockArgument barg;
   unsigned argNum;
 
-  void printNode() override {
+  void dumpNode() override {
     if (qids.size() > 0)
       llvm::outs() << "QID: " << qids.front() << ", ";
     barg.dump();
@@ -1780,16 +1776,15 @@ public:
 /// A concrete example of where things can go wrong without shadow dependencies
 /// is in `test/Quake/dependency-if-bug-classical.qke`.
 class ShadowDependencyNode : public DependencyNode {
-  friend class DependencyBlock;
   friend class IfDependencyNode;
 
 protected:
   OpDependencyNode *shadowed;
   DependencyEdge shadow_edge;
 
-  void printNode() override {
+  void dumpNode() override {
     llvm::outs() << "Shadow dependency on: ";
-    shadowed->printNode();
+    shadowed->dumpNode();
   }
 
   Value getResult(unsigned resultidx) override {
@@ -1836,14 +1831,14 @@ public:
 /// the last operation in the block.
 class TerminatorDependencyNode : public OpDependencyNode {
 protected:
-  void printNode() override {
+  void dumpNode() override {
     llvm::outs() << "Block Terminator With QIDs ";
-    bool printComma = false;
+    bool dumpComma = false;
     for (auto qid : qids) {
-      if (printComma)
+      if (dumpComma)
         llvm::outs() << ", ";
       llvm::outs() << qid;
-      printComma = true;
+      dumpComma = true;
     }
     llvm::outs() << ": ";
     associated->dump();
@@ -2005,11 +2000,11 @@ public:
     return newBlock;
   }
 
-  void print() {
+  void dump() {
     llvm::outs() << "Block with (" << argdnodes.size() << ") args:\n";
     // block->dump();
     // llvm::outs() << "Block graph:\n";
-    graph->print();
+    graph->dump();
     llvm::outs() << "End block\n";
   }
 
@@ -2151,15 +2146,15 @@ protected:
   SetVector<DependencyNode *> freevars;
 
   // TODO: figure out nice way to display
-  void printNode() override {
-    this->OpDependencyNode::printNode();
+  void dumpNode() override {
+    this->OpDependencyNode::dumpNode();
     // llvm::outs() << "If with results:\n";
     // for (auto result : results)
     //   result.dump();
     llvm::outs() << "Then ";
-    then_block->print();
+    then_block->dump();
     llvm::outs() << "Else ";
-    else_block->print();
+    else_block->dump();
   }
 
   /// Checks if \p then_use and \p else_use are prefixEquivalent and have no
@@ -2455,14 +2450,14 @@ protected:
     new_edge.qid = lifted_alloc->getQID();
     new_edge.qubit = lifted_alloc->getQubit();
     lifted_root->dependencies.push_back(new_edge);
-    // Add a new result wire for the lifted wire which will flow to
-    // lifted_root
-    results.push_back(lifted_alloc->getResult(0).getType());
-    // Hook lifted_alloc to then_op
-    lifted_alloc->successors.insert(this);
     // Hook this to then_op by adding a new dependency for the lifted wire
     DependencyEdge newEdge(lifted_alloc, 0);
     dependencies.push_back(newEdge);
+    // Add a corresponding result wire for the lifted wire which will flow
+    // to lifted_root
+    results.push_back(newEdge.getValue().getType());
+    // Hook lifted_alloc to then_op
+    lifted_alloc->successors.insert(this);
   }
 
   /// Combines physical allocations from the then and else branches
