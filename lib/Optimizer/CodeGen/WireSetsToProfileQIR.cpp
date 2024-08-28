@@ -21,10 +21,10 @@
 #include "nlohmann/json.hpp"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Pass/PassManager.h"
-#include "mlir/Pass/PassOptions.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassOptions.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -238,7 +238,6 @@ struct CondBranchRewrite : OpConversionPattern<cf::CondBranchOp> {
   }
 };
 
-
 struct ReturnWireRewrite : OpConversionPattern<quake::ReturnWireOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -277,7 +276,7 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
       for (auto user : meas->getResult(0).getUsers())
         if (isa<quake::DiscriminateOp>(user))
           return true;
-      return false;      
+      return false;
     }();
 
     // FIXME: Must use sequentially assigned result ids
@@ -306,8 +305,8 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
       auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
                                                     regName->size() + 1);
       auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
-      Value nameVal = rewriter.create<cudaq::cc::AddressOfOp>(loc, ptrArrTy,
-                                                              nameObj.getName());
+      Value nameVal = rewriter.create<cudaq::cc::AddressOfOp>(
+          loc, ptrArrTy, nameObj.getName());
       auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
       Value nameValCStr =
           rewriter.create<cudaq::cc::CastOp>(loc, cstrTy, nameVal);
@@ -523,8 +522,8 @@ struct WireSetToProfileQIRPrepPass
 
     auto param2Targ1Ty =
         FunctionType::get(ctx, TypeRange{f64Ty, f64Ty, qbTy}, TypeRange{});
-    auto param2Targ1CtrlTy =
-        FunctionType::get(ctx, TypeRange{f64Ty, f64Ty, qbTy, qbTy}, TypeRange{});
+    auto param2Targ1CtrlTy = FunctionType::get(
+        ctx, TypeRange{f64Ty, f64Ty, qbTy, qbTy}, TypeRange{});
     addDecls("phased_rx", param2Targ1Ty, param2Targ1CtrlTy);
 
     auto param3Targ1Ty = FunctionType::get(

@@ -112,7 +112,8 @@ private:
       // NOTE - if this is ever moved to other passes that have different use
       // cases than this one, then it needs to be updated to support ResetOp,
       // which is not an operator interface (I don't think).
-      while (auto gate = dyn_cast<quake::OperatorInterface>(*wire.getUsers().begin())) {
+      while (auto gate =
+                 dyn_cast<quake::OperatorInterface>(*wire.getUsers().begin())) {
         std::size_t qopNum = 0;
         auto controls = gate.getControls();
         for (auto w : controls) {
