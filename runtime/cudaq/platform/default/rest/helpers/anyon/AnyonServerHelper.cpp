@@ -14,6 +14,7 @@
 #include <thread>
 using nlohmann::json;
 #include "base64.hpp"
+#include <regex>
 
 namespace cudaq {
 
@@ -101,6 +102,10 @@ public:
   /// @brief Given a completed job response, map back to the sample_result
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
+
+  /// @brief Update `passPipeline` with architecture-specific pass options
+  void updatePassPipeline(const std::filesystem::path &platformPath,
+                          std::string &passPipeline) override;
 };
 
 ServerJobPayload
@@ -431,6 +436,22 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey, std::string 
 
   return hwConfig;
 }
+
+void AnyonServerHelper::updatePassPipeline(
+    const std::filesystem::path &platformPath, std::string &passPipeline) {
+      std::string qgate_type = "cgate";
+      if (machine == "oxford-24q"){
+        qgate_type = "pgate";
+      }
+   passPipeline =
+      std::regex_replace(passPipeline, std::regex("%Q_GATE%"), qgate_type);
+  
+  // std::string pathToFile = platformPath / std::string("mapping/anyon") /
+  //                          (machine + std::string(".txt"));
+  // passPipeline =
+  //     std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
+}
+
 
 } // namespace cudaq
 
