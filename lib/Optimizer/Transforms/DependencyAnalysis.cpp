@@ -372,10 +372,10 @@ public:
 
   /// Returns true if \p this is a graph root (has no successors, e.g., a wire
   /// de-alloc)
-  virtual bool isRoot() { return successors.size() == 0; };
+  virtual bool isRoot() { return successors.empty(); };
   /// Returns true if \p this is a graph leaf (has no dependencies, e.g., a wire
   /// alloc)
-  virtual bool isLeaf() { return dependencies.size() == 0; };
+  virtual bool isLeaf() { return dependencies.empty(); };
   /// Returns true if \p this is not an operation which has an associated cycle
   /// cost
   virtual bool isSkip() { return numTicks() == 0; };
@@ -1003,7 +1003,7 @@ private:
   // same physical qubit can be allocated, used, and de-allocated multiple times
   // in a graph, which would present problems.
   DenseMap<PhysicalQID, DependencyNode *> qubits;
-  unsigned total_height;
+  unsigned total_height = 0;
   SetVector<DependencyNode *> containers;
 
   /// Starting from \p next, searches through \p next's family
@@ -1195,7 +1195,7 @@ private:
   /// new_root to the graph.
   ///
   /// Cleaning up the old root is the responsibility of the caller.
-  // TODO: same thing as replaceLeaf above
+  // TODO: see noted attached to replaceLeaf above
   void replaceRoot(VirtualQID old_qid, VirtualQID new_qid,
                    DependencyNode *new_root) {
     assert(new_root->isRoot() && "Invalid root!");
@@ -1214,7 +1214,7 @@ private:
 
       // If the terminator is somehow getting deleted, then the entire block
       // must be empty, and then it will never be used
-      if (old_root->dependencies.size() == 0)
+      if (old_root->dependencies.empty())
         roots.remove(old_root);
 
       old_root->qids.remove(old_qid);
@@ -1703,10 +1703,11 @@ class ArgDependencyNode : public DependencyNode {
 
 protected:
   BlockArgument barg;
-  unsigned argNum;
+  unsigned argNum = 0;
 
   void dumpNode() override {
-    if (qids.size() > 0)
+    // TODO: I don't think this can ever be false
+    if (!qids.empty())
       llvm::outs() << "QID: " << qids.front() << ", ";
     barg.dump();
   }
