@@ -446,10 +446,10 @@ void AnyonServerHelper::updatePassPipeline(
    passPipeline =
       std::regex_replace(passPipeline, std::regex("%Q_GATE%"), qgate_type);
   
-  // std::string pathToFile = platformPath / std::string("mapping/anyon") /
-  //                          (machine + std::string(".txt"));
-  // passPipeline =
-  //     std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
+  std::string pathToFile = platformPath / std::string("mapping/anyon") /
+                           (machine + std::string(".txt"));
+  passPipeline =
+      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
 }
 
 
