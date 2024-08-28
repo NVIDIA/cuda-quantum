@@ -1934,6 +1934,12 @@ public:
   /// Allocates physical qubits for all virtual wires
   /// allocated within the block, using lifetime information
   /// from the DependencyGraph representing the body.
+  ///
+  /// Currently, reuse decisions are enforced by coupling virtual wires
+  /// assigned to the same physical wire, so they become a single physical
+  /// wire. This is not strictly necessary, but is an effective and simple
+  /// way to ensure that other analyses/optimizations respect the reuse
+  /// decisions.
   void allocatePhyiscalQubits(LifeTimeAnalysis &set) {
     for (auto qubit : graph->getQubits()) {
       auto lifetime = graph->getLifeTimeForQubit(qubit);
@@ -2584,6 +2590,38 @@ public:
   /// height of `if`s, and b) allows parent graphs to make more informed
   /// scheduling and reuse decisions, as information previously hidden by the
   /// "solid barrier" abstraction of `if`s is now available to them.
+  ///
+  /// Operations are considered equivalent if the operations themselves are
+  /// equivalent, and all physical/virtual wires passed as operands are
+  /// equivalent. Since wires from the parent context may still be virtual, it
+  /// is important to distinguish physical vs virtual wires when checking
+  /// equivalence.
+  ///
+  /// Lifting operations will likely change the schedule of the
+  /// then and else blocks, so it is important to ensure that this schedule
+  /// change does not create conflicts where the same physical qubit is now
+  /// used by multiple operations at the same cycle. This can be ensured
+  /// either by avoiding lifting if it would lead to such a conflict, or by
+  /// somehow ensuring that the resulting schedule is still valid.
+  /// Similarly, lifting operations that use physical qubits allocated in
+  /// the then and else blocks requires lifting the physical qubit
+  /// allocation as well, which may present problems if the same physical
+  /// qubit is reused in the block and thus allocated again.
+  ///
+  /// The current implementation solves this by coupling virtual wires to
+  /// form a single physical wire, which means that reusing a physical qubit
+  /// will introduce a dependency on the previous use of the qubit.
+  /// Since scheduling ensures that a node cannot be scheduled at the same
+  /// cycle as its dependencies, this ensures a reused physical wire will
+  /// still only be used AFTER the previous use. Then, because there is
+  /// is only one physical wire, even with reuses, lifting the physical
+  /// qubit allocation from the inner blocks is no problem.
+  /// See `DpendencyBlock::allocatePhyiscalQubits` for more details on the
+  /// current implementation.
+  ///
+  /// This approach prioritizes qubit reuse over potential circuit-length
+  /// reduction from lifting, other approaches with other tradeoffs have
+  /// yet to be explored.
   void performLiftingPass() {
     bool lifted = false;
 
@@ -2670,10 +2708,19 @@ public:
   }
 
   /// Performs the analysis and optimizations on this `if` statement inside out:
-  /// * First, recurs on the then and else blocks
-  /// * Physical allocations from the two blocks are combined
-  ///   and then lifted to \p parent_graph
-  /// * Common operations are lifted from the blocks
+  /// * First, recurs on the then and else blocks, resolving inner `if`s ,
+  ///   performing scheduling, and making qubit allocation/reuse decisions.
+  /// * Physical qubit allocations from the two blocks are combined, respecting
+  ///   reuse but allowing re-indexing.
+  /// * Equivalent operations are lifted from the beginning/end of the blocks.
+  ///
+  /// In the current implementation, after the physical qubit allocations are
+  /// combined, they are lifted from the inner block to the parent scope of the
+  /// `if`. This is necessary due to the implementation decision to couple
+  /// wires that reuse the same physical qubit. Since `if`s are treated as a
+  /// "solid rectangle" by the parent scope, this does not have any
+  /// particular downsides at the moment, as it does not change the lifetime
+  /// of the qubit in the parent scope.
   void performAnalysis(LifeTimeAnalysis &set,
                        DependencyGraph *parent_graph) override {
     // Recur first, as analysis works inside-out
@@ -2687,13 +2734,13 @@ public:
     // Combine then and else allocations
     combineAllocs(pqids1, pqids2);
 
-    // Lift all physical allocations out of the if to respect the if
+    // Lift all physical allocations out of the if
     auto allocs = then_block->getAllocatedQubits();
     allocs.set_union(else_block->getAllocatedQubits());
     for (auto qubit : allocs)
       liftAlloc(qubit, parent_graph);
 
-    // Lift common operations between then and else blocks
+    // Lift equivalent operations between then and else blocks
     performLiftingPass();
   }
 
@@ -2702,7 +2749,7 @@ public:
   /// blocks.
   ///
   /// As a result, removes the dependency on, and result for, \p qid from this
-  /// node
+  /// node.
   void lowerAlloc(DependencyNode *init, DependencyNode *root,
                   VirtualQID qid) override {
     assert(successors.contains(root) && "Illegal root for contractAlloc");
@@ -2982,6 +3029,43 @@ public:
 struct DependencyAnalysisPass
     : public cudaq::opt::impl::DependencyAnalysisBase<DependencyAnalysisPass> {
   using DependencyAnalysisBase::DependencyAnalysisBase;
+
+  /// DependencyAnalysis constructs a data structure representing the
+  /// quake AST, performs several analyses/optimizations, and then generates
+  /// a new quake AST based on the resulting data structure.
+  ///
+  /// First, the quake AST is walked, constructing a DependencyBlock for the
+  /// body of every kernel function.
+  ///
+  /// Next, virtual qubit allocations are lowered to the inner-most scope in
+  /// which they are used (see `contractAllocsPass`). This works outside-in.
+  /// Lowering virtual qubit allocations opens up more qubit reuse opportunities
+  /// within inner scopes, and gives the remaining optimizations more
+  /// flexibility.
+  ///
+  /// Then, an inside-out analysis/optimization pass is performed, assigning
+  /// physical qubits to virtual wires, and lifting common optimizations. This
+  /// inside-out analysis/optimization pass works as follows:
+  /// - Step 1: `if`s inside blocks are resolved (hence inside-out), once an
+  /// `if` is resolved, the information contained by it will not be changed
+  /// (with the possible exception of re-indexing physical qubits).
+  /// - Step 2: blocks are resolved.
+  /// * First the nodes inside them are scheduled, assigning a cycle to every
+  ///   node such that each node is scheduled after all of its dependencies, and
+  ///   before all of its successors.
+  /// * Then, physical qubits are allocated and assigned to virtual wires based
+  ///   on lifetime information (i.e., which cycles the virtual wire is used
+  ///   in). This algorithm treats `if`s as "solid rectangles", where all qubits
+  ///   in use anywhere in the `if` are considered in use for the entire `if` by
+  ///   the parent scope. In other words, the lifetime analysis does not look
+  ///   inside `if`s.
+  /// - Step 3: Once its blocks are resolved, then the parent `if` is resolved.
+  /// * First, the allocations from the two inner blocks are combined/matched
+  ///   (respecting reuse within the blocks but with re-indexing allowed).
+  /// * Second, equivalent operations at the beginning/end of the then and else
+  ///   blocks are lifted to the parent context, before/after the `if`.
+  /// - Step 4: return to Step 1 for the parent block the `if` is in, or Step 2
+  ///   if all `if`s in the block have been resolved.
   void runOnOperation() override {
     auto mod = getOperation();
 
@@ -3002,6 +3086,8 @@ struct DependencyAnalysisPass
 
         auto engine = DependencyAnalysisEngine();
 
+        // Construct a DependencyBlock for the function body based on the quake
+        // AST
         auto body = engine.visitBlock(
             oldBlock, SmallVector<DependencyNode::DependencyEdge>());
 
