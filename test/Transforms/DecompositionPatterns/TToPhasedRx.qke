@@ -8,7 +8,8 @@
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=TToPhasedRx})' %s | FileCheck %s
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=TToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
-
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=TToPhasedRx})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=TToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
 
 // The FileCheck part of this test only cares about the sequence of operations.
 // Correcteness is checked by CircuitCheck.
