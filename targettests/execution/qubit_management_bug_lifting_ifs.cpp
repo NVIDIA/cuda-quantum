@@ -9,7 +9,6 @@
 #include <cudaq.h>
 
 // RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
-// XFAIL: *
 
 struct run_test {
   __qpu__ auto operator()() {
@@ -17,13 +16,8 @@ struct run_test {
 
     bool b = false;
 
-    // This test was meant to highlight an issue with lifting ifs, where
-    // the equivalence check ignores the body of the if. Ifs probably just
-    // shouldn't be lifted at all.
-
-    // Suggested fix: Add the following to tryLiftingBefore/After
-    // if (then_use->isContainer())
-    //   return false;
+    // Ifs shouldn't be lifted at all, as it violates assumptions of
+    // the algorithmic logic
     if (true) {
       if (true) {
         x(q);

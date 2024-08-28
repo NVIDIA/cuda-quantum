@@ -2069,7 +2069,7 @@ public:
   /// Moves an alloc/de-alloc pair for the virtual wire \p qid into this block,
   /// Replacing the existing block argument and terminator dependencies for the
   /// wire.
-  // TODO: should probably take a new qid in addition to the old qid, so that
+  // TODO: should take a new qid in addition to the old qid, so that
   //       the qid can be changed when splitting so uniqueness of qids can be
   //       maintained
   void lowerAlloc(DependencyNode *init, DependencyNode *root, VirtualQID qid) {
@@ -2103,8 +2103,8 @@ public:
   /// qid flowing through this block
   void removeQID(VirtualQID qid) {
     // TODO: ensure that the virtual wire does flow through the block as an
-    // argument/terminator pair removeArgument will at least ensure that such an
-    // argument exists, but terminator->eraseEdgeForQID below won't.
+    // argument/terminator pair. removeArgument will at least ensure that such
+    // an argument exists, but terminator->eraseEdgeForQID below won't.
     removeArgument(qid);
 
     terminator->eraseEdgeForQID(qid);
@@ -2174,8 +2174,12 @@ protected:
     if (!then_use || !else_use)
       return false;
 
-    // TODO: probably shouldn't try lifting containers
-    // see targettests/execution/qubit_management_bug_lifting_ifs.cpp
+    // The algorithmic logic assumes `if`s are fully resolved once,
+    // but lifting them to a parent scope will cause them to be resolved
+    // again, so lifting `if`s is not a good idea. Also, the equivalence
+    // check currently ignores the body of `if`s.
+    if (then_use->isContainer())
+     return false;
 
     if (then_use->prefixEquivalentTo(else_use)) {
       // If two nodes are equivalent, all their dependencies will be too,
@@ -2206,6 +2210,13 @@ protected:
 
     if (!then_use || !else_use)
       return false;
+
+    // The algorithmic logic assumes `if`s are fully resolved once,
+    // but lifting them to a parent scope will cause them to be resolved
+    // again, so lifting `if`s is not a good idea. Also, the equivalence
+    // check currently ignores the body of `if`s.
+    if (then_use->isContainer())
+     return false;
 
     // TODO: probably shouldn't try lifting containers
     // see targettests/execution/qubit_management_bug_lifting_ifs.cpp
@@ -2565,6 +2576,11 @@ public:
     else_block->contractAllocsPass();
   }
 
+  /// Removes \p qid (and associated args/terminator dependencies)
+  /// from the inner blocks of the `if`. Also removes this `if`
+  /// from the dependency path for \p qid.
+  /// The expectation is that \p qid flows
+  /// through both the then and else blocks of this `if`
   void eraseEdgeForQID(VirtualQID qid) override {
     // First, calculate which result to remove, but don't remove it yet
     unsigned i = 0;
@@ -2762,7 +2778,8 @@ public:
     auto dealloc = static_cast<RootDependencyNode *>(root);
     auto dealloc_copy = new RootDependencyNode(*dealloc);
     // TODO: alloc_copy and dealloc_copy should be given a new unique QID
-    //       This should be updated in the else branch as well after lowering
+    //       This should be updated in the else branch as well after lowering,
+    //       using alloc_copy->updateQID(alloc->getQID(), new_qid);
     std::size_t offset = getDependencyForQID(qid).value();
     associated->eraseOperand(offset);
 
