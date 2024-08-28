@@ -692,6 +692,9 @@ public:
   /// Returns the qid for the virtual wire this node allocates
   VirtualQID getQID() { return qids.front(); }
 
+  /// Returns the qubit for the physical wire this node allocates if assigned
+  std::optional<PhysicalQID> getQubit() { return qubit; }
+
   ~InitDependencyNode() override {}
 
   bool isAlloc() override { return true; }
@@ -767,11 +770,11 @@ protected:
       if (auto cstf = dyn_cast<arith::ConstantFloatOp>(associated)) {
         auto value = cstf.getValue().cast<FloatAttr>().getValueAsDouble();
         return std::to_string(value);
-      } else if (auto csti = dyn_cast<arith::ConstantIndexOp>(associated)) {
-        auto value = cstf.getValue().cast<IntegerAttr>().getInt();
+      } else if (auto cstidx = dyn_cast<arith::ConstantIndexOp>(associated)) {
+        auto value = cstidx.getValue().cast<IntegerAttr>().getInt();
         return std::to_string(value);
-      } else if (auto csti = dyn_cast<arith::ConstantIntOp>(associated)) {
-        auto value = cstf.getValue().cast<IntegerAttr>().getInt();
+      } else if (auto cstint = dyn_cast<arith::ConstantIntOp>(associated)) {
+        auto value = cstint.getValue().cast<IntegerAttr>().getInt();
         return std::to_string(value);
       }
     }
@@ -1432,7 +1435,7 @@ public:
   SetVector<VirtualQID> getVirtualAllocs() {
     SetVector<VirtualQID> allocated;
     for (auto [qid, leaf] : allocs)
-      if (leaf->getQubits().empty())
+      if (!leaf->getQubit())
         allocated.insert(qid);
     return allocated;
   }
@@ -2402,7 +2405,6 @@ protected:
 
     // Remove virtual allocs from inner blocks
     if (else_block->getAllocatedQubits().contains(qubit)) {
-
       lifted_alloc = else_graph->getAllocForQubit(qubit);
       lifted_root = else_graph->getRootForQubit(qubit);
       else_block->liftAlloc(lifted_alloc->getQID(), lifted_alloc);
@@ -2442,6 +2444,7 @@ protected:
     this->successors.insert(lifted_root);
     auto new_edge = DependencyEdge{this, results.size()};
     new_edge.qid = lifted_alloc->getQID();
+    new_edge.qubit = lifted_alloc->getQubit();
     lifted_root->dependencies.push_back(new_edge);
     // Add a new result wire for the lifted wire which will flow to
     // lifted_root
