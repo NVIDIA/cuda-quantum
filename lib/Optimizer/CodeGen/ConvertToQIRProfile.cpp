@@ -214,27 +214,46 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     bool isAdaptive = convertTo == "qir-adaptive";
     const char *profileName = isAdaptive ? "adaptive_profile" : "base_profile";
 
+    auto requiredQubitsStr = std::to_string(info.nQubits);
+    StringRef requiredQubitsStrRef = requiredQubitsStr;
+    if (auto stringAttr = op->getAttr(cudaq::opt::QIRRequiredQubitsAttrName)
+                              .dyn_cast_or_null<mlir::StringAttr>())
+      requiredQubitsStrRef = stringAttr;
+    auto requiredResultsStr = std::to_string(info.nResults);
+    StringRef requiredResultsStrRef = requiredResultsStr;
+    if (auto stringAttr = op->getAttr(cudaq::opt::QIRRequiredResultsAttrName)
+                              .dyn_cast_or_null<mlir::StringAttr>())
+      requiredResultsStrRef = stringAttr;
+    StringRef outputNamesStrRef;
+    std::string resultQubitJSONStr;
+    if (auto strAttr = op->getAttr(cudaq::opt::QIROutputNamesAttrName)
+                           .dyn_cast_or_null<mlir::StringAttr>()) {
+      outputNamesStrRef = strAttr;
+    } else {
+      resultQubitJSONStr = resultQubitJSON.dump();
+      outputNamesStrRef = resultQubitJSONStr;
+    }
+
     // QIR functions need certain attributes, add them here.
     // TODO: Update schema_id with valid value (issues #385 and #556)
-    auto arrAttr = rewriter.getArrayAttr(ArrayRef<Attribute>{
+    SmallVector<Attribute> attrArray{
         rewriter.getStringAttr(cudaq::opt::QIREntryPointAttrName),
         rewriter.getStrArrayAttr(
             {cudaq::opt::QIRProfilesAttrName, profileName}),
         rewriter.getStrArrayAttr(
             {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}),
         rewriter.getStrArrayAttr(
-            {cudaq::opt::QIROutputNamesAttrName, resultQubitJSON.dump()}),
+            {cudaq::opt::QIROutputNamesAttrName, outputNamesStrRef}),
         rewriter.getStrArrayAttr(
             // TODO: change to required_num_qubits once providers support it
             // (issues #385 and #556)
-            {cudaq::opt::QIRRequiredQubitsAttrName,
-             std::to_string(info.nQubits)}),
+            {cudaq::opt::QIRRequiredQubitsAttrName, requiredQubitsStrRef}),
         rewriter.getStrArrayAttr(
             // TODO: change to required_num_results once providers support it
             // (issues #385 and #556)
-            {cudaq::opt::QIRRequiredResultsAttrName,
-             std::to_string(info.nResults)})});
-    op.setPassthroughAttr(arrAttr);
+            {cudaq::opt::QIRRequiredResultsAttrName, requiredResultsStrRef})};
+
+    op.setPassthroughAttr(rewriter.getArrayAttr(attrArray));
 
     // Stick the record calls in the exit block.
     auto builder = cudaq::IRBuilder::atBlockTerminator(&op.getBody().back());
@@ -530,9 +549,11 @@ std::unique_ptr<Pass> cudaq::opt::createQIRProfilePreparationPass() {
 // The various passes defined here should be added as a pass pipeline.
 
 void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
-                                       llvm::StringRef convertTo) {
+                                       llvm::StringRef convertTo,
+                                       bool performPrep) {
   assert(convertTo == "qir-adaptive" || convertTo == "qir-base");
-  pm.addPass(createQIRProfilePreparationPass());
+  if (performPrep)
+    pm.addPass(createQIRProfilePreparationPass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
   pm.addPass(createQIRToQIRProfilePass(convertTo));
   VerifyQIRProfileOptions vqpo = {convertTo.str()};

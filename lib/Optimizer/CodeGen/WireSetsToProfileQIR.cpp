@@ -8,15 +8,21 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/CallGraphFix.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToCC.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "nlohmann/json.hpp"
+#include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -81,6 +87,14 @@ static std::string toQisCtlName(std::string &&name) {
          std::string(qis_ctl_suffix);
 }
 
+// Store by result to prevent collisions on a single qubit having
+// multiple measurements (Adaptive Profile)
+// map[result] --> [qb,regName]
+// Use std::map to keep these sorted in ascending order. While this isn't
+// required, it makes viewing the QIR easier.
+using OutputNamesType =
+    std::map<std::size_t, std::pair<std::size_t, std::string>>;
+
 template <typename OP>
 struct GeneralRewrite : OpConversionPattern<OP> {
   using Base = OpConversionPattern<OP>;
@@ -106,13 +120,46 @@ struct GeneralRewrite : OpConversionPattern<OP> {
       }
       return toQisCtlName(std::move(instName));
     }(); // NB: instName is dead
-    SmallVector<Value> qubits(adaptor.getControls().begin(),
-                              adaptor.getControls().end());
-    qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
-    rewriter.create<func::CallOp>(loc, std::nullopt, funcName,
-                                  adaptor.getOperands());
-    rewriter.replaceOp(qop, qubits);
-    return success();
+    if (funcName.ends_with(qis_ctl_suffix) &&
+        adaptor.getControls().size() == 1 && adaptor.getTargets().size() == 1) {
+      auto *ctx = rewriter.getContext();
+      auto qbTy = cudaq::opt::getQubitType(ctx);
+      auto arrTy = cudaq::opt::getArrayType(ctx);
+      SmallVector<Type> argTys = {arrTy, qbTy};
+      ModuleOp mod = qop->template getParentOfType<ModuleOp>();
+      FlatSymbolRefAttr qisFuncSymbol;
+      if (auto f = mod.lookupSymbol<func::FuncOp>(funcName)) {
+        auto fTy = f.getFunctionType();
+        auto fSym = f.getSymNameAttr();
+        qisFuncSymbol = FlatSymbolRefAttr::get(ctx, funcName);
+        Value fVal = rewriter.create<func::ConstantOp>(loc, fTy, fSym);
+        auto ptrI8Ty = cudaq::cc::PointerType::get(rewriter.getI8Type());
+        Value fPtrVal =
+            rewriter.create<cudaq::cc::FuncToPtrOp>(loc, ptrI8Ty, fVal);
+        Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+        SmallVector<Value> callParamVals{one, fPtrVal,
+                                         *adaptor.getControls().begin(),
+                                         *adaptor.getTargets().begin()};
+        SmallVector<Value> qubits(adaptor.getControls().begin(),
+                                  adaptor.getControls().end());
+        qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
+        rewriter.create<func::CallOp>(loc, std::nullopt,
+                                      cudaq::opt::NVQIRInvokeWithControlBits,
+                                      callParamVals);
+        rewriter.replaceOp(qop, qubits);
+        return success();
+      }
+      return failure();
+    } else {
+      SmallVector<Value> qubits(adaptor.getControls().begin(),
+                                adaptor.getControls().end());
+      qubits.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
+      rewriter.create<func::CallOp>(loc, std::nullopt, funcName,
+                                    adaptor.getOperands());
+      rewriter.replaceOp(qop, qubits);
+      return success();
+    }
+    return failure();
   }
 };
 
@@ -131,6 +178,62 @@ struct BorrowWireRewrite : OpConversionPattern<quake::BorrowWireOp> {
     idCon = rewriter.create<cudaq::cc::CastOp>(loc, imTy, idCon);
     rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
         borrowWire, cudaq::opt::getQubitType(rewriter.getContext()), idCon);
+    return success();
+  }
+};
+
+struct ResetRewrite : OpConversionPattern<quake::ResetOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::ResetOp reset, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Value> qubits{adaptor.getTargets()};
+    auto loc = reset.getLoc();
+    std::string funcName = toQisBodyName(std::string("reset"));
+    rewriter.create<func::CallOp>(loc, std::nullopt, funcName,
+                                  adaptor.getOperands());
+    rewriter.replaceOp(reset, qubits);
+    return success();
+  }
+};
+
+struct BranchRewrite : OpConversionPattern<cf::BranchOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cf::BranchOp branchOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto qubitTy = cudaq::opt::getQubitType(rewriter.getContext());
+    rewriter.startRootUpdate(branchOp);
+    if (branchOp.getSuccessor())
+      for (auto arg : branchOp.getSuccessor()->getArguments())
+        if (isa<quake::WireType>(arg.getType()))
+          arg.setType(qubitTy);
+    for (auto operand : branchOp.getOperands())
+      if (isa<quake::WireType>(operand.getType()))
+        operand.setType(qubitTy);
+    rewriter.finalizeRootUpdate(branchOp);
+    return success();
+  }
+};
+
+struct CondBranchRewrite : OpConversionPattern<cf::CondBranchOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cf::CondBranchOp branchOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto qubitTy = cudaq::opt::getQubitType(rewriter.getContext());
+    rewriter.startRootUpdate(branchOp);
+    for (auto suc : branchOp.getSuccessors())
+      for (auto arg : suc->getArguments())
+        if (isa<quake::WireType>(arg.getType()))
+          arg.setType(qubitTy);
+    for (auto operand : branchOp.getOperands())
+      if (isa<quake::WireType>(operand.getType()))
+        operand.setType(qubitTy);
+    rewriter.finalizeRootUpdate(branchOp);
     return success();
   }
 };
@@ -160,12 +263,22 @@ struct WireSetRewrite : OpConversionPattern<quake::WireSetOp> {
 struct MzRewrite : OpConversionPattern<quake::MzOp> {
   using Base = OpConversionPattern;
   explicit MzRewrite(TypeConverter &typeConverter, unsigned &counter,
-                     MLIRContext *ctxt, PatternBenefit benefit = 1)
-      : Base(typeConverter, ctxt, benefit), resultCount(counter) {}
+                     OutputNamesType &resultQubitVals, MLIRContext *ctxt,
+                     PatternBenefit benefit = 1)
+      : Base(typeConverter, ctxt, benefit), resultCount(counter),
+        resultQubitVals(resultQubitVals) {}
 
   LogicalResult
   matchAndRewrite(quake::MzOp meas, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+
+    bool measureFollowedByDiscriminate = [&]() {
+      for (auto user : meas->getResult(0).getUsers())
+        if (isa<quake::DiscriminateOp>(user))
+          return true;
+      return false;
+    }();
+
     // FIXME: Must use sequentially assigned result ids
     std::string funcName = toQisBodyName(std::string("mz"));
     auto loc = meas.getLoc();
@@ -179,11 +292,48 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
         loc, std::nullopt, funcName,
         ValueRange{adaptor.getTargets()[0], resultVal});
     rewriter.replaceOp(meas, ValueRange{resultVal, adaptor.getTargets()[0]});
+
+    auto regName = meas.getRegisterName();
+    // Populate __quantum__rt__result_record_output if there is a register name
+    // without any downstream DiscriminateOp's.
+    if (regName && !measureFollowedByDiscriminate) {
+      cudaq::IRBuilder irb(rewriter.getContext());
+      auto mod = meas->getParentOfType<ModuleOp>();
+      // NB: This is thread safe as it should never do an insertion, just a
+      // lookup.
+      auto nameObj = irb.genCStringLiteralAppendNul(loc, mod, *regName);
+      auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
+                                                    regName->size() + 1);
+      auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
+      Value nameVal = rewriter.create<cudaq::cc::AddressOfOp>(
+          loc, ptrArrTy, nameObj.getName());
+      auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+      Value nameValCStr =
+          rewriter.create<cudaq::cc::CastOp>(loc, cstrTy, nameVal);
+
+      rewriter.create<func::CallOp>(loc, std::nullopt,
+                                    cudaq::opt::QIRRecordOutput,
+                                    ValueRange{resultVal, nameValCStr});
+    }
+
+    // Populate resultQubitVals[]
+    std::size_t qubitNum = 0;
+    Value v = adaptor.getTargets()[0];
+    while (auto tmpOp = v.getDefiningOp<cudaq::cc::CastOp>())
+      v = tmpOp.getOperand();
+    if (auto x = cudaq::opt::factory::getIntIfConstant(v))
+      qubitNum = *x;
+    std::string regNameStr;
+    if (regName)
+      regNameStr = regName->str();
+    resultQubitVals[resultCount - 1] = std::make_pair(qubitNum, regNameStr);
+
     return success();
   }
 
 private:
   unsigned &resultCount;
+  OutputNamesType &resultQubitVals;
 };
 
 struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
@@ -217,7 +367,7 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
         rewriter.create<cudaq::cc::CastOp>(loc, cstrTy, nameVal);
 
     rewriter.create<func::CallOp>(
-        loc, std::nullopt, "__quantum__rt__result_record_output",
+        loc, std::nullopt, cudaq::opt::QIRRecordOutput,
         ValueRange{adaptor.getMeasurement(), nameValCStr});
     if (isAdaptiveProfile) {
       std::string funcName = toQisBodyName(std::string("read_result"));
@@ -245,6 +395,7 @@ struct WireSetToProfileQIRPass
   void runOnOperation() override {
     auto op = getOperation();
     auto *context = &getContext();
+    OpBuilder builder(op);
     DenseMap<Operation *, StringRef> regNameMap;
     op.walk([&](quake::DiscriminateOp disc) {
       auto meas = disc.getMeasurement().getDefiningOp<quake::MzOp>();
@@ -254,18 +405,32 @@ struct WireSetToProfileQIRPass
       else
         regNameMap[disc.getOperation()] = "?";
     });
+    std::optional<std::uint32_t> highestIdentity;
+    op.walk([&](quake::BorrowWireOp op) {
+      highestIdentity = highestIdentity
+                            ? std::max(*highestIdentity, op.getIdentity())
+                            : op.getIdentity();
+    });
+    if (highestIdentity)
+      op->setAttr(cudaq::opt::QIRRequiredQubitsAttrName,
+                  builder.getStringAttr(std::to_string(*highestIdentity + 1)));
+
     RewritePatternSet patterns(context);
     QuakeTypeConverter quakeTypeConverter;
     unsigned resultCounter = 0;
-    patterns.insert<GeneralRewrite<quake::HOp>, GeneralRewrite<quake::XOp>,
+    OutputNamesType resultQubitVals;
+    patterns.insert<BranchRewrite, CondBranchRewrite,
+                    GeneralRewrite<quake::HOp>, GeneralRewrite<quake::XOp>,
                     GeneralRewrite<quake::YOp>, GeneralRewrite<quake::ZOp>,
                     GeneralRewrite<quake::SOp>, GeneralRewrite<quake::TOp>,
                     GeneralRewrite<quake::RxOp>, GeneralRewrite<quake::RyOp>,
                     GeneralRewrite<quake::RzOp>, GeneralRewrite<quake::R1Op>,
                     GeneralRewrite<quake::U3Op>, GeneralRewrite<quake::SwapOp>,
-                    BorrowWireRewrite, ReturnWireRewrite>(quakeTypeConverter,
-                                                          context);
-    patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter, context);
+                    GeneralRewrite<quake::PhasedRxOp>, BorrowWireRewrite,
+                    ResetRewrite, ReturnWireRewrite>(quakeTypeConverter,
+                                                     context);
+    patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
+                               resultQubitVals, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";
     patterns.insert<DiscriminateRewrite>(quakeTypeConverter, isAdaptiveProfile,
                                          regNameMap, context);
@@ -278,6 +443,17 @@ struct WireSetToProfileQIRPass
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
+
+    if (resultCounter > 0) {
+      nlohmann::json resultQubitJSON{resultQubitVals};
+      op->setAttr(cudaq::opt::QIROutputNamesAttrName,
+                  builder.getStringAttr(resultQubitJSON.dump()));
+    }
+
+    if (highestIdentity)
+      op->setAttr(cudaq::opt::QIRRequiredResultsAttrName,
+                  builder.getStringAttr(std::to_string(resultCounter)));
+
     LLVM_DEBUG(llvm::dbgs() << "Module after:\n"; op.dump());
   }
 };
@@ -332,6 +508,7 @@ struct WireSetToProfileQIRPrepPass
     addDecls("t", targ1Ty, targ1CtrlTy);
     addDecls("sdg", targ1Ty, targ1CtrlTy);
     addDecls("tdg", targ1Ty, targ1CtrlTy);
+    addBodyDecl("reset", targ1Ty);
 
     auto f64Ty = builder.getF64Type();
     auto param1Targ1Ty =
@@ -342,6 +519,12 @@ struct WireSetToProfileQIRPrepPass
     addDecls("ry", param1Targ1Ty, param1Targ1CtrlTy);
     addDecls("rz", param1Targ1Ty, param1Targ1CtrlTy);
     addDecls("r1", param1Targ1Ty, param1Targ1CtrlTy);
+
+    auto param2Targ1Ty =
+        FunctionType::get(ctx, TypeRange{f64Ty, f64Ty, qbTy}, TypeRange{});
+    auto param2Targ1CtrlTy = FunctionType::get(
+        ctx, TypeRange{f64Ty, f64Ty, qbTy, qbTy}, TypeRange{});
+    addDecls("phased_rx", param2Targ1Ty, param2Targ1CtrlTy);
 
     auto param3Targ1Ty = FunctionType::get(
         ctx, TypeRange{f64Ty, f64Ty, f64Ty, qbTy}, TypeRange{});
@@ -365,7 +548,11 @@ struct WireSetToProfileQIRPrepPass
     auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
     auto recordTy =
         FunctionType::get(ctx, TypeRange{resTy, i8PtrTy}, TypeRange{});
-    createNewDecl("__quantum__rt__result_record_output", recordTy);
+    createNewDecl(cudaq::opt::QIRRecordOutput, recordTy);
+
+    auto invokeCtrlTy = FunctionType::get(
+        ctx, TypeRange{builder.getI64Type(), i8PtrTy, qbTy, qbTy}, TypeRange{});
+    createNewDecl(cudaq::opt::NVQIRInvokeWithControlBits, invokeCtrlTy);
 
     unsigned counter = 0;
     op.walk([&](quake::MzOp meas) {
@@ -394,9 +581,76 @@ struct WireSetToProfileQIRPostPass
           WireSetToProfileQIRPostPass> {
   using WireSetToProfileQIRPostBase::WireSetToProfileQIRPostBase;
 
+  /// Apply required QIR function attributes to the entry-point functions.
+  void addAttributes(ModuleOp moduleOp, MLIRContext *ctx) {
+    OpBuilder builder(moduleOp);
+
+    // Build the call graph of the module
+    CallGraph callGraph(moduleOp);
+
+    // Traverse the module looking for entry-point functions. When one is found,
+    // consult the call graph to find the highest qubit identity and highest QIR
+    // result number used in the call graph.
+    for (Operation &op : moduleOp) {
+      if (auto funcOp = dyn_cast<func::FuncOp>(op)) {
+        if (op.hasAttr(cudaq::entryPointAttrName)) {
+          mlir::CallGraphNode *node =
+              callGraph.lookupNode(funcOp.getCallableRegion());
+          std::optional<std::uint32_t> highestIdentity;
+          std::optional<std::uint32_t> highestResult;
+          for (auto it = llvm::df_begin(node), itEnd = llvm::df_end(node);
+               it != itEnd; ++it) {
+            if (it->isExternal())
+              continue;
+            auto *callableRegion = it->getCallableRegion();
+            auto parentFuncOp =
+                callableRegion->getParentOfType<mlir::func::FuncOp>();
+
+            if (auto reqQubits =
+                    parentFuncOp->getAttr(cudaq::opt::QIRRequiredQubitsAttrName)
+                        .dyn_cast_or_null<StringAttr>()) {
+              std::uint32_t thisFuncReqQubits = 0;
+              if (!reqQubits.strref().getAsInteger(10, thisFuncReqQubits)) {
+                auto thisFuncHighestIdentity = thisFuncReqQubits - 1;
+                highestIdentity =
+                    highestIdentity
+                        ? std::max(*highestIdentity, thisFuncHighestIdentity)
+                        : thisFuncHighestIdentity;
+              }
+            }
+
+            if (auto reqResults =
+                    parentFuncOp
+                        ->getAttr(cudaq::opt::QIRRequiredResultsAttrName)
+                        .dyn_cast_or_null<StringAttr>()) {
+              std::uint32_t thisFuncReqResults = 0;
+              if (!reqResults.strref().getAsInteger(10, thisFuncReqResults)) {
+                auto thisFuncHighestResult = thisFuncReqResults - 1;
+                highestResult = highestResult ? std::max(*highestResult,
+                                                         thisFuncHighestResult)
+                                              : thisFuncHighestResult;
+              }
+            }
+          } // end call graph traversal
+
+          // Apply the final attribute on the entrypoint function
+          if (highestIdentity)
+            funcOp->setAttr(
+                cudaq::opt::QIRRequiredQubitsAttrName,
+                builder.getStringAttr(std::to_string(*highestIdentity + 1)));
+          if (highestResult)
+            funcOp->setAttr(
+                cudaq::opt::QIRRequiredResultsAttrName,
+                builder.getStringAttr(std::to_string(*highestResult + 1)));
+        }
+      }
+    }
+  }
+
   void runOnOperation() override {
     ModuleOp op = getOperation();
     auto *ctx = &getContext();
+    addAttributes(op, ctx);
     RewritePatternSet patterns(ctx);
     QuakeTypeConverter quakeTypeConverter;
     patterns.insert<WireSetRewrite>(quakeTypeConverter, ctx);
@@ -419,6 +673,10 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
     wopt.convertTo = profile.str();
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createWireSetToProfileQIR(wopt));
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPost());
+  // Perform final cleanup for other dialect conversions (like func.func)
+  pm.addPass(cudaq::opt::createConvertToQIR());
+  if (profile.starts_with("qir"))
+    cudaq::opt::addQIRProfilePipeline(pm, profile, /*performPrep=*/false);
 }
 
 // Pipeline option: let the user specify the profile name.

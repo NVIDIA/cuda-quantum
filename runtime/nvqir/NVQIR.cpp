@@ -37,6 +37,14 @@ thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
+// The following maps are used to map Qubits to Results, and Results to boolean
+// values. The pointer values may be integers if they are referring to Base
+// Profile or Adaptive Profile QIR programs, so it is generally not safe to
+// dereference them.
+static thread_local std::map<Qubit *, Result *> measQB2Res;
+static thread_local std::map<Result *, Qubit *> measRes2QB;
+static thread_local std::map<Result *, Result> measRes2Val;
+
 /// @brief Provide a holder for externally created
 /// CircuitSimulator pointers (like from Python) that
 /// will invoke clone on the simulator when requested, which
@@ -123,7 +131,10 @@ std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
   for (std::size_t i = 0; i < arr->size(); i++) {
     auto arrayPtr = (*arr)[i];
     Qubit *idxVal = *reinterpret_cast<Qubit **>(arrayPtr);
-    ret.push_back(idxVal->idx);
+    if (qubitPtrIsIndex)
+      ret.push_back((intptr_t)idxVal);
+    else
+      ret.push_back(idxVal->idx);
   }
   return ret;
 }
@@ -201,6 +212,16 @@ extern "C" {
 
 void print_i64(const char *msg, std::size_t i) { printf(msg, i); }
 void print_f64(const char *msg, double f) { printf(msg, f); }
+
+/// @brief Return whether or not the NVQIR runtime is running with dynamic qubit
+/// management (qubits are pointers) or not (qubits are integers).
+bool __quantum__rt__is_dynamic_qubit_management() { return !qubitPtrIsIndex; }
+
+/// @brief Set whether or not the NVQIR runtime is running with dynamic qubit
+/// management (qubits are pointers) or not (qubits are integers).
+void __quantum__rt__set_dynamic_qubit_management(bool isDynamic) {
+  qubitPtrIsIndex = !isDynamic;
+}
 
 /// @brief QIR Initialization function
 void __quantum__rt__initialize(int argc, int8_t **argv) {
@@ -478,6 +499,10 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
 }
 
+void __quantum__qis__phased_rx__body(double theta, double phi, Qubit *q) {
+  __quantum__qis__phased_rx(theta, phi, q);
+}
+
 auto u3_matrix = [](double theta, double phi, double lambda) {
   std::complex<double> i(0, 1.);
   std::vector<std::complex<double>> matrix{
@@ -523,6 +548,8 @@ void __quantum__qis__reset(Qubit *q) {
   nvqir::getCircuitSimulatorInternal()->resetQubit(qI);
 }
 
+void __quantum__qis__reset__body(Qubit *q) { __quantum__qis__reset(q); }
+
 Result *__quantum__qis__mz(Qubit *q) {
   auto qI = qubitToSizeT(q);
   ScopedTraceWithContext("NVQIR::mz", qI);
@@ -530,19 +557,21 @@ Result *__quantum__qis__mz(Qubit *q) {
   return b ? ResultOne : ResultZero;
 }
 
-Result *__quantum__qis__mz__body(Qubit *q) {
+Result *__quantum__qis__mz__body(Qubit *q, Result *r) {
+  measQB2Res[q] = r;
+  measRes2QB[r] = q;
   auto qI = qubitToSizeT(q);
   ScopedTraceWithContext("NVQIR::mz", qI);
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, "");
+  measRes2Val[r] = b;
   return b ? ResultOne : ResultZero;
 }
 
 bool __quantum__qis__read_result__body(Result *result) {
-  // TODO: implement post-measurement result retrieval. This is not needed for
-  // typical simulator operation (other than to have it defined), but it may be
-  // useful in the future.
-  // https://github.com/NVIDIA/cuda-quantum/issues/758
-  ScopedTraceWithContext("NVQIR::read_result (stubbed out)");
+  ScopedTraceWithContext("NVQIR::read_result");
+  auto iter = measRes2Val.find(result);
+  if (iter != measRes2Val.end())
+    return iter->second;
   return ResultZeroVal;
 }
 
@@ -567,7 +596,11 @@ void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
   return;
 }
 
-void __quantum__rt__result_record_output(Result *, int8_t *) {}
+void __quantum__rt__result_record_output(Result *r, int8_t *name) {
+  if (name && qubitPtrIsIndex)
+    __quantum__qis__mz__to__register(measRes2QB[r],
+                                     reinterpret_cast<const char *>(name));
+}
 
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,
                                     Array *controls, Array *targets) {
@@ -830,6 +863,14 @@ void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits) {
       }
     }
   }
+}
+
+/// @brief Cleanup an result maps at the end of a QIR program to avoid leaking
+/// results into the next program.
+void __quantum__rt__clear_result_maps() {
+  measQB2Res.clear();
+  measRes2QB.clear();
+  measRes2Val.clear();
 }
 
 /// @brief Utility function used by Quake->QIR to pack a single Qubit pointer
