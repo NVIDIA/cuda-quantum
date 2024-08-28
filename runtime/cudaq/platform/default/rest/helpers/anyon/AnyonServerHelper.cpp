@@ -36,7 +36,7 @@ protected:
   /// @brief The base URL
   std::string baseUrl = "http://127.0.0.1:5000"; //"https://qapi.anyoncomputing.com/";
   /// @brief The machine we are targeting
-  std::string machine = "telegraph-8q";
+  std::string machine = "telegraph-35q";//"telegraph-8q";
   /// @brief Time string, when the last tokens were retrieved
   std::string timeStr = "";
   /// @brief The refresh token

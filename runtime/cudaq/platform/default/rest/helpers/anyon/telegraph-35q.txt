@@ -1,0 +1,57 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# The format of the file is as follows:
+# 1. You must specify the number of nodes
+Number of nodes: 35
+
+# 2. Specifying the number of edges is optional
+Number of edges: ?
+
+# 3. For each node, list the connections as:
+# <NodeNumber> --> { <ConnectedNode1>, <ConnectedNode2>, ... }
+# Notes:
+# - Node numbers are 0-based
+# - Each node's info must be entirely on one line.
+# - The nodes and lines do not have to be in order.
+# - Connections are assumed to be bidirectional.
+# - Any duplicates will be automatically removed.
+# Theoretical connectivity for Toshiko. Reality is 32 of 35 will be enabled.
+0 --> {1, 9}
+1 --> {2, 8}
+2 --> {3}
+3 --> {4}
+4 --> {7, 5}
+5 --> {6}
+6 --> {15}
+7 --> {14}
+8 --> {11}
+9 --> {10}
+10 --> {18}
+11 --> {12}
+12 --> {13}
+13 --> {17, 14}
+15 --> {16}
+16 --> {24}
+17 --> {21}
+18 --> {19}
+19 --> {28}
+20 --> {21}
+20 --> {27}
+21 --> {22}
+23 --> {26}
+24 --> {25}
+25 --> {34}
+26 --> {33}
+27 --> {30}
+28 --> {29}
+29 --> {30}
+30 --> {31}
+31 --> {32}
+32 --> {33}
+33 --> {34}

@@ -8,6 +8,7 @@
 target_sources(cudaq-rest-qpu PRIVATE AnyonServerHelper.cpp)
 add_target_config(anyon)
 add_target_mapping_arch(anyon telegraph-8q.txt)
+add_target_mapping_arch(anyon telegraph-35q.txt)
 
 add_library(cudaq-serverhelper-anyon SHARED AnyonServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-anyon
