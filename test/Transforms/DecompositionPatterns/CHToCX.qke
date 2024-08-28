@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CHToCX})' %s | FileCheck %s
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CHToCX})' %s | CircuitCheck %s
-
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=CHToCX})' %s | FileCheck --check-prefix=VALUE %s
 
 // The FileCheck part of this test only cares about the sequence of operations.
 // Correcteness is checked by CircuitCheck.
@@ -19,3 +19,20 @@ func.func @test(%control: !quake.ref, %target: !quake.ref) {
   quake.h [%control] %target : (!quake.ref, !quake.ref) -> ()
   return
 }
+
+// VALUE-LABEL:   func.func @test(
+// VALUE-SAME:                    %[[VAL_0:.*]]: !quake.ref,
+// VALUE-SAME:                    %[[VAL_1:.*]]: !quake.ref) {
+// VALUE:           %[[VAL_2:.*]] = quake.unwrap %[[VAL_1]] : (!quake.ref) -> !quake.wire
+// VALUE:           %[[VAL_3:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
+// VALUE:           %[[VAL_4:.*]] = quake.s %[[VAL_2]] : (!quake.wire) -> !quake.wire
+// VALUE:           %[[VAL_5:.*]] = quake.h %[[VAL_4]] : (!quake.wire) -> !quake.wire
+// VALUE:           %[[VAL_6:.*]] = quake.t %[[VAL_5]] : (!quake.wire) -> !quake.wire
+// VALUE:           %[[VAL_7:.*]]:2 = quake.x {{\[}}%[[VAL_3]]] %[[VAL_6]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// VALUE:           %[[VAL_8:.*]] = quake.t<adj> %[[VAL_7]]#1 : (!quake.wire) -> !quake.wire
+// VALUE:           %[[VAL_9:.*]] = quake.h %[[VAL_8]] : (!quake.wire) -> !quake.wire
+// VALUE:           %[[VAL_10:.*]] = quake.s<adj> %[[VAL_9]] : (!quake.wire) -> !quake.wire
+// VALUE:           quake.wrap %[[VAL_7]]#0 to %[[VAL_0]] : !quake.wire, !quake.ref
+// VALUE:           quake.wrap %[[VAL_10]] to %[[VAL_1]] : !quake.wire, !quake.ref
+// VALUE:           return
+// VALUE:         }
