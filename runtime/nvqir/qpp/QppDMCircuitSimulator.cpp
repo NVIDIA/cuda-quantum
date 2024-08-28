@@ -160,7 +160,7 @@ protected:
 
     // Get the Kraus channels specified for this gate and qubits
     auto krausChannels = executionContext->noiseModel->get_channels(
-        gName, controls, targets, params);
+        gName, targets, controls, params);
 
     // If none, do nothing
     if (krausChannels.empty())

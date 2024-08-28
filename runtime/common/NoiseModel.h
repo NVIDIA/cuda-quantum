@@ -191,6 +191,10 @@ protected:
   // names to a Kraus channel applied after the operation is applied.
   NoiseModelOpMap noiseModel;
 
+  /// @brief Gate identity for a match-all condition.
+  // In this case, it will match an operation with any qubits.
+  // The controlled versions of a gate are tracked by the number of control
+  // qubits.
   struct GateIdentifier {
     std::string name;
     std::size_t numControls;
@@ -215,16 +219,14 @@ protected:
   using DefaultNoiseModelOpMap =
       std::unordered_map<GateIdentifier, std::vector<kraus_channel>,
                          GateIdentifierHash>;
+  /// @brief  Matched-all noise channel map
   DefaultNoiseModelOpMap defaultNoiseModel;
-  
-  
+
+  /// @brief Noise model by callback function map
   std::unordered_map<std::string, PredicateFuncTy> gatePredicates;
-  
-  
+
   static constexpr const char *availableOps[] = {
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1", "u3"};
-
- 
 
 public:
   /// @brief default constructor
@@ -232,8 +234,11 @@ public:
 
   /// @brief Return true if there are no kraus_channels in this noise model.
   /// @return
-  bool empty() const { return noiseModel.empty(); }
-  
+  bool empty() const {
+    return noiseModel.empty() && defaultNoiseModel.empty() &&
+           gatePredicates.empty();
+  }
+
   /// @brief Add the Kraus channel to the specified one-qubit quantum
   /// operation. It applies to the quantumOp operation for the specified
   /// qubits in the kraus_channel.
@@ -303,30 +308,18 @@ public:
   // that exists for the same quantumOp and qubits.
   std::vector<kraus_channel>
   get_channels(const std::string &quantumOp,
-               const std::vector<std::size_t> &qubits) const;
-
-  /// @brief Get all kraus_channels on the given qubits
-  template <typename QuantumOp>
-  std::vector<kraus_channel>
-  get_channels(const std::vector<std::size_t> &qubits) const {
-    QuantumOp op;
-    return get_channels(op.name, qubits);
-  }
-  
-  std::vector<kraus_channel>
-  get_channels(const std::string &quantumOp,
-               const std::vector<std::size_t> &controlQubits,
                const std::vector<std::size_t> &targetQubits,
+               const std::vector<std::size_t> &controlQubits = {},
                const std::vector<double> &params = {}) const;
 
   /// @brief Get all kraus_channels on the given qubits
   template <typename QuantumOp>
   std::vector<kraus_channel>
-  get_channels(const std::vector<std::size_t> &controlQubits,
-               const std::vector<std::size_t> &targetQubits,
+  get_channels(const std::vector<std::size_t> &targetQubits,
+               const std::vector<std::size_t> &controlQubits = {},
                const std::vector<double> &params = {}) const {
     QuantumOp op;
-    return get_channels(op.name, controlQubits, targetQubits, params);
+    return get_channels(op.name, targetQubits, controlQubits, params);
   }
 };
 

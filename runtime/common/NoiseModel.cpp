@@ -100,9 +100,9 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
 std::vector<kraus_op> kraus_channel::get_ops() { return ops; }
 void kraus_channel::push_back(kraus_op op) { ops.push_back(op); }
 
-void noise_model::add_channel(
-    const std::string &quantumOp, const std::vector<std::size_t> &qubits,
-    const kraus_channel &channel) {
+void noise_model::add_channel(const std::string &quantumOp,
+                              const std::vector<std::size_t> &qubits,
+                              const kraus_channel &channel) {
 
   if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
       std::end(availableOps))
@@ -135,8 +135,9 @@ void noise_model::add_channel(
   iter->second.push_back(channel);
 }
 
-void noise_model::add_all_qubit_channel(
-    const std::string &quantumOp, const kraus_channel &channel, int numControls) {
+void noise_model::add_all_qubit_channel(const std::string &quantumOp,
+                                        const kraus_channel &channel,
+                                        int numControls) {
   if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
       std::end(availableOps))
     throw std::runtime_error(
@@ -179,22 +180,8 @@ void noise_model::add_channel(const std::string &quantumOp,
 
 std::vector<kraus_channel>
 noise_model::get_channels(const std::string &quantumOp,
-                          const std::vector<std::size_t> &qubits) const {
-  auto key = std::make_pair(quantumOp, qubits);
-  auto iter = noiseModel.find(key);
-  if (iter == noiseModel.end()) {
-    cudaq::info("No kraus_channel available for {} on {}.", quantumOp, qubits);
-    return {};
-  }
-
-  cudaq::info("Found kraus_channel for {} on {}.", quantumOp, qubits);
-  return iter->second;
-}
-
-std::vector<kraus_channel>
-noise_model::get_channels(const std::string &quantumOp,
-                          const std::vector<std::size_t> &controlQubits,
                           const std::vector<std::size_t> &targetQubits,
+                          const std::vector<std::size_t> &controlQubits,
                           const std::vector<double> &params) const {
   std::vector<std::size_t> qubits{controlQubits.begin(), controlQubits.end()};
   qubits.insert(qubits.end(), targetQubits.begin(), targetQubits.end());
@@ -207,56 +194,57 @@ noise_model::get_channels(const std::string &quantumOp,
             [dim](const auto &channel) { return channel.dimension() == dim; });
       };
 
-  {
-    // Search qubit-specific noise settings
-    auto key = std::make_pair(quantumOp, qubits);
-    auto iter = noiseModel.find(key);
-    // Note: we've validated the channel dimension in the 'add_channel' method.
-    if (iter != noiseModel.end()) {
-      cudaq::info("Found kraus_channel for {} on {}.", quantumOp, qubits);
-      return iter->second;
-    }
+  std::vector<kraus_channel> resultChannels;
+  // Search qubit-specific noise settings
+  auto key = std::make_pair(quantumOp, qubits);
+  auto iter = noiseModel.find(key);
+  // Note: we've validated the channel dimension in the 'add_channel' method.
+  if (iter != noiseModel.end()) {
+    cudaq::info("Found kraus_channel for {} on {}.", quantumOp, qubits);
+    const auto &krausChannel = iter->second;
+    resultChannels.insert(resultChannels.end(), krausChannel.begin(),
+                          krausChannel.end());
   }
 
-  {
-    // Look up default noise channel
-    GateIdentifier key(quantumOp, controlQubits.size());
-    auto iter = defaultNoiseModel.find(key);
-    if (iter != defaultNoiseModel.end()) {
-      cudaq::info(
-          "Found default kraus_channel setting for {} with {} control bits.",
-          quantumOp, controlQubits.size());
+  // Look up default noise channel
+  auto defaultIter =
+      defaultNoiseModel.find(GateIdentifier(quantumOp, controlQubits.size()));
+  if (defaultIter != defaultNoiseModel.end()) {
+    cudaq::info(
+        "Found default kraus_channel setting for {} with {} control bits.",
+        quantumOp, controlQubits.size());
 
-      if (!verifyChannelDimension(iter->second))
-        throw std::runtime_error(
-            fmt::format("Dimension mismatch: all-qubit kraus_channel with for "
-                        "{} with {} control qubits encountered unexpected "
-                        "kraus operator dimension (expecting dimension of {}).",
-                        quantumOp, controlQubits.size(), 1UL << qubits.size()));
+    if (!verifyChannelDimension(defaultIter->second))
+      throw std::runtime_error(
+          fmt::format("Dimension mismatch: all-qubit kraus_channel with for "
+                      "{} with {} control qubits encountered unexpected "
+                      "kraus operator dimension (expecting dimension of {}).",
+                      quantumOp, controlQubits.size(), 1UL << qubits.size()));
 
-      return iter->second;
-    }
+    const auto &krausChannel = defaultIter->second;
+    resultChannels.insert(resultChannels.end(), krausChannel.begin(),
+                          krausChannel.end());
   }
 
-  {
-    // Look up predicate-specific noise settings
-    auto iter = gatePredicates.find(quantumOp);
-    if (iter != gatePredicates.end()) {
-      cudaq::info("Found callback kraus_channel setting for {}.", quantumOp);
-      const auto krausChannel = iter->second(qubits, params);
-      if (!verifyChannelDimension({krausChannel}))
-        throw std::runtime_error(fmt::format(
-            "Dimension mismatch: kraus_channel with for "
-            "{} on qubits {} with gate parameters {} encountered unexpected "
-            "kraus operator dimension (expecting dimension of {}, got {}).",
-            quantumOp, qubits, params, 1UL << qubits.size(),
-            krausChannel.dimension()));
+  // Look up predicate-specific noise settings
+  auto predIter = gatePredicates.find(quantumOp);
+  if (predIter != gatePredicates.end()) {
+    cudaq::info("Found callback kraus_channel setting for {}.", quantumOp);
+    const auto krausChannel = predIter->second(qubits, params);
+    if (!verifyChannelDimension({krausChannel}))
+      throw std::runtime_error(fmt::format(
+          "Dimension mismatch: kraus_channel with for "
+          "{} on qubits {} with gate parameters {} encountered unexpected "
+          "kraus operator dimension (expecting dimension of {}, got {}).",
+          quantumOp, qubits, params, 1UL << qubits.size(),
+          krausChannel.dimension()));
 
-      return {krausChannel};
-    }
+    resultChannels.emplace_back(krausChannel);
   }
 
-  cudaq::info("No kraus_channel available for {} on {}.", quantumOp, qubits);
-  return {};
+  if (resultChannels.empty())
+    cudaq::info("No kraus_channel available for {} on {}.", quantumOp, qubits);
+
+  return resultChannels;
 }
 } // namespace cudaq
