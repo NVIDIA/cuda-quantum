@@ -138,24 +138,37 @@ void noise_model::add_channel(const std::string &quantumOp,
 void noise_model::add_all_qubit_channel(const std::string &quantumOp,
                                         const kraus_channel &channel,
                                         int numControls) {
-  if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
-      std::end(availableOps))
+  auto actualGateName = quantumOp;
+  if (numControls == 0 && quantumOp.starts_with('c')) {
+    // Infer the number of control bits from gate name (with 'c' prefixes)
+    // Note: We only support up to 2 control bits using this notation, e.g.,
+    // 'cx', 'ccx'. Users will need to use the numControls parameter for more
+    // complex cases.
+    numControls = quantumOp.starts_with("cc") ? 2 : 1;
+    actualGateName = quantumOp.substr(numControls);
+    if (actualGateName.starts_with('c'))
+      throw std::runtime_error(
+          "Controlled gates with more than 2 control bits must be specified "
+          "using the numControls parameter.");
+  }
+
+  if (std::find(std::begin(availableOps), std::end(availableOps),
+                actualGateName) == std::end(availableOps))
     throw std::runtime_error(
         "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
-
-  GateIdentifier key(quantumOp, numControls);
+  GateIdentifier key(actualGateName, numControls);
   auto iter = defaultNoiseModel.find(key);
   if (iter == defaultNoiseModel.end()) {
     cudaq::info("Adding new all-qubit kraus_channel to noise_model ({}, number "
                 "of control bits = {})",
-                quantumOp, numControls);
+                actualGateName, numControls);
     defaultNoiseModel.insert({key, {channel}});
     return;
   }
 
   cudaq::info("kraus_channel existed for {}, adding new kraus_channel to "
               "noise_model (number of control bits = {})",
-              quantumOp, numControls);
+              actualGateName, numControls);
 
   iter->second.push_back(channel);
 }
@@ -190,8 +203,9 @@ noise_model::get_channels(const std::string &quantumOp,
         auto nQubits = qubits.size();
         auto dim = 1UL << nQubits;
         return std::all_of(
-            channels.begin(), channels.end(),
-            [dim](const auto &channel) { return channel.dimension() == dim; });
+            channels.begin(), channels.end(), [dim](const auto &channel) {
+              return channel.empty() || channel.dimension() == dim;
+            });
       };
 
   std::vector<kraus_channel> resultChannels;
@@ -238,8 +252,8 @@ noise_model::get_channels(const std::string &quantumOp,
           "kraus operator dimension (expecting dimension of {}, got {}).",
           quantumOp, qubits, params, 1UL << qubits.size(),
           krausChannel.dimension()));
-
-    resultChannels.emplace_back(krausChannel);
+    if (!krausChannel.empty())
+      resultChannels.emplace_back(krausChannel);
   }
 
   if (resultChannels.empty())
