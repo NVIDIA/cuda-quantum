@@ -110,11 +110,11 @@ struct BasisConversion
     }
 
     // First, we walk the whole module in search for controlled `quake.apply`
-    // operations: If present, we conservatively don't do any decompositions. We
+    // operations: If present, we conservatively don't do any decompostions. We
     // also collect quantum kernels.
     //
-    // TODO: Evaluate if preventing decomposition when there is at least one
-    // controlled `quake.apply` in the whole module is too conservative.
+    // TODO: Evaluate if preventing decompostion when there is at least one
+    // controlled `quake.apply` in the whole module is too convervative.
     SmallVector<Operation *, 16> kernels;
     auto walkResult = module.walk([&kernels](Operation *op) {
       // Check if it is a quantum kernel

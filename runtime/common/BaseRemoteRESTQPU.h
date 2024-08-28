@@ -297,7 +297,6 @@ public:
     passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
                          allowEarlyExitSetting + "}," + passPipelineConfig;
 
-    // FIXME - is this dead code?
     if (getEnvBool("DISABLE_QUBIT_MANAGEMENT", false)) {
       // Remove the qubit-management-pipeline if present
       // TODO: what if run-qubit-management already set to false?

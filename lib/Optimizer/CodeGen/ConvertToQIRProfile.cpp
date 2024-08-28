@@ -62,7 +62,6 @@ static std::optional<std::int64_t> sliceLowerBound(Operation *op) {
 
 namespace {
 struct FunctionAnalysisData {
-  // TODO - nQubits should be calculated using the size of the WireSet.
   std::size_t nQubits = 0;
   std::size_t nResults = 0;
   // Store by result to prevent collisions on a single qubit having
@@ -71,10 +70,6 @@ struct FunctionAnalysisData {
   // Use std::map to keep these sorted in ascending order. While this isn't
   // required, it makes viewing the QIR easier.
   std::map<std::size_t, std::pair<std::size_t, std::string>> resultQubitVals;
-
-  // If the qubit-mapping pass has run, store the mapping_reorder_idx attribute
-  // here.
-  std::vector<std::size_t> mapping_reorder_idx;
 
   // resultOperation[QIR Result Number] = corresponding measurement op
   DenseMap<std::size_t, Operation *> resultOperation;
@@ -106,15 +101,6 @@ private:
     if (!funcOp)
       return;
     FunctionAnalysisData data;
-    if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
-            funcOp->getAttr("mapping_reorder_idx"))) {
-      data.mapping_reorder_idx.resize(mappingAttr.size());
-      std::transform(mappingAttr.begin(), mappingAttr.end(),
-                     data.mapping_reorder_idx.begin(),
-                     [](mlir::Attribute attr) {
-                       return mlir::cast<mlir::IntegerAttr>(attr).getInt();
-                     });
-    }
     funcOp->walk([&](LLVM::CallOp callOp) {
       StringRef funcName = callOp.getCalleeAttr().getValue();
 
@@ -225,7 +211,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     rewriter.startRootUpdate(op);
     const auto &info = iter->second;
     nlohmann::json resultQubitJSON{info.resultQubitVals};
-    nlohmann::json mapping_reorder_idx(info.mapping_reorder_idx);
     bool isAdaptive = convertTo == "qir-adaptive";
     const char *profileName = isAdaptive ? "adaptive_profile" : "base_profile";
 
@@ -267,10 +252,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
             // TODO: change to required_num_results once providers support it
             // (issues #385 and #556)
             {cudaq::opt::QIRRequiredResultsAttrName, requiredResultsStrRef})};
-
-    if (!info.mapping_reorder_idx.empty())
-      attrArray.push_back(rewriter.getStrArrayAttr(
-          {"mapping_reorder_idx", mapping_reorder_idx.dump()}));
 
     op.setPassthroughAttr(rewriter.getArrayAttr(attrArray));
 

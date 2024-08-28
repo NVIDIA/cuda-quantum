@@ -678,8 +678,6 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createConvertToQIR());
   if (profile.starts_with("qir"))
     cudaq::opt::addQIRProfilePipeline(pm, profile, /*performPrep=*/false);
-  // else
-  //   cudaq::opt::addQIRProfilePipeline(pm, "qir-base", /*performPrep=*/false);
 }
 
 // Pipeline option: let the user specify the profile name.
