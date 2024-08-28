@@ -128,7 +128,8 @@ jobs:
             # nested_vectors: related to vector of pauli_words (https://github.com/NVIDIA/cuda-quantum/issues/1957)
             # custom_operation: https://github.com/NVIDIA/cuda-quantum/issues/1985
             # return_values: only supported in 0.8 NVQC service.
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"state_overlap"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"pauli_word"* ]] && [[ "$filename" != *"custom_operation"* ]] && [[ "$filename" != *"return_values"* ]]; then
+            # state_init: only supported in 0.8 NVQC service.
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"state_overlap"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"pauli_word"* ]] && [[ "$filename" != *"custom_operation"* ]] && [[ "$filename" != *"return_values"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs

@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --qubit-mapping=device=path --delay-measurements %s | FileCheck %s
+// RUN: cudaq-opt --qubit-mapping=device=path\(5\) --delay-measurements %s | FileCheck %s
 // RUN: cudaq-opt --qubit-mapping=device=ring\(5\) --delay-measurements %s | FileCheck --check-prefix RING %s
 // RUN: cudaq-opt --qubit-mapping=device=grid\(3,3\) --delay-measurements %s | FileCheck --check-prefix GRID %s
 // RUN: cudaq-opt --qubit-mapping=device=star\(5\) --delay-measurements %s | FileCheck --check-prefix STAR50 %s
@@ -14,12 +14,13 @@
 // RUN: cudaq-opt --qubit-mapping=device=star\(5,2\) --delay-measurements %s | FileCheck --check-prefix STAR52 %s
 
 module {
+  quake.wire_set @wires[2147483647]
   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-    %0 = quake.null_wire
-    %1 = quake.null_wire
-    %2 = quake.null_wire
-    %3 = quake.null_wire
-    %4 = quake.null_wire
+    %0 = quake.borrow_wire @wires[0] : !quake.wire
+    %1 = quake.borrow_wire @wires[1] : !quake.wire
+    %2 = quake.borrow_wire @wires[2] : !quake.wire
+    %3 = quake.borrow_wire @wires[3] : !quake.wire
+    %4 = quake.borrow_wire @wires[4] : !quake.wire
     %5 = quake.x %1 : (!quake.wire) -> !quake.wire
     %6 = quake.x %2 : (!quake.wire) -> !quake.wire
     %7 = quake.x %3 : (!quake.wire) -> !quake.wire
@@ -86,21 +87,21 @@ module {
     %bits_4 = quake.discriminate %bit_4 : (!quake.measure) -> i1
     %58 = cc.compute_ptr %54[3] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
     cc.store %bits_4, %58 : !cc.ptr<i1>
-    quake.sink %53 : !quake.wire
-    quake.sink %wires : !quake.wire
-    quake.sink %wires_1 : !quake.wire
-    quake.sink %wires_3 : !quake.wire
-    quake.sink %wires_5 : !quake.wire
+    quake.return_wire %53 : !quake.wire
+    quake.return_wire %wires : !quake.wire
+    quake.return_wire %wires_1 : !quake.wire
+    quake.return_wire %wires_3 : !quake.wire
+    quake.return_wire %wires_5 : !quake.wire
     return
   }
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [1, 0, 2, 3], mapping_v2p = [2, 1, 0, 3, 4], no_this} {
-// CHECK:           %[[VAL_0:.*]] = quake.null_wire
-// CHECK:           %[[VAL_1:.*]] = quake.null_wire
-// CHECK:           %[[VAL_2:.*]] = quake.null_wire
-// CHECK:           %[[VAL_3:.*]] = quake.null_wire
-// CHECK:           %[[VAL_4:.*]] = quake.null_wire
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:           %[[VAL_1:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:           %[[VAL_2:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:           %[[VAL_3:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:           %[[VAL_4:.*]] = quake.borrow_wire @mapped_wireset
 // CHECK:           %[[VAL_5:.*]] = quake.x %[[VAL_1]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_6:.*]] = quake.x %[[VAL_2]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_7:.*]] = quake.x %[[VAL_3]] : (!quake.wire) -> !quake.wire
@@ -162,23 +163,23 @@ module {
 // CHECK:           %[[VAL_63:.*]] = quake.t %[[VAL_62]]#1 : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_64:.*]] = quake.t %[[VAL_62]]#0 : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_65:.*]] = quake.h %[[VAL_59]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.sink %[[VAL_65]] : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_65]] : !quake.wire
 // CHECK:           %[[VAL_66:.*]], %[[VAL_67:.*]] = quake.mz %[[VAL_64]] name "result%[[VAL_0]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_68:.*]] = quake.discriminate %[[VAL_66]] : (!quake.measure) -> i1
 // CHECK:           cc.store %[[VAL_68]], %[[VAL_12]] : !cc.ptr<i1>
-// CHECK:           quake.sink %[[VAL_67]] : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_67]] : !quake.wire
 // CHECK:           %[[VAL_69:.*]], %[[VAL_70:.*]] = quake.mz %[[VAL_63]] name "result%[[VAL_1]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_71:.*]] = quake.discriminate %[[VAL_69]] : (!quake.measure) -> i1
 // CHECK:           cc.store %[[VAL_71]], %[[VAL_13]] : !cc.ptr<i1>
-// CHECK:           quake.sink %[[VAL_70]] : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_70]] : !quake.wire
 // CHECK:           %[[VAL_72:.*]], %[[VAL_73:.*]] = quake.mz %[[VAL_47]] name "result%[[VAL_2]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_74:.*]] = quake.discriminate %[[VAL_72]] : (!quake.measure) -> i1
 // CHECK:           cc.store %[[VAL_74]], %[[VAL_14]] : !cc.ptr<i1>
-// CHECK:           quake.sink %[[VAL_73]] : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_73]] : !quake.wire
 // CHECK:           %[[VAL_75:.*]], %[[VAL_76:.*]] = quake.mz %[[VAL_42]]#0 name "result%[[VAL_3]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_77:.*]] = quake.discriminate %[[VAL_75]] : (!quake.measure) -> i1
 // CHECK:           cc.store %[[VAL_77]], %[[VAL_15]] : !cc.ptr<i1>
-// CHECK:           quake.sink %[[VAL_76]] : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_76]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
 

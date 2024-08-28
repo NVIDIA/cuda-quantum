@@ -10,7 +10,7 @@ ARG base_image=redhat/ubi8:8.0
 ARG base_image_mpibuild=amd64/almalinux:8
 
 # [OpenMPI Installation]
-FROM ${base_image_mpibuild} as mpibuild
+FROM ${base_image_mpibuild} AS mpibuild
 ARG base_image_mpibuild
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive

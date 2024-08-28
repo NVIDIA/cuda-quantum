@@ -421,7 +421,7 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
-        opt::ArgumentConverter argCon(kernelName, moduleOp);
+        opt::ArgumentConverter argCon(kernelName, moduleOp, false);
         argCon.gen(rawArgs);
         std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
         mlir::SmallVector<mlir::StringRef> kernels = {kernName};
