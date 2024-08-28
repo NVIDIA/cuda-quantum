@@ -768,12 +768,12 @@ public:
       auto memberArgTy = cast<cudaq::cc::StructType>(
           cudaq::opt::factory::genArgumentBufferType(strTy));
       for (auto iter : llvm::enumerate(strTy.getMembers())) {
-        auto memValPair =
+        auto [a, t] =
             processInputValue(loc, builder, trailingData, subVal, iter.value(),
                               iter.index(), memberArgTy);
-        trailingData = memValPair.second;
-        strVal = builder.create<cudaq::cc::InsertValueOp>(
-            loc, inTy, strVal, memValPair.first, iter.index());
+        trailingData = t;
+        strVal = builder.create<cudaq::cc::InsertValueOp>(loc, inTy, strVal, a,
+                                                          iter.index());
       }
       return {strVal, trailingData};
     }
@@ -848,10 +848,10 @@ public:
       updateQPUKernelAsSRet(builder, funcOp, newFuncTy);
     }
     for (auto inp : llvm::enumerate(funcTy.getInputs())) {
-      auto valPair = processInputValue(loc, builder, trailingData, val,
-                                       inp.value(), inp.index(), structTy);
-      trailingData = valPair.second;
-      args.push_back(valPair.first);
+      auto [a, t] = processInputValue(loc, builder, trailingData, val,
+                                      inp.value(), inp.index(), structTy);
+      trailingData = t;
+      args.push_back(a);
     }
     auto call = builder.create<func::CallOp>(loc, newFuncTy.getResults(),
                                              funcOp.getName(), args);
@@ -1405,20 +1405,21 @@ public:
     // Generate the call to `launchKernel`.
     switch (codegenKind) {
     case 0: {
-      assert(vecArgPtrs && "vector<arg*> must be initialized");
+      assert(vecArgPtrs && castLoadThunk);
       builder.create<func::CallOp>(
           loc, std::nullopt, cudaq::runtime::launchKernelHybridFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
                           extendedStructSize, resultOffset, vecArgPtrs});
     } break;
     case 1: {
+      assert(!vecArgPtrs && castLoadThunk);
       builder.create<func::CallOp>(
           loc, std::nullopt, cudaq::runtime::launchKernelFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
                           extendedStructSize, resultOffset});
     } break;
     case 2: {
-      assert(vecArgPtrs && "vector<arg*> must be initialized");
+      assert(vecArgPtrs && !castLoadThunk);
       builder.create<func::CallOp>(
           loc, std::nullopt, cudaq::runtime::launchKernelStreamlinedFuncName,
           ArrayRef<Value>{castLoadKernName, vecArgPtrs});
