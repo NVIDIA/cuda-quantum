@@ -5,6 +5,7 @@ cudaq.set_target('density-matrix-cpu')
 
 noise = cudaq.NoiseModel()
 
+
 def rx_noise(qubits, params):
     # Model a pulse-length based rotation gate:
     # the bigger the angle, the longer the pulse, i.e., more amplitude damping.
@@ -15,7 +16,9 @@ def rx_noise(qubits, params):
     print(f"Angle = {angle}, amplitude damping rate = {damping_rate}.")
     return cudaq.AmplitudeDampingChannel(damping_rate)
 
+
 noise.add_channel('rx', rx_noise)
+
 
 @cudaq.kernel
 def kernel(angle: float):
