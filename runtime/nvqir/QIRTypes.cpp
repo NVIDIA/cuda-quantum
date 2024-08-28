@@ -73,10 +73,6 @@ std::vector<int64_t> getRangeValues(Array *in_array, const Range &in_range) {
   // Convert to absolute index.
   const auto start_idx = convertIndex(in_range.start);
   const auto end_idx = convertIndex(in_range.end);
-  // start == end
-  if (start_idx == end_idx) {
-    return {end_idx};
-  }
 
   if (is_fwd_range) {
     if (start_idx > end_idx) {
