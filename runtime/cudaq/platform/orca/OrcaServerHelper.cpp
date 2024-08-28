@@ -122,5 +122,4 @@ bool OrcaServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 } // namespace cudaq
 
-// LLVM_INSTANTIATE_REGISTRY(cudaq::orca::OrcaServerHelper::RegistryType)
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::OrcaServerHelper, orca)
