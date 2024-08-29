@@ -22,6 +22,7 @@ add_cudaq_library(OptTransforms
   Decomposition.cpp
   DecompositionPatterns.cpp
   DelayMeasurements.cpp
+  DeleteStates.cpp
   EraseNopCalls.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
