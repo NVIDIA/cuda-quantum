@@ -143,6 +143,16 @@ TEST(SpinOpTester, checkMultiplication) {
   EXPECT_EQ(i(2), i(2) * i(2));
   EXPECT_EQ((i(2) * i(2)).get_coefficient(), std::complex<double>(1, 0));
 
+  std::cout << "I * X: X\n";
+  (i(3) * i(3)).dump();
+  EXPECT_EQ(x(3), i(3) * x(3));
+  EXPECT_EQ((i(3) * x(3)).get_coefficient(), std::complex<double>(1, 0));
+
+  std::cout << "I * Y: Y\n";
+  (i(3) * i(3)).dump();
+  EXPECT_EQ(y(3), i(3) * y(3));
+  EXPECT_EQ((i(3) * y(3)).get_coefficient(), std::complex<double>(1, 0));
+
   std::cout << "I * Z: Z\n";
   (i(3) * i(3)).dump();
   EXPECT_EQ(z(3), i(3) * z(3));

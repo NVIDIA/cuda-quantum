@@ -427,9 +427,11 @@ spin_op &spin_op::operator+=(const spin_op &v) noexcept {
 
   for (auto [term, coeff] : tmpv.terms) {
     auto iter = terms.find(term);
-    if (iter != terms.end())
+    if (iter != terms.end()) {
       iter->second += coeff;
-    else
+      if (std::abs(iter->second) < 1e-12)
+        terms.erase(iter);
+    } else
       terms.emplace(term, coeff);
   }
 
