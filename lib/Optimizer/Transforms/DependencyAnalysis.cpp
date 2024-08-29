@@ -2967,9 +2967,9 @@ public:
     if (auto init = dyn_cast<quake::BorrowWireOp>(op)) {
       newNode = new InitDependencyNode(init);
       vallocs++;
-    } else if (auto sink = dyn_cast<quake::ReturnWireOp>(op))
+    } else if (auto sink = dyn_cast<quake::ReturnWireOp>(op)) {
       newNode = new RootDependencyNode(sink, dependencies);
-    else if (auto ifop = dyn_cast<cudaq::cc::IfOp>(op)) {
+    } else if (auto ifop = dyn_cast<cudaq::cc::IfOp>(op)) {
       freeClassicals[op] = SetVector<ShadowDependencyNode *>();
       ifStack.push_back(op);
       auto then_block = visitBlock(ifop.getThenEntryBlock(), dependencies);
