@@ -126,6 +126,7 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+# Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
 for ex in `find examples/ -name '*.cpp' | sort`;
 do
@@ -266,6 +267,7 @@ mkdir -p $(python3 -m site --user-site)
 # Divisive_clustering.ipynb notebook, so they are tested elsewhere and should be
 # excluded from this test. 
 # Same with afqmc.
+# Note: piping the `find` results through `sort` guarantees repeatable ordering.
 for ex in `find examples/ -name '*.py' -not -path '*/divisive_clustering_src/*' -not -path '*/afqmc_src/*' | sort`;
 do 
     filename=$(basename -- "$ex")
