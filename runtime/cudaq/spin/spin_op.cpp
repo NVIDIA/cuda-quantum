@@ -84,15 +84,15 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
     if (p1_x && p2_x && p2_z && !p1_z) { // X * Y = iZ
       phase += 1;
     } else if (p1_x && p1_z && p2_x && !p2_z) { // Y * X = -iZ
-        phase -= 1;
+      phase -= 1;
     } else if (p1_x && p1_z && !p2_x && p2_z) { // Y * Z = iX
-        phase += 1;
+      phase += 1;
     } else if (!p1_x && p1_z && p2_x && p2_z) { // Z * Y = -iX
-        phase -= 1;
+      phase -= 1;
     } else if (p1_x && !p1_z && p2_z && !p2_x) { // X * Z = -iY
-        phase -= 1;
+      phase -= 1;
     } else if (p1_z && !p1_x && p2_x && !p2_z) { // Z * X = iY
-        phase += 1;
+      phase += 1;
     }
   }
 
@@ -103,7 +103,8 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
 
   std::complex<double> imaginary(0, 1);
   // Phase correction factors based on the total phase
-  std::array<std::complex<double>, 4> phaseCoeffArr{1.0, imaginary, -1.0, -1. * imaginary};
+  std::array<std::complex<double>, 4> phaseCoeffArr{1.0, imaginary, -1.0,
+                                                    -1. * imaginary};
 
   std::complex<double> phase_coeff = phaseCoeffArr[phase];
   // Compute the final coefficient
