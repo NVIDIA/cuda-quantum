@@ -1715,6 +1715,7 @@ protected:
     // TODO: I don't think this can ever be false
     if (!qids.empty())
       llvm::outs() << "QID: " << qids.front() << ", ";
+    llvm::outs() << "argNum: " << argNum << ", ";
     barg.dump();
   }
 
@@ -1997,7 +1998,7 @@ public:
       auto old_barg = argdnodes[i]->barg;
       argdnodes[i]->barg =
           newBlock->addArgument(old_barg.getType(), old_barg.getLoc());
-      assert(argdnodes[i]->barg.getArgNumber() == argdnodes[i]->argNum);
+      assert(i == argdnodes[i]->argNum && "Malformed Block Argument!");
       argdnodes[i]->hasCodeGen = true;
     }
 
@@ -2136,14 +2137,22 @@ public:
   /// Removes the block argument and cleans up the corresponding
   /// ArgDependencyNode for \p qid
   void removeArgument(VirtualQID qid) {
-    for (unsigned i = 0; i < argdnodes.size(); i++)
+    unsigned i = 0;
+    bool found = false;
+    for (; i < argdnodes.size(); i++) {
       if (argdnodes[i]->qids.contains(qid)) {
         delete argdnodes[i];
         argdnodes.erase(argdnodes.begin() + i);
-        return;
+        found = true;
+        break;
       }
+    }
 
-    assert(false && "Could not find argument to remove!");
+    assert(found && "Could not find argument to remove!");
+
+    // Shift the offset of all arguments after the removed one
+    for (; i < argdnodes.size(); i++)
+      argdnodes[i]->argNum--;
   }
 
   std::optional<VirtualQID> getQIDForResult(std::size_t resultidx) {
