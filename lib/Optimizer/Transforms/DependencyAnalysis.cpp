@@ -2634,9 +2634,9 @@ public:
   /// through both the then and else blocks of this `if`
   void eraseEdgeForQID(VirtualQID qid) override {
     // First, calculate which result to remove, but don't remove it yet
-    unsigned i = 0;
-    for (; i < results.size(); i++)
-      if (getQIDForResult(i) == qid)
+    unsigned offset = 0;
+    for (; offset < results.size(); offset++)
+      if (getQIDForResult(offset) == qid)
         break;
 
     // Erase the actual edge with the blocks now set up properly
@@ -2649,14 +2649,14 @@ public:
 
     // Finally, remove the calculated result, which can no longer be calculated
     // because it was removed from the blocks
-    results.erase(results.begin() + i);
+    results.erase(results.begin() + offset);
 
     // Since we're removing a result, update the result indices of successors
     for (auto successor : successors)
-      for (unsigned i = 0; i < successor->dependencies.size(); i++)
-        if (successor->dependencies[i].node == this &&
-            successor->dependencies[i].resultidx >= i)
-          successor->dependencies[i].resultidx--;
+      for (unsigned j = 0; j < successor->dependencies.size(); j++)
+        if (successor->dependencies[j].node == this &&
+            successor->dependencies[j].resultidx >= offset)
+          successor->dependencies[j].resultidx--;
   }
 
   /// Finds and lifts common operations from the then and else branches to the
