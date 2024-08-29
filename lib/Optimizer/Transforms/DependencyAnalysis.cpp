@@ -1589,6 +1589,7 @@ public:
     //       you're trying to remove a qid again. This is currently only used by
     //       contractAllocsPass, so probably was written overly specific for
     //       that use case.
+
     // Ignore already removed qid
     if (allocs.count(qid) == 1)
       allocs.erase(allocs.find(qid));
@@ -2856,6 +2857,13 @@ bool validateOp(Operation *op) {
                     "supported. Function will be skipped");
     return false;
   }
+
+  // TODO: function arguments aren't really supported properly
+  //       in places like `OpDependencyNode::erase` or when handling
+  //       shadow dependencies, especially classical arguments.
+  //       I think function arguments shouldn't be supported and a
+  //       check should be made here, though the above issues could
+  //       be addressed and then they may be supported ok.
 
   return true;
 }
