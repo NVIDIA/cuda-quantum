@@ -293,7 +293,8 @@ private:
 ///     %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
 ///     %1 = quake.alloca !quake.veq<2>
 ///     %2 = quake.init_state %1, %0 : (!quake.veq<2>,
-///       !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2> return
+///       !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+///     return
 ///  }
 ///  cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00),
 ///      (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00),
