@@ -52,6 +52,9 @@ static constexpr const char createCudaqStateFromDataFP64[] =
 static constexpr const char createCudaqStateFromDataFP32[] =
     "__nvqpp_cudaq_state_createFromData_fp32";
 
+// Delete a state created by the runtime functions above.
+static constexpr const char deleteCudaqState[] = "__nvqpp_cudaq_state_delete";
+
 /// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
 /// the transformation of both quantum and classical computation. Different
 /// features of the CUDA-Q programming model are lowered into different dialects
