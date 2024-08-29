@@ -143,6 +143,7 @@ void bindNoiseChannels(py::module &mod) {
                             "The `KrausChannel` is composed of a list of "
                             ":class:`KrausOperator`'s and "
                             "is applied to a specific qubit or set of qubits.")
+      .def(py::init<>(), "Create an empty :class:`KrausChannel`")
       .def(py::init<std::vector<kraus_op>>(),
            "Create a :class:`KrausChannel` composed of a list of "
            ":class:`KrausOperator`'s.")

@@ -459,7 +459,7 @@ CUDAQ_TEST(NoiseTest, checkCallbackChannel) {
   EXPECT_EQ(1, counts.size());
   counts.dump();
   // Noise is applied to all qubits.
-  // All qubits, except q[2], are fliped.
+  // All qubits, except q[2], are flipped.
   EXPECT_NEAR(counts.probability("00100"), 1., .1);
   std::size_t totalShots = 0;
   for (auto &[bitstr, count] : counts)
