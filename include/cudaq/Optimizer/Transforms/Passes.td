@@ -100,7 +100,7 @@ def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
     "mlir::cf::ControlFlowDialect"];
 }
 
-def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
+def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.
