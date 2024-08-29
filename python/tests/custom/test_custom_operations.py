@@ -156,9 +156,22 @@ def test_custom_adjoint():
 def test_incorrect_matrix():
     """Incorrectly sized matrix raises error."""
 
-    with pytest.raises(AssertionError) as error:
-        cudaq.register_operation("invalid_op",
-                                 np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]))
+    with pytest.raises(RuntimeError) as error:
+        cudaq.register_operation("foo", [])
+    assert "invalid matrix size" in repr(error)
+
+    with pytest.raises(RuntimeError) as error:
+        cudaq.register_operation("bar", [1, 0])
+    assert "invalid matrix size" in repr(error)
+
+    with pytest.raises(RuntimeError) as error:
+        cudaq.register_operation("baz", np.array([[1, 0, 0, 0], [1, 0, 0, 1]]))
+    assert "invalid matrix size" in repr(error)
+
+    with pytest.raises(RuntimeError) as error:
+        cudaq.register_operation("qux",
+                                 np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
+    assert "invalid matrix size" in repr(error)
 
 
 def test_bad_attribute():
