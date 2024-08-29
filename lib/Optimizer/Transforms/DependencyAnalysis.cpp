@@ -3198,6 +3198,15 @@ struct DependencyAnalysisPass
         // Finally, perform code generation to move back to quake
         body->codeGen(builder, &func.getRegion(), set);
 
+        // TODO: Various pass statistics are accessible via the following:
+        // * Total number of virtual qubits (included eliminated dead wires):
+        //   `engine.getNumVirtualAllocs()`
+        // * Total number of physical qubits:
+        //   `set.getCount()`
+        // * Total number of cycles (make call before contractAllocsPass and
+        //   after performAnalysis to see before/after):
+        //   `body->getHeight()`
+
         delete body;
         // Replace old block
         oldBlock->erase();
