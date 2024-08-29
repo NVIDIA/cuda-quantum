@@ -6,6 +6,31 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .qis import (h, x, y, z, s, t, rx, ry, rz, r1, mx, my, mz, ch, cx, cy, cz,
-                  cs, ct, crx, cry, crz, cr1, sdg, tdg, swap, exp_pauli,
-                  adjoint, control, compute_action)
+import pytest
+import cudaq
+
+
+def test_qview_zero_length():
+
+    @cudaq.kernel
+    def kernel1(N: int):
+        q = cudaq.qvector(N + N)
+        qv = q[N:]
+        x(qv[0:1])
+
+    counts = cudaq.sample(kernel1, 2)
+    print(counts)
+    assert '0010' in counts
+
+
+def test_qview_non_zero_length():
+
+    @cudaq.kernel
+    def kernel1(N: int):
+        q = cudaq.qvector(N + N)
+        qv = q[N:]
+        x(qv[0:2])
+
+    counts = cudaq.sample(kernel1, 2)
+    print(counts)
+    assert '0011' in counts
