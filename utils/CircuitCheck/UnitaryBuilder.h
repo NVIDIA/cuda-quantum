@@ -36,6 +36,8 @@ private:
 
   mlir::WalkResult visitExtractOp(quake::ExtractRefOp op);
 
+  mlir::WalkResult visitUnwrapOp(quake::UnwrapOp op);
+
   mlir::WalkResult allocateQubits(mlir::Value value);
 
   //===--------------------------------------------------------------------===//
