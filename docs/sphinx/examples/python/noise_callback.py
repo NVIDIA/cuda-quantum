@@ -6,6 +6,7 @@ cudaq.set_target('density-matrix-cpu')
 
 noise = cudaq.NoiseModel()
 
+
 # Noise model callback function
 def rx_noise(qubits, params):
     # Model a pulse-length based rotation gate:
@@ -17,7 +18,8 @@ def rx_noise(qubits, params):
     print(f"Angle = {angle}, amplitude damping rate = {damping_rate}.")
     return cudaq.AmplitudeDampingChannel(damping_rate)
 
-# Bind the noise model callback function to the 'rx' gate
+
+# Bind the noise model callback function to the `rx` gate
 noise.add_channel('rx', rx_noise)
 
 
@@ -34,8 +36,8 @@ noisy_result = cudaq.sample(kernel, np.pi, noise_model=noise)
 print(noisy_result)
 
 # Our results should show measurements in both the |0> and |1> states, indicating
-# that the noise has successfully impacted the system. 
-# Note: a rx(pi) is equivalent to a Pauli X gate, and thus, it should be 
+# that the noise has successfully impacted the system.
+# Note: a `rx(pi)` is equivalent to a Pauli X gate, and thus, it should be
 # in the |1> state if no noise is present.
 
 # To confirm this, we can run the simulation again without noise.
