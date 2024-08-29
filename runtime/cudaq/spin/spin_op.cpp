@@ -115,10 +115,6 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
     final_coeff.real(0);
   }
 
-  if (std::abs(final_coeff.imag()) < 1e-12) {
-    final_coeff.imag(0);
-  }
-
   return std::make_pair(final_coeff, result);
 }
 } // namespace details
