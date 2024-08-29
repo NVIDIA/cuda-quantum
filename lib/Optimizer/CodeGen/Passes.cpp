@@ -17,8 +17,7 @@ using namespace mlir;
 static void addAnyonPPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
-      // TODO: Make this true native gate set of Anyon. WHERE ARE THE NAITIVE 2Q-Gates in the other company's pipeline??? 
-      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "z(1)",
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
   BasisConversionPassOptions options;
   options.basis = basis;
@@ -28,7 +27,6 @@ static void addAnyonPPipeline(OpPassManager &pm) {
 static void addAnyonCPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
-      // TODO: Make this true native gate set of Anyon. WHERE ARE THE NAITIVE 2Q-Gates in the other company's pipeline??? 
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
   BasisConversionPassOptions options;

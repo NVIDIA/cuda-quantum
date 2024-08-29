@@ -36,7 +36,7 @@ protected:
   /// @brief The base URL
   std::string baseUrl = "http://127.0.0.1:5000"; //"https://qapi.anyoncomputing.com/";
   /// @brief The machine we are targeting
-  std::string machine = "telegraph-35q";//"telegraph-8q";
+  std::string machine = "berkeley-25q";//"telegraph-8q";//
   /// @brief Time string, when the last tokens were retrieved
   std::string timeStr = "";
   /// @brief The refresh token
@@ -440,8 +440,16 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey, std::string 
 void AnyonServerHelper::updatePassPipeline(
     const std::filesystem::path &platformPath, std::string &passPipeline) {
       std::string qgate_type = "cgate";
-      if (machine == "oxford-24q"){
+      if (machine.starts_with("berkeley")){
         qgate_type = "pgate";
+        printf("Compiling gates for berkeley\n");
+      }
+      else if (machine.starts_with("telegraph")){
+        qgate_type = "cgate";
+        printf("Compiling gates for telegraph\n");
+      }
+      else{
+        printf("Unidentified machine type %s\n", machine.c_str());
       }
    passPipeline =
       std::regex_replace(passPipeline, std::regex("%Q_GATE%"), qgate_type);
