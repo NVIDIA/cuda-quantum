@@ -59,8 +59,6 @@ std::size_t getOperandIDXFromResultIDX(std::size_t resultidx, Operation *op) {
   // The results for a measure are `(!quake.measure, !quake.wire)`
   if (isa<RAW_MEASURE_OPS>(op))
     return 0;
-  if (isa<quake::SwapOp>(op))
-    return (resultidx == 0 ? 1 : 0);
   // Currently, all classical operands precede all quantum operands
   for (auto type : op->getOperandTypes()) {
     if (!quake::isQuantumType(type))
@@ -79,8 +77,6 @@ std::size_t getResultIDXFromOperandIDX(std::size_t operand_idx, Operation *op) {
   // The results for a measure are `(!quake.measure, !quake.wire)`
   if (isa<RAW_MEASURE_OPS>(op))
     return 1;
-  if (isa<quake::SwapOp>(op))
-    return (operand_idx == 0 ? 1 : 0);
   // Currently, all classical operands precede all quantum operands
   for (auto type : op->getOperandTypes()) {
     if (!quake::isQuantumType(type))
@@ -323,7 +319,7 @@ protected:
   SetVector<VirtualQID> qids;
   std::optional<unsigned> cycle = std::nullopt;
   bool hasCodeGen = false;
-  unsigned height;
+  unsigned height = 0;
 
   virtual void dumpNode() = 0;
 
@@ -984,8 +980,7 @@ public:
 /// and manipulating the DAG.
 class DependencyGraph {
 private:
-  // The set of root nodes in the DAG
-  // TODO: why is this a Set and `leafs` a Map? I don't really remember
+  // The set of root nodes in the DAG (it's a set for repeatable iteration order)
   SetVector<DependencyNode *> roots;
   // Tracks the node for the alloc of each virtual wire allocated in the DAG
   DenseMap<VirtualQID, InitDependencyNode *> allocs;
@@ -999,9 +994,9 @@ private:
   // associated DependencyNode will always be an InitDependencyNode. However, if
   // they were not always lifted, than it may also be a container DependencyNode
   // somewhere inside of which the qubit is allocated.
-  // TODO: if physical wires are not combined, this needs to be a set, as the
-  // same physical qubit can be allocated, used, and de-allocated multiple times
-  // in a graph, which would present problems.
+  // TODO: if physical wires are not combined, this needs to not be a single node,
+  // as the same physical qubit can be allocated, used, and de-allocated multiple
+  // times in a graph, which would present problems.
   DenseMap<PhysicalQID, DependencyNode *> qubits;
   unsigned total_height = 0;
   SetVector<DependencyNode *> containers;
@@ -1520,7 +1515,10 @@ public:
     }
   }
 
-  /// Tells the graph that
+  /// Tells the graph that \p qubit is allocated and used inside \p container.
+  ///
+  /// Currently unused as all \p qubit allocations are lifted from containers,
+  /// but necessary if the implementation did not do that.
   void addPhysicalAllocation(DependencyNode *container, PhysicalQID qubit) {
     assert(containers.contains(container) &&
            "Illegal container in addPhysicalAllocation");
@@ -2448,12 +2446,16 @@ protected:
 
     if (!then_contains) {
       auto new_arg = then_block->addArgument(DependencyEdge{lifted_alloc, 0});
+      // TODO: Should add the qid to the terminator and graph properly here
+      //       although in theory it should never be used
       then_block->getTerminator()->dependencies.push_back(
           DependencyEdge{new_arg, 0});
     }
 
     if (!else_contains) {
       auto new_arg = else_block->addArgument(DependencyEdge{lifted_alloc, 0});
+      // TODO: Should add the qid to the terminator and graph properly here
+      //       although in theory it should never be used
       else_block->getTerminator()->dependencies.push_back(
           DependencyEdge{new_arg, 0});
     }
