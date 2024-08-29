@@ -980,7 +980,8 @@ public:
 /// and manipulating the DAG.
 class DependencyGraph {
 private:
-  // The set of root nodes in the DAG (it's a set for repeatable iteration order)
+  // The set of root nodes in the DAG (it's a set for repeatable iteration
+  // order)
   SetVector<DependencyNode *> roots;
   // Tracks the node for the alloc of each virtual wire allocated in the DAG
   DenseMap<VirtualQID, InitDependencyNode *> allocs;
@@ -994,9 +995,9 @@ private:
   // associated DependencyNode will always be an InitDependencyNode. However, if
   // they were not always lifted, than it may also be a container DependencyNode
   // somewhere inside of which the qubit is allocated.
-  // TODO: if physical wires are not combined, this needs to not be a single node,
-  // as the same physical qubit can be allocated, used, and de-allocated multiple
-  // times in a graph, which would present problems.
+  // TODO: if physical wires are not combined, this needs to not be a single
+  // node, as the same physical qubit can be allocated, used, and de-allocated
+  // multiple times in a graph, which would present problems.
   DenseMap<PhysicalQID, DependencyNode *> qubits;
   unsigned total_height = 0;
   SetVector<DependencyNode *> containers;
@@ -1084,6 +1085,12 @@ private:
   /// used here is a sorted copy of the dependency list. The length of a path
   /// is equal to the height of the node which is metadata present from
   /// construction.
+  ///
+  /// The current implementation of the scheduling algorithm optimizes for
+  /// increased qubit reuse optimizations by minimizing qubit lifetimes.
+  /// An alternative approach could optimize for more circuit-length
+  /// reduction by recognizing lifting opportunities and scheduling operations
+  /// with that in mind.
   ///
   /// \p level is essentially the depth from the tallest point in the graph
   void schedule(SetVector<DependencyNode *> &seen, DependencyNode *next,
@@ -2178,7 +2185,7 @@ protected:
     // again, so lifting `if`s is not a good idea. Also, the equivalence
     // check currently ignores the body of `if`s.
     if (then_use->isContainer())
-     return false;
+      return false;
 
     if (then_use->prefixEquivalentTo(else_use)) {
       // If two nodes are equivalent, all their dependencies will be too,
@@ -2215,7 +2222,7 @@ protected:
     // again, so lifting `if`s is not a good idea. Also, the equivalence
     // check currently ignores the body of `if`s.
     if (then_use->isContainer())
-     return false;
+      return false;
 
     // TODO: probably shouldn't try lifting containers
     // see targettests/execution/qubit_management_bug_lifting_ifs.cpp
@@ -2493,8 +2500,9 @@ protected:
     // Currently, respecting reuse is enforced by combining physical wires.
     // TODO: can combine allocs in much smarter ways, possibly with heuristics,
     // to do a better job of finding lifting opportunities.
-    //       To do so, would need to implement re-indexing (which is pretty
-    //       trivial, an updateQubit function just like updateQID).
+    //       To do so, would need to implement re-indexing (with the current
+    //       implementation using just a single wire per physical qubit, this
+    //       could be done easily with an updateQubit function like updateQID).
   }
 
   void genOp(OpBuilder &builder, LifeTimeAnalysis &set) override {
@@ -3058,10 +3066,10 @@ struct DependencyAnalysisPass
   using DependencyAnalysisBase::DependencyAnalysisBase;
 
   /// DependencyAnalysis constructs a data structure representing the
-  /// quake AST, performs several analyses/optimizations, and then generates
-  /// a new quake AST based on the resulting data structure.
+  /// quake code, performs several analyses/optimizations, and then generates
+  /// new quake code based on the resulting data structure.
   ///
-  /// First, the quake AST is walked, constructing a DependencyBlock for the
+  /// First, the quake code is walked, constructing a DependencyBlock for the
   /// body of every kernel function.
   ///
   /// Next, virtual qubit allocations are lowered to the inner-most scope in
@@ -3070,7 +3078,8 @@ struct DependencyAnalysisPass
   /// within inner scopes, and gives the remaining optimizations more
   /// flexibility.
   ///
-  /// Then, an inside-out analysis/optimization pass is performed, assigning
+  /// Then, an inside-out analysis/optimization pass is performed (see
+  /// `performAnalysis` in `IfDependencyNode` and `DependencyBlock`), assigning
   /// physical qubits to virtual wires, and lifting common optimizations. This
   /// inside-out analysis/optimization pass works as follows:
   /// - Step 1: `if`s inside blocks are resolved (hence inside-out), once an
@@ -3079,20 +3088,25 @@ struct DependencyAnalysisPass
   /// - Step 2: blocks are resolved.
   /// * First the nodes inside them are scheduled, assigning a cycle to every
   ///   node such that each node is scheduled after all of its dependencies, and
-  ///   before all of its successors.
+  ///   before all of its successors (see `DependencyGraph::schedule`).
   /// * Then, physical qubits are allocated and assigned to virtual wires based
   ///   on lifetime information (i.e., which cycles the virtual wire is used
   ///   in). This algorithm treats `if`s as "solid rectangles", where all qubits
   ///   in use anywhere in the `if` are considered in use for the entire `if` by
   ///   the parent scope. In other words, the lifetime analysis does not look
-  ///   inside `if`s.
+  ///   inside `if`s (see `DependencyBlock::allocatePhysicalQubits`).
   /// - Step 3: Once its blocks are resolved, then the parent `if` is resolved.
   /// * First, the allocations from the two inner blocks are combined/matched
-  ///   (respecting reuse within the blocks but with re-indexing allowed).
+  ///   (respecting reuse within the blocks but with re-indexing allowed) (see
+  ///   `IfDependencyNode::combineAllocs`).
   /// * Second, equivalent operations at the beginning/end of the then and else
-  ///   blocks are lifted to the parent context, before/after the `if`.
-  /// - Step 4: return to Step 1 for the parent block the `if` is in, or Step 2
-  ///   if all `if`s in the block have been resolved.
+  ///   blocks are lifted to the parent context, before/after the `if` (see
+  ///   `IfDependencyNode::performLifting`).
+  /// - Step 4: return to Step 1 for the parent block the `if` is in, with an
+  ///   additional inner `if` resolved
+  ///
+  /// Finally, quake code is re-generated based on the resulting
+  /// `DependencyBlock.
   void runOnOperation() override {
     auto mod = getOperation();
 
