@@ -93,6 +93,31 @@ TEST(SpinOpTester, checkMultiplication) {
   auto mult2 = x(3) * tmp;
   mult2.dump();
 
+  std::cout << "X * Y: iZ\n";
+  (x(3) * y(3)).dump();
+  EXPECT_EQ(z(3), x(3) * y(3));
+  EXPECT_EQ((x(3) * y(3)).get_coefficient(), std::complex<double>(0, 1));
+
+  std::cout << "Y * Z: iX\n";
+  (y(3) * z(3)).dump();
+  EXPECT_EQ(x(3), y(3) * z(3));
+  EXPECT_EQ((y(3) * z(3)).get_coefficient(), std::complex<double>(0, 1));
+
+  std::cout << "Z * X: iY\n";
+  (z(3) * x(3)).dump();
+  EXPECT_EQ(y(3), z(3) * x(3));
+  EXPECT_EQ((z(3) * x(3)).get_coefficient(), std::complex<double>(0, 1));
+
+  std::cout << "Y * X: -iZ\n";
+  (y(3) * x(3)).dump();
+  EXPECT_EQ(z(3), y(3) * x(3));
+  EXPECT_EQ((y(3) * x(3)).get_coefficient(), std::complex<double>(0, -1));
+
+  std::cout << "Z * Y: -iX\n";
+  (z(3) * y(3)).dump();
+  EXPECT_EQ(x(3), z(3) * y(3));
+  EXPECT_EQ((z(3) * y(3)).get_coefficient(), std::complex<double>(0, -1));
+
   std::cout << "X * Z: -iY\n";
   (x(3) * z(3)).dump();
   EXPECT_EQ(y(3), x(3) * z(3));
@@ -112,11 +137,6 @@ TEST(SpinOpTester, checkMultiplication) {
   (z(0) * z(0)).dump();
   EXPECT_EQ(cudaq::spin_op(), z(0) * z(0));
   EXPECT_EQ((z(0) * z(0)).get_coefficient(), std::complex<double>(1, 0));
-
-  std::cout << "X * Y: iZ\n";
-  (x(3) * y(3)).dump();
-  EXPECT_EQ(z(3), x(3) * y(3));
-  EXPECT_EQ((x(3) * y(3)).get_coefficient(), std::complex<double>(0, 1));
 
   std::cout << "I * I: I\n";
   (i(2) * i(2)).dump();

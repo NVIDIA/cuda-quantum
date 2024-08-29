@@ -66,7 +66,7 @@ std::pair<std::complex<double>, std::vector<bool>>
 mult(std::vector<bool> row, std::vector<bool> other_row,
      std::complex<double> &rowCoeff, std::complex<double> &otherCoeff) {
   std::size_t numQubits = row.size() / 2;
-  std::vector<bool> result(2 * numQubits);
+  std::vector<bool> result(2 * numQubits, false);
   int phase = 0;
 
   // Calculate the result of teh Pauli multiplication and the phase shift
@@ -81,15 +81,18 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
     result[i + numQubits] = p1_z ^ p2_z;
 
     // Determine the phase contribution based on the Pauli multiplication table
-    // X * Z -> -iY
-    if (p1_x && p2_z)
-      phase -= 1;
-    // Z * X -> iY
-    if (p1_z && p2_x)
+    if (p1_x && p2_x && p2_z && !p1_z) { // X * Y = iZ
       phase += 1;
-    // Y * X or Y * Z -> -Y
-    if (p1_z && p2_z && p1_x != p2_x) {
-      phase += 2;
+    } else if (p1_x && p1_z && p2_x && !p2_z) { // Y * X = -iZ
+        phase -= 1;
+    } else if (p1_x && p1_z && !p2_x && p2_z) { // Y * Z = iX
+        phase += 1;
+    } else if (!p1_x && p1_z && p2_x && p2_z) { // Z * Y = -iX
+        phase -= 1;
+    } else if (p1_x && !p1_z && p2_z && !p2_x) { // X * Z = -iY
+        phase -= 1;
+    } else if (p1_z && !p1_x && p2_x && !p2_z) { // Z * X = iY
+        phase += 1;
     }
   }
 
