@@ -6,12 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// cudaq-opt dependency_if_example_length.qke --add-wireset --assign-wire-indices --dep-analysis
-
-// XFAIL: *
-
-// This is a result of the TODO in liftAlloc here: https://github.com/bmhowe23/cuda-quantum/blob/3879872c5ddcf3aba3d521bd050a118c8fa1dddb/lib/Optimizer/Transforms/DependencyAnalysis.cpp#L2465
-// The check here is failing: https://github.com/bmhowe23/cuda-quantum/blob/3879872c5ddcf3aba3d521bd050a118c8fa1dddb/lib/Optimizer/Transforms/DependencyAnalysis.cpp#L2692
+// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s -split-input-file | FileCheck %s
 
 func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %true = arith.constant true
@@ -54,4 +49,47 @@ func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kerne
 // CHECK:           %[[VAL_13:.*]], %[[VAL_14:.*]] = quake.mz %[[VAL_12]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.return_wire %[[VAL_14]] : !quake.wire
 // CHECK:           return %[[VAL_13]] : !quake.measure
+// CHECK:         }
+
+// -----
+
+func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %true = arith.constant true
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %3:2 = cc.if(%true) ((%arg1 = %2, %arg2 = %1)) -> (!quake.wire, !quake.wire) {
+    %4 = quake.y %arg2 : (!quake.wire) -> !quake.wire
+    %5:2 = quake.x [%4] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %5#1, %5#0: !quake.wire, !quake.wire
+  } else {
+    %4 = quake.z %arg2 : (!quake.wire) -> !quake.wire
+    %5:2 = quake.x [%4] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %5#1, %5#0: !quake.wire, !quake.wire
+  }
+  %measOut, %wires = quake.mz %3#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %wires : !quake.wire
+  quake.sink %3#1 : !quake.wire
+  return %measOut : !quake.measure
+}
+
+// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+
+// CHECK-LABEL:   func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           %[[VAL_1:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_2:.*]] = cc.if(%[[VAL_0]]) ((%[[VAL_3:.*]] = %[[VAL_1]])) -> !quake.wire {
+// CHECK:             %[[VAL_4:.*]] = quake.y %[[VAL_3]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[VAL_4]] : !quake.wire
+// CHECK:           } else {
+// CHECK:             %[[VAL_5:.*]] = quake.z %[[VAL_6:.*]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[VAL_5]] : !quake.wire
+// CHECK:           }
+// CHECK:           %[[VAL_7:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.h %[[VAL_7]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_9:.*]]:2 = quake.x {{\[}}%[[VAL_10:.*]]] %[[VAL_8]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.return_wire %[[VAL_9]]#0 : !quake.wire
+// CHECK:           %[[VAL_11:.*]], %[[VAL_12:.*]] = quake.mz %[[VAL_9]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           quake.return_wire %[[VAL_12]] : !quake.wire
+// CHECK:           return %[[VAL_11]] : !quake.measure
 // CHECK:         }

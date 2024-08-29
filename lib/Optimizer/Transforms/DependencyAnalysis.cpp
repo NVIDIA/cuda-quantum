@@ -1883,6 +1883,7 @@ public:
     for (unsigned i = 0; i < dependencies.size(); i++)
       if (dependencies[i].qid == qid)
         dependencies.erase(dependencies.begin() + i);
+    qids.remove(qid);
   }
 
   std::optional<VirtualQID> getQIDForResult(std::size_t resultidx) override {
@@ -2216,14 +2217,14 @@ protected:
   /// Assumes that \p then_use is from then_block and \p else_use is from
   /// else_block, but this is not checked.
   bool tryLiftingAfter(OpDependencyNode *then_use, OpDependencyNode *else_use) {
+    if (!then_use || !else_use)
+      return false;
+
     // TODO: measure ops are a delicate special case because of the classical
     // measure result. When lifting before, we can lift the discriminate op as
     // well. However, it may have interactions with other classical values, and
     // then be "returned" from the `if`
     if (isa<RAW_MEASURE_OPS>(then_use->associated))
-      return false;
-
-    if (!then_use || !else_use)
       return false;
 
     // The algorithmic logic assumes `if`s are fully resolved once,
@@ -2270,29 +2271,39 @@ protected:
   void liftOpAfter(OpDependencyNode *then_op, OpDependencyNode *else_op) {
     auto newDeps = SmallVector<DependencyEdge>();
     auto allocated = then_block->getAllocatedQubits();
-    assert(then_op->dependencies.size() == then_op->successors.size());
 
-    for (unsigned i = 0; i < then_op->dependencies.size(); i++) {
-      auto dependency = then_op->dependencies[i];
+    unsigned i = 0;
+    while (!then_op->dependencies.empty()) {
+      // Every dependency is erased as it is processed, so we always grab
+      // the front dependency
+      auto dependency = then_op->dependencies.front();
       assert(dependency.qid && "Lifting operations with classical input after "
                                "blocks is not yet supported.");
 
-      // TODO: if allocations are not always lifted, then it is necessarily to
+      // TODO: if allocations are not always lifted, then it is necessary to
       // lift allocations then_op depends on, but only if it is safe to lift.
 
       auto then_qid = dependency.qid.value();
-      // Remove old edge from in this `if`
+      auto then_qubit_opt = dependency.qubit;
+      auto resultidx = then_op->getResultForDependency(i);
+
+      // Remove edge in the `if` body, erases the current dependency too
       then_op->eraseEdgeForQID(then_qid);
+      // Update iterator as number of dependencies has changed
 
       // Add new edge from after this `if`
-      auto resultidx = then_op->getResultForDependency(i);
       auto successor = getSuccessorForQID(then_qid);
       auto idx = successor->getDependencyForQID(then_qid).value();
+
       newDeps.push_back(successor->dependencies[idx]);
       successor->dependencies[idx] = DependencyEdge{then_op, resultidx};
+      successor->dependencies[idx].qid = then_qid;
+      successor->dependencies[idx].qubit = then_qubit_opt;
+      then_op->successors.insert(successor);
 
       // Readd QID
       then_op->qids.insert(then_qid);
+      i++;
     }
 
     successors.insert(then_op);
@@ -2389,6 +2400,8 @@ protected:
 
         // Remove then_op from the route for then_qid inside the block
         then_op->eraseEdgeForQID(dependency.qid.value());
+        // Update iterator as number of dependencies has changed
+        i--;
       } else if (!dependency->isQuantumOp()) {
         newDeps.push_back(dependency);
       } else {
@@ -2449,32 +2462,50 @@ protected:
     }
 
     if (then_block->getAllocatedQubits().contains(qubit)) {
-      if (lifted_alloc)
-        delete lifted_alloc;
-      if (lifted_root)
-        delete lifted_root;
-      lifted_alloc = then_graph->getAllocForQubit(qubit);
-      lifted_root = then_graph->getRootForQubit(qubit);
-      then_block->liftAlloc(lifted_alloc->getQID(), lifted_alloc);
+      auto then_alloc = then_graph->getAllocForQubit(qubit);
+      auto then_root = then_graph->getRootForQubit(qubit);
+      // If the qubit is only in one block, use the alloc/dealloc pair
+      // from that block
+      if (!else_contains) {
+        lifted_alloc = then_alloc;
+        lifted_root = then_root;
+      }
+      // lifted_alloc will be else_alloc if both blocks contain
+      // the qubit, so the metadata for the then_block graph
+      // will be updated correctly when replacing the alloc/dealloc
+      // with a block arg and terminator edge.
+      then_block->liftAlloc(then_alloc->getQID(), lifted_alloc);
       then_contains = true;
+
+      // Clean up extra alloc/root pair if both blocks contain
+      // the qubit
+      if (lifted_alloc != then_alloc) {
+        delete then_alloc;
+        delete then_root;
+      }
     }
 
     assert(lifted_alloc && lifted_root && "Illegal qubit to lift!");
 
     if (!then_contains) {
       auto new_arg = then_block->addArgument(DependencyEdge{lifted_alloc, 0});
-      // TODO: Should add the qid to the terminator and graph properly here
-      //       although in theory it should never be used
       then_block->getTerminator()->dependencies.push_back(
           DependencyEdge{new_arg, 0});
+      // TODO: Should add the qid to the terminator and graph properly here
+      //       although in theory it should never be used.
+      //       I think the following should do it.
+      // then_graph->replaceLeafAndRoot(lifted_alloc->getQID(), new_arg,
+      //                                then_block->getTerminator());
     }
 
     if (!else_contains) {
       auto new_arg = else_block->addArgument(DependencyEdge{lifted_alloc, 0});
-      // TODO: Should add the qid to the terminator and graph properly here
-      //       although in theory it should never be used
       else_block->getTerminator()->dependencies.push_back(
           DependencyEdge{new_arg, 0});
+      // TODO: Should add the qid to the terminator and graph properly here
+      //       although in theory it should never be used.
+      // else_graph->replaceLeafAndRoot(lifted_alloc->getQID(), new_arg,
+      //                                else_block->getTerminator());
     }
 
     // Add virtual alloc to current scope
@@ -2619,6 +2650,13 @@ public:
     // Finally, remove the calculated result, which can no longer be calculated
     // because it was removed from the blocks
     results.erase(results.begin() + i);
+
+    // Since we're removing a result, update the result indices of successors
+    for (auto successor : successors)
+      for (unsigned i = 0; i < successor->dependencies.size(); i++)
+        if (successor->dependencies[i].node == this &&
+            successor->dependencies[i].resultidx >= i)
+          successor->dependencies[i].resultidx--;
   }
 
   /// Finds and lifts common operations from the then and else branches to the

@@ -8,7 +8,9 @@
 
 // RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis -split-input-file %s | FileCheck %s
 
-// The `quake.h` on `%arg0` will be lifted, causing a conflict as the same qubit will be reused for r and q
+// The `quake.h` on `%arg0` will be lifted, which could cause a conflict
+// as the same qubit will be reused for r and q. This tests that the
+// implementation handles this conflict safely.
 
 func.func @__nvqpp__mlirgen__run_test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %true = arith.constant true
