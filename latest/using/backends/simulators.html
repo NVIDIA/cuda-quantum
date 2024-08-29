@@ -646,7 +646,9 @@ use <code class="code docutils literal notranslate"><span class="pre">cudaq.set_
 <p class="admonition-title">Note</p>
 <p>This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
-<p>In the single-GPU mode, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides the following environment variable options.</p>
+<p>In the single-GPU mode, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides the following
+environment variable options. Any environment variables must be set prior to
+setting the target.</p>
 <table class="docutils align-default" id="id4">
 <caption><span class="caption-text"><strong>Environment variable options supported in single-GPU mode</strong></span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
 <colgroup>
@@ -749,7 +751,8 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 </div>
 <p>In addition to those environment variable options supported in the single-GPU mode,
 the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides the following environment variable options particularly for
-the multi-node multi-GPU configuration.</p>
+the multi-node multi-GPU configuration. Any environment variables must be set
+prior to setting the target.</p>
 <table class="docutils align-default" id="id5">
 <caption><span class="caption-text"><strong>Additional environment variable options for multi-node multi-GPU mode</strong></span><a class="headerlink" href="#id5" title="Permalink to this table">¶</a></caption>
 <colgroup>
