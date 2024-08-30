@@ -917,6 +917,8 @@ public:
     // QID from dependency we depended on
     if (remove)
       dependency->successors.remove(this);
+
+    qids.remove(qid);
   }
 
   /// Removes this OpDependencyNode from the graph by replacing all successor
