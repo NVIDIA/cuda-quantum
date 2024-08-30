@@ -410,6 +410,11 @@ public:
   }
 
   /// Returns the immediate successor node for the wire represented by \p qid
+  ///
+  /// This function assumes that wires are linear types with only one use.
+  /// Otherwise, this function would need to return a list of successors,
+  /// and any users of this function would need to handle all the returned
+  /// successors.
   virtual DependencyNode *getSuccessorForQID(VirtualQID qid) {
     assert(qids.contains(qid) &&
            "Asking for a qid that doesn't flow through this operation!");
@@ -986,8 +991,9 @@ private:
   DenseMap<VirtualQID, InitDependencyNode *> allocs;
   // Tracks the leaf node for each virtual wire in the DAG
   DenseMap<VirtualQID, DependencyNode *> leafs;
-  // The set of virtual wires used in the DAG. Each such virtual wire should
-  // have a related leaf and root.
+  // The set of virtual wires used in the DAG. With the assumption that wires
+  // are linear types, we can assume that each such virtual wire should have
+  // a single related leaf/root.
   SetVector<VirtualQID> qids;
   // Tracks the dependency node introducing each physical qubit in the DAG.
   // Currently, since physical qubit allocations are always lifted, the
