@@ -16,18 +16,18 @@ struct run_test {
 
     h(r);
 
-    // q will be duplicated in the then and else branches,
-    // but then mapped to two different qubits.
-    // This test ensures that this case is handled properly,
-    // with a fresh qid being generated for q when it is split.
+    // Ensures that updates to qids get correctly propagated to sub-blocks
     if (true) {
-      x(p);
-      y(q);
-      x<cudaq::ctrl>(q,r);
-    } else {
-      y(q);
+      x(q);
       x(r);
       x<cudaq::ctrl>(q,p);
+    } else {
+      if (true)
+        x(p);
+      else
+        x(p);
+      y(q);
+      x<cudaq::ctrl>(q,r);
     }
 
     bool b = mz(r);
