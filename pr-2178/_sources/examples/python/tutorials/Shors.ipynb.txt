@@ -29,20 +29,10 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 155,
+   "execution_count": null,
    "id": "486fb3d4",
    "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Requirement already satisfied: contfrac in /usr/local/lib/python3.10/dist-packages (1.0.0)\n",
-      "\u001b[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\u001b[0m\u001b[33m\n",
-      "\u001b[0m"
-     ]
-    }
-   ],
+   "outputs": [],
    "source": [
     "!pip install contfrac"
    ]
@@ -149,7 +139,7 @@
     "            r = find_order_quantum(a, N)\n",
     "        else:\n",
     "            r = find_order_classical(a, N)\n",
-    "        print(\"The order of a ={} is {}\".format(a,r))\n",
+    "        print(\"The order of a = {} is {}\".format(a,r))\n",
     "\n",
     "        # 4. If the order of a is found and it is\n",
     "        # * even and\n",
@@ -302,7 +292,7 @@
     "# Edit the value in the line below to try out different initial guesses for a.\n",
     "# What happens when you choose a = 42 for the integer 123?\n",
     "# What happens when you choose a = 100 for the integer 123?\n",
-    "initial_value_to_start = 42  #edit this value it should be less than my_integer\n",
+    "initial_value_to_start = 42  # edit this value; it should be less than my_integer\n",
     "\n",
     "shors_algorithm(my_integer, initial_value_to_start, False)"
    ]
