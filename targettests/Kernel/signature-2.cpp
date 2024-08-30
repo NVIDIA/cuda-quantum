@@ -138,6 +138,17 @@ struct T {
   }
 };
 
+void show7(double d) {
+  std::cout << std::fixed << std::setw(11) << std::setprecision(3) << d << '\n';
+}
+
+struct T2 {
+  void operator()(std::tuple<long, double> tup) __qpu__ {
+    show5(std::get<0>(tup));
+    show7(std::get<1>(tup));
+  }
+};
+
 int main() {
   VectorOfStruct vsData = {{1, 1.0f, 95.0}, {2, 18.4f, 86.945}};
   VS{}(vsData);
@@ -151,6 +162,9 @@ int main() {
   std::tuple<int, long, double, char> t1{234, 89238, 3.14, 'Z'};
   T{}(t1);
 
+  std::tuple<long, double> t2{2098, 99.5};
+  T2{}(t2);
+
   return 0;
 }
 
@@ -160,3 +174,4 @@ int main() {
 // CHECK: 1 10 3 100
 // CHECK: 1.200 2.400 4.800
 // CHECK: 234 89238 3.140 Z
+// CHECK: 2098 99.5
