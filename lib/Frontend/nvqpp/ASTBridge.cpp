@@ -353,6 +353,20 @@ private:
 
 #ifndef NDEBUG
 namespace cudaq::details {
+bool QuakeBridgeVisitor::isQuantumStructType(Type ty) {
+  auto structTy = dyn_cast<cc::StructType>(ty);
+  if (!structTy)
+    return false;
+
+  // If there is a classical data type, return false
+  for (auto member : structTy.getMembers())
+    if (!quake::isQuantumType(member))
+      return false;
+
+  // Is a struct and only contains quantum data types.
+  return true;
+}
+
 bool QuakeBridgeVisitor::pushValue(Value v) {
   LLVM_DEBUG(llvm::dbgs() << std::string(valueStack.size(), ' ')
                           << "+push value: ";
