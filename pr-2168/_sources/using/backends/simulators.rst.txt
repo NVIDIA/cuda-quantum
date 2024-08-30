@@ -91,7 +91,9 @@ use `cudaq.set_target('nvidia', option='fp64')` for Python in-source target modi
 
   This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
-In the single-GPU mode, the :code:`nvidia` target provides the following environment variable options.
+In the single-GPU mode, the :code:`nvidia` target provides the following
+environment variable options. Any environment variables must be set prior to
+setting the target.
 
 .. list-table:: **Environment variable options supported in single-GPU mode**
   :widths: 20 30 50
@@ -199,7 +201,8 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
 In addition to those environment variable options supported in the single-GPU mode,
 the :code:`nvidia` target provides the following environment variable options particularly for 
-the multi-node multi-GPU configuration.
+the multi-node multi-GPU configuration. Any environment variables must be set
+prior to setting the target.
 
 .. list-table:: **Additional environment variable options for multi-node multi-GPU mode**
   :widths: 20 30 50
