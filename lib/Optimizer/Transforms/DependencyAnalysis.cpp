@@ -2747,8 +2747,9 @@ public:
         auto then_use = then_graph->getFirstUseOfQID(qid);
         auto else_use = else_graph->getFirstUseOfQID(qid);
 
-        // QID is no longer reference in the if, erase it
         if (!then_use || !else_use) {
+          // QID is no longer referenced in the if, erase it
+          // TODO: if this `if` has no more uses, clean it up
           if (!then_use && !else_use)
             eraseEdgeForQID(qid);
           unliftableQIDs.insert(qid);
