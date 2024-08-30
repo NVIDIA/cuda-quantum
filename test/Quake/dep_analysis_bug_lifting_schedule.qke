@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis -split-input-file %s | FileCheck %s
+// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
 
 // The `quake.h` on `%arg0` will be lifted, which could cause a conflict
 // as the same qubit will be reused for r and q. This tests that the
@@ -57,9 +57,6 @@ func.func @__nvqpp__mlirgen__run_test1() -> i1 attributes {"cudaq-entrypoint", "
 // CHECK:           quake.return_wire %[[VAL_14]] : !quake.wire
 // CHECK:           return %[[VAL_15]] : i1
 // CHECK:         }
-// CHECK:         quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
-
-// -----
 
 func.func @__nvqpp__mlirgen__run_test2() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %true = arith.constant true

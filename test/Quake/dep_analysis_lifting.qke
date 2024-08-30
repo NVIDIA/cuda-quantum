@@ -6,9 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s -split-input-file | FileCheck %s
+// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
 
-func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+func.func @test1() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %true = arith.constant true
   %0 = quake.null_wire
   %1 = quake.null_wire
@@ -32,7 +32,7 @@ func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kerne
 
 // CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
 
-// CHECK-LABEL:   func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @test1() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = quake.borrow_wire @wires[1] : !quake.wire
 // CHECK-DAG:       %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
 // CHECK-DAG:       %[[VAL_2:.*]] = quake.borrow_wire @wires[0] : !quake.wire
@@ -51,9 +51,7 @@ func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kerne
 // CHECK:           return %[[VAL_13]] : !quake.measure
 // CHECK:         }
 
-// -----
-
-func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+func.func @test2() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %true = arith.constant true
   %0 = quake.null_wire
   %1 = quake.null_wire
@@ -73,9 +71,7 @@ func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kerne
   return %measOut : !quake.measure
 }
 
-// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
-
-// CHECK-LABEL:   func.func @test() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @test2() -> !quake.measure attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant true
 // CHECK:           %[[VAL_1:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // CHECK:           %[[VAL_2:.*]] = cc.if(%[[VAL_0]]) ((%[[VAL_3:.*]] = %[[VAL_1]])) -> !quake.wire {
