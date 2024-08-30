@@ -67,14 +67,16 @@ struct BasisZYZ {
 
   std::array<std::complex<double>, 4> matrix;
   EulerAngles angles;
-  double phase;
+  /// Global phase is ignored
+  // double phase;
 
   /// This logic is based on https://arxiv.org/pdf/quant-ph/9503016 and its
   /// corresponding explanation in https://threeplusone.com/pubs/on_gates.pdf,
   /// Section 4.
   void decompose() {
-    auto det = (matrix[0] * matrix[3]) - (matrix[1] * matrix[2]);
-    phase = 0.5 * std::atan2(det.imag(), det.real());
+
+    // auto det = (matrix[0] * matrix[3]) - (matrix[1] * matrix[2]);
+    // phase = 0.5 * std::atan2(det.imag(), det.real());
 
     auto abs_00 = std::abs(matrix[0]);
     auto abs_01 = std::abs(matrix[1]);
@@ -118,60 +120,78 @@ public:
   LogicalResult matchAndRewrite(quake::CustomUnitarySymbolOp customOp,
                                 PatternRewriter &rewriter) const override {
 
-    // Fetch the unitary matrix generator for this custom operation
     auto parentModule = customOp->getParentOfType<ModuleOp>();
-    auto sref = customOp.getGenerator();
-    StringRef generatorName = sref.getRootReference();
-    auto globalOp =
-        parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
-    auto unitary = readGlobalConstantArray(globalOp);
 
-    if (unitary.size() != 4)
-      return customOp.emitError(
-          "Decomposition of only single qubit custom operations supported.");
-
-    /// TODO: Maintain a cache of decomposed custom operations
-
-    // Use Euler angle decomposition for single qubit operation
-    auto zyz = BasisZYZ(unitary);
-    zyz.decompose();
-
-    // op info
     Location loc = customOp->getLoc();
     auto targets = customOp.getTargets();
     auto controls = customOp.getControls();
 
-    /// TODO: Handle adjoint case
+    /// Get the global constant holding the concrete matrix corresponding to
+    /// this custom operation invocation
+    StringRef generatorName = customOp.getGenerator().getRootReference();
+    auto globalOp =
+        parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
 
-    auto floatTy = cast<FloatType>(rewriter.getF64Type());
+    /// The decomposed sequence of quantum operations are in a function
+    auto pair = generatorName.split(".rodata");
+    std::string funcName = pair.first.str() + ".kernel" + pair.second.str();
 
-    if (0. != zyz.angles.alpha) {
-      auto alpha = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, zyz.angles.alpha, floatTy);
-      rewriter.create<quake::RzOp>(loc, alpha, controls, targets);
+    /// If the replacement function doesn't exist, create it here
+    if (!parentModule.lookupSymbol<LLVM::LLVMFuncOp>(funcName)) {
+
+      auto unitary = readGlobalConstantArray(globalOp);
+
+      /// TODO: Expand the logic to decompose upto 4-qubit operations
+      if (unitary.size() != 4)
+        return customOp.emitError(
+            "Decomposition of only single qubit custom operations supported.");
+
+      /// Controls are handled via apply specialization
+      auto funcTy =
+          FunctionType::get(parentModule.getContext(), targets.getTypes(), {});
+      auto insPt = rewriter.saveInsertionPoint();
+      rewriter.setInsertionPointToStart(parentModule.getBody());
+      auto func = rewriter.create<func::FuncOp>(parentModule->getLoc(),
+                                                funcName, funcTy);
+      rewriter.restoreInsertionPoint(insPt);
+
+      insPt = rewriter.saveInsertionPoint();
+      auto *block = func.addEntryBlock();
+      rewriter.setInsertionPointToStart(block);
+
+      /// Use Euler angle decomposition for single qubit operation
+      auto zyz = BasisZYZ(unitary);
+      zyz.decompose();
+
+      /// For 1-qubit operation, apply on 'all' the targets
+      auto arguments = func.getArguments();
+      auto floatTy = cast<FloatType>(rewriter.getF64Type());
+
+      if (0. != zyz.angles.alpha) {
+        auto alpha = cudaq::opt::factory::createFloatConstant(
+            loc, rewriter, zyz.angles.alpha, floatTy);
+        rewriter.create<quake::RzOp>(loc, alpha, ValueRange{}, arguments);
+      }
+
+      if (0. != zyz.angles.beta) {
+        auto beta = cudaq::opt::factory::createFloatConstant(
+            loc, rewriter, zyz.angles.beta, floatTy);
+        rewriter.create<quake::RyOp>(loc, beta, ValueRange{}, arguments);
+      }
+
+      if (0. != zyz.angles.gamma) {
+        auto gamma = cudaq::opt::factory::createFloatConstant(
+            loc, rewriter, zyz.angles.gamma, floatTy);
+        rewriter.create<quake::RzOp>(loc, gamma, ValueRange{}, arguments);
+      }
+
+      rewriter.create<func::ReturnOp>(loc);
+      rewriter.restoreInsertionPoint(insPt);
     }
 
-    if (0. != zyz.angles.beta) {
-      auto beta = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, zyz.angles.beta, floatTy);
-      rewriter.create<quake::RyOp>(loc, beta, controls, targets);
-    }
-
-    if (0. != zyz.angles.gamma) {
-      auto gamma = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, zyz.angles.gamma, floatTy);
-      rewriter.create<quake::RzOp>(loc, gamma, controls, targets);
-    }
-
-    /// ASKME: Apply global phase?
-    // if (0. != zyz.phase) {
-    //   auto phase = cudaq::opt::factory::createFloatConstant(loc, rewriter,
-    //                                                         zyz.phase,
-    //                                                         floatTy);
-    //   Value negPhase = rewriter.create<arith::NegFOp>(loc, phase);
-    //   rewriter.create<quake::R1Op>(loc, phase, controls, targets);
-    //   rewriter.create<quake::RzOp>(loc, negPhase, controls, targets);
-    // }
+    rewriter.create<quake::ApplyOp>(
+        loc, TypeRange{}, SymbolRefAttr::get(rewriter.getContext(), funcName),
+        customOp.isAdj(), controls, targets);
 
     rewriter.eraseOp(customOp);
     return success();
