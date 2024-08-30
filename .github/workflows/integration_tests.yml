@@ -554,7 +554,7 @@ jobs:
             # unsupport_args and compile_errors are compile error tests
             # nested_vectors: Compiler fails to synthesize nested vector parameters (https://github.com/NVIDIA/cuda-quantum/issues/2001)
             # state_init: New argument synthesis is not executed for nvqc (https://github.com/NVIDIA/cuda-quantum/issues/2146)
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]] && [[ "$filename" != *"qvector_init_from_vector"* ]]; then
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
