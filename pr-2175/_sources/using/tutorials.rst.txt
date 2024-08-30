@@ -21,3 +21,4 @@ Tutorials that give an in depth view of CUDA-Q and its applications in Python.
     /examples/python/tutorials/Divisive_clustering.ipynb
     /examples/python/tutorials/H2-MRQKS.ipynb
     /examples/python/tutorials/Shors.ipynb
+    /examples/python/tutorials/unitary_compilation.ipynb
