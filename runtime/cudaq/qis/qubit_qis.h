@@ -1206,6 +1206,10 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
   };                                                                           \
   CUDAQ_MOD_TEMPLATE                                                           \
   void NAME(Args &&...args) {                                                  \
+    /* Perform registration at call site as well in case the static init was   \
+     * not executed in the same context, e.g., remote execution.*/             \
+    cudaq::customOpRegistry::getInstance()                                     \
+        .registerOperation<CONCAT(NAME, _operation)>(#NAME);                   \
     details::genericApplicator<mod, NUMT, NUMP>(#NAME,                         \
                                                 std::forward<Args>(args)...);  \
   }                                                                            \
