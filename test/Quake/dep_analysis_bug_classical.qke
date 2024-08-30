@@ -10,7 +10,6 @@
 
 // The second cc.if has a shadow dependency on the first if (and therefore first wire)
 // This test ensures that the shadow dependency is respected.
-
 func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
   %true = arith.constant true
   %cst = arith.constant 1.000000e+00 : f32

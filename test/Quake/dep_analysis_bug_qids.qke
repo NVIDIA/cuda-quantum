@@ -12,7 +12,6 @@
 
 func.func @__nvqpp__mlirgen__run_test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %true = arith.constant true
-  %
   %1 = cc.if(%true) ((%arg0 = %0)) -> !quake.wire {
     %5 = quake.x %4 : (!quake.wire) -> !quake.wire
     %6 = quake.h %arg0 : (!quake.wire) -> !quake.wire
