@@ -2896,8 +2896,7 @@ bool validateOp(Operation *op) {
                     "may be reordered");
   }
 
-  if (hasEffect<mlir::MemoryEffects::Allocate>(op) && isQuakeOperation(op) &&
-      !isa<quake::BorrowWireOp>(op)) {
+  if (isa<quake::NullWireOp>(op)) {
     op->emitRemark(
         "DependencyAnalysisPass: `quake.borrow_wire` is only "
         "supported qubit allocation operation. Function will be skipped");
