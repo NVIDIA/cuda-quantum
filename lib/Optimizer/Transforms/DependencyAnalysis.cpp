@@ -131,7 +131,6 @@ public:
 /// VirtualQIDs.
 class LifeTimeAnalysis {
 private:
-  StringRef name;
   SmallVector<std::optional<LifeTime>> lifetimes;
 
   /// Given a candidate lifetime, tries to find a qubit to reuse,
@@ -176,7 +175,7 @@ private:
   }
 
 public:
-  LifeTimeAnalysis(StringRef name) : name(name), lifetimes() {}
+  LifeTimeAnalysis() : lifetimes() {}
 
   /// Given a candidate lifetime, tries to find a qubit to reuse,
   /// minimizing the distance between the lifetime of the existing
@@ -226,8 +225,6 @@ public:
         llvm::outs() << "unused ";
     llvm::outs() << "\n";
   }
-
-  StringRef getName() { return name; }
 };
 
 class DependencyGraph;
@@ -349,7 +346,7 @@ protected:
 
   /// Generates quake code for this node at the current insertion point in \p
   /// builder
-  virtual void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) = 0;
+  virtual void codeGen(OpBuilder &builder) = 0;
 
   /// Recalculates the height of this node
   virtual void updateHeight() {
@@ -648,12 +645,13 @@ protected:
 
   /// Generates quake code for this node at the current insertion point in \p
   /// builder
-  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override {
+  void codeGen(OpBuilder &builder) override {
     assert(qubit.has_value() && "Trying to codeGen a virtual allocation "
                                 "without a physical qubit assigned!");
     auto wirety = quake::WireType::get(builder.getContext());
     auto alloc = builder.create<quake::BorrowWireOp>(
-        builder.getUnknownLoc(), wirety, set.getName(), qubit.value());
+        builder.getUnknownLoc(), wirety,
+        cudaq::opt::topologyAgnosticWiresetName, qubit.value());
     wire = alloc.getResult();
     hasCodeGen = true;
   }
@@ -771,15 +769,14 @@ protected:
 
   /// A helper to gather the MLIR values that will be used as operands for this
   /// operation when generating code, based on the dependencies of this node.
-  SmallVector<mlir::Value> gatherOperands(OpBuilder &builder,
-                                          LifeTimeAnalysis &set) {
+  SmallVector<mlir::Value> gatherOperands(OpBuilder &builder) {
     SmallVector<mlir::Value> operands(dependencies.size());
     for (std::size_t i = 0; i < dependencies.size(); i++) {
       auto dependency = dependencies[i];
 
       // Ensure classical values are available and that any allocs are added
       if (dependency->isSkip())
-        dependency->codeGen(builder, set);
+        dependency->codeGen(builder);
 
       assert(dependency->hasCodeGen &&
              "Generating code for successor before dependency");
@@ -793,9 +790,9 @@ protected:
   }
 
   /// A helper to generate the quake code for this operation
-  virtual void genOp(OpBuilder &builder, LifeTimeAnalysis &set) {
+  virtual void genOp(OpBuilder &builder) {
     auto oldOp = associated;
-    auto operands = gatherOperands(builder, set);
+    auto operands = gatherOperands(builder);
 
     associated =
         Operation::create(oldOp->getLoc(), oldOp->getName(),
@@ -815,7 +812,7 @@ protected:
   /// dependencies must already have code generated for them. If this assumption
   /// doesn't hold, it is likely something going wrong with scheduling or the
   /// graph structure, but the error may only show up here.
-  virtual void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override {
+  virtual void codeGen(OpBuilder &builder) override {
     if (hasCodeGen && isQuantumDependent())
       return;
 
@@ -827,13 +824,13 @@ protected:
           // Wait for quantum op dependency to be codeGen'ed
           return;
 
-    genOp(builder, set);
+    genOp(builder);
     hasCodeGen = true;
 
     // Ensure classical values are generated
     for (auto successor : successors)
       if (successor->isSkip() && isQuantumDependent())
-        successor->codeGen(builder, set);
+        successor->codeGen(builder);
   }
 
 public:
@@ -1413,11 +1410,11 @@ public:
   /// Generate code for all nodes at the given cycle in the graph,
   /// as well as all non-quantum nodes relying on those nodes with
   /// no other dependencies at later cycles.
-  void codeGenAt(unsigned cycle, OpBuilder &builder, LifeTimeAnalysis &set) {
+  void codeGenAt(unsigned cycle, OpBuilder &builder) {
     SetVector<DependencyNode *> nodes = getNodesAtCycle(cycle);
 
     for (auto node : nodes)
-      node->codeGen(builder, set);
+      node->codeGen(builder);
   }
 
   unsigned getHeight() { return total_height; }
@@ -1665,7 +1662,7 @@ protected:
     associated->dump();
   }
 
-  void genOp(OpBuilder &builder, LifeTimeAnalysis &set) override {
+  void genOp(OpBuilder &builder) override {
     auto wire = dependencies[0].getValue();
     auto newOp =
         builder.create<quake::ReturnWireOp>(builder.getUnknownLoc(), wire);
@@ -1730,7 +1727,7 @@ protected:
     return std::to_string(barg.getArgNumber()).append("arg");
   };
 
-  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override{};
+  void codeGen(OpBuilder &builder) override{};
 
 public:
   ArgDependencyNode(BlockArgument arg)
@@ -1805,7 +1802,7 @@ protected:
     return shadowed->getOpName().append("shadow");
   };
 
-  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override {
+  void codeGen(OpBuilder &builder) override {
     // Don't generate any code, instead just ensure that the
     if (shadowed->hasCodeGen)
       hasCodeGen = true;
@@ -1860,7 +1857,7 @@ protected:
 
   // If the terminator is not a quantum operation, this could be called
   // by dependencies, so do nothing.
-  void codeGen(OpBuilder &builder, LifeTimeAnalysis &set) override{};
+  void codeGen(OpBuilder &builder) override{};
 
 public:
   TerminatorDependencyNode(Operation *terminator,
@@ -1877,9 +1874,7 @@ public:
 
   /// This will actually generate code for the terminator, it should only be
   /// called after all other operations in the block have code generated.
-  void genTerminator(OpBuilder &builder, LifeTimeAnalysis &set) {
-    OpDependencyNode::codeGen(builder, set);
-  }
+  void genTerminator(OpBuilder &builder) { OpDependencyNode::codeGen(builder); }
 
   void eraseEdgeForQID(VirtualQID qid) override {
     for (unsigned i = 0; i < dependencies.size(); i++)
@@ -1995,7 +1990,7 @@ public:
   ///
   /// It is up to the caller to move the insertion point of \p builder outside
   /// the block after construction.
-  Block *codeGen(OpBuilder &builder, Region *region, LifeTimeAnalysis &set) {
+  Block *codeGen(OpBuilder &builder, Region *region) {
     Block *newBlock = builder.createBlock(region);
     for (unsigned i = 0; i < argdnodes.size(); i++) {
       auto old_barg = argdnodes[i]->barg;
@@ -2008,9 +2003,9 @@ public:
     builder.setInsertionPointToStart(newBlock);
 
     for (unsigned cycle = 0; cycle < graph->getHeight(); cycle++)
-      graph->codeGenAt(cycle, builder, set);
+      graph->codeGenAt(cycle, builder);
 
-    terminator->genTerminator(builder, set);
+    terminator->genTerminator(builder);
 
     block = newBlock;
 
@@ -2547,10 +2542,10 @@ protected:
     //       could be done easily with an updateQubit function like updateQID).
   }
 
-  void genOp(OpBuilder &builder, LifeTimeAnalysis &set) override {
+  void genOp(OpBuilder &builder) override {
     cudaq::cc::IfOp oldOp = dyn_cast<cudaq::cc::IfOp>(associated);
 
-    auto operands = gatherOperands(builder, set);
+    auto operands = gatherOperands(builder);
 
     // Remove operands from shadow dependencies
     // First operand must be conditional, skip it
@@ -2564,10 +2559,10 @@ protected:
     auto newIf =
         builder.create<cudaq::cc::IfOp>(oldOp->getLoc(), results, operands);
     auto *then_region = &newIf.getThenRegion();
-    then_block->codeGen(builder, then_region, set);
+    then_block->codeGen(builder, then_region);
 
     auto *else_region = &newIf.getElseRegion();
-    else_block->codeGen(builder, else_region, set);
+    else_block->codeGen(builder, else_region);
 
     associated = newIf;
     builder.setInsertionPointAfter(associated);
@@ -3190,7 +3185,7 @@ struct DependencyAnalysisPass
         }
 
         OpBuilder builder(func);
-        LifeTimeAnalysis set(cudaq::opt::topologyAgnosticWiresetName);
+        LifeTimeAnalysis set;
         // First, move allocs in as deep as possible. This is outside-in, so it
         // is separated from the rest of the analysis passes.
         body->contractAllocsPass();
@@ -3198,7 +3193,7 @@ struct DependencyAnalysisPass
         // passes inside-out
         body->performAnalysis(set);
         // Finally, perform code generation to move back to quake
-        body->codeGen(builder, &func.getRegion(), set);
+        body->codeGen(builder, &func.getRegion());
 
         // TODO: Various pass statistics are accessible via the following:
         // * Total number of virtual qubits (included eliminated dead wires):
