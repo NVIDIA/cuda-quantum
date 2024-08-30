@@ -557,7 +557,7 @@ public:
 
   /// Recursively replaces \p old_qid with \p new_qid for this node and its
   /// successors
-  void updateQID(VirtualQID old_qid, VirtualQID new_qid) {
+  virtual void updateQID(VirtualQID old_qid, VirtualQID new_qid) {
     qids.remove(old_qid);
     qids.insert(new_qid);
 
@@ -1174,6 +1174,9 @@ private:
 
       first_use->dependencies[idx] =
           DependencyNode::DependencyEdge(new_leaf, 0);
+      // If new_qid is different from the old_qid, updateQIDs() in
+      // replaceLeafAndRoot will handle updating this
+      first_use->dependencies[idx].qid = old_qid;
       old_leaf->successors.remove(first_use);
       new_leaf->successors.insert(first_use);
       if (old_leaf->isAlloc()) {
@@ -1215,6 +1218,9 @@ private:
       auto dep = old_root->dependencies[idx];
       dep->successors.remove(old_root);
       dep->successors.insert(new_root);
+      // If new_qid is different from the old_qid, updateQIDs() in
+      // replaceLeafAndRoot will handle updating this
+      dep.qid = old_qid;
 
       new_root->dependencies.push_back(dep);
       old_root->dependencies.erase(old_root->dependencies.begin() + idx);
@@ -1227,8 +1233,9 @@ private:
       old_root->qids.remove(old_qid);
     }
 
-    new_root->qids.insert(new_qid);
-    // new_root->qids.insert(old_qid);
+    // If new_qid is different from the old_qid, updateQIDs() in
+    // replaceLeafAndRoot will handle updating this
+    new_root->qids.insert(old_qid);
     roots.insert(new_root);
   }
 
@@ -1612,9 +1619,18 @@ public:
     }
   }
 
-  /// Simultaneously replaces the leaf and root nodes for a given qid, or
-  /// adds them if the qid was not present before. The operations are separate,
+  /// Simultaneously replaces the leaf and root nodes for \p qid, or
+  /// adds them if \p qid was not present before. The operations are separate,
   /// but doing them together makes it harder to produce an invalid graph.
+  ///
+  /// Mostly, this function ensures that the graph metadata is properly updated
+  /// when replacing the leaf and root. In the case that the new_leaf has a
+  /// different qid than \p qid, this function will remove the metadata for
+  /// \p qid, and will update the qids of all nodes and edges that were along
+  /// the path for \p qid.
+  ///
+  /// It is assumed that there is a path between \p new_leaf and \p new_root for
+  /// \p qid, otherwise, the updated metadata is likely to be wrong.
   ///
   /// It is the responsibility of the caller to delete the replaced leaf/root if
   /// desired.
@@ -1622,6 +1638,8 @@ public:
   // as currently written and used.
   // TODO: Worth checking that callers delete the replaced leaf/root properly
   // when applicable. I think lowerAlloc does, which is the main place.
+  // TODO: I think DependencyGraph::updateQID will be useful when cleaning this
+  // up.
   void replaceLeafAndRoot(VirtualQID qid, DependencyNode *new_leaf,
                           DependencyNode *new_root) {
     auto new_qid = qid;
@@ -1639,10 +1657,31 @@ public:
     }
   }
 
-  /// Removes QID from the metadata for this graph
+  /// Removes \p qid from the metadata for this graph
   void removeQID(VirtualQID qid) {
     leafs.erase(leafs.find(qid));
     qids.remove(qid);
+  }
+
+  /// Replaces \p old_qid with \p new_qid in the graph and updates relevant
+  /// metdata
+  void updateQID(VirtualQID old_qid, VirtualQID new_qid) {
+    assert(qids.contains(old_qid) && "Given qid not found in graph!");
+    assert(!qids.contains(new_qid) && "Given qid to add already in graph!");
+    auto leaf = leafs[old_qid];
+    leaf->updateQID(old_qid, new_qid);
+
+    leafs.erase(leafs.find(old_qid));
+    leafs[new_qid] = leaf;
+    if (leaf->isAlloc()) {
+      allocs.erase(allocs.find(old_qid));
+      auto alloc = static_cast<InitDependencyNode *>(leaf);
+      allocs[new_qid] = alloc;
+      // Qubit info will remain intact, no need to update
+    }
+
+    qids.remove(old_qid);
+    qids.insert(new_qid);
   }
 
   void updateHeight() {
@@ -1658,6 +1697,7 @@ public:
 
 /// Represent the deallocation (`quake.return_wire` op) of a virtual/physical
 /// wire
+// TODO: come up with a better name, since terminators are also roots
 class RootDependencyNode : public OpDependencyNode {
 protected:
   void dumpNode() override {
@@ -2401,8 +2441,12 @@ protected:
         dependencies[num + 1] =
             DependencyEdge{then_op, then_op->getResultForDependency(i)};
 
+        dependencies[num + 1].qubit = newDep.qubit;
+
         // Remove then_op from the route for then_qid inside the block
         then_op->eraseEdgeForQID(dependency.qid.value());
+        // Readd qid
+        then_op->qids.insert(dependency.qid.value());
         // Update iterator as number of dependencies has changed
         i--;
       } else if (!dependency->isQuantumOp()) {
@@ -2815,6 +2859,7 @@ public:
     // Lift all physical allocations out of the if
     auto allocs = then_block->getAllocatedQubits();
     allocs.set_union(else_block->getAllocatedQubits());
+
     for (auto qubit : allocs)
       liftAlloc(qubit, parent_graph);
 
@@ -2859,6 +2904,15 @@ public:
         if (successor->dependencies[i].node == this &&
             successor->dependencies[i].resultidx >= offset)
           successor->dependencies[i].resultidx--;
+  }
+
+  /// Recursively replaces \p old_qid with \p new_qid for this node and its
+  /// successors. For an `if`, this will also perform the replacement in the
+  /// then and else blocks.
+  void updateQID(VirtualQID old_qid, VirtualQID new_qid) override {
+    then_block->getBlockGraph()->updateQID(old_qid, new_qid);
+    else_block->getBlockGraph()->updateQID(old_qid, new_qid);
+    this->DependencyNode::updateQID(old_qid, new_qid);
   }
 };
 
