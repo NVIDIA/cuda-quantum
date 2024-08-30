@@ -194,7 +194,7 @@ void bindNoiseChannels(py::module &mod) {
       
       For `probability = 0.0`, the channel will behave noise-free. 
       For `probability = 0.75`, the channel will fully depolarize the state.
-      For `proability = 1.0`, the channel will be uniform.)#")
+      For `probability = 1.0`, the channel will be uniform.)#")
       .def(py::init<double>(), py::arg("probability"),
            "Initialize the `DepolarizationChannel` with the provided "
            "`probability`.");

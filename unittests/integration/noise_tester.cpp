@@ -507,4 +507,67 @@ CUDAQ_TEST(NoiseTest, checkCallbackChannelWithParams) {
   }
 }
 
+CUDAQ_REGISTER_OPERATION(CustomX, 1, 0, {0, 1, 1, 0});
+CUDAQ_TEST(NoiseTest, checkCustomOperation) {
+  auto kernel = []() {
+    cudaq::qubit q;
+    CustomX(q);
+  };
+
+  // Add channel for custom operation using the (name + operand) API
+  {
+    cudaq::set_random_seed(13);
+    cudaq::bit_flip_channel bf(1.);
+    cudaq::noise_model noise;
+    noise.add_channel("CustomX", {0}, bf);
+    const std::size_t shots = 252;
+    auto counts = cudaq::sample({.shots = shots, .noise = noise}, kernel);
+    // Check results
+    EXPECT_EQ(1, counts.size());
+    // Due to bit-flip noise, it becomes "0".
+    EXPECT_NEAR(counts.probability("0"), 1., .1);
+    std::size_t totalShots = 0;
+    for (auto &[bitstr, count] : counts)
+      totalShots += count;
+    EXPECT_EQ(totalShots, shots);
+  }
+
+  // Add channel for custom operation using the all-qubit API
+  {
+    cudaq::set_random_seed(13);
+    cudaq::bit_flip_channel bf(1.);
+    cudaq::noise_model noise;
+    noise.add_all_qubit_channel("CustomX", bf);
+    const std::size_t shots = 252;
+    auto counts = cudaq::sample({.shots = shots, .noise = noise}, kernel);
+    // Check results
+    EXPECT_EQ(1, counts.size());
+    // Due to bit-flip noise, it becomes "0".
+    EXPECT_NEAR(counts.probability("0"), 1., .1);
+    std::size_t totalShots = 0;
+    for (auto &[bitstr, count] : counts)
+      totalShots += count;
+    EXPECT_EQ(totalShots, shots);
+  }
+  // Add channel for custom operation using the callback API
+  {
+    cudaq::set_random_seed(13);
+    cudaq::noise_model noise;
+    noise.add_channel(
+        "CustomX",
+        [](const auto &qubits, const auto &params) -> cudaq::kraus_channel {
+          return cudaq::bit_flip_channel(1.);
+        });
+    const std::size_t shots = 252;
+    auto counts = cudaq::sample({.shots = shots, .noise = noise}, kernel);
+    // Check results
+    EXPECT_EQ(1, counts.size());
+    // Due to bit-flip noise, it becomes "0".
+    EXPECT_NEAR(counts.probability("0"), 1., .1);
+    std::size_t totalShots = 0;
+    for (auto &[bitstr, count] : counts)
+      totalShots += count;
+    EXPECT_EQ(totalShots, shots);
+  }
+}
 #endif

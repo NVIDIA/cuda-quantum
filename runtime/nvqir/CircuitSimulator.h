@@ -1178,7 +1178,8 @@ public:
                                controls, {}, targets) +
                       " = {}",
                   matrix);
-    enqueueGate("custom", actual, controls, targets, {});
+    enqueueGate(customName.empty() ? "custom" : std::string(customName), actual,
+                controls, targets, {});
   }
 
   template <typename QuantumOperation>

@@ -8,8 +8,8 @@
 
 #include "NoiseModel.h"
 #include "Logger.h"
+#include "common/CustomOp.h"
 #include "common/EigenDense.h"
-
 namespace cudaq {
 
 template <typename EigenMatTy>
@@ -105,7 +105,8 @@ void noise_model::add_channel(const std::string &quantumOp,
                               const kraus_channel &channel) {
 
   if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
-      std::end(availableOps))
+          std::end(availableOps) &&
+      !customOpRegistry::getInstance().isOperationRegistered(quantumOp))
     throw std::runtime_error(
         "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
 
@@ -139,11 +140,14 @@ void noise_model::add_all_qubit_channel(const std::string &quantumOp,
                                         const kraus_channel &channel,
                                         int numControls) {
   auto actualGateName = quantumOp;
-  if (numControls == 0 && quantumOp.starts_with('c')) {
+  const bool isCustomOp =
+      customOpRegistry::getInstance().isOperationRegistered(actualGateName);
+  if (numControls == 0 && quantumOp.starts_with('c') && !isCustomOp) {
     // Infer the number of control bits from gate name (with 'c' prefixes)
     // Note: We only support up to 2 control bits using this notation, e.g.,
     // 'cx', 'ccx'. Users will need to use the numControls parameter for more
     // complex cases.
+    // Note: this convention doesn't apply to custom operations.
     numControls = quantumOp.starts_with("cc") ? 2 : 1;
     actualGateName = quantumOp.substr(numControls);
     if (actualGateName.starts_with('c'))
@@ -153,7 +157,8 @@ void noise_model::add_all_qubit_channel(const std::string &quantumOp,
   }
 
   if (std::find(std::begin(availableOps), std::end(availableOps),
-                actualGateName) == std::end(availableOps))
+                actualGateName) == std::end(availableOps) &&
+      !isCustomOp)
     throw std::runtime_error(
         "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
   GateIdentifier key(actualGateName, numControls);
@@ -176,7 +181,8 @@ void noise_model::add_all_qubit_channel(const std::string &quantumOp,
 void noise_model::add_channel(const std::string &quantumOp,
                               const PredicateFuncTy &pred) {
   if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
-      std::end(availableOps))
+          std::end(availableOps) &&
+      !customOpRegistry::getInstance().isOperationRegistered(quantumOp))
     throw std::runtime_error(
         "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
   auto iter = gatePredicates.find(quantumOp);

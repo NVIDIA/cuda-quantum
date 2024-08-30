@@ -483,6 +483,47 @@ def test_callback_channel_with_params():
     cudaq.reset_target()
 
 
+def check_custom_op_noise(noise_model):
+    cudaq.set_random_seed(13)
+    cudaq.set_target('density-matrix-cpu')
+
+    @cudaq.kernel
+    def basic():
+        q = cudaq.qubit()
+        custom_x(q)
+
+    shots = 100
+    counts = cudaq.sample(basic, shots_count=shots, noise_model=noise_model)
+    counts.dump()
+    assert np.isclose(counts.probability("0"), 1.0)
+    cudaq.reset_target()
+
+
+def test_custom_op():
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    # (Gate name + Operand)
+    noise = cudaq.NoiseModel()
+    # Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.
+    bit_flip_one = cudaq.BitFlipChannel(1.0)
+    noise.add_channel('custom_x', [0], bit_flip_one)
+    check_custom_op_noise(noise)
+
+    # All-qubit
+    noise = cudaq.NoiseModel()
+    # Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.
+    noise.add_all_qubit_channel('custom_x', bit_flip_one)
+    check_custom_op_noise(noise)
+
+    # Callback
+    def noise_cb(qubits, params):
+        return bit_flip_one
+
+    noise = cudaq.NoiseModel()
+    noise.add_channel('custom_x', noise_cb)
+    check_custom_op_noise(noise)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
