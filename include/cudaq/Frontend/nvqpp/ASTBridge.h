@@ -589,6 +589,10 @@ private:
                                                    mlir::StringRef funcName,
                                                    mlir::FunctionType funcTy);
 
+  /// Return true if the input type is a CC StructType and
+  /// it ONLY contains quantum members.
+  bool isQuantumStructType(mlir::Type ty);
+
   /// Stack of Values built by the visitor. (right-to-left ordering)
   mlir::SmallVector<mlir::Value> valueStack;
   clang::ASTContext *astContext;

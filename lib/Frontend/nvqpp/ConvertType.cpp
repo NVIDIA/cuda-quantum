@@ -246,10 +246,41 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   SmallVector<Type> fieldTys =
       lastTypes(std::distance(x->field_begin(), x->field_end()));
   auto [width, alignInBytes] = getWidthAndAlignment(x);
-  if (name.empty())
-    return pushType(cc::StructType::get(ctx, fieldTys, width, alignInBytes));
-  return pushType(
-      cc::StructType::get(ctx, name, fieldTys, width, alignInBytes));
+  cc::StructType ty =
+      name.empty()
+          ? cc::StructType::get(ctx, fieldTys, width, alignInBytes)
+          : cc::StructType::get(ctx, name, fieldTys, width, alignInBytes);
+
+  // If this is not a quantum struct type, but
+  // it has a quantum member, throw an error.
+  if (!isQuantumStructType(ty)) {
+    for (auto fieldTy : fieldTys)
+      if (quake::isQuantumType(fieldTy))
+        reportClangError(
+            x, mangler,
+            "hybrid quantum-classical struct types are not allowed.");
+  }
+
+  // for any kind of struct struct, throw error if it has methods
+  if (auto *cxxRd = dyn_cast<clang::CXXRecordDecl>(x)) {
+    auto numMethods = [&cxxRd]() {
+      std::size_t count = 0;
+      for (auto methodIter = cxxRd->method_begin();
+           methodIter != cxxRd->method_end(); ++methodIter)
+        // Check if the method is not implicit (i.e., user-defined)
+        if (!(*methodIter)->isImplicit())
+          count++;
+
+      return count;
+    }();
+
+    if (numMethods > 0)
+      reportClangError(
+          x, mangler,
+          "struct with user-defined methods is not allowed in quantum kernel.");
+  }
+
+  return pushType(ty);
 }
 
 bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *t) {

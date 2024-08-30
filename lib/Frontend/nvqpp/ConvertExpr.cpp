@@ -1109,16 +1109,23 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
   if (auto *field = dyn_cast<clang::FieldDecl>(x->getMemberDecl())) {
     auto loc = toLocation(x->getSourceRange());
     auto object = popValue(); // DeclRefExpr
-    auto eleTy = cast<cc::PointerType>(object.getType()).getElementType();
     SmallVector<cc::ComputePtrArg> offsets;
-    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
-      if (arrTy.isUnknownSize())
-        offsets.push_back(0);
     std::int32_t offset = field->getFieldIndex();
-    offsets.push_back(offset);
     auto ty = popType();
-    return pushValue(builder.create<cc::ComputePtrOp>(
-        loc, cc::PointerType::get(ty), object, offsets));
+    if (auto ptrStructTy = dyn_cast<cc::PointerType>(object.getType())) {
+      auto eleTy = cast<cc::PointerType>(object.getType()).getElementType();
+      if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+        if (arrTy.isUnknownSize())
+          offsets.push_back(0);
+      offsets.push_back(offset);
+
+      return pushValue(builder.create<cc::ComputePtrOp>(
+          loc, cc::PointerType::get(ty), object, offsets));
+    }
+    // We have a struct value
+    offsets.push_back(offset);
+    return pushValue(
+        builder.create<cc::ExtractValueOp>(loc, ty, object, offsets));
   }
   return true;
 }
@@ -2200,24 +2207,47 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto idx_var = popValue();
       auto qreg_var = popValue();
 
-      // Get name of the qreg, e.g. qr, and use it to construct a name for the
-      // element, which is intended to be qr%n when n is the index of the
-      // accessed qubit.
-      StringRef qregName = getNamedDecl(x->getArg(0))->getName();
-      auto name = getQubitSymbolTableName(qregName, idx_var);
-      char *varName = strdup(name.c_str());
+      // // Get name of the qreg, e.g. qr, and use it to construct a name for
+      // the
+      // // element, which is intended to be qr%n when n is the index of the
+      // // accessed qubit.
+      // StringRef qregName = getNamedDecl(x->getArg(0))->getName();
+      // auto name = getQubitSymbolTableName(qregName, idx_var);
+      // char *varName = strdup(name.c_str());
 
-      // If the name exists in the symbol table, return its stored value.
-      if (symbolTable.count(name))
-        return replaceTOSValue(symbolTable.lookup(name));
+      // // If the name exists in the symbol table, return its stored value.
+      // if (symbolTable.count(name))
+      //   return replaceTOSValue(symbolTable.lookup(name));
 
-      // Otherwise create an operation to access the qubit, store that value in
-      // the symbol table, and return the AddressQubit operation's resulting
-      // value.
+      if (isa<clang::DeclRefExpr>(x->getArg(0))) {
+        // Get name of the qreg, e.g. qr, and use it to construct a name for the
+        // element, which is intended to be qr%n when n is the index of the
+        // accessed qubit.
+        StringRef qregName = getNamedDecl(x->getArg(0))->getName();
+        auto name = getQubitSymbolTableName(qregName, idx_var);
+        char *varName = strdup(name.c_str());
+
+        // If the name exists in the symbol table, return its stored value.
+        if (symbolTable.count(name))
+          return replaceTOSValue(symbolTable.lookup(name));
+
+        // Otherwise create an operation to access the qubit, store that value
+        // in the symbol table, and return the AddressQubit operation's
+        // resulting value.
+        auto address_qubit =
+            builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
+
+        symbolTable.insert(StringRef(varName), address_qubit);
+        return replaceTOSValue(address_qubit);
+      }
+
+      // We have a quantum value that is not in the symbol table.
+      // Here we will just extract the qubit. This is likely
+      // coming from a quantum struct member.
       auto address_qubit =
           builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
 
-      symbolTable.insert(StringRef(varName), address_qubit);
+      // symbolTable.insert(StringRef(varName), address_qubit);
       return replaceTOSValue(address_qubit);
     }
     if (typeName == "vector") {
@@ -2395,7 +2425,7 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   bool allRef = std::all_of(last.begin(), last.end(), [](auto v) {
     return isa<quake::RefType, quake::VeqType>(v.getType());
   });
-  if (allRef) {
+  if (allRef && !isa<cc::StructType>(initListTy)) {
     // Initializer list contains all quantum reference types. In this case we
     // want to create quake code to concatenate the references into a veq.
     if (size > 1) {
@@ -2466,6 +2496,19 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     auto globalInit = builder.create<cc::AddressOfOp>(loc, ptrTy, name);
     return pushValue(globalInit);
   }
+
+  // If quantum, use value semantics with cc insert / extract value.
+  if (isQuantumStructType(eleTy)) {
+    Value undefOpRes = builder.create<cc::UndefOp>(loc, eleTy);
+    for (auto iter : llvm::enumerate(last)) {
+      std::int32_t i = iter.index();
+      auto v = iter.value();
+      undefOpRes =
+          builder.create<cc::InsertValueOp>(loc, eleTy, undefOpRes, v, i);
+    }
+    return pushValue(undefOpRes);
+  }
+
   Value alloca = (numEles > 1)
                      ? builder.create<cc::AllocaOp>(loc, eleTy, arrSize)
                      : builder.create<cc::AllocaOp>(loc, eleTy);
@@ -2851,6 +2894,14 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return true;
   }
 
+  // Just walk through copy constructors for quantum struct types.
+  // FIXME Will need Eric help here. There are more things on the
+  // value stack then what I'd expect and I'm not sure what to do.
+  // But here is where I would think we'd have to support 
+  // struct s(...) (as opposed to struct s{...} which is implemented above)
+  if (ctor->isCopyOrMoveConstructor() && isQuantumStructType(ctorTy)) 
+    return true;
+  
   if (ctor->isCopyOrMoveConstructor() && parent->isPOD()) {
     // Copy or move constructor on a POD struct. The value stack should contain
     // the object to load the value from.
@@ -2874,6 +2925,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     TODO_x(loc, x, mangler, "C++ constructor (non-default)");
   }
 
+  llvm::errs() << "WE ARE HERE\n";
   // A regular C++ class constructor lowers as:
   //
   // 1) A unique object must be created, so the type must have a minimum of
