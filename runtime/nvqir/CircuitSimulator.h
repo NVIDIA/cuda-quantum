@@ -1178,7 +1178,7 @@ public:
                                controls, {}, targets) +
                       " = {}",
                   matrix);
-    enqueueGate(customName.empty() ? "custom" : std::string(customName), actual,
+    enqueueGate(customName.empty() ? "unknown op" : customName.data(), actual,
                 controls, targets, {});
   }
 
