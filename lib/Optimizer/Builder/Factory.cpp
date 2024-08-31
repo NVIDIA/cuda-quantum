@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/Triple.h"
 #include "mlir/IR/Matchers.h"
 
@@ -18,14 +19,22 @@ using namespace mlir;
 namespace cudaq::opt {
 
 bool factory::isX86_64(ModuleOp module) {
-  auto ta = module->getAttr(targetTripleAttrName);
-  llvm::Triple tr(cast<StringAttr>(ta).str());
+  std::string triple;
+  if (auto ta = module->getAttr(targetTripleAttrName))
+    triple = cast<StringAttr>(ta).str();
+  else
+    triple = llvm::sys::getDefaultTargetTriple();
+  llvm::Triple tr(triple);
   return tr.getArch() == llvm::Triple::x86_64;
 }
 
 bool factory::isAArch64(ModuleOp module) {
-  auto ta = module->getAttr(targetTripleAttrName);
-  llvm::Triple tr(cast<StringAttr>(ta).str());
+  std::string triple;
+  if (auto ta = module->getAttr(targetTripleAttrName))
+    triple = cast<StringAttr>(ta).str();
+  else
+    triple = llvm::sys::getDefaultTargetTriple();
+  llvm::Triple tr(triple);
   return tr.getArch() == llvm::Triple::aarch64;
 }
 
