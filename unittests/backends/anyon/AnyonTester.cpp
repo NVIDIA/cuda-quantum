@@ -13,12 +13,8 @@
 #include <gtest/gtest.h>
 #include <regex>
 
+// port number and localhost connect to mock_qpu backend server within the container (mock_qpu/anyon). 
 std::string mockPort = "5000";
-// Uncomment this and connect to Anyon REST Server with authentication. You may need to change the "host.docker.internal" into anyon's server url
-// std::string backendStringTemplate =
-//     "anyon;emulate;false;url;http://host.docker.internal:{};credentials;{}";
-
-// Uncomment this and connect to mock_qpu backend server within the container (mock_qpu/anyon) under main/utils
 std::string backendStringTemplate =
     "anyon;emulate;false;url;http://localhost:{};credentials;{}";
 
@@ -426,7 +422,7 @@ int main(int argc, char **argv) {
   std::string fileName = home + "/FakeCppAnyon.config";
   std::ofstream out(fileName);
   //out << "key: key\nrefresh: refresh\ntime: 0\ncredentials: {\"username\":\"anchor\",\"password\":\"Xwm@ue3I2n\"}";
-  out << "credentials: {\"username\":\"anchor\",\"password\":\"Xwm@ue3I2n\"}";
+  out << "credentials: {\"username\":\"testuser0\",\"password\":\"testuser0passwd\"}";
   out.close();
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();

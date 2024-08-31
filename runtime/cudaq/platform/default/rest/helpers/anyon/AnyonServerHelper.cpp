@@ -34,7 +34,7 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey, std::string 
 class AnyonServerHelper : public ServerHelper {
 protected:
   /// @brief The base URL
-  std::string baseUrl = "http://127.0.0.1:5000"; //"https://qapi.anyoncomputing.com/";
+  std::string baseUrl = "";
   /// @brief The machine we are targeting
   std::string machine = "berkeley-25q";//"telegraph-8q";//
   /// @brief Time string, when the last tokens were retrieved
