@@ -552,7 +552,7 @@ public:
 
   /// Recursively replaces \p old_qid with \p new_qid for this node and its
   /// successors
-  void updateQID(VirtualQID old_qid, VirtualQID new_qid) {
+  virtual void updateQID(VirtualQID old_qid, VirtualQID new_qid) {
     qids.remove(old_qid);
     qids.insert(new_qid);
 
@@ -2903,6 +2903,15 @@ public:
         if (successor->dependencies[i].node == this &&
             successor->dependencies[i].resultidx >= offset)
           successor->dependencies[i].resultidx--;
+  }
+
+  /// Recursively replaces \p old_qid with \p new_qid for this node and its
+  /// successors. For an `if`, this will also perform the replacement in the
+  /// then and else blocks.
+  void updateQID(VirtualQID old_qid, VirtualQID new_qid) override {
+    then_block->getBlockGraph()->updateQID(old_qid, new_qid);
+    else_block->getBlockGraph()->updateQID(old_qid, new_qid);
+    this->DependencyNode::updateQID(old_qid, new_qid);
   }
 };
 
