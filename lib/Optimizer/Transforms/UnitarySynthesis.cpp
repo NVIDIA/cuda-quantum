@@ -29,33 +29,12 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-namespace {
-
-/// TODO: Refactor common code from 'StatePreparation' pass
+namespace cudaq {
 std::vector<std::complex<double>>
-readGlobalConstantArray(cudaq::cc::GlobalOp &global) {
-  std::vector<std::complex<double>> result{};
-
-  auto attr = global.getValue();
-  auto elementsAttr = cast<mlir::ElementsAttr>(attr.value());
-  auto eleTy = elementsAttr.getElementType();
-  auto values = elementsAttr.getValues<mlir::Attribute>();
-
-  for (auto it = values.begin(); it != values.end(); ++it) {
-    auto valAttr = *it;
-
-    auto v = [&]() -> std::complex<double> {
-      assert(isa<ComplexType>(eleTy));
-      auto arrayAttr = cast<mlir::ArrayAttr>(valAttr);
-      auto real = cast<FloatAttr>(arrayAttr[0]).getValue().convertToDouble();
-      auto imag = cast<FloatAttr>(arrayAttr[1]).getValue().convertToDouble();
-      return {real, imag};
-    }();
-
-    result.push_back(v);
-  }
-  return result;
+readGlobalConstantArray(cudaq::cc::GlobalOp &global);
 }
+
+namespace {
 
 struct EulerAngles {
   double alpha;
@@ -139,7 +118,7 @@ public:
     /// If the replacement function doesn't exist, create it here
     if (!parentModule.lookupSymbol<LLVM::LLVMFuncOp>(funcName)) {
 
-      auto unitary = readGlobalConstantArray(globalOp);
+      auto unitary = cudaq::readGlobalConstantArray(globalOp);
 
       /// TODO: Expand the logic to decompose upto 4-qubit operations
       if (unitary.size() != 4)
