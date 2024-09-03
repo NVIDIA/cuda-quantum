@@ -252,7 +252,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           return false;
         members.push_back(popType());
       }
-      return pushType(cc::StructType::get(ctx, members));
+      auto [width, align] = getWidthAndAlignment(x);
+      return pushType(cc::StructType::get(ctx, members, width, align));
     }
     if (name.equals("tuple")) {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
@@ -265,9 +266,14 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           return false;
         members.push_back(popType());
       }
-      if (tuplesAreReversed)
+      auto [width, align] = getWidthAndAlignment(x);
+      if (tuplesAreReversed) {
         std::reverse(members.begin(), members.end());
-      return pushType(cc::StructType::get(ctx, members));
+        // Reset are for libstdc++ calling convention compatibility.
+        width = 0;
+        align = 0;
+      }
+      return pushType(cc::StructType::get(ctx, members, width, align));
     }
     if (ignoredClass(x))
       return true;

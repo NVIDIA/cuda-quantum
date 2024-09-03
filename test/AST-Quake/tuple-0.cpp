@@ -37,9 +37,9 @@ struct ArithmeticPairQernel {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ArithmeticPairQernel(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{f32, i32}>)
-// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{f32, i32}>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{f32, i32}>>
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{f32, i32} [64,4]>)
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{f32, i32} [64,4]>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{f32, i32} [64,4]>>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<1>
 // CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
@@ -131,10 +131,10 @@ struct ArithmeticPairQernelWithUse {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ArithmeticPairQernelWithUse(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{f32, i32}>)
-// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{f32, i32}>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{f32, i32}>>
-// CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_1]][1] : (!cc.ptr<!cc.struct<{f32, i32}>>) -> !cc.ptr<i32>
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{f32, i32} [64,4]>)
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{f32, i32} [64,4]>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{f32, i32} [64,4]>>
+// CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_1]][1] : (!cc.ptr<!cc.struct<{f32, i32} [64,4]>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = cc.cast signed %[[VAL_3]] : (i32) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_4]] : i64]
