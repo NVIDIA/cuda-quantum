@@ -6,12 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy as np
+import cudaq, pytest, cudaq_test_cpp_algo
 
-import cudaq
-from cudaq import spin
 
-import cudaq_test_cpp_algo
+@pytest.fixture(autouse=True)
+def do_something():
+    yield
+    cudaq.__clearKernelRegistries()
 
 
 def test_call_python_from_cpp():
@@ -74,7 +75,7 @@ def test_synthCallable():
     newKernel = callee.merge_kernel(otherMod)
     print(newKernel.name, newKernel)
     # Synthesize away the callable arg with the pure device kernel
-    newKernel.synthesize_callable_arguments('callee')
+    newKernel.synthesize_callable_arguments(['callee'])
     print(newKernel)
 
     counts = cudaq.sample(newKernel)
@@ -139,6 +140,38 @@ def test_synthCallableCCCallCallableOp():
     newKernel = callee.merge_kernel(otherMod)
     print(newKernel)
     # Synthesize away the callable arg with the pure device kernel
-    newKernel.synthesize_callable_arguments('callee')
+    newKernel.synthesize_callable_arguments(['callee'])
     print(newKernel)
     assert '!cc.callable' not in str(newKernel)
+
+
+def testSynthTwoArgs():
+
+    from typing import Callable
+
+    @cudaq.kernel
+    def kernel22(k: Callable[[cudaq.qview], None], j: Callable[[cudaq.qview],
+                                                               None]):
+        q = cudaq.qvector(2)
+        k(q)
+        j(q)
+
+    @cudaq.kernel
+    def callee0(q: cudaq.qview):
+        x(q)
+
+    @cudaq.kernel
+    def callee1(q: cudaq.qview):
+        x(q)
+
+    callees = callee0.merge_kernel(callee1)
+    print(callees)
+    merged = callees.merge_kernel(kernel22)
+    print(merged)
+
+    merged.synthesize_callable_arguments(['callee0', 'callee1'])
+
+    print(merged)
+    counts = cudaq.sample(merged)
+    counts.dump()
+    assert '00' in counts and len(counts) == 1

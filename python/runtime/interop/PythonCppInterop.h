@@ -45,8 +45,8 @@ public:
 
   /// @brief Synthesizes callable arguments for the kernel.
   /// @param name The name of the kernel.
-  void synthesize_callable_arguments(const std::string &name) {
-    kernel.attr("synthesize_callable_arguments")(name);
+  void synthesize_callable_arguments(const std::vector<std::string> &names) {
+    kernel.attr("synthesize_callable_arguments")(names);
   }
 
   /// @brief Extracts a C function pointer from the kernel.
