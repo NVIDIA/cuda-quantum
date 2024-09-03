@@ -8,6 +8,7 @@
 
 // REQUIRES: c++20
 // clang-format off
+// RUN: nvq++ --target anyon                    --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
