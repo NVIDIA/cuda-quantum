@@ -14,8 +14,9 @@
 #include <regex>
 
 std::string mockPort = "5000";
+std::string machine = "berkeley-25q";
 std::string backendStringTemplate =
-    "anyon;emulate;false;url;http://host.docker.internal:{};credentials;{}";
+    "anyon;emulate;false;url;http://host.docker.internal:{};credentials;{};machine;{}";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
@@ -26,7 +27,7 @@ CUDAQ_TEST(AnyonTester, checkSampleSync) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -45,7 +46,7 @@ CUDAQ_TEST(AnyonTester, checkSampleSyncEmulate) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
   backendString =
       std::regex_replace(backendString, std::regex("false"), "true");
 
@@ -68,7 +69,7 @@ CUDAQ_TEST(AnyonTester, checkSampleAsync) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -87,7 +88,7 @@ CUDAQ_TEST(AnyonTester, checkSampleAsyncEmulate) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
   backendString =
       std::regex_replace(backendString, std::regex("false"), "true");
 
@@ -109,7 +110,7 @@ CUDAQ_TEST(AnyonTester, checkSampleAsyncLoadFromFile) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -144,7 +145,7 @@ CUDAQ_TEST(AnyonTester, checkObserveSync) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -169,7 +170,7 @@ CUDAQ_TEST(AnyonTester, checkObserveSyncEmulate) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
   backendString =
       std::regex_replace(backendString, std::regex("false"), "true");
 
@@ -196,7 +197,7 @@ CUDAQ_TEST(AnyonTester, checkObserveAsync) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -223,7 +224,7 @@ CUDAQ_TEST(AnyonTester, checkObserveAsyncEmulate) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
   backendString =
       std::regex_replace(backendString, std::regex("false"), "true");
 
@@ -253,7 +254,7 @@ CUDAQ_TEST(AnyonTester, checkObserveAsyncLoadFromFile) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -297,7 +298,7 @@ CUDAQ_TEST(AnyonTester, checkObserveAsyncLoadFromFile) {
 //   std::string home = std::getenv("HOME");
 //   std::string fileName = home + "/FakeCppAnyon.config";
 //   auto backendString =
-//       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+//       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName, machine);
 
 //   auto &platform = cudaq::get_platform();
 //   platform.setTargetBackend(backendString);
