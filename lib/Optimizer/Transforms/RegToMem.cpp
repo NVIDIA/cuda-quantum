@@ -141,6 +141,16 @@ private:
     });
   }
 
+  // Collect all linear type values from a generic iterable range into a
+  // temporary vector.
+  template <typename A>
+  SmallVector<Value> collectLinearValues(A &&vals) {
+    SmallVector<Value> result;
+    for (Value v : vals)
+      if (quake::isLinearType(v.getType()))
+        result.push_back(v);
+    return result;
+  }
   void performAnalysis(func::FuncOp func) {
     collectBorrowWires(func);
     func.walk([&](Operation *op) {
@@ -157,22 +167,32 @@ private:
       }
     });
     func.walk([&](Operation *op) {
-      // FIXME: This really needs to figure out which operands are wires and
-      // which are not. It blindly assumes everything is a wire.
       if (isa<RAW_MEASURE_OPS>(op)) {
-        for (auto [t, r] :
-             llvm::zip(op->getOperands(), op->getResults().drop_front()))
+        auto wireOpnds = collectLinearValues(op->getOperands());
+        for (auto [t, r] : llvm::zip(wireOpnds, op->getResults().drop_front()))
           insertToEqClass(t, r);
       } else if (isa<RAW_GATE_OPS>(op)) {
         auto gate = cast<quake::OperatorInterface>(op);
-        for (auto [t, r] : llvm::zip(gate.getControls(), op->getResults()))
+        // Check that the IR is not in the pruned control form.
+        if (std::any_of(
+                gate.getControls().begin(), gate.getControls().end(),
+                [](Value v) { return isa<quake::ControlType>(v.getType()); })) {
+          op->emitError("must use linear-ctrl-form before regtomem");
+          analysisFailed = true;
+          return;
+        }
+        auto wireCtrls = collectLinearValues(gate.getControls());
+        for (auto [t, r] : llvm::zip(wireCtrls, op->getResults()))
           insertToEqClass(t, r);
-        for (auto [t, r] :
-             llvm::zip(gate.getTargets(),
-                       op->getResults().drop_front(gate.getControls().size())))
+        auto wireTargs = collectLinearValues(gate.getTargets());
+        for (auto [t, r] : llvm::zip(
+                 wireTargs, op->getResults().drop_front(wireCtrls.size())))
           insertToEqClass(t, r);
       } else if (auto reset = dyn_cast<quake::ResetOp>(op)) {
-        insertToEqClass(reset.getTargets(), reset.getResult(0));
+        auto wireTargs =
+            collectLinearValues(ArrayRef<Value>{reset.getTargets()});
+        for (auto [t, r] : llvm::zip(wireTargs, reset.getResults()))
+          insertToEqClass(t, r);
       } else if (auto sink = dyn_cast<quake::SinkOp>(op)) {
         insertToEqClass(sink.getTarget());
       } else if (auto ret = dyn_cast<quake::ReturnWireOp>(op)) {
@@ -191,11 +211,21 @@ private:
             insertToEqClass(v, u);
         }
       } else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
-        if (auto ccif = dyn_cast<cudaq::cc::IfOp>(cont->getParentOp())) {
+        auto *parent = cont->getParentOp();
+        if (auto ccif = dyn_cast<cudaq::cc::IfOp>(parent)) {
           for (auto iter : llvm::enumerate(cont.getOperands()))
-            if (isa<quake::WireType>(iter.value().getType()))
+            if (quake::isLinearType(iter.value().getType()))
               insertToEqClass(ccif.getResult(iter.index()), iter.value());
+        } else if (isa<cudaq::cc::ScopeOp>(parent)) {
+          if (std::any_of(cont.getOperands().begin(), cont.getOperands().end(),
+                          [](Value v) {
+                            return quake::isQuantumValueType(v.getType());
+                          })) {
+            analysisFailed = true;
+            return;
+          }
         } else {
+          // TODO: handle cc::LoopOp.
           analysisFailed = true;
           return;
         }
