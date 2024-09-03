@@ -667,14 +667,14 @@ class PyASTBridge(ast.NodeVisitor):
 
     def isQuantumStructType(self, structTy):
         """
-        Return True if the given struct type has one or more quantum member variables.
+        Return True if the given struct type has only quantum member variables.
         """
         if not cc.StructType.isinstance(structTy):
             self.emitFatalError(
                 f'isQuantumStructType called on type that is not a struct ({structTy})'
             )
 
-        return True in [
+        return False not in [
             self.isQuantumType(t) for t in cc.StructType.getTypes(structTy)
         ]
 
@@ -1903,6 +1903,13 @@ class PyASTBridge(ast.NodeVisitor):
                     mlirTypeFromPyType(v, self.ctx)
                     for _, v in annotations.items()
                 ]
+                # Ensure we don't use hybrid data types
+                numQuantumMemberTys = sum([1 if self.isQuantumType(ty) else 0 for ty in structTys])
+                if numQuantumMemberTys != 0:  # we have quantum member typs
+                    if numQuantumMemberTys != len(structTys):
+                        self.emitFatalError(
+                            f'hybrid quantum-classical data types not allowed in kernel code', node)
+
                 structTy = cc.StructType.getNamed(self.ctx, node.func.id,
                                                   structTys)
                 nArgs = len(self.valueStack)

@@ -159,8 +159,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         return cc.CallableType.get(ctx, argTypes)
 
     if isinstance(annotation,
-                  ast.Subscript) and (annotation.value.id == 'list' or
-                                      annotation.value.id == 'List'):
+                  ast.Subscript) and (annotation.value.id == 'list'
+                                      or annotation.value.id == 'List'):
         if not hasattr(annotation, 'slice'):
             localEmitFatalError(
                 f"list subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
@@ -215,6 +215,16 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if id in globalRegisteredTypes:
         _, memberTys = globalRegisteredTypes[id]
         structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
+        numQuantumMemberTys = sum([
+                1 if (quake.RefType.isinstance(ty)
+                      or quake.VeqType.isinstance(ty)) else 0
+                for ty in structTys
+            ])
+        if numQuantumMemberTys != 0:  # we have quantum member typs
+            if numQuantumMemberTys != len(structTys):
+                emitFatalError(
+                    f'hybrid quantum-classical data types not allowed in kernel code.')
+
         return cc.StructType.getNamed(ctx, id, structTys)
 
     localEmitFatalError(
@@ -292,7 +302,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
 
         if isinstance(argInstance[0], np.complex64):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
+            return cc.StdvecType.get(ctx,
+                                     mlirTypeFromPyType(np.complex64, ctx))
 
         if isinstance(argInstance[0], pauli_word):
             return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
@@ -331,6 +342,16 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             structTys = [
                 mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
             ]
+            numQuantumMemberTys = sum([
+                1 if (quake.RefType.isinstance(ty)
+                      or quake.VeqType.isinstance(ty)) else 0
+                for ty in structTys
+            ])
+            if numQuantumMemberTys != 0:  # we have quantum member typs
+                if numQuantumMemberTys != len(structTys):
+                    emitFatalError(
+                        f'hybrid quantum-classical data types not allowed')
+
             return cc.StructType.getNamed(ctx, name, structTys)
 
     emitFatalError(
