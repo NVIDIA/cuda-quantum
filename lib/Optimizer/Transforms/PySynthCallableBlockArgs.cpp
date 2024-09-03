@@ -59,6 +59,41 @@ public:
   }
 };
 
+class ReplaceCallCallable
+    : public OpConversionPattern<cudaq::cc::CallCallableOp> {
+public:
+  const std::vector<std::string> &names;
+  const std::map<std::size_t, std::size_t> &blockArgToNameMap;
+
+  ReplaceCallCallable(MLIRContext *ctx,
+                      const std::vector<std::string> &functionNames,
+                      const std::map<std::size_t, std::size_t> &map)
+      : OpConversionPattern<cudaq::cc::CallCallableOp>(ctx),
+        names(functionNames), blockArgToNameMap(map) {}
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CallCallableOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto callableOperand = adaptor.getCallee();
+    auto module = op->getParentOp()->getParentOfType<ModuleOp>();
+    if (auto blockArg = dyn_cast<BlockArgument>(callableOperand)) {
+      auto argIdx = blockArg.getArgNumber();
+      auto replacementName = names[blockArgToNameMap.at(argIdx)];
+      auto replacement = module.lookupSymbol<func::FuncOp>(
+          "__nvqpp__mlirgen__" + replacementName);
+      if (!replacement) {
+        op.emitError("Invalid replacement function " + replacementName);
+        return failure();
+      }
+
+      rewriter.replaceOpWithNewOp<func::CallOp>(op, replacement,
+                                                adaptor.getArgs());
+      return success();
+    }
+    return failure();
+  }
+};
+
 class UpdateQuakeApplyOp : public OpConversionPattern<quake::ApplyOp> {
 public:
   const std::vector<std::string> &names;
@@ -97,10 +132,13 @@ public:
 class PySynthCallableBlockArgs
     : public cudaq::opt::PySynthCallableBlockArgsBase<
           PySynthCallableBlockArgs> {
+private:
+  bool removeBlockArg = false;
+
 public:
   std::vector<std::string> names;
-  PySynthCallableBlockArgs(const std::vector<std::string> &_names)
-      : names(_names) {}
+  PySynthCallableBlockArgs(const std::vector<std::string> &_names, bool remove)
+      : removeBlockArg(remove), names(_names) {}
 
   void runOnOperation() override {
     auto op = getOperation();
@@ -129,8 +167,9 @@ public:
       return;
     }
 
-    patterns.insert<ReplaceCallIndirect, UpdateQuakeApplyOp>(
-        ctx, names, blockArgToNamesMap);
+    patterns
+        .insert<ReplaceCallIndirect, ReplaceCallCallable, UpdateQuakeApplyOp>(
+            ctx, names, blockArgToNamesMap);
     ConversionTarget target(*ctx);
     // We should remove these operations
     target.addIllegalOp<func::CallIndirectOp>();
@@ -148,11 +187,21 @@ public:
                 "error synthesizing callable functions for python.\n");
       signalPassFailure();
     }
+
+    if (removeBlockArg) {
+      auto numArgs = op.getNumArguments();
+      BitVector argsToErase(numArgs);
+      for (std::size_t argIndex = 0; argIndex < numArgs; ++argIndex)
+        if (isa<cudaq::cc::CallableType>(op.getArgument(argIndex).getType()))
+          argsToErase.set(argIndex);
+
+      op.eraseArguments(argsToErase);
+    }
   }
 };
 } // namespace
 
 std::unique_ptr<Pass> cudaq::opt::createPySynthCallableBlockArgs(
-    const std::vector<std::string> &names) {
-  return std::make_unique<PySynthCallableBlockArgs>(names);
+    const std::vector<std::string> &names, bool removeBlockArg) {
+  return std::make_unique<PySynthCallableBlockArgs>(names, removeBlockArg);
 }

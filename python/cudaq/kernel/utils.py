@@ -396,7 +396,13 @@ def mlirTypeToPyType(argType):
 
     if F32Type.isinstance(argType):
         return np.float32
+    
+    if quake.VeqType.isinstance(argType):
+        return qvector
 
+    if cc.CallableType.isinstance(argType):
+        return Callable 
+    
     if ComplexType.isinstance(argType):
         if F64Type.isinstance(ComplexType(argType).element_type):
             return complex
