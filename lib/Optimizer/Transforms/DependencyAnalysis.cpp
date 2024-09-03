@@ -77,14 +77,18 @@ std::size_t getResultIDXFromOperandIDX(std::size_t operand_idx, Operation *op) {
   // The results for a measure are `(!quake.measure, !quake.wire)`
   if (isa<RAW_MEASURE_OPS>(op))
     return 1;
-  // Currently, all classical operands precede all quantum operands
+  std::size_t numPrecedingClassical = 0;
   for (auto type : op->getOperandTypes()) {
     if (!quake::isQuantumType(type))
-      operand_idx--;
+      numPrecedingClassical++;
     else
       break;
   }
-  return operand_idx;
+
+  // Verify that all classical operands precede all quantum operands
+  assert(numPrecedingClassical + op->getNumResults() == op->getNumOperands());
+  assert(operand_idx >= numPrecedingClassical && "invalid operand index");
+  return operand_idx - numPrecedingClassical;
 }
 
 /// Represents a qubit lifetime from the first cycle it is in use
