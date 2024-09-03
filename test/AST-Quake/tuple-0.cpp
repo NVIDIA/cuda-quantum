@@ -19,9 +19,9 @@ struct ArithmeticTupleQernel {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ArithmeticTupleQernel(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{[[TUP:.*, .*, .*, .*]]}>)
-// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{[[TUP]]}>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{[[TUP]]}>>
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{[[TUP:.*, .*, .*, .*]]}{{.*}}>)
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{[[TUP]]}{{.*}}>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{[[TUP]]}{{.*}}>>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<1>
 // CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
@@ -56,12 +56,12 @@ struct ArithmeticTupleQernelWithUse {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ArithmeticTupleQernelWithUse(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{[[TUP]]}>)
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{[[TUP]]}{{.*}}>)
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<{[[TUP]]}>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<!cc.struct<{[[TUP]]}>>
-// CHECK:           %[[VAL_4:.*]] = cc.c{{.*}} %[[VAL_3]]{{.*}} : (!cc.ptr<!cc.struct<{[[TUP]]}>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<{[[TUP]]}{{.*}}>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<!cc.struct<{[[TUP]]}{{.*}}>>
+// CHECK:           %[[VAL_4:.*]] = cc.c{{.*}} %[[VAL_3]]{{.*}} : (!cc.ptr<!cc.struct<{[[TUP]]}{{.*}}>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.cast signed %[[VAL_5]] : (i32) -> i64
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>[%[[VAL_6]] : i64]
@@ -94,12 +94,12 @@ struct ArithmeticTupleQernelWithUse0 {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ArithmeticTupleQernelWithUse0(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{[[TUP]]}>)
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<{[[TUP]]}{{.*}}>)
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<{[[TUP]]}>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<!cc.struct<{[[TUP]]}>>
-// CHECK:           %[[VAL_4:.*]] = cc.c{{.*}} %[[VAL_3]]{{.*}} : (!cc.ptr<!cc.struct<{[[TUP]]}>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<{[[TUP]]}{{.*}}>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<!cc.struct<{[[TUP]]}{{.*}}>>
+// CHECK:           %[[VAL_4:.*]] = cc.c{{.*}} %[[VAL_3]]{{.*}} : (!cc.ptr<!cc.struct<{[[TUP]]}{{.*}}>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.cast signed %[[VAL_5]] : (i32) -> i64
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>[%[[VAL_6]] : i64]
