@@ -269,7 +269,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto [width, align] = getWidthAndAlignment(x);
       if (tuplesAreReversed) {
         std::reverse(members.begin(), members.end());
-        // Reset are for libstdc++ calling convention compatibility.
+        // Resets are for libstdc++ calling convention compatibility.
         width = 0;
         align = 0;
       }
