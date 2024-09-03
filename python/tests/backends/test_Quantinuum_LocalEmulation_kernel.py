@@ -181,7 +181,7 @@ def test_quantinuum_state_synthesis():
 
 
 def test_arbitrary_unitary_synthesis():
-    import numpy as np
+
     cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
@@ -214,6 +214,21 @@ def test_arbitrary_unitary_synthesis():
     counts.dump()
     assert len(counts) == 2
     assert "00" in counts and "11" in counts
+
+    cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
+    cudaq.register_operation("custom_s_adj", np.array([1, 0, 0, -1j]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        h(q)
+        custom_s.adj(q)
+        custom_s_adj(q)
+        h(q)
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert counts["1"] == 1000
 
 
 # leave for gdb debugging

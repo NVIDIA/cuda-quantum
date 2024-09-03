@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --unitary-synthesis %s | FileCheck %s
+// RUN: cudaq-opt --unitary-synthesis --canonicalize %s | FileCheck %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__k1 = "__nvqpp__mlirgen__k1_PyKernelEntryPointRewrite"}} {
   func.func @__nvqpp__mlirgen__k1() attributes {"cudaq-entrypoint"} {
@@ -19,8 +19,14 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__k1 = "__nvqpp__ml
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__custom_x_generator_1.kernel(
 // CHECK-SAME:                                                                     %[[VAL_0:.*]]: !quake.ref) {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
-// CHECK:           quake.ry (%[[VAL_1]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_1:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_3:.*]] = arith.constant 3.1415926535897931 : f64
+// CHECK:           quake.rz (%[[VAL_1]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_3]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_2]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.r1 (%[[VAL_2]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_1]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 

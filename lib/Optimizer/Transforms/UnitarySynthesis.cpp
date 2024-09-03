@@ -46,43 +46,40 @@ struct BasisZYZ {
 
   std::array<std::complex<double>, 4> matrix;
   EulerAngles angles;
-  /// Global phase is ignored
-  // double phase;
+  /// Updates to the global phase
+  double phase;
 
   /// This logic is based on https://arxiv.org/pdf/quant-ph/9503016 and its
   /// corresponding explanation in https://threeplusone.com/pubs/on_gates.pdf,
   /// Section 4.
   void decompose() {
+    using namespace std::complex_literals;
 
-    // auto det = (matrix[0] * matrix[3]) - (matrix[1] * matrix[2]);
-    // phase = 0.5 * std::atan2(det.imag(), det.real());
+    /// Rescale the input unitary matrix, `u`, to be special unitary.
+    /// Extract a phase factor, `phase`, so that `det(inv_phase * unitary) = 1`
+    auto det = (matrix[0] * matrix[3]) - (matrix[1] * matrix[2]);
+    phase = 0.5 * std::atan2(det.imag(), det.real());
+    auto inv_phase = std::exp(-1i * phase);
 
-    auto abs_00 = std::abs(matrix[0]);
-    auto abs_01 = std::abs(matrix[1]);
+    std::array<std::complex<double>, 4> special_unitary;
+    std::transform(matrix.begin(), matrix.end(), special_unitary.begin(),
+                   [&](auto element) { return element * inv_phase; });
+
+    auto abs_00 = std::abs(special_unitary[0]);
+    auto abs_01 = std::abs(special_unitary[1]);
 
     if (abs_00 >= abs_01)
       angles.beta = 2 * std::acos(abs_00);
     else
       angles.beta = 2 * std::asin(abs_01);
 
-    double half_sum_alpha_gamma = 0.;
-    double divisor = std::cos(angles.beta / 2.);
-    if (0. != divisor) {
-      auto arg = matrix[3] / divisor;
-      half_sum_alpha_gamma = std::atan2(arg.imag(), arg.real());
-    }
-
-    double half_diff_alpha_gamma = 0.;
-    divisor = std::sin(angles.beta / 2.);
-    if (0. != divisor) {
-      auto arg = matrix[2] / divisor;
-      half_diff_alpha_gamma = std::atan2(arg.imag(), arg.real());
-    }
+    auto half_sum_alpha_gamma =
+        std::atan2(special_unitary[3].imag(), special_unitary[3].real());
+    auto half_diff_alpha_gamma =
+        std::atan2(special_unitary[2].imag(), special_unitary[2].real());
 
     angles.alpha = half_sum_alpha_gamma + half_diff_alpha_gamma;
     angles.gamma = half_sum_alpha_gamma - half_diff_alpha_gamma;
-
-    /// ASKME: Normalize all angles?
   }
 
   BasisZYZ(std::vector<std::complex<double>> vec) {
@@ -147,22 +144,40 @@ public:
       auto arguments = func.getArguments();
       auto floatTy = cast<FloatType>(rewriter.getF64Type());
 
-      if (0. != zyz.angles.alpha) {
+      /// Ignore angles less than some threshold
+      double epsilon = 1e-9;
+      auto isAboveThreshold = [&](auto value) {
+        return std::abs(value) > epsilon;
+      };
+
+      if (isAboveThreshold(zyz.angles.alpha)) {
         auto alpha = cudaq::opt::factory::createFloatConstant(
             loc, rewriter, zyz.angles.alpha, floatTy);
         rewriter.create<quake::RzOp>(loc, alpha, ValueRange{}, arguments);
       }
 
-      if (0. != zyz.angles.beta) {
+      if (isAboveThreshold(zyz.angles.beta)) {
         auto beta = cudaq::opt::factory::createFloatConstant(
             loc, rewriter, zyz.angles.beta, floatTy);
         rewriter.create<quake::RyOp>(loc, beta, ValueRange{}, arguments);
       }
 
-      if (0. != zyz.angles.gamma) {
+      if (isAboveThreshold(zyz.angles.gamma)) {
         auto gamma = cudaq::opt::factory::createFloatConstant(
             loc, rewriter, zyz.angles.gamma, floatTy);
         rewriter.create<quake::RzOp>(loc, gamma, ValueRange{}, arguments);
+      }
+
+      /// NOTE: Typically global phase can be ignored but, if this decomposition
+      /// is applied in a kernel that is called with `cudaq::control`, the
+      /// global phase will become a local phase and give a wrong result if we
+      /// don't keep track of that.
+      if (isAboveThreshold(zyz.phase)) {
+        auto phase = cudaq::opt::factory::createFloatConstant(
+            loc, rewriter, zyz.phase, floatTy);
+        Value negPhase = rewriter.create<arith::NegFOp>(loc, phase);
+        rewriter.create<quake::R1Op>(loc, phase, ValueRange{}, arguments[0]);
+        rewriter.create<quake::RzOp>(loc, negPhase, ValueRange{}, arguments[0]);
       }
 
       rewriter.create<func::ReturnOp>(loc);
