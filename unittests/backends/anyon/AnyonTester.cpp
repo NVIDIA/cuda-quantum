@@ -17,12 +17,7 @@
 std::string mockPort = "5000";
 std::string machine = "berkeley-25q";
 std::string backendStringTemplate =
-<<<<<<< HEAD
-    "anyon;emulate;false;url;http://localhost:{};credentials;{}";
-=======
-    "anyon;emulate;false;url;http://host.docker.internal:{};credentials;{};machine;{}";
->>>>>>> 63cc3b19fe672bf6ecc2761d68c9805ff504e877
-
+    "anyon;emulate;false;url;http://localhost:{};credentials;{};machine;{}";
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
   return value < -1.1 && value > -2.3;
