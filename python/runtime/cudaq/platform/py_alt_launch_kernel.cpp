@@ -756,7 +756,8 @@ void bindAltLaunchKernel(py::module &mod) {
         auto moduleB = parseSourceString<ModuleOp>(modBStr, ctx);
         auto moduleA = unwrap(modA).clone();
         moduleB->walk([&moduleA](func::FuncOp op) {
-          moduleA.push_back(op.clone());
+          if (!moduleA.lookupSymbol<func::FuncOp>(op.getName()))
+            moduleA.push_back(op.clone());
           return WalkResult::advance();
         });
         return wrap(moduleA);
@@ -765,12 +766,12 @@ void bindAltLaunchKernel(py::module &mod) {
 
   mod.def(
       "synthPyCallable",
-      [](MlirModule modA, const std::string &funcName) {
+      [](MlirModule modA, const std::vector<std::string> &funcNames) {
         auto m = unwrap(modA);
         auto context = m.getContext();
         PassManager pm(context);
         pm.addNestedPass<func::FuncOp>(
-            cudaq::opt::createPySynthCallableBlockArgs({funcName}, true));
+            cudaq::opt::createPySynthCallableBlockArgs(funcNames, true));
         if (failed(pm.run(m)))
           throw std::runtime_error(
               "cudaq::jit failed to remove callable block arguments.");

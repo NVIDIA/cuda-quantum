@@ -220,12 +220,14 @@ class PyKernelDecorator(object):
         self.dependentCaptures = extraMetadata[
             'dependent_captures'] if 'dependent_captures' in extraMetadata else None
 
-    def merge_kernel(self, otherMod): # FIXME handle ModuleOp, not just string
+    def merge_kernel(self, otherMod):
         """
         Merge the kernel in this PyKernelDecorator (the ModuleOp) with 
         the provided ModuleOp. 
         """
         self.compile()
+        if not isinstance(otherMod, str):
+            otherMod = str(otherMod)
         newMod = cudaq_runtime.mergeExternalMLIR(self.module, otherMod)
         # Get the name of the cudaq-entrypoint
         name = self.name
@@ -233,23 +235,24 @@ class PyKernelDecorator(object):
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
                     if 'cudaq-entrypoint' == attr.name:
-                        name = op.name.value.replace(nvqppPrefix, '') 
+                        name = op.name.value.replace(nvqppPrefix, '')
                         break
 
         return PyKernelDecorator(None, kernelName=name, module=newMod)
-    
-    def synthesize_callable_arguments(self, funcName):
-        """
-        Given this Kernel has a callable block argument, synthesize away this 
-        callable argument with the in-module FuncOp with given funcName. 
-        """
-        # FIXME, make this more general, handle a single cudaq-entrypoint with 
-        # callable args, user inputs dict of blockArgIdx -> FuncName to replace with
-        self.compile()
-        cudaq_runtime.synthPyCallable(self.module, funcName)
-        # Reset the argTypes by removing the Callable
-        self.argTypes = [a for a in self.argTypes if not cc.CallableType.isinstance(a)]
 
+    def synthesize_callable_arguments(self, funcNames):
+        """
+        Given this Kernel has callable block arguments, synthesize away these 
+        callable arguments with the in-module FuncOps with given names. The 
+        name at index 0 in the list corresponds to the first callable block 
+        argument, index 1 to the second callable block argument, etc. 
+        """
+        self.compile()
+        cudaq_runtime.synthPyCallable(self.module, funcNames)
+        # Reset the argTypes by removing the Callable
+        self.argTypes = [
+            a for a in self.argTypes if not cc.CallableType.isinstance(a)
+        ]
 
     def extract_c_function_pointer(self, name=None):
         """
@@ -257,8 +260,9 @@ class PyKernelDecorator(object):
         with the name of this kernel if not provided.
         """
         self.compile()
-        return cudaq_runtime.jitAndGetFunctionPointer(self.module, nvqppPrefix + self.name if name is None else name)
-    
+        return cudaq_runtime.jitAndGetFunctionPointer(
+            self.module, nvqppPrefix + self.name if name is None else name)
+
     def __str__(self):
         """
         Return the MLIR Module string representation for this kernel.

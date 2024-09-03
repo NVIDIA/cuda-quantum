@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "cudaq.h"
 #include "cudaq/algorithms/sample.h"
@@ -30,7 +31,7 @@ PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
     auto merged = statePrep.merge_kernel(cppMLIRCode);
 
     // Synthesize away all callable block arguments
-    merged.synthesize_callable_arguments(statePrep.name());
+    merged.synthesize_callable_arguments({statePrep.name()});
 
     // Extract the function pointer.
     auto entryPointPtr = merged.extract_c_function_pointer(kernelName);

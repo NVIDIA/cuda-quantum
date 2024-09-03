@@ -14,4 +14,4 @@ entryPoint(const std::function<void(cudaq::qvector<> &)> &statePrep) {
   cudaq::qvector q(2);
   statePrep(q);
 }
-}
+} // namespace cudaq
