@@ -19,8 +19,8 @@ on:
         description: The toolchain used to build the assets. The value is passed as build argument to Docker and used in tags and cache locations to distinguish different builds.
       cuda_version:
         required: true
-        type: number
-        description: The CUDA version used for the build.
+        type: string
+        description: The CUDA version used for the build (e.g. 12.3).
       environment:
         type: string
         required: false

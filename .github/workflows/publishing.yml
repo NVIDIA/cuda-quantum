@@ -738,15 +738,7 @@ jobs:
     strategy:
       matrix:
         os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04', 'debian:12']
-        cuda_major_version: [11, 12]
-        cuda_minor_version: [8, 0]
-        exclude:
-          - os_image: 'debian:12'
-            cuda_version: 11
-          - cuda_major_version: 11
-            cuda_minor_version: 0
-          - cuda_major_version: 12
-            cuda_minor_version: 8
+        cuda_version: [11.8, 12.0]
       fail-fast: false
 
     container:
@@ -762,10 +754,16 @@ jobs:
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
+      - name: Configure validation
+        id: config
+        run: 
+          cuda_major=`echo ${{ matrix.cuda_version }} | cut -d . -f1`
+          echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
+
       - name: Load installer
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-cu${{ matrix.cuda_major_version }}-installer
+          name: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
           path: /tmp/install
 
       - name: Runtime dependencies (apt)
@@ -777,7 +775,7 @@ jobs:
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb
-          cuda_version_suffix=${{ matrix.cuda_major_version }}-${{ matrix.cuda_minor_version }}
+          cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
           apt-get update && apt-get install -y --no-install-recommends \
             libcublas-$cuda_version_suffix \
             cuda-cudart-$cuda_version_suffix \
@@ -810,8 +808,8 @@ jobs:
         env:
           BASH_ENV: ~/.bashrc
         run: |
-          chmod +x /tmp/install/install_cuda_quantum.*
-          /tmp/install/install_cuda_quantum.* --accept
+          chmod +x /tmp/install/install_cuda_quantum*
+          /tmp/install/install_cuda_quantum* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
 
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \

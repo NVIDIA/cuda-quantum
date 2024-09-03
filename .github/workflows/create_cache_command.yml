@@ -150,7 +150,7 @@ jobs:
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
         cuda_version=${{ matrix.cuda_version }}
-        registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
+      registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       checkout_submodules: true
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
