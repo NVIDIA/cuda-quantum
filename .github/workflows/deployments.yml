@@ -197,6 +197,7 @@ jobs:
         # There are currently no multi-platform manylinux images available.
         # See https://github.com/pypa/manylinux/issues/1306.
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: [11.8, 12.0]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -208,6 +209,7 @@ jobs:
       toolchain: gcc11
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        cuda_version=${{ matrix.cuda_version }}
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
@@ -217,7 +219,7 @@ jobs:
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-python
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
   source_build:
     name: Build cross-platform dependencies
@@ -381,6 +383,7 @@ jobs:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         python_version: ['3.8', '3.9', '3.10', '3.11']
+        cuda_version: [11.8, 12.0]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
@@ -388,8 +391,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       python_version: ${{ matrix.python_version }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
+      cuda_version: ${{ matrix.cuda_version }}
       create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
 
   binaries:

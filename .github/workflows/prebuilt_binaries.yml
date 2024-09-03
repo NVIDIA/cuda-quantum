@@ -246,6 +246,7 @@ jobs:
           target: mpibuild
           build-args: |
             base_image_mpibuild=${{ inputs.platform_base_image }}
+            cudart_version=${{ inputs.cuda_version }}
           platforms: ${{ inputs.platform }}
           cache-from: |
             ${{ steps.cache.outputs.build_cache }}

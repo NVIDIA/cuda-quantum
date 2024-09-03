@@ -110,6 +110,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_version: [11.8, 12.0]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -121,6 +122,7 @@ jobs:
       toolchain: gcc11
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        cuda_version=${{ matrix.cuda_version }}
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
@@ -128,7 +130,7 @@ jobs:
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-python
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
   source_build_caches:
     name: Cache source build

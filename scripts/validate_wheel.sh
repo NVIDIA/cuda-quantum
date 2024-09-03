@@ -15,12 +15,12 @@
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 
-#   source validate_wheel.sh -w /tmp/cuda_quantum-*.whl -f /tmp -p 3.10 
+#   source validate_wheel.sh -w /tmp/cuda_quantum*.whl -f /tmp -p 3.10 
 # in a container (with GPU support) defined by:
 #
 # ARG base_image=ubuntu:22.04
 # FROM ${base_image}
-# ARG cuda_quantum_wheel=cuda_quantum-0.6.0-cp310-cp310-manylinux_2_28_x86_64.whl
+# ARG cuda_quantum_wheel=cuda_quantum_cu11-0.8.1-cp310-cp310-manylinux_2_28_x86_64.whl
 # COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 # COPY scripts/validate_wheel.sh validate_wheel.sh
 # COPY docs/sphinx/examples/python /tmp/examples/

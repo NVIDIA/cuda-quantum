@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 [project]
-name = "cuda-quantum"
+name = "cuda-quantum-cu11"
 dynamic = ["version"]
 keywords = [ "cuda-quantum", "cuda", "quantum", "quantum computing", "nvidia", "high-performance computing" ]
 description="Python bindings for the CUDA-Q toolkit for heterogeneous quantum-classical workflows."
