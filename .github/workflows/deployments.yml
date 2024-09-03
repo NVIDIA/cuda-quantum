@@ -226,6 +226,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: [11.8, 12.0]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -238,6 +239,7 @@ jobs:
       toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
+        cuda_version=${{ matrix.cuda_version }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
@@ -245,7 +247,7 @@ jobs:
       checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-installer
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
   openmpi:
     name: Build Open MPI
@@ -396,6 +398,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: [11.8, 12.0]
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
@@ -404,6 +407,7 @@ jobs:
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
-      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
+      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
+      cuda_version: ${{ matrix.cuda_version }}
       toolchain: llvm
       environment: ghcr-deployment

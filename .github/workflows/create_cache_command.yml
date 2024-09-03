@@ -136,6 +136,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        cuda_version: [11.8, 12.0]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -148,10 +149,11 @@ jobs:
       toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
-      registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
+        cuda_version=${{ matrix.cuda_version }}
+        registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       checkout_submodules: true
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-installer
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
   finalize:
     name: Indicate completion

@@ -89,6 +89,7 @@ jobs:
             if [ "${name%_publishing}" != "$name" ]; then
               download "$url" "$name"
               platforms=`cat "$name.txt" | egrep -o 'platforms?: \S*' | cut -d ' ' -f 2`
+              cuda_version=`cat "$name.txt" | egrep -o 'cuda-version: \S*' | cut -d ' ' -f 2`
               image_hash=`cat "$name.txt" | grep -o -e "cuda-quantum-dev-image: \S*" -e "cuda-quantum-assets-image: \S*" -e "cuda-quantum-wheeldeps-image: \S*" | cut -d ' ' -f 2`
               if [ -n "$(echo $platforms | grep ',')" ]; then runner=linux-amd64-cpu8
               else runner=$(echo $platforms | tr / -)-cpu8
@@ -103,7 +104,7 @@ jobs:
               release_id=${{ inputs.assets_from_run || github.run_id }}_$name
 
               releases+="$release_id "
-              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\",\"artifacts_url\":\"$artifacts_url\",\"platform\":\"$platforms\",\"image_hash\":\"$image_hash\"}}
+              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\",\"artifacts_url\":\"$artifacts_url\",\"platform\":\"$platforms\",\"cuda_version\":\"$cuda_version\",\"image_hash\":\"$image_hash\"}}
 
               if [ "${name#image}" != "$name" ]; then
                 docker_images=`echo $docker_images | jq ".info_files |= . + [\"$name\"]"`
@@ -508,6 +509,7 @@ jobs:
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
+          cuda_version=`cat $build_info | grep -o 'cuda-version: \S*' | cut -d ' ' -f 2`
           assets_image=`cat $build_info | grep -o 'cuda-quantum-assets-image: \S*' | cut -d ' ' -f 2`
           platform_base_image=`cat $build_info | grep -o 'platform-base-image: \S*' | cut -d ' ' -f 2`
           openmpi_buildcache=`cat $build_info | grep -o 'openmpi-build-cache: \S*' | cut -d ' ' -f 2`
@@ -516,6 +518,7 @@ jobs:
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
+          echo "cuda_major_version=$(echo $cuda_version | cut -d . -f1)" >> $GITHUB_OUTPUT
           echo "assets_image=$assets_image" >> $GITHUB_OUTPUT
           echo "platform_base_image=$platform_base_image" >> $GITHUB_OUTPUT
           echo "openmpi_buildcache=$openmpi_buildcache" >> $GITHUB_OUTPUT
@@ -556,7 +559,7 @@ jobs:
           gh release view $release_id --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
-          echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} installer:\n" >> new_notes.txt
+          echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} installer for CUDA ${{ steps.release_info.outputs.cuda_major_version }}:\n" >> new_notes.txt
           echo "- cuda-quantum-assets: ${{ steps.release_info.outputs.assets_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
           gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
@@ -566,8 +569,16 @@ jobs:
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-installer
+          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-installer
           path: /tmp/install
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload additional assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-assets
+          path: assets
           retention-days: 1
           if-no-files-found: error
 
@@ -726,7 +737,16 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
+        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04', 'debian:12']
+        cuda_major_version: [11, 12]
+        cuda_minor_version: [8, 0]
+        exclude:
+          - os_image: 'debian:12'
+            cuda_version: 11
+          - cuda_major_version: 11
+            cuda_minor_version: 0
+          - cuda_major_version: 12
+            cuda_minor_version: 8
       fail-fast: false
 
     container:
@@ -745,11 +765,11 @@ jobs:
       - name: Load installer
         uses: actions/download-artifact@v4
         with:
-          name: x86_64-installer
+          name: x86_64-cu${{ matrix.cuda_major_version }}-installer
           path: /tmp/install
 
       - name: Runtime dependencies (apt)
-        if: startsWith(matrix.os_image, 'ubuntu')
+        if: startsWith(matrix.os_image, 'ubuntu') || startsWith(matrix.os_image, 'debian')
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             wget ca-certificates libc6-dev libopenmpi-dev
@@ -757,8 +777,11 @@ jobs:
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb
+          cuda_version_suffix=${{ matrix.cuda_major_version }}-${{ matrix.cuda_minor_version }}
           apt-get update && apt-get install -y --no-install-recommends \
-            libcublas-11-8 cuda-cudart-11-8 libcusolver-11-8
+            libcublas-$cuda_version_suffix \
+            cuda-cudart-$cuda_version_suffix \
+            libcusolver-$cuda_version_suffix
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
@@ -995,18 +1018,24 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
-      - name: Download cuda-quantum wheels
+      - name: Download CUDA-Q Python wheels
         uses: actions/download-artifact@v4
         with:
           pattern: '*-wheels'
           path: wheelhouse
 
-      - name: Download CUDA Quantum installer
+      - name: Download CUDA-Q installer
         uses: actions/download-artifact@v4
         with:
           pattern: '*-installer'
           path: installers
 
+      - name: Download additional assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-assets'
+          path: assets
+  
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
       #  - We could upload wheels to test-pypi when creating a release.
@@ -1039,6 +1068,7 @@ jobs:
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
+          gh release upload $release_id -R ${{ github.repository }} assets/* --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
         env:
