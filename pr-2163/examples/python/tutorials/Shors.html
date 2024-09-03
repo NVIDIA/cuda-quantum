@@ -597,7 +597,15 @@
 <p>For small integers, this quantum algorithm can be simulated on classical computers. The main challenge in classical implementation lies in the order-finding algorithm. We will first introduce the classical implementation of this algorithm as a preliminary step, and then proceed to explain the quantum order-finding algorithm.</p>
 <p>First let’s install some libraries.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span>contfrac
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[156]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">gcd</span><span class="p">,</span> <span class="n">log2</span><span class="p">,</span> <span class="n">ceil</span>
@@ -631,7 +639,7 @@
 <p>The function <code class="docutils literal notranslate"><span class="pre">shors_algorithm</span></code> below outlines these steps for both the classical and the quantum implementation of Shor’s algorithm. For the purposes of demonstration, we will also control the initial random integer selected in step 1 so that we can investigate cases in which the selected integer produces common divisors of <span class="math notranslate nohighlight">\(N\)</span> in step 4 and others in which step 4 produces no common factors.</p>
 <p><strong>Note about terminology:</strong> Some literature refers to the “period-finding problem” in Shor’s algorithm. The order-finding problem, as we have described above, can be recast as finding the period of the function <span class="math notranslate nohighlight">\(f(x) = a^x\mod N\)</span>, by noticing that the period of <span class="math notranslate nohighlight">\(f(x)\)</span> is one more than the order of <span class="math notranslate nohighlight">\(a\mod N\)</span>. The period finding problem is more general than the order-finding problem since it aims to find the period of any periodic function, not just modular exponentiation.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">shors_algorithm</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">quantum</span><span class="p">):</span>
@@ -668,12 +676,12 @@
             <span class="n">a</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attempts</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">])</span>
 
-        <span class="c1"># 2. See if it happens to factor N</span>
+        <span class="c1"># 2. See if the integer selected in step 1 happens to factor N</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trying a =&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
         <span class="n">divisor1</span> <span class="o">=</span> <span class="n">gcd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">divisor1</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">divisor2</span> <span class="o">=</span> <span class="n">N</span> <span class="o">//</span> <span class="n">divisor1</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found factor by chance:&quot;</span><span class="p">,</span> <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found factors of N=</span><span class="si">{}</span><span class="s2"> by chance: </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">))</span>
             <span class="k">return</span> <span class="p">(</span><span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">)</span>
 
         <span class="c1"># 3. Find the order of a mod N (i.e., r, where a^r = 1 (mod N))</span>
@@ -681,16 +689,16 @@
             <span class="n">r</span> <span class="o">=</span> <span class="n">find_order_quantum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">r</span> <span class="o">=</span> <span class="n">find_order_classical</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The order of a is&quot;</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The order of a = </span><span class="si">{}</span><span class="s2"> is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">r</span><span class="p">))</span>
 
         <span class="c1"># 4. If the order of a is found and it is</span>
         <span class="c1"># * even and</span>
         <span class="c1"># * not a^(r/2) = -1 (mod N),</span>
-        <span class="c1"># then test a^(r/2)-1 and a^(r/2)+1 share potential factors with N.</span>
+        <span class="c1"># then test a^(r/2)-1 and a^(r/2)+1 to see if they share factors with N.</span>
         <span class="c1"># We also want to rule out the case of finding the trivial factors: 1 and N.</span>
         <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span> <span class="o">=</span> <span class="n">test_order</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">divisor1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>  <span class="c1"># test_order will return a 0 if no factor is found</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found factors of N:&quot;</span><span class="p">,</span> <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found factors of N = </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> and </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span><span class="p">))</span>
             <span class="k">return</span> <span class="n">divisor1</span><span class="p">,</span> <span class="n">divisor2</span>
 
         <span class="c1"># 5. Repeat</span>
@@ -714,7 +722,7 @@
 <p>is satisfied, then at least one of the terms <span class="math notranslate nohighlight">\(a^{\frac{r}{2}} - 1\)</span> or <span class="math notranslate nohighlight">\(a^{\frac{r}{2}} + 1\)</span> must share a common factor with <span class="math notranslate nohighlight">\(N\)</span>. <a class="reference external" href="https://arxiv.org/abs/quant-ph/9508027">Peter Shor</a> demonstrated that there is greater than a <span class="math notranslate nohighlight">\(50\%\)</span> chance of randomly selecting a value for <span class="math notranslate nohighlight">\(a\)</span> satisfying these properties.</p>
 <p>The code block below defines a function that tests whether <span class="math notranslate nohighlight">\(r\)</span> is even and whether equation <span class="math notranslate nohighlight">\((3)\)</span> is satisfied and searches for a non-trivial factor of <span class="math notranslate nohighlight">\(N\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[157]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_order</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -745,9 +753,9 @@
 </div>
 <section id="Solving-the-order-finding-problem-classically">
 <h3>Solving the order-finding problem classically<a class="headerlink" href="#Solving-the-order-finding-problem-classically" title="Permalink to this heading">¶</a></h3>
-<p>The key component of Shor’s algorithm is an efficient quantum algorithm to find the order <span class="math notranslate nohighlight">\(r\)</span> of <span class="math notranslate nohighlight">\(a (\text{mod} N)\)</span>. While a straightforward classical algorithm can solve this problem, it is notably inefficient:</p>
+<p>The key component of Shor’s algorithm is an efficient quantum algorithm to find the order <span class="math notranslate nohighlight">\(r\)</span> of <span class="math notranslate nohighlight">\(a \mod N\)</span>. While a straightforward classical algorithm can solve this problem, it is notably inefficient:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[158]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">find_order_classical</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -775,14 +783,14 @@
 </div>
 <p>Let’s see how Shor’s algorithm works on a few examples using the classical order-finding problem. Notice how often our choice of value for the initial guess for <span class="math notranslate nohighlight">\(a\)</span> produces factors of <span class="math notranslate nohighlight">\(N\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[159]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">my_integer</span> <span class="o">=</span> <span class="mi">123</span>  <span class="c1">#edit this value to try out a few examples</span>
 <span class="c1"># Edit the value in the line below to try out different initial guesses for a.</span>
 <span class="c1"># What happens when you choose a = 42 for the integer 123?</span>
 <span class="c1"># What happens when you choose a = 100 for the integer 123?</span>
-<span class="n">initial_value_to_start</span> <span class="o">=</span> <span class="mi">42</span>  <span class="c1">#edit this value</span>
+<span class="n">initial_value_to_start</span> <span class="o">=</span> <span class="mi">42</span>  <span class="c1"># edit this value; it should be less than my_integer</span>
 
 <span class="n">shors_algorithm</span><span class="p">(</span><span class="n">my_integer</span><span class="p">,</span> <span class="n">initial_value_to_start</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 </pre></div>
@@ -794,11 +802,11 @@
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Trying a = 42
-Found factor by chance: 3 41
+Found factors of N=123 by chance: 3 and 41
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[159]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -813,12 +821,12 @@ Found factor by chance: 3 41
 <p>The image below outlines the quantum kernel used to find the order of <span class="math notranslate nohighlight">\(a\)</span>. Notice the last step involves applying the Inverse Quantum Fourier Transform.</p>
 <p><img alt="image0" src="../../../_images/shor_circuit.png" /></p>
 <p>Figure. Circuit diagram for finding the phase of the modular multiplication gate $U|x:nbsphinx-math:<cite>rangle `= |a^x:nbsphinx-math:</cite>mod <cite>N:nbsphinx-math:</cite>rangle <cite>$, which will be used to compute the order of :math:`a</cite> modulo <span class="math notranslate nohighlight">\(N\)</span>. The number of qubits in the control register determines the accuracy of estimating the phase of <span class="math notranslate nohighlight">\(U\)</span>. The size of the work register depends on <span class="math notranslate nohighlight">\(N\)</span>. The goal of this section is to code the diagram as a kernel named <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code>.</p>
-<p>Notice that we will need to create a quantum kernel for the Inverse Quantum Fourier Transform. Additionally we’ll need to create a kernel for modular multiplication: <span class="math notranslate nohighlight">\(g(y) = ay \mod N\)</span>, which can be repeatedly applied <span class="math notranslate nohighlight">\(x\)</span>-times to <span class="math notranslate nohighlight">\(y=1\)</span> to carry our modular exponentation <span class="math notranslate nohighlight">\(f(x)=a^x\mod N\)</span>.</p>
+<p>We will need to create a quantum kernel for the Inverse Quantum Fourier Transform. Additionally we’ll need to create a kernel for modular multiplication: <span class="math notranslate nohighlight">\(g(y) = ay \mod N\)</span>, which can be repeatedly applied <span class="math notranslate nohighlight">\(x\)</span>-times to <span class="math notranslate nohighlight">\(y=1\)</span> to carry our modular exponentation <span class="math notranslate nohighlight">\(f(x)=a^x\mod N\)</span>.</p>
 <section id="Inverse-quantum-Fourier-transform">
 <h4>Inverse quantum Fourier transform<a class="headerlink" href="#Inverse-quantum-Fourier-transform" title="Permalink to this heading">¶</a></h4>
 <p>In the code block below we define a kernel for the quantum Fourier transform and then use <code class="docutils literal notranslate"><span class="pre">cudaq.adjoint</span></code> to create a kernel for the inverse quantum Fourier transform used in the quantum order-finding algorithm.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[160]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernels for the quantum Fourier transform and the inverse quantum Fourier transform</span>
@@ -848,60 +856,72 @@ Found factor by chance: 3 41
 <section id="The-case-N-=-21-and-a-=-5:">
 <h5>The case N = 21 and a = 5:<a class="headerlink" href="#The-case-N-=-21-and-a-=-5:" title="Permalink to this heading">¶</a></h5>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[161]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">modular_mult_5_21</span><span class="p">(</span><span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;&quot;Kernel for multiplying by 5 mod 21&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;&quot;Kernel for multiplying by 5 mod 21</span>
+<span class="sd">    based off of the circuit diagram in</span>
+<span class="sd">    https://physlab.org/wp-content/uploads/2023/05/Shor_s_Algorithm_23100113_Fin.pdf</span>
+<span class="sd">    Modifications were made to change the ordering of the qubits&quot;&quot;&quot;</span>
     <span class="n">x</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">x</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
     <span class="n">x</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
-    <span class="n">swap</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
-    <span class="n">swap</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
 
+    <span class="n">swap</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">modular_exp_5_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
                      <span class="n">control_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Controlled modular exponentiation kernel used in Shor&#39;s algorithm</span>
 <span class="sd">    |x&gt; U^x |y&gt; = |x&gt; |(5^x)y mod 21&gt;</span>
-<span class="sd">    based off of the circuit diagram in</span>
-<span class="sd">    https://physlab.org/wp-content/uploads/2023/05/Shor_s_Algorithm_23100113_Fin.pdf&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">x</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">exp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">control_size</span><span class="p">):</span>
         <span class="n">ctrl_qubit</span> <span class="o">=</span> <span class="n">exponent</span><span class="p">[</span><span class="n">exp</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">exp</span><span class="p">)):</span>
             <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">modular_mult_5_21</span><span class="p">,</span> <span class="n">ctrl_qubit</span><span class="p">,</span> <span class="n">work</span><span class="p">)</span>
-<br/></pre></div>
+<br/><br/></pre></div>
 </div>
 </div>
-<p>Verify in the code block below that the kernels defined above do in fact carry out multiplication and exponentiation with <span class="math notranslate nohighlight">\(a=5\)</span> and <span class="math notranslate nohighlight">\(N=21\)</span>.</p>
+<p>Verify in the code block below that the kernels defined above do in fact carry out multiplication and exponentiation with <span class="math notranslate nohighlight">\(a=5\)</span> and <span class="math notranslate nohighlight">\(N=21\)</span> by changing the <code class="docutils literal notranslate"><span class="pre">iterations</span></code> variable below.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[198]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Demonstrate iterated application of 5y mod 21 where y = 1</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">demonstrate_mod_exponentiation</span><span class="p">(</span><span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># initalizes the qubits in the state for y = 1 which is |10000&gt;</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
         <span class="n">modular_mult_5_21</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
 
 
 <span class="n">shots</span> <span class="o">=</span> <span class="mi">200</span>
-<span class="n">iterations</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># Determines the exponent in 5^x mod 21</span>
+
+<span class="c1"># The iterations variable determines the exponent in 5^x mod 21.</span>
+<span class="c1"># Change this value to verify that the demonstrate_mod_exponentiation</span>
+<span class="c1"># kernel carries out the desired calculation.</span>
+<span class="n">iterations</span> <span class="o">=</span> <span class="mi">1</span>
+
 <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">demonstrate_mod_exponentiation</span><span class="p">,</span> <span class="n">iterations</span><span class="p">))</span>
 
 <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">demonstrate_mod_exponentiation</span><span class="p">,</span>
                        <span class="n">iterations</span><span class="p">,</span>
                        <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement results:&quot;</span><span class="p">,</span> <span class="n">results</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For x =</span><span class="si">{}</span><span class="s2">, 5^x mod 21 = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="o">**</span><span class="n">iterations</span><span class="p">)</span> <span class="o">%</span> <span class="mi">21</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For x =</span><span class="si">{}</span><span class="s2">,the computed result of the circuit is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-    <span class="n">iterations</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">most_probable</span><span class="p">(),</span> <span class="mi">2</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Measurement results from sampling:&quot;</span><span class="p">,</span> <span class="n">results</span><span class="p">)</span>
+
+<span class="c1"># Reverse the order of the most probable measured bit string</span>
+<span class="c1"># and convert the binary string to an integer</span>
+<span class="n">integer_result</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For x = </span><span class="si">{}</span><span class="s2">, 5^x mod 21 = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="o">**</span><span class="n">iterations</span><span class="p">)</span> <span class="o">%</span> <span class="mi">21</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;For x = </span><span class="si">{}</span><span class="s2">, the computed result of the circuit is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+    <span class="n">iterations</span><span class="p">,</span> <span class="n">integer_result</span><span class="p">))</span>
 <br/></pre></div>
 </div>
 </div>
@@ -910,37 +930,39 @@ Found factor by chance: 3 41
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-     ╭───╮╭───╮   ╭───╮      ╭───╮      ╭───╮      ╭───╮
-q0 : ┤ x ├┤ x ├─╳─┤ x ├────╳─┤ x ├────╳─┤ x ├────╳─┤ x ├────╳─
-     ╰───╯╰───╯ │ ╰───╯    │ ╰───╯    │ ╰───╯    │ ╰───╯    │
-q1 : ───────────┼──────────┼──────────┼──────────┼──────────┼─
-     ╭───╮      │ ╭───╮    │ ╭───╮    │ ╭───╮    │ ╭───╮    │
-q2 : ┤ x ├──╳───┼─┤ x ├─╳──┼─┤ x ├─╳──┼─┤ x ├─╳──┼─┤ x ├─╳──┼─
-     ╰───╯  │   │ ╰───╯ │  │ ╰───╯ │  │ ╰───╯ │  │ ╰───╯ │  │
-q3 : ───────┼───┼───────┼──┼───────┼──┼───────┼──┼───────┼──┼─
-     ╭───╮  │   │ ╭───╮ │  │ ╭───╮ │  │ ╭───╮ │  │ ╭───╮ │  │
-q4 : ┤ x ├──╳───╳─┤ x ├─╳──╳─┤ x ├─╳──╳─┤ x ├─╳──╳─┤ x ├─╳──╳─
-     ╰───╯        ╰───╯      ╰───╯      ╰───╯      ╰───╯
+     ╭───╮╭───╮
+q0 : ┤ x ├┤ x ├─╳──╳─
+     ╰───╯╰───╯ │  │
+q1 : ───────────┼──┼─
+     ╭───╮      │  │
+q2 : ┤ x ├──────┼──╳─
+     ╰───╯      │
+q3 : ───────────┼────
+     ╭───╮      │
+q4 : ┤ x ├──────╳────
+     ╰───╯
 
-Measurement results: { 10001:200 }
+Measurement results from sampling: { 10100:200 }
 
-For x =5, 5^x mod 21 = 17
-For x =5,the computed result of the circuit is 17
+For x = 1, 5^x mod 21 = 5
+For x = 1, the computed result of the circuit is 5
 </pre></div></div>
 </div>
 </section>
 <section id="The-case-N-=-21-and-a-=-4:">
 <h5>The case N = 21 and a = 4:<a class="headerlink" href="#The-case-N-=-21-and-a-=-4:" title="Permalink to this heading">¶</a></h5>
-<p>This is an example where the work register has been optimized to use fewer gates and qubits than would have been necessary through a straightforward implementation of modular multiplication as seen in the previous case.</p>
+<p>The example below is one where the work register has been optimized to use fewer gates and qubits than would have been necessary through a straightforward implementation of modular multiplication as seen in the previous case.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[199]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">modular_exp_4_21</span><span class="p">(</span><span class="n">exponent</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Controlled modular exponentiation kernel used in Shor&#39;s algorithm</span>
 <span class="sd">     |x&gt; U^x |y&gt; = |x&gt; |(4^x)y mod 21&gt;</span>
-<span class="sd">     based off of the circuit diagram in https://arxiv.org/abs/2103.13855&quot;&quot;&quot;</span>
+<span class="sd">     based off of the circuit diagram in https://arxiv.org/abs/2103.13855</span>
+<span class="sd">     Modifications were made to account for qubit ordering differences&quot;&quot;&quot;</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">exponent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">exponent</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
     <span class="c1"># x = 1</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">exponent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
@@ -957,12 +979,13 @@ For x =5,the computed result of the circuit is 17
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">exponent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">swap</span><span class="p">(</span><span class="n">exponent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">exponent</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
 <p>Now we are ready to define the <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code> to carry out the instructions in the circuit diagram drawn at the beginning of this section.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[200]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -992,13 +1015,13 @@ For x =5,the computed result of the circuit is 17
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[201]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">control_register_size</span> <span class="o">=</span> <span class="mi">3</span>
 <span class="n">work_register_size</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">values_for_a</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
-<span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># change to 1 to select 5</span>
+<span class="n">idx</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># change to 1 to select 5</span>
 <span class="n">N</span> <span class="o">=</span> <span class="mi">21</span>
 <span class="n">shots</span> <span class="o">=</span> <span class="mi">15000</span>
 
@@ -1024,34 +1047,66 @@ For x =5,the computed result of the circuit is 17
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-     ╭───╮                                                                   »
-q0 : ┤ h ├────────────────────────────────●──────────────●───────────────────»
-     ├───┤                                │              │       ╭──────────╮»
-q1 : ┤ h ├───────●─────────●──────────────┼──────────────┼───────┤ r1(-1.5) ├»
-     ├───┤       │         │              │              │  ╭───╮╰────┬─────╯»
-q2 : ┤ h ├──●────┼─────────┼──────────────┼──────────────┼──┤ h ├─────●──────»
-     ╰───╯  │    │  ╭───╮  │  ╭───╮     ╭─┴─╮     ╭───╮  │  ├───┤            »
-q3 : ───────┼────┼──┤ x ├──●──┤ x ├─────┤ x ├─────┤ x ├──●──┤ x ├────────────»
-          ╭─┴─╮╭─┴─╮╰─┬─╯╭─┴─╮╰─┬─╯╭───╮╰─┬─╯╭───╮╰─┬─╯╭─┴─╮╰─┬─╯            »
-q4 : ─────┤ x ├┤ x ├──●──┤ x ├──●──┤ x ├──●──┤ x ├──●──┤ x ├──●──────────────»
-          ╰───╯╰───╯     ╰───╯     ╰───╯     ╰───╯     ╰───╯                 »
+     ╭───╮                                                                    »
+q0 : ┤ h ├──●────●────●───●──●────────────────────────────────────────────────»
+     ├───┤  │    │    │   │  │                                                »
+q1 : ┤ h ├──┼────┼────┼───┼──┼───●────●────●───●──●───●────●────●───●──●──────»
+     ├───┤  │    │    │   │  │   │    │    │   │  │   │    │    │   │  │      »
+q2 : ┤ h ├──┼────┼────┼───┼──┼───┼────┼────┼───┼──┼───┼────┼────┼───┼──┼───●──»
+     ├───┤╭─┴─╮  │    │   │  │ ╭─┴─╮  │    │   │  │ ╭─┴─╮  │    │   │  │ ╭─┴─╮»
+q3 : ┤ x ├┤ x ├──┼────┼───╳──╳─┤ x ├──┼────┼───╳──╳─┤ x ├──┼────┼───╳──╳─┤ x ├»
+     ╰───╯╰───╯  │    │   │  │ ╰───╯  │    │   │  │ ╰───╯  │    │   │  │ ╰───╯»
+q4 : ────────────┼────┼───┼──┼────────┼────┼───┼──┼────────┼────┼───┼──┼──────»
+               ╭─┴─╮  │   │  │      ╭─┴─╮  │   │  │      ╭─┴─╮  │   │  │      »
+q5 : ──────────┤ x ├──┼───┼──╳──────┤ x ├──┼───┼──╳──────┤ x ├──┼───┼──╳──────»
+               ╰───╯  │   │         ╰───╯  │   │         ╰───╯  │   │         »
+q6 : ─────────────────┼───┼────────────────┼───┼────────────────┼───┼─────────»
+                    ╭─┴─╮ │              ╭─┴─╮ │              ╭─┴─╮ │         »
+q7 : ───────────────┤ x ├─╳──────────────┤ x ├─╳──────────────┤ x ├─╳─────────»
+                    ╰───╯                ╰───╯                ╰───╯           »
 
 ################################################################################
 
-     ╭───────────╮╭──────────╮╭───╮
-─────┤ r1(-0.75) ├┤ r1(-1.5) ├┤ h ├
-╭───╮╰─────┬─────╯╰────┬─────╯╰───╯
-┤ h ├──────┼───────────●───────────
-╰───╯      │
-───────────●───────────────────────
+                                                                            »
+────────────────────────────────────────────────────────────────────────────»
+                                                                            »
+────────────────────────────────────────────────────────────────────────────»
+                                                                            »
+──●────●───●──●───●────●────●───●──●───●────●────●───●──●───●────●────●───●─»
+  │    │   │  │ ╭─┴─╮  │    │   │  │ ╭─┴─╮  │    │   │  │ ╭─┴─╮  │    │   │ »
+──┼────┼───╳──╳─┤ x ├──┼────┼───╳──╳─┤ x ├──┼────┼───╳──╳─┤ x ├──┼────┼───╳─»
+  │    │   │  │ ╰───╯  │    │   │  │ ╰───╯  │    │   │  │ ╰───╯  │    │   │ »
+──┼────┼───┼──┼────────┼────┼───┼──┼────────┼────┼───┼──┼────────┼────┼───┼─»
+╭─┴─╮  │   │  │      ╭─┴─╮  │   │  │      ╭─┴─╮  │   │  │      ╭─┴─╮  │   │ »
+┤ x ├──┼───┼──╳──────┤ x ├──┼───┼──╳──────┤ x ├──┼───┼──╳──────┤ x ├──┼───┼─»
+╰───╯  │   │         ╰───╯  │   │         ╰───╯  │   │         ╰───╯  │   │ »
+───────┼───┼────────────────┼───┼────────────────┼───┼────────────────┼───┼─»
+     ╭─┴─╮ │              ╭─┴─╮ │              ╭─┴─╮ │              ╭─┴─╮ │ »
+─────┤ x ├─╳──────────────┤ x ├─╳──────────────┤ x ├─╳──────────────┤ x ├─╳─»
+     ╰───╯                ╰───╯                ╰───╯                ╰───╯   »
 
-───────────────────────────────────
+################################################################################
 
-───────────────────────────────────
+                           ╭─────────────╮╭────────────╮╭───╮
+───────────────────────────┤ r1(-0.7854) ├┤ r1(-1.571) ├┤ h ├
+        ╭────────────╮╭───╮╰──────┬──────╯╰─────┬──────╯╰───╯
+────────┤ r1(-1.571) ├┤ h ├───────┼─────────────●────────────
+   ╭───╮╰─────┬──────╯╰───╯       │
+─●─┤ h ├──────●───────────────────●──────────────────────────
+ │ ╰───╯
+─╳───────────────────────────────────────────────────────────
+ │
+─┼───────────────────────────────────────────────────────────
+ │
+─╳───────────────────────────────────────────────────────────
+
+─────────────────────────────────────────────────────────────
+
+─────────────────────────────────────────────────────────────
 
 
-Measurement results for a=4 and N=21 with 3 qubits in the control register
-{ 000:5117 010:902 111:224 001:188 011:3658 100:522 101:3402 110:987 }
+Measurement results for a=5 and N=21 with 3 qubits in the control register
+{ 000:2843 010:913 111:1850 001:1935 011:1830 100:2846 101:1861 110:922 }
 
 </pre></div></div>
 </div>
@@ -1062,7 +1117,7 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 <h3>Determining the order from the measurement results of the phase kernel<a class="headerlink" href="#Determining-the-order-from-the-measurement-results-of-the-phase-kernel" title="Permalink to this heading">¶</a></h3>
 <p>The measurement results from sampling the <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code> can be used to estimate the phase of the operator <span class="math notranslate nohighlight">\(U|x\rangle = ax\mod N\)</span>. We will only be interested in the most probable non-zero outcomes of the sampling. Therefore, we’ll create a function <code class="docutils literal notranslate"><span class="pre">top_results</span></code> to extract those values.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[202]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">top_results</span><span class="p">(</span><span class="n">sample_results</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
@@ -1091,7 +1146,7 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 </div>
 <p>Let’s see how the <code class="docutils literal notranslate"><span class="pre">top_results</span></code> extracts the top results from the measurement results for a=4 and N=21 with 3 qubits in the control register that we computed above. One of these top result is likely to be an estimate for the phase of <span class="math notranslate nohighlight">\(U\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[203]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example</span>
@@ -1100,18 +1155,24 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[203]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;011&#39;: 3658, &#39;101&#39;: 3402, &#39;110&#39;: 987, &#39;010&#39;: 902}
+{&#39;100&#39;: 2846,
+ &#39;001&#39;: 1935,
+ &#39;101&#39;: 1861,
+ &#39;111&#39;: 1850,
+ &#39;011&#39;: 1830,
+ &#39;110&#39;: 922,
+ &#39;010&#39;: 913}
 </pre></div></div>
 </div>
 <p>The algorithm for translating the phase estimate of the operator <span class="math notranslate nohighlight">\(U|x\rangle = ax\mod N\)</span> into the order of <span class="math notranslate nohighlight">\(a \mod N\)</span> involves continued fractions. The function <code class="docutils literal notranslate"><span class="pre">find_order_quantum</span></code> below carries out this computation. To learn more about how the phase of <span class="math notranslate nohighlight">\(U\)</span> relates to the period of <span class="math notranslate nohighlight">\(a \mod N\)</span>, check out these three lectures by Scott Aaronson: lecture <a class="reference external" href="https://www.scottaaronson.com/qclec/19.pdf">19</a>, <a class="reference external" href="https://www.scottaaronson.com/qclec/20.pdf">20</a>,
 <a class="reference external" href="https://www.scottaaronson.com/qclec/21.pdf">21</a>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[204]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_order_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">phase_nbits</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -1142,14 +1203,14 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
     <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">numerator</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="n">eigenphase</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">numerator</span> <span class="o">/</span> <span class="n">f</span><span class="o">.</span><span class="n">denominator</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">eigenphase</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;eigenphase is &#39;</span><span class="p">,</span> <span class="n">eigenphase</span><span class="p">)</span>
     <span class="n">coefficients_continued_fraction</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
         <span class="n">contfrac</span><span class="o">.</span><span class="n">continued_fraction</span><span class="p">(</span><span class="n">eigenphase</span><span class="p">))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">coefficients_continued_fraction</span><span class="p">)</span>
+
     <span class="n">convergents_continued_fraction</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">contfrac</span><span class="o">.</span><span class="n">convergents</span><span class="p">(</span><span class="n">eigenphase</span><span class="p">))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">convergents_continued_fraction</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;convergent sequence of fractions for this eigenphase is&#39;</span><span class="p">,</span> <span class="n">convergents_continued_fraction</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">convergents_continued_fraction</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;testing order&#39;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;using the denominators of the fractions in the convergent sequence, testing order =&#39;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">a</span><span class="o">**</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found order:&#39;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
             <span class="k">return</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -1159,7 +1220,7 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 </div>
 <p>We are now ready to combine all the elements above into a function to find the order of <span class="math notranslate nohighlight">\(a\)</span> <span class="math notranslate nohighlight">\(\mod N\)</span> and test it in the factoring algoithm.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[205]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">find_order_quantum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -1203,8 +1264,11 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
         <span class="n">most_probable_bitpatterns</span> <span class="o">=</span> <span class="n">top_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">zero_result</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">most_probable_bitpatterns</span><span class="p">:</span>
+            <span class="c1"># Convert the key bit string into an integer</span>
+            <span class="c1"># This integer divided by 8 is an estimate for the phase</span>
+            <span class="n">reverse_result</span> <span class="o">=</span> <span class="n">key</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">phase</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">reverse_result</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-            <span class="n">phase</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trying nonzero bitpattern from the phase estimation:&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span>
                   <span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">phase</span><span class="p">)</span>
             <span class="n">r</span> <span class="o">=</span> <span class="n">get_order_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">control_register_size</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
@@ -1223,11 +1287,11 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[206]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">my_integer</span> <span class="o">=</span> <span class="mi">21</span>
-<span class="n">initial_value_to_start</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># Try replacing 5 with 4</span>
+<span class="n">initial_value_to_start</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># Try replacing 5 with 4</span>
 <span class="n">quantum</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="n">shors_algorithm</span><span class="p">(</span><span class="n">my_integer</span><span class="p">,</span> <span class="n">initial_value_to_start</span><span class="p">,</span> <span class="n">quantum</span><span class="p">)</span>
 </pre></div>
@@ -1238,32 +1302,47 @@ Measurement results for a=4 and N=21 with 3 qubits in the control register
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Trying a = 4
+Trying a = 5
 Measurement results:
-{ 000:5171 010:874 111:254 001:205 011:3670 100:481 101:3362 110:983 }
+{ 11010:452 11001:92 11101:47 00000:2485 01001:96 00100:131 01011:1747 00101:1654 10101:1736 00110:475 11111:23 01000:50 01101:38 01110:35 01010:420 11110:22 01111:26 00011:50 01100:120 10011:35 00010:25 00001:22 11011:1710 00111:79 11100:113 10001:14 10010:29 10100:129 10110:467 10000:2536 10111:81 11000:61 }
 
-Trying nonzero bitpattern from the phase estimation: 011 = 3
-0.375
-[0, 2, 1, 2]
-[(0, 1), (1, 2), (1, 3), (3, 8)]
-testing order 1
-testing order 2
-testing order 3
-Found order: 3
-The order of a is 3
-No non-trivial factor found
-retrying...
-Trying a = 18
-Found factor by chance: 3 7
+Trying nonzero bitpattern from the phase estimation: 10000 = 1
+No period found.
+Trying nonzero bitpattern from the phase estimation: 01011 = 26
+eigenphase is  0.8125
+convergent sequence of fractions for this eigenphase is [(0, 1), (1, 1), (4, 5), (13, 16)]
+using the denominators of the fractions in the convergent sequence, testing order = 1
+using the denominators of the fractions in the convergent sequence, testing order = 1
+using the denominators of the fractions in the convergent sequence, testing order = 5
+using the denominators of the fractions in the convergent sequence, testing order = 16
+No period found.
+Trying nonzero bitpattern from the phase estimation: 10101 = 21
+eigenphase is  0.65
+convergent sequence of fractions for this eigenphase is [(0, 1), (1, 1), (1, 2), (2, 3), (13, 20)]
+using the denominators of the fractions in the convergent sequence, testing order = 1
+using the denominators of the fractions in the convergent sequence, testing order = 1
+using the denominators of the fractions in the convergent sequence, testing order = 2
+using the denominators of the fractions in the convergent sequence, testing order = 3
+using the denominators of the fractions in the convergent sequence, testing order = 20
+No period found.
+Trying nonzero bitpattern from the phase estimation: 11011 = 27
+eigenphase is  0.8421052631578947
+convergent sequence of fractions for this eigenphase is [(0, 1), (1, 1), (5, 6), (16, 19)]
+using the denominators of the fractions in the convergent sequence, testing order = 1
+using the denominators of the fractions in the convergent sequence, testing order = 1
+using the denominators of the fractions in the convergent sequence, testing order = 6
+Found order: 6
+The order of a =5 is 6
+Found factors of N = 21: 7 and 3
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[206]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(3, 7)
+(7, 3)
 </pre></div></div>
 </div>
 </section>
