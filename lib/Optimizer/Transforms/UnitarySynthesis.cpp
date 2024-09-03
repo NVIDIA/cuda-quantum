@@ -132,6 +132,7 @@ public:
       rewriter.setInsertionPointToStart(parentModule.getBody());
       auto func = rewriter.create<func::FuncOp>(parentModule->getLoc(),
                                                 funcName, funcTy);
+      func.setPrivate();
       rewriter.restoreInsertionPoint(insPt);
 
       insPt = rewriter.saveInsertionPoint();

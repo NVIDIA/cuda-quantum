@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s -check-prefix=FAIL
 
 #include <cudaq.h>
 
@@ -31,3 +32,5 @@ int main() {
 
 // CHECK: 11
 // CHECK: 00
+
+// FAIL: Decomposition of only single qubit custom operations supported.
