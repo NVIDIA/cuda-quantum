@@ -236,7 +236,7 @@ private:
           for (auto [so, fo] :
                llvm::zip(branch->getSuccessor(i)->getArguments(),
                          succOperands.getForwardedOperands()))
-            if (isa<quake::WireType>(so.getType()))
+            if (quake::isLinearType(so.getType()))
               insertToEqClass(so, fo);
         }
       }
@@ -348,7 +348,7 @@ struct EraseWiresBranch : public OpRewritePattern<cf::BranchOp> {
                                 PatternRewriter &rewriter) const override {
     SmallVector<Value> newOperands;
     for (auto v : branch.getDestOperands()) {
-      if (isa<quake::WireType>(v.getType()))
+      if (quake::isLinearType(v.getType()))
         blocks.insert(branch.getDest());
       else
         newOperands.push_back(v);
@@ -369,14 +369,14 @@ struct EraseWiresCondBranch : public OpRewritePattern<cf::CondBranchOp> {
                                 PatternRewriter &rewriter) const override {
     SmallVector<Value> newTrueOperands;
     for (auto v : branch.getTrueDestOperands()) {
-      if (isa<quake::WireType>(v.getType()))
+      if (quake::isLinearType(v.getType()))
         blocks.insert(branch.getTrueDest());
       else
         newTrueOperands.push_back(v);
     }
     SmallVector<Value> newFalseOperands;
     for (auto v : branch.getFalseDestOperands()) {
-      if (isa<quake::WireType>(v.getType()))
+      if (quake::isLinearType(v.getType()))
         blocks.insert(branch.getFalseDest());
       else
         newFalseOperands.push_back(v);
@@ -408,7 +408,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
     // operands of the original if operation.
     SmallVector<Type> newIfTy;
     for (auto ty : ifOp.getResultTypes())
-      if (ty != wireTy)
+      if (!quake::isLinearType(ty))
         newIfTy.push_back(ty);
     auto origThenArgs = ifOp.getThenRegion().front().getArguments();
     auto origElseArgs = ifOp.getElseRegion().front().getArguments();
@@ -446,7 +446,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
             SmallVector<Value> newOpnds;
             OpBuilder builder(cont);
             for (auto v : cont.getOperands())
-              if (v.getType() != wireTy)
+              if (!quake::isLinearType(v.getType()))
                 newOpnds.push_back(v);
             builder.create<cudaq::cc::ContinueOp>(cont.getLoc(), newOpnds);
             rewriter.eraseOp(cont);
@@ -460,7 +460,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
     SmallVector<Value> unwraps;
     unsigned i = 0;
     for (auto v : ifOp.getResults()) {
-      if (v.getType() == wireTy) {
+      if (quake::isLinearType(v.getType())) {
         auto id = analysis.idFromValue(v);
         assert(id);
         auto unwrap = rewriter.create<quake::UnwrapOp>(ifOp.getLoc(), wireTy,
@@ -539,10 +539,9 @@ public:
     // gate in memory-ssa form.
     auto hasNoWires = [](Operation *op) {
       return op->getOperands().empty() ||
-             !std::any_of(op->getOperands().begin(), op->getOperands().end(),
-                          [](Value v) {
-                            return v && isa<quake::WireType>(v.getType());
-                          });
+             !std::any_of(
+                 op->getOperands().begin(), op->getOperands().end(),
+                 [](Value v) { return v && quake::isLinearType(v.getType()); });
     };
     BlockSet fixupBlocks;
     RewritePatternSet patterns(ctx);
@@ -585,7 +584,7 @@ public:
     for (auto *b : blocks) {
       unsigned i = 0;
       for (auto arg : b->getArguments()) {
-        if (isa<quake::WireType>(arg.getType()))
+        if (quake::isLinearType(arg.getType()))
           b->eraseArgument(i);
         else
           ++i;
