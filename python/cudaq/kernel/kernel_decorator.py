@@ -360,7 +360,7 @@ class PyKernelDecorator(object):
                 raise RuntimeError(
                     "The 'photonics' target must be used with a valid function."
                 )
-            PhotonicsHandler(self.kernelFunction)()
+            PhotonicsHandler(self.kernelFunction)(*args)
             return
 
         # Prepare captured state storage for the run
