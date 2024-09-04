@@ -15,7 +15,7 @@
 
 // port number and localhost connect to mock_qpu backend server within the container (mock_qpu/anyon). 
 std::string mockPort = "5000";
-std::string machine = "berkeley-25q";
+std::string machine = "telegraph-8q";
 std::string backendStringTemplate =
     "anyon;emulate;false;url;http://localhost:{};credentials;{};machine;{}";
 bool isValidExpVal(double value) {

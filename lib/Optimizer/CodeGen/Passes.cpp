@@ -17,7 +17,7 @@ using namespace mlir;
 static void addAnyonPPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
-      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "z(1)",
   };
   BasisConversionPassOptions options;
   options.basis = basis;
