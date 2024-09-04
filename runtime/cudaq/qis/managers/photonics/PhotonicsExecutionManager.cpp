@@ -23,7 +23,11 @@ struct PhotonicsState : public cudaq::SimulationState {
   /// @brief The state. This class takes ownership move semantics.
   qpp::ket state;
 
-  PhotonicsState(qpp::ket &&data) : state(std::move(data)) {}
+  /// @brief The qudit-levels (`qumodes`)
+  std::size_t levels;
+
+  PhotonicsState(qpp::ket &&data, std::size_t lvl)
+      : state(std::move(data)), levels(lvl) {}
 
   std::size_t getNumQubits() const override {
     throw "not supported for this photonics simulator";
@@ -41,7 +45,7 @@ struct PhotonicsState : public cudaq::SimulationState {
     const std::size_t idx = std::accumulate(
         std::make_reverse_iterator(basisState.end()),
         std::make_reverse_iterator(basisState.begin()), 0ull,
-        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+        [&](std::size_t acc, int bit) { return (acc * levels) + bit; });
     return state[idx];
   }
 
@@ -88,7 +92,7 @@ private:
   /// @brief Current state
   qpp::ket state;
 
-  /// @brief Instructions are strored in a map
+  /// @brief Instructions are stored in a map
   std::unordered_map<std::string, std::function<void(const Instruction &)>>
       instructions;
 
@@ -165,7 +169,8 @@ protected:
         executionContext->result.append(counts);
       } else if (executionContext->name == "extract-state") {
         executionContext->simulationState =
-            std::make_unique<cudaq::PhotonicsState>(std::move(state));
+            std::make_unique<cudaq::PhotonicsState>(
+                std::move(state), sampleQudits.begin()->levels);
       }
       // Reset the state and qudits
       state.resize(0);
