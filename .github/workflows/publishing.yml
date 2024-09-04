@@ -596,7 +596,7 @@ jobs:
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
-        python_version: ['3.8', '3.9', '3.10', '3.11']
+        python_version: ['3.9', '3.10', '3.11', '3.12']
       fail-fast: false
 
     runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
@@ -738,7 +738,7 @@ jobs:
     strategy:
       matrix:
         os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04', 'debian:12']
-        cuda_version: [11.8, 12.0]
+        cuda_version: ["11.8", "12.0"]
       fail-fast: false
 
     container:
@@ -823,6 +823,7 @@ jobs:
             exit 1
           fi
 
+  # FIXME: CUDA 11 VS CUDA 12
   wheel_validation:
     name: Python wheel instructions validation
     needs: [assets, cudaq_wheels]

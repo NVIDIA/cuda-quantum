@@ -2,13 +2,6 @@
     "python":
     [
         {
-            "version": 3.8,
-            "operating_systems": 
-            [
-                "fedora:38"
-            ]
-        },
-        {
             "version": 3.9,
             "operating_systems": 
             [
@@ -21,8 +14,8 @@
             "version": 3.10,
             "operating_systems": 
             [
-                "ubuntu:22.04",
-                "fedora:38",
+                "ubuntu:24.04",
+                "fedora:40",
                 "opensuse/leap:15.5"
             ]
         },
@@ -35,6 +28,17 @@
                 "fedora:38",
                 "redhat/ubi9:9.2",
                 "opensuse/leap:15.5"
+            ]
+        },
+        {
+            "version": 3.12,
+            "operating_systems": 
+            [
+                "ubuntu:24.04",
+                "ubuntu:22.04",
+                "fedora:40",
+                "redhat/ubi9:9.2",
+                "opensuse/leap:15.6"
             ]
         }
     ],

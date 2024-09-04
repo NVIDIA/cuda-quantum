@@ -90,7 +90,7 @@ jobs:
           registry=${{ vars.registry || 'localhost:5000' }}
           image_name=$registry/${repo_owner,,}/cuda-quantum-assets
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
-          tag_prefix=$platform_tag-cu${cuda_major}-${{ inputs.toolchain }}-
+          tag_prefix=${platform_tag}-cu${cuda_major}-${{ inputs.toolchain }}-
 
           if ${{ github.event.pull_request.merged == true }}; then
             tag_name=`echo ${{ github.event.pull_request.base.ref }} | tr / -`
@@ -401,7 +401,7 @@ jobs:
 
             # Re-install CUDA Quantum
             MPI_PATH=/usr/local/openmpi \
-            sudo -E bash install_cuda_quantum* --accept | tee install_log.txt
+            sudo -E bash install_cuda_quantum_cu${{ needs.create_test_config.outputs.cuda_major }}.$(uname -m) --accept | tee install_log.txt
             if [ -n "$(cat install_log.txt | grep -i 'Warning:')" ]; then
               echo "::error::Re-installation produced a warning. Check the log for more detail."
               exit 102

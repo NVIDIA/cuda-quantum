@@ -54,10 +54,10 @@ on:
         default: '3.10' # If changed, update env defaults, too
         description: 'Python version to run wheel test'
         options:
-        - '3.8'
         - '3.9'
         - '3.10'
         - '3.11'
+        - '3.12'
 
   schedule:
     - cron: 0 3 * * *

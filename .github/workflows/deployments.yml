@@ -382,7 +382,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        python_version: ['3.8', '3.9', '3.10', '3.11']
+        python_version: ['3.9', '3.10', '3.11', '3.12']
         cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml

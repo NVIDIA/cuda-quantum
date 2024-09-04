@@ -16,11 +16,6 @@ import sys
 import cudaq
 from cudaq import spin
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
-
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -190,7 +185,6 @@ def test_2grover_compute_action():
     assert '011' in counts
 
 
-@skipIfPythonLessThan39
 def test_pauli_word_input():
 
     h2_data = [
@@ -437,7 +431,6 @@ def test_no_dynamic_Lists():
         print(kernel)
 
 
-@skipIfPythonLessThan39
 def test_no_dynamic_lists():
     with pytest.raises(RuntimeError) as error:
 
@@ -526,7 +519,6 @@ def test_list_creation():
     assert '1' * 5 in counts
 
 
-@skipIfPythonLessThan39
 def test_list_creation_with_cast():
 
     @cudaq.kernel
@@ -542,7 +534,6 @@ def test_list_creation_with_cast():
     assert '1' * 5 in counts
 
 
-@skipIfPythonLessThan39
 def test_list_creation_with_cast():
 
     @cudaq.kernel
@@ -853,7 +844,6 @@ def test_invalid_cudaq_type():
         print(test)
 
 
-@skipIfPythonLessThan39
 def test_bool_list_elements():
 
     @cudaq.kernel
@@ -918,7 +908,6 @@ def test_aug_assign_add():
     assert test2() == 10
 
 
-@skipIfPythonLessThan39
 def test_empty_lists():
 
     @cudaq.kernel
@@ -1519,7 +1508,6 @@ def test_nested_loops_with_continue():
     print(prog)
 
 
-@skipIfPythonLessThan39
 def test_issue_1682():
 
     @cudaq.kernel
@@ -1725,7 +1713,6 @@ def test_custom_quantum_type():
     run()
 
 
-@skipIfPythonLessThan39
 def test_issue_9():
 
     @cudaq.kernel
