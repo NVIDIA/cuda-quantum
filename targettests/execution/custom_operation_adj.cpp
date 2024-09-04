@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --emulate --iqm-machine Apollo %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>

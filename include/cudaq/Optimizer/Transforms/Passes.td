@@ -893,9 +893,23 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::func::FuncOp"> {
     Given a custom quantum operation specified in the form of its concrete
     unitary matrix, convert it into a sequence of native quantum gates.
 
-    This pass will work only if the custom operation is unitary.
     For example,
-    TODO - add example
+    ```mlir
+    quake.custom_op @__nvqpp__mlirgen__custom_x_generator_1.rodata %0 : (!quake.ref) -> ()
+    ```
+    This call will be converted to an `ApplyOp`.
+    ```mlir
+    quake.apply @__nvqpp__mlirgen__custom_x_generator_1.kernel %[[VAL_0]] : (!quake.ref) -> ()
+    ```
+    The function has sequence of decomposed gates.
+    ```mlir
+    func.func private @__nvqpp__mlirgen__custom_x_generator_1.kernel(%arg0: !quake.ref) {
+        %cst = arith.constant 1.5707963267948966 : f64        
+        quake.ry (%cst) %arg0 : (f64, !quake.ref) -> ()
+        ...
+        return
+      }
+    ```
   }];
 }
 
