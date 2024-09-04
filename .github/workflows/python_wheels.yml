@@ -252,10 +252,11 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
+            cuda_major=$(echo ${{ inputs.cuda_version }} | cut -d . -f1)
             # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
             # In this step, we test the full installation workflow with conda; 
             # hence we don't want to mix conda and pip packages.
-            python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum
+            python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum-cu${cuda_major}
             # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
             # Install conda
             dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients
@@ -276,7 +277,7 @@ jobs:
                   # Replace Python version
                   line=${line//3.10/$python_version}
                   # Install the wheel file
-                  line=${line//pip install cuda-quantum/pip install /tmp/cuda_quantum*-manylinux_*_$(uname -m).whl}
+                  line=${line//pip install cuda-quantum-cu$cuda_major/pip install /tmp/cuda_quantum*-manylinux_*_$(uname -m).whl}
                   eval "$line"
               fi
             done <<< "$conda_script"
