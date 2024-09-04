@@ -245,7 +245,6 @@ jobs:
               fi
             done
 
-      # FIXME: Python wheel install instructions need to be adjusted for CUDA 12
       - name: Run Python MPI tests
         if: matrix.os_image == 'redhat/ubi9:9.2'
         uses: ./.github/actions/run-in-docker
