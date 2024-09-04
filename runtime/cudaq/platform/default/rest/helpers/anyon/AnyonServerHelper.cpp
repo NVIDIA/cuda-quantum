@@ -20,11 +20,12 @@ namespace cudaq {
 
 /// @brief Find and set the API and refresh tokens, and the time string.
 void findApiKeyInFile(std::string &apiKey, const std::string &path,
-                      std::string &refreshKey, std::string &timeStr, std::string &credentials);
+                      std::string &refreshKey, std::string &timeStr,
+                      std::string &credentials);
 
 /// Search for the API key, invokes findApiKeyInFile
-std::string searchAPIKey(std::string &key, std::string &refreshKey, std::string &credentials,
-                         std::string &timeStr,
+std::string searchAPIKey(std::string &key, std::string &refreshKey,
+                         std::string &credentials, std::string &timeStr,
                          std::string userSpecifiedConfig = "");
 
 /// @brief The QuantinuumServerHelper implements the ServerHelper interface
@@ -36,7 +37,7 @@ protected:
   /// @brief The base URL
   std::string baseUrl = "https://api.anyon.cloud/";
   /// @brief The machine we are targeting
-  std::string machine = "berkeley-25q";//"telegraph-8q";//
+  std::string machine = "berkeley-25q"; //"telegraph-8q";//
   /// @brief Time string, when the last tokens were retrieved
   std::string timeStr = "";
   /// @brief The refresh token
@@ -126,8 +127,8 @@ AnyonServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   }
 
   // Get the tokens we need
-  credentialsPath =
-      searchAPIKey(apiKey, refreshKey, credentials, timeStr, userSpecifiedCredentials);
+  credentialsPath = searchAPIKey(apiKey, refreshKey, credentials, timeStr,
+                                 userSpecifiedCredentials);
   refreshTokens();
 
   // Get the headers
@@ -142,9 +143,12 @@ AnyonServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 }
 
 std::string AnyonServerHelper::extractJobId(ServerMessage &postResponse) {
-  //printf("Extracting ID\n");
-  std::string jobToken = postResponse[0]["job_token"].get<std::string>(); //The post response is an array [json_data, http_status_code]
-  //printf("Extracted ID %s\n",jobToken.c_str());
+  // printf("Extracting ID\n");
+  std::string jobToken =
+      postResponse[0]["job_token"]
+          .get<std::string>(); // The post response is an array [json_data,
+                               // http_status_code]
+  // printf("Extracted ID %s\n",jobToken.c_str());
   return jobToken;
 }
 
@@ -158,26 +162,25 @@ std::string AnyonServerHelper::constructGetJobPath(std::string &jobId) {
 }
 
 bool AnyonServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  auto status = getJobResponse[0]["status"].get<std::string>(); //All job get and post responses at an array of [resdata, httpstatuscode]
+  auto status = getJobResponse[0]["status"]
+                    .get<std::string>(); // All job get and post responses at an
+                                         // array of [resdata, httpstatuscode]
   if (status == "failed") {
     std::string msg = "";
     if (getJobResponse[0].count("error"))
       msg = getJobResponse[0]["error"]["text"].get<std::string>();
     throw std::runtime_error("Job failed to execute msg = [" + msg + "]");
-  }
-  else if (status == "waiting"){
+  } else if (status == "waiting") {
     return false;
-  }
-  else if (status == "executing"){
+  } else if (status == "executing") {
     return false;
-  }
-  else
+  } else
     return status == "done";
 }
 
 cudaq::sample_result
 AnyonServerHelper::processResults(ServerMessage &postJobResponse,
-                                       std::string &jobId) {
+                                  std::string &jobId) {
   // Results come back as a map of vectors. Each map key corresponds to a qubit
   // and its corresponding vector holds the measurement results in each shot:
   //      { "results" : { "r0" : ["0", "0", ...],
@@ -214,8 +217,8 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   // QPU. They do not support the full named QIR output recording functions.
   // Detect for the that difference here.
   bool mockServer = false;
-  if (results.begin().key() == "MOCK_SERVER_RESULTS"){
-    //printf("this is mock server");
+  if (results.begin().key() == "MOCK_SERVER_RESULTS") {
+    // printf("this is mock server");
     mockServer = true;
   }
 
@@ -284,7 +287,8 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
 std::map<std::string, std::string>
 AnyonServerHelper::generateRequestHeader() const {
   std::string apiKey, refreshKey, credentials, timeStr;
-  searchAPIKey(apiKey, refreshKey, credentials, timeStr, userSpecifiedCredentials);
+  searchAPIKey(apiKey, refreshKey, credentials, timeStr,
+               userSpecifiedCredentials);
   std::map<std::string, std::string> headers{
       {"Authorization", apiKey},
       {"Content-Type", "application/json"},
@@ -303,9 +307,7 @@ AnyonServerHelper::generateRequestHeader(std::string authKey) const {
   return headers;
 }
 
-RestHeaders AnyonServerHelper::getHeaders() {
-  return generateRequestHeader();
-}
+RestHeaders AnyonServerHelper::getHeaders() { return generateRequestHeader(); }
 
 /// Refresh the api key and refresh-token
 void AnyonServerHelper::refreshTokens(bool force_refresh) {
@@ -313,7 +315,6 @@ void AnyonServerHelper::refreshTokens(bool force_refresh) {
   std::lock_guard<std::mutex> l(m);
   RestClient client;
   auto now = std::chrono::high_resolution_clock::now();
-
 
   if (apiKey.empty()) {
     force_refresh = true;
@@ -351,7 +352,7 @@ void AnyonServerHelper::refreshTokens(bool force_refresh) {
     out << "time:" << now.time_since_epoch().count() << '\n';
     timeStr = std::to_string(now.time_since_epoch().count());
   }
-    // If the time string is empty, let's add it
+  // If the time string is empty, let's add it
   if (timeStr.empty()) {
     timeStr = std::to_string(now.time_since_epoch().count());
     std::ofstream out(credentialsPath);
@@ -359,12 +360,11 @@ void AnyonServerHelper::refreshTokens(bool force_refresh) {
     out << "refresh:" << refreshKey << '\n';
     out << "time:" << timeStr << '\n';
   }
-
-
 }
 
 void findApiKeyInFile(std::string &apiKey, const std::string &path,
-                      std::string &refreshKey, std::string &timeStr,std::string &credentials) {
+                      std::string &refreshKey, std::string &timeStr,
+                      std::string &credentials) {
   std::ifstream stream(path);
   std::string contents((std::istreambuf_iterator<char>(stream)),
                        std::istreambuf_iterator<char>());
@@ -386,9 +386,15 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
       refreshKey = keyAndValue[1];
     else if (keyAndValue[0] == "time")
       timeStr = keyAndValue[1];
-    else if (keyAndValue[0] == "credentials"){ //If the config file doesn't contain key and refresh token, we will add the username password to apikey for BasicHttpAuthentication and generation of tokens
-      std::string linecontent = keyAndValue[1] +":"+ keyAndValue[2]+":"+ keyAndValue[3];
-      //printf("The credentials read from the .config file is: %s", linecontent.c_str());
+    else if (keyAndValue[0] ==
+             "credentials") { // If the config file doesn't contain key and
+                              // refresh token, we will add the username
+                              // password to apikey for BasicHttpAuthentication
+                              // and generation of tokens
+      std::string linecontent =
+          keyAndValue[1] + ":" + keyAndValue[2] + ":" + keyAndValue[3];
+      // printf("The credentials read from the .config file is: %s",
+      // linecontent.c_str());
       jsoncreds = json::parse(linecontent);
       std::string delim(":");
       std::string username = jsoncreds.at("username");
@@ -396,8 +402,7 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
       std::string authInfo = username + delim + passwd;
       authInfo = base64::to_base64(authInfo);
       credentials = "Basic " + authInfo;
-    }
-    else
+    } else
       throw std::runtime_error(
           "Unknown key in configuration file: " + keyAndValue[0] + ".");
   }
@@ -411,8 +416,8 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
 }
 
 /// Search for the API key
-std::string searchAPIKey(std::string &key, std::string &refreshKey, std::string &credentials,
-                         std::string &timeStr,
+std::string searchAPIKey(std::string &key, std::string &refreshKey,
+                         std::string &credentials, std::string &timeStr,
                          std::string userSpecifiedConfig) {
   std::string hwConfig;
   // Allow someone to tweak this with an environment variable
@@ -420,18 +425,19 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey, std::string 
     hwConfig = std::string(creds);
   else if (!userSpecifiedConfig.empty())
     hwConfig = userSpecifiedConfig;
-    // jsoncreds = json::parse(userSpecifiedConfig);
-    // string authInfo = jsoncreds.at('username') + ":" + jsoncreds.at('password'); //Base64 Encoding for HTTPS Basic Authentication: https://developerhub.dmtispatial.com/basic-authentication/#:~:text=Basic%20Authentication%20sends%20a%20Base64,transmitted%20over%20a%20TLS%20v1.
-    // authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-    // hwConfig = "Basic " + authInfo;
+  // jsoncreds = json::parse(userSpecifiedConfig);
+  // string authInfo = jsoncreds.at('username') + ":" +
+  // jsoncreds.at('password'); //Base64 Encoding for HTTPS Basic Authentication:
+  // https://developerhub.dmtispatial.com/basic-authentication/#:~:text=Basic%20Authentication%20sends%20a%20Base64,transmitted%20over%20a%20TLS%20v1.
+  // authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
+  // hwConfig = "Basic " + authInfo;
   else
     hwConfig = std::string(getenv("HOME")) + std::string("/.anyon_config");
   if (cudaq::fileExists(hwConfig)) {
     findApiKeyInFile(key, hwConfig, refreshKey, timeStr, credentials);
   } else {
-    throw std::runtime_error(
-        "Cannot find Anyon Config file with credentials "
-        "(~/.anyon_config).");
+    throw std::runtime_error("Cannot find Anyon Config file with credentials "
+                             "(~/.anyon_config).");
   }
 
   return hwConfig;
@@ -439,29 +445,25 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey, std::string 
 
 void AnyonServerHelper::updatePassPipeline(
     const std::filesystem::path &platformPath, std::string &passPipeline) {
-      std::string qgate_type = "cgate";
-      if (machine.starts_with("berkeley")){
-        qgate_type = "pgate";
-        printf("Compiling gates for berkeley\n");
-      }
-      else if (machine.starts_with("telegraph")){
-        qgate_type = "cgate";
-        printf("Compiling gates for telegraph\n");
-      }
-      else{
-        printf("Unidentified machine type %s\n", machine.c_str());
-      }
-   passPipeline =
+  std::string qgate_type = "cgate";
+  if (machine.starts_with("berkeley")) {
+    qgate_type = "pgate";
+    printf("Compiling gates for berkeley\n");
+  } else if (machine.starts_with("telegraph")) {
+    qgate_type = "cgate";
+    printf("Compiling gates for telegraph\n");
+  } else {
+    printf("Unidentified machine type %s\n", machine.c_str());
+  }
+  passPipeline =
       std::regex_replace(passPipeline, std::regex("%Q_GATE%"), qgate_type);
-  
+
   std::string pathToFile = platformPath / std::string("mapping/anyon") /
                            (machine + std::string(".txt"));
   passPipeline =
       std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
 }
 
-
 } // namespace cudaq
 
-CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::AnyonServerHelper,
-                    anyon)
+CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::AnyonServerHelper, anyon)
