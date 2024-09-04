@@ -158,13 +158,45 @@ TEST(SpinOpTester, checkMultiplication) {
   EXPECT_EQ(z(3), i(3) * z(3));
   EXPECT_EQ((i(3) * z(3)).get_coefficient(), std::complex<double>(1, 0));
 
+  std::cout << "Eliminate zero coefficient terms\n";
+  auto result = (0.0 * x(0)) * z(1);
+  result.dump();
+  EXPECT_EQ(result.num_terms(), 0);
+
+  std::cout << "X(0) * Y(0) = -Y(0) * X(0)\n";
+  auto left_side = x(0) * y(0);
+  auto right_side = -1.0 * y(0) * x(0);
+  left_side.dump();
+  right_side.dump();
+  EXPECT_EQ(left_side, right_side);
+
+  std::cout << "X(0) * (Z(0) * Z(1)) = (Z(0) * Z(1)) * X(0)\n";
+  left_side = x(0) * (z(0) + z(1));
+  right_side = (z(0) + z(1)) * x(0);
+  left_side.dump();
+  right_side.dump();
+  EXPECT_EQ(left_side, right_side);
+
+  std::cout << "(X(0) * Y(1)) * Z(2) = X(0) * (Y(1) * Z(2))\n";
+  left_side = (x(0) * y(1)) * z(2);
+  right_side = x(0) * (y(1) * z(2));
+  left_side.dump();
+  right_side.dump();
+  EXPECT_EQ(left_side, right_side);
+
+  std::cout << "X(0) * (Z(0) * Z(1) + Y(0) * Y(1))\n";
+  result = x(0) * (z(0) * z(1) + y(0) * y(1));
+  result.dump();
+  auto expected = x(0) * z(0) * z(1) + x(0) * y(0) * y(1);
+  EXPECT_EQ(result, expected);
+
   auto tmp2 = 2 * x(0) * x(1) * y(2) * y(3) + 3 * y(0) * y(1) * x(2) * x(3);
   std::cout << "START\n";
   tmp2 = tmp2 * tmp2;
   tmp2.dump();
 
   EXPECT_EQ(2, tmp2.num_terms());
-  auto expected =
+  expected =
       13 * i(0) * i(1) * i(2) * i(3) + 12 * z(0) * z(1) * z(2) * z(3);
   EXPECT_EQ(expected, tmp2);
 }

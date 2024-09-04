@@ -115,6 +115,10 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
     final_coeff.real(0);
   }
 
+  if (std::abs(final_coeff.imag()) < 1e-12) {
+    final_coeff.imag(0);
+  }
+
   return std::make_pair(final_coeff, result);
 }
 } // namespace details
@@ -481,9 +485,11 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
 
   for (std::size_t i = 0; i < nElements; i++) {
     auto iter = newTerms.find(composition[i]);
-    if (iter == newTerms.end())
-      newTerms.emplace(composition[i], composedCoeffs[i]);
-    else
+    if (iter == newTerms.end()) {
+      // Eliminate 0 coefficient terms if both real and imaginary parts are 0
+      if (std::abs(composedCoeffs[i].real()) > 1e-12 || std::abs(composedCoeffs[i].imag()) > 1e-12)
+        newTerms.emplace(composition[i], composedCoeffs[i]);
+    } else
       iter->second += composedCoeffs[i];
   }
 
