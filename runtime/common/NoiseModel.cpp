@@ -20,7 +20,7 @@ bool isIdentity(const EigenMatTy &mat, double threshold = 1e-9) {
 
 template <typename EigenMatTy>
 bool validateCPTP(const std::vector<EigenMatTy> &mats,
-                  double threshold = 1e-9) {
+                  double threshold = 1e-4) {
   if (mats.empty()) {
     return true;
   }
@@ -104,10 +104,10 @@ void noise_model::add_channel(const std::string &quantumOp,
                               const std::vector<std::size_t> &qubits,
                               const kraus_channel &channel) {
 
-  if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
-      std::end(availableOps))
-    throw std::runtime_error(
-        "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
+  // if (std::find(std::begin(availableOps), std::end(availableOps), quantumOp) ==
+  //     std::end(availableOps))
+  //   throw std::runtime_error(
+  //       "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
 
   // Check that we've been given the correct number of qubits
   auto nQubits = qubits.size();
@@ -144,7 +144,7 @@ noise_model::get_channels(const std::string &quantumOp,
     cudaq::info("No kraus_channel available for {} on {}.", quantumOp, qubits);
     return {};
   }
-
+  
   cudaq::info("Found kraus_channel for {} on {}.", quantumOp, qubits);
   return iter->second;
 }

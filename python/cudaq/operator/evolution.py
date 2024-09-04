@@ -9,22 +9,38 @@ from ..kernel.register_op import register_operation
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_decorator import PyKernelDecorator
 from ..runtime.observe import observe
+from .cusp_solver import evolve_me
 
-def _register_evolution_kernels(hamiltonian: Operator, schedule: Schedule) -> Generator[(str, Mapping[str, NumericType])]:
+noise = cudaq_runtime.NoiseModel()
+
+def _register_evolution_kernels(hamiltonian: Operator, schedule: Schedule, collapse_operators: Sequence[Operator] | None = None) -> Generator[(str, Mapping[str, NumericType])]:
     # Evolution kernels can only be defined for qubits.
     dimensions = dict([(i, 2) for i in hamiltonian.degrees])
     # We could make operators hashable and try to use that to do some kernel caching, 
     # but there is no guarantee that if the hash is equal, the operator is equal.
     # Overall it feels like a better choice to just take a uuid here.
     kernel_base_name = "".join(filter(str.isalnum, str(uuid.uuid4())))
+    dt = None
     for step_idx, parameters in enumerate(schedule):
         kernel_name = f"evolve_{kernel_base_name}_{step_idx}"
         op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
         # FIXME: Use GPU acceleration for matrix manipulations if possible.
         # Alternative/possibly better: do the same thing we'll do for hardware
         # and decompose directly into gates.
-        evolution_matrix = scipy.linalg.expm(-1j * op_matrix)
+        # HACK: we need to figure out forward dt for all steps.
+        if dt == None:
+            dt = schedule.next_step - schedule.current_step
+        evolution_matrix = scipy.linalg.expm(-1j * op_matrix * dt)
         register_operation(kernel_name, evolution_matrix)
+        
+        if collapse_operators is not None and len(collapse_operators) > 0:
+            global noise
+            L = collapse_operators[0].to_matrix(dimensions)
+            G = -0.5 * numpy.dot(L.conj().T, L)
+            M0 = G * dt  + numpy.eye(2**len(dimensions))
+            M1 = numpy.sqrt(dt) * L
+            noise.add_channel("custom", [0], cudaq_runtime.KrausChannel([M0, M1]))
+
         yield kernel_name, parameters
 
 def _create_kernel(name: str, 
@@ -49,8 +65,8 @@ def _create_kernel(name: str,
 
 def _create_kernels(name: str, 
                     hamiltonian: Operator, 
-                    schedule: Schedule) -> Generator[tuple[PyKernelDecorator, Mapping[str, NumericType]]]:
-    evolution = _register_evolution_kernels(hamiltonian, schedule)
+                    schedule: Schedule, collapse_operators: Sequence[Operator] | None = None) -> Generator[tuple[PyKernelDecorator, Mapping[str, NumericType]]]:
+    evolution = _register_evolution_kernels(hamiltonian, schedule, collapse_operators)
     num_qubits = len(hamiltonian.degrees)
     for op_idx, (operation_name, parameters) in enumerate(evolution):
         srcCode = f"def {name}_{op_idx}(init_state: cudaq.State):\n"
@@ -103,11 +119,19 @@ def evolve(hamiltonian: Operator,
         initial state. See `EvolveResult` for more information about the data computed
         during evolution.
     """
-    simulator = cudaq_runtime.get_target().simulator.strip()
+    # FIXME: force "nvidia-dynamics" for now, need to create a proper target
+    simulator = "nvidia-dynamics"
+    # simulator = cudaq_runtime.get_target().simulator.strip()
     if simulator == "":
         raise NotImplementedError("time evolution is currently only supported on simulator targets")
     elif simulator == "nvidia-dynamics": # FIXME: update here and below once we know the target name
-        raise NotImplementedError(f"{simulator} backend does not yet exist")
+        return evolve_me(hamiltonian, 
+                        dimensions, 
+                        schedule,
+                        initial_state,
+                        collapse_operators,
+                        observables, 
+                        store_intermediate_results)
 
     # Unless we are using cuSuperoperator for the execution, 
     # we can only handle qubits at this time.
@@ -116,12 +140,14 @@ def evolve(hamiltonian: Operator,
         raise ValueError("computing the time evolution is only possible for qubits; use the nvidia-dynamics target to simulate time evolution of arbitrary d-level systems")
     # Unless we are using cuSuperoperator for the execution, 
     # we cannot handle simulating the effect of collapse operators.
-    if len(collapse_operators) > 0:
-        raise ValueError("collapse operators can only be defined when using the nvidia-dynamics target")
+    if len(collapse_operators) > 0 and simulator!= "dm":
+        raise ValueError("collapse operators can only be defined when using the nvidia-dynamics or density-matrix-cpu target")
 
     # FIXME: deal with a sequence of initial states
     if store_intermediate_results:
-        evolution = _create_kernels("time_evolution", hamiltonian, schedule)
+        evolution = _create_kernels("time_evolution", hamiltonian, schedule, collapse_operators)
+        global noise
+        cudaq_runtime.set_noise(noise)
         kernels, observable_spinops = [], []
         for kernel, parameters in evolution:
             kernels.append(kernel)

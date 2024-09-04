@@ -56,6 +56,18 @@ class Schedule(Iterator):
         if 0 <= self._current_idx < len(self._steps): return self._steps[self._current_idx]
         else: return None
 
+    @property
+    def next_step(self: Schedule) -> Optional[Any]:
+        """
+        The value of the next step of the current Schedule.
+        Returns None if the iteration has finished.
+        """
+        if 0 <= self._current_idx < len(self._steps) - 1: return self._steps[self._current_idx + 1]
+        else: return None
+
+    def __len__(self):
+        return len(self._steps)
+
     def reset(self: Schedule) -> None:
         """
         Resets the schedule (iterator) to its starting point.
