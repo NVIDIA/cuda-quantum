@@ -64,13 +64,13 @@ USER cudaq
 WORKDIR /home/cudaq
 
 ## [Install]
-ARG cuda_quantum_installer='out/install_cuda_quantum.*'
+ARG cuda_quantum_installer='out/install_cuda_quantum*'
 ADD "${cuda_quantum_installer}" .
 RUN source /etc/environment && \
     echo "Installing CUDA-Q..." && \
     ## [>CUDAQuantumInstall]
     MPI_PATH=/usr/local/openmpi \
-    sudo -E bash install_cuda_quantum.$(uname -m) --accept && . /etc/profile
+    sudo -E bash install_cuda_quantum*.$(uname -m) --accept && . /etc/profile
     ## [<CUDAQuantumInstall]
 RUN . /etc/profile && nvq++ --help
 

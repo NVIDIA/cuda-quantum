@@ -108,7 +108,7 @@ ENV CUDA_VERSION=${cuda_version}
 RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-$distro.repo \
     && dnf clean expire-cache \
-    && dnf install -y --nobest --setopt=install_weak_deps=False \
+    && dnf install -y --nobest --setopt=install_weak_deps=False wget \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
         libcublas-devel-$(echo ${CUDA_VERSION} | tr . -)
