@@ -174,9 +174,9 @@ private:
       } else if (isa<RAW_GATE_OPS>(op)) {
         auto gate = cast<quake::OperatorInterface>(op);
         // Check that the IR is not in the pruned control form.
-        if (std::any_of(
-                gate.getControls().begin(), gate.getControls().end(),
-                [](Value v) { return isa<quake::ControlType>(v.getType()); })) {
+        if (llvm::any_of(gate.getControls(), [](Value v) {
+              return isa<quake::ControlType>(v.getType());
+            })) {
           op->emitError("must use linear-ctrl-form before regtomem");
           analysisFailed = true;
           return;
@@ -217,10 +217,9 @@ private:
             if (quake::isLinearType(iter.value().getType()))
               insertToEqClass(ccif.getResult(iter.index()), iter.value());
         } else if (isa<cudaq::cc::ScopeOp>(parent)) {
-          if (std::any_of(cont.getOperands().begin(), cont.getOperands().end(),
-                          [](Value v) {
-                            return quake::isQuantumValueType(v.getType());
-                          })) {
+          if (llvm::any_of(cont.getOperands(), [](Value v) {
+                return quake::isQuantumValueType(v.getType());
+              })) {
             analysisFailed = true;
             return;
           }
@@ -539,9 +538,9 @@ public:
     // gate in memory-ssa form.
     auto hasNoWires = [](Operation *op) {
       return op->getOperands().empty() ||
-             !std::any_of(
-                 op->getOperands().begin(), op->getOperands().end(),
-                 [](Value v) { return v && quake::isLinearType(v.getType()); });
+             !llvm::any_of(op->getOperands(), [](Value v) {
+               return v && quake::isLinearType(v.getType());
+             });
     };
     BlockSet fixupBlocks;
     RewritePatternSet patterns(ctx);
