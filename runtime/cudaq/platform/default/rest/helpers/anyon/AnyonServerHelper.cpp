@@ -37,7 +37,7 @@ protected:
   /// @brief The base URL
   std::string baseUrl = "https://api.anyon.cloud/";
   /// @brief The machine we are targeting
-  std::string machine = "berkeley-25q"; //"telegraph-8q";//
+  std::string machine = "telegraph-8q"; //"berkeley-25q";//
   /// @brief Time string, when the last tokens were retrieved
   std::string timeStr = "";
   /// @brief The refresh token
