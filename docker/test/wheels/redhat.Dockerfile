@@ -15,14 +15,14 @@ ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        python${python_version}.$(uname -m) \
+        python${python_version} \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 
 ARG optional_dependencies=
-ARG cuda_quantum_wheel=cuda_quantum-0.0.0-cp311-cp311-manylinux_2_28_x86_64.whl
+ARG cuda_quantum_wheel=cuda_quantum_cu11-0.0.0-cp311-cp311-manylinux_2_28_x86_64.whl
 COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY docs/sphinx/snippets/python /tmp/snippets/
