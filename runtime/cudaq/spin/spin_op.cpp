@@ -483,7 +483,8 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
     auto iter = newTerms.find(composition[i]);
     if (iter == newTerms.end()) {
       // Eliminate 0 coefficient terms if both real and imaginary parts are 0
-      if (std::abs(composedCoeffs[i].real()) > 1e-12 || std::abs(composedCoeffs[i].imag()) > 1e-12)
+      if (std::abs(composedCoeffs[i].real()) > 1e-12 ||
+          std::abs(composedCoeffs[i].imag()) > 1e-12)
         newTerms.emplace(composition[i], composedCoeffs[i]);
     } else
       iter->second += composedCoeffs[i];
