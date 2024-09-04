@@ -13,10 +13,10 @@ on:
       build_cache:
         type: string
         required: false
-      toolchain:
-        required: true
+      build_config_id:
+        required: false
         type: string
-        description: The toolchain used to build the assets. The value is passed as build argument to Docker and used in tags and cache locations to distinguish different builds.
+        description: An string that uniquely identfies the toolchain and build configuration used within the Docker image. The value is used in tags and cache locations to distinguish different builds.
       cuda_version:
         required: true
         type: string
@@ -89,8 +89,8 @@ jobs:
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
           image_name=$registry/${repo_owner,,}/cuda-quantum-assets
-          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
-          tag_prefix=${platform_tag}-cu${cuda_major}-${{ inputs.toolchain }}-
+          build_config_id=${{ inputs.build_config_id }}
+          tag_prefix=${platform_tag}-${build_config_id:+$build_config_id-}
 
           if ${{ github.event.pull_request.merged == true }}; then
             tag_name=`echo ${{ github.event.pull_request.base.ref }} | tr / -`

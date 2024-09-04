@@ -178,7 +178,9 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
-      toolchain: ${{ matrix.toolchain }}
+      build_config_id: ${{ matrix.toolchain }}
+      build_args: |
+        toolchain=${{ matrix.toolchain }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
@@ -206,10 +208,11 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         cuda_version=${{ matrix.cuda_version }}
+        toolchain=gcc11
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
@@ -237,11 +240,12 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/assets.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
       build_target: prereqs
-      toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
         cuda_version=${{ matrix.cuda_version }}
+        toolchain=llvm
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
@@ -329,7 +333,7 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
-      toolchain: ${{ needs.config.outputs.devdeps_toolchain }}
+      build_config_id: ${{ needs.config.outputs.devdeps_toolchain }}
       build_args: |
         base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, needs.config.outputs.devdeps_toolchain)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
@@ -391,9 +395,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       python_version: ${{ matrix.python_version }}
-      cuda_version: ${{ matrix.cuda_version }}
+      build_config_id: cu${{ matrix.cuda_version }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
 
   binaries:
@@ -411,7 +415,7 @@ jobs:
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
-      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
       cuda_version: ${{ matrix.cuda_version }}
-      toolchain: llvm
+      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment

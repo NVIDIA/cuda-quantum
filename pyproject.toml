@@ -36,8 +36,9 @@ classifiers = [
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
-    'Environment :: GPU :: NVIDIA CUDA :: 11.8',
-    'Environment :: GPU :: NVIDIA CUDA :: 12',
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Environment :: GPU :: NVIDIA CUDA :: 11",
+    "Environment :: GPU :: NVIDIA CUDA :: 12",
     'Topic :: Software Development',
     'Topic :: Scientific/Engineering',
 ]
