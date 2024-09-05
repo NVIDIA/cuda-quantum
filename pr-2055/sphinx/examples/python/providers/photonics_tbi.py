@@ -12,20 +12,20 @@ def TBI(
     loop_lengths: list[int],
 ):
     n_modes = len(input_state)
-    d = sum(input_state) + 1  # qudit level
+    level = sum(input_state) + 1  # qudit level
 
-    quds = [qudit(d) for _ in range(n_modes)]
+    quds = [qudit(level) for _ in range(n_modes)]
 
     for i in range(n_modes):
         for _ in range(input_state[i]):
             plus(quds[i])
 
-    c = 0
+    counter = 0
     for j in loop_lengths:
         for i in range(n_modes - j):
-            beam_splitter(quds[i], quds[i + j], bs_angles[c])
-            phase_shift(quds[i], ps_angles[c])
-            c += 1
+            beam_splitter(quds[i], quds[i + j], bs_angles[counter])
+            phase_shift(quds[i], ps_angles[counter])
+            counter += 1
 
     mz(quds)
 
