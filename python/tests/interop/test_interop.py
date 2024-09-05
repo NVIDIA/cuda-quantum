@@ -175,3 +175,21 @@ def testSynthTwoArgs():
     counts = cudaq.sample(merged)
     counts.dump()
     assert '00' in counts and len(counts) == 1
+
+
+def test_cpp_kernel_from_python():
+
+    from cudaq_test_cpp_algo import qstd
+
+    @cudaq.kernel
+    def callQftAndAnother():
+        q = cudaq.qvector(4)
+        qstd.qft(q)
+        h(q)
+        qstd.another(q, 2)
+
+    callQftAndAnother()
+
+    counts = cudaq.sample(callQftAndAnother)
+    counts.dump()
+    assert len(counts) == 1 and '0010' in counts

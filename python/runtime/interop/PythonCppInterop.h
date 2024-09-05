@@ -91,4 +91,28 @@ std::string extractSubstring(const std::string &input,
 /// @return A tuple containing the MLIR code and the kernel name.
 std::tuple<std::string, std::string>
 getMLIRCodeAndName(const std::string &name);
+
+void registerDeviceKernel(const std::string &module, const std::string &name);
+
+std::tuple<std::string, std::string>
+getDeviceKernel(const std::string &compositeName);
+
+template <typename... Signature>
+void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
+                            const std::string &kernelName,
+                            const std::string &docstring) {
+  if (py::hasattr(m, modName.c_str())) {
+    py::module_ sub = m.attr(modName.c_str()).cast<py::module_>();
+    sub.def(
+        kernelName.c_str(), [](Signature...) {}, docstring.c_str());
+    cudaq::registerDeviceKernel(modName, kernelName);
+    return;
+  }
+
+  auto sub = m.def_submodule(modName.c_str());
+  sub.def(
+      kernelName.c_str(), [](Signature...) {}, docstring.c_str());
+  cudaq::registerDeviceKernel(modName, kernelName);
+  return;
+}
 } // namespace cudaq
