@@ -85,33 +85,43 @@ std::string extractSubstring(const std::string &input,
                              const std::string &startStr,
                              const std::string &endStr);
 
-/// @brief Retrieves the MLIR code and kernel name for a given user-level kernel
+/// @brief Retrieves the MLIR code and mangled kernel name for a given user-level kernel
 /// name.
 /// @param name The name of the kernel.
 /// @return A tuple containing the MLIR code and the kernel name.
 std::tuple<std::string, std::string>
 getMLIRCodeAndName(const std::string &name);
 
+/// @brief Register a C++ device kernel with the given module and name
+/// @param module The name of the module containing the kernel
+/// @param name The name of the kernel to register
 void registerDeviceKernel(const std::string &module, const std::string &name);
 
+/// @brief Retrieve the module and name of a registered device kernel
+/// @param compositeName The composite name of the kernel (module.name)
+/// @return A tuple containing the module name and kernel name
 std::tuple<std::string, std::string>
 getDeviceKernel(const std::string &compositeName);
 
+/// @brief Add a C++ device kernel that is interoperable with CUDA-Q Python.
+/// @tparam Signature The function signature of the kernel
+/// @param m The Python module to add the kernel to
+/// @param modName The name of the submodule to add the kernel to
+/// @param kernelName The name of the kernel
+/// @param docstring The documentation string for the kernel
 template <typename... Signature>
 void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
                             const std::string &kernelName,
                             const std::string &docstring) {
   if (py::hasattr(m, modName.c_str())) {
     py::module_ sub = m.attr(modName.c_str()).cast<py::module_>();
-    sub.def(
-        kernelName.c_str(), [](Signature...) {}, docstring.c_str());
+    sub.def(kernelName.c_str(), [](Signature...) {}, docstring.c_str());
     cudaq::registerDeviceKernel(modName, kernelName);
     return;
   }
 
   auto sub = m.def_submodule(modName.c_str());
-  sub.def(
-      kernelName.c_str(), [](Signature...) {}, docstring.c_str());
+  sub.def(kernelName.c_str(), [](Signature...) {}, docstring.c_str());
   cudaq::registerDeviceKernel(modName, kernelName);
   return;
 }
