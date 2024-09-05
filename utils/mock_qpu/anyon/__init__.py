@@ -112,7 +112,7 @@ async def postJob(job: Job,
     engine.remove_module(m)
 
     # Job "created", return the id
-    return ({"job_token": newId},201)
+    return ({"job_token": newId}, 201)
 
 
 # Retrieve the job, simulate having to wait by counting to 3
@@ -134,8 +134,8 @@ async def getJob(jobId: str):
 
     # The simulators don't implement result recording features yet, so we have
     # to mark these results specially (MOCK_SERVER_RESULTS) in order to allow
-    # downstream code to recognize that this isn't from a true Quantinuum QPU.
-    res = ({"status": "done", "results": {"MOCK_SERVER_RESULTS": retData}},201)
+    # downstream code to recognize that this isn't from a true QPU.
+    res = ({"status": "done", "results": {"MOCK_SERVER_RESULTS": retData}}, 201)
     return res
 
 
