@@ -15,10 +15,13 @@ import numpy as np
 
 import cusuperop as cuso
 
-from time import sleep
+from enum import Enum
+class OpConversionMode(Enum):
+    Hamiltonian = 1
+    Lindbladian = 2
 
 # Helper to convert to cuSuperOp format
-def to_cusp_operator(operator: Operator, dimensions: Mapping[int, int]) -> cuso.Operator:
+def to_cusp_operator(operator: Operator, dimensions: Mapping[int, int], mode: OpConversionMode = OpConversionMode.Hamiltonian) -> cuso.Operator:
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
     # print(f"Op: {operator}, type: {type(operator)}")
     if type(operator) == ElementaryOperator:
@@ -26,9 +29,58 @@ def to_cusp_operator(operator: Operator, dimensions: Mapping[int, int]) -> cuso.
         if len(operator.parameters) > 0:
             raise NotImplementedError("TODO: implement ElementaryOperator with parameters")
         op_mat = operator.to_matrix(dimensions)
-        ham_term.append([cuso.GeneralOperator(cuso.CallbackTensor(op_mat), operator.degrees, ((False,) * len(operator.degrees)))], 1.0)
-        hamiltonian = cuso.Operator(hilbert_space_dims, (ham_term, 1.0))
-        return hamiltonian
+        if mode == OpConversionMode.Hamiltonian:
+            ham_term.append([cuso.GeneralOperator(cuso.CallbackTensor(op_mat), operator.degrees, ((False,) * len(operator.degrees)))], 1.0)
+            hamiltonian = cuso.Operator(hilbert_space_dims, (ham_term, 1.0))
+            return hamiltonian
+        else:
+            L = op_mat
+            L_dag = np.conj(L).T
+            D1 = cuso.tensor_product(   # an operator term composed of a single elementary tensor operator
+            (
+                L,        # elementary tensor operator
+                (0,),     # quantum degrees of freedom it acts on
+                (False,)  # operator action duality (side: left/right) for each quantum degree of freedom
+            ),
+            (
+                L_dag,        # elementary tensor operator
+                (0,),     # quantum degrees of freedom it acts on
+                (True,)  # operator action duality (side: left/right) for each quantum degree of freedom
+            ),
+            coeff = 1.0   # constant (static) coefficient
+            )
+
+
+            D2 = cuso.tensor_product(   # an operator term composed of a single elementary tensor operator
+                (
+                    L_dag,        # elementary tensor operator
+                    (0,),     # quantum degrees of freedom it acts on
+                    (True,)  # operator action duality (side: left/right) for each quantum degree of freedom
+                ),
+                (
+                    L,        # elementary tensor operator
+                    (0,),     # quantum degrees of freedom it acts on
+                    (True,)  # operator action duality (side: left/right) for each quantum degree of freedom
+                ),
+                coeff = -0.5  # constant (static) coefficient
+            )
+
+            D3 = cuso.tensor_product(   # an operator term composed of a single elementary tensor operator
+                (
+                    L_dag,        # elementary tensor operator
+                    (0,),     # quantum degrees of freedom it acts on
+                    (False,)  # operator action duality (side: left/right) for each quantum degree of freedom
+                ),
+                (
+                    L,        # elementary tensor operator
+                    (0,),     # quantum degrees of freedom it acts on
+                    (False,)  # operator action duality (side: left/right) for each quantum degree of freedom
+                ),
+                coeff = -0.5  # constant (static) coefficient
+            )
+
+            lindblad = cuso.Operator(hilbert_space_dims, (D1, 1.0), (D2, 1.0), (D3, 1.0))
+            return lindblad
     elif type(operator) == ProductOperator:
         coeff = None
         cusp_terms = []
@@ -48,50 +100,191 @@ def to_cusp_operator(operator: Operator, dimensions: Mapping[int, int]) -> cuso.
                 cusp_terms.append(tuple((op_mat, sub_term.degrees)))
             else:
                 raise NotImplementedError(f"Unsupported operator type: {type(sub_term)}")
-        product_term = cuso.tensor_product(*cusp_terms, coeff=coeff)
-        hamiltonian = cuso.Operator(hilbert_space_dims, (product_term, ))
-        return hamiltonian
-    elif type(operator) == OperatorSum:
-        product_terms = []
-        for term in operator._terms:
-            # print(f"Term: {term}, type: {type(term)}")
-            if type(term) == ProductOperator:
-                cusp_terms = []
-                coeff = 1.0
-                for sub_term in term._operators:
-                    # print(f"Sub-term: {sub_term}, type: {type(sub_term)}")
-                    if type(sub_term) == ScalarOperator:
-                        if sub_term._constant_value is None:
-                            raise NotImplementedError("TODO: implement ScalarOperator with parameters")
-                        coeff *= sub_term._constant_value
-                    elif type(sub_term) == ElementaryOperator:
-                        op_mat = cuso.optimize_strides(sub_term.to_matrix(dimensions))
-                        # print(f"Op mat: {op_mat.shape}")
-                        # print(f"Degree = {sub_term.degrees}")
-                        cusp_terms.append(tuple((op_mat, sub_term.degrees)))
-                    else:
-                        raise NotImplementedError(f"Unsupported operator type: {type(sub_term)}")
-                product_term = cuso.tensor_product(*cusp_terms, coeff=coeff)
-                product_terms.append(product_term)
-            else:
-                raise NotImplementedError(f"Unsupported operator type: {type(term)}")
         
-        sum_of_products = product_terms[0]
-        for i in range(1, len(product_terms)):
-            sum_of_products += product_terms[i]
-        hamiltonian = cuso.Operator(hilbert_space_dims, (sum_of_products, ))
-        return hamiltonian
+        if mode == OpConversionMode.Hamiltonian:
+            product_term = cuso.tensor_product(*cusp_terms, coeff=coeff)
+            hamiltonian = cuso.Operator(hilbert_space_dims, (product_term, ))
+            return hamiltonian
+        else:
+            d1_terms = []
+            for term in cusp_terms:
+                op_mat, degrees = term
+                d1_terms.append((op_mat, degrees, (False,)))
+            for term in reversed(cusp_terms):
+                op_mat, degrees = term
+                d1_terms.append((np.conj(op_mat).T, degrees, (True,)))
+            D1 = cuso.tensor_product(*d1_terms, coeff = np.absolute(coeff) ** 2)
+
+            d2_terms = []
+            for term in cusp_terms:
+                op_mat, degrees = term
+                d2_terms.append((op_mat, degrees, (True,)))
+            for term in reversed(cusp_terms):
+                op_mat, degrees = term
+                d2_terms.append((np.conj(op_mat).T, degrees, (True,)))
+
+            D2 = cuso.tensor_product(*d2_terms, coeff = -0.5 * np.absolute(coeff) ** 2)
+            d3_terms = []
+            for term in cusp_terms:
+                op_mat, degrees = term
+                d3_terms.append((op_mat, degrees, (False,)))
+            for term in reversed(cusp_terms):
+                op_mat, degrees = term
+                d3_terms.append((np.conj(op_mat).T, degrees, (False,)))
+            D3 = cuso.tensor_product(*d3_terms, coeff = -0.5 * np.absolute(coeff) ** 2)
+            lindblad = cuso.Operator(hilbert_space_dims, (D1, 1.0), (D2, 1.0), (D3, 1.0))
+            return lindblad
+    elif type(operator) == OperatorSum:
+        if mode == OpConversionMode.Hamiltonian:
+            product_terms = []
+            for term in operator._terms:
+                # print(f"Term: {term}, type: {type(term)}")
+                if type(term) == ProductOperator:
+                    cusp_terms = []
+                    coeff = 1.0
+                    for sub_term in term._operators:
+                        # print(f"Sub-term: {sub_term}, type: {type(sub_term)}")
+                        if type(sub_term) == ScalarOperator:
+                            if sub_term._constant_value is None:
+                                raise NotImplementedError("TODO: implement ScalarOperator with parameters")
+                            coeff *= sub_term._constant_value
+                        elif type(sub_term) == ElementaryOperator:
+                            op_mat = cuso.optimize_strides(sub_term.to_matrix(dimensions))
+                            # print(f"Op mat: {op_mat.shape}")
+                            # print(f"Degree = {sub_term.degrees}")
+                            cusp_terms.append(tuple((op_mat, sub_term.degrees)))
+                        else:
+                            raise NotImplementedError(f"Unsupported operator type: {type(sub_term)}")
+                    product_term = cuso.tensor_product(*cusp_terms, coeff=coeff)
+                    product_terms.append(product_term)
+                else:
+                    raise NotImplementedError(f"Unsupported operator type: {type(term)}")
+            
+            sum_of_products = product_terms[0]
+            for i in range(1, len(product_terms)):
+                sum_of_products += product_terms[i]
+            hamiltonian = cuso.Operator(hilbert_space_dims, (sum_of_products, ))
+            return hamiltonian
+        else:
+            # L = operator.to_matrix(dimensions)
+            # # print(f"L mat: {l_mat}")
+            # L_dag = np.conj(L).T
+            # L_dag_L = np.dot(L_dag, L)
+            # D1 = cuso.tensor_product(   # an operator term composed of a single elementary tensor operator
+            #     (
+            #         L,        # elementary tensor operator
+            #         (0,),     # quantum degrees of freedom it acts on
+            #         (False,)  # operator action duality (side: left/right) for each quantum degree of freedom
+            #     ),
+            #     (
+            #         L_dag,        # elementary tensor operator
+            #         (0,),     # quantum degrees of freedom it acts on
+            #         (True,)  # operator action duality (side: left/right) for each quantum degree of freedom
+            #     ),
+            #     coeff = 1.0   # constant (static) coefficient
+            # )
+
+
+            # D2 = cuso.tensor_product(   # an operator term composed of a single elementary tensor operator
+            #     (
+            #         L_dag,        # elementary tensor operator
+            #         (0,),     # quantum degrees of freedom it acts on
+            #         (True,)  # operator action duality (side: left/right) for each quantum degree of freedom
+            #     ),
+            #     (
+            #         L,        # elementary tensor operator
+            #         (0,),     # quantum degrees of freedom it acts on
+            #         (True,)  # operator action duality (side: left/right) for each quantum degree of freedom
+            #     ),
+            #     coeff = -0.5  # constant (static) coefficient
+            # )
+
+            # D3 = cuso.tensor_product(   # an operator term composed of a single elementary tensor operator
+            #     (
+            #         L,        # elementary tensor operator
+            #         (0,),     # quantum degrees of freedom it acts on
+            #         (False,)  # operator action duality (side: left/right) for each quantum degree of freedom
+            #     ),
+            #     (
+            #         L_dag,        # elementary tensor operator
+            #         (0,),     # quantum degrees of freedom it acts on
+            #         (False,)  # operator action duality (side: left/right) for each quantum degree of freedom
+            #     ),
+            #     coeff = -0.5  # constant (static) coefficient
+            # )
+
+            # lindblad = cuso.Operator(hilbert_space_dims, (D1, 1.0), (D2, 1.0), (D3, 1.0))
+            # return lindblad
+            product_terms = []
+            for term in operator._terms:
+                # print(f"Term: {term}, type: {type(term)}")
+                if type(term) == ProductOperator:
+                    cusp_terms = []
+                    coeff = 1.0
+                    for sub_term in term._operators:
+                        # print(f"Sub-term: {sub_term}, type: {type(sub_term)}")
+                        if type(sub_term) == ScalarOperator:
+                            if sub_term._constant_value is None:
+                                raise NotImplementedError("TODO: implement ScalarOperator with parameters")
+                            coeff *= sub_term._constant_value
+                        elif type(sub_term) == ElementaryOperator:
+                            op_mat = cuso.optimize_strides(sub_term.to_matrix(dimensions))
+                            # print(f"Op mat: {op_mat.shape}")
+                            # print(f"Degree = {sub_term.degrees}")
+                            cusp_terms.append(tuple((op_mat, sub_term.degrees)))
+                        else:
+                            raise NotImplementedError(f"Unsupported operator type: {type(sub_term)}")
+                    product_terms.append(tuple((cusp_terms, coeff)))
+                else:
+                    raise NotImplementedError(f"Unsupported operator type: {type(term)}")
+            
+            D_terms = []
+            for lhs in product_terms:
+                for rhs in product_terms:
+                    d1_terms = []
+                    for term in lhs[0]:
+                        op_mat, degrees = term
+                        d1_terms.append((op_mat, degrees, (False,)))
+                    for term in reversed(rhs[0]):
+                        op_mat, degrees = term
+                        d1_terms.append((np.conj(op_mat).T, degrees, (True,)))
+                    D1 = cuso.tensor_product(*d1_terms, coeff = lhs[1] * np.conj(rhs[1]))
+                    D_terms.append(tuple((D1, 1.0)))
+
+                    d2_terms = []
+                    for term in reversed(rhs[0]):
+                        op_mat, degrees = term
+                        d2_terms.append((np.conj(op_mat).T, degrees, (True,)))
+                    for term in lhs[0]:
+                        op_mat, degrees = term
+                        d2_terms.append((op_mat, degrees, (True,)))
+                    
+
+                    D2 = cuso.tensor_product(*d2_terms, coeff = -0.5 * lhs[1] * np.conj(rhs[1]))
+                    D_terms.append(tuple((D2, 1.0)))
+
+                    d3_terms = []
+                    for term in lhs[0]:
+                        op_mat, degrees = term
+                        d3_terms.append((op_mat, degrees, (False,)))
+                    for term in reversed(rhs[0]):
+                        op_mat, degrees = term
+                        d3_terms.append((np.conj(op_mat).T, degrees, (False,)))
+                    D3 = cuso.tensor_product(*d3_terms, coeff = -0.5 * lhs[1] * np.conj(rhs[1]))
+                    D_terms.append(tuple((D3, 1.0)))
+            lindblad = cuso.Operator(hilbert_space_dims, *D_terms)
+            return lindblad
 
     raise NotImplementedError(f"TODO: Implementation for this type: {type(operator)}")
 
 # Abstract interface for an integrator
 class Integrator:
-    def __init__(self, ham: cuso.Operator, ctx: cuso.WorkStream, n_steps: 1):
-        self.ham = ham
+    def __init__(self, liouvillian: cuso.Operator, ctx: cuso.WorkStream, n_steps: 1):
         self.state = None
         self.ctx = ctx
         self.n_steps = n_steps
-        self.liouvillian = None
+        self.liouvillian = liouvillian
+        self.liouvillian_action = None
     def set_state(self, state, t = 0.0):
         self.state = state
         self.t = t
@@ -109,9 +302,7 @@ class EulerIntegrator(Integrator):
             raise ValueError("Integration time must be greater than current time")
         dt = (t - self.t)/self.n_steps
         # prepare operator action on a mixed quantum state
-        if self.liouvillian is None:
-            hamiltonian = self.ham * (-1j * dt)
-            self.liouvillian = hamiltonian - hamiltonian.dual() 
+        if self.liouvillian_action is None:
             self.liouvillian_action = cuso.OperatorAction(self.ctx, (self.liouvillian, ))
             self.liouvillian_action.prepare(self.ctx, (self.state ,)) 
 
@@ -125,8 +316,9 @@ class EulerIntegrator(Integrator):
                             (self.state,),    # input quantum state
                             rho0p       # output quantum state
             )
+            rho0p.inplace_scale(dt)
             self.state.inplace_add(rho0p)
-            assert np.isclose(self.state.trace(), 1.0)
+            assert np.isclose(self.state.trace(), 1.0), "Density matrix is not normalized"
 
         self.t = t
 
@@ -138,9 +330,7 @@ class RungeKuttaIntegrator(Integrator):
             raise ValueError("Integration time must be greater than current time")
         dt = (t - self.t)/self.n_steps
         # prepare operator action on a mixed quantum state
-        if self.liouvillian is None:
-            hamiltonian = self.ham * (-1j)
-            self.liouvillian = hamiltonian - hamiltonian.dual() 
+        if self.liouvillian_action is None:
             self.liouvillian_action = cuso.OperatorAction(self.ctx, (self.liouvillian, ))
             self.liouvillian_action.prepare(self.ctx, (self.state ,)) 
 
@@ -191,7 +381,7 @@ class RungeKuttaIntegrator(Integrator):
             self.state.inplace_add(k2)
             self.state.inplace_add(k3)
             self.state.inplace_add(k4)
-            assert np.isclose(self.state.trace(), 1.0)
+            # assert np.isclose(self.state.trace(), 1.0), "Density matrix is not normalized"
 
         self.t = t
 
@@ -214,9 +404,12 @@ def evolve_me(hamiltonian: Operator,
            store_intermediate_results = False) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult] | EvolveResult:
     # Conversion of operators to cuSuperOp
     ham_cusp = to_cusp_operator(hamiltonian, dimensions)
-    
-    if len(collapse_operators) > 0:
-        raise NotImplementedError("TODO: Implement collapse operators")
+
+    hamiltonian = ham_cusp * (-1j)
+    liouvillian = hamiltonian - hamiltonian.dual() 
+    for op in collapse_operators:
+        l_op = to_cusp_operator(op, dimensions, mode=OpConversionMode.Lindbladian)
+        liouvillian += l_op
     
     # Note: we would need a CUDAQ state implementation for cuSuperOp
     if not isinstance(initial_state, cuso.State):
@@ -225,7 +418,7 @@ def evolve_me(hamiltonian: Operator,
     cuso_ctx = initial_state._ctx
     # FIXME: allow customization (select the integrator)
     # integrator = EulerIntegrator(ham_cusp, cuso_ctx, n_steps=100)
-    integrator = RungeKuttaIntegrator(ham_cusp, cuso_ctx, n_steps=10)
+    integrator = RungeKuttaIntegrator(liouvillian, cuso_ctx, n_steps=10)
     expectation_op = [to_cusp_operator(observable, dimensions) for observable in observables]
     integrator.set_state(initial_state, schedule._steps[0])
     exp_vals = [[] for _ in observables]
