@@ -185,7 +185,7 @@ TEST(SpinOpTester, checkMultiplication) {
   right_side.dump();
   EXPECT_EQ(left_side, right_side);
 
-  std::cout << "X(0) * (Z(0) * Z(1)) = (Z(0) * Z(1)) * X(0)\n";
+  std::cout << "X(0) * (Z(0) + Z(1)) = (Z(0) + Z(1)) * X(0)\n";
   left_side = x(0) * (z(0) + z(1));
   right_side = (z(0) + z(1)) * x(0);
   left_side.dump();
