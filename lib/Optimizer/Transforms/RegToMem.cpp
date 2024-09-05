@@ -141,6 +141,16 @@ private:
     });
   }
 
+  // Collect all linear type values from a generic iterable range into a
+  // temporary vector.
+  template <typename A>
+  SmallVector<Value> collectLinearValues(A &&vals) {
+    SmallVector<Value> result;
+    for (Value v : vals)
+      if (quake::isLinearType(v.getType()))
+        result.push_back(v);
+    return result;
+  }
   void performAnalysis(func::FuncOp func) {
     collectBorrowWires(func);
     func.walk([&](Operation *op) {
@@ -157,22 +167,32 @@ private:
       }
     });
     func.walk([&](Operation *op) {
-      // FIXME: This really needs to figure out which operands are wires and
-      // which are not. It blindly assumes everything is a wire.
       if (isa<RAW_MEASURE_OPS>(op)) {
-        for (auto [t, r] :
-             llvm::zip(op->getOperands(), op->getResults().drop_front()))
+        auto wireOpnds = collectLinearValues(op->getOperands());
+        for (auto [t, r] : llvm::zip(wireOpnds, op->getResults().drop_front()))
           insertToEqClass(t, r);
       } else if (isa<RAW_GATE_OPS>(op)) {
         auto gate = cast<quake::OperatorInterface>(op);
-        for (auto [t, r] : llvm::zip(gate.getControls(), op->getResults()))
+        // Check that the IR is not in the pruned control form.
+        if (llvm::any_of(gate.getControls(), [](Value v) {
+              return isa<quake::ControlType>(v.getType());
+            })) {
+          op->emitError("must use linear-ctrl-form before regtomem");
+          analysisFailed = true;
+          return;
+        }
+        auto wireCtrls = collectLinearValues(gate.getControls());
+        for (auto [t, r] : llvm::zip(wireCtrls, op->getResults()))
           insertToEqClass(t, r);
-        for (auto [t, r] :
-             llvm::zip(gate.getTargets(),
-                       op->getResults().drop_front(gate.getControls().size())))
+        auto wireTargs = collectLinearValues(gate.getTargets());
+        for (auto [t, r] : llvm::zip(
+                 wireTargs, op->getResults().drop_front(wireCtrls.size())))
           insertToEqClass(t, r);
       } else if (auto reset = dyn_cast<quake::ResetOp>(op)) {
-        insertToEqClass(reset.getTargets(), reset.getResult(0));
+        auto wireTargs =
+            collectLinearValues(ArrayRef<Value>{reset.getTargets()});
+        for (auto [t, r] : llvm::zip(wireTargs, reset.getResults()))
+          insertToEqClass(t, r);
       } else if (auto sink = dyn_cast<quake::SinkOp>(op)) {
         insertToEqClass(sink.getTarget());
       } else if (auto ret = dyn_cast<quake::ReturnWireOp>(op)) {
@@ -191,11 +211,20 @@ private:
             insertToEqClass(v, u);
         }
       } else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
-        if (auto ccif = dyn_cast<cudaq::cc::IfOp>(cont->getParentOp())) {
+        auto *parent = cont->getParentOp();
+        if (auto ccif = dyn_cast<cudaq::cc::IfOp>(parent)) {
           for (auto iter : llvm::enumerate(cont.getOperands()))
-            if (isa<quake::WireType>(iter.value().getType()))
+            if (quake::isLinearType(iter.value().getType()))
               insertToEqClass(ccif.getResult(iter.index()), iter.value());
+        } else if (isa<cudaq::cc::ScopeOp>(parent)) {
+          if (llvm::any_of(cont.getOperands(), [](Value v) {
+                return quake::isQuantumValueType(v.getType());
+              })) {
+            analysisFailed = true;
+            return;
+          }
         } else {
+          // TODO: handle cc::LoopOp.
           analysisFailed = true;
           return;
         }
@@ -206,7 +235,7 @@ private:
           for (auto [so, fo] :
                llvm::zip(branch->getSuccessor(i)->getArguments(),
                          succOperands.getForwardedOperands()))
-            if (isa<quake::WireType>(so.getType()))
+            if (quake::isLinearType(so.getType()))
               insertToEqClass(so, fo);
         }
       }
@@ -318,7 +347,7 @@ struct EraseWiresBranch : public OpRewritePattern<cf::BranchOp> {
                                 PatternRewriter &rewriter) const override {
     SmallVector<Value> newOperands;
     for (auto v : branch.getDestOperands()) {
-      if (isa<quake::WireType>(v.getType()))
+      if (quake::isLinearType(v.getType()))
         blocks.insert(branch.getDest());
       else
         newOperands.push_back(v);
@@ -339,14 +368,14 @@ struct EraseWiresCondBranch : public OpRewritePattern<cf::CondBranchOp> {
                                 PatternRewriter &rewriter) const override {
     SmallVector<Value> newTrueOperands;
     for (auto v : branch.getTrueDestOperands()) {
-      if (isa<quake::WireType>(v.getType()))
+      if (quake::isLinearType(v.getType()))
         blocks.insert(branch.getTrueDest());
       else
         newTrueOperands.push_back(v);
     }
     SmallVector<Value> newFalseOperands;
     for (auto v : branch.getFalseDestOperands()) {
-      if (isa<quake::WireType>(v.getType()))
+      if (quake::isLinearType(v.getType()))
         blocks.insert(branch.getFalseDest());
       else
         newFalseOperands.push_back(v);
@@ -378,7 +407,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
     // operands of the original if operation.
     SmallVector<Type> newIfTy;
     for (auto ty : ifOp.getResultTypes())
-      if (ty != wireTy)
+      if (!quake::isLinearType(ty))
         newIfTy.push_back(ty);
     auto origThenArgs = ifOp.getThenRegion().front().getArguments();
     auto origElseArgs = ifOp.getElseRegion().front().getArguments();
@@ -416,7 +445,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
             SmallVector<Value> newOpnds;
             OpBuilder builder(cont);
             for (auto v : cont.getOperands())
-              if (v.getType() != wireTy)
+              if (!quake::isLinearType(v.getType()))
                 newOpnds.push_back(v);
             builder.create<cudaq::cc::ContinueOp>(cont.getLoc(), newOpnds);
             rewriter.eraseOp(cont);
@@ -430,7 +459,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
     SmallVector<Value> unwraps;
     unsigned i = 0;
     for (auto v : ifOp.getResults()) {
-      if (v.getType() == wireTy) {
+      if (quake::isLinearType(v.getType())) {
         auto id = analysis.idFromValue(v);
         assert(id);
         auto unwrap = rewriter.create<quake::UnwrapOp>(ifOp.getLoc(), wireTy,
@@ -509,10 +538,9 @@ public:
     // gate in memory-ssa form.
     auto hasNoWires = [](Operation *op) {
       return op->getOperands().empty() ||
-             !std::any_of(op->getOperands().begin(), op->getOperands().end(),
-                          [](Value v) {
-                            return v && isa<quake::WireType>(v.getType());
-                          });
+             !llvm::any_of(op->getOperands(), [](Value v) {
+               return v && quake::isLinearType(v.getType());
+             });
     };
     BlockSet fixupBlocks;
     RewritePatternSet patterns(ctx);
@@ -555,7 +583,7 @@ public:
     for (auto *b : blocks) {
       unsigned i = 0;
       for (auto arg : b->getArguments()) {
-        if (isa<quake::WireType>(arg.getType()))
+        if (quake::isLinearType(arg.getType()))
           b->eraseArgument(i);
         else
           ++i;
