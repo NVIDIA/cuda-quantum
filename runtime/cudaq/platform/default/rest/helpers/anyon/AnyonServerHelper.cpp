@@ -28,9 +28,9 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey,
                          std::string &credentials, std::string &timeStr,
                          std::string userSpecifiedConfig = "");
 
-/// @brief The QuantinuumServerHelper implements the ServerHelper interface
+/// @brief The implements the ServerHelper interface
 /// to map Job requests and Job result retrievals actions from the calling
-/// Executor to the specific schema required by the remote Quantinuum REST
+/// Executor to the specific schema required by the remote REST
 /// server.
 class AnyonServerHelper : public ServerHelper {
 protected:
@@ -49,7 +49,7 @@ protected:
   std::string userSpecifiedCredentials = "";
   std::string credentialsPath = "";
 
-  /// @brief Quantinuum requires the API token be updated every so often,
+  /// @brief The ServerHelper requires the API token be updated every so often,
   /// using the provided refresh token. This function will do that.
   void refreshTokens(bool force_refresh = false);
 
