@@ -26,7 +26,7 @@
 # COPY docs/sphinx/examples/python /tmp/examples/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
-# COPY python/README.md /tmp/README.md
+# COPY python/README*.md /tmp/
 # RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
 
 __optind__=$OPTIND
@@ -50,6 +50,7 @@ while getopts ":f:p:qw:" opt; do
 done
 OPTIND=$__optind__
 
+# FIXME: different CUDA 11 and 12 readme
 readme_file="$root_folder/README.md"
 if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     echo -e "\e[01;31mDid not find Python root folder. Please pass the folder containing the README and test with -f.\e[0m" >&2

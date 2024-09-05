@@ -395,8 +395,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
-      python_version: ${{ matrix.python_version }}
       build_config_id: cu${{ matrix.cuda_version }}
+      python_version: ${{ matrix.python_version }}
+      cuda_version: ${{ matrix.cuda_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
 

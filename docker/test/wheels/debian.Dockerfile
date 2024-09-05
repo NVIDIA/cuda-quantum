@@ -33,7 +33,7 @@ COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
-COPY python/README.md /tmp/README.md
+COPY python/README*.md /tmp/
 
 RUN if [ -n "$pip_install_flags" ]; then \
         # We can't install with a --user flag in a virtual environment unless we enable this.

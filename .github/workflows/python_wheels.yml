@@ -5,14 +5,17 @@ on:
         type: string
         required: false
         default: linux/amd64
-      python_version:
-        type: string
-        required: false
-        default: '3.10'
       build_config_id:
         required: false
         type: string
         description: An string that uniquely identfies the toolchain and build configuration used within the Docker image. The value is used in tags and cache locations to distinguish different builds.
+      python_version:
+        type: string
+        required: true
+      cuda_version:
+        required: true
+        type: string
+        description: The CUDA version used for the build (e.g. 12.3).
       devdeps_image:
         required: false
         type: string
@@ -254,6 +257,7 @@ jobs:
             # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
             # In this step, we test the full installation workflow with conda; 
             # hence we don't want to mix conda and pip packages.
+            cuda_major=$(echo ${{ inputs.cuda_version }} | cut -d . -f1)
             python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum-cu${cuda_major}
             # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
             # Install conda
@@ -264,7 +268,7 @@ jobs:
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
             # Extract the setup script from Python wheel's readme
-            readme_file="/tmp/README.md"
+            readme_file="/tmp/README-cu${cuda_major}.md"
             python_version="${{ inputs.python_version }}"
             # Parse README file to install openmpi
             conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
@@ -275,7 +279,7 @@ jobs:
                   # Replace Python version
                   line=${line//3.10/$python_version}
                   # Install the wheel file
-                  line=${line//pip install cuda-quantum-cu*/pip install /tmp/cuda_quantum*-manylinux_*_$(uname -m).whl}
+                  line=${line//pip install cuda-quantum-cu${cuda_major}/pip install /tmp/cuda_quantum*-manylinux_*_$(uname -m).whl}
                   eval "$line"
               fi
             done <<< "$conda_script"
@@ -369,7 +373,8 @@ jobs:
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           build_config_id=${{ inputs.build_config_id }}
-          artifact_name=python_${platform_id}_${build_config_id:+${build_config_id}_}publishing # changing the artifact name requires updating other workflows
+          build_config_id=${build_config_id:-cu${{ inputs.cuda_version }}}
+          artifact_name=python_${platform_id}_${build_config_id}_publishing # changing the artifact name requires updating other workflows
 
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
