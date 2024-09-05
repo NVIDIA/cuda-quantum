@@ -608,42 +608,10 @@ found in our complete <a class="reference internal" href="install/install.html">
 <p>To develop CUDA-Q applications using Python,
 please follow the instructions for <a class="reference external" href="https://pypi.org/project/cuda-quantum/">installing CUDA-Q</a> from PyPI.
 If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.</p>
-<p>CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.</p>
-<p>Getting started with CUDA-Q on <code class="docutils literal notranslate"><span class="pre">x86_64</span></code> platforms simply requires
-<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cuda-quantum</span></code>. If you have an NVIDIA GPU on your host system, you
-will be able to use it without any further installation steps.</p>
-<p>However, if you want to perform multi-GPU simulations, or if you are using
-<code class="docutils literal notranslate"><span class="pre">aarch64</span></code>/<code class="docutils literal notranslate"><span class="pre">arm64</span></code> processors, additional components must be installed.
-We recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do so.
-If you are not already using Conda,
-you can install a minimal version following the instructions
-<a class="reference external" href="https://docs.anaconda.com/miniconda/">here</a>. The
-following commands will create and activate a complete environment for CUDA-Q
-with all its dependencies:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda create -y -n cuda-quantum python=3.10 pip</span>
-<span class="go">conda install -y -n cuda-quantum -c &quot;nvidia/label/cuda-11.8.0&quot; cuda</span>
-<span class="go">conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler</span>
-<span class="go">conda env config vars set -n cuda-quantum LD_LIBRARY_PATH=&quot;$CONDA_PREFIX/envs/cuda-quantum/lib:$LD_LIBRARY_PATH&quot;</span>
-<span class="go">conda env config vars set -n cuda-quantum MPI_PATH=$CONDA_PREFIX/envs/cuda-quantum</span>
-<span class="go">conda run -n cuda-quantum pip install cuda-quantum</span>
-<span class="go">conda activate cuda-quantum</span>
-<span class="go">source $CONDA_PREFIX/lib/python3.10/site-packages/distributed_interfaces/activate_custom_mpi.sh</span>
-</pre></div>
 </div>
-<p>You must configure MPI by setting the following environment variables:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl=&#39;^openib&#39;</span>
-</pre></div>
 </div>
-<p><em>If you do not set these variables you may encounter a segmentation fault.</em></p>
-<p><strong>Important</strong>: It is <em>not</em> sufficient to set these variable within the Conda
-environment, like the commands above do for <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code>. To avoid having
-to set them every time you launch a new shell, we recommend adding them to
-<code class="docutils literal notranslate"><span class="pre">~/.profile</span></code> (create the file if it does not exist), and to <code class="docutils literal notranslate"><span class="pre">~/.bash_profile</span></code> or
-<code class="docutils literal notranslate"><span class="pre">~/.bash_login</span></code> if such a file exists.</p>
-<p>Once you completed the installation, please follow the instructions
-<a class="reference internal" href="#validate-installation"><span class="std std-ref">below</span></a> to run your first CUDA-Q program!</p>
-</div>
-<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
 <p>To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
 that supports C++20, for example <code class="code docutils literal notranslate"><span class="pre">g++</span></code> version 11 or newer.
 Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
@@ -674,7 +642,7 @@ either yield <code class="code docutils literal notranslate"><span class="pre">0
 and prints how many times each output was measured. On average, the values <code class="code docutils literal notranslate"><span class="pre">00</span></code> and <code class="code docutils literal notranslate"><span class="pre">11</span></code>
 should be observed around 500 times each.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
 <p>Create a file titled <code class="code docutils literal notranslate"><span class="pre">program.py</span></code>, containing the following code:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">cudaq</span>
@@ -701,7 +669,7 @@ should be observed around 500 times each.</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
 <p>Create a file titled <code class="code docutils literal notranslate"><span class="pre">program.cpp</span></code>, containing the following code:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
@@ -733,12 +701,12 @@ increase the numbers of qubits the program uses to 28 and
 compare the time to execute the program on the
 <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target (<a class="reference internal" href="backends/simulators.html#cuquantum-single-gpu"><span class="std std-ref">GPU-accelerated statevector simulator</span></a>) to the time when setting the target to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> (<a class="reference internal" href="backends/simulators.html#openmp-cpu-only"><span class="std std-ref">OpenMP parallelized CPU-only statevector simulator</span></a>):</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 program.py 28 --target nvidia</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ program.cpp -o program.x --target nvidia &amp;&amp; ./program.x 28</span>
 </pre></div>
 </div>
