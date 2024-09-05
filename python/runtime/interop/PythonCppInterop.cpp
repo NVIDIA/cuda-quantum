@@ -51,7 +51,8 @@ std::string extractSubstring(const std::string &input,
 
 std::tuple<std::string, std::string>
 getMLIRCodeAndName(const std::string &name) {
-  auto cppMLIRCode = cudaq::get_quake("entryPoint");
+  auto cppMLIRCode =
+      cudaq::get_quake(std::remove_cvref_t<decltype(name)>(name));
   auto kernelName = cudaq::getKernelName(cppMLIRCode);
   cppMLIRCode = "module {\nfunc.func @" + kernelName +
                 cudaq::extractSubstring(cppMLIRCode, "func.func @" + kernelName,
@@ -59,4 +60,23 @@ getMLIRCodeAndName(const std::string &name) {
                 "\n}";
   return std::make_tuple(kernelName, cppMLIRCode);
 }
+
+static std::unordered_map<std::string, std::tuple<std::string, std::string>>
+    deviceKernelMLIRMap;
+
+__attribute__((visibility("default"))) void
+registerDeviceKernel(const std::string &module, const std::string &name) {
+  auto key = module + "." + name;
+  deviceKernelMLIRMap.insert({key, getMLIRCodeAndName(name)});
+}
+
+std::tuple<std::string, std::string>
+getDeviceKernel(const std::string &compositeName) {
+  auto iter = deviceKernelMLIRMap.find(compositeName);
+  if (iter == deviceKernelMLIRMap.end())
+    throw std::runtime_error("Invalid composite name for device kernel map.");
+
+  return iter->second;
+}
+
 } // namespace cudaq

@@ -14,4 +14,9 @@ entryPoint(const std::function<void(cudaq::qvector<> &)> &statePrep) {
   cudaq::qvector q(2);
   statePrep(q);
 }
+
+__qpu__ void qft(cudaq::qview<> qubits) { h(qubits); }
+
+__qpu__ void another(cudaq::qview<> qubits, std::size_t i) { x(qubits[i]); }
+
 } // namespace cudaq
