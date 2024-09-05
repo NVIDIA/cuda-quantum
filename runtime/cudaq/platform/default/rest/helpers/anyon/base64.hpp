@@ -58,18 +58,18 @@ inline constexpr uint32_t bad_char{0x01FFFFFF};
     defined(_M_PPC)
 #define __BIG_ENDIAN__
 #elif (defined(__BYTE_ORDER__) &&                                              \
-       __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || /* gcc */                 \
+       __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) ||                \
     (defined(__BYTE_ORDER) &&                                                  \
-     __BYTE_ORDER == __LITTLE_ENDIAN) /* linux header */                       \
+     __BYTE_ORDER == __LITTLE_ENDIAN)                    \
     || (defined(_BYTE_ORDER) && _BYTE_ORDER == _LITTLE_ENDIAN) ||              \
-    (defined(BYTE_ORDER) && BYTE_ORDER == LITTLE_ENDIAN) /* mingw header */ || \
+    (defined(BYTE_ORDER) && BYTE_ORDER == LITTLE_ENDIAN)  || \
     (defined(__sun) && defined(__SVR4) &&                                      \
-     defined(_LITTLE_ENDIAN)) || /* solaris */                                 \
+     defined(_LITTLE_ENDIAN)) ||                                  \
     defined(__ARMEL__) ||                                                      \
     defined(__THUMBEL__) || defined(__AARCH64EL__) || defined(_MIPSEL) ||      \
     defined(__MIPSEL) || defined(__MIPSEL__) || defined(_M_IX86) ||            \
-    defined(_M_X64) || defined(_M_IA64) || /* msvc for intel processors */     \
-    defined(_M_ARM) /* msvc code on arm executes in little endian mode */
+    defined(_M_X64) || defined(_M_IA64) ||      \
+    defined(_M_ARM) 
 #define __LITTLE_ENDIAN__
 #endif
 #endif
