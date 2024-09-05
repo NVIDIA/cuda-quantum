@@ -36,7 +36,9 @@ class AnyonServerHelper : public ServerHelper {
 protected:
   /// @brief The base URL
   std::string baseUrl = "https://api.anyon.cloud/";
-  /// @brief The machine we are targeting
+  /// @brief The machine we are targeting. Adding this to force a change and a
+  /// new commit on this file since run_clang_format.sh doesn't create new
+  /// changes and it can't pass the format checking over PR.
   std::string machine = "telegraph-8q"; //"berkeley-25q";//
   /// @brief Time string, when the last tokens were retrieved
   std::string timeStr = "";
