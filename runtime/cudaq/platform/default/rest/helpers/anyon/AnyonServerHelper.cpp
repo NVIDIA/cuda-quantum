@@ -13,7 +13,7 @@
 #include <iostream>
 #include <thread>
 using nlohmann::json;
-#include "base64.hpp"
+#include "llvm/Support/Base64.h"
 #include <regex>
 
 namespace cudaq {
@@ -36,9 +36,7 @@ class AnyonServerHelper : public ServerHelper {
 protected:
   /// @brief The base URL
   std::string baseUrl = "https://api.anyon.cloud/";
-  /// @brief The machine we are targeting. Adding this to force a change and a
-  /// new commit on this file since run_clang_format.sh doesn't create new
-  /// changes and it can't pass the format checking over PR.
+  /// @brief The machine we are targeting.
   std::string machine = "telegraph-8q"; //"berkeley-25q";//
   /// @brief Time string, when the last tokens were retrieved
   std::string timeStr = "";
@@ -402,7 +400,8 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
       std::string username = jsoncreds.at("username");
       std::string passwd = jsoncreds.at("password");
       std::string authInfo = username + delim + passwd;
-      authInfo = base64::to_base64(authInfo);
+      // authInfo = base64::to_base64(authInfo);
+      authInfo = llvm::encodeBase64(authInfo);
       credentials = "Basic " + authInfo;
     } else
       throw std::runtime_error(
@@ -427,12 +426,6 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey,
     hwConfig = std::string(creds);
   else if (!userSpecifiedConfig.empty())
     hwConfig = userSpecifiedConfig;
-  // jsoncreds = json::parse(userSpecifiedConfig);
-  // string authInfo = jsoncreds.at('username') + ":" +
-  // jsoncreds.at('password'); //Base64 Encoding for HTTPS Basic Authentication:
-  // https://developerhub.dmtispatial.com/basic-authentication/#:~:text=Basic%20Authentication%20sends%20a%20Base64,transmitted%20over%20a%20TLS%20v1.
-  // authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
-  // hwConfig = "Basic " + authInfo;
   else
     hwConfig = std::string(getenv("HOME")) + std::string("/.anyon_config");
   if (cudaq::fileExists(hwConfig)) {
