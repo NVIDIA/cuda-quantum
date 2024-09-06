@@ -251,15 +251,23 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
           ? cc::StructType::get(ctx, fieldTys, width, alignInBytes)
           : cc::StructType::get(ctx, name, fieldTys, width, alignInBytes);
 
-  // If this is not a quantum struct type, but
-  // it has a quantum member, throw an error.
-  if (!isQuantumStructType(ty)) {
+  // Do some error analysis on the struct. Check the following:
+  // Does this struct contain contain a quantum struct? Recursive quantum types
+  // are not allowed
+  // Is this a struct with both classical and quantum types? Not allowed
+  // Does this struct have user-specified methods? Not allowd
+
+  for (auto fieldTy : fieldTys)
+    if (isQuantumStructType(fieldTy))
+      reportClangError(x, mangler,
+                       "recursive quantum struct types are not allowed.");
+
+  if (!isQuantumStructType(ty))
     for (auto fieldTy : fieldTys)
       if (quake::isQuantumType(fieldTy))
         reportClangError(
             x, mangler,
             "hybrid quantum-classical struct types are not allowed.");
-  }
 
   // for any kind of struct struct, throw error if it has methods
   if (auto *cxxRd = dyn_cast<clang::CXXRecordDecl>(x)) {
