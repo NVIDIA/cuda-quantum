@@ -2207,18 +2207,6 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto idx_var = popValue();
       auto qreg_var = popValue();
 
-      // // Get name of the qreg, e.g. qr, and use it to construct a name for
-      // the
-      // // element, which is intended to be qr%n when n is the index of the
-      // // accessed qubit.
-      // StringRef qregName = getNamedDecl(x->getArg(0))->getName();
-      // auto name = getQubitSymbolTableName(qregName, idx_var);
-      // char *varName = strdup(name.c_str());
-
-      // // If the name exists in the symbol table, return its stored value.
-      // if (symbolTable.count(name))
-      //   return replaceTOSValue(symbolTable.lookup(name));
-
       if (isa<clang::DeclRefExpr>(x->getArg(0))) {
         // Get name of the qreg, e.g. qr, and use it to construct a name for the
         // element, which is intended to be qr%n when n is the index of the
@@ -2914,10 +2902,6 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   }
 
   // Just walk through copy constructors for quantum struct types.
-  // FIXME Will need Eric help here. There are more things on the
-  // value stack then what I'd expect and I'm not sure what to do.
-  // But here is where I would think we'd have to support
-  // struct s(...) (as opposed to struct s{...} which is implemented above)
   if (ctor->isCopyOrMoveConstructor() && isQuantumStructType(ctorTy))
     return true;
 
@@ -2944,7 +2928,6 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     TODO_x(loc, x, mangler, "C++ constructor (non-default)");
   }
 
-  llvm::errs() << "WE ARE HERE\n";
   // A regular C++ class constructor lowers as:
   //
   // 1) A unique object must be created, so the type must have a minimum of
