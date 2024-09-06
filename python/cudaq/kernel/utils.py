@@ -232,7 +232,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             1 if (quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty))
             else 0 for ty in structTys
         ])
-        if numQuantumMemberTys != 0:  # we have quantum member typs
+        if numQuantumMemberTys != 0:  # we have quantum member types
             if numQuantumMemberTys != len(structTys):
                 emitFatalError(
                     f'hybrid quantum-classical data types not allowed in kernel code.'
@@ -358,7 +358,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 1 if (quake.RefType.isinstance(ty) or
                       quake.VeqType.isinstance(ty)) else 0 for ty in structTys
             ])
-            if numQuantumMemberTys != 0:  # we have quantum member typs
+            if numQuantumMemberTys != 0:  # we have quantum member types
                 if numQuantumMemberTys != len(structTys):
                     emitFatalError(
                         f'hybrid quantum-classical data types not allowed')
