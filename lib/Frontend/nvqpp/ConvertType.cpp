@@ -274,11 +274,15 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
     auto numMethods = [&cxxRd]() {
       std::size_t count = 0;
       for (auto methodIter = cxxRd->method_begin();
-           methodIter != cxxRd->method_end(); ++methodIter)
+           methodIter != cxxRd->method_end(); ++methodIter) {
+        // Don't check if this is a __qpu__ struct method
+        if (auto attr = (*methodIter)->getAttr<clang::AnnotateAttr>();
+            attr && attr->getAnnotation().str() == cudaq::kernelAnnotation)
+          continue;
         // Check if the method is not implicit (i.e., user-defined)
         if (!(*methodIter)->isImplicit())
           count++;
-
+      }
       return count;
     }();
 
