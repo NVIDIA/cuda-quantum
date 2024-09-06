@@ -2571,6 +2571,25 @@ static Type getEleTyFromVectorCtor(Type ctorTy) {
   return ctorTy;
 }
 
+bool QuakeBridgeVisitor::VisitCXXParenListInitExpr(
+    clang::CXXParenListInitExpr *x) {
+  if (auto ty = peekType(); isQuantumStructType(ty)) {
+    auto loc = toLocation(x);
+    auto structTy = dyn_cast<cc::StructType>(ty);
+    auto last = lastValues(structTy.getMembers().size());
+    Value undefOpRes = builder.create<cc::UndefOp>(loc, structTy);
+    for (auto iter : llvm::enumerate(last)) {
+      std::int32_t i = iter.index();
+      auto v = iter.value();
+      undefOpRes =
+          builder.create<cc::InsertValueOp>(loc, structTy, undefOpRes, v, i);
+    }
+    return pushValue(undefOpRes);
+  }
+
+  return false;
+}
+
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   auto loc = toLocation(x);
   auto *ctor = x->getConstructor();
@@ -2869,11 +2888,14 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   // Just walk through copy constructors for quantum struct types.
   // FIXME Will need Eric help here. There are more things on the
   // value stack then what I'd expect and I'm not sure what to do.
-  // But here is where I would think we'd have to support 
+  // But here is where I would think we'd have to support
   // struct s(...) (as opposed to struct s{...} which is implemented above)
-  if (ctor->isCopyOrMoveConstructor() && isQuantumStructType(ctorTy)) 
+  if (ctor->isCopyOrMoveConstructor() && isQuantumStructType(ctorTy)) {
+    for (auto v : valueStack)
+      v.dump();
     return true;
-  
+  }
+
   if (ctor->isCopyOrMoveConstructor() && parent->isPOD()) {
     // Copy or move constructor on a POD struct. The value stack should contain
     // the object to load the value from.

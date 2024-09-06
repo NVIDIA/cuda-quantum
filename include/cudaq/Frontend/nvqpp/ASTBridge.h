@@ -286,6 +286,7 @@ public:
                                 DataRecursionQueue *q = nullptr);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
+  bool VisitCXXParenListInitExpr(clang::CXXParenListInitExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool TraverseDeclRefExpr(clang::DeclRefExpr *x,
                            DataRecursionQueue *q = nullptr);

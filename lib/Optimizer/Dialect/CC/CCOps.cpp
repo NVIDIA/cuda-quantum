@@ -967,7 +967,7 @@ struct FuseWithConstantArray
           return success();
         }
       }
-    return success();
+    return failure();
   }
 };
 struct FoldQuantumStructMember
