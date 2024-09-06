@@ -221,6 +221,17 @@ bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   return true;
 }
 
+std::pair<std::uint64_t, unsigned>
+QuakeBridgeVisitor::getWidthAndAlignment(clang::RecordDecl *x) {
+  auto *defn = x->getDefinition();
+  assert(defn && "struct must be defined here");
+  auto *ty = defn->getTypeForDecl();
+  if (ty->isDependentType())
+    return {0, 0};
+  auto ti = getContext()->getTypeInfo(ty);
+  return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
+}
+
 bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   assert(!x->isLambda() && "expected lambda to be handled in traverse");
   // Note that we're generating a Type on the type stack.
@@ -232,15 +243,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
     return pushType(cc::StructType::get(ctx, name, /*isOpaque=*/true));
   SmallVector<Type> fieldTys =
       lastTypes(std::distance(x->field_begin(), x->field_end()));
-  auto [width, alignInBytes] = [&]() -> std::pair<std::uint64_t, unsigned> {
-    auto *defn = x->getDefinition();
-    assert(defn && "struct must be defined here");
-    auto *ty = defn->getTypeForDecl();
-    if (ty->isDependentType())
-      return {0, 0};
-    auto ti = getContext()->getTypeInfo(ty);
-    return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
-  }();
+  auto [width, alignInBytes] = getWidthAndAlignment(x);
   if (name.empty())
     return pushType(cc::StructType::get(ctx, fieldTys, width, alignInBytes));
   return pushType(
