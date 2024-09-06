@@ -670,9 +670,7 @@ class PyASTBridge(ast.NodeVisitor):
         Return True if the given struct type has only quantum member variables.
         """
         if not cc.StructType.isinstance(structTy):
-            self.emitFatalError(
-                f'isQuantumStructType called on type that is not a struct ({structTy})'
-            )
+            return False
 
         return False not in [
             self.isQuantumType(t) for t in cc.StructType.getTypes(structTy)
@@ -1904,14 +1902,32 @@ class PyASTBridge(ast.NodeVisitor):
                     for _, v in annotations.items()
                 ]
                 # Ensure we don't use hybrid data types
-                numQuantumMemberTys = sum([1 if self.isQuantumType(ty) else 0 for ty in structTys])
+                numQuantumMemberTys = sum(
+                    [1 if self.isQuantumType(ty) else 0 for ty in structTys])
                 if numQuantumMemberTys != 0:  # we have quantum member typs
                     if numQuantumMemberTys != len(structTys):
                         self.emitFatalError(
-                            f'hybrid quantum-classical data types not allowed in kernel code', node)
+                            f'hybrid quantum-classical data types not allowed in kernel code',
+                            node)
 
                 structTy = cc.StructType.getNamed(self.ctx, node.func.id,
                                                   structTys)
+                # Disallow recursive quantum struct types.
+                for fieldTy in cc.StructType.getTypes(structTy):
+                    if self.isQuantumStructType(fieldTy):
+                        self.emitFatalError(
+                            'recursive quantum struct types not allowed.', node)
+
+                # Disallow user specified methods on structs
+                if len({
+                        k: v
+                        for k, v in cls.__dict__.items()
+                        if not (k.startswith('__') and k.endswith('__'))
+                }) != 0:
+                    self.emitFatalError(
+                        'struct types with user specified methods are not allowed.',
+                        node)
+
                 nArgs = len(self.valueStack)
                 ctorArgs = [self.popValue() for _ in range(nArgs)]
                 ctorArgs.reverse()

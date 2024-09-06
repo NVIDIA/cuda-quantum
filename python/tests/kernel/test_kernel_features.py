@@ -1751,6 +1751,76 @@ def test_disallow_hybrid_types():
         testtest.compile()
 
 
+def test_disallow_quantum_struct_return():
+    from dataclasses import dataclass
+    # Ensure we don't allow hybrid type s
+    @dataclass
+    class T:
+        q: cudaq.qview
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test() -> T:
+            q = cudaq.qvector(2)
+            h = T(q)
+            return h
+
+        test()
+
+def test_disallow_recursive_quantum_struct():
+    from dataclasses import dataclass
+    @dataclass
+    class T:
+        q: cudaq.qview
+
+    @dataclass
+    class Holder:
+        t : T
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test():
+            q = cudaq.qvector(2)
+            t = T(q)
+            hh = Holder(t)
+
+        print(test)
+    
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test(hh : Holder):
+            pass
+
+        print(test)
+
+def test_disallow_struct_with_methods():
+    from dataclasses import dataclass
+    @dataclass
+    class T:
+        q: cudaq.qview
+        def doSomething(self):
+            pass 
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test(t : T):
+            pass 
+
+        print(test)
+    
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel 
+        def test():
+            q = cudaq.qvector(2)
+            t = T(q)
+        print(test)
+
+
 @skipIfPythonLessThan39
 def test_issue_9():
 
