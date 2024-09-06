@@ -886,7 +886,9 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
-def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::func::FuncOp"> {
+// UnitarySynthesis is a module pass because it may modify the `ModuleOp` by
+// adding new `FuncOp`(s).
+def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
   let summary = 
     "Convert a custom quantum operation into sequence of native quantum gates.";
   let description = [{

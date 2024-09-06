@@ -35,11 +35,6 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-namespace cudaq {
-std::vector<std::complex<double>>
-readGlobalConstantArray(cudaq::cc::GlobalOp &global);
-}
-
 namespace cudaq::details {
 
 std::vector<std::size_t> grayCode(std::size_t numBits) {
@@ -359,7 +354,7 @@ LogicalResult transform(ModuleOp module, func::FuncOp funcOp,
           auto symbol = module.lookupSymbol(globalName);
           if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
             // Read state initialization data from the global array.
-            auto vec = cudaq::readGlobalConstantArray(global);
+            auto vec = cudaq::opt::factory::readGlobalConstantArray(global);
 
             // Prepare state from vector data.
             auto gateBuilder = StateGateBuilder(builder, loc, qubits);

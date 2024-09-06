@@ -23,8 +23,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__custom_s_generator_1.kernel(
 // CHECK-SAME:                                                                     %[[VAL_0:.*]]: !quake.ref) {
-// CHECK:           %[[VAL_1:.*]] = arith.constant -0.78539816339744828 : f64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0.78539816339744839 : f64
 // CHECK:           quake.rz (%[[VAL_3]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_3]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
@@ -35,8 +35,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__custom_s_adj_generator_1.kernel(
 // CHECK-SAME:                                                                         %[[VAL_0:.*]]: !quake.ref) {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0.78539816339744828 : f64
-// CHECK:           %[[VAL_2:.*]] = arith.constant -0.78539816339744828 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_2:.*]] = arith.constant -1.5707963267948966 : f64
 // CHECK:           %[[VAL_3:.*]] = arith.constant -0.78539816339744839 : f64
 // CHECK:           quake.rz (%[[VAL_3]]) %[[VAL_0]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_3]]) %[[VAL_0]] : (f64, !quake.ref) -> ()

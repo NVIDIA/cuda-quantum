@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -15,6 +16,9 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Transforms/DialectConversion.h"
+
+#include <complex>
+#include <vector>
 
 namespace cudaq {
 namespace cc {
@@ -258,6 +262,10 @@ std::optional<llvm::APFloat> getDoubleIfConstant(mlir::Value value);
 mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
                        mlir::Type toType, mlir::Value fromValue,
                        bool signExtend = false, bool zeroExtend = false);
+
+/// Extract complex matrix from a `cc.global`
+std::vector<std::complex<double>>
+readGlobalConstantArray(cudaq::cc::GlobalOp &global);
 
 } // namespace factory
 
