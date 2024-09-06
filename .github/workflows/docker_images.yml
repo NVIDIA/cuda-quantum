@@ -97,7 +97,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ''
+          persist-credentials: false
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -223,7 +223,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ''
+          persist-credentials: false
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -375,7 +375,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ''
+          persist-credentials: false
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -632,7 +632,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ''
+          persist-credentials: false
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v3
@@ -747,7 +747,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ''
+          persist-credentials: false
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v3
@@ -825,7 +825,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ''
+          persist-credentials: false
 
       - name: Create build info
         id: staging
