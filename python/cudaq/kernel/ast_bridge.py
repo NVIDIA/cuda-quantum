@@ -1904,7 +1904,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # Ensure we don't use hybrid data types
                 numQuantumMemberTys = sum(
                     [1 if self.isQuantumType(ty) else 0 for ty in structTys])
-                if numQuantumMemberTys != 0:  # we have quantum member typs
+                if numQuantumMemberTys != 0:  # we have quantum member types
                     if numQuantumMemberTys != len(structTys):
                         self.emitFatalError(
                             f'hybrid quantum-classical data types not allowed in kernel code',
