@@ -12,10 +12,11 @@
 #include <fstream>
 
 struct kernel {
-
   void operator()() __qpu__ {
-    cudaq::qvector q(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
-    auto result = mz(q);
+    cudaq::qvector q(2);
+    h(q[0]);
+    x<cudaq::ctrl>(q[0], q[1]);
+    mz(q);
   }
 };
 
@@ -33,10 +34,7 @@ int main() {
 // CHECK:  }
 
 // CHECK:  qreg var0[2];
-// CHECK:  ry(0.000000e+00) var0[1];
-// CHECK:  ry(7.853982e-01) var0[0];
-// CHECK:  cx var0[1], var0[0];
-// CHECK:  ry(7.853982e-01) var0[0];
-// CHECK:  cx var0[1], var0[0];
+// CHECK:  h var0[0];
+// CHECK:  cx var0[0], var0[1];
 // CHECK:  creg var3[2];
 // CHECK:  measure var0 -> var3;
