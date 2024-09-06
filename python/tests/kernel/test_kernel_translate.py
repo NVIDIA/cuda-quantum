@@ -9,6 +9,8 @@
 import pytest
 import cudaq
 
+import numpy as np
+
 
 @cudaq.kernel
 def bell_pair():
@@ -19,13 +21,31 @@ def bell_pair():
 
 
 @cudaq.kernel
-def kernel(numQubits: int):
+def kernel_loop_params(numQubits: int):
     q = cudaq.qvector(numQubits)
     h(q)
     for i in range(numQubits - 1):
         cx(q[i], q[i + 1])
     for i in range(numQubits):
         mz(q[i])
+
+
+@cudaq.kernel
+def kernel_loop():
+    numQubits = 5
+    q = cudaq.qvector(numQubits)
+    h(q)
+    for i in range(4):
+        cx(q[i], q[i + 1])
+    for i in range(numQubits):
+        mz(q[i])
+
+
+@cudaq.kernel
+def kernel_vector():
+    c = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    q = cudaq.qvector(c)
+    mz(q)
 
 
 @cudaq.kernel
@@ -47,15 +67,25 @@ def test_translate_openqasm_with_ignored_args():
     assert "qreg var0[2];" in asm
 
 
+def test_translate_openqasm_loop():
+    asm = cudaq.translate(kernel_loop, format="openqasm2")
+    assert "qreg var0[5];" in asm
+
+
+def test_translate_openqasm_loop_():
+    asm = cudaq.translate(kernel_vector, format="openqasm2")
+    assert "qreg var0[2];" in asm
+
+
 def test_translate_openqasm_with_args():
     with pytest.raises(RuntimeError) as e:
-        print(cudaq.translate(kernel, 5, format="openqasm2"))
+        print(cudaq.translate(kernel_loop_params, 5, format="openqasm2"))
     assert 'Cannot translate function with arguments to OpenQASM 2.0.' in repr(
         e)
 
 
 def test_translate_openqasm_synth():
-    synth = cudaq.synthesize(kernel, 4)
+    synth = cudaq.synthesize(kernel_loop_params, 4)
 
     asm = cudaq.translate(synth, format="openqasm2")
     assert "measure var0[3] -> var8[0]" in asm
@@ -79,7 +109,7 @@ def test_translate_qir_ignored_args():
 
 
 def test_translate_qir_with_args():
-    qir = cudaq.translate(kernel, 5, format="qir")
+    qir = cudaq.translate(kernel_loop_params, 5, format="qir")
     assert "%2 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %0)" in qir
 
 
@@ -99,7 +129,7 @@ def test_translate_qir_base_ignored_args():
 
 
 def test_translate_qir_base_args():
-    synth = cudaq.synthesize(kernel, 5)
+    synth = cudaq.synthesize(kernel_loop_params, 5)
     qir = cudaq.translate(synth, 5, format="qir-base")
     assert '"qir_profiles"="base_profile"' in qir
 
@@ -115,6 +145,6 @@ def test_translate_qir_adaptive_ignored_args():
 
 
 def test_translate_qir_adaptive_args():
-    synth = cudaq.synthesize(kernel, 5)
+    synth = cudaq.synthesize(kernel_loop_params, 5)
     qir = cudaq.translate(synth, 5, format="qir-adaptive")
     assert '"qir_profiles"="adaptive_profile"' in qir
