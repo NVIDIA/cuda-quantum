@@ -36,21 +36,23 @@ class PyQudit:
         cudaq_runtime.photonics.release_qudit(self.level, self.id)
 
 
-def _check_qudit_type(q):
+def _is_qudit_type(q: any) -> bool:
     """
     Utility function to check whether the input argument is instance of 
     `PyQudit` class.
 
-    Raises:
-        Exception: if input argument is not instance of `PyQudit` class.
+    Returns:
+        bool: `True` if input argument is instance or a list of `PyQudit` 
+               class, else `False`
     """
-    if not isinstance(q, PyQudit):
-        raise Exception(
-            "Invalid quantum type. Use qudit (`qudit(level=N)`) or a list of qudits."
-        )
+    if isinstance(q, PyQudit):
+        return True
+    if isinstance(q, List):
+        return all(isinstance(i, PyQudit) for i in q)
+    return False
 
 
-def _check_args(q: PyQudit | List[PyQudit]):
+def _check_args(q: any):
     """
     Utility function to verify the arguments to a photonic quantum operation.
 
@@ -66,11 +68,10 @@ def _check_args(q: PyQudit | List[PyQudit]):
             "Qudit level not set. Define a qudit (`qudit(level=N)`) or list of qudits."
         )
 
-    if isinstance(q, List):
-        for qudit in q:
-            _check_qudit_type(qudit)
-    else:
-        _check_qudit_type(q)
+    if not _is_qudit_type(q):
+        raise Exception(
+            "Invalid quantum type. Use qudit (`qudit(level=N)`) or a list of qudits."
+        )
 
 
 def qudit(level: int) -> PyQudit:
