@@ -45,12 +45,18 @@ __qpu__ void entry_initlist() {
 
 // clang-format on
 
-// FIXME Get this working
-// __qpu__ void entry_ctor() {
-//   cudaq::qvector q(2), r(2);
-//   test tt(q, r);
-//   kernel(tt);
-// }
+__qpu__ void entry_ctor() {
+  cudaq::qvector q(2), r(2);
+  test tt(q, r);
+  h(tt.r[0]);
+}
 
-// FIXME Get this working
-// __qpu__ void takes_vec(std::vector<test> patches) { h(patches[0].q); }
+// clang-format off
+
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           return
+
+// clang-format on
