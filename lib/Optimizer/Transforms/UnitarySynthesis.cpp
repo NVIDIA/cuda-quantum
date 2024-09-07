@@ -51,7 +51,7 @@ struct BasisZYZ {
     /// Extract a phase factor, `phase`, so that
     /// `determinant(inverse_phase * unitary) = 1`
     auto det = (matrix[0] * matrix[3]) - (matrix[1] * matrix[2]);
-    phase = 0.5 * std::atan2(det.imag(), det.real());
+    phase = 0.5 * std::arg(det);
     std::array<std::complex<double>, 4> specialUnitary;
     std::transform(
         matrix.begin(), matrix.end(), specialUnitary.begin(),
