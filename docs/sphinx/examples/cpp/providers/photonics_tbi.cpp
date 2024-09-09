@@ -29,7 +29,7 @@ struct TBI {
     cudaq::qvector<d> quds(n_modes); // |00...00> d-dimensions
     for (std::size_t i = 0; i < n_modes; i++) {
       for (std::size_t j = 0; j < input_state[i]; j++) {
-        plus(quds[i]); // setting to  |input_state>
+        plus(quds[i]); // setting to |input_state>
       }
     }
 
