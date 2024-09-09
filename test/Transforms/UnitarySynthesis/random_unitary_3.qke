@@ -18,11 +18,11 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel3 = "__nvqp
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() attributes {"cudaq-entrypoint"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant -1.5397032671761617 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1.6997647512980398 : f64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2.4462690029098386 : f64
-// CHECK:           %[[VAL_3:.*]] = arith.constant -1.9777512475989565 : f64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 1.9777512475989565 : f64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant -1.5397032671761617 : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.6997647512980398 : f64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2.4462690029098386 : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant -1.9777512475989565 : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1.9777512475989565 : f64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.ry (%[[VAL_1]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
