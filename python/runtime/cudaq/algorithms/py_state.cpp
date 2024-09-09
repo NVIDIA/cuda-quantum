@@ -137,6 +137,20 @@ state pyGetStateRemote(py::object kernel, py::args args) {
                                            size, returnOffset));
 }
 
+state pyGetStateLibraryMode(py::object kernel, py::args args) {
+
+  // cudaq::info("Size of arguments = {}", args.size());
+  /// TODO: Unpack arguments
+  
+  return details::extractState([&]() mutable {
+    if (0 == args.size())
+      cudaq::invokeKernel(std::forward<py::object>(kernel));
+    else
+      cudaq::invokeKernel(std::forward<py::object>(kernel),
+                          std::forward<py::args>(args));
+  });
+}
+
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
 
@@ -629,6 +643,8 @@ index pair.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "nvqc")
           return pyGetStateRemote(kernel, args);
+        if (holder.getTarget().name == "photonics")
+          return pyGetStateLibraryMode(kernel, args);
         return pyGetState(kernel, args);
       },
       R"#(Return the :class:`State` of the system after execution of the provided `kernel`.
