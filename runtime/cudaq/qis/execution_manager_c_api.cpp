@@ -6,22 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/platform.h"
 #include "execution_manager.h"
-#include "common/PluginUtils.h"
 
-namespace cudaq {
-static ExecutionManager *execution_manager;
-
-void setExecutionManagerInternal(ExecutionManager *em) {
-  cudaq::info("external caller setting the execution manager.");
-  execution_manager = em;
+bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
+  auto &platform = get_platform();
+  auto *ctx = platform.get_exec_ctx();
+  if (ctx && ctx->name == "tracer")
+    ctx->registerNames.push_back("");
+  return result == 1;
 }
-
-void resetExecutionManagerInternal() {
-  cudaq::info("external caller clearing the execution manager.");
-  execution_manager = nullptr;
-}
-
-ExecutionManager *getExecutionManagerInternal() { return execution_manager; }
-
-} // namespace cudaq
