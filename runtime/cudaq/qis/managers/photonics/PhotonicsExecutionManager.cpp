@@ -19,6 +19,72 @@
 
 namespace cudaq {
 
+struct PhotonicsState : public cudaq::SimulationState {
+  /// @brief The state. This class takes ownership move semantics.
+  qpp::ket state;
+
+  /// @brief The qudit-levels (`qumodes`)
+  std::size_t levels;
+
+  PhotonicsState(qpp::ket &&data, std::size_t lvl)
+      : state(std::move(data)), levels(lvl) {}
+
+  std::size_t getNumQubits() const override {
+    throw "not supported for this photonics simulator";
+  }
+
+  std::complex<double> overlap(const cudaq::SimulationState &other) override {
+    throw "not supported for this photonics simulator";
+  }
+
+  std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override {
+    /// TODO: Check basisState.size() matches qudit count
+
+    // Convert the basis state to an index value
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [&](std::size_t acc, int bit) { return (acc * levels) + bit; });
+    return state[idx];
+  }
+
+  Tensor getTensor(std::size_t tensorIdx = 0) const override {
+    throw "not supported for this photonics simulator";
+  }
+
+  std::vector<Tensor> getTensors() const override {
+    throw "not supported for this photonics simulator";
+  }
+
+  std::size_t getNumTensors() const override {
+    throw "not supported for this photonics simulator";
+  }
+
+  std::complex<double>
+  operator()(std::size_t tensorIdx,
+             const std::vector<std::size_t> &indices) override {
+    throw "not supported for this photonics simulator";
+  }
+
+  std::unique_ptr<SimulationState>
+  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
+    throw "not supported for this photonics simulator";
+    ;
+  }
+
+  void dump(std::ostream &os) const override { os << state << "\n"; }
+
+  precision getPrecision() const override {
+    return cudaq::SimulationState::precision::fp64;
+  }
+
+  void destroyState() override {
+    qpp::ket k;
+    state = k;
+  }
+};
+
 /// @brief The `PhotonicsExecutionManager` implements allocation, deallocation,
 /// and quantum instruction application for the photonics execution manager.
 class PhotonicsExecutionManager : public cudaq::BasicExecutionManager {
@@ -26,7 +92,7 @@ private:
   /// @brief Current state
   qpp::ket state;
 
-  /// @brief Instructions are strored in a map
+  /// @brief Instructions are stored in a map
   std::unordered_map<std::string, std::function<void(const Instruction &)>>
       instructions;
 
@@ -78,30 +144,34 @@ protected:
   /// @brief Handler for when the current execution context has ended. It
   /// returns samples to the execution context if it is "sample".
   void handleExecutionContextEnded() override {
-    if (executionContext && executionContext->name == "sample") {
+    if (executionContext) {
       std::vector<std::size_t> ids;
       for (auto &s : sampleQudits) {
         ids.push_back(s.id);
       }
-      auto shots = executionContext->shots;
-      auto sampleResult =
-          qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
-
-      cudaq::ExecutionResult counts;
-      for (auto [result, count] : sampleResult) {
-        std::stringstream bitstring;
-        for (const auto &quditRes : result) {
-          bitstring << quditRes;
+      if (executionContext->name == "sample") {
+        auto shots = executionContext->shots;
+        auto sampleResult =
+            qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
+        cudaq::ExecutionResult counts;
+        for (auto [result, count] : sampleResult) {
+          std::stringstream bitstring;
+          for (const auto &quditRes : result) {
+            bitstring << quditRes;
+          }
+          // Add to the sample result
+          // in mid-circ sampling mode this will append 1 bitstring
+          counts.appendResult(bitstring.str(), count);
+          // Reset the string.
+          bitstring.str("");
+          bitstring.clear();
         }
-        // Add to the sample result
-        // in mid-circ sampling mode this will append 1 bitstring
-        counts.appendResult(bitstring.str(), count);
-        // Reset the string.
-        bitstring.str("");
-        bitstring.clear();
+        executionContext->result.append(counts);
+      } else if (executionContext->name == "extract-state") {
+        executionContext->simulationState =
+            std::make_unique<cudaq::PhotonicsState>(
+                std::move(state), sampleQudits.begin()->levels);
       }
-
-      executionContext->result.append(counts);
       // Reset the state and qudits
       state.resize(0);
       sampleQudits.clear();

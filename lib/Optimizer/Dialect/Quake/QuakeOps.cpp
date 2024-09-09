@@ -434,11 +434,13 @@ struct ForwardConcatExtractPattern
       auto index = extract.getConstantIndex();
       if (index < concatQubits.size()) {
         auto qOpValue = concatQubits[index];
-        if (isa<quake::RefType>(qOpValue.getType()))
+        if (isa<quake::RefType>(qOpValue.getType())) {
           rewriter.replaceOp(extract, {qOpValue});
+          return success();
+        }
       }
     }
-    return success();
+    return failure();
   }
 };
 

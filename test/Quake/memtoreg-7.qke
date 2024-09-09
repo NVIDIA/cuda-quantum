@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --memtoreg %s | FileCheck %s
+// RUN: cudaq-opt --expand-measurements --cc-loop-normalize --cc-loop-unroll --factor-quantum-alloc --canonicalize --memtoreg %s | cudaq-opt --regtomem | FileCheck --check-prefix CANOE %s
 
 func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
   %false = arith.constant false
@@ -100,3 +101,76 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CHECK:           return
 // CHECK:         }
 
+// CANOE-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasurementFeedback = true} {
+// CANOE:           %[[VAL_0:.*]] = arith.constant 2 : i64
+// CANOE:           %[[VAL_1:.*]] = arith.constant false
+// CANOE:           %[[VAL_2:.*]] = arith.constant true
+// CANOE:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CANOE:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+// CANOE:           %[[VAL_5:.*]] = cc.undef i1
+// CANOE:           %[[VAL_6:.*]] = quake.mz %[[VAL_3]] name "res" : (!quake.ref) -> !quake.measure
+// CANOE:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
+// CANOE:           %[[VAL_8:.*]] = arith.cmpi eq, %[[VAL_7]], %[[VAL_1]] : i1
+// CANOE:           cc.if(%[[VAL_8]]) {
+// CANOE:             %[[VAL_9:.*]] = cc.alloca !cc.array<i8 x 2>
+// CANOE:             %[[VAL_10:.*]] = quake.mz %[[VAL_3]] name "inner_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_11:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_12:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_13:.*]] = cc.cast unsigned %[[VAL_11]] : (i1) -> i8
+// CANOE:             cc.store %[[VAL_13]], %[[VAL_12]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_14:.*]] = quake.mz %[[VAL_4]] name "inner_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_15:.*]] = quake.discriminate %[[VAL_14]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_9]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_17:.*]] = cc.cast unsigned %[[VAL_15]] : (i1) -> i8
+// CANOE:             cc.store %[[VAL_17]], %[[VAL_16]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_18:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CANOE:             %[[VAL_19:.*]] = cc.stdvec_init %[[VAL_18]], %[[VAL_0]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+// CANOE:             cc.scope {
+// CANOE:               %[[VAL_20:.*]] = cc.undef !cc.stdvec<i1>
+// CANOE:             }
+// CANOE:           } else {
+// CANOE:           }
+// CANOE:           %[[VAL_21:.*]] = quake.mz %[[VAL_4]] name "res" : (!quake.ref) -> !quake.measure
+// CANOE:           %[[VAL_22:.*]] = quake.discriminate %[[VAL_21]] : (!quake.measure) -> i1
+// CANOE:           %[[VAL_23:.*]] = arith.cmpi eq, %[[VAL_22]], %[[VAL_1]] : i1
+// CANOE:           cc.if(%[[VAL_23]]) {
+// CANOE:             %[[VAL_24:.*]] = cc.alloca !cc.array<i8 x 2>
+// CANOE:             %[[VAL_25:.*]] = quake.mz %[[VAL_3]] name "inner_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_26:.*]] = quake.discriminate %[[VAL_25]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_27:.*]] = cc.cast %[[VAL_24]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_28:.*]] = cc.cast unsigned %[[VAL_26]] : (i1) -> i8
+// CANOE:             cc.store %[[VAL_28]], %[[VAL_27]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_29:.*]] = quake.mz %[[VAL_4]] name "inner_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_30:.*]] = quake.discriminate %[[VAL_29]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_31:.*]] = cc.compute_ptr %[[VAL_24]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_32:.*]] = cc.cast unsigned %[[VAL_30]] : (i1) -> i8
+// CANOE:             cc.store %[[VAL_32]], %[[VAL_31]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_33:.*]] = cc.cast %[[VAL_24]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CANOE:             %[[VAL_34:.*]] = cc.stdvec_init %[[VAL_33]], %[[VAL_0]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+// CANOE:             cc.scope {
+// CANOE:               %[[VAL_35:.*]] = cc.undef !cc.stdvec<i1>
+// CANOE:             }
+// CANOE:           } else {
+// CANOE:           }
+// CANOE:           %[[VAL_36:.*]] = arith.cmpi eq, %[[VAL_22]], %[[VAL_2]] : i1
+// CANOE:           cc.if(%[[VAL_36]]) {
+// CANOE:             %[[VAL_37:.*]] = cc.alloca !cc.array<i8 x 2>
+// CANOE:             %[[VAL_38:.*]] = quake.mz %[[VAL_3]] name "outer_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_39:.*]] = quake.discriminate %[[VAL_38]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_40:.*]] = cc.cast %[[VAL_37]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_41:.*]] = cc.cast unsigned %[[VAL_39]] : (i1) -> i8
+// CANOE:             cc.store %[[VAL_41]], %[[VAL_40]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_42:.*]] = quake.mz %[[VAL_4]] name "outer_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_43:.*]] = quake.discriminate %[[VAL_42]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_44:.*]] = cc.compute_ptr %[[VAL_37]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_45:.*]] = cc.cast unsigned %[[VAL_43]] : (i1) -> i8
+// CANOE:             cc.store %[[VAL_45]], %[[VAL_44]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_46:.*]] = cc.cast %[[VAL_37]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CANOE:             %[[VAL_47:.*]] = cc.stdvec_init %[[VAL_46]], %[[VAL_0]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+// CANOE:             cc.scope {
+// CANOE:               %[[VAL_48:.*]] = cc.undef !cc.stdvec<i1>
+// CANOE:             }
+// CANOE:           } else {
+// CANOE:           }
+// CANOE:           return
+// CANOE:         }
