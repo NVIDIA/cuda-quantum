@@ -18,6 +18,17 @@
 
 namespace cudaq {
 
+/// @brief Noise model enumerated type that allows downstream simulators of
+/// `kraus_channel` objects to apply simulator-specific logic for well-known
+/// noise models.
+enum class noise_model_type {
+  unknown,
+  depolarization_channel,
+  amplitude_damping_channel,
+  bit_flip_channel,
+  phase_flip_channel
+};
+
 /// @brief A kraus_op represents a single Kraus operation,
 /// described as a complex matrix of specific size. The matrix
 /// is represented here as a 1d array (specifically a std::vector).
@@ -106,6 +117,12 @@ protected:
   }
 
 public:
+  /// @brief Noise type enumeration
+  noise_model_type noise_type = noise_model_type::unknown;
+
+  /// @brief Noise probability
+  real probability = 0.0;
+
   ~kraus_channel() = default;
 
   /// @brief The nullary constructor
@@ -252,6 +269,8 @@ public:
         k3v{std::sqrt(probability / three), 0, 0,
             negOne * std::sqrt(probability / three)};
     ops = {k0v, k1v, k2v, k3v};
+    this->probability = probability;
+    noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
   }
 };
@@ -265,6 +284,8 @@ public:
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
+    this->probability = probability;
+    noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
   }
 };
@@ -279,6 +300,8 @@ public:
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
     ops = {k0v, k1v};
+    this->probability = probability;
+    noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
   }
 };
@@ -294,6 +317,8 @@ public:
                                     std::sqrt(1 - probability)},
         k1v{std::sqrt(probability), 0, 0, negOne * std::sqrt(probability)};
     ops = {k0v, k1v};
+    this->probability = probability;
+    noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
   }
 };
