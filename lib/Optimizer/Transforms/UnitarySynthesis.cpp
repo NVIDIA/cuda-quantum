@@ -122,20 +122,22 @@ public:
         const double epsilon = 1e-9;
         return std::abs(value) > epsilon;
       };
-      if (isAboveThreshold(zyz.angles.alpha)) {
-        auto alpha = cudaq::opt::factory::createFloatConstant(
-            loc, rewriter, zyz.angles.alpha, floatTy);
-        rewriter.create<quake::RzOp>(loc, alpha, ValueRange{}, arguments);
+      /// NOTE: Operator notation is right-to-left, whereas circuit notation is
+      /// left-to-right. Hence, angles are applied as Rz(gamma)Ry(beta)Rz(alpha)
+      if (isAboveThreshold(zyz.angles.gamma)) {
+        auto gamma = cudaq::opt::factory::createFloatConstant(
+            loc, rewriter, zyz.angles.gamma, floatTy);
+        rewriter.create<quake::RzOp>(loc, gamma, ValueRange{}, arguments);
       }
       if (isAboveThreshold(zyz.angles.beta)) {
         auto beta = cudaq::opt::factory::createFloatConstant(
             loc, rewriter, zyz.angles.beta, floatTy);
         rewriter.create<quake::RyOp>(loc, beta, ValueRange{}, arguments);
       }
-      if (isAboveThreshold(zyz.angles.gamma)) {
-        auto gamma = cudaq::opt::factory::createFloatConstant(
-            loc, rewriter, zyz.angles.gamma, floatTy);
-        rewriter.create<quake::RzOp>(loc, gamma, ValueRange{}, arguments);
+      if (isAboveThreshold(zyz.angles.alpha)) {
+        auto alpha = cudaq::opt::factory::createFloatConstant(
+            loc, rewriter, zyz.angles.alpha, floatTy);
+        rewriter.create<quake::RzOp>(loc, alpha, ValueRange{}, arguments);
       }
       /// NOTE: Typically global phase can be ignored but, if this decomposition
       /// is applied in a kernel that is called with `cudaq::control`, the
