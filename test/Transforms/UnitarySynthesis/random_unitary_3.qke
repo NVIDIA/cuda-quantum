@@ -6,8 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-early-inlining %s 
-// Temporarily skip this to check status of CI: `| FileCheck %s`
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-early-inlining %s | FileCheck %s 
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel3 = "__nvqpp__mlirgen__kernel3_PyKernelEntryPointRewrite"}} {
   func.func @__nvqpp__mlirgen__kernel3() attributes {"cudaq-entrypoint"} {
@@ -19,11 +18,11 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel3 = "__nvqp
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() attributes {"cudaq-entrypoint"} {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant -1.5397032671761617 : f64
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.6997647512980398 : f64
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2.4462690029098386 : f64
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant -1.9777512475989565 : f64
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1.9777512475989565 : f64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant -1.53970{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.699764{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2.446269{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant -1.97775{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1.97775{{[0-9]+}} : f64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.ry (%[[VAL_1]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
