@@ -32,6 +32,10 @@ def test_qudit():
     assert len(counts) == 1
     assert '3' in counts
 
+    state = cudaq.get_state(kernel)
+    state.dump()
+    # TODO: Add check for 'state' object
+
 
 def test_qudit_list():
 
@@ -76,6 +80,19 @@ def test_supported_gates():
 
     counts = cudaq.sample(kernel)
     counts.dump()
+
+
+def test_kernel_with_args():
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        q = qudit(4)
+        plus(q)
+        phase_shift(q, theta)
+        mz(q)
+
+    result = cudaq.sample(kernel, 0.5)
+    result.dump()
 
 
 def test_target_change():
