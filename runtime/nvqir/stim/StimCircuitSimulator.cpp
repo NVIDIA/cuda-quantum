@@ -34,6 +34,9 @@ protected:
   /// here to be a bit more efficient than the default implementation
   void addQubitsToState(std::size_t qubitCount,
                         const void *stateDataIn = nullptr) override {
+    if (stateDataIn)
+      throw std::runtime_error("The Stim simulator does not support "
+                               "initialization of qubits from state data.");
     return;
   }
 
@@ -81,9 +84,12 @@ protected:
     // These CUDA-Q rotation gates have the same name as Stim "reset" gates.
     // Stim is a Clifford simulator, so it doesn't actually support rotational
     // gates. Throw exceptions if they are encountered here.
+    // TODO - consider adding support for specific rotations (e.g. pi/2).
     if (gateName == "RX" || gateName == "RY" || gateName == "RZ")
-      throw std::runtime_error(fmt::format(
-          "Gate not supported by simulator: {}", task.operationName));
+      throw std::runtime_error(
+          fmt::format("Gate not supported by Stim simulator: {}. Note that "
+                      "Stim can only simulate Clifford gates.",
+                      task.operationName));
 
     if (task.controls.size() > 1)
       throw std::runtime_error(
@@ -98,7 +104,9 @@ protected:
       stimCircuit.safe_append_u(gateName, stimTargets);
     } catch (std::out_of_range &e) {
       throw std::runtime_error(
-          fmt::format("Gate not supported by simulator: {}", e.what()));
+          fmt::format("Gate not supported by Stim simulator: {}. Note that "
+                      "Stim can only simulate Clifford gates.",
+                      e.what()));
     }
   }
 
@@ -142,9 +150,7 @@ public:
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots) override {
-    std::vector<std::uint32_t> stimTargetQubits;
-    for (auto q : qubits)
-      stimTargetQubits.push_back(static_cast<std::uint32_t>(q));
+    std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     stimCircuit.safe_append_u("M", stimTargetQubits);
     if (false) {
       std::stringstream ss;
