@@ -138,8 +138,8 @@ state pyGetStateRemote(py::object kernel, py::args args) {
 }
 
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
-
   cudaq::info("Size of arguments = {}", args.size());
+
   /// TODO: Pack / unpack arguments
   return details::extractState([&]() mutable {
     if (0 == args.size())

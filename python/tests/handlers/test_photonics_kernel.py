@@ -34,7 +34,7 @@ def test_qudit():
 
     state = cudaq.get_state(kernel)
     state.dump()
-    # TODO: Add check for 'state' object
+    assert 4 == state.__len__()
 
 
 def test_qudit_list():
@@ -93,6 +93,9 @@ def test_kernel_with_args():
 
     result = cudaq.sample(kernel, 0.5)
     result.dump()
+    
+    state = cudaq.get_state(kernel, 0.5)
+    state.dump()
 
 
 def test_target_change():
