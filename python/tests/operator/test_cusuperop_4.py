@@ -16,6 +16,8 @@ from cusuperop import (
     WorkStream             # work stream
 )
 
+cudaq.set_target("nvidia-dynamics")
+
 # Decay into a squeezed vacuum field
 # https://github.com/jrjohansson/qutip-lectures/blob/master/Lecture-12-Decay-into-a-squeezed-vacuum-field.ipynb
 # 

@@ -9,7 +9,7 @@ from ..kernel.register_op import register_operation
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_decorator import PyKernelDecorator
 from ..runtime.observe import observe
-from .cusp_solver import evolve_me
+from .cuso_solver import evolve_me
 
 noise = cudaq_runtime.NoiseModel()
 
@@ -119,12 +119,8 @@ def evolve(hamiltonian: Operator,
         initial state. See `EvolveResult` for more information about the data computed
         during evolution.
     """
-    # FIXME: force "nvidia-dynamics" for now, need to create a proper target
-    simulator = "nvidia-dynamics"
-    # simulator = cudaq_runtime.get_target().simulator.strip()
-    if simulator == "":
-        raise NotImplementedError("time evolution is currently only supported on simulator targets")
-    elif simulator == "nvidia-dynamics": # FIXME: update here and below once we know the target name
+    target_name = cudaq_runtime.get_target().name
+    if target_name == "nvidia-dynamics":
         return evolve_me(hamiltonian, 
                         dimensions, 
                         schedule,
@@ -132,6 +128,10 @@ def evolve(hamiltonian: Operator,
                         collapse_operators,
                         observables, 
                         store_intermediate_results)
+    
+    simulator = cudaq_runtime.get_target().simulator.strip()
+    if simulator == "":
+        raise NotImplementedError("time evolution is currently only supported on simulator targets")
 
     # Unless we are using cuSuperoperator for the execution, 
     # we can only handle qubits at this time.

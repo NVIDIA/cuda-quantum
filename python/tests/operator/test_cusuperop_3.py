@@ -16,6 +16,8 @@ from cusuperop import (
     WorkStream             # work stream
 )
 
+cudaq.set_target("nvidia-dynamics")
+
 ctx = WorkStream()
 
 # Time-dependent Hamiltonian

@@ -21,6 +21,7 @@ class BaseIntegrator(ABC, Generic[TState]):
         self.integrator_options.update(kwargs)
         self.t = None
         self.stepper = stepper
+        self.__post_init__()
     
     @abstractmethod
     def __post_init__(self):
@@ -44,7 +45,7 @@ class BaseIntegrator(ABC, Generic[TState]):
         pass
 
 
-    def get_state(self) -> TState:
+    def get_state(self) -> tuple[float, TState]:
         """
         Obtain the state of the integrator as a pair (t, state).
         """

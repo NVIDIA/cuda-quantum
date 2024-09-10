@@ -16,6 +16,8 @@ from cusuperop import (
     WorkStream             # work stream
 )
 
+cudaq.set_target("nvidia-dynamics")
+
 ctx = WorkStream()
 
 hamiltonian = 2 * np.pi * 0.1 * pauli.x(0)

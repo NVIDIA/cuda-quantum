@@ -15,6 +15,9 @@ from cusuperop import (
     OperatorAction,        # right-hand side of the desired master equation
     WorkStream             # work stream
 )
+
+cudaq.set_target("nvidia-dynamics")
+
 # https://qutip.readthedocs.io/en/qutip-5.0.x/guide/dynamics/dynamics-master.html#non-unitary-evolution
 ctx = WorkStream()
 dimensions = {0: 2, 1: 10}

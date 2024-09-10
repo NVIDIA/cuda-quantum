@@ -52,8 +52,9 @@ def evolve_me(hamiltonian: Operator,
         if step_idx > 0:
             integrator.integrate(schedule.current_step)
         for obs_idx, obs in enumerate(expectation_op):
-            obs.prepare_expectation(cuso_ctx, integrator.get_state())
-            exp_val = obs.compute_expectation(schedule.current_step, (), integrator.get_state())
+            _, state = integrator.get_state()
+            obs.prepare_expectation(cuso_ctx, state)
+            exp_val = obs.compute_expectation(schedule.current_step, (), state)
             # print(f"Time = {schedule.current_step}: Exp = {float(cp.real(exp_val[0]))}")
             exp_vals[obs_idx].append(float(cupy.real(exp_val[0])))
     

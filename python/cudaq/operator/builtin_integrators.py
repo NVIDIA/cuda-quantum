@@ -10,7 +10,7 @@ class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
         self.state = None
         self.liouvillian_action = None
 
-    def step(self, state: cuso.State, t: float):
+    def compute(self, state: cuso.State, t: float):
         if self.liouvillian_action is None:
             self.liouvillian_action = cuso.OperatorAction(self.ctx, (self.liouvillian, ))
 
@@ -23,8 +23,11 @@ class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
         return action_result
 
 class RungeKuttaIntegrator(BaseIntegrator[cuso.State]):
-    integrator_options = { "nsteps": 100 }
-
+    n_steps = 100
+    
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, **kwargs)
+        
     def __post_init__(self):
         self.n_steps = self.integrator_options["nsteps"]
     
@@ -38,20 +41,20 @@ class RungeKuttaIntegrator(BaseIntegrator[cuso.State]):
         dt = (t - self.t)/self.n_steps
         for i in range(self.n_steps):
             current_t = self.t + i * dt
-            k1 = self.stepper.step(self.state, current_t)
+            k1 = self.stepper.compute(self.state, current_t)
             
             
             rho_temp = cupy.copy(self.state.storage)
             rho_temp += ((dt/2) * k1.storage)
-            k2 = self.stepper.step(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt/2)
+            k2 = self.stepper.compute(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt/2)
             
             rho_temp = cupy.copy(self.state.storage)
             rho_temp += ((dt/2) * k2.storage)
-            k3 = self.stepper.step(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt/2)
+            k3 = self.stepper.compute(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt/2)
            
             rho_temp = cupy.copy(self.state.storage)
             rho_temp += ((dt) * k3.storage)
-            k4 = self.stepper.step(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt)
+            k4 = self.stepper.compute(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt)
             
             # Scale      
             k1.inplace_scale(dt/6)

@@ -15,6 +15,7 @@ from cusuperop import (
     OperatorAction,        # right-hand side of the desired master equation
     WorkStream             # work stream
 )
+cudaq.set_target("nvidia-dynamics")
 
 ctx = WorkStream()
 

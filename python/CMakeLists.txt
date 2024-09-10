@@ -64,3 +64,5 @@ if(CUDAQ_BUILD_TESTS)
     message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_BUILD_TESTS=TRUE but can't find numpy or pytest modules required for testing.")
   endif()
 endif()
+
+add_subdirectory(cudaq/operator)
