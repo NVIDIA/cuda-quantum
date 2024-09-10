@@ -247,6 +247,7 @@
 <li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#clifford-only-simulation-cpu">Clifford-Only Simulation (CPU)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="using/backends/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
@@ -524,6 +525,10 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/default_ops.html">Quantum Operations</a><ul>
@@ -550,6 +555,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -1046,6 +1058,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9optimizer17requiresGradientsEv">cudaq::optimizer::requiresGradients (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orcaE">cudaq::orca (C++ type)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca6sampleERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEERNSt6vectorIdEEi">cudaq::orca::sample (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca6sampleERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEEi">[1]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channelE">cudaq::phase_flip_channel (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUE">cudaq::QPU (C++ class)</a>
@@ -1088,10 +1104,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backENSt6size_tE">cudaq::qreg::back (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backEv">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5beginEv">cudaq::qreg::begin (C++ function)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5beginEv">cudaq::qreg::begin (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5clearEv">cudaq::qreg::clear (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontENSt6size_tE">cudaq::qreg::front (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontEv">[1]</a>
@@ -1818,7 +1834,11 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.sample">sample() (in module cudaq)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.orca.sample">(in module cudaq.orca)</a>
 </li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.sample_async">sample_async() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult">SampleResult (class in cudaq)</a>
