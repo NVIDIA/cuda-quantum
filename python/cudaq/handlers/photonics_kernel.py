@@ -33,7 +33,10 @@ class PyQudit:
     id: int
 
     def __del__(self):
-        cudaq_runtime.photonics.release_qudit(self.level, self.id)
+        try:
+            cudaq_runtime.photonics.release_qudit(self.level, self.id)
+        except Exception:
+            pass
 
 
 def _is_qudit_type(q: any) -> bool:
