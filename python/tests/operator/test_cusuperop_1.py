@@ -18,7 +18,7 @@ from cusuperop import (
 
 ctx = WorkStream()
 
-hamiltonian = pauli.x(0)
+hamiltonian = 2 * np.pi * 0.1 * pauli.x(0)
 num_qubits = 1
 dimensions = {0: 2}
 rho0_ = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)

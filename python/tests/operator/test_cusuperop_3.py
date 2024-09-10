@@ -20,7 +20,7 @@ ctx = WorkStream()
 
 # Time-dependent Hamiltonian
 # Square-pulse
-def square_pulse(t, args = None):
+def square_pulse(t):
     # print("Callback @ t =", t)
     if (t >=2) & (t <= 4):
         return 1.0
