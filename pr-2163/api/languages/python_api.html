@@ -527,6 +527,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#orca-submodule">ORCA Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../default_ops.html">Quantum Operations</a><ul>
@@ -553,6 +557,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -674,8 +685,9 @@ MLIR <code class="code docutils literal notranslate"><span class="pre">Execution
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.__call__">
 <span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.__call__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Invoke the CUDA-Q kernel. JIT compilation of the
-kernel AST to MLIR will occur here if it has not already occurred.</p>
+<dd><p>Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR
+will occur here if it has not already occurred, except when the target
+requires custom handling.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2115,7 +2127,7 @@ from the <code class="code docutils literal notranslate"><span class="pre">start
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1025260617</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">154774401</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
@@ -3450,6 +3462,33 @@ therefore <code class="code docutils literal notranslate"><span class="pre">1</s
 <dd></dd></dl>
 
 <p>Finalize MPI.</p>
+</dd></dl>
+
+</section>
+<section id="orca-submodule">
+<h2>ORCA Submodule<a class="headerlink" href="#orca-submodule" title="Permalink to this heading">¶</a></h2>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.orca.sample">
+<span class="sig-prename descclassname"><span class="pre">cudaq.orca.</span></span><span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.orca.sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.orca.</span></span><span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop_lengths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bs_angles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ps_angles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Performs Time Bin Interferometer (TBI) boson sampling experiments on ORCA’s backends</p>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.orca.</span></span><span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop_lengths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bs_angles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Performs Time Bin Interferometer (TBI) boson sampling experiments on ORCA’s backends</p>
 </dd></dl>
 
 </section>
