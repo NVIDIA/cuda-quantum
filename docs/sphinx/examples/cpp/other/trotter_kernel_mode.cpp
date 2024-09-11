@@ -38,8 +38,8 @@
 // This is because the CPU-only backend has difficulty handling
 // 30+ qubit simulations.
 
-int SPINS = 3; // set to around 25 qubits for `nvidia` target
-int STEPS = 2; // set to around 100 for `nvidia` target
+int SPINS = 11; // set to around 25 qubits for `nvidia` target
+int STEPS = 10; // set to around 100 for `nvidia` target
 
 // Compile and run with:
 // ```
@@ -51,8 +51,8 @@ int STEPS = 2; // set to around 100 for `nvidia` target
 struct initState {
   void operator()(int num_spins) __qpu__ {
     cudaq::qvector q(num_spins);
-    //for (int qId = 0; qId < num_spins; qId += 2)
-    //  x(q[qId]);
+    for (int qId = 0; qId < num_spins; qId += 2)
+      x(q[qId]);
   }
 };
 
@@ -77,10 +77,10 @@ struct trotter {
   // result state of the previous Trotter step.
   void operator()(cudaq::state *initial_state,
                   std::vector<double> &coefficients,
-                  /*std::vector<cudaq::pauli_word> &words,*/cudaq::pauli_word word, double dt) __qpu__ {
+                  std::vector<cudaq::pauli_word> &words, double dt) __qpu__ {
     cudaq::qvector q(initial_state);
     for (std::size_t i = 0; i < coefficients.size(); ++i) {
-      cudaq::exp_pauli(coefficients[i] * dt, q, word /* words[i]*/);
+      cudaq::exp_pauli(coefficients[i] * dt, q, words[i]);
     }
   }
 };
@@ -121,10 +121,10 @@ int run_steps(int steps, int spins) {
     auto coefficients = term_coefficients(ham);
     auto words = term_words(ham);
     auto magnetization_exp_val = cudaq::observe(
-        trotter{}, average_magnetization, &state, coefficients, cudaq::pauli_word{"XXY"} /*, words*/, dt);
+        trotter{}, average_magnetization, &state, coefficients, words, dt);
     auto result = magnetization_exp_val.expectation();
     expResults.emplace_back(result);
-    state = cudaq::get_state(trotter{}, &state, coefficients,  cudaq::pauli_word{"XXY"} /*, words*/, dt);
+    state = cudaq::get_state(trotter{}, &state, coefficients, words, dt);
     const auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(stop - start);

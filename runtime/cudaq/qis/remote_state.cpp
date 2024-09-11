@@ -27,11 +27,6 @@ void RemoteSimulationState::execute() const {
     // potential logging of the result of the API call.
     std::ostringstream remoteLogCout;
     platform.setLogStream(remoteLogCout);
-    for (auto arg: args) {
-      if (arg == nullptr) {
-        std::cout << "null arg in RemoteSimulationState::execute" << std::endl;
-      }
-    }
     platform.launchKernel(kernelName, args);
     platform.reset_exec_ctx();
     platform.resetLogStream();

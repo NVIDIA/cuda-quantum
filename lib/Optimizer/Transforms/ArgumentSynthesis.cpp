@@ -15,8 +15,6 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
-#include <iostream>
-
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ARGUMENTSYNTHESIS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
@@ -35,12 +33,6 @@ public:
   void runOnOperation() override {
     func::FuncOp func = getOperation();
     StringRef funcName = func.getName();
-
-    //func.dump();
-    for (auto sub = funcList.begin(); sub != funcList.end(); sub++) {
-      std::cout << "Func list element:" << *sub <<std::endl;
-    } 
-
     std::string text;
     if (std::find_if(funcList.begin(), funcList.end(),
                      [&](const std::string &item) {
@@ -73,7 +65,6 @@ public:
     auto substMod = [&]() -> OwningOpRef<ModuleOp> {
       if (text.front() == '*') {
         // Substitutions are a raw string after the '*' character.
-        std::cout << "Substitution mod:" << text.substr(1) << std::endl;
         return parseSourceString<ModuleOp>(text.substr(1), ctx);
       }
       // Substitutions are in a text file (command-line usage).
@@ -86,13 +77,9 @@ public:
     SmallVector<std::tuple<unsigned, Value, Value>> replacements;
     BitVector replacedArgs(processedArgs.size());
 
-    int countArgs = 0;
     for (auto &op : *substMod) {
-      std::cout << "substitution: " << countArgs <<std::endl;
-      countArgs++;
       auto subst = dyn_cast<cudaq::cc::ArgumentSubstitutionOp>(op);
       if (!subst) {
-        std::cout << "no substitution: " <<std::endl;
         if (auto symInterface = dyn_cast<SymbolOpInterface>(op)) {
           auto name = symInterface.getName();
           auto srcMod = func->getParentOfType<ModuleOp>();
@@ -115,7 +102,6 @@ public:
         return;
       }
 
-      std::cout << "substituting....: " << countArgs <<std::endl;
       // OK, substitute the code for the argument.
       Block &entry = func.getRegion().front();
       processedArgs[pos] = true;
@@ -126,9 +112,6 @@ public:
                           entry.getArgument(pos).getUses().end());
         LLVM_DEBUG(llvm::dbgs() << "maybe erasing an unused argument ("
                                 << std::to_string(numUses) << ")\n");
-
-        std::cout << "maybe erasing an unused argument ("
-                                << std::to_string(numUses) << ")"  <<std::endl;
         if (numUses == 0)
           replacedArgs.set(pos);
         continue;
@@ -144,16 +127,11 @@ public:
                               subst.getBody().getBlocks());
       if (lastOp &&
           lastOp->getResult(0).getType() == entry.getArgument(pos).getType()) {
-            std::cout << " argument " << std::to_string(pos)
-                   << " was substituted" << std::endl;
         LLVM_DEBUG(llvm::dbgs()
                    << funcName << " argument " << std::to_string(pos)
                    << " was substituted.\n");
         replacements.emplace_back(pos, entry.getArgument(pos),
                                   lastOp->getResult(0));
-      } else {
-         std::cout << " argument " << std::to_string(pos)
-                   << " was NOT substituted" << std::endl;
       }
     }
 
@@ -169,9 +147,6 @@ public:
     // 4. Finish specializing func and erase any of func's arguments that were
     // substituted.
     func.eraseArguments(replacedArgs);
-
-    std::cout << "After arg synth" << std::endl;
-    func.dump();
   }
 };
 } // namespace

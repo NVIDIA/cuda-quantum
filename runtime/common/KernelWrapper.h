@@ -16,8 +16,6 @@
 #include <string>
 #include <vector>
 
-#include <iostream>
-
 /*! \file KernelWrapper.h
     \brief Utility classes to support library-mode kernel launch.
 
@@ -509,24 +507,6 @@ void invokeCallableWithSerializedArgs_vec(const std::vector<double> &vec_parms,
                               argSize);
 }
 
-template <typename Arg>
-void printArg3(Arg arg, int i) {
-  if constexpr (std::is_integral_v<Arg>) {
-    std::cout << "arg : " << i << " in invokeKernel: "  << (int)arg << std::endl;
-  } else if constexpr (std::is_same_v<Arg, cudaq::pauli_word>) {
-    std::cout << "arg : " << i << " in invokeKernel: " <<  static_cast<cudaq::pauli_word>(arg).str() << std::endl;
-  } else {
-    std::cout << "unknown arg : " << i << " in invokeKernel: " << std::endl;
-  }
-}
-
-template <typename... Args>
-void printIfNull3(Args... args) {
-  std::cout << "args in invokeKernel: " << sizeof...(args) << std::endl;
-  int i = 0;
-  (printArg3(args, i++), ...);
-}
-
 // Wrapper for quantum kernel invocation, i.e., `kernel(args...)`.
 // In library mode, if the remote platform is used, we redirect it to the
 // platform's `launchKernel` instead of invoking it.
@@ -567,7 +547,6 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
           (void *)serializedArgsBuffer.data(), serializedArgsBuffer.size(), 0);
   }
 #else
-  printIfNull3(args...);
   return fn(std::forward<Args>(args)...);
 #endif
 }

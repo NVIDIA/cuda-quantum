@@ -15,9 +15,9 @@
 #include "common/ArgumentConversion.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/qis/pauli_word.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Parser/Parser.h"
-#include "cudaq/qis/pauli_word.h"
 
 void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
                   std::vector<void *> args) {
