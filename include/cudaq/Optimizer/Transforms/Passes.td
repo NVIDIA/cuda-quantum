@@ -930,6 +930,35 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
+// UnitarySynthesis is a module pass because it may modify the `ModuleOp` by
+// adding new `FuncOp`(s).
+def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
+  let summary = 
+    "Convert a custom quantum operation into sequence of native quantum gates.";
+  let description = [{
+    Given a custom quantum operation specified in the form of its concrete
+    unitary matrix, convert it into a sequence of native quantum gates.
+
+    For example,
+    ```mlir
+    quake.custom_op @__nvqpp__mlirgen__custom_x_generator_1.rodata %0 : (!quake.ref) -> ()
+    ```
+    This call will be converted to an `ApplyOp`.
+    ```mlir
+    quake.apply @__nvqpp__mlirgen__custom_x_generator_1.kernel %[[VAL_0]] : (!quake.ref) -> ()
+    ```
+    The function has sequence of decomposed gates.
+    ```mlir
+    func.func private @__nvqpp__mlirgen__custom_x_generator_1.kernel(%arg0: !quake.ref) {
+        %cst = arith.constant 1.5707963267948966 : f64        
+        quake.ry (%cst) %arg0 : (f64, !quake.ref) -> ()
+        ...
+        return
+      }
+    ```
+  }];
+}
+
 def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   let summary = "Lower global unwinding control-flow macros to a CFG.";
   let description = [{

@@ -51,6 +51,7 @@ add_cudaq_library(OptTransforms
   RefToVeqAlloc.cpp
   RegToMem.cpp
   StatePreparation.cpp
+  UnitarySynthesis.cpp
   WiresToWiresets.cpp
 
   DEPENDS
