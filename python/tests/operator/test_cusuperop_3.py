@@ -32,7 +32,7 @@ evolution_result = evolve(hamiltonian,
                           rho0,
                           observables=[operators.number(0)],
                           collapse_operators=[],
-                          store_intermediate_results=True)
+                          store_intermediate_results=False)
 
 pulse_values = [square_pulse(t) for t in steps]
 

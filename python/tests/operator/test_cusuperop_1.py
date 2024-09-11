@@ -29,3 +29,6 @@ plt.ylabel('Expectation value')
 plt.xlabel('Time')
 plt.legend(("Sigma-Y", "Sigma-Z"))
 fig.savefig('example_1.png', dpi=fig.dpi)
+
+for state in evolution_result.states:
+    state.dump()

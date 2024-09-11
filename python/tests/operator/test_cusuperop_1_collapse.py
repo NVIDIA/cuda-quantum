@@ -19,7 +19,7 @@ evolution_result = evolve(hamiltonian,
                           rho0,
                           observables=[pauli.y(0), pauli.z(0)],
                           collapse_operators=[np.sqrt(0.05) * pauli.x(0)],
-                          store_intermediate_results=True)
+                          store_intermediate_results=False)
 
 import matplotlib.pyplot as plt
 

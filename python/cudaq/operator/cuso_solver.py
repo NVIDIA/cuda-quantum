@@ -10,6 +10,7 @@ import cusuperop as cuso
 from .cuso_state import CuSuperOpState
 from .builtin_integrators import RungeKuttaIntegrator, cuSuperOpTimeStepper
 import cupy
+import copy
 
 # [TEMP-CODE] Class to hold results in Python
 class EvolveResult:
@@ -17,8 +18,11 @@ class EvolveResult:
         # list of arrays of expectation values
         # same order as observables
         self.expect = []
+        self.states = []
     def add_expectation(self, exp_array: List[float]):
         self.expect.append(exp_array)
+    def add_state(self, state):
+        self.states.append(cudaq_runtime.State.wrap_py_state(CuSuperOpState(copy.deepcopy(state))))
 
 # Master-equation solver using cuSuperOp
 def evolve_me(hamiltonian: Operator, 
@@ -52,7 +56,8 @@ def evolve_me(hamiltonian: Operator,
     expectation_op = [cuso.Operator(hilbert_space_dims, (observable._evaluate(CuSuperOpHamConversion(dimensions)), 1.0)) for observable in observables]
     integrator.set_state(initial_state, schedule._steps[0])
     exp_vals = [[] for _ in observables]
-    
+    result = EvolveResult()
+
     for step_idx, parameters in enumerate(schedule):
         # print(f"Current time = {schedule.current_step}")
         if step_idx > 0:
@@ -63,8 +68,10 @@ def evolve_me(hamiltonian: Operator,
             exp_val = obs.compute_expectation(schedule.current_step, (), state)
             # print(f"Time = {schedule.current_step}: Exp = {float(cp.real(exp_val[0]))}")
             exp_vals[obs_idx].append(float(cupy.real(exp_val[0])))
-    
-    result = EvolveResult()
+        if store_intermediate_results:
+            _, state = integrator.get_state()
+            result.add_state(state.storage)
+
     for exp_array in exp_vals:
         result.add_expectation(exp_array)
     return result

@@ -86,7 +86,7 @@ evolution_result = evolve(hamiltonian,
                                        pauli.y(0),
                                        pauli.z(0)],
                           collapse_operators=c_ops,
-                          store_intermediate_results=True)
+                          store_intermediate_results=False)
 
 import matplotlib.pyplot as plt
 

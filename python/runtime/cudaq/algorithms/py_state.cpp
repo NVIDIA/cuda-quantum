@@ -160,7 +160,7 @@ public:
   }
 
   std::size_t getNumTensors() const override {
-    throw std::logic_error("Illegal operation for cuSuperOp: getNumTensors");
+    return 1;
   }
 
   std::size_t getNumQubits() const override {
@@ -177,7 +177,8 @@ public:
   }
 
   void dump(std::ostream &os) const override {
-    throw std::logic_error("Illegal operation for cuSuperOp: dump");
+    const std::string state_str = m_pyState.attr("dump")().cast<std::string>();
+    os << state_str << "\n";
   }
 
   precision getPrecision() const override {
@@ -701,7 +702,10 @@ index pair.
               throw std::runtime_error("Unexpected type");
             return casted->get();
           },
-          "Get the Python implementation");
+          "Get the Python implementation")
+      .def_static(
+          "wrap_py_state",
+          [&](py::object &pyState) { return state(new PyCuSuperOpState(pyState)); }, "");
 
   mod.def(
       "get_state",

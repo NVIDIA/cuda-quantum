@@ -32,7 +32,7 @@ evolution_result = evolve(
     rho0,
     observables=[operators.number(1), operators.number(0)],
     collapse_operators=[],
-    store_intermediate_results=True)
+    store_intermediate_results=False)
 
 import matplotlib.pyplot as plt
 
