@@ -374,10 +374,12 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
   nlohmann::json jsoncreds;
   for (const std::string &l : lines) {
     std::vector<std::string> keyAndValue = cudaq::split(l, ':');
-    // if (keyAndValue.size() != 2)
-    //   throw std::runtime_error("Ill-formed configuration file (" + path +
-    //                            "). Key-value pairs must be in `<key> : "
-    //                            "<value>` format. (One per line)");
+    if ((keyAndValue.size() != 2) &&
+        ((keyAndValue[0] != "credentials") || (keyAndValue.size() != 4)))
+      throw std::runtime_error("Ill-formed configuration file (" + path +
+                               "). Key-value pairs must be in `<key> : "
+                               "<value>` or `<key> : {username:<username>, "
+                               "password:<password>}` format. (One per line)");
     cudaq::trim(keyAndValue[0]);
     cudaq::trim(keyAndValue[1]);
     if (keyAndValue[0] == "key")
@@ -407,9 +409,7 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
       throw std::runtime_error(
           "Unknown key in configuration file: " + keyAndValue[0] + ".");
   }
-  // if (apiKey.empty())
-  //   throw std::runtime_error("Empty API key in configuration file (" + path +
-  //                            ").");
+
   if (credentials.empty() && refreshKey.empty())
     throw std::runtime_error("Empty credentials in configuration file (" +
                              path + ").");
