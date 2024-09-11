@@ -73,13 +73,17 @@ sample_result OrcaServerHelper::processResults(ServerMessage &postJobResponse,
 
 std::map<std::string, std::string>
 OrcaServerHelper::generateRequestHeader() const {
-  std::string apiKey, refreshKey, timeStr;
+  std::string token, refreshKey, timeStr;
+  if (auto auth_token = std::getenv("ORCA_AUTH_TOKEN"))
+    token = "Bearer " + std::string(auth_token);
+  else
+    token = "Bearer ";
+
   std::map<std::string, std::string> headers{
-      // {"Authorization", apiKey},
+      {"Authorization", token},
       {"Content-Type", "application/json"},
-      // {"Connection", "keep-alive"},
-      // {"Accept", "*/*"}
-  };
+      {"Connection", "keep-alive"},
+      {"Accept", "*/*"}};
   return headers;
 }
 
@@ -106,17 +110,23 @@ std::string OrcaServerHelper::constructGetJobPath(std::string &jobId) {
 }
 
 bool OrcaServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  cudaq::info("getJobResponse {}.", getJobResponse.dump());
-  std::string job_status = "";
   auto error = getJobResponse["error_message"].is_null();
   auto status = getJobResponse["job_status"].is_null();
-  // if (!status){
-  // job_status = getJobResponse["job_status"].get<std::string>();}
   cudaq::info("status {}, error {}", status, error);
   if (error & status) {
     return true;
-  } else {
+  } else if (!status) {
+    auto job_status = getJobResponse["job_status"].get<std::string>();
+    cudaq::info("job_status {}", job_status);
     return false;
+  } else {
+    auto error_message = getJobResponse["error_message"].get<std::string>();
+    cudaq::info("error_message {}", error_message);
+    if (error_message == "Job can't be found") {
+      return false;
+    } else {
+      throw std::runtime_error(error_message);
+    }
   }
 }
 

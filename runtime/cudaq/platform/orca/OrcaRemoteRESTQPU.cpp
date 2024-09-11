@@ -57,12 +57,12 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   executor->setServerHelper(serverHelper.get());
 }
 
-/// @brief Launch the kernel.
+/// @brief Launch the experiment.
 void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
                                      void (*kernelFunc)(void *), void *args,
                                      std::uint64_t voidStarSize,
                                      std::uint64_t resultOffset) {
-  cudaq::info("launching ORCA remote rest kernel ({})", kernelName);
+  cudaq::info("launching ORCA remote rest experiment ({})", kernelName);
 
   // TODO future iterations of this should support non-void return types.
   if (!executionContext)
