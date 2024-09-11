@@ -7,7 +7,7 @@ from .schedule import Schedule
 from .expressions import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 import cusuperop as cuso
-
+from .cuso_state import CuSuperOpState
 from .builtin_integrators import RungeKuttaIntegrator, cuSuperOpTimeStepper
 import cupy
 
@@ -24,7 +24,7 @@ class EvolveResult:
 def evolve_me(hamiltonian: Operator, 
            dimensions: Mapping[int, int], 
            schedule: Schedule,
-           initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.States] | cuso.State,
+           initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
            collapse_operators: Sequence[Operator] = [],
            observables: Sequence[Operator] = [], 
            store_intermediate_results = False) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult] | EvolveResult:
@@ -36,9 +36,15 @@ def evolve_me(hamiltonian: Operator,
     liouvillian = constructLiouvillian(hilbert_space_dims, ham_term, linblad_terms)
 
     # Note: we would need a CUDAQ state implementation for cuSuperOp
-    if not isinstance(initial_state, cuso.State):
+    if not isinstance(initial_state, cudaq_runtime.State):
         raise NotImplementedError("TODO: list of input states")
     
+    initial_state = initial_state.get_impl()
+
+    if not isinstance(initial_state, CuSuperOpState):
+        raise ValueError("Unknown type")
+
+    initial_state = initial_state.get_impl()
     cuso_ctx = initial_state._ctx
     # FIXME: allow customization (select the integrator)
     stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)

@@ -139,8 +139,62 @@ state pyGetStateRemote(py::object kernel, py::args args) {
                                            size, returnOffset));
 }
 
+class PyCuSuperOpState : public SimulationState {
+  py::object m_pyState;
+
+protected:
+  std::unique_ptr<SimulationState>
+  createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override {
+    throw std::logic_error("Illegal operation for cuSuperOp.");
+  }
+
+public:
+  PyCuSuperOpState(py::object pyState) : m_pyState(pyState) {};
+
+  Tensor getTensor(std::size_t tensorIdx = 0) const override {
+    throw std::logic_error("Illegal operation for cuSuperOp: getTensor");
+  }
+
+  std::vector<Tensor> getTensors() const override {
+    throw std::logic_error("Illegal operation for cuSuperOp: getTensors");
+  }
+
+  std::size_t getNumTensors() const override {
+    throw std::logic_error("Illegal operation for cuSuperOp: getNumTensors");
+  }
+
+  std::size_t getNumQubits() const override {
+    throw std::logic_error("Illegal operation for cuSuperOp: getNumQubits");
+  }
+
+  std::complex<double> overlap(const SimulationState &other) override {
+    throw std::logic_error("Illegal operation for cuSuperOp: overlap");
+  }
+
+  std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override {
+    throw std::logic_error("Illegal operation for cuSuperOp: getAmplitude");
+  }
+
+  void dump(std::ostream &os) const override {
+    throw std::logic_error("Illegal operation for cuSuperOp: dump");
+  }
+
+  precision getPrecision() const override {
+    throw std::logic_error("Illegal operation for cuSuperOp: getPrecision");
+  }
+
+  void destroyState() override {}
+
+  py::object get() { return m_pyState; }
+};
+
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
+
+  py::class_<PyCuSuperOpState>(mod, "CuSuperOpStateWrapper",
+                               "Wrapper of Python state")
+      .def("get", &PyCuSuperOpState::get);
 
   py::class_<SimulationState::Tensor>(
       mod, "Tensor",
@@ -154,7 +208,6 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
       .def("get_rank", &SimulationState::Tensor::get_rank)
       .def("get_element_size", &SimulationState::Tensor::element_size)
       .def("get_num_elements", &SimulationState::Tensor::get_num_elements);
-
   py::class_<state>(
       mod, "State", py::buffer_protocol(),
       "A data-type representing the quantum state of the internal simulator. "
@@ -243,7 +296,14 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "Returns the number of qubits represented by this state.")
       .def_static(
           "from_data",
-          [](py::buffer data) {
+          [&](py::buffer data) {
+            if (holder.getTarget().name == "nvidia-dynamics") {
+              py::handle cuso_state =
+                  py::module::import("cudaq.operator").attr("CuSuperOpState");
+              return state(
+                  new PyCuSuperOpState(cuso_state.attr("from_data")(data)));
+            }
+
             // This is by default host data
             auto info = data.request();
             if (info.format ==
@@ -298,43 +358,13 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "Return a state from matrix product state tensor data.")
       .def_static(
           "from_data",
-          [](const std::vector<py::object> &tensors) {
-            cudaq::TensorStateData tensorData;
-            for (auto &tensor : tensors) {
-              // Make sure this is a CuPy array
-              if (!py::hasattr(tensor, "data"))
-                throw std::runtime_error(
-                    "invalid from_data operation on py::object - "
-                    "only cupy array supported.");
-              auto data = tensor.attr("data");
-              if (!py::hasattr(data, "ptr"))
-                throw std::runtime_error(
-                    "invalid from_data operation on py::object tensors - "
-                    "only cupy array supported.");
-
-              // We know this is a cupy device pointer.
-              // Start by ensuring it is of proper complex type
-              auto typeStr = py::str(tensor.attr("dtype")).cast<std::string>();
-              if (typeStr != "complex128")
-                throw std::runtime_error(
-                    "invalid from_data operation on py::object tensors - "
-                    "only cupy complex128 tensors supported.");
-              auto shape = tensor.attr("shape").cast<py::tuple>();
-              std::vector<std::size_t> extents;
-              for (auto el : shape)
-                extents.emplace_back(el.cast<std::size_t>());
-              long ptr = data.attr("ptr").cast<long>();
-              tensorData.emplace_back(
-                  std::pair<const void *, std::vector<std::size_t>>{
-                      reinterpret_cast<std::complex<double> *>(ptr), extents});
+          [&](py::object opaqueData) {
+            if (holder.getTarget().name == "nvidia-dynamics") {
+              py::handle cuso_state =
+                  py::module::import("cudaq.operator").attr("CuSuperOpState");
+              return state(new PyCuSuperOpState(
+                  cuso_state.attr("from_data")(opaqueData)));
             }
-            return state::from_data(tensorData);
-          },
-          "Return a state from matrix product state tensor data (as CuPy "
-          "ndarray).")
-      .def_static(
-          "from_data",
-          [](py::object opaqueData) {
             // Make sure this is a CuPy array
             if (!py::hasattr(opaqueData, "data"))
               throw std::runtime_error(
@@ -379,6 +409,42 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
               throw std::runtime_error("invalid cupy element type " + typeStr);
           },
           "Return a state from CuPy device array.")
+      .def_static(
+          "from_data",
+          [](const std::vector<py::object> &tensors) {
+            cudaq::TensorStateData tensorData;
+            for (auto &tensor : tensors) {
+              // Make sure this is a CuPy array
+              if (!py::hasattr(tensor, "data"))
+                throw std::runtime_error(
+                    "invalid from_data operation on py::object - "
+                    "only cupy array supported.");
+              auto data = tensor.attr("data");
+              if (!py::hasattr(data, "ptr"))
+                throw std::runtime_error(
+                    "invalid from_data operation on py::object tensors - "
+                    "only cupy array supported.");
+
+              // We know this is a cupy device pointer.
+              // Start by ensuring it is of proper complex type
+              auto typeStr = py::str(tensor.attr("dtype")).cast<std::string>();
+              if (typeStr != "complex128")
+                throw std::runtime_error(
+                    "invalid from_data operation on py::object tensors - "
+                    "only cupy complex128 tensors supported.");
+              auto shape = tensor.attr("shape").cast<py::tuple>();
+              std::vector<std::size_t> extents;
+              for (auto el : shape)
+                extents.emplace_back(el.cast<std::size_t>());
+              long ptr = data.attr("ptr").cast<long>();
+              tensorData.emplace_back(
+                  std::pair<const void *, std::vector<std::size_t>>{
+                      reinterpret_cast<std::complex<double> *>(ptr), extents});
+            }
+            return state::from_data(tensorData);
+          },
+          "Return a state from matrix product state tensor data (as CuPy "
+          "ndarray).")
       .def("is_on_gpu", &cudaq::state::is_on_gpu,
            "Return True if this state is on the GPU.")
       .def(
@@ -623,7 +689,19 @@ index pair.
                 std::make_pair(reinterpret_cast<std::complex<double> *>(ptr),
                                numOtherElements)));
           },
-          "Compute overlap with general CuPy device array.");
+          "Compute overlap with general CuPy device array.")
+      .def(
+          "get_impl",
+          [&](state &self) {
+            if (holder.getTarget().name != "nvidia-dynamics")
+              throw std::runtime_error("Only supported for Python");
+            auto *statePtr = cudaq::state_helper::getSimulationState(&self);
+            auto *casted = dynamic_cast<PyCuSuperOpState *>(statePtr);
+            if (!casted)
+              throw std::runtime_error("Unexpected type");
+            return casted->get();
+          },
+          "Get the Python implementation");
 
   mod.def(
       "get_state",

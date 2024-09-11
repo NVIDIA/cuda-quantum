@@ -84,7 +84,7 @@ def _create_kernels(name: str,
 def evolve(hamiltonian: Operator, 
            dimensions: Mapping[int, int], 
            schedule: Schedule,
-           initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.States],
+           initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
            collapse_operators: Sequence[Operator] = [],
            observables: Sequence[Operator] = [], 
            store_intermediate_results = False) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
