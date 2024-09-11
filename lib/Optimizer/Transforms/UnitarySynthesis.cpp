@@ -97,10 +97,11 @@ public:
     if (!parentModule.lookupSymbol<func::FuncOp>(funcName)) {
       auto unitary = cudaq::opt::factory::readGlobalConstantArray(globalOp);
       /// TODO: Expand the logic to decompose upto 4-qubit operations
-      if (unitary.size() != 4)
-        return customOp.emitError(
+      if (unitary.size() != 4) {
+        customOp.emitWarning(
             "Decomposition of only single qubit custom operations supported.");
-
+        return failure();
+      }
       /// Controls are handled via apply specialization, hence not included in
       /// arguments
       auto funcTy =

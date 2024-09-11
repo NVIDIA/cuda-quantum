@@ -33,4 +33,4 @@ int main() {
 // CHECK: 11
 // CHECK: 00
 
-// FAIL: Decomposition of only single qubit custom operations supported.
+// FAIL: failed to legalize operation 'quake.custom_op'
