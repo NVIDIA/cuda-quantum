@@ -379,8 +379,9 @@ struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
         // %5 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<V>
         rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
                                                        castToCast.getValue());
+        return success();
       }
-    return success();
+    return failure();
   }
 };
 
@@ -406,11 +407,13 @@ struct SimplifyIntegerCompare : public OpRewritePattern<arith::CmpIOp> {
       auto rhsVal = rhsCast.getValue();
       if (lhsVal.getType() == rhsVal.getType() &&
           lhsCast.getSint() == rhsCast.getSint() &&
-          lhsCast.getZint() == rhsCast.getZint())
+          lhsCast.getZint() == rhsCast.getZint()) {
         rewriter.replaceOpWithNewOp<arith::CmpIOp>(
             compare, compare.getType(), compare.getPredicate(), lhsVal, rhsVal);
+        return success();
+      }
     }
-    return success();
+    return failure();
   }
 };
 
@@ -429,8 +432,9 @@ struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
       auto arrAttr = rewriter.getArrayAttr({rePart, imPart});
       rewriter.replaceOpWithNewOp<complex::ConstantOp>(
           create, ComplexType::get(eleTy), arrAttr);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -764,7 +768,7 @@ struct FuseAddressArithmetic
           return success();
         }
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -967,7 +971,7 @@ struct FuseWithConstantArray
           return success();
         }
       }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1058,8 +1062,9 @@ struct ForwardStdvecInitData
       Value cast = rewriter.create<cudaq::cc::CastOp>(
           data.getLoc(), data.getType(), ini.getBuffer());
       rewriter.replaceOp(data, cast);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1085,8 +1090,9 @@ struct ForwardStdvecInitSize
       Value cast = rewriter.create<cudaq::cc::CastOp>(
           size.getLoc(), size.getType(), ini.getLength());
       rewriter.replaceOp(size, cast);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1507,9 +1513,9 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
           }
         }
       }
+      return success();
     }
-
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1640,7 +1646,7 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
   LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
                                 PatternRewriter &rewriter) const override {
     if (scope.hasAllocation())
-      return success();
+      return failure();
 
     // scope does not allocate, so the region can be inlined into the parent.
     auto loc = scope.getLoc();
@@ -2149,8 +2155,9 @@ struct ReplaceInLoop : public OpRewritePattern<FROM> {
       rewriter.splitBlock(scopeBlock, scopePt);
       rewriter.setInsertionPointToEnd(scopeBlock);
       rewriter.replaceOpWithNewOp<WITH>(fromOp, fromOp.getOperands());
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 

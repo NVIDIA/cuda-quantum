@@ -95,6 +95,7 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq 
     cudaq-common 
     cudaq-em-default
+    cudaq-em-photonics
     fmt::fmt-header-only
     unzip_util
 )
