@@ -62,7 +62,7 @@ public:
                     || std::is_same_v<std::decay_t<T>, cudaq::pauli_word*>
                     || std::is_copy_constructible_v<std::remove_pointer_t<std::decay_t<T>>>) {
         auto ptr = new std::remove_pointer_t<std::decay_t<T>>(*arg);
-        std::cout << "RemoteSimulationState: adding pointer arg" << std::endl;
+        // std::cout << "RemoteSimulationState: adding pointer arg" << std::endl;
         args.push_back(ptr);
         deleters.push_back(
             [](void *ptr) { delete static_cast<std::remove_pointer_t<std::decay_t<T>>*>(ptr); });
