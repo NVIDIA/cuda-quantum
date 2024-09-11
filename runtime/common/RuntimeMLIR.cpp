@@ -81,6 +81,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
+    cudaq::opt::registerAggressiveEarlyInlining();
     cudaq::opt::registerUnrollingPipeline();
     cudaq::opt::registerTargetPipelines();
     cudaq::opt::registerMappingPipeline();
