@@ -127,6 +127,7 @@ backends
 bitcode
 bitstring
 bitstrings
+bool
 boolean
 boson
 broadcasted

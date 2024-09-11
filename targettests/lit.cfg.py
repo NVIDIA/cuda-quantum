@@ -24,7 +24,7 @@ config.suffixes = ['.cpp', '.config']
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.
-local_excludes = ['ionq', 'iqm', 'oqc', 'quantinuum',
+local_excludes = ['anyon', 'ionq', 'iqm', 'oqc', 'quantinuum',
                   'Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt']
 config.excludes = [exclude for exclude in config.excludes] + local_excludes
 

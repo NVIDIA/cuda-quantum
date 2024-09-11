@@ -377,4 +377,4 @@ public:
 
 } // namespace cudaq
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(PhotonicsExecutionManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(PhotonicsExecutionManager, photonics)
