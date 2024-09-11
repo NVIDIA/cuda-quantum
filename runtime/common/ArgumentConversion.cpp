@@ -9,11 +9,14 @@
 #include "ArgumentConversion.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/qis/pauli_word.h"
 #include "cudaq/Todo.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
+
+#include <iostream>
 
 using namespace mlir;
 
@@ -32,6 +35,7 @@ static Value genConstant(OpBuilder &builder, std::int16_t v) {
   return genIntegerConstant(builder, v, 16);
 }
 static Value genConstant(OpBuilder &builder, std::int32_t v) {
+  std::cout << "Generating subst for i32" << std::endl;
   return genIntegerConstant(builder, v, 32);
 }
 static Value genConstant(OpBuilder &builder, std::int64_t v) {
@@ -199,7 +203,8 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         return {};
       })
       .Case([&](cudaq::cc::CharspanType strTy) {
-        return genConstant(builder, *static_cast<const std::string *>(p),
+        std::cout << " converting pauli word:" << (*static_cast<cudaq::pauli_word*>(p)).str() << std::endl;
+        return genConstant(builder, (*static_cast<cudaq::pauli_word*>(p)).str(),
                            substMod);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
@@ -301,13 +306,26 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName.str());
   FunctionType fromFuncTy = fun.getFunctionType();
-  for (auto iter :
-       llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
-    void *argPtr = std::get<1>(iter.value());
-    if (!argPtr)
+  // for (auto iter :
+  //      llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
+  //   void *argPtr = std::get<1>(iter.value());
+  //   if (!argPtr)
+  //     continue;
+  //   Type argTy = std::get<0>(iter.value());
+  //unsigned i = iter.index();
+  int i = 0;
+  std::cout << "Function argument size: " << fromFuncTy.getInputs().size() << std::endl;
+  std::cout << "Actual argument size: " << arguments.size() << std::endl;
+  for (auto argTy: fromFuncTy.getInputs()) {
+    
+    void *argPtr = arguments[i];
+    if (argPtr == nullptr) {
+      std::cout << "Argument " << i << " is null" << std::endl;
       continue;
-    Type argTy = std::get<0>(iter.value());
-    unsigned i = iter.index();
+    }
+    std::cout << "Generating subst for argument " << i << " of type: " << std::endl;
+    argTy.dump();
+
     auto buildSubst = [&, i = i]<typename... Ts>(Ts &&...ts) {
       builder.setInsertionPointToEnd(substModule.getBody());
       auto loc = builder.getUnknownLoc();
@@ -361,7 +379,8 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
               return {};
             })
             .Case([&](cc::CharspanType strTy) {
-              return buildSubst(*static_cast<const std::string *>(argPtr),
+              std::cout << " converting pauli word:" << (*static_cast<cudaq::pauli_word*>(argPtr)).str() << std::endl;
+              return buildSubst((*static_cast<cudaq::pauli_word*>(argPtr)).str(),
                                 substModule);
             })
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
@@ -383,6 +402,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Default({});
     if (subst)
       substitutions.emplace_back(std::move(subst));
+    i++;
   }
 }
 
@@ -406,8 +426,9 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
   if (numDrop >= arguments.size())
     return;
   std::vector<void *> partialArgs;
+  int drop = numDrop;
   for (void *arg : arguments) {
-    if (numDrop--) {
+    if (drop-- > 0) {
       partialArgs.push_back(nullptr);
       continue;
     }

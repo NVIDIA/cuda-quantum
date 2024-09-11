@@ -14,3 +14,7 @@ cc.arg_subst[0] {
 }
 
 llvm.mlir.global private constant @cstr.48692C2074686572652100("Hi, there!\00") {addr_space = 0 : i32}
+
+cc.arg_subst [1] {
+  %1 = arith.constant 42 : i32
+}

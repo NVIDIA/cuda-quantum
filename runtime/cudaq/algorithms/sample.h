@@ -15,6 +15,9 @@
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 
+#include <iostream>
+#include <any>
+
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
 namespace __internal__ {
@@ -91,6 +94,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
   // If no conditionals, nothing special to do for library mode
   if (!ctx->hasConditionalsOnMeasureResults) {
+    std::cout << "Executing with no conditionals" <<std::endl;
     // Execute
     wrappedKernel();
 
@@ -112,6 +116,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
     // If it has conditionals, loop over individual circuit executions
     for (auto &i : cudaq::range(shots)) {
+      std::cout << "Executing with no cond feedback" <<std::endl;
       // Run the kernel
       wrappedKernel();
       // Reset the context and get the single measure result,
@@ -131,6 +136,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // At this point, the kernel has conditional
   // feedback, but the backend supports it, so
   // just run the kernel, context will get the sampling results
+  std::cout << "Executing with cond feedback" <<std::endl;
   wrappedKernel();
   // If we have a non-null future, set it and return
   if (futureResult) {
@@ -186,6 +192,31 @@ struct sample_options {
   cudaq::noise_model noise;
 };
 
+template <typename Arg>
+void printArg(Arg arg, int i) {
+  if constexpr (std::is_integral_v<Arg>) {
+    std::cout << "arg : " << i << " in sample: "  << (int)arg << std::endl;
+  } else if constexpr (std::is_same_v<Arg, cudaq::pauli_word>) {
+    std::cout << "arg : " << i << " in sample: " <<  static_cast<cudaq::pauli_word>(arg).str() << std::endl;
+  } else {
+    std::cout << "unknown arg : " << i << " in sample: " << std::endl;
+  }
+}
+
+template <typename... Args>
+void printIfNull2(Args... args) {
+  std::cout << "args in sample: " << sizeof...(args) << std::endl;
+  int i = 0;
+  (printArg(args, i++), ...);
+}
+
+template <typename... Args>
+void printIfNull4(Args... args) {
+  std::cout << "args before invokeKernel: " << sizeof...(args) << std::endl;
+  int i = 0;
+  (printArg(args, i++), ...);
+}
+
 /// @brief Sample the given quantum kernel expression and return the
 /// mapping of observed bit strings to corresponding number of
 /// times observed.
@@ -212,15 +243,24 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
   if constexpr (has_name<QuantumKernel>::value) {
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
   }
-
+  
+  printIfNull2(args...);
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto shots = platform.get_shots().value_or(1000);
   auto kernelName = cudaq::getKernelName(kernel);
+
+  auto invoke = [&]() mutable {
+    printIfNull4(args...);
+    cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                        std::forward<Args>(args)...);
+  };
+
   return details::runSampling(
              [&]() mutable {
-               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                   std::forward<Args>(args)...);
+              //  cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+              //                      std::forward<Args>(args)...);
+              invoke();
              },
              platform, kernelName, shots)
       .value();

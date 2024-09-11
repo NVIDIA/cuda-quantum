@@ -12,6 +12,8 @@
 #include "cudaq.h"
 #include "cudaq/utils/cudaq_utils.h"
 
+#include <iostream>
+
 namespace cudaq {
 /// Implementation of `SimulationState` for remote simulator backends.
 // The state is represented by a quantum kernel.
@@ -40,18 +42,46 @@ protected:
 public:
   template <typename T>
   void addArgument(const T &arg) {
-    if constexpr (std::is_pointer<std::decay_t<T>>::value) {
-      args.push_back(const_cast<void *>(static_cast<const void *>(arg)));
-      deleters.push_back([](void *ptr) {});
-    } else if constexpr (std::is_copy_constructible<std::decay_t<T>>::value) {
+    // if (std::is_pointer_v<std::decay_t<T>>) {
+    //   std::cout << "pointer arg: " << std::endl;
+    //   if (std::is_same_v<std::decay_t<T>, cudaq::state*>) {
+    //     std::cout << "  state pointer" << std::endl;
+    //   }
+    //   if (std::is_same_v<std::decay_t<T>, cudaq::pauli_word*>) {
+    //     std::cout << "  pauli word pointer" << std::endl;
+    //   } 
+    // } else {
+    //   std::cout << "non-pointer arg: "  << std::endl;
+    //   if (std::is_same_v<std::decay_t<T>, cudaq::pauli_word>) {
+    //     std::cout << "  pauli word" << std::endl;
+    //   } 
+    // }
+
+    if constexpr (std::is_pointer_v<std::decay_t<T>>) {
+      if constexpr (std::is_same_v<std::decay_t<T>, cudaq::state*> 
+                    || std::is_same_v<std::decay_t<T>, cudaq::pauli_word*>
+                    || std::is_copy_constructible_v<std::remove_pointer_t<std::decay_t<T>>>) {
+        auto ptr = new std::remove_pointer_t<std::decay_t<T>>(*arg);
+        std::cout << "RemoteSimulationState: adding pointer arg" << std::endl;
+        args.push_back(ptr);
+        deleters.push_back(
+            [](void *ptr) { delete static_cast<std::remove_pointer_t<std::decay_t<T>>*>(ptr); });
+      } else {
+        throw std::invalid_argument(
+            "Unsupported argument type: only pointers to copy-constructible types "
+            "and copy-constructible types are supported.");
+      }
+    } else if constexpr (std::is_copy_constructible_v<std::decay_t<T>>) {
       auto *ptr = new std::decay_t<T>(arg);
+      std::cout << "RemoteSimulationState: adding non-pointer arg" << std::endl;
       args.push_back(ptr);
       deleters.push_back(
           [](void *ptr) { delete static_cast<std::decay_t<T> *>(ptr); });
     } else {
+      std::cout << "RemoteSimulationState: unsupported arg" << std::endl;
       throw std::invalid_argument(
-          "Unsupported argument type: only pointers and "
-          "copy-constructible types are supported.");
+          "Unsupported argument type: only pointers to copy-constructible types "
+          "and copy-constructible types are supported.");
     }
   }
 

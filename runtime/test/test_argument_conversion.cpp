@@ -17,6 +17,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Parser/Parser.h"
+#include "cudaq/qis/pauli_word.h"
 
 void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
                   std::vector<void *> args) {
@@ -146,7 +147,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
 
   {
-    std::string x = "Hi, there!";
+    cudaq::pauli_word x{"XYZ"};
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.charspan", v);
   }
@@ -156,12 +157,12 @@ void test_scalars(mlir::MLIRContext *ctx) {
 // CHECK:       Substitution module:
 
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = cc.address_of @cstr.48692C2074686572652100 : !cc.ptr<!llvm.array<11 x i8>>
-// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.array<11 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_2:.*]] = arith.constant 10 : i64
+// CHECK:           %[[VAL_0:.*]] = cc.address_of @cstr.58595A00 : !cc.ptr<!llvm.array<4 x i8>>
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_2:.*]] = arith.constant 3 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_2]] : (!cc.ptr<i8>, i64) -> !cc.charspan
 // CHECK:         }
-// CHECK:         llvm.mlir.global private constant @cstr.48692C2074686572652100("Hi, there!\00") {addr_space = 0 : i32}
+// CHECK-DAG:     llvm.mlir.global private constant @cstr.58595A00("XYZ\00") {addr_space = 0 : i32}
   // clang-format on
 }
 
