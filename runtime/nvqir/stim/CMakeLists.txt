@@ -6,37 +6,37 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable -Wno-error=unused-but-set-variable")
+set(LIBRARY_NAME nvqir-stim)
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(STIM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/tpls/Stim)
 set(STIM_BINARY_DIR ${CMAKE_BINARY_DIR}/tpls/Stim)
 
-add_subdirectory(${STIM_SOURCE_DIR} ${STIM_BINARY_DIR})
+# The EXCLUDE_FROM_ALL makes it so that only libstim is built. If other targets
+# are desired (like the command-line tool), remove EXCLUDE_FROM_ALL below.
+add_subdirectory(${STIM_SOURCE_DIR} ${STIM_BINARY_DIR} EXCLUDE_FROM_ALL)
 
-macro (AddStimBackend LIBRARY_NAME SOURCE_FILE)
-  add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILE})
-  set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
+add_library(${LIBRARY_NAME} SHARED StimCircuitSimulator.cpp)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
-  set (STIM_DEPENDENCIES "")
-  list(APPEND STIM_DEPENDENCIES fmt::fmt-header-only cudaq-common)
+set (STIM_DEPENDENCIES libstim fmt::fmt-header-only cudaq-common)
 
-  target_include_directories(${LIBRARY_NAME}
-      PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-        $<INSTALL_INTERFACE:include>)
+# If -Wall is enabled (as is done in parent directories), Stim will not compile.
+# So override that here.
+target_compile_options(libstim PRIVATE -Wno-all)
 
-  target_link_libraries(${LIBRARY_NAME}
-    PUBLIC libstim
-    PRIVATE ${STIM_DEPENDENCIES})
+target_include_directories(${LIBRARY_NAME}
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+      $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+      $<INSTALL_INTERFACE:include>)
 
-  set_target_properties(${LIBRARY_NAME}
-      PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")
+target_link_libraries(${LIBRARY_NAME}
+  PRIVATE ${STIM_DEPENDENCIES})
 
-  install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-endmacro()
+set_target_properties(${LIBRARY_NAME}
+    PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")
 
-AddStimBackend(nvqir-stim StimCircuitSimulator.cpp)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 add_target_config(stim)
