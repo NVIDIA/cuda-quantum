@@ -12,7 +12,7 @@
 #include <random>
 using namespace cudaq;
 
-#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_STIM)
+#ifndef CUDAQ_BACKEND_DM
 namespace {
 // These tests are meant to validate the correctness of custom kernels.
 // Hence, reduce the test load on tensornet backends (slow for these small
