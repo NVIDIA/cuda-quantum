@@ -40,28 +40,18 @@ protected:
 public:
   template <typename T>
   void addArgument(const T &arg) {
-    if constexpr (std::is_pointer_v<std::decay_t<T>>) {
-      if constexpr (std::is_copy_constructible_v<
-                        std::remove_pointer_t<std::decay_t<T>>>) {
-        auto ptr = new std::remove_pointer_t<std::decay_t<T>>(*arg);
-        args.push_back(ptr);
-        deleters.push_back([](void *ptr) {
-          delete static_cast<std::remove_pointer_t<std::decay_t<T>> *>(ptr);
-        });
-      } else {
-        throw std::invalid_argument(
-            "Unsupported argument type: only pointers to copy-constructible "
-            "types and copy-constructible types are supported.");
-      }
-    } else if constexpr (std::is_copy_constructible_v<std::decay_t<T>>) {
+    if constexpr (std::is_pointer<std::decay_t<T>>::value) {
+      args.push_back(const_cast<void *>(static_cast<const void *>(arg)));
+      deleters.push_back([](void *ptr) {});
+    } else if constexpr (std::is_copy_constructible<std::decay_t<T>>::value) {
       auto *ptr = new std::decay_t<T>(arg);
       args.push_back(ptr);
       deleters.push_back(
           [](void *ptr) { delete static_cast<std::decay_t<T> *>(ptr); });
     } else {
       throw std::invalid_argument(
-          "Unsupported argument type: only pointers to copy-constructible "
-          "types and copy-constructible types are supported.");
+          "Unsupported argument type: only pointers and "
+          "copy-constructible types are supported.");
     }
   }
 

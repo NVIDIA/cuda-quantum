@@ -76,7 +76,6 @@ public:
     SmallVector<bool> processedArgs(func.getFunctionType().getNumInputs());
     SmallVector<std::tuple<unsigned, Value, Value>> replacements;
     BitVector replacedArgs(processedArgs.size());
-
     for (auto &op : *substMod) {
       auto subst = dyn_cast<cudaq::cc::ArgumentSubstitutionOp>(op);
       if (!subst) {

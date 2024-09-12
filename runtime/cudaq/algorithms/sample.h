@@ -217,7 +217,6 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto shots = platform.get_shots().value_or(1000);
   auto kernelName = cudaq::getKernelName(kernel);
-
   return details::runSampling(
              [&]() mutable {
                cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),

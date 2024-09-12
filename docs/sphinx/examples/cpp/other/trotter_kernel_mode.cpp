@@ -42,11 +42,10 @@ int SPINS = 11; // set to around 25 qubits for `nvidia` target
 int STEPS = 10; // set to around 100 for `nvidia` target
 
 // Compile and run with:
-// clang-format off
 // ```
-// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x -target nvidia && ./trotter.x
+// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x -target nvidia &&
+// ./trotter.x
 // ```
-// clang-format on
 
 // Alternating up/down spins
 struct initState {
