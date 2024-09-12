@@ -119,9 +119,6 @@ CUDAQ_TEST(NVQIRTester, checkSimple) {
   __quantum__rt__finalize();
 }
 
-// Stim does not support many of the gates used in these tests.
-#ifndef CUDAQ_BACKEND_STIM
-
 CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__rt__initialize(0, nullptr);
   auto qubits = __quantum__rt__qubit_allocate_array(3);
@@ -584,5 +581,3 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateExpand) {
 
   __quantum__rt__finalize();
 }
-
-#endif

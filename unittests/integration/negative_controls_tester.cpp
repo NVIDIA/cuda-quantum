@@ -27,7 +27,6 @@ CUDAQ_TEST(NegativeControlsTester, checkSimple) {
 
   EXPECT_EQ(counter, 1000);
 
-#ifndef CUDAQ_BACKEND_STIM
   auto kernel2 = []() __qpu__ {
     cudaq::qarray<4> q;
     x<cudaq::ctrl>(!q[0], !q[1], !q[2], q[3]);
@@ -44,7 +43,6 @@ CUDAQ_TEST(NegativeControlsTester, checkSimple) {
   }
 
   EXPECT_EQ(counter, 1000);
-#endif
 
   auto kernel3 = []() __qpu__ {
     cudaq::qarray<2> q;

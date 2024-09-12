@@ -172,11 +172,3 @@ Tweedledum - MIT License
 License at <https://github.com/boschmitt/tweedledum/blob/master/LICENSE>
 
 ----------------------------------------------------------------
-
-Stim - Apache License 2.0
-<https://github.com/quantumlib/Stim>
-
-The incorporated source code and its license can be found as a submodule on the CUDA-Q repository.
-License at <https://github.com/quantumlib/Stim/blob/main/LICENSE>
-
-----------------------------------------------------------------
