@@ -72,7 +72,7 @@ def test_translate_openqasm_loop():
     assert "qreg var0[5];" in asm
 
 
-def test_translate_openqasm_loop_():
+def test_translate_openqasm_vector():
     asm = cudaq.translate(kernel_vector, format="openqasm2")
     assert "qreg var0[2];" in asm
 
