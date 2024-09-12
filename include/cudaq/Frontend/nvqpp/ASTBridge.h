@@ -401,6 +401,7 @@ public:
 
   bool TraverseRecordType(clang::RecordType *t);
   bool interceptRecordDecl(clang::RecordDecl *x);
+  std::pair<std::uint64_t, unsigned> getWidthAndAlignment(clang::RecordDecl *x);
   bool VisitRecordDecl(clang::RecordDecl *x);
 
   // Type declarations to be converted to high-level Quake and CC types are

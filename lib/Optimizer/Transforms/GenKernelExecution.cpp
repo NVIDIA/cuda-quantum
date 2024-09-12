@@ -768,12 +768,12 @@ public:
       auto memberArgTy = cast<cudaq::cc::StructType>(
           cudaq::opt::factory::genArgumentBufferType(strTy));
       for (auto iter : llvm::enumerate(strTy.getMembers())) {
-        auto memValPair =
+        auto [a, t] =
             processInputValue(loc, builder, trailingData, subVal, iter.value(),
                               iter.index(), memberArgTy);
-        trailingData = memValPair.second;
-        strVal = builder.create<cudaq::cc::InsertValueOp>(
-            loc, inTy, strVal, memValPair.first, iter.index());
+        trailingData = t;
+        strVal = builder.create<cudaq::cc::InsertValueOp>(loc, inTy, strVal, a,
+                                                          iter.index());
       }
       return {strVal, trailingData};
     }
@@ -848,10 +848,10 @@ public:
       updateQPUKernelAsSRet(builder, funcOp, newFuncTy);
     }
     for (auto inp : llvm::enumerate(funcTy.getInputs())) {
-      auto valPair = processInputValue(loc, builder, trailingData, val,
-                                       inp.value(), inp.index(), structTy);
-      trailingData = valPair.second;
-      args.push_back(valPair.first);
+      auto [a, t] = processInputValue(loc, builder, trailingData, val,
+                                      inp.value(), inp.index(), structTy);
+      trailingData = t;
+      args.push_back(a);
     }
     auto call = builder.create<func::CallOp>(loc, newFuncTy.getResults(),
                                              funcOp.getName(), args);
@@ -1354,19 +1354,41 @@ public:
       // 2) Iterate over the arguments passed in and populate the vector.
       SmallVector<BlockArgument> blockArgs{dropAnyHiddenArguments(
           hostFuncEntryBlock->getArguments(), devFuncTy, addThisPtr)};
-      for (auto iter : llvm::enumerate(blockArgs)) {
-        std::int32_t i = iter.index();
+      unsigned j = 0;
+      for (std::int32_t i = 0, N = blockArgs.size(); i < N; ++i, ++j) {
+        auto blkArg = blockArgs[i];
         auto pos = builder.create<cudaq::cc::ComputePtrOp>(
             loc, ptrPtrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
-        auto blkArg = iter.value();
         if (isa<cudaq::cc::PointerType>(blkArg.getType())) {
           auto castArg =
               builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, blkArg);
           builder.create<cudaq::cc::StoreOp>(loc, castArg, pos);
           continue;
         }
-        auto temp = builder.create<cudaq::cc::AllocaOp>(loc, blkArg.getType());
-        builder.create<cudaq::cc::StoreOp>(loc, blkArg, temp);
+        Value temp;
+        if (cudaq::opt::factory::isX86_64(
+                hostFunc->getParentOfType<ModuleOp>()) &&
+            cudaq::opt::factory::structUsesTwoArguments(
+                devFuncTy.getInput(j))) {
+          temp =
+              builder.create<cudaq::cc::AllocaOp>(loc, devFuncTy.getInput(j));
+          auto part1 = builder.create<cudaq::cc::CastOp>(
+              loc, cudaq::cc::PointerType::get(blkArg.getType()), temp);
+          builder.create<cudaq::cc::StoreOp>(loc, blkArg, part1);
+          auto blkArg2 = blockArgs[++i];
+          auto cast2 = builder.create<cudaq::cc::CastOp>(
+              loc,
+              cudaq::cc::PointerType::get(
+                  cudaq::cc::ArrayType::get(blkArg2.getType())),
+              temp);
+          auto part2 = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, cudaq::cc::PointerType::get(blkArg2.getType()), cast2,
+              ArrayRef<cudaq::cc::ComputePtrArg>{1});
+          builder.create<cudaq::cc::StoreOp>(loc, blkArg2, part2);
+        } else {
+          temp = builder.create<cudaq::cc::AllocaOp>(loc, blkArg.getType());
+          builder.create<cudaq::cc::StoreOp>(loc, blkArg, temp);
+        }
         auto castTemp = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, temp);
         builder.create<cudaq::cc::StoreOp>(loc, castTemp, pos);
       }
@@ -1383,20 +1405,21 @@ public:
     // Generate the call to `launchKernel`.
     switch (codegenKind) {
     case 0: {
-      assert(vecArgPtrs && "vector<arg*> must be initialized");
+      assert(vecArgPtrs && castLoadThunk);
       builder.create<func::CallOp>(
           loc, std::nullopt, cudaq::runtime::launchKernelHybridFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
                           extendedStructSize, resultOffset, vecArgPtrs});
     } break;
     case 1: {
+      assert(!vecArgPtrs && castLoadThunk);
       builder.create<func::CallOp>(
           loc, std::nullopt, cudaq::runtime::launchKernelFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
                           extendedStructSize, resultOffset});
     } break;
     case 2: {
-      assert(vecArgPtrs && "vector<arg*> must be initialized");
+      assert(vecArgPtrs && !castLoadThunk);
       builder.create<func::CallOp>(
           loc, std::nullopt, cudaq::runtime::launchKernelStreamlinedFuncName,
           ArrayRef<Value>{castLoadKernName, vecArgPtrs});

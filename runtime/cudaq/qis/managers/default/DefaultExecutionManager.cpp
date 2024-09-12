@@ -19,7 +19,7 @@ namespace nvqir {
 CircuitSimulator *getCircuitSimulatorInternal();
 }
 
-namespace {
+namespace cudaq {
 
 /// The DefaultExecutionManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the current CircuitSimulator
@@ -249,9 +249,9 @@ public:
   }
 };
 
-} // namespace
+} // namespace cudaq
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager, default)
 
 extern "C" {
 /// C interface to the (default) execution manager's methods.
