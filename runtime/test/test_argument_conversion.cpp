@@ -18,18 +18,38 @@
 #include "cudaq/qis/pauli_word.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Parser/Parser.h"
+#include <sstream>
 
-void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
-                  std::vector<void *> args) {
-  std::string code = R"#(
-func.func private @callee(%0: )#" +
-                     typeName + R"#()
-func.func @__nvqpp__mlirgen__testy(%0: )#" +
-                     typeName + R"#() {
-  call @callee(%0) : ()#" +
-                     typeName + R"#() -> ()
-  return
-})#";
+void doTest(mlir::MLIRContext *ctx, std::vector<std::string> &typeNames,
+            std::vector<void *> args, std::size_t startingArgIdx = 0) {
+
+  // Create code
+  std::ostringstream os;
+  os << "func.func private @callee(%0: " << typeNames[0];
+  for (auto i = 1; i < typeNames.size(); i++)
+    os << ", %" << i << ": " << typeNames[i];
+  os << ")\n";
+
+  os << "func.func @__nvqpp__mlirgen__testy(%0: " << typeNames[0];
+  for (auto i = 1; i < typeNames.size(); i++)
+    os << ", %" << i << ": " << typeNames[i];
+  os << ") {\n";
+
+  os << "  call @callee(%0";
+  for (auto i = 1; i < typeNames.size(); i++)
+    os << ", %" << i;
+  os << "): ";
+
+  os << "(" << typeNames[0];
+  for (auto i = 1; i < typeNames.size(); i++) {
+    os << ", " << typeNames[i];
+  }
+  os << ") -> ()\n";
+
+  os << "  return\n";
+  os << "}\n";
+
+  auto code = os.str();
 
   // Create the Module
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
@@ -37,7 +57,7 @@ func.func @__nvqpp__mlirgen__testy(%0: )#" +
   cudaq::opt::ArgumentConverter ab{"testy", *mod};
 
   // Create the argument conversions
-  ab.gen(args);
+  ab.gen_drop_front(args, startingArgIdx);
 
   // Dump the conversions
   llvm::outs() << "========================================\n"
@@ -45,11 +65,17 @@ func.func @__nvqpp__mlirgen__testy(%0: )#" +
                << ab.getSubstitutionModule() << '\n';
 }
 
+void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
+                  void *arg) {
+  std::vector<std::string> typeNames{typeName};
+  std::vector<void *> args{arg};
+  doTest(ctx, typeNames, args, 0);
+}
+
 void test_scalars(mlir::MLIRContext *ctx) {
   {
     bool x = true;
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "i1", v);
+    doSimpleTest(ctx, "i1", &x);
   }
   // clang-format off
 // CHECK-LABEL: Source module:
@@ -62,8 +88,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     char x = 'X';
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "i8", v);
+    doSimpleTest(ctx, "i8", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -76,8 +101,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     std::int16_t x = 103;
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "i16", v);
+    doSimpleTest(ctx, "i16", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -90,8 +114,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     std::int32_t x = 14581;
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "i32", v);
+    doSimpleTest(ctx, "i32", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -104,8 +127,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     std::int64_t x = 78190214;
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "i64", v);
+    doSimpleTest(ctx, "i64", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -119,8 +141,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
 
   {
     float x = 974.17244;
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "f32", v);
+    doSimpleTest(ctx, "f32", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -133,8 +154,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     double x = 77.4782348;
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "f64", v);
+    doSimpleTest(ctx, "f64", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -148,8 +168,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
 
   {
     cudaq::pauli_word x{"XYZ"};
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "!cc.charspan", v);
+    doSimpleTest(ctx, "!cc.charspan", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -169,8 +188,7 @@ void test_scalars(mlir::MLIRContext *ctx) {
 void test_vectors(mlir::MLIRContext *ctx) {
   {
     std::vector<std::int32_t> x = {14581, 0xcafe, 42, 0xbeef};
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "!cc.stdvec<i32>", v);
+    doSimpleTest(ctx, "!cc.stdvec<i32>", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -195,6 +213,33 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_9]] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.stdvec<i32>
 // CHECK:         }
   // clang-format on
+
+  {
+    std::vector<cudaq::pauli_word> x = {cudaq::pauli_word{"XX"},
+                                        cudaq::pauli_word{"XY"}};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.charspan>", &x);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
+// CHECK:           %[[VAL_1:.*]] = cc.address_of @cstr.585800 : !cc.ptr<!llvm.array<3 x i8>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i64
+// CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_6:.*]] = cc.address_of @cstr.585900 : !cc.ptr<!llvm.array<3 x i8>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_8:.*]] = arith.constant 2 : i64
+// CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_8]] : (!cc.ptr<i8>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           cc.store %[[VAL_9:.*]], %[[VAL_10:.*]] : !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_11:.*]] = arith.constant 2 : i64
+// CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>, i64) -> !cc.stdvec<!cc.charspan>
+// CHECK:         }
+// CHECK-DAG:     llvm.mlir.global private constant @cstr.585800("XX\00") {addr_space = 0 : i32}
+// CHECK-DAG:     llvm.mlir.global private constant @cstr.585900("XY\00") {addr_space = 0 : i32}
+  // clang-format on
 }
 
 void test_aggregates(mlir::MLIRContext *ctx) {
@@ -207,8 +252,7 @@ void test_aggregates(mlir::MLIRContext *ctx) {
     };
     ure x = {static_cast<int>(0xcafebabe), 87.6545, 'A',
              static_cast<short>(0xfade)};
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "!cc.struct<{i32,f64,i8,i16}>", v);
+    doSimpleTest(ctx, "!cc.struct<{i32,f64,i8,i16}>", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -242,8 +286,7 @@ void test_recursive(mlir::MLIRContext *ctx) {
     ure x1 = {5412, 23894.5, 'B', 0xada};
     ure x2 = {90210, 782934.78923, 'C', 747};
     std::vector<ure> x = {x0, x1, x2};
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "!cc.stdvec<!cc.struct<{i32,f64,i8,i16}>>", v);
+    doSimpleTest(ctx, "!cc.stdvec<!cc.struct<{i32,f64,i8,i16}>>", &x);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -296,8 +339,7 @@ void test_state(mlir::MLIRContext *ctx) {
     std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
                                            0.,        0.,        0., 0.};
     auto x = cudaq::state(new FakeSimulationState(data.size(), data.data()));
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v);
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", &x);
   }
 
   // clang-format off
@@ -305,18 +347,131 @@ void test_state(mlir::MLIRContext *ctx) {
 // CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
 // CHECK:       Substitution module:
 
-// CHECK-LABEL: cc.arg_subst[0] {
-// CHECK:         %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
-// CHECK:         %[[VAL_1:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.array<complex<f64> x 8>>
-// CHECK:         %[[VAL_2:.*]] = arith.constant 8 : i64
-// CHECK:         %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f64> x 8>
-// CHECK:         cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.array<complex<f64> x 8>>
-// CHECK:         %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 8>>) -> !cc.ptr<i8>
-// CHECK:         %[[VAL_5:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_4]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-// CHECK:         %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:           %[[VAL_1:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:           %[[VAL_2:.*]] = arith.constant 8 : i64
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f64> x 8>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_5:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_4]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
+// CHECK:        }
+// CHECK-DAG:    cc.global constant @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
+// CHECK-DAG:    func.func private @__nvqpp_cudaq_state_createFromData_fp64(!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+  // clang-format on
+}
+
+void test_combinations(mlir::MLIRContext *ctx) {
+  {
+    bool x = true;
+    bool y = false;
+    std::vector<void *> v = {static_cast<void *>(&x), static_cast<void *>(&y)};
+    std::vector<std::string> t = {"i1", "i1"};
+    doTest(ctx, t, v);
+  }
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @callee(i1, i1)
+// CHECK:       Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:         }
+// CHECK-LABEL:   cc.arg_subst[1] {
+// CHECK:           %[[VAL_1:.*]] = arith.constant false
+// CHECK:         }
+  // clang-format on
+
+  {
+    bool x = true;
+    std::int32_t y = 42;
+    std::vector<void *> v = {static_cast<void *>(&x), static_cast<void *>(&y)};
+    std::vector<std::string> t = {"i1", "i32"};
+    doTest(ctx, t, v, 1);
+  }
+
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @callee(i1, i32)
+// CHECK:       Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[1] {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 42 : i32
+// CHECK:         }
+  // clang-format on
+
+  {
+    std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
+                                           0.,        0.,        0., 0.};
+
+    std::vector<double> x = {0.5, 0.6};
+    cudaq::state y{new FakeSimulationState(data.size(), data.data())};
+    std::vector<cudaq::pauli_word> z = {
+        cudaq::pauli_word{"XX"},
+        cudaq::pauli_word{"XY"},
+    };
+
+    std::vector<void *> v = {static_cast<void *>(&x), static_cast<void *>(&y),
+                             static_cast<void *>(&z)};
+    std::vector<std::string> t = {"!cc.stdvec<f32>", "!cc.ptr<!cc.state>",
+                                  "!cc.stdvec<!cc.charspan>"};
+    doTest(ctx, t, v);
+  }
+
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @callee(!cc.stdvec<f32>, !cc.ptr<!cc.state>, !cc.stdvec<!cc.charspan>)
+// CHECK:       Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<f32 x 4>
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0.000000e+00 : f32
+// CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<f32>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<f32>
+// CHECK:           %[[VAL_3:.*]] = arith.constant 1.750000e+00 : f32
+// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<f32>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<f32>
+// CHECK:           %[[VAL_5:.*]] = arith.constant 4.17232506E-8 : f32
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_0]][2] : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<f32>
+// CHECK:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<f32>
+// CHECK:           %[[VAL_7:.*]] = arith.constant 1.775000e+00 : f32
+// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_0]][3] : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<f32>
+// CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<f32>
+// CHECK:           %[[VAL_9:.*]] = arith.constant 4 : i64
+// CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_9]] : (!cc.ptr<!cc.array<f32 x 4>>, i64) -> !cc.stdvec<f32>
+// CHECK:         }
+// CHECK-LABEL:   cc.arg_subst[1] {
+// CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:           %[[VAL_1:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:           %[[VAL_2:.*]] = arith.constant 8 : i64
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f64> x 8>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.array<complex<f64> x 8>>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_5:.*]] = func.call @__nvqpp_cudaq_state_createFromData_fp64(%[[VAL_4]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.state>) -> !cc.ptr<!cc.state>
 // CHECK:         }
 // CHECK-DAG:     cc.global constant @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
 // CHECK-DAG:     func.func private @__nvqpp_cudaq_state_createFromData_fp64(!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+// CHECK-LABEL:   cc.arg_subst[2] {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
+// CHECK:           %[[VAL_1:.*]] = cc.address_of @cstr.585800 : !cc.ptr<!llvm.array<3 x i8>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i64
+// CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_6:.*]] = cc.address_of @cstr.585900 : !cc.ptr<!llvm.array<3 x i8>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!llvm.array<3 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_8:.*]] = arith.constant 2 : i64
+// CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_8]] : (!cc.ptr<i8>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           cc.store %[[VAL_9]], %[[VAL_10]] : !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_11:.*]] = arith.constant 2 : i64
+// CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>, i64) -> !cc.stdvec<!cc.charspan>
+// CHECK:         }
+// CHECK-DAG:     llvm.mlir.global private constant @cstr.585800("XX\00") {addr_space = 0 : i32}
+// CHECK-DAG:     llvm.mlir.global private constant @cstr.585900("XY\00") {addr_space = 0 : i32}
   // clang-format on
 }
 
@@ -331,5 +486,6 @@ int main() {
   test_aggregates(&context);
   test_recursive(&context);
   test_state(&context);
+  test_combinations(&context);
   return 0;
 }

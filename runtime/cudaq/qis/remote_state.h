@@ -51,8 +51,7 @@ public:
       } else {
         throw std::invalid_argument(
             "Unsupported argument type: only pointers to copy-constructible "
-            "types "
-            "and copy-constructible types are supported.");
+            "types and copy-constructible types are supported.");
       }
     } else if constexpr (std::is_copy_constructible_v<std::decay_t<T>>) {
       auto *ptr = new std::decay_t<T>(arg);
@@ -62,8 +61,7 @@ public:
     } else {
       throw std::invalid_argument(
           "Unsupported argument type: only pointers to copy-constructible "
-          "types "
-          "and copy-constructible types are supported.");
+          "types and copy-constructible types are supported.");
     }
   }
 

@@ -225,6 +225,11 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
   auto eleTy = vecTy.getElementType();
   auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
   auto eleSize = cudaq::opt::getDataSize(layout, eleTy);
+  if (isa<cudaq::cc::CharspanType>(eleTy)) {
+    // char span type (i.e. pauli word) is a `vector<char>`
+    eleSize = sizeof(VectorType);
+  }
+
   assert(eleSize && "element must have a size");
   auto loc = builder.getUnknownLoc();
   std::int32_t vecSize = delta / eleSize;

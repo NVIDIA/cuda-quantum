@@ -16,6 +16,8 @@
 
 #include <cudaq.h>
 #include <iostream>
+#include <vector>
+#include <string>
 
 __qpu__ void test_init_state() {
   cudaq::qvector q(2);
@@ -34,6 +36,20 @@ __qpu__ void test_state_param(cudaq::state* state) {
 __qpu__ void test_state_param2(cudaq::state* state, cudaq::pauli_word w) {
     cudaq::qvector q(state);
     cudaq::exp_pauli(.5, q, w);
+}
+
+__qpu__ void test_state_param3(cudaq::state *initial_state, std::vector<cudaq::pauli_word>& words) {
+  cudaq::qvector q(initial_state);
+  for (std::size_t i = 0; i < words.size(); ++i) {
+    cudaq::exp_pauli(.5, q, words[i]);
+  }
+}
+
+__qpu__ void test_state_param4(cudaq::state *initial_state, std::vector<double> &coefficients, std::vector<cudaq::pauli_word>& words) {
+  cudaq::qvector q(initial_state);
+  for (std::size_t i = 0; i < words.size(); ++i) {
+    cudaq::exp_pauli(coefficients[i], q, words[i]);
+  }
 }
 
 void printCounts(cudaq::sample_result& result) {
@@ -92,18 +108,86 @@ int main() {
     // Passing state from another kernel as argument iteratively (kernel mode)
     auto state = cudaq::get_state(test_init_state);
     for (auto i = 0; i < 4; i++) {
-      auto counts = cudaq::sample(test_state_param, &state);
+      auto counts = cudaq::sample(test_state_param2, &state, cudaq::pauli_word{"XX"});
       printCounts(counts);
-      state = cudaq::get_state(test_state_param, &state);
+      state = cudaq::get_state(test_state_param2, &state, cudaq::pauli_word{"XX"});
     }
   }
 
 // CHECK: 00
+// CHECK: 01
 // CHECK: 10
+// CHECK: 11
 // CHECK: 00
+// CHECK: 01
 // CHECK: 10
+// CHECK: 11
 // CHECK: 00
+// CHECK: 01
 // CHECK: 10
+// CHECK: 11
 // CHECK: 00
+// CHECK: 01
 // CHECK: 10
+// CHECK: 11
+
+  {
+    // Passing state from another kernel as argument iteratively (kernel mode)
+    auto state = cudaq::get_state(test_init_state);
+    auto words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XX"}};
+    for (auto i = 0; i < 4; i++) {
+      auto counts = cudaq::sample(test_state_param3, &state, words);
+      printCounts(counts);
+      state = cudaq::get_state(test_state_param3, &state, words);
+      words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XY"}};
+    }
+  }
+
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+
+  {
+    // Passing state from another kernel as argument iteratively (kernel mode)
+    auto state = cudaq::get_state(test_init_state);
+    auto words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XX"}, cudaq::pauli_word{"YY"}};
+    auto coeffs = std::vector<double>{0.5, 0.6};
+    for (auto i = 0; i < 4; i++) {
+      auto counts = cudaq::sample(test_state_param4, &state, coeffs, words);
+      printCounts(counts);
+      state = cudaq::get_state(test_state_param4, &state, coeffs, words);
+      words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XY"}, cudaq::pauli_word{"YX"}};
+      coeffs = std::vector<double>{0.5 * i};
+    }
+  }
+
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
 }
