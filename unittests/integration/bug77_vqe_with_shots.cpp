@@ -12,7 +12,7 @@
 #include <cudaq/optimizers.h>
 #include <cudaq/platform.h>
 
-#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_STIM)
+#ifndef CUDAQ_BACKEND_DM
 CUDAQ_TEST(VqeWithShots, checkBug77) {
 
   struct ansatz {

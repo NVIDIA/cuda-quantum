@@ -12,9 +12,6 @@
 
 #include <cmath>
 
-// Rotational gates not supported in Stim.
-#ifndef CUDAQ_BACKEND_STIM
-
 struct iqft {
   void operator()(cudaq::qview<> &q) __qpu__ {
     int N = q.size();
@@ -128,5 +125,3 @@ CUDAQ_TEST(QPENisqTester, checkPerfectForwardingBug) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "100");
 }
-
-#endif
