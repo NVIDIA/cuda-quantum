@@ -11,6 +11,9 @@
 #include <fstream>
 #include <iostream>
 
+#include <chrono>
+#include <thread>
+
 // define helper function to generate linear spaced vectors
 template <typename T>
 void linear_spaced_vector(std::vector<T> &xs, T min, T max, std::size_t N) {
@@ -23,6 +26,8 @@ void linear_spaced_vector(std::vector<T> &xs, T min, T max, std::size_t N) {
 }
 
 int main() {
+    using namespace std::this_thread;     // sleep_for, sleep_until
+    using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
 
   // A time-bin boson sampling experiment: An input state of 4 indistinguishable
   // photons mixed with 4 vacuum states across 8 time bins (modes) enter the
@@ -97,6 +102,7 @@ int main() {
   std::ifstream in("saveMe.json");
   in >> readIn;
 
+  sleep_for(200ms); // wait for the job to be processed
   // Get the results of the read in future.
   auto async_counts = readIn.get();
   async_counts.dump();

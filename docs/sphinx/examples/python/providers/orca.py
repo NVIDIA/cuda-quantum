@@ -1,4 +1,5 @@
 import cudaq
+import time
 
 import numpy as np
 import os
@@ -84,6 +85,7 @@ file.close()
 
 # We can later read the file content and retrieve the job
 # information and results.
+time.sleep(0.2) # wait for the job to be processed
 same_file = open("future.txt", "r")
 retrieved_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
 
