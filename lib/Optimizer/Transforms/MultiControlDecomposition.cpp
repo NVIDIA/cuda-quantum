@@ -98,7 +98,7 @@ Decomposer::extractControls(quake::OperatorInterface op,
 ArrayRef<Value> Decomposer::getAncillas(Location loc, std::size_t numAncillas) {
   OpBuilder::InsertionGuard g(builder);
   builder.setInsertionPointToStart(entryBlock);
-  // If we don't have enough ancillas, allocate new more.
+  // If we don't have enough ancillas, allocate some more.
   for (size_t i = allocatedAncillas.size(); i < numAncillas; ++i)
     allocatedAncillas.push_back(builder.create<quake::AllocaOp>(loc));
   return {allocatedAncillas.begin(), allocatedAncillas.begin() + numAncillas};
