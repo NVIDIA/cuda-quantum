@@ -9,6 +9,7 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 import cusuperop as cuso
 from .cuso_state import CuSuperOpState
 from .builtin_integrators import RungeKuttaIntegrator, cuSuperOpTimeStepper
+from .scipy_integrators import ScipyZvodeIntegrator
 import cupy
 import copy
 
@@ -52,7 +53,8 @@ def evolve_me(hamiltonian: Operator,
     cuso_ctx = initial_state._ctx
     # FIXME: allow customization (select the integrator)
     stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)
-    integrator = RungeKuttaIntegrator(stepper, nsteps=10)
+    # integrator = RungeKuttaIntegrator(stepper, nsteps=10)
+    integrator = ScipyZvodeIntegrator(stepper, nsteps=10)
     expectation_op = [cuso.Operator(hilbert_space_dims, (observable._evaluate(CuSuperOpHamConversion(dimensions)), 1.0)) for observable in observables]
     integrator.set_state(initial_state, schedule._steps[0])
     exp_vals = [[] for _ in observables]

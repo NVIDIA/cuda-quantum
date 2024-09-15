@@ -29,7 +29,8 @@ class RungeKuttaIntegrator(BaseIntegrator[cuso.State]):
         super().__init__(stepper, **kwargs)
         
     def __post_init__(self):
-        self.n_steps = self.integrator_options["nsteps"]
+        if "nsteps" in self.integrator_options:
+            self.n_steps = self.integrator_options["nsteps"]
     
     def integrate(self, t):
         if self.state is None:
