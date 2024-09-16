@@ -18,38 +18,63 @@
 #include "cudaq/qis/pauli_word.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Parser/Parser.h"
-#include <sstream>
+#include <numeric>
+
+void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
+                  std::vector<void *> args) {
+  std::string code = R"#(
+func.func private @callee(%0: )#" +
+                     typeName + R"#()
+func.func @__nvqpp__mlirgen__testy(%0: )#" +
+                     typeName + R"#() {
+  call @callee(%0) : ()#" +
+                     typeName + R"#() -> ()
+  return
+})#";
+  // Create the Module
+  auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
+  llvm::outs() << "Source module:\n" << *mod << '\n';
+  cudaq::opt::ArgumentConverter ab{"testy", *mod};
+  // Create the argument conversions
+  ab.gen(args);
+  // Dump the conversions
+  llvm::outs() << "========================================\n"
+                  "Substitution module:\n"
+               << ab.getSubstitutionModule() << '\n';
+}
 
 void doTest(mlir::MLIRContext *ctx, std::vector<std::string> &typeNames,
             std::vector<void *> args, std::size_t startingArgIdx = 0) {
 
+  std::string code;
+  llvm::raw_string_ostream ss(code);
+
   // Create code
-  std::ostringstream os;
-  os << "func.func private @callee(%0: " << typeNames[0];
-  for (auto i = 1; i < typeNames.size(); i++)
-    os << ", %" << i << ": " << typeNames[i];
-  os << ")\n";
+  std::vector<int> indices(args.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  auto argPairs = llvm::zip_equal(indices, typeNames);
 
-  os << "func.func @__nvqpp__mlirgen__testy(%0: " << typeNames[0];
-  for (auto i = 1; i < typeNames.size(); i++)
-    os << ", %" << i << ": " << typeNames[i];
-  os << ") {\n";
+  ss << "func.func private @callee(";
+  llvm::interleaveComma(argPairs, ss, [&](auto p) {
+    ss << "%" << std::get<0>(p) << ": " << std::get<1>(p);
+  });
+  ss << ")\n";
 
-  os << "  call @callee(%0";
-  for (auto i = 1; i < typeNames.size(); i++)
-    os << ", %" << i;
-  os << "): ";
+  ss << "func.func @__nvqpp__mlirgen__testy(";
+  llvm::interleaveComma(argPairs, ss, [&](auto p) {
+    ss << "%" << std::get<0>(p) << ": " << std::get<1>(p);
+  });
+  ss << ") {";
 
-  os << "(" << typeNames[0];
-  for (auto i = 1; i < typeNames.size(); i++) {
-    os << ", " << typeNames[i];
-  }
-  os << ") -> ()\n";
+  ss << "  call @callee(";
+  llvm::interleaveComma(indices, ss, [&](auto p) { ss << "%" << p; });
 
-  os << "  return\n";
-  os << "}\n";
+  ss << "): (";
+  llvm::interleaveComma(typeNames, ss, [&](auto t) { ss << t; });
+  ss << ") -> ()\n";
 
-  auto code = os.str();
+  ss << "  return\n";
+  ss << "}\n";
 
   // Create the Module
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
@@ -65,17 +90,11 @@ void doTest(mlir::MLIRContext *ctx, std::vector<std::string> &typeNames,
                << ab.getSubstitutionModule() << '\n';
 }
 
-void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
-                  void *arg) {
-  std::vector<std::string> typeNames{typeName};
-  std::vector<void *> args{arg};
-  doTest(ctx, typeNames, args, 0);
-}
-
 void test_scalars(mlir::MLIRContext *ctx) {
   {
     bool x = true;
-    doSimpleTest(ctx, "i1", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "i1", v);
   }
   // clang-format off
 // CHECK-LABEL: Source module:
@@ -88,7 +107,8 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     char x = 'X';
-    doSimpleTest(ctx, "i8", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "i8", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -101,7 +121,8 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     std::int16_t x = 103;
-    doSimpleTest(ctx, "i16", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "i16", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -114,7 +135,8 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     std::int32_t x = 14581;
-    doSimpleTest(ctx, "i32", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "i32", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -127,7 +149,8 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     std::int64_t x = 78190214;
-    doSimpleTest(ctx, "i64", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "i64", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -141,7 +164,8 @@ void test_scalars(mlir::MLIRContext *ctx) {
 
   {
     float x = 974.17244;
-    doSimpleTest(ctx, "f32", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "f32", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -154,7 +178,8 @@ void test_scalars(mlir::MLIRContext *ctx) {
   // clang-format on
   {
     double x = 77.4782348;
-    doSimpleTest(ctx, "f64", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "f64", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -168,7 +193,8 @@ void test_scalars(mlir::MLIRContext *ctx) {
 
   {
     cudaq::pauli_word x{"XYZ"};
-    doSimpleTest(ctx, "!cc.charspan", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.charspan", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -188,7 +214,8 @@ void test_scalars(mlir::MLIRContext *ctx) {
 void test_vectors(mlir::MLIRContext *ctx) {
   {
     std::vector<std::int32_t> x = {14581, 0xcafe, 42, 0xbeef};
-    doSimpleTest(ctx, "!cc.stdvec<i32>", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<i32>", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -217,7 +244,8 @@ void test_vectors(mlir::MLIRContext *ctx) {
   {
     std::vector<cudaq::pauli_word> x = {cudaq::pauli_word{"XX"},
                                         cudaq::pauli_word{"XY"}};
-    doSimpleTest(ctx, "!cc.stdvec<!cc.charspan>", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.charspan>", v);
   }
   // clang-format off
 // CHECK-LABEL:   cc.arg_subst[0] {
@@ -252,7 +280,8 @@ void test_aggregates(mlir::MLIRContext *ctx) {
     };
     ure x = {static_cast<int>(0xcafebabe), 87.6545, 'A',
              static_cast<short>(0xfade)};
-    doSimpleTest(ctx, "!cc.struct<{i32,f64,i8,i16}>", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.struct<{i32,f64,i8,i16}>", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -286,7 +315,8 @@ void test_recursive(mlir::MLIRContext *ctx) {
     ure x1 = {5412, 23894.5, 'B', 0xada};
     ure x2 = {90210, 782934.78923, 'C', 747};
     std::vector<ure> x = {x0, x1, x2};
-    doSimpleTest(ctx, "!cc.stdvec<!cc.struct<{i32,f64,i8,i16}>>", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.struct<{i32,f64,i8,i16}>>", v);
   }
   // clang-format off
 // CHECK:       Source module:
@@ -339,7 +369,8 @@ void test_state(mlir::MLIRContext *ctx) {
     std::vector<std::complex<double>> data{M_SQRT1_2, M_SQRT1_2, 0., 0.,
                                            0.,        0.,        0., 0.};
     auto x = cudaq::state(new FakeSimulationState(data.size(), data.data()));
-    doSimpleTest(ctx, "!cc.ptr<!cc.state>", &x);
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v);
   }
 
   // clang-format off
@@ -363,6 +394,22 @@ void test_state(mlir::MLIRContext *ctx) {
 }
 
 void test_combinations(mlir::MLIRContext *ctx) {
+  {
+    bool x = true;
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    std::vector<std::string> t = {"i1"};
+    doTest(ctx, t, v);
+  }
+  // clang-format off
+// CHECK-LABEL: Source module:
+// CHECK:         func.func private @callee(i1)
+// CHECK:       Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:         }
+  // clang-format on
+
   {
     bool x = true;
     bool y = false;

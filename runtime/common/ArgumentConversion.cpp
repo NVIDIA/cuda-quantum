@@ -200,8 +200,8 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         return {};
       })
       .Case([&](cudaq::cc::CharspanType strTy) {
-        return genConstant(
-            builder, (*static_cast<cudaq::pauli_word *>(p)).str(), substMod);
+        return genConstant(builder, static_cast<cudaq::pauli_word *>(p)->str(),
+                           substMod);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
         return genConstant(builder, ty, p, substMod, layout);
@@ -367,9 +367,8 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
               return {};
             })
             .Case([&](cc::CharspanType strTy) {
-              return buildSubst(
-                  (*static_cast<cudaq::pauli_word *>(argPtr)).str(),
-                  substModule);
+              return buildSubst(static_cast<cudaq::pauli_word *>(argPtr)->str(),
+                                substModule);
             })
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == cc::StateType::get(ctx))
@@ -415,7 +414,8 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
   std::vector<void *> partialArgs;
   int drop = numDrop;
   for (void *arg : arguments) {
-    if (drop-- > 0) {
+    if (drop > 0) {
+      drop--;
       partialArgs.push_back(nullptr);
       continue;
     }
