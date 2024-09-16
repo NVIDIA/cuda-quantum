@@ -1,0 +1,20 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-early-inlining %s | FileCheck %s
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel1 = "__nvqpp__mlirgen__kernel1_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<2>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+    %2 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    quake.custom_op @__nvqpp__mlirgen__op1_generator_2.rodata %1, %2 : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+  cc.global constant @__nvqpp__mlirgen__op1_generator_2.rodata (dense<[(-0.25534141999999999,0.045629179999999998), (0.11619328,0.79785479999999998), (0.19980911000000001,-0.24754117), (0.052455160000000001,0.42272180999999998), (0.48212336,-0.35275169000000001), (0.47307302000000001,2.047710e-01), (0.38804407000000002,0.34346750999999998), (-0.30236461999999997,-0.13199084), (0.53000373000000001,-0.052047940000000001), (-0.055464520000000003,0.044808380000000002), (-0.39853872000000001,-0.60358142999999997), (-0.40979785000000002,0.1422147), (0.20174057000000001,0.50152752), (0.042562830000000003,-0.27803220000000001), (0.14896845,0.29140401999999999), (-0.16938781,0.70203793000000003)]> : tensor<16xcomplex<f64>>) : !cc.array<complex<f64> x 16>
+}

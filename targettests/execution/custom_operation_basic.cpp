@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s -check-prefix=FAIL
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s
 
 #include <cudaq.h>
 
@@ -33,4 +33,5 @@ int main() {
 // CHECK: 11
 // CHECK: 00
 
-// FAIL: failed to legalize operation 'quake.custom_op'
+// CHECK-NOT: 01
+// CHECK-NOT: 10
