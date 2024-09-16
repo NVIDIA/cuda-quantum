@@ -26,8 +26,8 @@ void linear_spaced_vector(std::vector<T> &xs, T min, T max, std::size_t N) {
 }
 
 int main() {
-    using namespace std::this_thread;     // sleep_for, sleep_until
-    using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
+  using namespace std::this_thread;     // sleep_for, sleep_until
+  using namespace std::chrono_literals; // `ns`, `us`, `ms`, `s`, `h`, etc.
 
   // A time-bin boson sampling experiment: An input state of 4 indistinguishable
   // photons mixed with 4 vacuum states across 8 time bins (modes) enter the

@@ -31,7 +31,7 @@ protected:
   /// @brief The refresh token
   std::string refreshKey = "";
 
-  /// @brief Orca requires the API token be updated every so often,
+  /// @brief ORCA requires the API token be updated every so often,
   /// using the provided refresh token. This function will do that.
   void refreshTokens(bool force_refresh = false);
 
@@ -43,7 +43,7 @@ public:
   virtual ~OrcaServerHelper() = default;
 
   /// @brief Return the name of this server helper, must be the
-  /// same as the qpu config file.
+  /// same as the QPU configuration file.
   const std::string name() const override { return "orca"; }
 
   /// @brief Return the POST/GET required headers.

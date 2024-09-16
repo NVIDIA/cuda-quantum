@@ -63,14 +63,14 @@ counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, n_samples)
 # Print the results
 print(counts)
 
-
 # Option B:
 # By using the asynchronous `cudaq.orca.sample_async`, the remaining
 # classical code will be executed while the job is being handled
 # by Orca. This is ideal when submitting via a queue over
 # the cloud.
 print("Submitting to ORCA Server asynchronously")
-async_results = cudaq.orca.sample_async(input_state, loop_lengths, bs_angles, n_samples)
+async_results = cudaq.orca.sample_async(input_state, loop_lengths, bs_angles,
+                                        n_samples)
 # ... more classical code to run ...
 
 # We can either retrieve the results later in the program with
@@ -85,7 +85,7 @@ file.close()
 
 # We can later read the file content and retrieve the job
 # information and results.
-time.sleep(0.2) # wait for the job to be processed
+time.sleep(0.2)  # wait for the job to be processed
 same_file = open("future.txt", "r")
 retrieved_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
 
