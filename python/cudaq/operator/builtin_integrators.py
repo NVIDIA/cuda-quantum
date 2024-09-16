@@ -18,7 +18,7 @@ class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
             self.state = state 
             self.liouvillian_action.prepare(self.ctx, (self.state ,)) 
          
-        action_result = cuso.DenseDensityMatrix(self.ctx, cupy.zeros_like(self.state.storage))
+        action_result = cuso.DenseMixedState(self.ctx, cupy.zeros_like(self.state.storage))
         self.liouvillian_action.compute(t, (), (self.state,), action_result)
         return action_result
 
@@ -47,15 +47,15 @@ class RungeKuttaIntegrator(BaseIntegrator[cuso.State]):
             
             rho_temp = cupy.copy(self.state.storage)
             rho_temp += ((dt/2) * k1.storage)
-            k2 = self.stepper.compute(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt/2)
+            k2 = self.stepper.compute(cuso.DenseMixedState(self.ctx, rho_temp), current_t + dt/2)
             
             rho_temp = cupy.copy(self.state.storage)
             rho_temp += ((dt/2) * k2.storage)
-            k3 = self.stepper.compute(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt/2)
+            k3 = self.stepper.compute(cuso.DenseMixedState(self.ctx, rho_temp), current_t + dt/2)
            
             rho_temp = cupy.copy(self.state.storage)
             rho_temp += ((dt) * k3.storage)
-            k4 = self.stepper.compute(cuso.DenseDensityMatrix(self.ctx, rho_temp), current_t + dt)
+            k4 = self.stepper.compute(cuso.DenseMixedState(self.ctx, rho_temp), current_t + dt)
             
             # Scale      
             k1.inplace_scale(dt/6)
