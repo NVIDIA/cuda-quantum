@@ -1,0 +1,49 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__run_test() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %true = arith.constant true
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = cc.if(%true) ((%arg0 = %0, %arg1 = %1)) -> (!quake.wire, !quake.wire) {
+    %4 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+    %5 = quake.x %4 : (!quake.wire) -> !quake.wire
+    %6 = quake.h %arg1 : (!quake.wire) -> !quake.wire
+    cc.continue %5, %6 : !quake.wire, !quake.wire
+  } else {
+    cc.continue %arg0, %arg1 : !quake.wire, !quake.wire
+  }
+  %measOut, %wires = quake.mz %2#0 name "b" : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.discriminate %measOut : (!quake.measure) -> i1
+  quake.sink %wires : !quake.wire
+  quake.sink %2#1 : !quake.wire
+  return %3 : i1
+}
+
+// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__run_test() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           %[[VAL_1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_0]]) ((%[[VAL_4:.*]] = %[[VAL_1]], %[[VAL_5:.*]] = %[[VAL_2]])) -> (!quake.wire, !quake.wire) {
+// CHECK:             %[[VAL_6:.*]] = quake.h %[[VAL_4]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[VAL_7:.*]] = quake.x %[[VAL_6]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[VAL_8:.*]] = quake.h %[[VAL_5]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[VAL_7]], %[[VAL_8]] : !quake.wire, !quake.wire
+// CHECK:           } else {
+// CHECK:             cc.continue %[[VAL_9:.*]], %[[VAL_10:.*]] : !quake.wire, !quake.wire
+// CHECK:           }
+// CHECK:           quake.return_wire %[[VAL_11:.*]]#1 : !quake.wire
+// CHECK:           %[[VAL_12:.*]], %[[VAL_13:.*]] = quake.mz %[[VAL_11]]#0 name "b" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_14:.*]] = quake.discriminate %[[VAL_12]] : (!quake.measure) -> i1
+// CHECK:           quake.return_wire %[[VAL_13]] : !quake.wire
+// CHECK:           return %[[VAL_14]] : i1
+// CHECK:         }
