@@ -70,7 +70,7 @@ int main() {
   auto state = cudaq::state::from_data(vec);
   auto state1 = cudaq::state::from_data(vec1);
   {
-      // Passing state created from data as argument (kernel mode)
+      std::cout << "Passing state created from data as argument (kernel mode)\n";
       auto counts = cudaq::sample(test_state_param, &state);
       printCounts(counts);
 
@@ -78,6 +78,7 @@ int main() {
       printCounts(counts);
   }
 
+// CHECK: Passing state created from data as argument (kernel mode)
 // CHECK: 000
 // CHECK: 100
 
@@ -85,88 +86,103 @@ int main() {
 // CHECK: 111
 
   {
-    // Passing state from another kernel as argument (kernel mode)
+    std::cout << "Passing state from another kernel as argument (kernel mode)\n";
     auto state = cudaq::get_state(test_init_state);
     auto counts = cudaq::sample(test_state_param, &state);
     printCounts(counts);
   }
 
+// CHECK: Passing state from another kernel as argument (kernel mode)
 // CHECK: 00
 // CHECK: 10
 
   {
-    // Passing large state from another kernel as argument (kernel mode)
+    std::cout << "Passing large state from another kernel as argument (kernel mode)\n";
     auto largeState = cudaq::get_state(test_init_large_state);
     auto counts = cudaq::sample(test_state_param, &largeState);
     printCounts(counts);
   }
 
+// CHECK: Passing large state from another kernel as argument (kernel mode)
 // CHECK: 00000000000000
 // CHECK: 10000000000000
 
   {
-    // Passing state from another kernel as argument iteratively (kernel mode)
+    std::cout << "Passing state from another kernel as argument iteratively (kernel mode)\n";
     auto state = cudaq::get_state(test_init_state);
     for (auto i = 0; i < 4; i++) {
       auto counts = cudaq::sample(test_state_param2, &state, cudaq::pauli_word{"XX"});
+      std::cout << "Iteration: " << i << std::endl;
       printCounts(counts);
       state = cudaq::get_state(test_state_param2, &state, cudaq::pauli_word{"XX"});
     }
   }
 
+// CHECK: Passing state from another kernel as argument iteratively (kernel mode)
+// CHECK: Iteration: 0
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 1
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 2
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 3
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
 
   {
-    // Passing state from another kernel as argument iteratively (kernel mode)
+    std::cout << "Passing state from another kernel as argument iteratively with vector args (kernel mode)\n";
     auto state = cudaq::get_state(test_init_state);
     auto words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XX"}};
     for (auto i = 0; i < 4; i++) {
       auto counts = cudaq::sample(test_state_param3, &state, words);
+      std::cout << "Iteration: " << i << std::endl;
       printCounts(counts);
       state = cudaq::get_state(test_state_param3, &state, words);
       words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XY"}};
     }
   }
 
+// Passing state from another kernel as argument iteratively with vector args (kernel mode)
+// CHECK: Iteration: 0
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 1
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 2
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 3
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
 
   {
-    // Passing state from another kernel as argument iteratively (kernel mode)
+    std::cout << "Passing state from another kernel as argument iteratively with vector args with 2 elements (kernel mode)\n";
     auto state = cudaq::get_state(test_init_state);
     auto words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XX"}, cudaq::pauli_word{"YY"}};
     auto coeffs = std::vector<double>{0.5, 0.6};
     for (auto i = 0; i < 4; i++) {
       auto counts = cudaq::sample(test_state_param4, &state, coeffs, words);
+      std::cout << "Iteration: " << i << std::endl;
       printCounts(counts);
       state = cudaq::get_state(test_state_param4, &state, coeffs, words);
       words = std::vector<cudaq::pauli_word>{cudaq::pauli_word{"XY"}, cudaq::pauli_word{"YX"}};
@@ -174,18 +190,23 @@ int main() {
     }
   }
 
+// CHECK: Passing state from another kernel as argument iteratively with vector args with 2 elements (kernel mode)
+// CHECK: Iteration: 0
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 1
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 2
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
 // CHECK: 11
+// CHECK: Iteration: 3
 // CHECK: 00
 // CHECK: 01
 // CHECK: 10
