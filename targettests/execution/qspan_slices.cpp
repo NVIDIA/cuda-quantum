@@ -8,6 +8,7 @@
 
 // REQUIRES: c++20
 // clang-format off
+// RUN: nvq++ --target anyon                    --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
@@ -49,5 +50,5 @@ int main() {
 
 // For this test, we should see the mapping pass run, but there should be no
 // mapping_v2p attribute applied anywhere thereafter.
-// DISABLE: IR Dump Before MappingPass
+// DISABLE: IR Dump Before MappingFunc
 // DISABLE-NOT: mapping_v2p

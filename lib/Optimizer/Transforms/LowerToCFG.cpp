@@ -328,7 +328,8 @@ public:
       rewriter.inlineRegionBefore(ifOp.getElseRegion(), endBlock);
     rewriter.setInsertionPointToEnd(initBlock);
     rewriter.create<cf::CondBranchOp>(loc, ifOp.getCondition(), thenBlock,
-                                      ValueRange{}, elseBlock, ValueRange{});
+                                      ifOp.getLinearArgs(), elseBlock,
+                                      ifOp.getLinearArgs());
     rewriter.replaceOp(ifOp, endBlock->getArguments());
     return success();
   }

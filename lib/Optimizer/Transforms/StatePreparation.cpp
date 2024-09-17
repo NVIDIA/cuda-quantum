@@ -293,7 +293,8 @@ private:
 ///     %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
 ///     %1 = quake.alloca !quake.veq<2>
 ///     %2 = quake.init_state %1, %0 : (!quake.veq<2>,
-///       !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2> return
+///       !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+///     return
 ///  }
 ///  cc.global constant @foo.rodata_0 (dense<[(0.707106769,0.000000e+00),
 ///      (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00),
@@ -326,37 +327,6 @@ private:
 
 namespace {
 
-std::vector<std::complex<double>>
-readGlobalConstantArray(mlir::OpBuilder &builder, cudaq::cc::GlobalOp &global) {
-  std::vector<std::complex<double>> result{};
-
-  auto attr = global.getValue();
-  auto elementsAttr = cast<mlir::ElementsAttr>(attr.value());
-  auto eleTy = elementsAttr.getElementType();
-  auto values = elementsAttr.getValues<mlir::Attribute>();
-
-  for (auto it = values.begin(); it != values.end(); ++it) {
-    auto valAttr = *it;
-
-    auto v = [&]() -> std::complex<double> {
-      if (isa<FloatType>(eleTy))
-        return {cast<FloatAttr>(valAttr).getValue().convertToDouble(),
-                static_cast<double>(0.0)};
-      if (isa<IntegerType>(eleTy))
-        return {static_cast<double>(cast<IntegerAttr>(valAttr).getInt()),
-                static_cast<double>(0.0)};
-      assert(isa<ComplexType>(eleTy));
-      auto arrayAttr = cast<mlir::ArrayAttr>(valAttr);
-      auto real = cast<FloatAttr>(arrayAttr[0]).getValue().convertToDouble();
-      auto imag = cast<FloatAttr>(arrayAttr[1]).getValue().convertToDouble();
-      return {real, imag};
-    }();
-
-    result.push_back(v);
-  }
-  return result;
-}
-
 LogicalResult transform(ModuleOp module, func::FuncOp funcOp,
                         double phaseThreshold) {
   auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
@@ -384,7 +354,7 @@ LogicalResult transform(ModuleOp module, func::FuncOp funcOp,
           auto symbol = module.lookupSymbol(globalName);
           if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
             // Read state initialization data from the global array.
-            auto vec = readGlobalConstantArray(builder, global);
+            auto vec = cudaq::opt::factory::readGlobalConstantArray(global);
 
             // Prepare state from vector data.
             auto gateBuilder = StateGateBuilder(builder, loc, qubits);

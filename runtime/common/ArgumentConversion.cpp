@@ -84,23 +84,81 @@ static Value genConstant(OpBuilder &builder, const std::string &v,
   return builder.create<cudaq::cc::StdvecInitOp>(loc, chSpanTy, cast, size);
 }
 
-static Value genConstant(OpBuilder &builder, const cudaq::state *v,
-                         ModuleOp substMod) {
-  // TODO: do we materialize the data here or just add a symbolic reference into
-  // the unknown?
-  TODO("cudaq::state* argument synthesis");
-  return {};
-}
-
 // Forward declare aggregate type builder as they can be recursive.
 static Value genConstant(OpBuilder &, cudaq::cc::StdvecType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
-static Value genConstant(OpBuilder &, TupleType, void *, ModuleOp substMod,
-                         llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
+
+static Value genConstant(OpBuilder &builder, const cudaq::state *v,
+                         ModuleOp substMod, llvm::DataLayout &layout,
+                         llvm::StringRef kernelName, bool isSimulator) {
+  if (isSimulator) {
+    // The program is executed remotely, materialize the simulation data
+    // into an array and create a new state from it.
+    auto numQubits = v->get_num_qubits();
+
+    // We currently only synthesize small states.
+    if (numQubits > 14) {
+      TODO("large (>14 qubit) cudaq::state* argument synthesis for simulators");
+      return {};
+    }
+
+    auto size = 1ULL << numQubits;
+    auto ctx = builder.getContext();
+    auto loc = builder.getUnknownLoc();
+    auto is64Bit =
+        v->get_precision() == cudaq::SimulationState::precision::fp64;
+    auto eleTy = is64Bit ? ComplexType::get(Float64Type::get(ctx))
+                         : ComplexType::get(Float32Type::get(ctx));
+    auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, size);
+    static unsigned counter = 0;
+    auto ptrTy = cudaq::cc::PointerType::get(arrTy);
+
+    cudaq::IRBuilder irBuilder(ctx);
+    auto genConArray = [&]<typename T>() -> Value {
+      std::vector<std::complex<T>> vec(size);
+      for (std::size_t i = 0; i < size; i++) {
+        vec[i] = (*v)({i}, 0);
+      }
+      std::string name =
+          kernelName.str() + ".rodata_synth_" + std::to_string(counter++);
+      irBuilder.genVectorOfConstants(loc, substMod, name, vec);
+      auto conGlobal = builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
+      return builder.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
+    };
+
+    auto conArr = is64Bit ? genConArray.template operator()<double>()
+                          : genConArray.template operator()<float>();
+
+    auto createState = is64Bit ? cudaq::createCudaqStateFromDataFP64
+                               : cudaq::createCudaqStateFromDataFP32;
+    auto result = irBuilder.loadIntrinsic(substMod, createState);
+    assert(succeeded(result) && "loading intrinsic should never fail");
+
+    auto arrSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
+    auto stateTy = cudaq::cc::StateType::get(ctx);
+    auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
+    auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
+    auto buffer = builder.create<cudaq::cc::AllocaOp>(loc, arrTy);
+    builder.create<cudaq::cc::StoreOp>(loc, conArr, buffer);
+
+    auto cast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
+    auto statePtr = builder
+                        .create<func::CallOp>(loc, statePtrTy, createState,
+                                              ValueRange{cast, arrSize})
+                        .getResult(0);
+
+    // TODO: Delete the new state before function exit.
+    return builder.create<cudaq::cc::CastOp>(loc, statePtrTy, statePtr);
+  }
+  // The program is executed on quantum hardware, state data is not
+  // available and needs to be regenerated.
+  TODO("cudaq::state* argument synthesis for quantum hardware");
+  return {};
+}
 
 // Recursive step processing of aggregates.
 Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
@@ -144,12 +202,6 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         return genConstant(builder, *static_cast<const std::string *>(p),
                            substMod);
       })
-      .Case([&](cudaq::cc::PointerType ptrTy) -> Value {
-        if (ptrTy.getElementType() == cudaq::cc::StateType::get(ctx))
-          return genConstant(builder, static_cast<const cudaq::state *>(p),
-                             substMod);
-        return {};
-      })
       .Case([&](cudaq::cc::StdvecType ty) {
         return genConstant(builder, ty, p, substMod, layout);
       })
@@ -159,35 +211,7 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
       .Case([&](cudaq::cc::ArrayType ty) {
         return genConstant(builder, ty, p, substMod, layout);
       })
-      .Case([&](TupleType ty) {
-        return genConstant(builder, ty, p, substMod, layout);
-      })
       .Default({});
-}
-
-// Clang++ lays std::tuples out in reverse order.
-Value genConstant(OpBuilder &builder, TupleType tupTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout) {
-  if (tupTy.getTypes().empty())
-    return {};
-  SmallVector<Type> members;
-  for (auto ty : llvm::reverse(tupTy.getTypes()))
-    members.emplace_back(ty);
-  auto *ctx = builder.getContext();
-  auto strTy = cudaq::cc::StructType::get(ctx, members);
-  // FIXME: read out in reverse order, but build in forward order.
-  auto revCon = genConstant(builder, strTy, p, substMod, layout);
-  auto fwdTy = cudaq::cc::StructType::get(ctx, tupTy.getTypes());
-  auto loc = builder.getUnknownLoc();
-  Value aggie = builder.create<cudaq::cc::UndefOp>(loc, fwdTy);
-  auto n = fwdTy.getMembers().size();
-  for (auto iter : llvm::enumerate(fwdTy.getMembers())) {
-    auto i = iter.index();
-    Value v = builder.create<cudaq::cc::ExtractValueOp>(loc, iter.value(),
-                                                        revCon, n - i - 1);
-    aggie = builder.create<cudaq::cc::InsertValueOp>(loc, fwdTy, aggie, v, i);
-  }
-  return aggie;
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
@@ -263,9 +287,10 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
 //===----------------------------------------------------------------------===//
 
 cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
-                                                 ModuleOp sourceModule)
+                                                 ModuleOp sourceModule,
+                                                 bool isSimulator)
     : sourceModule(sourceModule), builder(sourceModule.getContext()),
-      kernelName(kernelName) {
+      kernelName(kernelName), isSimulator(isSimulator) {
   substModule = builder.create<ModuleOp>(builder.getUnknownLoc());
 }
 
@@ -278,8 +303,10 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
        llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
-    Type argTy = std::get<0>(iter.value());
     void *argPtr = std::get<1>(iter.value());
+    if (!argPtr)
+      continue;
+    Type argTy = std::get<0>(iter.value());
     unsigned i = iter.index();
     auto buildSubst = [&, i = i]<typename... Ts>(Ts &&...ts) {
       builder.setInsertionPointToEnd(substModule.getBody());
@@ -340,7 +367,8 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == cc::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
-                                  substModule);
+                                  substModule, dataLayout, kernelName,
+                                  isSimulator);
               return {};
             })
             .Case([&](cc::StdvecType ty) {
@@ -352,11 +380,38 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Case([&](cc::ArrayType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
-            .Case([&](TupleType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout);
-            })
             .Default({});
     if (subst)
       substitutions.emplace_back(std::move(subst));
   }
+}
+
+void cudaq::opt::ArgumentConverter::gen(
+    const std::vector<void *> &arguments,
+    const std::unordered_set<unsigned> &exclusions) {
+  std::vector<void *> partialArgs;
+  for (auto iter : llvm::enumerate(arguments)) {
+    if (exclusions.contains(iter.index())) {
+      partialArgs.push_back(nullptr);
+      continue;
+    }
+    partialArgs.push_back(iter.value());
+  }
+  gen(partialArgs);
+}
+
+void cudaq::opt::ArgumentConverter::gen_drop_front(
+    const std::vector<void *> &arguments, unsigned numDrop) {
+  // If we're dropping all the arguments, we're done.
+  if (numDrop >= arguments.size())
+    return;
+  std::vector<void *> partialArgs;
+  for (void *arg : arguments) {
+    if (numDrop--) {
+      partialArgs.push_back(nullptr);
+      continue;
+    }
+    partialArgs.push_back(arg);
+  }
+  gen(partialArgs);
 }

@@ -74,6 +74,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
+    ../../runtime/common/ArgumentConversion.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -94,6 +95,7 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq 
     cudaq-common 
     cudaq-em-default
+    cudaq-em-photonics
     fmt::fmt-header-only
     unzip_util
 )

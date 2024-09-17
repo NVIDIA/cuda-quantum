@@ -1,4 +1,5 @@
 ABI
+AFQMC
 API
 APIs
 AST
@@ -126,6 +127,7 @@ backends
 bitcode
 bitstring
 bitstrings
+bool
 boolean
 boson
 broadcasted

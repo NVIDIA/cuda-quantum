@@ -12,6 +12,8 @@ import pandas as pd
 from cudaq import spin
 from mpi4py import MPI
 
+np.random.seed(10)
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from divisive_clustering import Coreset, DivisiveClustering

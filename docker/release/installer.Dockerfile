@@ -17,9 +17,9 @@
 ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-llvm-main
 ARG additional_components=none
 
-FROM $base_image as additional_components_none
+FROM $base_image AS additional_components_none
 RUN echo "No additional components included."
-FROM $base_image as additional_components_assets
+FROM $base_image AS additional_components_assets
 COPY assets /assets/
 RUN source /cuda-quantum/scripts/configure_build.sh && \
     for folder in `find /assets/*$(uname -m)/* -maxdepth 0 -type d`; \
@@ -27,7 +27,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     done
 
 # [Installer]
-FROM additional_components_${additional_components} as assets
+FROM additional_components_${additional_components} AS assets
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
     cd /makeself && git checkout release-2.5.0
 

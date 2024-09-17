@@ -151,12 +151,14 @@ public:
       llvm::ArrayRef<clang::Decl *> reachableFuncs,
       MangledKernelNamesMap &namesMap, clang::CompilerInstance &ci,
       clang::ItaniumMangleContext *mangler,
-      std::unordered_map<std::string, std::string> &customOperations)
+      std::unordered_map<std::string, std::string> &customOperations,
+      bool tuplesAreReversed)
       : astContext(astCtx), mlirContext(mlirCtx), builder(bldr), module(module),
         symbolTable(symTab), functionsToEmit(funcsToEmit),
         reachableFunctions(reachableFuncs), namesMap(namesMap),
         compilerInstance(ci), mangler(mangler),
-        customOperationNames(customOperations) {}
+        customOperationNames(customOperations),
+        tuplesAreReversed(tuplesAreReversed) {}
 
   /// `nvq++` renames quantum kernels to differentiate them from classical C++
   /// code. This renaming is done on function names. \p tag makes it easier
@@ -399,6 +401,7 @@ public:
 
   bool TraverseRecordType(clang::RecordType *t);
   bool interceptRecordDecl(clang::RecordDecl *x);
+  std::pair<std::uint64_t, unsigned> getWidthAndAlignment(clang::RecordDecl *x);
   bool VisitRecordDecl(clang::RecordDecl *x);
 
   // Type declarations to be converted to high-level Quake and CC types are
@@ -618,6 +621,7 @@ private:
   llvm::DenseMap<clang::RecordType *, mlir::Type> records;
 
   // State Flags
+  const bool tuplesAreReversed : 1;
   bool skipCompoundScope : 1 = false;
   bool isEntry : 1 = false;
   /// If there is a catastrophic error in the bridge (there is no rational way
@@ -687,6 +691,8 @@ public:
 
     // Keep track of user custom operation names.
     std::unordered_map<std::string, std::string> customOperationNames;
+
+    bool tuplesAreReversed = false;
 
     /// Add a placeholder definition to the module in \p visitor for the
     /// function, \p funcDecl. This is used for adding the host-side function

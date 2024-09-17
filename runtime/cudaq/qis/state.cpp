@@ -48,12 +48,12 @@ void state::dump(std::ostream &os) const { internal->dump(os); }
 
 std::complex<double>
 state::operator()(const std::initializer_list<std::size_t> &indices,
-                  std::size_t tensorIdx) {
+                  std::size_t tensorIdx) const {
   std::vector<std::size_t> idxVec(indices.begin(), indices.end());
   return (*internal)(tensorIdx, idxVec);
 }
 
-std::complex<double> state::operator[](std::size_t idx) {
+std::complex<double> state::operator[](std::size_t idx) const {
   std::size_t numQubits = internal->getNumQubits();
   if (!internal->isArrayLike()) {
     // Use amplitude accessor if linear indexing is not supported, e.g., tensor
@@ -73,7 +73,7 @@ std::complex<double> state::operator[](std::size_t idx) {
   return operator()({newIdx}, 0);
 }
 
-std::complex<double> state::operator()(std::size_t idx, std::size_t jdx) {
+std::complex<double> state::operator()(std::size_t idx, std::size_t jdx) const {
   return operator()({idx, jdx}, 0);
 }
 
@@ -111,6 +111,37 @@ extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
   return obj->get_num_qubits();
 }
+
+state *__nvqpp_cudaq_state_createFromData_fp64(void *data, std::size_t size) {
+  auto d = reinterpret_cast<std::complex<double> *>(data);
+
+  // Convert the data to the current simulation precision
+  // if different from the data's precision.
+  auto *simulator = cudaq::get_simulator();
+  if (simulator->isSinglePrecision()) {
+    std::vector<std::complex<float>> converted(d, d + size);
+    return new state(state::from_data(converted));
+  }
+
+  std::vector<std::complex<double>> current(d, d + size);
+  return new state(state::from_data(current));
 }
 
+state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
+  auto d = reinterpret_cast<std::complex<float> *>(data);
+
+  // Convert the data to the current simulation precision
+  // if different from the data's precision.
+  auto *simulator = cudaq::get_simulator();
+  if (simulator->isDoublePrecision()) {
+    std::vector<std::complex<double>> converted(d, d + size);
+    return new state(state::from_data(converted));
+  }
+
+  std::vector<std::complex<float>> current(d, d + size);
+  return new state(state::from_data(current));
+}
+
+void __nvqpp_cudaq_state_delete(state *obj) { delete obj; }
+}
 } // namespace cudaq
