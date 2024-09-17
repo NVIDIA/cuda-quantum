@@ -232,7 +232,6 @@ PYBIND11_MODULE(_quakeDialects, m) {
         std::tuple<std::string, std::string> ret;
         try {
           ret = cudaq::getDeviceKernel(moduleName);
-
         } catch (...) {
           return std::nullopt;
         }
@@ -250,5 +249,8 @@ PYBIND11_MODULE(_quakeDialects, m) {
           return WalkResult::advance();
         });
         return kName;
-      });
+      },
+      "Given a python module name like `mod1.mod2.func`, see if there is a "
+      "registered C++ quantum kernel. If so, add the kernel to the Module and "
+      "return its name.");
 }
