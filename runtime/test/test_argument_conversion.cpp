@@ -31,15 +31,12 @@ func.func @__nvqpp__mlirgen__testy(%0: )#" +
                      typeName + R"#() -> ()
   return
 })#";
-
   // Create the Module
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
   llvm::outs() << "Source module:\n" << *mod << '\n';
   cudaq::opt::ArgumentConverter ab{"testy", *mod};
-
   // Create the argument conversions
   ab.gen(args);
-
   // Dump the conversions
   llvm::outs() << "========================================\n"
                   "Substitution module:\n"
@@ -412,6 +409,7 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK:           %[[VAL_0:.*]] = arith.constant true
 // CHECK:         }
   // clang-format on
+
   {
     bool x = true;
     bool y = false;
