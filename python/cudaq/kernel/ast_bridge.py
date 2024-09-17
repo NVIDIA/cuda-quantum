@@ -1336,7 +1336,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__insertDbgStmt(self.popValue(), node.func.attr)
                 return
 
-            # Handle the case of mod.func, where mod is not cudaq.
+            # Handle the case of `mod.func`, where mod is not cudaq.
             if isinstance(node.func, ast.Attribute) and isinstance(
                     node.func.value,
                     ast.Name) and node.func.value.id != 'cudaq':

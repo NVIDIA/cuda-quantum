@@ -229,7 +229,7 @@ class PyKernelDecorator(object):
         if not isinstance(otherMod, str):
             otherMod = str(otherMod)
         newMod = cudaq_runtime.mergeExternalMLIR(self.module, otherMod)
-        # Get the name of the cudaq-entrypoint
+        # Get the name of the kernel entry point
         name = self.name
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
@@ -249,7 +249,7 @@ class PyKernelDecorator(object):
         """
         self.compile()
         cudaq_runtime.synthPyCallable(self.module, funcNames)
-        # Reset the argTypes by removing the Callable
+        # Reset the argument types by removing the Callable
         self.argTypes = [
             a for a in self.argTypes if not cc.CallableType.isinstance(a)
         ]
