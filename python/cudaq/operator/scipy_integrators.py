@@ -22,7 +22,7 @@ class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
             self.state = state
             self.liouvillian_action.prepare(self.ctx, (self.state,))
 
-        action_result = cuso.DenseMixedState(
+        action_result = cuso.DenseDensityMatrix(
             self.ctx, cupy.zeros_like(self.state.storage))
         self.liouvillian_action.compute(t, (), (self.state,), action_result)
         return action_result
@@ -40,7 +40,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
 
     def compute_rhs(self, t, vec):
         rho_data = cupy.asfortranarray(cupy.array(vec).reshape(self.dm_shape))
-        temp_state = cuso.DenseMixedState(self.state._ctx, rho_data)
+        temp_state = cuso.DenseDensityMatrix(self.state._ctx, rho_data)
         result = self.stepper.compute(temp_state, t)
         as_array = result.storage.ravel().get()
         return as_array
@@ -74,7 +74,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
             cupy.array(new_state).reshape(self.dm_shape))
         self.state.inplace_scale(0.0)
         self.state.inplace_add(
-            cuso.DenseMixedState(self.state._ctx, rho_data))
+            cuso.DenseDensityMatrix(self.state._ctx, rho_data))
         self.t = t
 
     def set_state(self, state: cuso.State, t: float = 0.0):

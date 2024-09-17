@@ -1,15 +1,15 @@
-from cusuperop import DenseMixedState, WorkStream
+from cusuperop import DenseDensityMatrix, WorkStream
 import cupy, atexit
 
 class CuSuperOpState(object):
     __ctx = WorkStream()
     
     def __init__(self, data):
-        if isinstance(data, DenseMixedState):
+        if isinstance(data, DenseDensityMatrix):
             self.density_matrix = data
         else:
             rho0_ = cupy.asfortranarray(data)
-            self.density_matrix = DenseMixedState(self.__ctx, rho0_)
+            self.density_matrix = DenseDensityMatrix(self.__ctx, rho0_)
 
     @staticmethod
     def from_data(data):
