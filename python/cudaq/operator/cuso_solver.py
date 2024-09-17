@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence, Mapping, List
+from typing import Sequence, Mapping, List, Optional
 
 from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
 from ..runtime.observe import observe
@@ -8,6 +8,7 @@ from .expressions import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 import cusuperop as cuso
 from .cuso_state import CuSuperOpState
+from .integrator import BaseIntegrator
 from .builtin_integrators import RungeKuttaIntegrator, cuSuperOpTimeStepper
 from .scipy_integrators import ScipyZvodeIntegrator
 import cupy
@@ -32,7 +33,8 @@ def evolve_me(hamiltonian: Operator,
            initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
            collapse_operators: Sequence[Operator] = [],
            observables: Sequence[Operator] = [], 
-           store_intermediate_results = False) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult] | EvolveResult:
+           store_intermediate_results = False,
+           integrator: Optional[BaseIntegrator] = None) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult] | EvolveResult:
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
     ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions))
     linblad_terms = []
@@ -51,10 +53,11 @@ def evolve_me(hamiltonian: Operator,
 
     initial_state = initial_state.get_impl()
     cuso_ctx = initial_state._ctx
-    # FIXME: allow customization (select the integrator)
     stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)
-    # integrator = RungeKuttaIntegrator(stepper, nsteps=10)
-    integrator = ScipyZvodeIntegrator(stepper, nsteps=10)
+    if integrator is None:
+        integrator = RungeKuttaIntegrator(stepper)
+    else:
+        integrator.set_system(dimensions, hamiltonian, collapse_operators)
     expectation_op = [cuso.Operator(hilbert_space_dims, (observable._evaluate(CuSuperOpHamConversion(dimensions)), 1.0)) for observable in observables]
     integrator.set_state(initial_state, schedule._steps[0])
     exp_vals = [[] for _ in observables]

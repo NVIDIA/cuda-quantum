@@ -3,30 +3,8 @@ import cusuperop as cuso
 import cupy
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
-
-
-class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
-
-    def __init__(self, liouvillian: cuso.Operator, ctx: cuso.WorkStream):
-        self.liouvillian = liouvillian
-        self.ctx = ctx
-        self.state = None
-        self.liouvillian_action = None
-
-    def compute(self, state: cuso.State, t: float):
-        if self.liouvillian_action is None:
-            self.liouvillian_action = cuso.OperatorAction(
-                self.ctx, (self.liouvillian,))
-
-        if state != self.state:
-            self.state = state
-            self.liouvillian_action.prepare(self.ctx, (self.state,))
-
-        action_result = cuso.DenseDensityMatrix(
-            self.ctx, cupy.zeros_like(self.state.storage))
-        self.liouvillian_action.compute(t, (), (self.state,), action_result)
-        return action_result
-
+from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
+from .builtin_integrators import cuSuperOpTimeStepper
 
 class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
     n_steps = 2500
@@ -35,12 +13,17 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
     order = 12
 
     def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
-        super().__init__(stepper, **kwargs)
+        super().__init__(**kwargs)
+        self.stepper = stepper
         self.dm_shape = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.dm_shape = None
+    
     def compute_rhs(self, t, vec):
         rho_data = cupy.asfortranarray(cupy.array(vec).reshape(self.dm_shape))
-        temp_state = cuso.DenseDensityMatrix(self.state._ctx, rho_data)
+        temp_state = cuso.DenseMixedState(self.state._ctx, rho_data)
         result = self.stepper.compute(temp_state, t)
         as_array = result.storage.ravel().get()
         return as_array
@@ -66,6 +49,18 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
                                         nsteps=self.n_steps)
 
     def integrate(self, t):
+        if self.stepper is None:
+            if self.hamiltonian is None or self.collapse_operators is None or self.dimensions is None:
+                raise ValueError("Hamiltonian and collapse operators are required for integrator if no stepper is provided")
+            hilbert_space_dims = tuple(self.dimensions[d] for d in range(len(self.dimensions)))
+            ham_term = self.hamiltonian._evaluate(CuSuperOpHamConversion(self.dimensions))
+            linblad_terms = []
+            for c_op in self.collapse_operators:
+                linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(self.dimensions)))
+            liouvillian = constructLiouvillian(hilbert_space_dims, ham_term, linblad_terms)
+            cuso_ctx = self.state._ctx
+            self.stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)
+        
         if t <= self.t:
             raise ValueError(
                 "Integration time must be greater than current time")
@@ -74,7 +69,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
             cupy.array(new_state).reshape(self.dm_shape))
         self.state.inplace_scale(0.0)
         self.state.inplace_add(
-            cuso.DenseDensityMatrix(self.state._ctx, rho_data))
+            cuso.DenseMixedState(self.state._ctx, rho_data))
         self.t = t
 
     def set_state(self, state: cuso.State, t: float = 0.0):

@@ -30,7 +30,8 @@ evolution_result = evolve(
     rho0,
     observables=[operators.number(1), operators.number(0)],
     collapse_operators=[np.sqrt(0.1) * a],
-    store_intermediate_results=False)
+    store_intermediate_results=False,
+    integrator=ScipyZvodeIntegrator(nsteps=10))
 
 import matplotlib.pyplot as plt
 

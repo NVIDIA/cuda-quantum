@@ -18,7 +18,8 @@ evolution_result = evolve(hamiltonian,
                           rho0,
                           observables=[pauli.y(0), pauli.z(0)],
                           collapse_operators=[],
-                          store_intermediate_results=True)
+                          store_intermediate_results=True,
+                          integrator=RungeKuttaIntegrator(nsteps=10))
 
 import matplotlib.pyplot as plt
 

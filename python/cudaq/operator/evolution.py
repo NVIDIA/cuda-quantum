@@ -9,6 +9,7 @@ from ..kernel.register_op import register_operation
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_decorator import PyKernelDecorator
 from ..runtime.observe import observe
+from .integrator import BaseIntegrator
 from .cuso_solver import evolve_me
 
 noise = cudaq_runtime.NoiseModel()
@@ -87,7 +88,8 @@ def evolve(hamiltonian: Operator,
            initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
            collapse_operators: Sequence[Operator] = [],
            observables: Sequence[Operator] = [], 
-           store_intermediate_results = False) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
+           store_intermediate_results = False,
+           integrator: Optional[BaseIntegrator] = None) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     """
     Computes the time evolution of one or more initial state(s) under the defined 
     operator(s). 
@@ -127,7 +129,8 @@ def evolve(hamiltonian: Operator,
                         initial_state,
                         collapse_operators,
                         observables, 
-                        store_intermediate_results)
+                        store_intermediate_results,
+                        integrator)
     
     simulator = cudaq_runtime.get_target().simulator.strip()
     if simulator == "":

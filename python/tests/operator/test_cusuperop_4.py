@@ -86,7 +86,8 @@ evolution_result = evolve(hamiltonian,
                                        pauli.y(0),
                                        pauli.z(0)],
                           collapse_operators=c_ops,
-                          store_intermediate_results=False)
+                          store_intermediate_results=False,
+                          integrator=ScipyZvodeIntegrator(nsteps=10))
 
 import matplotlib.pyplot as plt
 

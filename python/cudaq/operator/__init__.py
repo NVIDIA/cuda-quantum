@@ -4,3 +4,5 @@ from .expressions import Operator, OperatorSum, ProductOperator, ElementaryOpera
 from .helpers import NumericType
 from .schedule import Schedule
 from .cuso_state import CuSuperOpState
+from .builtin_integrators import RungeKuttaIntegrator
+from .scipy_integrators import ScipyZvodeIntegrator
