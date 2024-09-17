@@ -168,9 +168,8 @@ def constructLiouvillian(hilbert_space_dims: List[int], ham: cuso.OperatorTerm, 
     hamiltonian = hamiltonian * (-1j)
     liouvillian = hamiltonian - hamiltonian.dual() 
     
-    for c1 in c_ops:
-        for c2 in c_ops:
-            lindbladian = computeLindladOp(hilbert_space_dims, c1, c2)
-            liouvillian += lindbladian
+    for c_op in c_ops:
+        lindbladian = computeLindladOp(hilbert_space_dims, c_op, c_op)
+        liouvillian += lindbladian
 
     return liouvillian
