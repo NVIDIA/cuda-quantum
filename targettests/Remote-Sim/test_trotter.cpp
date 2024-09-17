@@ -8,7 +8,7 @@
 
 // clang-format off
 // TODO-FIX-KERNEL-EXEC
-// nvq++ --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 trotter_kernel_mode.cpp -o trotter.x && ./trotter.x
+// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 %s -o %t  && %t | FileCheck %s
 // clang-format on
 
 #include <complex>
