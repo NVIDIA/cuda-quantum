@@ -80,7 +80,7 @@ std::string getKernelName(std::string &input);
 /// @param input The input string to extract from.
 /// @param startStr The starting delimiter.
 /// @param endStr The ending delimiter.
-/// @return The extracted substring.
+/// @return The extracted sub-string.
 std::string extractSubstring(const std::string &input,
                              const std::string &startStr,
                              const std::string &endStr);
