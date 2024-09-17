@@ -10,55 +10,19 @@
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CallGraphFix.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"
-#include "mlir/Analysis/CallGraph.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Transforms/Passes.h"
 
 #define DEBUG_TYPE "device-code-loader"
 
 using namespace mlir;
-
-namespace llvm {
-// FIXME: `GraphTraits` specialization for `const mlir::CallGraphNode *` in
-// "mlir/Analysis/CallGraph.h" has a bug.
-// In particular, `GraphTraits<const mlir::CallGraphNode *>` typedef'ed `NodeRef
-// -> mlir::CallGraphNode *`, (without `const`), causing problems when using
-// `mlir::CallGraphNode` with graph iterator (e.g., `llvm::df_iterator`). The
-// entry node getter has the signature `NodeRef getEntryNode(NodeRef node)`,
-// i.e., `mlir::CallGraphNode * getEntryNode(mlir::CallGraphNode * node)`; but a
-// graph iterator for `const mlir::CallGraphNode *` will pass a `const
-// mlir::CallGraphNode *` to that `getEntryNode` function => compile error.
-// Here, we define a non-const overload, which hasn't been defined, to work
-// around that issue.
-//
-// Note: this isn't an issue for the whole `mlir::CallGraph` graph, i.e.,
-// `GraphTraits<const mlir::CallGraph *>`. `getEntryNode` is defined as
-// `getExternalCallerNode`, which is a const method of `mlir::CallGraph`.
-
-template <>
-struct GraphTraits<mlir::CallGraphNode *> {
-  using NodeRef = mlir::CallGraphNode *;
-  static NodeRef getEntryNode(NodeRef node) { return node; }
-
-  static NodeRef unwrap(const mlir::CallGraphNode::Edge &edge) {
-    return edge.getTarget();
-  }
-  using ChildIteratorType =
-      mapped_iterator<mlir::CallGraphNode::iterator, decltype(&unwrap)>;
-  static ChildIteratorType child_begin(NodeRef node) {
-    return {node->begin(), &unwrap};
-  }
-  static ChildIteratorType child_end(NodeRef node) {
-    return {node->end(), &unwrap};
-  }
-};
-} // namespace llvm
 
 namespace {
 class GenerateDeviceCodeLoader
