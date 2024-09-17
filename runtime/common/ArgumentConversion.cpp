@@ -10,6 +10,8 @@
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Todo.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/utils/registry.h"
@@ -97,11 +99,25 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
 
 static Value genConstant(OpBuilder &builder, const cudaq::state *v,
-                         ModuleOp substMod, llvm::DataLayout &layout,
-                         llvm::StringRef kernelName, bool isSimulator) {
-  if (isSimulator) {
-    // The program is executed remotely, materialize the simulation data
-    // into an array and create a new state from it.
+                         llvm::DataLayout &layout,
+                         cudaq::opt::ArgumentConverter &converter) {
+  auto simState =
+      cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
+
+  auto kernelName = converter.getKernelName();
+  auto sourceMod = converter.getSourceModule();
+  auto substMod = converter.getSubstitutionModule();
+
+  // If the state has amplitude data, we materialize the data as a state
+  // vector and create a new state from it.
+  // TODO: how to handle density matrices? Should we just inline calls?
+  if (simState->hasData()) {
+    // The call below might cause lazy execution of the state kernel.
+    // TODO: For lazy execution scenario on remote simulators, we have the
+    // kernel info available on the state as well, before we needed to run
+    // the state kernel and compute its data, which might cause significant
+    // data transfer). Investigate if it is more performant to use the other
+    // synthesis option in that case (see the next `if`).
     auto numQubits = v->get_num_qubits();
 
     // We currently only synthesize small states.
@@ -130,11 +146,11 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
       std::string name =
           kernelName.str() + ".rodata_synth_" + std::to_string(counter++);
       irBuilder.genVectorOfConstants(loc, substMod, name, vec);
-      auto conGlobal = builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
-      return builder.create<cudaq::cc::LoadOp>(loc, arrTy, conGlobal);
+
+      return builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
     };
 
-    auto conArr = is64Bit ? genConArray.template operator()<double>()
+    auto buffer = is64Bit ? genConArray.template operator()<double>()
                           : genConArray.template operator()<float>();
 
     auto createState = is64Bit ? cudaq::createCudaqStateFromDataFP64
@@ -146,21 +162,111 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto stateTy = cudaq::cc::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
     auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-    auto buffer = builder.create<cudaq::cc::AllocaOp>(loc, arrTy);
-    builder.create<cudaq::cc::StoreOp>(loc, conArr, buffer);
 
     auto cast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
     auto statePtr = builder
                         .create<func::CallOp>(loc, statePtrTy, createState,
                                               ValueRange{cast, arrSize})
                         .getResult(0);
-
-    // TODO: Delete the new state before function exit.
     return builder.create<cudaq::cc::CastOp>(loc, statePtrTy, statePtr);
   }
-  // The program is executed on quantum hardware, state data is not
-  // available and needs to be regenerated.
-  TODO("cudaq::state* argument synthesis for quantum hardware");
+
+  // For quantum hardware, replace states with calls to kernels that generated
+  // them.
+  if (simState->getKernelInfo().has_value()) {
+    auto [calleeName, calleeArgs] = simState->getKernelInfo().value();
+
+    std::string calleeKernelName =
+        cudaq::runtime::cudaqGenPrefixName + calleeName;
+
+    auto ctx = builder.getContext();
+    auto loc = builder.getUnknownLoc();
+
+    auto code = cudaq::get_quake_by_name(calleeName, /*throwException=*/false);
+    assert(!code.empty() && "Quake code not found for callee");
+    auto fromModule = parseSourceString<ModuleOp>(code, ctx);
+
+    static unsigned counter = 0;
+    std::string modifiedCalleeName =
+        calleeName + ".modified_" + std::to_string(counter++);
+    std::string modifiedCalleeKernelName =
+        cudaq::runtime::cudaqGenPrefixName + modifiedCalleeName;
+
+    // Create callee.modified that returns concat of veq allocations.
+    auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
+    assert(calleeFunc && "callee is missing");
+    auto argTypes = calleeFunc.getArgumentTypes();
+    auto retType = quake::VeqType::getUnsized(ctx);
+    auto funcTy = FunctionType::get(ctx, argTypes, {retType});
+
+    {
+      OpBuilder::InsertionGuard guard(builder);
+      builder.setInsertionPointToEnd(sourceMod.getBody());
+
+      auto modifiedCalleeFunc = cast<func::FuncOp>(builder.clone(*calleeFunc));
+      modifiedCalleeFunc.setName(modifiedCalleeKernelName);
+      modifiedCalleeFunc.setType(funcTy);
+      modifiedCalleeFunc.setPrivate();
+
+      OpBuilder modifiedBuilder(ctx);
+      SmallVector<Value> allocations;
+      SmallVector<Operation *> cleanUps;
+      for (auto &op : modifiedCalleeFunc.getOps()) {
+        if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
+          allocations.push_back(alloc.getResult());
+          // Replace by the result of quake.init_state if used by it
+          for (auto *user : op.getUsers()) {
+            if (auto init = dyn_cast<quake::InitializeStateOp>(*user)) {
+              allocations.pop_back();
+              allocations.push_back(init.getResult());
+            }
+          }
+        }
+        if (auto retOp = dyn_cast<func::ReturnOp>(op)) {
+          if (retOp.getOperands().size() == 0) {
+            modifiedBuilder.setInsertionPointAfter(retOp);
+            assert(allocations.size() > 0 && "No veq allocations found");
+            Value ret = modifiedBuilder.create<quake::ConcatOp>(
+                loc, quake::VeqType::getUnsized(ctx), allocations);
+            modifiedBuilder.create<func::ReturnOp>(loc, ret);
+            cleanUps.push_back(retOp);
+          }
+        }
+      }
+      for (auto *op : cleanUps) {
+        op->dropAllUses();
+        op->erase();
+      }
+    }
+
+    // Create substitutions for the `callee.modified.N`.
+    converter.genCallee(modifiedCalleeName, calleeArgs);
+
+    // Create a subst for state pointer.
+    auto strLitTy = cudaq::cc::PointerType::get(
+        cudaq::cc::ArrayType::get(builder.getContext(), builder.getI8Type(),
+                                  modifiedCalleeKernelName.size() + 1));
+    auto callee = builder.create<cudaq::cc::CreateStringLiteralOp>(
+        loc, strLitTy, builder.getStringAttr(modifiedCalleeKernelName));
+
+    auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
+    auto calleeCast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, callee);
+
+    cudaq::IRBuilder irBuilder(ctx);
+    auto result = irBuilder.loadIntrinsic(substMod, cudaq::getCudaqState);
+    assert(succeeded(result) && "loading intrinsic should never fail");
+
+    auto statePtrTy =
+        cudaq::cc::PointerType::get(cudaq::cc::StateType::get(ctx));
+    auto statePtr =
+        builder
+            .create<func::CallOp>(loc, statePtrTy, cudaq::getCudaqState,
+                                  ValueRange{calleeCast})
+            .getResult(0);
+    return builder.create<cudaq::cc::CastOp>(loc, statePtrTy, statePtr);
+  }
+
+  TODO("cudaq::state* argument synthesis for quantum hardware for c functions");
   return {};
 }
 
@@ -326,7 +432,7 @@ cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
                                                  ModuleOp sourceModule,
                                                  bool isSimulator)
     : sourceModule(sourceModule), builder(sourceModule.getContext()),
-      kernelName(kernelName), isSimulator(isSimulator) {
+      kernelName(kernelName) {
   substModule = builder.create<ModuleOp>(builder.getUnknownLoc());
 }
 
@@ -335,7 +441,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
   // We should look up the input type signature here.
 
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
-      cudaq::runtime::cudaqGenPrefixName + kernelName.str());
+      cudaq::runtime::cudaqGenPrefixName + kernelName);
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
        llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
@@ -403,8 +509,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == cc::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
-                                  substModule, dataLayout, kernelName,
-                                  isSimulator);
+                                  dataLayout, *this);
               return {};
             })
             .Case([&](cc::StdvecType ty) {
@@ -456,4 +561,30 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
     partialArgs.push_back(arg);
   }
   gen(partialArgs);
+}
+
+std::pair<std::vector<std::string>, std::vector<std::string>>
+cudaq::opt::ArgumentConverter::collectAllSubstitutions() {
+  std::vector<std::string> kernels;
+  std::vector<std::string> substs;
+
+  std::function<void(ArgumentConverter &)> collect =
+      [&kernels, &substs, &collect](ArgumentConverter &con) {
+        auto name = con.getKernelName();
+        std::string kernName = cudaq::runtime::cudaqGenPrefixName + name.str();
+        kernels.push_back(kernName);
+
+        {
+          std::string substBuff;
+          llvm::raw_string_ostream ss(substBuff);
+          ss << con.getSubstitutionModule();
+          substs.push_back(substBuff);
+        }
+
+        for (auto &calleeCon : con.getCalleeConverters())
+          collect(calleeCon);
+      };
+
+  collect(*this);
+  return {kernels, substs};
 }

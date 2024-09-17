@@ -14,6 +14,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
 #include <unordered_set>
+#include <vector>
 
 namespace cudaq::opt {
 
@@ -47,13 +48,30 @@ public:
   /// created.
   mlir::ModuleOp getSubstitutionModule() { return substModule; }
 
+  mlir::ModuleOp getSourceModule() { return sourceModule; }
+
+  mlir::StringRef getKernelName() { return kernelName; }
+
+  void genCallee(std::string &calleeName, std::vector<void *> &args) {
+    auto converter = ArgumentConverter(calleeName, sourceModule);
+    converter.gen(args);
+    calleeConverters.push_back(converter);
+  }
+
+  std::vector<ArgumentConverter> &getCalleeConverters() {
+    return calleeConverters;
+  }
+
+  std::pair<std::vector<std::string>, std::vector<std::string>>
+  collectAllSubstitutions();
+
 private:
   mlir::ModuleOp sourceModule;
   mlir::ModuleOp substModule;
   mlir::OpBuilder builder;
-  mlir::StringRef kernelName;
+  std::string kernelName;
   mlir::SmallVector<cc::ArgumentSubstitutionOp> substitutions;
-  bool isSimulator;
+  std::vector<ArgumentConverter> calleeConverters;
 };
 
 } // namespace cudaq::opt

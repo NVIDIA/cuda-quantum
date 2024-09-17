@@ -96,8 +96,9 @@ public:
     }
   }
 
-  std::pair<std::string, std::vector<void *>> getKernelInfo() const override {
-    return {kernelName, argsData->getArgs()};
+  std::optional<std::pair<std::string, std::vector<void *>>>
+  getKernelInfo() const override {
+    return std::make_pair(kernelName, argsData->getArgs());
   }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override {

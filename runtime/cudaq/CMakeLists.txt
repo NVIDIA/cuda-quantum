@@ -20,6 +20,7 @@ add_library(${LIBRARY_NAME}
                 platform/quantum_platform.cpp
                 qis/execution_manager_c_api.cpp
                 qis/execution_manager.cpp
+                qis/quantum_state.cpp
                 qis/remote_state.cpp
                 qis/state.cpp
                 utils/cudaq_utils.cpp

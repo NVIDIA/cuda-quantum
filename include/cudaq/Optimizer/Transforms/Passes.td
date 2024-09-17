@@ -779,6 +779,44 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   }];
 }
 
+def StateInitialization : Pass<"state-initialization", "mlir::ModuleOp"> {
+  let summary =
+    "Replace `quake.init_state` instructions with call to the kernel generating the state";
+  let description = [{
+    Argument synthesis for state pointers for quantum devices substitutes state
+    argument by a new state created from `__nvqpp_cudaq_state_get` intrinsic, which
+    in turn accepts the name for the synthesized kernel that generated the state.
+
+    This optimization completes the replacement of `quake.init_state` instruction by:
+
+    - Replace `quake.init_state` by a call that `get_state` call refers to.
+    - Remove all unneeded instructions.
+
+    For example:
+
+    Before StateInitialization (state-initialization):
+    ```
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      %0 = cc.string_literal "__nvqpp__mlirgen__test_init_state.modified_0" : !cc.ptr<!cc.array<i8 x 45>>
+      %1 = cc.cast %0 : (!cc.ptr<!cc.array<i8 x 45>>) -> !cc.ptr<i8>
+      %2 = call @__nvqpp_cudaq_state_get(%1) : (!cc.ptr<i8>) -> !cc.ptr<!cc.state>
+      %3 = call @__nvqpp_cudaq_state_numberOfQubits(%2) : (!cc.ptr<!cc.state>) -> i64
+      %4 = quake.alloca !quake.veq<?>[%3 : i64]
+      %5 = quake.init_state %4, %2 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+      return
+    }
+    ```
+
+    After StateInitialization (state-initialization):
+    ```
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      %5 = call @__nvqpp__mlirgen__test_init_state.modified_0() : () -> !quake.veq<?>
+      return
+    }
+    ```
+  }];
+}
+
 def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
   let summary =
     "Convert state vector data into gates";

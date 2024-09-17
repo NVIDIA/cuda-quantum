@@ -170,9 +170,10 @@ public:
         if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
           rewriter.setInsertionPointAfter(useuser);
           LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
-          rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(
-              load, eleTy, conArr,
-              ArrayRef<cudaq::cc::ExtractValueArg>{offset});
+          auto extract = rewriter.create<cudaq::cc::ExtractValueOp>(
+              loc, eleTy, conArr, ArrayRef<cudaq::cc::ExtractValueArg>{offset});
+          rewriter.replaceAllUsesWith(load, extract);
+          toErase.push_back(load);
           continue;
         }
         if (isa<cudaq::cc::StoreOp>(useuser))
@@ -199,8 +200,10 @@ public:
       toErase.push_back(alloc);
     }
 
-    for (auto *op : toErase)
+    for (auto *op : toErase) {
+      op->dropAllUses();
       rewriter.eraseOp(op);
+    }
 
     return success();
   }

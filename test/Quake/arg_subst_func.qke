@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --argument-synthesis=functions=foo:%S/arg_subst.txt,blink:%S/arg_subst.txt,testy1:%S/arg_subst-1.txt,testy2:%S/arg_subst-2.txt,testy3:%S/arg_subst-3.txt,testy4:%S/arg_subst-4.txt --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --argument-synthesis=functions=foo:%S/arg_subst.txt,blink:%S/arg_subst.txt,testy1:%S/arg_subst-1.txt,testy2:%S/arg_subst-2.txt,testy3:%S/arg_subst-3.txt,testy4:%S/arg_subst-4.txt,testy5:%S/arg_subst-5.txt,init:%S/arg_subst-6.txt --canonicalize %s | FileCheck %s
 
 func.func private @bar(i32)
 func.func private @baz(f32)
@@ -145,4 +145,39 @@ func.func @testy4(%arg0: !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) {
 // CHECK:           %[[VAL_32:.*]] = cc.stdvec_init %[[VAL_13]], %[[VAL_0]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>, i64) -> !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>
 // CHECK:           call @callee4(%[[VAL_32]]) : (!cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>) -> ()
 // CHECK:           return
+// CHECK:         }
+
+func.func @testy5(%arg0: !cc.ptr<!cc.state>) {
+  %3 = call @__nvqpp_cudaq_state_numberOfQubits(%arg0) : (!cc.ptr<!cc.state>) -> i64
+  %4 = quake.alloca !quake.veq<?>[%3 : i64]
+  %5 = quake.init_state %4, %arg0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+  return
+}
+
+func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.ptr<!cc.state>) -> i64
+func.func private @__nvqpp_cudaq_state_get(!cc.ptr<i8>) -> !cc.ptr<!cc.state>
+
+func.func private @init(%arg0: i32) -> !quake.veq<?> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %cst = arith.constant 1.5707963267948966 : f64
+  %0 = cc.cast signed %arg0 : (i32) -> i64
+  %1 = quake.alloca !quake.veq<?>[%0 : i64]
+  %2 = quake.concat %1 : (!quake.veq<?>) -> !quake.veq<?>
+  return %2 : !quake.veq<?>
+}
+
+// CHECK-LABEL:   func.func @testy5() {
+// CHECK:           %[[VAL_0:.*]] = cc.string_literal "init" : !cc.ptr<!cc.array<i8 x 46>>
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 46>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_2:.*]] = call @__nvqpp_cudaq_state_get(%[[VAL_1]]) : (!cc.ptr<i8>) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_2]]) : (!cc.ptr<!cc.state>) -> i64
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
+// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_2]] : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.ptr<!cc.state>) -> i64
+// CHECK:         func.func private @__nvqpp_cudaq_state_get(!cc.ptr<i8>) -> !cc.ptr<!cc.state>
+// CHECK:         func.func private @init() -> !quake.veq<?> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_8:.*]] = quake.relax_size %[[VAL_7:.*]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           return %[[VAL_8]] : !quake.veq<?>
 // CHECK:         }
