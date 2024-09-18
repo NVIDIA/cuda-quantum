@@ -101,13 +101,13 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcastRepeatability) {
   std::vector<int> sizeVals(8);
   std::iota(sizeVals.begin(), sizeVals.end(), 3);
 
-  cudaq::set_random_seed(130);
+  cudaq::set_random_seed(13);
   auto allCounts1 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
 
-  cudaq::set_random_seed(130);
+  cudaq::set_random_seed(13);
   auto allCounts2 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
 
-  cudaq::set_random_seed(140);
+  cudaq::set_random_seed(14);
   auto allCounts3 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
 
   EXPECT_EQ(allCounts1, allCounts2); // these should match

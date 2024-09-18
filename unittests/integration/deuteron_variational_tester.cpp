@@ -18,8 +18,6 @@ struct ansatz2 {
   }
 };
 
-#ifndef CUDAQ_BACKEND_STIM
-
 CUDAQ_TEST(D2VariationalTester, checkSimple) {
 
   using namespace cudaq::spin;
@@ -103,5 +101,3 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
         cudaq::make_argset(params, std::vector(params.size() + 1, 2)));
   });
 }
-
-#endif

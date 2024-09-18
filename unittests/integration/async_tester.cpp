@@ -11,7 +11,6 @@
 
 #ifndef CUDAQ_BACKEND_DM
 
-#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(AsyncTester, checkObserveAsync) {
 
   using namespace cudaq::spin;
@@ -46,7 +45,6 @@ CUDAQ_TEST(AsyncTester, checkObserveAsync) {
     i++;
   }
 }
-#endif
 
 CUDAQ_TEST(AsyncTester, checkSampleAsync) {
   struct ghz {
@@ -73,7 +71,6 @@ CUDAQ_TEST(AsyncTester, checkSampleAsync) {
   cc3.get().dump();
 }
 
-#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(AsyncTester, checkGetStateAsync) {
   struct ghz {
     auto operator()(int NQubits) __qpu__ {
@@ -109,5 +106,4 @@ CUDAQ_TEST(AsyncTester, checkGetStateAsync) {
     EXPECT_NEAR(cc3State.overlap(expectedState).real(), 1.0, 1e-3);
   }
 }
-#endif
 #endif
