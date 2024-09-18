@@ -17,30 +17,34 @@ noise = cudaq_runtime.NoiseModel()
 def _register_evolution_kernels(hamiltonian: Operator, schedule: Schedule, collapse_operators: Sequence[Operator] | None = None) -> Generator[(str, Mapping[str, NumericType])]:
     # Evolution kernels can only be defined for qubits.
     dimensions = dict([(i, 2) for i in hamiltonian.degrees])
+    qubits = [i for i in range(len(hamiltonian.degrees))]
     # We could make operators hashable and try to use that to do some kernel caching, 
     # but there is no guarantee that if the hash is equal, the operator is equal.
     # Overall it feels like a better choice to just take a uuid here.
     kernel_base_name = "".join(filter(str.isalnum, str(uuid.uuid4())))
-    dt = None
+    current_time = 0.0
     for step_idx, parameters in enumerate(schedule):
         kernel_name = f"evolve_{kernel_base_name}_{step_idx}"
-        op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
-        # FIXME: Use GPU acceleration for matrix manipulations if possible.
-        # Alternative/possibly better: do the same thing we'll do for hardware
-        # and decompose directly into gates.
-        # HACK: we need to figure out forward dt for all steps.
-        if dt == None:
-            dt = schedule.next_step - schedule.current_step
-        evolution_matrix = scipy.linalg.expm(-1j * op_matrix * dt)
-        register_operation(kernel_name, evolution_matrix)
-        
-        if collapse_operators is not None and len(collapse_operators) > 0:
-            global noise
-            L = collapse_operators[0].to_matrix(dimensions)
-            G = -0.5 * numpy.dot(L.conj().T, L)
-            M0 = G * dt  + numpy.eye(2**len(dimensions))
-            M1 = numpy.sqrt(dt) * L
-            noise.add_channel("custom", [0], cudaq_runtime.KrausChannel([M0, M1]))
+        if step_idx == 0:
+            evolution_matrix = numpy.eye(2**len(qubits), dtype=numpy.complex128)
+            register_operation(kernel_name, evolution_matrix)
+            current_time = schedule.current_step
+        else:
+            op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
+            dt = schedule.current_step - current_time
+            current_time = schedule.current_step
+            evolution_matrix = scipy.linalg.expm(-1j * op_matrix * dt)
+            register_operation(kernel_name, evolution_matrix)
+            
+            if collapse_operators is not None and len(collapse_operators) > 0 and step_idx == 1:
+                global noise
+                for collapse_op in collapse_operators:
+                    L = collapse_op.to_matrix(dimensions)
+                    G = -0.5 * numpy.dot(L.conj().T, L)
+                    M0 = G * dt  + numpy.eye(2**len(dimensions))
+                    M1 = numpy.sqrt(dt) * L
+                    # FIXME: need https://github.com/NVIDIA/cuda-quantum/pull/2168 for proper handling of noise model for custom gates.
+                    noise.add_channel("unknown op", qubits, cudaq_runtime.KrausChannel([M0, M1]))
 
         yield kernel_name, parameters
 
