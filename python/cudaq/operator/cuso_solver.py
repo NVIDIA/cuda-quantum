@@ -14,18 +14,6 @@ from .scipy_integrators import ScipyZvodeIntegrator
 import cupy
 import copy
 
-# [TEMP-CODE] Class to hold results in Python
-class EvolveResult:
-    def __init__(self):
-        # list of arrays of expectation values
-        # same order as observables
-        self.expect = []
-        self.states = []
-    def add_expectation(self, exp_array: List[float]):
-        self.expect.append(exp_array)
-    def add_state(self, state):
-        self.states.append(cudaq_runtime.State.wrap_py_state(CuSuperOpState(copy.deepcopy(state))))
-
 # Master-equation solver using cuSuperOp
 def evolve_me(hamiltonian: Operator, 
            dimensions: Mapping[int, int], 
@@ -34,7 +22,7 @@ def evolve_me(hamiltonian: Operator,
            collapse_operators: Sequence[Operator] = [],
            observables: Sequence[Operator] = [], 
            store_intermediate_results = False,
-           integrator: Optional[BaseIntegrator] = None) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult] | EvolveResult:
+           integrator: Optional[BaseIntegrator] = None) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
     ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions))
     linblad_terms = []
@@ -60,24 +48,29 @@ def evolve_me(hamiltonian: Operator,
         integrator.set_system(dimensions, hamiltonian, collapse_operators)
     expectation_op = [cuso.Operator(hilbert_space_dims, (observable._evaluate(CuSuperOpHamConversion(dimensions)), 1.0)) for observable in observables]
     integrator.set_state(initial_state, schedule._steps[0])
-    exp_vals = [[] for _ in observables]
-    result = EvolveResult()
+    exp_vals = []
+    intermediate_states = []
 
     for step_idx, parameters in enumerate(schedule):
         # print(f"Current time = {schedule.current_step}")
         if step_idx > 0:
             integrator.integrate(schedule.current_step)
+        step_exp_vals = []
         for obs_idx, obs in enumerate(expectation_op):
             _, state = integrator.get_state()
             obs.prepare_expectation(cuso_ctx, state)
             exp_val = obs.compute_expectation(schedule.current_step, (), state)
             # print(f"Time = {schedule.current_step}: Exp = {float(cp.real(exp_val[0]))}")
-            exp_vals[obs_idx].append(float(cupy.real(exp_val[0])))
+            step_exp_vals.append(float(cupy.real(exp_val[0])))
+        exp_vals.append(step_exp_vals)
         if store_intermediate_results:
             _, state = integrator.get_state()
-            result.add_state(state.storage)
+            intermediate_states.append(cudaq_runtime.State.wrap_py_state(CuSuperOpState(copy.deepcopy(state.storage))))
 
-    for exp_array in exp_vals:
-        result.add_expectation(exp_array)
-    return result
+    if store_intermediate_results:
+        return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)
+    else:
+        _, final_cuso_state = integrator.get_state()
+        final_state = cudaq_runtime.State.wrap_py_state(CuSuperOpState(copy.deepcopy(final_cuso_state.storage)))
+        return cudaq_runtime.EvolveResult(final_state, exp_vals[-1])
 

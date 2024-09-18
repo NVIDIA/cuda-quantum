@@ -38,9 +38,21 @@ public:
   evolve_result(state state)
     : final_state(state) {}
 
-  evolve_result(state state, std::vector<observe_result> expectations)
-    : final_state(state), 
-      final_expectation_values(std::make_optional<std::vector<observe_result>>(expectations)) {}
+  evolve_result(state state, const std::vector<observe_result> &expectations)
+      : final_state(state),
+        final_expectation_values(
+            std::make_optional<std::vector<observe_result>>(expectations)) {}
+
+  evolve_result(state state, const std::vector<double> &expectations)
+      : final_state(state) {
+    std::vector<observe_result> result;
+    const spin_op emptyOp(
+        std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
+    for (auto e : expectations) {
+      result.push_back(observe_result(e, emptyOp));
+    }
+    final_expectation_values = result;
+  }
 
   evolve_result(std::vector<state> states) 
     : final_state(states.back()), // FIXME: nice error when states is empty?
@@ -52,6 +64,24 @@ public:
       intermediate_states(std::make_optional<std::vector<state>>(states)), 
       final_expectation_values(std::make_optional<std::vector<observe_result>>(expectations.back())),
       expectation_values(std::make_optional<std::vector<std::vector<observe_result>>>(expectations)) {}
+
+  evolve_result(std::vector<state> states,
+                const std::vector<std::vector<double>> &expectations)
+      : final_state(states.back()),
+        intermediate_states(std::make_optional<std::vector<state>>(states)) {
+    std::vector<std::vector<observe_result>> result;
+    const spin_op emptyOp(
+        std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
+    for (const auto &vec : expectations) {
+      std::vector<observe_result> subResult;
+      for (auto e : vec) {
+        subResult.push_back(observe_result(e, emptyOp));
+      }
+      result.push_back(subResult);
+    }
+    final_expectation_values = result.back();
+    expectation_values = result;
+  }
 
   state get_final_state() { 
     return final_state; 

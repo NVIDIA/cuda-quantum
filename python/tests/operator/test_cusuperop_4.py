@@ -86,15 +86,24 @@ evolution_result = evolve(hamiltonian,
                                        pauli.y(0),
                                        pauli.z(0)],
                           collapse_operators=c_ops,
-                          store_intermediate_results=False,
+                          store_intermediate_results=True,
                           integrator=ScipyZvodeIntegrator(nsteps=10))
+
+exp_val_x = []
+exp_val_y = []
+exp_val_z = []
+
+for exp_vals in evolution_result.expectation_values():
+    exp_val_x.append(exp_vals[0].expectation())
+    exp_val_y.append(exp_vals[1].expectation())
+    exp_val_z.append(exp_vals[2].expectation())
 
 import matplotlib.pyplot as plt
 
 fig = plt.figure(figsize=(12, 6))
-plt.plot(steps, evolution_result.expect[0])
-plt.plot(steps, evolution_result.expect[1])
-plt.plot(steps, evolution_result.expect[2])
+plt.plot(steps, exp_val_x)
+plt.plot(steps, exp_val_y)
+plt.plot(steps, exp_val_z)
 sz_ss_analytical = -1 / (2 * N + 1)
 print(f"Squeezing parameter: {sz_ss_analytical}")
 plt.plot(steps, sz_ss_analytical * np.ones(np.shape(steps)), 'k--')

@@ -19,14 +19,20 @@ evolution_result = evolve(hamiltonian,
                           rho0,
                           observables=[pauli.y(0), pauli.z(0)],
                           collapse_operators=[np.sqrt(0.05) * pauli.x(0)],
-                          store_intermediate_results=False,
+                          store_intermediate_results=True,
                           integrator=RungeKuttaIntegrator(nsteps=10))
+exp_val_y = []
+exp_val_z = []
+
+for exp_vals in evolution_result.expectation_values():
+    exp_val_y.append(exp_vals[0].expectation())
+    exp_val_z.append(exp_vals[1].expectation())
 
 import matplotlib.pyplot as plt
 
 fig = plt.figure(figsize=(9, 6))
-plt.plot(steps, evolution_result.expect[0])
-plt.plot(steps, evolution_result.expect[1])
+plt.plot(steps, exp_val_y)
+plt.plot(steps, exp_val_z)
 plt.ylabel('Expectation value')
 plt.xlabel('Time')
 plt.legend(("Sigma-Y", "Sigma-Z"))

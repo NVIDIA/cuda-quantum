@@ -32,13 +32,21 @@ evolution_result = evolve(
     rho0,
     observables=[operators.number(1), operators.number(0)],
     collapse_operators=[],
-    store_intermediate_results=False)
+    store_intermediate_results=True,
+    integrator=ScipyZvodeIntegrator(nsteps=10))
+
+exp_val_cavity_photon_count = []
+exp_val_atom_excitation = []
+
+for exp_vals in evolution_result.expectation_values():
+    exp_val_cavity_photon_count.append(exp_vals[0].expectation())
+    exp_val_atom_excitation.append(exp_vals[1].expectation())
 
 import matplotlib.pyplot as plt
 
 fig = plt.figure(figsize=(9, 6))
-plt.plot(steps, evolution_result.expect[0])
-plt.plot(steps, evolution_result.expect[1])
+plt.plot(steps, exp_val_cavity_photon_count)
+plt.plot(steps, exp_val_atom_excitation)
 plt.ylabel('Expectation value')
 plt.xlabel('Time')
 plt.legend(("Cavity Photon Number", "Atom Excitation Probability"))
