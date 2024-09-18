@@ -180,6 +180,44 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "ORCA's backends",
       py::arg("input_state"), py::arg("loop_lengths"), py::arg("bs_angles"),
       py::arg("n_samples") = 10000);
+
+  auto photonicsSubmodule = cudaqRuntime.def_submodule("photonics");
+  photonicsSubmodule.def(
+      "allocate_qudit",
+      [](std::size_t &level) {
+        return cudaq::getExecutionManager()->allocateQudit(level);
+      },
+      "Allocate a qudit of given level.", py::arg("level"));
+  photonicsSubmodule.def(
+      "apply_operation",
+      [](const std::string &name, std::vector<double> &params,
+         std::vector<std::vector<std::size_t>> &targets) {
+        std::vector<cudaq::QuditInfo> targetInfo;
+        for (auto &t : targets) {
+          if (t.size() != 2)
+            throw std::runtime_error("Invalid qudit target");
+          targetInfo.emplace_back(t[0], t[1]);
+        }
+        cudaq::getExecutionManager()->apply(name, params, {}, targetInfo, false,
+                                            cudaq::spin_op());
+      },
+      "Apply the input photonics operation on the target qudits.",
+      py::arg("name"), py::arg("params"), py::arg("targets"));
+  photonicsSubmodule.def(
+      "measure",
+      [](std::size_t level, std::size_t id, const std::string &regName) {
+        return cudaq::getExecutionManager()->measure(
+            cudaq::QuditInfo(level, id), regName);
+      },
+      "Measure the input qudit(s).", py::arg("level"), py::arg("qudit"),
+      py::arg("register_name") = "");
+  photonicsSubmodule.def(
+      "release_qudit",
+      [](std::size_t level, std::size_t id) {
+        cudaq::getExecutionManager()->returnQudit(cudaq::QuditInfo(level, id));
+      },
+      "Release a qudit of given id.", py::arg("level"), py::arg("id"));
+
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {

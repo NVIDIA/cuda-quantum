@@ -32,7 +32,9 @@ static std::unordered_map<std::string, cudaq::config::TargetFeatureFlag>
     stringToFeatureFlag{{"fp32", cudaq::config::flagsFP32},
                         {"fp64", cudaq::config::flagsFP64},
                         {"mgpu", cudaq::config::flagsMgpu},
-                        {"mqpu", cudaq::config::flagsMqpu}};
+                        {"mqpu", cudaq::config::flagsMqpu},
+                        {"dep-analysis", cudaq::config::flagsDepAnalysis},
+                        {"qpp", cudaq::config::flagsQPP}};
 }
 
 /// @brief Convert the backend config entry into nvq++ compatible script.
@@ -51,6 +53,10 @@ static std::string processSimBackendConfig(
   if (!configValue.PlatformLoweringConfig.empty())
     output << "PLATFORM_LOWERING_CONFIG=\""
            << configValue.PlatformLoweringConfig << "\"\n";
+
+  if (!configValue.TargetPassPipeline.empty())
+    output << "TARGET_PASS_PIPELINE=\"" << configValue.TargetPassPipeline
+           << "\"\n";
 
   if (!configValue.CodegenEmission.empty())
     output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
@@ -302,6 +308,7 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
   io.mapOptional("gen-target-backend", info.GenTargetBackend);
   io.mapOptional("library-mode", info.LibraryMode);
   io.mapOptional("platform-lowering-config", info.PlatformLoweringConfig);
+  io.mapOptional("target-pass-pipeline", info.TargetPassPipeline);
   io.mapOptional("codegen-emission", info.CodegenEmission);
   io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
   io.mapOptional("platform-library", info.PlatformLibrary);

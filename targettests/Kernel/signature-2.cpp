@@ -149,6 +149,13 @@ struct T2 {
   }
 };
 
+struct T3 {
+  void operator()(std::pair<long, double> tup) __qpu__ {
+    show5(std::get<0>(tup));
+    show7(std::get<1>(tup));
+  }
+};
+
 int main() {
   VectorOfStruct vsData = {{1, 1.0f, 95.0}, {2, 18.4f, 86.945}};
   VS{}(vsData);
@@ -164,6 +171,9 @@ int main() {
 
   std::tuple<long, double> t2{2098, 99.5};
   T2{}(t2);
+  
+  std::pair<long, double> t3{34061, 1999.2};
+  T3{}(t3);
 
   return 0;
 }
@@ -175,3 +185,4 @@ int main() {
 // CHECK: 1.200 2.400 4.800
 // CHECK: 234 89238 3.140 Z
 // CHECK: 2098 99.5
+// CHECK: 34061 1999.2

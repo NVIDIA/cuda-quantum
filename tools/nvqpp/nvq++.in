@@ -719,6 +719,14 @@ if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")
 fi
 
+# If TARGET_PASS_PIPELINE is set, then use that exact pipeline (while still
+# allowing command-line additions like normal).
+if [ ! -z "$TARGET_PASS_PIPELINE" ]; then
+	RUN_OPT=true
+	# Don't use add_pass_to_pipeline here.
+	OPT_PASSES="$TARGET_PASS_PIPELINE"
+fi
+
 if [ ! -z "$CUDAQ_OPT_EXTRA_PASSES" ]; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "$CUDAQ_OPT_EXTRA_PASSES")
 fi

@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Todo.h"
+#include "cudaq/qis/pauli_word.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -199,7 +200,7 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         return {};
       })
       .Case([&](cudaq::cc::CharspanType strTy) {
-        return genConstant(builder, *static_cast<const std::string *>(p),
+        return genConstant(builder, static_cast<cudaq::pauli_word *>(p)->str(),
                            substMod);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
@@ -224,6 +225,11 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
   auto eleTy = vecTy.getElementType();
   auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
   auto eleSize = cudaq::opt::getDataSize(layout, eleTy);
+  if (isa<cudaq::cc::CharspanType>(eleTy)) {
+    // char span type (i.e. pauli word) is a `vector<char>`
+    eleSize = sizeof(VectorType);
+  }
+
   assert(eleSize && "element must have a size");
   auto loc = builder.getUnknownLoc();
   std::int32_t vecSize = delta / eleSize;
@@ -361,7 +367,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
               return {};
             })
             .Case([&](cc::CharspanType strTy) {
-              return buildSubst(*static_cast<const std::string *>(argPtr),
+              return buildSubst(static_cast<cudaq::pauli_word *>(argPtr)->str(),
                                 substModule);
             })
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
@@ -406,8 +412,10 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
   if (numDrop >= arguments.size())
     return;
   std::vector<void *> partialArgs;
+  int drop = numDrop;
   for (void *arg : arguments) {
-    if (numDrop--) {
+    if (drop > 0) {
+      drop--;
       partialArgs.push_back(nullptr);
       continue;
     }
