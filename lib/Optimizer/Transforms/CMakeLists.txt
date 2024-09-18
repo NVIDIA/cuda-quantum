@@ -41,6 +41,7 @@ add_cudaq_library(OptTransforms
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
+  DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
   PruneCtrlRelations.cpp

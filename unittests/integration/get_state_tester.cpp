@@ -14,9 +14,6 @@
 
 using namespace cudaq;
 
-// State operations not supported in Stim.
-#ifndef CUDAQ_BACKEND_STIM
-
 CUDAQ_TEST(GetStateTester, checkSimple) {
   auto kernel = []() __qpu__ {
     cudaq::qubit q, r;
@@ -187,5 +184,3 @@ CUDAQ_TEST(GetStateTester, checkKron) {
   EXPECT_EQ(counts.begin()->first,
             "0" + std::string(num_qubits_input_state, '1'));
 }
-
-#endif

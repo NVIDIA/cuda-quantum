@@ -9,9 +9,6 @@
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
 
-// Rotational gates not supported in Stim.
-#ifndef CUDAQ_BACKEND_STIM
-
 struct deuteron_n3_ansatz {
   void operator()(double x0, double x1) __qpu__ {
     cudaq::qvector q(3);
@@ -112,5 +109,4 @@ CUDAQ_TEST(ObserveResult, checkExpValBug) {
   printf("exp %lf \n", exp);
   EXPECT_NEAR(exp, .79, 1e-1);
 }
-#endif
 #endif

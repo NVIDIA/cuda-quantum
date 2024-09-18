@@ -11,8 +11,6 @@
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
 
-#ifndef CUDAQ_BACKEND_STIM
-
 // Skip these gradient tests for slow backends to reduce test time.
 // Note: CUDA-Q API level tests (e.g., `cudaq::observe`) should cover all
 // backend-specific functionalities required to interface gradient modules.
@@ -74,7 +72,5 @@ CUDAQ_TEST(GradientTester, checkSimple) {
 
   EXPECT_NEAR(-2.0453, opt_val, 1e-3);
 }
-
-#endif
 
 #endif
