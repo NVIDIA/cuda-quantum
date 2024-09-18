@@ -166,7 +166,9 @@ Platform
 
 .. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
 
-.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU    
+.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
+
+.. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:

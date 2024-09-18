@@ -318,7 +318,9 @@ environment variable named ``ORCA_AUTH_TOKEN``. For example, if the token is :co
 you can set the environment variable as follows:
 
 .. code:: bash
+
   export ORCA_AUTH_TOKEN="AbCdEf123456"
+
 
 Submission from C++
 `````````````````````````
