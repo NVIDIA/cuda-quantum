@@ -170,10 +170,10 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
     .. note::
         
-        (1) The order of the option settings are interchangeable.
+        * The order of the option settings are interchangeable.
         For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64,mgpu')`.
 
-        (1) The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
+        * The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
 
 .. tab:: C++
 
