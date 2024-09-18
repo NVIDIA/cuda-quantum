@@ -2163,6 +2163,16 @@ bool QuakeBridgeVisitor::WalkUpFromCXXOperatorCallExpr(
   return WalkUpFromCallExpr(x) && VisitCXXOperatorCallExpr(x);
 }
 
+bool QuakeBridgeVisitor::hasTOSEntryKernel() {
+  if (auto fn = peekValue().getDefiningOp<func::ConstantOp>()) {
+    auto name = fn.getValue().str();
+    for (auto fdPair : functionsToEmit)
+      if (getCudaqKernelName(fdPair.first) == name)
+        return true;
+  }
+  return false;
+}
+
 bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     clang::CXXOperatorCallExpr *x) {
   auto loc = toLocation(x->getSourceRange());
@@ -2246,25 +2256,32 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto tos = popValue();
       auto tosTy = tos.getType();
       auto ptrTy = dyn_cast<cc::PointerType>(tosTy);
-      bool isEntryKernel = [&]() {
-        // TODO: make this lambda a member function.
-        if (auto fn = peekValue().getDefiningOp<func::ConstantOp>()) {
-          auto name = fn.getValue().str();
-          for (auto fdPair : functionsToEmit)
-            if (getCudaqKernelName(fdPair.first) == name)
-              return true;
-        }
-        return false;
-      }();
-      if (ptrTy || isEntryKernel) {
+      bool isEntryKernel = hasTOSEntryKernel();
+      if ((ptrTy && isa<cc::StructType>(ptrTy.getElementType())) ||
+          isEntryKernel) {
         // The call operator has an object in the call position, so we want to
         // replace it with an indirect call to the func::ConstantOp.
-        assert((isEntryKernel || isa<cc::StructType>(ptrTy.getElementType())) &&
-               "expected kernel as callable class");
         auto indirect = popValue();
         auto funcTy = cast<FunctionType>(indirect.getType());
         auto call = builder.create<func::CallIndirectOp>(
             loc, funcTy.getResults(), indirect, args);
+        if (call.getResults().empty())
+          return true;
+        return pushValue(call.getResult(0));
+      }
+      auto indCallTy = [&]() -> cc::IndirectCallableType {
+        if (ptrTy) {
+          auto ty = dyn_cast<cc::IndirectCallableType>(ptrTy.getElementType());
+          if (ty)
+            return ty;
+        }
+        return dyn_cast<cc::IndirectCallableType>(tosTy);
+      }();
+      if (indCallTy) {
+        [[maybe_unused]] auto discardedCallOp = popValue();
+        auto funcTy = cast<FunctionType>(indCallTy.getSignature());
+        auto call = builder.create<cc::CallIndirectCallableOp>(
+            loc, funcTy.getResults(), tos, args);
         if (call.getResults().empty())
           return true;
         return pushValue(call.getResult(0));

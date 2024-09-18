@@ -7,14 +7,17 @@
  ******************************************************************************/
 
 #include "ArgumentConversion.h"
+#include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Todo.h"
 #include "cudaq/qis/pauli_word.h"
+#include "cudaq/utils/registry.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/Parser/Parser.h"
 
 using namespace mlir;
 
@@ -290,6 +293,33 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
   return aggie;
 }
 
+Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
+                  void *p, ModuleOp sourceMod, ModuleOp substMod,
+                  llvm::DataLayout &layout) {
+  auto key = cudaq::registry::__cudaq_getLinkableKernelKey(p);
+  auto *name = cudaq::registry::getLinkableKernelNameOrNull(key);
+  if (!name)
+    return {};
+  auto code = cudaq::get_quake_by_name(name, /*throwException=*/false);
+  auto *ctx = builder.getContext();
+  auto fromModule = parseSourceString<ModuleOp>(code, ctx);
+  OpBuilder cloneBuilder(ctx);
+  cloneBuilder.setInsertionPointToStart(substMod.getBody());
+  for (auto &i : *fromModule->getBody()) {
+    auto s = dyn_cast_if_present<SymbolOpInterface>(i);
+    if (!s || sourceMod.lookupSymbol(s.getNameAttr()) ||
+        substMod.lookupSymbol(s.getNameAttr()))
+      continue;
+    auto clone = cloneBuilder.clone(i);
+    cast<SymbolOpInterface>(clone).setPrivate();
+  }
+  auto loc = builder.getUnknownLoc();
+  auto func = builder.create<func::ConstantOp>(
+      loc, indCallTy.getSignature(),
+      std::string{cudaq::runtime::cudaqGenPrefixName} + name);
+  return builder.create<cudaq::cc::CastOp>(loc, indCallTy, func);
+}
+
 //===----------------------------------------------------------------------===//
 
 cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
@@ -385,6 +415,10 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             })
             .Case([&](cc::ArrayType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
+            })
+            .Case([&](cc::IndirectCallableType ty) {
+              return buildSubst(ty, argPtr, sourceModule, substModule,
+                                dataLayout);
             })
             .Default({});
     if (subst)

@@ -97,7 +97,6 @@ set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
 # Note: JIT.cpp contains throw statements. Should RTTI be enabled?
 set_source_files_properties(
-    ArgumentConversion.cpp
     Environment.cpp
     JIT.cpp
     Logger.cpp
@@ -133,6 +132,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
   PRIVATE
+    cudaq
     spdlog::spdlog)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

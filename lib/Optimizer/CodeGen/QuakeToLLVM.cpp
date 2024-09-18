@@ -1322,7 +1322,7 @@ public:
     auto complex64Ty =
         typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
     auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
-    Type type = getTypeConverter()->convertType(globalOp.getType());
+    Type type = typeConverter->convertType(globalOp.getType());
     auto addrOp = rewriter.create<LLVM::AddressOfOp>(loc, type, generatorName);
     auto unitaryData =
         rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);

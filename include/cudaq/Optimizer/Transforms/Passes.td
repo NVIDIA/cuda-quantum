@@ -325,13 +325,14 @@ def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = ["mlir::LLVM::LLVMDialect"];
-  let constructor = "cudaq::opt::createGenerateDeviceCodeLoader()";
 
   let options = [
     Option<"outputFilename", "output-filename", "std::string",
       /*default=*/"\"-\"", "Name of output file.">,
     Option<"generateAsQuake", "use-quake", "bool",
-      /*default=*/"false", "Output should be module in Quake dialect.">
+      /*default=*/"true", "Output should be module in Quake dialect.">,
+    Option<"jitTime", "jit-compile", "bool",
+      /*default=*/"false", "Running pass at JIT compile time (default=false).">
   ];
 }
 

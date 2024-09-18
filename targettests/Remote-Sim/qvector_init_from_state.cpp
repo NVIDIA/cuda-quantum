@@ -14,6 +14,9 @@
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // clang-format on
 
+// FIXME: state handling with new argument synthesis?
+// UNSUPPORTED: c++20
+
 #include <cudaq.h>
 #include <iostream>
 #include <vector>

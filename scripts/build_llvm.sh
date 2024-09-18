@@ -264,7 +264,7 @@ if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   echo "Failed to build compiler components. Please check the files in the $llvm_log_dir/logs directory."
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 else
-  cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
+  cp bin/llvm-lit bin/split-file "$LLVM_INSTALL_PREFIX/bin/"
 fi
 
 # Build and install runtimes using the newly built toolchain.
