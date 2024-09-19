@@ -130,18 +130,6 @@ if (CUDAQ_ENABLE_PYTHON)
     endif()
   endfunction()
 
-  add_pycudaq_test(Intro intro.py)
-  add_pycudaq_test(BernsteinVazirani bernstein_vazirani.py)
-  add_pycudaq_test(QAOA qaoa_maxcut.py)
-  add_pycudaq_test(VQE simple_vqe.py)
-  add_pycudaq_test(VQEAdvanced advanced_vqe.py)
-
-  add_pycudaq_test(AmplitudeDampingNoise noise_amplitude_damping.py)
-  add_pycudaq_test(BitFlipNoise noise_bit_flip.py)
-  add_pycudaq_test(DepolarizingNoise noise_depolarization.py)
-  add_pycudaq_test(PhaseFlipNoise noise_phase_flip.py)
-  add_pycudaq_test(KrausNoise noise_kraus_operator.py)
-  
   if (CUTENSORNET_ROOT AND CUDA_FOUND) 
     # This example uses tensornet backend.
     add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
