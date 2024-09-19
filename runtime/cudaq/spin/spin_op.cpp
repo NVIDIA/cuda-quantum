@@ -219,8 +219,7 @@ complex_matrix spin_op::to_matrix() const {
     for_each_term([&](spin_op &term) {
       auto [res, coeff] = details::actionOnBra(term, rowBitStr);
       auto colIdx = std::stol(res, nullptr, 2);
-      rawData[details::convertOrdering(n, rowIdx) * dim +
-              details::convertOrdering(n, colIdx)] += coeff;
+      rawData[colIdx * dim + rowIdx] += coeff;
     });
   }
   return A;
@@ -272,8 +271,8 @@ spin_op::csr_spmatrix spin_op::to_sparse_matrix() const {
   for (int k = 0; k < mat.outerSize(); ++k)
     for (SpMat::InnerIterator it(mat, k); it; ++it) {
       values.emplace_back(it.value());
-      rows.emplace_back(details::convertOrdering(n, it.row()));
-      cols.emplace_back(details::convertOrdering(n, it.col()));
+      rows.emplace_back(it.row());
+      cols.emplace_back(it.col());
     }
 
   return std::make_tuple(values, rows, cols);
