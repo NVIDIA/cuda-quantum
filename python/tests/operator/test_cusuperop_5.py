@@ -47,7 +47,7 @@ schedule = Schedule(steps, ["time"])
 
 rho0_= cp.zeros((2**N, 2**N), dtype=cp.complex128)
 rho0_[0][0] = 1.0
-rho0 = cudaq.State.from_data(rho0_.reshape((2,2)*N))
+rho0 = cudaq.State.from_data(rho0_)
 
 x_mean = operators.zero()
 y_mean = operators.zero()

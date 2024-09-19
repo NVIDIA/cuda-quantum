@@ -39,6 +39,12 @@ def evolve_me(hamiltonian: Operator,
     if not isinstance(initial_state, CuSuperOpState):
         raise ValueError("Unknown type")
 
+    if not initial_state.is_initialized():
+        initial_state.init_state(hilbert_space_dims)
+
+    is_density_matrix = initial_state.is_density_matrix()
+    print(f"Is density matrix: {is_density_matrix}")
+
     initial_state = initial_state.get_impl()
     cuso_ctx = initial_state._ctx
     stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)

@@ -1,25 +1,47 @@
-from cusuperop import DenseMixedState, WorkStream
+from cusuperop import DenseMixedState, DensePureState, WorkStream
 import cupy, atexit
+from typing import Sequence
 
 class CuSuperOpState(object):
     __ctx = WorkStream()
     
     def __init__(self, data):
-        if isinstance(data, DenseMixedState):
-            self.density_matrix = data
+        if isinstance(data, DenseMixedState) or isinstance(data, DensePureState):
+            self.state = data
+            self.raw_data = None
         else:
-            rho0_ = cupy.asfortranarray(data)
-            self.density_matrix = DenseMixedState(self.__ctx, rho0_)
+            self.raw_data = data
+            self.state = None
+
+    def init_state(self, hilbert_space_dims: Sequence[int]):
+        if self.state is None:
+            dm_shape = hilbert_space_dims * 2
+            sv_shape = hilbert_space_dims
+            try:
+                rho0_ = cupy.asfortranarray(self.raw_data.reshape(dm_shape))
+                self.state = DenseMixedState(self.__ctx, rho0_)
+            except:
+                try:
+                    rho0_ = cupy.asfortranarray(self.raw_data.reshape(sv_shape))
+                    self.state = DensePureState(self.__ctx, rho0_)
+                except:
+                    raise ValueError(f"Invalid state data: state data must be either a state vector (equivalent to {sv_shape} shape) or a density matrix (equivalent to {dm_shape} shape).")
+    
+    def is_initialized(self) -> bool:
+        return self.state is not None
+
+    def is_density_matrix(self) -> bool:
+        return self.is_initialized() and isinstance(self.state, DenseMixedState)
 
     @staticmethod
     def from_data(data):
         return CuSuperOpState(data)  
      
     def get_impl(self):
-        return self.density_matrix
+        return self.state
 
     def dump(self):
-        return cupy.array_str(self.density_matrix.storage)
+        return cupy.array_str(self.state.storage)
 
     @staticmethod
     def tear_down():

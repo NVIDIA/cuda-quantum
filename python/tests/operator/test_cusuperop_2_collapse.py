@@ -17,8 +17,7 @@ hamiltonian = 2 * np.pi * operators.number(1) + 2 * np.pi * operators.number(
 qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
 cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
 cavity_state[5][5] = 1.0
-rho0 = cudaq.State.from_data(
-    cp.kron(qubit_state, cavity_state).reshape((2, 10, 2, 10)))
+rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
 
 steps = np.linspace(0, 10, 201)
 schedule = Schedule(steps, ["time"])
