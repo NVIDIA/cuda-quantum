@@ -44,7 +44,7 @@ public:
   details::future execute(std::vector<KernelExecution> &codesToExecute);
 
   /// @brief Execute the provided ORCA quantum parameters and return a future
-  /// object The caller can make this synchronous by just immediately calling
+  /// object. The caller can make this synchronous by just immediately calling
   /// .get().
   details::future execute(cudaq::orca::TBIParameters params,
                           const std::string &kernelName);

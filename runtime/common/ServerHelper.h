@@ -113,8 +113,7 @@ public:
     std::map<std::string, std::string> headers;
 
     // Return a tuple containing the job path, headers, and the job message
-    auto ret = std::make_tuple("", headers, jobs);
-    return ret;
+    return std::make_tuple("", headers, jobs);
   };
 
   /// @brief Extract the job id from the server response from posting the job.
