@@ -170,10 +170,10 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
     .. note::
         
-        (1) The order of the option settings are interchangeable.
-        For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64,mgpu')`.
+        * The order of the option settings are interchangeable.
+          For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64,mgpu')`.
 
-        (1) The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
+        * The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
 
 .. tab:: C++
 
@@ -298,40 +298,6 @@ use the following commands:
     .. code:: bash 
 
         nvq++ --target qpp-cpu program.cpp [...] -o program.x
-        ./program.x
-
-
-Clifford-Only Simulation (CPU)
-++++++++++++++++++++++++++++++++++
-
-.. _stim-backend:
-
-This target provides a fast simulator for circuits containing *only* Clifford
-gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
-supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
-library.
-
-To execute a program on the :code:`stim` target, use the following commands:
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        python3 program.py [...] --target stim
-
-    The target can also be defined in the application code by calling
-
-    .. code:: python 
-
-        cudaq.set_target('stim')
-
-    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target stim program.cpp [...] -o program.x
         ./program.x
 
 
