@@ -1,100 +1,104 @@
 import numpy
-from typing import  Mapping, List
+from typing import  Mapping, List, Sequence
+from numbers import Number
 from .expressions import ElementaryOperator, ScalarOperator
 from .manipulation import OperatorArithmetics
 import cusuperop as cuso
 from cusuperop._internal.callbacks import CallbackCoefficient
+import logging
 
-class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm | CallbackCoefficient ]):
+logger = logging.getLogger(__name__)
+
+class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm | CallbackCoefficient | Number ]):
     def __init__(self, dimensions: Mapping[int, int]):
         self._dimensions = dimensions
-    def _scalars_add(self, op1: CallbackCoefficient, op2: CallbackCoefficient) -> CallbackCoefficient:
-        if op1.is_callable or op2.is_callable:
-            raise ValueError("Cannot add CallbackCoefficients")
-        coeff = CallbackCoefficient(None, op1.scalar + op2.scalar)
-        return coeff 
-    
-    
-    def _wrap_callback_mult_scalar(self, func, scalar):
-        def inplace_func(t, args):
-            return func(t, args) * scalar
-        return inplace_func
-    
-    def _wrap_callback_mult(self, func1, func2):
-        def inplace_func(t, args):
-            return func1(t) * func2(t)
-        return inplace_func
-
-    def _scalars_mult(self, op1: CallbackCoefficient, op2: CallbackCoefficient) -> CallbackCoefficient:
-        if op1.is_callable and op2.is_callable:
-            return CallbackCoefficient(self._wrap_callback_mult(op1.callback, op2.callback))
-        elif op1.is_callable:
-            if op2.scalar == 1.0:
-                return op1
-            return CallbackCoefficient(self._wrap_callback_mult_scalar(op1.callback, op2.scalar))
-        elif op2.is_callable:
-            if op1.scalar == 1.0:
-                return op2
-            return CallbackCoefficient(self._wrap_callback_mult_scalar(op2.callback, op1.scalar))
-        else:
-            return CallbackCoefficient(None, op1.scalar * op2.scalar)
         
-    def _scalar_mult_op(self, scalar: CallbackCoefficient, op: cuso.OperatorTerm) -> cuso.OperatorTerm:
-        if scalar.is_callable:
-            new_opterm = cuso.OperatorTerm(dtype=op.dtype)
-            for term, coeff in zip(op.terms, op._coefficients):
-                if coeff.is_callable:
-                    new_coeff = CallbackCoefficient(self._wrap_callback_mult(scalar.callback, coeff.callback))
-                    new_opterm.append(term, new_coeff)
-                else:
-                    if coeff.scalar == 1.0:
-                        new_opterm.append(term, scalar.callback)
-                    else:
-                        new_coeff = CallbackCoefficient(self._wrap_callback_mult_scalar(scalar.callback, coeff.scalar))
-                        new_opterm.append(term, new_coeff)
-            return new_opterm
-        else:
-            return op * scalar.scalar
+    def _callback_mult_op(self, scalar: CallbackCoefficient, op: cuso.OperatorTerm) -> cuso.OperatorTerm:
+        new_opterm = cuso.OperatorTerm(dtype=op.dtype)
+        for term, coeff in zip(op.terms, op._coefficients):
+            if coeff.is_callable and scalar.is_callable:
+                new_opterm.append(term, coeff * scalar)
+            elif not coeff.is_callable and not scalar.is_callable:
+                new_opterm.append(term, coeff.scalar * scalar.scalar)
+            elif coeff.is_callable:
+                new_opterm.append(term, coeff * scalar.scalar)
+            elif scalar.is_callable:
+                new_opterm.append(term, coeff.scalar * scalar)
+            else:
+                raise ValueError(f"Unsupported operand types {coeff} and {scalar}")
+        return new_opterm
 
-    def tensor(self, op1: cuso.OperatorTerm | CallbackCoefficient, op2: cuso.OperatorTerm | CallbackCoefficient) -> cuso.OperatorTerm | CallbackCoefficient:
+    def tensor(self, op1: cuso.OperatorTerm | CallbackCoefficient | Number, op2: cuso.OperatorTerm | CallbackCoefficient | Number) -> cuso.OperatorTerm | CallbackCoefficient | Number:
+        logger.debug(f"Tensor {op1} and {op2}")
+        if isinstance(op1, Number) or isinstance(op2, Number):
+            return op1 * op2
         if isinstance(op1, CallbackCoefficient) and isinstance(op2, CallbackCoefficient):
-            return self._scalars_mult(op1, op2)
+            return op1 * op2
         if isinstance(op1, CallbackCoefficient):
-            return self._scalar_mult_op(op1, op2)
+            return self._callback_mult_op(op1, op2)
         if isinstance(op2, CallbackCoefficient):
-            return self._scalar_mult_op(op2, op1)
+            return self._callback_mult_op(op2, op1)
         new_opterm = cuso.OperatorTerm(dtype=op1.dtype)
         for term2, coeff2 in zip(op2.terms, op2._coefficients):
             for term1, coeff1 in zip(op1.terms, op1._coefficients):
-                if coeff1.is_callable or coeff2.is_callable:
-                    raise ValueError("Cannot multiply CallbackCoefficients")
+                # FIXME: workaround a bug in cusuperop (CallbackCoefficient.__mul__)
                 mul_term = term1 + term2
-                new_opterm.append(mul_term, coeff1.scalar * coeff2.scalar)
+                if coeff1.is_callable and coeff2.is_callable:
+                    new_opterm.append(mul_term, coeff1 * coeff2)
+                elif not coeff1.is_callable and not coeff2.is_callable:
+                    new_opterm.append(mul_term, coeff1.scalar * coeff2.scalar)
+                elif coeff1.is_callable:
+                    new_opterm.append(mul_term, coeff1 * coeff2.scalar)
+                elif coeff2.is_callable:
+                    new_opterm.append(mul_term, coeff1.scalar * coeff2)
+                else:
+                    raise ValueError(f"Unsupported operand types {coeff1} and {coeff2}")
         return new_opterm     
 
 
-    def mul(self, op1: cuso.OperatorTerm | CallbackCoefficient, op2: cuso.OperatorTerm | CallbackCoefficient) -> cuso.OperatorTerm | CallbackCoefficient:
+    def mul(self, op1: cuso.OperatorTerm | CallbackCoefficient | Number, op2: cuso.OperatorTerm | CallbackCoefficient | Number) -> cuso.OperatorTerm | CallbackCoefficient | Number:
+        logger.debug(f"Multiply {op1} and {op2}")
+        if isinstance(op1, Number) or isinstance(op2, Number):
+            return op1 * op2
         if isinstance(op1, CallbackCoefficient) and isinstance(op2, CallbackCoefficient):
-            return self._scalars_mult(op1, op2)
+            return op1 * op2
         if isinstance(op1, CallbackCoefficient):
-            return self._scalar_mult_op(op1, op2)
+            return self._callback_mult_op(op1, op2)
         if isinstance(op2, CallbackCoefficient):
-            return self._scalar_mult_op(op2, op1)
-        
+            return self._callback_mult_op(op2, op1)
         new_opterm = cuso.OperatorTerm(dtype=op1.dtype)
         for term2, coeff2 in zip(op2.terms, op2._coefficients):
             for term1, coeff1 in zip(op1.terms, op1._coefficients):
-                if coeff1.is_callable or coeff2.is_callable:
-                    raise ValueError("Cannot multiply CallbackCoefficients")
+                # FIXME: workaround a bug in cusuperop (CallbackCoefficient.__mul__)
                 mul_term = term1 + term2
-                new_opterm.append(mul_term, coeff1.scalar * coeff2.scalar)
+                if coeff1.is_callable and coeff2.is_callable:
+                    new_opterm.append(mul_term, coeff1 * coeff2)
+                elif not coeff1.is_callable and not coeff2.is_callable:
+                    new_opterm.append(mul_term, coeff1.scalar * coeff2.scalar)
+                elif coeff1.is_callable:
+                    new_opterm.append(mul_term, coeff1 * coeff2.scalar)
+                elif coeff2.is_callable:
+                    new_opterm.append(mul_term, coeff1.scalar * coeff2)
+                else:
+                    raise ValueError(f"Unsupported operand types {coeff1} and {coeff2}")
         return new_opterm
 
-    def add(self, op1: cuso.OperatorTerm | CallbackCoefficient, op2: cuso.OperatorTerm | CallbackCoefficient) -> cuso.OperatorTerm | CallbackCoefficient:
+    def _scalar_to_op(self, scalar: CallbackCoefficient | Number) -> cuso.OperatorTerm:
+        op_mat = numpy.identity(self._dimensions[0])
+        op_term = cuso.OperatorTerm()
+        op_term.append([cuso.TensorOperator(op_mat, 0, (False,))], scalar)
+        return op_term
+    
+    def add(self, op1: cuso.OperatorTerm | CallbackCoefficient | Number, op2: cuso.OperatorTerm | CallbackCoefficient | Number) -> cuso.OperatorTerm | CallbackCoefficient | Number:
+        logger.debug(f"Add {op1} and {op2}")
+        if isinstance(op1, Number) and isinstance(op2, Number):
+            return op1 + op2
+        if isinstance(op1, Number) and op1 == 0.0:
+            return op2
+        if isinstance(op2, Number) and op2 == 0.0:
+            return op1
         if isinstance(op1, CallbackCoefficient) and isinstance(op2, CallbackCoefficient):
-            return self._scalars_add(op1, op2)
-        if isinstance(op1, CallbackCoefficient) or isinstance(op2, CallbackCoefficient):
-            raise ValueError("Both add operands must be all scalars or all operators")
+            return op1 + op2
         return op1 + op2
 
     def _wrap_callback(self, func):
@@ -102,15 +106,16 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm | CallbackCoe
             return func(t)
         return inplace_func
     
-    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> cuso.OperatorTerm | CallbackCoefficient: 
+    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> cuso.OperatorTerm | CallbackCoefficient | Number: 
+        logger.debug(f"Evaluating {op}")
         if isinstance(op, ScalarOperator):
             if op._constant_value is None:
                 return CallbackCoefficient(self._wrap_callback(op.generator))
             else:
-                return CallbackCoefficient(None, op._constant_value)
+                return op._constant_value
         else:
             if op._id == "identity":
-                return CallbackCoefficient(None, 1.0)
+                return 1.0
             op_mat = op.to_matrix(self._dimensions)
             op_term = cuso.OperatorTerm()
             op_term.append([cuso.TensorOperator(op_mat, op.degrees, ((False,) * len(op.degrees)))], 1.0)
