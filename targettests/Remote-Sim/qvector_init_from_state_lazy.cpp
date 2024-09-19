@@ -63,31 +63,6 @@ struct test_state_param4 {
   }
 };
 
-struct test_state_param2 {
-  void operator()(cudaq::state *initial_state, cudaq::pauli_word w) __qpu__ {
-    cudaq::qvector q(initial_state);
-    cudaq::exp_pauli(1.0, q, w);
-  }
-};
-
-struct test_state_param3 {
-  void operator()(cudaq::state *initial_state, std::vector<cudaq::pauli_word>& words) __qpu__ {
-    cudaq::qvector q(initial_state);
-    for (std::size_t i = 0; i < words.size(); ++i) {
-      cudaq::exp_pauli(1.0, q, words[i]);
-    }
-  }
-};
-
-struct test_state_param4 {
-  void operator()(cudaq::state *initial_state, std::vector<double> &coefficients, std::vector<cudaq::pauli_word>& words) __qpu__ {
-    cudaq::qvector q(initial_state);
-    for (std::size_t i = 0; i < words.size(); ++i) {
-      cudaq::exp_pauli(coefficients[i], q, words[i]);
-    }
-  }
-};
-
 void printCounts(cudaq::sample_result& result) {
   std::vector<std::string> values{};
   for (auto &&[bits, counts] : result) {
