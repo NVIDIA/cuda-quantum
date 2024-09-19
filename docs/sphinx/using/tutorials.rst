@@ -5,6 +5,7 @@ CUDA-Q Tutorials
 Tutorials that give an in depth view of CUDA-Q and its applications in Python.
 
 .. nbgallery::
+
     /examples/python/tutorials/cost_minimization.ipynb
     /examples/python/tutorials/bernstein_vazirani.ipynb
     /examples/python/tutorials/deutschs_algorithm.ipynb
