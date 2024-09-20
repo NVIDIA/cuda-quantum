@@ -29,7 +29,15 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm | CallbackCoe
         return new_opterm
 
     def tensor(self, op1: cuso.OperatorTerm | CallbackCoefficient | Number, op2: cuso.OperatorTerm | CallbackCoefficient | Number) -> cuso.OperatorTerm | CallbackCoefficient | Number:
-        logger.debug(f"Tensor {op1} and {op2}")
+        logger.info(f"Tensor {op1} and {op2}")
+        if isinstance(op1, cuso.OperatorTerm):
+            logger.info(f" {op1}:")
+            for term, coeff in zip(op1.terms, op1._coefficients):
+                logger.info(f"  {coeff} * {term}")
+        if isinstance(op2, cuso.OperatorTerm):
+            logger.info(f" {op2}:")
+            for term, coeff in zip(op2.terms, op2._coefficients):
+                logger.info(f"  {coeff} * {term}")
         if isinstance(op1, Number) or isinstance(op2, Number):
             return op1 * op2
         if isinstance(op1, CallbackCoefficient) and isinstance(op2, CallbackCoefficient):
@@ -57,7 +65,17 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm | CallbackCoe
 
 
     def mul(self, op1: cuso.OperatorTerm | CallbackCoefficient | Number, op2: cuso.OperatorTerm | CallbackCoefficient | Number) -> cuso.OperatorTerm | CallbackCoefficient | Number:
-        logger.debug(f"Multiply {op1} and {op2}")
+        logger.info(f"Multiply {op1} and {op2}")
+        if isinstance(op1, cuso.OperatorTerm):
+            logger.info(f" {op1}:")
+            for term, coeff in zip(op1.terms, op1._coefficients):
+                logger.info(f"  {coeff} * {term}")
+        if isinstance(op2, cuso.OperatorTerm):
+            logger.info(f" {op2}:")
+            for term, coeff in zip(op2.terms, op2._coefficients):
+                logger.info(f"  {coeff} * {term}")
+        
+        
         if isinstance(op1, Number) or isinstance(op2, Number):
             return op1 * op2
         if isinstance(op1, CallbackCoefficient) and isinstance(op2, CallbackCoefficient):
@@ -90,7 +108,16 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm | CallbackCoe
         return op_term
     
     def add(self, op1: cuso.OperatorTerm | CallbackCoefficient | Number, op2: cuso.OperatorTerm | CallbackCoefficient | Number) -> cuso.OperatorTerm | CallbackCoefficient | Number:
-        logger.debug(f"Add {op1} and {op2}")
+        logger.info(f"Add {op1} and {op2}")
+        if isinstance(op1, cuso.OperatorTerm):
+            logger.info(f" {op1}:")
+            for term, coeff in zip(op1.terms, op1._coefficients):
+                logger.info(f"  {coeff} * {term}")
+        if isinstance(op2, cuso.OperatorTerm):
+            logger.info(f" {op2}:")
+            for term, coeff in zip(op2.terms, op2._coefficients):
+                logger.info(f"  {coeff} * {term}")
+
         if isinstance(op1, Number) and isinstance(op2, Number):
             return op1 + op2
         if isinstance(op1, Number) and op1 == 0.0:
@@ -107,7 +134,7 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm | CallbackCoe
         return inplace_func
     
     def evaluate(self, op: ElementaryOperator | ScalarOperator) -> cuso.OperatorTerm | CallbackCoefficient | Number: 
-        logger.debug(f"Evaluating {op}")
+        logger.info(f"Evaluating {op}")
         if isinstance(op, ScalarOperator):
             if op._constant_value is None:
                 return CallbackCoefficient(self._wrap_callback(op.generator))
@@ -168,13 +195,18 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm, l2: c
     return lindblad
 
 
-def constructLiouvillian(hilbert_space_dims: List[int], ham: cuso.OperatorTerm, c_ops: List[cuso.OperatorTerm]):
+def constructLiouvillian(hilbert_space_dims: List[int], ham: cuso.OperatorTerm, c_ops: List[cuso.OperatorTerm], is_master_equation: bool):
+    if not is_master_equation and len(c_ops) > 0:
+        raise ValueError("Cannot have collapse operators in non-master equation")
     hamiltonian = cuso.Operator(hilbert_space_dims, (ham, 1.0))
     hamiltonian = hamiltonian * (-1j)
-    liouvillian = hamiltonian - hamiltonian.dual() 
+    if is_master_equation:
+        liouvillian = hamiltonian - hamiltonian.dual() 
     
-    for c_op in c_ops:
-        lindbladian = computeLindladOp(hilbert_space_dims, c_op, c_op)
-        liouvillian += lindbladian
-
+        for c_op in c_ops:
+            lindbladian = computeLindladOp(hilbert_space_dims, c_op, c_op)
+            liouvillian += lindbladian
+    else:
+        # Schrodinger equation: d/dt psi = -iH psi
+        liouvillian = hamiltonian
     return liouvillian

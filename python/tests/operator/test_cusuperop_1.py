@@ -8,14 +8,16 @@ cudaq.set_target("nvidia-dynamics")
 hamiltonian = 2 * np.pi * 0.1 * pauli.x(0)
 num_qubits = 1
 dimensions = {0: 2}
-rho0 = cudaq.State.from_data(
-    cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
+
+# This is a unitary evolution (no collapse operators), the state can be a state vector or a density matrix.
+# State vector will be simulated faster.
+psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 steps = np.linspace(0, 10, 101)
 schedule = Schedule(steps, ["time"])
 evolution_result = evolve(hamiltonian,
                           dimensions,
                           schedule,
-                          rho0,
+                          psi0,
                           observables=[pauli.y(0), pauli.z(0)],
                           collapse_operators=[],
                           store_intermediate_results=True,
