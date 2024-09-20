@@ -9,29 +9,29 @@
 set(LIBRARY_NAME cudaq-em-photonics)
 
 add_library(${LIBRARY_NAME} SHARED PhotonicsExecutionManager.cpp)
-
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-       $<INSTALL_INTERFACE:include>)
+       $<INSTALL_INTERFACE:include>
+    PRIVATE .)
 
 set (PHOTONICS_DEPENDENCIES "")
-list(APPEND PHOTONICS_DEPENDENCIES cudaq-common libqpp fmt::fmt-header-only)
+list(APPEND PHOTONICS_DEPENDENCIES nvqir cudaq-common libqpp fmt::fmt-header-only LLVMSupport)
 add_openmp_configurations(${LIBRARY_NAME} PHOTONICS_DEPENDENCIES)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-spin
+  # PUBLIC cudaq-spin
   PRIVATE ${PHOTONICS_DEPENDENCIES}
+   
 )
 
-install(TARGETS ${LIBRARY_NAME}
-  EXPORT cudaq-em-photonics-targets
-  DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-em-photonics-targets DESTINATION lib)
 
 install(EXPORT cudaq-em-photonics-targets
         FILE CUDAQEmPhotonicsTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
 
-add_target_config(photonics)
+# add_target_config(photonics)
