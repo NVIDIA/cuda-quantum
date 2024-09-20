@@ -24,11 +24,6 @@ def evolve_me(hamiltonian: Operator,
            store_intermediate_results = False,
            integrator: Optional[BaseIntegrator] = None) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
-    ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions))
-    linblad_terms = []
-    for c_op in collapse_operators:
-        linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(dimensions)))
-    liouvillian = constructLiouvillian(hilbert_space_dims, ham_term, linblad_terms)
 
     # Note: we would need a CUDAQ state implementation for cuSuperOp
     if not isinstance(initial_state, cudaq_runtime.State):
@@ -43,7 +38,23 @@ def evolve_me(hamiltonian: Operator,
         initial_state.init_state(hilbert_space_dims)
 
     is_density_matrix = initial_state.is_density_matrix()
-    print(f"Is density matrix: {is_density_matrix}")
+    me_solve = False
+    if not is_density_matrix: 
+        if len(collapse_operators) == 0:
+            me_solve = False
+        else:
+            print("There are collapse operators, but the initial state is a state vector. The state vector will be converted to a density matrix.")
+            initial_state = initial_state.to_dm()
+            me_solve = True
+    else:
+        # Always solve the master equation if the input is a density matrix
+        me_solve = True
+        
+    ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions))
+    linblad_terms = []
+    for c_op in collapse_operators:
+        linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(dimensions)))
+    liouvillian = constructLiouvillian(hilbert_space_dims, ham_term, linblad_terms, me_solve)
 
     initial_state = initial_state.get_impl()
     cuso_ctx = initial_state._ctx

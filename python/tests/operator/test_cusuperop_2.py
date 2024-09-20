@@ -4,6 +4,11 @@ from typing import Any, Optional
 
 import numpy as np
 import cupy as cp
+# import logging
+# logging.basicConfig()
+# logger = logging.getLogger("cudaq.operator.cuso_helpers") 
+# logger.setLevel(level=logging.DEBUG)
+
 
 cudaq.set_target("nvidia-dynamics")
 
@@ -16,10 +21,10 @@ sm_dag = operators.create(0)
 
 hamiltonian = 2 * np.pi * operators.number(1) + 2 * np.pi * operators.number(
     0) + 2 * np.pi * 0.25 * (sm * a_dag + sm_dag * a)
-qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
-cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
-cavity_state[5][5] = 1.0
-rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+qubit_state = cp.array([1.0, 0.0], dtype=cp.complex128)
+cavity_state = cp.zeros(10, dtype=cp.complex128)
+cavity_state[5] = 1.0
+psi0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
 steps = np.linspace(0, 10, 201)
 schedule = Schedule(steps, ["time"])
 
@@ -27,11 +32,11 @@ evolution_result = evolve(
     hamiltonian,
     dimensions,
     schedule,
-    rho0,
+    psi0,
     observables=[operators.number(1), operators.number(0)],
     collapse_operators=[],
     store_intermediate_results=True,
-    integrator=ScipyZvodeIntegrator(nsteps=10))
+    integrator=ScipyZvodeIntegrator(nsteps=100))
 
 exp_val_cavity_photon_count = []
 exp_val_atom_excitation = []

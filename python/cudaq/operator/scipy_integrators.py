@@ -15,15 +15,16 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
     def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
         super().__init__(**kwargs)
         self.stepper = stepper
-        self.dm_shape = None
+        self.state_data_shape = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.dm_shape = None
+        self.state_data_shape = None
     
     def compute_rhs(self, t, vec):
-        rho_data = cupy.asfortranarray(cupy.array(vec).reshape(self.dm_shape))
-        temp_state = cuso.DenseMixedState(self.state._ctx, rho_data)
+        rho_data = cupy.asfortranarray(cupy.array(vec).reshape(self.state_data_shape))
+        state_type = self.state.__class__
+        temp_state = state_type(self.state._ctx, rho_data)
         result = self.stepper.compute(temp_state, t)
         as_array = result.storage.ravel().get()
         return as_array
@@ -57,7 +58,8 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
             linblad_terms = []
             for c_op in self.collapse_operators:
                 linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(self.dimensions)))
-            liouvillian = constructLiouvillian(hilbert_space_dims, ham_term, linblad_terms)
+            is_master_equation = isinstance(self.state, cuso.DenseMixedState)
+            liouvillian = constructLiouvillian(hilbert_space_dims, ham_term, linblad_terms, is_master_equation)
             cuso_ctx = self.state._ctx
             self.stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)
         
@@ -66,17 +68,17 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
                 "Integration time must be greater than current time")
         new_state = self.solver.integrate(t)
         rho_data = cupy.asfortranarray(
-            cupy.array(new_state).reshape(self.dm_shape))
+            cupy.array(new_state).reshape(self.state_data_shape))
+        state_type = self.state.__class__
         self.state.inplace_scale(0.0)
-        self.state.inplace_add(
-            cuso.DenseMixedState(self.state._ctx, rho_data))
+        self.state.inplace_add(state_type(self.state._ctx, rho_data))
         self.t = t
 
     def set_state(self, state: cuso.State, t: float = 0.0):
         super().set_state(state, t)
-        if self.dm_shape is None:
-            self.dm_shape = self.state.storage.shape
+        if self.state_data_shape is None:
+            self.state_data_shape = self.state.storage.shape
         else:
-            assert self.dm_shape == self.state.storage.shape, "State shape must remain constant"
+            assert self.state_data_shape == self.state.storage.shape, "State shape must remain constant"
         as_array = self.state.storage.ravel().get()
         self.solver.set_initial_value(as_array, t)

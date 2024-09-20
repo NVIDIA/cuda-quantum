@@ -20,8 +20,7 @@ def square_pulse(t):
 squared_pulse = ScalarOperator(square_pulse)
 hamiltonian = squared_pulse * pauli.x(0)
 dimensions = {0: 2}
-rho0 = cudaq.State.from_data(
-    cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
+psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 
 steps = np.linspace(0, 10, 101)
 schedule = Schedule(steps, ["time"])
@@ -29,7 +28,7 @@ schedule = Schedule(steps, ["time"])
 evolution_result = evolve(hamiltonian,
                           dimensions,
                           schedule,
-                          rho0,
+                          psi0,
                           observables=[operators.number(0)],
                           collapse_operators=[],
                           store_intermediate_results=True,

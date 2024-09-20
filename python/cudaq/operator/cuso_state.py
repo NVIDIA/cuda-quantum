@@ -8,7 +8,7 @@ class CuSuperOpState(object):
     def __init__(self, data):
         if isinstance(data, DenseMixedState) or isinstance(data, DensePureState):
             self.state = data
-            self.raw_data = None
+            self.raw_data = self.state.storage
         else:
             self.raw_data = data
             self.state = None
@@ -18,12 +18,12 @@ class CuSuperOpState(object):
             dm_shape = hilbert_space_dims * 2
             sv_shape = hilbert_space_dims
             try:
-                rho0_ = cupy.asfortranarray(self.raw_data.reshape(dm_shape))
-                self.state = DenseMixedState(self.__ctx, rho0_)
+                self.raw_data = cupy.asfortranarray(self.raw_data.reshape(dm_shape))
+                self.state = DenseMixedState(self.__ctx, self.raw_data)
             except:
                 try:
-                    rho0_ = cupy.asfortranarray(self.raw_data.reshape(sv_shape))
-                    self.state = DensePureState(self.__ctx, rho0_)
+                    self.raw_data = cupy.asfortranarray(self.raw_data.reshape(sv_shape))
+                    self.state = DensePureState(self.__ctx, self.raw_data)
                 except:
                     raise ValueError(f"Invalid state data: state data must be either a state vector (equivalent to {sv_shape} shape) or a density matrix (equivalent to {dm_shape} shape).")
     
@@ -41,6 +41,8 @@ class CuSuperOpState(object):
         return self.state
 
     def dump(self):
+        if self.state is None:
+            return cupy.array_str(self.raw_data)
         return cupy.array_str(self.state.storage)
 
     @staticmethod
