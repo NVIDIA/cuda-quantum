@@ -12,6 +12,7 @@
 #include "common/PluginUtils.h"
 #include "cudaq/qis/state.h"
 #include "cudaq/spin_op.h"
+#include "photonics/PhotonicCircuitSimulator.h"
 #include <cmath>
 #include <complex>
 #include <string>
@@ -36,7 +37,9 @@ thread_local bool initialized = false;
 thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
-
+thread_local nvqir::PhotonicCircuitSimulator *photonic_simulator;
+inline static constexpr std::string_view GetPhotonicCircuitSimulatorSymbol =
+    "getPhotonicCircuitSimulator";
 /// @brief Provide a holder for externally created
 /// CircuitSimulator pointers (like from Python) that
 /// will invoke clone on the simulator when requested, which
@@ -50,6 +53,15 @@ struct ExternallyProvidedSimGenerator {
 };
 static std::unique_ptr<ExternallyProvidedSimGenerator> externSimGenerator;
 
+struct ExternallyProvidedPhotonicSimGenerator {
+  nvqir::PhotonicCircuitSimulator *simulator;
+  ExternallyProvidedPhotonicSimGenerator(nvqir::PhotonicCircuitSimulator *sim)
+      : simulator(sim) {}
+  auto operator()() { return simulator->clone(); }
+};
+static std::unique_ptr<ExternallyProvidedPhotonicSimGenerator>
+    externPhotonicSimGenerator;
+
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
   simulator = sim;
@@ -60,6 +72,19 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
   }
   externSimGenerator = std::make_unique<ExternallyProvidedSimGenerator>(sim);
   cudaq::info("[runtime] Setting the circuit simulator to {}.", sim->name());
+}
+void __nvqir__setPhotonicCircuitSimulator(
+    nvqir::PhotonicCircuitSimulator *sim) {
+  photonic_simulator = sim;
+  // If we had been given one before, reset the holder
+  if (externPhotonicSimGenerator) {
+    auto ptr = externPhotonicSimGenerator.release();
+    delete ptr;
+  }
+  externPhotonicSimGenerator =
+      std::make_unique<ExternallyProvidedPhotonicSimGenerator>(sim);
+  cudaq::info("[runtime] Setting the photonic circuit simulator to {}.",
+              sim->name());
 }
 }
 
@@ -82,6 +107,21 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   cudaq::info("Creating the {} backend.", simulator->name());
   return simulator;
 }
+
+PhotonicCircuitSimulator *getPhotonicCircuitSimulatorInternal() {
+  if (photonic_simulator)
+    return photonic_simulator;
+
+  if (externPhotonicSimGenerator) {
+    photonic_simulator = (*externPhotonicSimGenerator)();
+    return photonic_simulator;
+  }
+
+  photonic_simulator = cudaq::getUniquePluginInstance<PhotonicCircuitSimulator>(
+      GetPhotonicCircuitSimulatorSymbol);
+  cudaq::info("Creating the {} backend.", photonic_simulator->name());
+  return photonic_simulator;
+};
 
 void setRandomSeed(std::size_t seed) {
   getCircuitSimulatorInternal()->setRandomSeed(seed);
