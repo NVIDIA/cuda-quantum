@@ -1,5 +1,5 @@
 from __future__ import annotations
-import numpy, re # type: ignore
+import numpy, re  # type: ignore
 from abc import ABC, abstractmethod
 from typing import Generic, Iterable, Sequence, TypeVar
 from numpy.typing import NDArray
@@ -8,6 +8,8 @@ from .helpers import _OperatorHelpers, NumericType
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 TEval = TypeVar('TEval')
+
+
 class OperatorArithmetics(ABC, Generic[TEval]):
     """
     This class serves as a monad base class for computing arbitrary values
@@ -15,7 +17,8 @@ class OperatorArithmetics(ABC, Generic[TEval]):
     """
 
     @abstractmethod
-    def evaluate(self: OperatorArithmetics[TEval], op: ElementaryOperator | ScalarOperator) -> TEval:
+    def evaluate(self: OperatorArithmetics[TEval],
+                 op: ElementaryOperator | ScalarOperator) -> TEval:
         """
         Accesses the relevant data to evaluate an operator expression in the leaf 
         nodes, that is in elementary and scalar operators.
@@ -23,26 +26,30 @@ class OperatorArithmetics(ABC, Generic[TEval]):
         pass
 
     @abstractmethod
-    def add(self: OperatorArithmetics[TEval], val1: TEval, val2: TEval) -> TEval: 
+    def add(self: OperatorArithmetics[TEval], val1: TEval,
+            val2: TEval) -> TEval:
         """
         Adds two operators that act on the same degrees of freedom.
         """
         pass
 
     @abstractmethod
-    def mul(self: OperatorArithmetics[TEval], val1: TEval, val2: TEval) -> TEval: 
+    def mul(self: OperatorArithmetics[TEval], val1: TEval,
+            val2: TEval) -> TEval:
         """
         Multiplies two operators that act on the same degrees of freedom.
         """
         pass
 
     @abstractmethod
-    def tensor(self: OperatorArithmetics[TEval], val1: TEval, val2: TEval) -> TEval: 
+    def tensor(self: OperatorArithmetics[TEval], val1: TEval,
+               val2: TEval) -> TEval:
         """
         Computes the tensor product of two operators that act on different 
         degrees of freedom.
         """
         pass
+
 
 class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
     """
@@ -56,7 +63,8 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         operator expression.
         """
 
-        def __init__(self: MatrixArithmetics.Evaluated, degrees: Iterable[int], matrix: NDArray[numpy.complexfloating]) -> None:
+        def __init__(self: MatrixArithmetics.Evaluated, degrees: Iterable[int],
+                     matrix: NDArray[numpy.complexfloating]) -> None:
             """
             Instantiates an object that contains the matrix representation of an
             operator acting on the given degrees of freedom.
@@ -69,21 +77,26 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
             self._matrix = matrix
 
         @property
-        def degrees(self: MatrixArithmetics.Evaluated) -> tuple[int]: 
+        def degrees(self: MatrixArithmetics.Evaluated) -> tuple[int]:
             """
             The degrees of freedom that the matrix of the evaluated value applies to.
             """
             return self._degrees
 
         @property
-        def matrix(self: MatrixArithmetics.Evaluated) -> NDArray[numpy.complexfloating]: 
+        def matrix(
+            self: MatrixArithmetics.Evaluated
+        ) -> NDArray[numpy.complexfloating]:
             """
             The matrix representation of an evaluated operator, ordered according
             to the sequence of degrees of freedom associated with the evaluated value.
             """
             return self._matrix
 
-    def _canonicalize(self: MatrixArithmetics, op_matrix: NDArray[numpy.complexfloating], op_degrees: Iterable[int]) -> tuple[NDArray[numpy.complexfloating], tuple[int]]:
+    def _canonicalize(
+        self: MatrixArithmetics, op_matrix: NDArray[numpy.complexfloating],
+        op_degrees: Iterable[int]
+    ) -> tuple[NDArray[numpy.complexfloating], tuple[int]]:
         """
         Given a matrix representation that acts on the given degrees or freedom, 
         sorts the degrees and permutes the matrix to match that canonical order.
@@ -95,19 +108,25 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         canon_degrees = _OperatorHelpers.canonicalize_degrees(op_degrees)
         if op_degrees != canon_degrees:
             # There may be a more efficient way, but I needed something correct first.
-            states = _OperatorHelpers.generate_all_states(canon_degrees, self._dimensions)
+            states = _OperatorHelpers.generate_all_states(
+                canon_degrees, self._dimensions)
             indices = dict([(d, idx) for idx, d in enumerate(canon_degrees)])
             reordering = [indices[op_degree] for op_degree in op_degrees]
             # [degrees[i] for i in reordering] produces op_degrees
-            op_states = [''.join([state[i] for i in reordering]) for state in states]
-            state_indices = dict([(state, idx) for idx, state in enumerate(states)])
+            op_states = [
+                ''.join([state[i] for i in reordering]) for state in states
+            ]
+            state_indices = dict([
+                (state, idx) for idx, state in enumerate(states)
+            ])
             permutation = [state_indices[op_state] for op_state in op_states]
             # [states[i] for i in permutation] produces op_states
             _OperatorHelpers.permute_matrix(op_matrix, permutation)
             return op_matrix, canon_degrees
         return op_matrix, canon_degrees
 
-    def tensor(self: MatrixArithmetics, op1: MatrixArithmetics.Evaluated, op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
+    def tensor(self: MatrixArithmetics, op1: MatrixArithmetics.Evaluated,
+               op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
         """
         Computes the tensor product of two evaluate operators that act on different 
         degrees of freedom using `numpy.kron`.
@@ -119,29 +138,34 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         new_matrix, new_degrees = self._canonicalize(op_matrix, op_degrees)
         return MatrixArithmetics.Evaluated(new_degrees, new_matrix)
 
-    def mul(self: MatrixArithmetics, op1: MatrixArithmetics.Evaluated, op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
+    def mul(self: MatrixArithmetics, op1: MatrixArithmetics.Evaluated,
+            op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
         """
         Multiplies two evaluated operators that act on the same degrees of freedom
         using `numpy.dot`.
         """
-        # Elementary operators have sorted degrees such that we have a unique convention 
-        # for how to define the matrix. Tensor products permute the computed matrix if 
+        # Elementary operators have sorted degrees such that we have a unique convention
+        # for how to define the matrix. Tensor products permute the computed matrix if
         # necessary to guarantee that all operators always have sorted degrees.
         assert op1.degrees == op2.degrees, "Operators should have the same order of degrees."
-        return MatrixArithmetics.Evaluated(op1.degrees, numpy.dot(op1.matrix, op2.matrix))
+        return MatrixArithmetics.Evaluated(op1.degrees,
+                                           numpy.dot(op1.matrix, op2.matrix))
 
-    def add(self: MatrixArithmetics, op1: MatrixArithmetics.Evaluated, op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
+    def add(self: MatrixArithmetics, op1: MatrixArithmetics.Evaluated,
+            op2: MatrixArithmetics.Evaluated) -> MatrixArithmetics.Evaluated:
         """
         Multiplies two evaluated operators that act on the same degrees of freedom
         using `numpy`'s array addition.
         """
-        # Elementary operators have sorted degrees such that we have a unique convention 
-        # for how to define the matrix. Tensor products permute the computed matrix if 
+        # Elementary operators have sorted degrees such that we have a unique convention
+        # for how to define the matrix. Tensor products permute the computed matrix if
         # necessary to guarantee that all operators always have sorted degrees.
         assert op1.degrees == op2.degrees, "Operators should have the same order of degrees."
         return MatrixArithmetics.Evaluated(op1.degrees, op1.matrix + op2.matrix)
 
-    def evaluate(self: MatrixArithmetics, op: ElementaryOperator | ScalarOperator) -> MatrixArithmetics.Evaluated: 
+    def evaluate(
+            self: MatrixArithmetics, op: ElementaryOperator | ScalarOperator
+    ) -> MatrixArithmetics.Evaluated:
         """
         Computes the matrix of an ElementaryOperator or ScalarOperator using its 
         `to_matrix` method.
@@ -149,7 +173,8 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         matrix = op.to_matrix(self._dimensions, **self._kwargs)
         return MatrixArithmetics.Evaluated(op._degrees, matrix)
 
-    def __init__(self: MatrixArithmetics, dimensions: Mapping[int, int], **kwargs: NumericType) -> None:
+    def __init__(self: MatrixArithmetics, dimensions: Mapping[int, int],
+                 **kwargs: NumericType) -> None:
         """
         Instantiates a MatrixArithmetics instance that can act on the given
         dimensions.
@@ -165,27 +190,37 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         self._dimensions = dimensions
         self._kwargs = kwargs
 
+
 class PrettyPrint(OperatorArithmetics[str]):
 
     def tensor(self, op1: str, op2: str) -> str:
+
         def add_parens(str_value: str):
             outer_str = re.sub(r'\(.+?\)', '', str_value)
-            if " + " in outer_str or " * " in outer_str: return f"({str_value})"
-            else: return str_value
+            if " + " in outer_str or " * " in outer_str:
+                return f"({str_value})"
+            else:
+                return str_value
+
         return f"{add_parens(op1)} x {add_parens(op2)}"
 
     def mul(self, op1: str, op2: str) -> str:
+
         def add_parens(str_value: str):
             outer_str = re.sub(r'\(.+?\)', '', str_value)
-            if " + " in outer_str or " x " in outer_str: return f"({str_value})"
-            else: return str_value
+            if " + " in outer_str or " x " in outer_str:
+                return f"({str_value})"
+            else:
+                return str_value
+
         return f"{add_parens(op1)} * {add_parens(op2)}"
 
     def add(self, op1: str, op2: str) -> str:
         return f"{op1} + {op2}"
 
-    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> str: 
+    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> str:
         return str(op)
+
 
 class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
 
@@ -195,7 +230,9 @@ class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
         operator expression as a `pauli_word`.
         """
 
-        def __init__(self: PauliWordConversion.Evaluated, degrees: Iterable[int], pauli_word: cudaq_runtime.pauli_word) -> None:
+        def __init__(self: PauliWordConversion.Evaluated,
+                     degrees: Iterable[int],
+                     pauli_word: cudaq_runtime.pauli_word) -> None:
             """
             Instantiates an object that contains the `pauli_word` representation of an
             operator acting on the given degrees of freedom.
@@ -208,55 +245,87 @@ class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
             self._pauli_word = pauli_word
 
         @property
-        def degrees(self: PauliWordConversion.Evaluated) -> tuple[int]: 
+        def degrees(self: PauliWordConversion.Evaluated) -> tuple[int]:
             """
             The degrees of freedom that the evaluated operator acts on.
             """
             return self._degrees
 
         @property
-        def pauli_word(self: PauliWordConversion.Evaluated) -> cudaq_runtime.pauli_word:
+        def pauli_word(
+                self: PauliWordConversion.Evaluated
+        ) -> cudaq_runtime.pauli_word:
             """
             The `pauli_word` representation of an evaluated operator, ordered according
             to the sequence of degrees of freedom associated with the evaluated value.
             """
             return self._pauli_word
 
-    def tensor(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+    def tensor(
+            self, op1: PauliWordConversion.Evaluated,
+            op2: PauliWordConversion.Evaluated
+    ) -> PauliWordConversion.Evaluated:
         raise NotImplementedError()
 
-    def mul(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+    def mul(self, op1: PauliWordConversion.Evaluated,
+            op2: PauliWordConversion.Evaluated
+           ) -> PauliWordConversion.Evaluated:
         raise NotImplementedError()
 
-    def add(self, op1: PauliWordConversion.Evaluated, op2: PauliWordConversion.Evaluated) -> PauliWordConversion.Evaluated:
+    def add(self, op1: PauliWordConversion.Evaluated,
+            op2: PauliWordConversion.Evaluated
+           ) -> PauliWordConversion.Evaluated:
         raise NotImplementedError()
 
-    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> PauliWordConversion.Evaluated:
+    def evaluate(
+        self, op: ElementaryOperator | ScalarOperator
+    ) -> PauliWordConversion.Evaluated:
         raise NotImplementedError()
+
 
 # To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
-class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator | NumericType]):
+class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator |
+                                           NumericType]):
 
-    def tensor(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType, op2: cudaq_runtime.SpinOperator | NumericType) -> cudaq_runtime.SpinOperator | NumericType:
+    def tensor(
+        self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType,
+        op2: cudaq_runtime.SpinOperator | NumericType
+    ) -> cudaq_runtime.SpinOperator | NumericType:
         return op1 * op2
 
-    def mul(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType, op2: cudaq_runtime.SpinOperator | NumericType) -> cudaq_runtime.SpinOperator | NumericType:
+    def mul(
+        self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType,
+        op2: cudaq_runtime.SpinOperator | NumericType
+    ) -> cudaq_runtime.SpinOperator | NumericType:
         return op1 * op2
 
-    def add(self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType, op2: cudaq_runtime.SpinOperator | NumericType) -> cudaq_runtime.SpinOperator | NumericType:
+    def add(
+        self: _SpinArithmetics, op1: cudaq_runtime.SpinOperator | NumericType,
+        op2: cudaq_runtime.SpinOperator | NumericType
+    ) -> cudaq_runtime.SpinOperator | NumericType:
         return op1 + op2
 
-    def evaluate(self: _SpinArithmetics, op: ElementaryOperator | ScalarOperator) -> cudaq_runtime.SpinOperator | NumericType: 
+    def evaluate(
+        self: _SpinArithmetics, op: ElementaryOperator | ScalarOperator
+    ) -> cudaq_runtime.SpinOperator | NumericType:
         match getattr(op, "id", "scalar"):
-            case "scalar": return op.evaluate(**self._kwargs)
-            case "pauli_x": return cudaq_runtime.spin.x(op.degrees[0])
-            case "pauli_y": return cudaq_runtime.spin.y(op.degrees[0])
-            case "pauli_z": return cudaq_runtime.spin.z(op.degrees[0])
-            case "pauli_i": return cudaq_runtime.spin.i(op.degrees[0])
-            case "identity": 
-                assert len(op.degrees) == 1, "expecting identity to act on a single degree of freedom"
+            case "scalar":
+                return op.evaluate(**self._kwargs)
+            case "pauli_x":
+                return cudaq_runtime.spin.x(op.degrees[0])
+            case "pauli_y":
+                return cudaq_runtime.spin.y(op.degrees[0])
+            case "pauli_z":
+                return cudaq_runtime.spin.z(op.degrees[0])
+            case "pauli_i":
                 return cudaq_runtime.spin.i(op.degrees[0])
-            case _: raise ValueError(f"operator '{op.id}' is not a spin operator")
+            case "identity":
+                assert len(
+                    op.degrees
+                ) == 1, "expecting identity to act on a single degree of freedom"
+                return cudaq_runtime.spin.i(op.degrees[0])
+            case _:
+                raise ValueError(f"operator '{op.id}' is not a spin operator")
 
     def __init__(self: _SpinArithmetics, **kwargs: NumericType) -> None:
         """

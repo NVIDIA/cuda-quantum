@@ -11,6 +11,8 @@ import cusuperop as cuso
 import diffrax as dfx
 from .cuda_diffrax_base_integrator import CUDADiffraxBaseIntegrator
 
+
 class CUDADiffraxMidpointIntegrator(CUDADiffraxBaseIntegrator):
+
     def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
         super().__init__(stepper, solver=dfx.Midpoint, **kwargs)

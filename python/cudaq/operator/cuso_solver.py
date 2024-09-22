@@ -14,21 +14,24 @@ from .scipy_integrators import ScipyZvodeIntegrator
 import cupy
 import copy
 
+
 # Master-equation solver using cuSuperOp
-def evolve_me(hamiltonian: Operator, 
-           dimensions: Mapping[int, int], 
-           schedule: Schedule,
-           initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
-           collapse_operators: Sequence[Operator] = [],
-           observables: Sequence[Operator] = [], 
-           store_intermediate_results = False,
-           integrator: Optional[BaseIntegrator] = None) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
+def evolve_me(
+    hamiltonian: Operator,
+    dimensions: Mapping[int, int],
+    schedule: Schedule,
+    initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
+    collapse_operators: Sequence[Operator] = [],
+    observables: Sequence[Operator] = [],
+    store_intermediate_results=False,
+    integrator: Optional[BaseIntegrator] = None
+) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
 
     # Note: we would need a CUDAQ state implementation for cuSuperOp
     if not isinstance(initial_state, cudaq_runtime.State):
         raise NotImplementedError("TODO: list of input states")
-    
+
     initial_state = initial_state.get_impl()
 
     if not isinstance(initial_state, CuSuperOpState):
@@ -39,22 +42,25 @@ def evolve_me(hamiltonian: Operator,
 
     is_density_matrix = initial_state.is_density_matrix()
     me_solve = False
-    if not is_density_matrix: 
+    if not is_density_matrix:
         if len(collapse_operators) == 0:
             me_solve = False
         else:
-            print("There are collapse operators, but the initial state is a state vector. The state vector will be converted to a density matrix.")
+            print(
+                "There are collapse operators, but the initial state is a state vector. The state vector will be converted to a density matrix."
+            )
             initial_state = initial_state.to_dm()
             me_solve = True
     else:
         # Always solve the master equation if the input is a density matrix
         me_solve = True
-        
+
     ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions))
     linblad_terms = []
     for c_op in collapse_operators:
         linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(dimensions)))
-    liouvillian = constructLiouvillian(hilbert_space_dims, ham_term, linblad_terms, me_solve)
+    liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
+                                       linblad_terms, me_solve)
 
     initial_state = initial_state.get_impl()
     cuso_ctx = initial_state._ctx
@@ -63,7 +69,12 @@ def evolve_me(hamiltonian: Operator,
         integrator = RungeKuttaIntegrator(stepper)
     else:
         integrator.set_system(dimensions, hamiltonian, collapse_operators)
-    expectation_op = [cuso.Operator(hilbert_space_dims, (observable._evaluate(CuSuperOpHamConversion(dimensions)), 1.0)) for observable in observables]
+    expectation_op = [
+        cuso.Operator(
+            hilbert_space_dims,
+            (observable._evaluate(CuSuperOpHamConversion(dimensions)), 1.0))
+        for observable in observables
+    ]
     integrator.set_state(initial_state, schedule._steps[0])
     exp_vals = []
     intermediate_states = []
@@ -82,12 +93,14 @@ def evolve_me(hamiltonian: Operator,
         exp_vals.append(step_exp_vals)
         if store_intermediate_results:
             _, state = integrator.get_state()
-            intermediate_states.append(cudaq_runtime.State.wrap_py_state(CuSuperOpState(copy.deepcopy(state.storage))))
+            intermediate_states.append(
+                cudaq_runtime.State.wrap_py_state(
+                    CuSuperOpState(copy.deepcopy(state.storage))))
 
     if store_intermediate_results:
         return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)
     else:
         _, final_cuso_state = integrator.get_state()
-        final_state = cudaq_runtime.State.wrap_py_state(CuSuperOpState(copy.deepcopy(final_cuso_state.storage)))
+        final_state = cudaq_runtime.State.wrap_py_state(
+            CuSuperOpState(copy.deepcopy(final_cuso_state.storage)))
         return cudaq_runtime.EvolveResult(final_state, exp_vals[-1])
-

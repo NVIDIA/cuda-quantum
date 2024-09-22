@@ -2,6 +2,7 @@ import cudaq, numpy
 from cudaq.operator import *
 import numpy as np
 import cupy as cp
+from cudaq.operator.cuda_diffrax_dopri5_integrator import CUDADiffraxDopri5Integrator
 
 cudaq.set_target("nvidia-dynamics")
 
@@ -13,6 +14,8 @@ rho0 = cudaq.State.from_data(
 steps = numpy.linspace(0, 10, 101)
 schedule = Schedule(steps, ["time"])
 
+integrator = CUDADiffraxDopri5Integrator(None, nSteps=10)
+
 evolution_result = evolve(hamiltonian,
                           dimensions,
                           schedule,
@@ -20,7 +23,7 @@ evolution_result = evolve(hamiltonian,
                           observables=[pauli.y(0), pauli.z(0)],
                           collapse_operators=[np.sqrt(0.05) * pauli.x(0)],
                           store_intermediate_results=True,
-                          integrator=RungeKuttaIntegrator(nsteps=10))
+                          integrator=integrator)
 exp_val_y = []
 exp_val_z = []
 
