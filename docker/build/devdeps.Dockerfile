@@ -157,7 +157,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         lit==18.1.4 pytest==8.2.0 numpy==1.26.4 requests==2.31.0 \
         fastapi==0.111.0 uvicorn==0.29.0 pydantic==2.7.1 llvmlite==0.42.0 \
         pyspelling==2.10 pymdown-extensions==10.8.1 yapf \
-        scipy==1.10.1 openfermionpyscf==0.5 'h5py<3.11' \
+        scipy==1.10.1 openfermionpyscf==0.5 'h5py<3.11' diffrax \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA-Q documentation generation.

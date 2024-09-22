@@ -63,7 +63,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -s /bin/python3 /bin/python
     RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
     # Ref: https://github.com/qutip/qutip/issues/2412
-    && python3 -m pip install --no-cache-dir notebook==7.1.3 "qutip<5" matplotlib \
+    && python3 -m pip install --no-cache-dir notebook==7.1.3 "qutip<5" matplotlib diffrax \
     && apt-get remove -y gcc g++ python3-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 

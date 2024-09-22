@@ -10,6 +10,7 @@ from .integrator import BaseTimeStepper, BaseIntegrator
 import cusuperop as cuso
 import cupy as cp
 import diffrax as dfx
+import jax.numpy as jnp
 from typing import Type
 from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
 from .builtin_integrators import cuSuperOpTimeStepper
@@ -18,18 +19,21 @@ from .builtin_integrators import cuSuperOpTimeStepper
 class CUDADiffraxBaseIntegrator(BaseIntegrator[cuso.State]):
     atol = 1e-8
     rtol = 1e-6
-    
-    def __init__(self, stepper: BaseTimeStepper[cuso.State], solver: Type[dfx.AbstractSolver] = dfx.Euler, **kwargs):
+
+    def __init__(self,
+                 stepper: BaseTimeStepper[cuso.State],
+                 solver: Type[dfx.AbstractSolver] = dfx.Euler,
+                 **kwargs):
         super().__init__(**kwargs)
         self.stepper = stepper
         self.solver = solver()
         self.dm_shape = None
 
-    def compute_rhs(self, t, vec):
-        rho_data = cp.asfortranarray(cp.array(vec).reshape(self.dm_shape))
+    def compute_rhs(self, t, vec, args=None):
+        rho_data = jnp.asarray(vec).reshape(self.dm_shape)
         temp_state = cuso.DenseMixedState(self.state._ctx, rho_data)
         result = self.stepper.compute(temp_state, t)
-        return result.storage.ravel()
+        return tuple(result.storage.ravel())
 
     def __post_init__(self):
         if "nsteps" in self.integrator_options:
@@ -60,7 +64,7 @@ class CUDADiffraxBaseIntegrator(BaseIntegrator[cuso.State]):
                 linblad_terms.append(
                     c_op._evaluate(CuSuperOpHamConversion(self.dimensions)))
             liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
-                                               linblad_terms)
+                                               linblad_terms, True)
             cuso_ctx = self.state._ctx
             self.stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)
 
@@ -73,12 +77,10 @@ class CUDADiffraxBaseIntegrator(BaseIntegrator[cuso.State]):
         # GPU based integration using Diffrax
         solution = dfx.diffeqsolve(ode_term,
                                    solver=self.solver,
-                                   to=self.t,
+                                   t0=self.t,
                                    t1=t,
                                    dt0=1e-3,
-                                   y0=cp.array(self.state.storage.ravel()),
-                                   rtol=self.rtol,
-                                   atol=self.atol)
+                                   y0=jnp.asarray(self.state.storage.ravel()))
 
         # Keep results in GPU memory
         rho_data = cp.asfortranarray(solution.ys.reshape(self.dm_shape))
@@ -92,4 +94,3 @@ class CUDADiffraxBaseIntegrator(BaseIntegrator[cuso.State]):
             self.dm_shape = self.state.storage.shape
         else:
             assert self.dm_shape == self.state.storage.shape, "State shape must remain constant"
-        self.solver.set_initial_value(cp.array(self.state.storage.ravel()), t)
