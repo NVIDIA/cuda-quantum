@@ -1,8 +1,8 @@
 *************************
-CUDA-Q Tutorials
+CUDA-Q Applications
 *************************
 
-Tutorials that give an in depth view of CUDA-Q and its applications in Python.
+Applications that give an in depth view of CUDA-Q and its applications in Python.
 
 .. nbgallery::
 
