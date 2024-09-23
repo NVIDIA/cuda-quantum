@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Compile and run with:
-// ```
-// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x && ./trotter.x
-// ```
+// clang-format off
+// TODO-FIX-KERNEL-EXEC
+// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 %s -o %t  && %t | FileCheck %s
+// clang-format on
 
 #include <complex>
 #include <cudaq.h>
@@ -160,3 +160,19 @@ int main() {
   std::cout << "Total running time: " << duration.count() / 1000.0 / 1000.0
             << "s" << std::endl;
 }
+
+// CHECK:  Step 0: time [s]: [[t0:.*]], result: [[v0:.*]]
+// CHECK:  Step 1: time [s]: [[t1:.*]], result: [[v1:.*]]
+// CHECK:  Step 2: time [s]: [[t2:.*]], result: [[v2:.*]]
+// CHECK:  Step 3: time [s]: [[t3:.*]], result: [[v3:.*]]
+// CHECK:  Step 4: time [s]: [[t4:.*]], result: [[v4:.*]]
+// CHECK:  Step 5: time [s]: [[t5:.*]], result: [[v5:.*]]
+// CHECK:  Step 6: time [s]: [[t6:.*]], result: [[v6:.*]]
+// CHECK:  Step 7: time [s]: [[t7:.*]], result: [[v7:.*]]
+// CHECK:  Step 8: time [s]: [[t8:.*]], result: [[v8:.*]]
+// CHECK:  Step 9: time [s]: [[t9:.*]], result: [[v9:.*]]
+
+// CHECK:  Step times [s]: [[ts:.*]]
+// CHECK:  Results: [[rs:.*]]
+
+// CHECK:  Total running time: [[tts:.*]]s
