@@ -34,6 +34,9 @@ struct kraus_op {
   /// NOTE we currently assume nRows == nCols
   std::size_t nCols = 0;
 
+  /// @brief If true, the Kraus operator is a unitary operator times a constant.
+  bool unitary = false;
+
   /// @brief Copy constructor
   kraus_op(const kraus_op &) = default;
 
@@ -47,6 +50,7 @@ struct kraus_op {
 
     nRows = (std::size_t)std::round(sqrtNEl);
     nCols = nRows;
+    unitary = isScaledUnitary(data);
   }
 
   /// @brief Constructor, initialize from initializer_list
@@ -61,11 +65,13 @@ struct kraus_op {
 
     nRows = (std::size_t)std::round(sqrtNEl);
     nCols = nRows;
+    unitary = isScaledUnitary(data);
   }
 
   /// @brief Set this kraus_op equal to the other
   kraus_op &operator=(const kraus_op &other) {
     data = other.data;
+    unitary = other.unitary;
     return *this;
   }
 
@@ -78,6 +84,11 @@ struct kraus_op {
         newData[i * nRows + j] = std::conj(data[j * nCols + i]);
     return kraus_op(newData);
   }
+
+private:
+  /// @brief Return true if the input matrix is a scaled unitary matrix.
+  static bool isScaledUnitary(const std::vector<std::complex<double>> &mat);
+  static bool isScaledUnitary(const std::vector<std::complex<float>> &mat);
 };
 
 void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops);

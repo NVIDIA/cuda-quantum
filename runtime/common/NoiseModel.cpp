@@ -149,4 +149,35 @@ noise_model::get_channels(const std::string &quantumOp,
   return iter->second;
 }
 
+template <typename T>
+bool isScaledUnitaryImpl(const std::vector<std::complex<T>> &mat) {
+  typedef Eigen::Matrix<std::complex<T>, Eigen::Dynamic, Eigen::Dynamic,
+                        Eigen::RowMajor>
+      RowMajorMatTy;
+  const int dim = std::log2(mat.size());
+  Eigen::Map<const RowMajorMatTy> kMat(mat.data(), dim, dim);
+  if (kMat.isZero())
+    return true;
+  // Check that (K_dag * K) is a scaled identity matrix
+  // i.e., the K matrix is a scaled unitary.
+  auto kdK = kMat.adjoint() * kMat;
+  if (!kdK.isDiagonal())
+    return false;
+  // First element
+  std::complex<T> val = kdK(0, 0);
+  constexpr T eps = 1e-12;
+  if (std::abs(val) > eps) {
+    auto scaledKdK = (std::complex<T>{1.0} / val) * kdK;
+    return scaledKdK.isIdentity();
+  }
+  return false;
+}
+
+bool kraus_op::isScaledUnitary(const std::vector<std::complex<double>> &mat) {
+  return isScaledUnitaryImpl(mat);
+}
+
+bool kraus_op::isScaledUnitary(const std::vector<std::complex<float>> &mat) {
+  return isScaledUnitaryImpl(mat);
+}
 } // namespace cudaq

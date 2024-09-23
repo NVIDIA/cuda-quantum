@@ -290,4 +290,36 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+CUDAQ_TEST(NoiseTest, checkNoiseModelUtils) {
+  {
+    cudaq::depolarization_channel depol(0.1);
+    for (const auto &op : depol.get_ops())
+      EXPECT_TRUE(op.unitary);
+  }
+  {
+    cudaq::depolarization_channel depol(1.0);
+    for (const auto &op : depol.get_ops())
+      EXPECT_TRUE(op.unitary);
+  }
+  {
+    cudaq::bit_flip_channel bf(0.1);
+    for (const auto &op : bf.get_ops())
+      EXPECT_TRUE(op.unitary);
+  }
+  {
+    cudaq::phase_flip_channel pf(0.1);
+    for (const auto &op : pf.get_ops())
+      EXPECT_TRUE(op.unitary);
+  }
+  {
+    // Amplitude damping has a non-unitary Kraus matrix.
+    cudaq::amplitude_damping_channel ad(0.1);
+    const auto krausOps = ad.get_ops();
+    const bool hasNonUnitaryOp =
+        std::any_of(krausOps.begin(), krausOps.end(),
+                    [](const auto &op) { return !op.unitary; });
+    EXPECT_TRUE(hasNonUnitaryOp);
+  }
+}
+
 #endif
