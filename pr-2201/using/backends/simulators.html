@@ -747,11 +747,11 @@ invoking the program with the command</p>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>(1) The order of the option settings are interchangeable.
-For example, <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='mgpu,fp64')</span></code> is equivalent to <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='fp64.mgpu')</span></code>.</p>
-<ol class="arabic simple" start="2">
+<ul class="simple">
+<li><p>The order of the option settings are interchangeable.
+For example, <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='mgpu,fp64')</span></code> is equivalent to <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='fp64,mgpu')</span></code>.</p></li>
 <li><p>The <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target has single-precision as the default setting. Thus, using <code class="code docutils literal notranslate"><span class="pre">option='mgpu'</span></code> implies that <code class="code docutils literal notranslate"><span class="pre">option='mgpu,fp32'</span></code>.</p></li>
-</ol>
+</ul>
 </div>
 </div>
 <input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
@@ -884,7 +884,7 @@ use the following commands:</p>
 <p id="tensor-backends">CUDA-Q provides a couple of tensor-network simulator targets accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library.
 These backends are available for use from both C++ and Python.</p>
-<p>Tensor network-based simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> can be performed efficiently, thanks to <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance.</p>
+<p>Tensor network simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> can be performed efficiently, thanks to <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance.</p>
 <section id="id2">
 <h3>Multi-node multi-GPU<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend represents quantum states and circuits as tensor networks in an exact form (no approximation).
@@ -1001,13 +1001,13 @@ See the section <a class="reference internal" href="../install/local_installatio
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The parallelism of Jacobi method (the default <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting) gives GPU better performance on small and medium size matrices.
-If you expect the a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
+If you expect a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
 </div>
 </section>
 </section>
 <section id="default-simulator">
 <h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
-<p id="id3">If no explicit target is set, i.e. if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA-Q makes a default choice for the simulator.</p>
+<p id="id3">If no explicit target is set, i.e., if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA-Q makes a default choice for the simulator.</p>
 <p>If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. This will utilize the <a class="reference internal" href="#cuquantum-single-gpu"><span class="std std-ref">cuQuantum single-GPU state vector simulator</span></a>.
 On CPU-only systems, the default target is set to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> which uses the <a class="reference internal" href="#openmp-cpu-only"><span class="std std-ref">OpenMP CPU-only simulator</span></a>.</p>
 <p>The default simulator can be overridden by the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code>. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
