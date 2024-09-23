@@ -101,6 +101,10 @@ protected:
   /// `-mlir-print-ir-after-all` in `cudaq-opt`.
   bool enablePrintMLIREachPass = false;
 
+  /// @brief Flag indicating whether we should enable MLIR pass statistics
+  /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
+  bool enablePassStatistics = false;
+
   virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
   virtual void cleanupContext(mlir::MLIRContext *context) { return; }
@@ -442,8 +446,8 @@ public:
         llvm::raw_string_ostream outStr(codeStr);
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
-        if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
-                               enablePrintMLIREachPass)))
+        if (mlir::failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
+                               enablePrintMLIREachPass, enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
