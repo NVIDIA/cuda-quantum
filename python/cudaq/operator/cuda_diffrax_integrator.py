@@ -16,7 +16,7 @@ from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
 from .builtin_integrators import cuSuperOpTimeStepper
 
 
-class CUDADiffraxBaseIntegrator(BaseIntegrator[cuso.State]):
+class CUDADiffraxIntegrator(BaseIntegrator[cuso.State]):
     atol = 1e-8
     rtol = 1e-6
 
@@ -94,3 +94,57 @@ class CUDADiffraxBaseIntegrator(BaseIntegrator[cuso.State]):
             self.dm_shape = self.state.storage.shape
         else:
             assert self.dm_shape == self.state.storage.shape, "State shape must remain constant"
+
+
+class CUDADiffraxDopri5Integrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.Dopri5, **kwargs)
+
+
+class CUDADiffraxDopri8Integrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.Dopri8, **kwargs)
+
+
+class CUDADiffraxHeunIntegrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.Heun, **kwargs)
+
+
+class CUDADiffraxImplicitEulerIntegrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.ImplicitEuler, **kwargs)
+
+
+class CUDADiffraxKvaerno3Integrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.Kvaerno3, **kwargs)
+
+
+class CUDADiffraxKvaerno4Integrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.Kvaerno4, **kwargs)
+
+
+class CUDADiffraxKvaerno5Integrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.Kvaerno5, **kwargs)
+
+
+class CUDADiffraxMidpointIntegrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.Midpoint, **kwargs)
+
+
+class CUDADiffraxTsit5Integrator(CUDADiffraxIntegrator):
+
+    def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        super().__init__(stepper, solver=dfx.Tsit5, **kwargs)
