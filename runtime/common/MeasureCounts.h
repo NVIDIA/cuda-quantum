@@ -107,7 +107,6 @@ class sample_result {
 private:
   /// @brief A mapping of register names to `ExecutionResult`s
   std::unordered_map<std::string, ExecutionResult> sampleResults;
-
   /// @brief Keep track of the total number of shots. We keep this
   /// here so we don't have to keep recomputing it.
   std::size_t totalShots = 0;
@@ -229,6 +228,9 @@ public:
   /// @return
   CountsDictionary
   to_map(const std::string_view registerName = GlobalRegisterName) const;
+
+  ExecutionResult get_result_for_register(
+      const std::string_view registerName = GlobalRegisterName) const;
 
   /// @brief Extract marginal counts, that is those counts for a subset
   /// of measured qubits

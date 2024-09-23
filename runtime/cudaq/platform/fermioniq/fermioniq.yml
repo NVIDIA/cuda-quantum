@@ -1,0 +1,40 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: fermioniq
+description: "CUDA-Q target for Orca."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: fermioniq
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add the fermioniq-qpu library to the link list
+  link-libs: ["-lcudaq-fermioniq-qpu"]
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+  # lowering config
+  platform-lowering-config: "const-prop-complex,canonicalize,cse,lift-array-value,state-prep,expand-measurements,unrolling-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),fermioniq-gate-set-mapping"
+  # Tell the rest-qpu that we are generating QIR.
+  codegen-emission: qir-base
+
+target-arguments:
+  - key: remote-config
+    required: false
+    type: string
+    platform-arg: remote_config 
+    help-string: "Specify the Fermioniq Remote Configuration."
+  - key: project-id
+    required: false
+    type: string
+    platform-arg: project_id
+    help-string: "Specify the project."
+  - key: bond-dim
+    required: false
+    type: string
+    platform-arg: bond_dim
+    help-string: "Specify bond-dimension. Applies to all circuits."

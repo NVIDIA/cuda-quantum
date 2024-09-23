@@ -14,3 +14,5 @@ endif()
 if (CUDAQ_ENABLE_REST)
   add_subdirectory(mqpu)
 endif()
+
+add_subdirectory(fermioniq)
