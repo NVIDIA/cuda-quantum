@@ -91,10 +91,6 @@ protected:
   /// configuration.
   std::map<std::string, std::string> backendConfig;
 
-  /// @brief Flag indicating whether we should emulate
-  /// execution locally.
-  bool emulate = false;
-
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
@@ -157,7 +153,7 @@ public:
 
   /// @brief Return true if the current backend is a simulator
   /// @return
-  bool isSimulator() override { return emulate; }
+  bool isSimulator() override { return false; }
 
   /// @brief Return true if the current backend supports conditional feedback
   bool supportsConditionalFeedback() override {
@@ -172,19 +168,16 @@ public:
 
   /// Clear the number of shots
   void clearShots() override { nShots = std::nullopt; }
-  virtual bool isRemote() override { return !emulate; }
+  virtual bool isRemote() override { return true; }
 
   /// @brief Return true if locally emulating a remote QPU
-  virtual bool isEmulated() override { return emulate; }
+  virtual bool isEmulated() override { return false; }
 
   /// @brief Set the noise model, only allow this for
   /// emulation.
   void setNoiseModel(const cudaq::noise_model *model) override {
-    if (!emulate && model)
-      throw std::runtime_error(
-          "Noise modeling is not allowed on remote physical quantum backends.");
-
-    noiseModel = model;
+    throw std::runtime_error(
+          "Noise modeling is not allowed on this backend");
   }
 
   /// Store the execution context for launchKernel
@@ -250,10 +243,6 @@ public:
         }
       }
     }
-
-    // Turn on emulation mode if requested
-    auto iter = backendConfig.find("emulate");
-    emulate = iter != backendConfig.end() && iter->second == "true";
 
     // Print the IR if requested
     printIR = getEnvBool("CUDAQ_DUMP_JIT_IR", printIR);
@@ -485,18 +474,6 @@ public:
     std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
     modules.emplace_back(kernelName, moduleOp);
 
-    if (emulate) {
-      // If we are in emulation mode, we need to first get a
-      // full QIR representation of the code. Then we'll map to
-      // an LLVM Module, create a JIT ExecutionEngine pointer
-      // and use that for execution
-      for (auto &[name, module] : modules) {
-        auto clonedModule = module.clone();
-        jitEngines.emplace_back(
-            cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
-      }
-    }
-
     // Get the code gen translation
     auto translation = cudaq::getTranslation(codegenTranslation);
 
@@ -514,7 +491,7 @@ public:
                                    codegenTranslation + ".");
       }
 
-nlohmann::json j;
+      nlohmann::json j;
       // Form an output_names mapping from codeStr
       if (executionContext->name == "observe") {
         j = "[[[0,[0, \"expectation%0\"]]]]"_json;
@@ -622,89 +599,14 @@ nlohmann::json j;
     // If emulation requested, then just grab the function
     // and invoke it with the simulator
     cudaq::details::future future;
-    if (emulate) {
-
-      // Fetch the thread-specific seed outside and then pass it inside.
-      std::size_t seed = cudaq::get_random_seed();
-
-      // Launch the execution of the simulated jobs asynchronously
-      future = cudaq::details::future(std::async(
-          std::launch::async,
-          [&, codes, localShots, kernelName, seed,
-           reorderIdx = executionContext->reorderIdx,
-           localJIT = std::move(jitEngines)]() mutable -> cudaq::sample_result {
-            std::vector<cudaq::ExecutionResult> results;
-
-            // If seed is 0, then it has not been set.
-            if (seed > 0)
-              cudaq::set_random_seed(seed);
-
-            bool hasConditionals =
-                cudaq::kernelHasConditionalFeedback(kernelName);
-            if (hasConditionals && codes.size() > 1)
-              throw std::runtime_error("error: spin_ops not yet supported with "
-                                       "kernels containing conditionals");
-            if (hasConditionals) {
-              executor->setShots(1); // run one shot at a time
-
-              // If this is adaptive profile and the kernel has conditionals,
-              // then you have to run the code localShots times instead of
-              // running the kernel once and sampling the state localShots
-              // times.
-              if (hasConditionals) {
-                // Populate `counts` one shot at a time
-                cudaq::sample_result counts;
-                for (std::size_t shot = 0; shot < localShots; shot++) {
-                  cudaq::ExecutionContext context("sample", 1);
-                  context.hasConditionalsOnMeasureResults = true;
-                  cudaq::getExecutionManager()->setExecutionContext(&context);
-                  invokeJITKernel(localJIT[0], kernelName);
-                  cudaq::getExecutionManager()->resetExecutionContext();
-                  counts += context.result;
-                }
-                // Process `counts` and store into `results`
-                for (auto &regName : counts.register_names()) {
-                  results.emplace_back(counts.to_map(regName), regName);
-                  results.back().sequentialData =
-                      counts.sequential_data(regName);
-                }
-              }
-            }
-
-            for (std::size_t i = 0; i < codes.size(); i++) {
-              cudaq::ExecutionContext context("sample", localShots);
-              context.reorderIdx = reorderIdx;
-              cudaq::getExecutionManager()->setExecutionContext(&context);
-              invokeJITKernelAndRelease(localJIT[i], kernelName);
-              cudaq::getExecutionManager()->resetExecutionContext();
-
-              // If there are multiple codes, this is likely a spin_op.
-              // If so, use the code name instead of the global register.
-              if (codes.size() > 1) {
-                results.emplace_back(context.result.to_map(), codes[i].name);
-                results.back().sequentialData =
-                    context.result.sequential_data();
-              } else {
-                // For each register, add the context results into result.
-                for (auto &regName : context.result.register_names()) {
-                  results.emplace_back(context.result.to_map(regName), regName);
-                  results.back().sequentialData =
-                      context.result.sequential_data(regName);
-                }
-              }
-            }
-            localJIT.clear();
-            return cudaq::sample_result(results);
-          }));
-
-    } else {
-      // Execute the codes produced in quake lowering
-      // Allow developer to disable remote sending (useful for debugging IR)
-      if (getEnvBool("DISABLE_REMOTE_SEND", false))
-        return;
-      else
-        future = executor->execute(codes);
-    }
+    
+    // Execute the codes produced in quake lowering
+    // Allow developer to disable remote sending (useful for debugging IR)
+    if (getEnvBool("DISABLE_REMOTE_SEND", false))
+      return;
+    else
+      future = executor->execute(codes);
+  
 
     // Keep this asynchronous if requested
     if (executionContext->asyncExec) {
