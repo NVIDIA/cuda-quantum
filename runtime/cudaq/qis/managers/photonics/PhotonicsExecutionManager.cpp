@@ -64,10 +64,10 @@ struct PhotonicsState : public cudaq::SimulationState {
         getPrecision()};
   }
 
-  // /// @brief Return all tensors that represent this state
+  /// @brief Return all tensors that represent this state
   std::vector<Tensor> getTensors() const override { return {getTensor()}; }
 
-  // /// @brief Return the number of tensors that represent this state.
+  /// @brief Return the number of tensors that represent this state.
   std::size_t getNumTensors() const override { return 1; }
 
   std::complex<double>
@@ -77,7 +77,6 @@ struct PhotonicsState : public cudaq::SimulationState {
       throw std::runtime_error("[photonics] invalid tensor requested.");
     if (indices.size() != 1)
       throw std::runtime_error("[photonics] invalid element extraction.");
-
     return state[indices[0]];
   }
 

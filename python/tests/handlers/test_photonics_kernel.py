@@ -7,6 +7,10 @@
 # ============================================================================ #
 
 import pytest
+
+import gc
+from typing import List
+
 import cudaq
 
 
@@ -16,6 +20,8 @@ def do_something():
     yield
     cudaq.reset_target()
     cudaq.__clearKernelRegistries()
+    # Make the tests stable by enforcing resource release
+    gc.collect()
 
 
 def test_qudit():
@@ -83,18 +89,48 @@ def test_supported_gates():
 
 
 def test_kernel_with_args():
+    """Test that `PhotonicsHandler` supports basic arguments. 
+       The check here is that all the test kernels run successfully."""
 
     @cudaq.kernel
-    def kernel(theta: float):
+    def kernel_1f(theta: float):
         q = qudit(4)
         plus(q)
         phase_shift(q, theta)
         mz(q)
 
-    result = cudaq.sample(kernel, 0.5)
+    result = cudaq.sample(kernel_1f, 0.5)
     result.dump()
-    
-    state = cudaq.get_state(kernel, 0.5)
+
+    state = cudaq.get_state(kernel_1f, 0.5)
+    state.dump()
+
+    @cudaq.kernel
+    def kernel_2f(theta: float, phi: float):
+        quds = [qudit(3) for _ in range(2)]
+        plus(quds[0])
+        phase_shift(quds[0], theta)
+        beam_splitter(quds[0], quds[1], phi)
+        mz(quds)
+
+    result = cudaq.sample(kernel_2f, 0.7854, 0.3927)
+    result.dump()
+
+    state = cudaq.get_state(kernel_2f, 0.7854, 0.3927)
+    state.dump()
+
+    @cudaq.kernel
+    def kernel_list(angles: List[float]):
+        quds = [qudit(2) for _ in range(3)]
+        plus(quds[0])
+        phase_shift(quds[1], angles[0])
+        phase_shift(quds[2], angles[1])
+        mz(quds)
+
+    result = cudaq.sample(kernel_list, [0.5236, 1.0472])
+    result.dump()
+
+    state = cudaq.get_state(kernel_list, [0.5236, 1.0472])
     state.dump()
 
 
