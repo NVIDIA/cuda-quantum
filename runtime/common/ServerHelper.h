@@ -30,9 +30,13 @@ struct KernelExecution {
   std::string code;
   nlohmann::json output_names;
   std::vector<std::size_t> mapping_reorder_idx;
+  nlohmann::json user_data;
   KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
                   std::vector<std::size_t> &m)
       : name(n), code(c), output_names(o), mapping_reorder_idx(m) {}
+  KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
+                  std::vector<std::size_t> &m, nlohmann::json &ud)
+      : name(n), code(c), output_names(o), mapping_reorder_idx(m), user_data(ud) {}
 };
 
 /// @brief Responses / Submissions to the Server are modeled via JSON
