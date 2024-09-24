@@ -18,11 +18,11 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE .)
 
 set (PHOTONICS_DEPENDENCIES "")
-list(APPEND PHOTONICS_DEPENDENCIES nvqir cudaq-common libqpp fmt::fmt-header-only LLVMSupport)
-add_openmp_configurations(${LIBRARY_NAME} PHOTONICS_DEPENDENCIES)
+list(APPEND PHOTONICS_DEPENDENCIES nvqir cudaq-common  fmt::fmt-header-only LLVMSupport)
+# add_openmp_configurations(${LIBRARY_NAME} PHOTONICS_DEPENDENCIES)
 
 target_link_libraries(${LIBRARY_NAME}
-  # PUBLIC cudaq-spin
+  PUBLIC cudaq-spin 
   PRIVATE ${PHOTONICS_DEPENDENCIES}
    
 )

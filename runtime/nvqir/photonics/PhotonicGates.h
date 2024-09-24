@@ -9,15 +9,6 @@
 #pragma once
 #include "nvqir/Gates.h"
 
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
-#endif
-#include <complex>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-
 #include <vector>
 
 namespace nvqir {
@@ -108,21 +99,23 @@ double _calc_beam_splitter_elem(int N1, int N2, int n1, int n2, double theta) {
 }
 
 /// @brief Computes matrix representing a beam splitter gate
-void _calc_beam_splitter(std::vector<std::complex<double>> &BS,
-                         const double theta) {
-  int d = sqrt(sqrt(BS.size()));
+template <typename Scalar>
+void _calc_beam_splitter(std::vector<std::complex<Scalar>> &BS,
+                         const Scalar theta) {
+  int levels = sqrt(sqrt(BS.size()));
   //     """Returns a matrix representing a beam splitter
-  for (int n1 = 0; n1 < d; ++n1) {
-    for (int n2 = 0; n2 < d; ++n2) {
+  for (int n1 = 0; n1 < levels; ++n1) {
+    for (int n2 = 0; n2 < levels; ++n2) {
       int nxx = n1 + n2;
-      int nxd = std::min(nxx + 1, d);
+      int nxd = std::min(nxx + 1, levels);
       for (int N1 = 0; N1 < nxd; ++N1) {
         int N2 = nxx - N1;
         if (N2 >= nxd) {
           continue;
         } else {
 
-          BS.at(n1 * d * d * d + n2 * d * d + N1 * d + N2) =
+          BS.at(n1 * levels * levels * levels + n2 * levels * levels +
+                N1 * levels + N2) =
               _calc_beam_splitter_elem(N1, N2, n1, n2, theta);
         }
       } // end for N1
@@ -132,35 +125,36 @@ void _calc_beam_splitter(std::vector<std::complex<double>> &BS,
 
 /// @brief Given the gate name (an element of the GateName enum),
 /// return the matrix data, optionally parameterized by a rotation angle.
-std::vector<std::complex<double>>
-getPhotonicGateByName(PhotonicGateName name, const std::size_t d,
-                      std::vector<double> angles = {}) {
+template <typename Scalar>
+std::vector<std::complex<Scalar>>
+getPhotonicGateByName(PhotonicGateName name, const std::size_t levels,
+                      std::vector<Scalar> angles = {}) {
   switch (name) {
   case (PhotonicGateName::PlusGate): {
-    auto length = d * d;
-    std::vector<std::complex<double>> u(length, 0.0);
-    u.at(d - 1) = 1.;
-    for (size_t i = 1; i < d; i++) {
-      u.at(i * d + (i - i)) = 1.;
+    auto length = levels * levels;
+    std::vector<std::complex<Scalar>> u(length, 0.0);
+    u.at(levels - 1) = 1.;
+    for (size_t i = 1; i < levels; i++) {
+      u.at(i * levels + (i - i)) = 1.;
     }
     return u;
   }
   case (PhotonicGateName::BeamSplitterGate): {
     auto theta = angles[0];
-    auto length = d * d * d * d;
-    std::vector<std::complex<double>> BS(length, 0.0);
-    _calc_beam_splitter(BS, theta);
+    auto length = levels * levels * levels * levels;
+    std::vector<std::complex<Scalar>> BS(length, 0.0);
+    _calc_beam_splitter<Scalar>(BS, theta);
     return BS;
   }
   case (PhotonicGateName::PhaseShiftGate): {
 
     auto phi = angles[0];
-    auto length = d * d;
-    std::vector<std::complex<double>> PS(length, 0.0);
+    auto length = levels * levels;
+    std::vector<std::complex<Scalar>> PS(length, 0.0);
     // static constexpr std::complex<double> im = std::complex<double>(0, 1.);
-    for (size_t i = 0; i < d; i++) {
-      PS.at(i * d + i) =
-          std::exp(nvqir::im<double> * static_cast<double>(i) * phi);
+    for (size_t i = 0; i < levels; i++) {
+      PS.at(i * levels + i) =
+          std::exp(nvqir::im<Scalar> * static_cast<Scalar>(i) * phi);
     }
     return PS;
   }
@@ -171,29 +165,33 @@ getPhotonicGateByName(PhotonicGateName name, const std::size_t d,
 
 /// @brief The plus operation as a type. Can instantiate and request
 /// its matrix data.
-
+template <typename ScalarType = double>
 struct plus {
-  auto getGate(const std::size_t d, std::vector<double> angles = {}) {
-    return getPhotonicGateByName(PhotonicGateName::PlusGate, d);
+  auto getGate(const std::size_t levels, std::vector<ScalarType> angles = {}) {
+    return getPhotonicGateByName<ScalarType>(PhotonicGateName::PlusGate,
+                                             levels);
   }
   const std::string name() const { return "plus"; }
 };
 
 /// The Beam Splitter Gate
-
+template <typename ScalarType = double>
 struct beam_splitter {
-  std::vector<ComplexT<double>> getGate(const std::size_t d,
-                                        std::vector<double> angles = {}) {
-    return getPhotonicGateByName(PhotonicGateName::BeamSplitterGate, d);
+  std::vector<ComplexT<ScalarType>>
+  getGate(const std::size_t levels, std::vector<ScalarType> angles = {}) {
+    return getPhotonicGateByName<ScalarType>(PhotonicGateName::BeamSplitterGate,
+                                             levels);
   }
   const std::string name() const { return "beam_splitter"; }
 };
 
 /// The Phase Shift Gate
+template <typename ScalarType = double>
 struct phase_shift {
-  std::vector<ComplexT<double>> getGate(const std::size_t d,
-                                        std::vector<double> angles = {}) {
-    return getPhotonicGateByName(PhotonicGateName::PhaseShiftGate, d);
+  std::vector<ComplexT<ScalarType>>
+  getGate(const std::size_t levels, std::vector<ScalarType> angles = {}) {
+    return getPhotonicGateByName<ScalarType>(PhotonicGateName::PhaseShiftGate,
+                                             levels);
   }
   const std::string name() const { return "phase_shift"; }
 };

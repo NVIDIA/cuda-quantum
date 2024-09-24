@@ -10,9 +10,8 @@
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 // #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nvqir/photonics/PhotonicCircuitSimulator.cpp"
+#include "nvqir/photonics/PhotonicCircuitSimulator.h"
 
-#include "qpp.h"
 #include "llvm/ADT/StringSwitch.h"
 #include <cmath>
 #include <complex>
