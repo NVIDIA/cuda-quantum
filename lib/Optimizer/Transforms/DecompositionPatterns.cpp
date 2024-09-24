@@ -376,7 +376,7 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
 
     // Remove optional last zero character
     auto size = pauliWordStr.size();
-    if (pauliWordStr[size - 1] == '\0')
+    if (size > 0 && pauliWordStr[size - 1] == '\0')
       size--;
 
     SmallVector<Value> qubitSupport;
