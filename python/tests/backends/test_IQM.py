@@ -200,6 +200,20 @@ def test_IQM_state_preparation_builder():
     assert assert_close(counts["11"], 0., 2)
 
 
+def test_exp_pauli():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, "XX")
+
+    counts = cudaq.sample(test)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["11"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["10"], 0., 2)
+
+
 def test_arbitrary_unitary_synthesis():
 
     cudaq.register_operation("custom_h",
