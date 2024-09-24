@@ -115,6 +115,11 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
     final_coeff.real(0);
   }
 
+  // Handle the "-0" issue
+  if (std::abs(final_coeff.imag()) < 1e-12) {
+    final_coeff.imag(0);
+  }
+
   return std::make_pair(final_coeff, result);
 }
 } // namespace details
@@ -523,8 +528,18 @@ bool spin_op::operator==(const spin_op &v) const noexcept {
   if (isId1 && isId2)
     return true;
 
+  if (isId1 != isId2)
+    return false;
+
+  if (terms.size() != v.terms.size())
+    return false;
+
   for (auto &[k, c] : terms) {
-    if (v.terms.find(k) == v.terms.end())
+    auto it = v.terms.find(k);
+    if (it == v.terms.end())
+      return false;
+
+    if (c != it->second)
       return false;
   }
   return true;
