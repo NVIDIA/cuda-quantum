@@ -335,18 +335,52 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
   LogicalResult matchAndRewrite(quake::ExpPauliOp expPauliOp,
                                 PatternRewriter &rewriter) const override {
     auto loc = expPauliOp.getLoc();
+    auto module = expPauliOp->getParentOfType<ModuleOp>();
     auto qubits = expPauliOp.getQubits();
     auto theta = expPauliOp.getParameter();
     auto pauliWord = expPauliOp.getPauli();
 
+    std::optional<StringRef> optPauliWordStr;
+    if (auto defOp =
+            pauliWord.getDefiningOp<cudaq::cc::CreateStringLiteralOp>()) {
+      optPauliWordStr = defOp.getStringLiteral();
+    } else {
+      // Get the pauli word string from a constant global string generated
+      // during argument synthesis.
+      auto stringOp = expPauliOp.getOperand(2);
+      auto stringTy = stringOp.getType();
+      if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(stringTy)) {
+        if (auto vecInit = stringOp.getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+          auto addrOp = vecInit.getOperand(0);
+          if (auto cast = addrOp.getDefiningOp<cudaq::cc::CastOp>())
+            addrOp = cast.getOperand();
+          if (auto addr = addrOp.getDefiningOp<cudaq::cc::AddressOfOp>()) {
+            auto globalName = addr.getGlobalName();
+            auto symbol = module.lookupSymbol(globalName);
+            if (auto global = dyn_cast<LLVM::GlobalOp>(symbol)) {
+              auto attr = global.getValue();
+              auto strAttr = cast<mlir::StringAttr>(attr.value());
+              optPauliWordStr = strAttr.getValue();
+            }
+          }
+        }
+      }
+    }
+
     // Assert that we have a constant known pauli word
-    auto defOp = pauliWord.getDefiningOp<cudaq::cc::CreateStringLiteralOp>();
-    if (!defOp)
+    if (!optPauliWordStr.has_value()) {
       return failure();
+    }
+
+    auto pauliWordStr = optPauliWordStr.value();
+
+    // Remove optional last zero character
+    auto size = pauliWordStr.size();
+    if (pauliWordStr[size - 1] == '\0')
+      size--;
 
     SmallVector<Value> qubitSupport;
-    StringRef pauliWordStr = defOp.getStringLiteral();
-    for (std::size_t i = 0; i < pauliWordStr.size(); i++) {
+    for (std::size_t i = 0; i < size; i++) {
       Value index = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
       Value qubitI = rewriter.create<quake::ExtractRefOp>(loc, qubits, index);
       if (pauliWordStr[i] != 'I')
