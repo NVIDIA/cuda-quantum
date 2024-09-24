@@ -1,0 +1,265 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "e466cb3d-c036-45f7-af9f-b18b9aa22e8a",
+   "metadata": {},
+   "source": [
+    "# Optimizers and Gradients\n",
+    "\n",
+    "Many quantum algorithms require the optimization of quantum circuit parameters with respect to an expectation value.  CUDA-Q has a number of tools available for optimization techniques.  This example will demonstrate how to optimize the variational parameters of a circuit using:\n",
+    "\n",
+    "1. Built in CUDA-Q optimizers and gradients\n",
+    "2. A Third-Party Optimizer\n",
+    "3. A Parallel parameter shift gradient.\n",
+    "\n",
+    "First, the kernel and Hamiltonian and specified below."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a77a963a-6f5c-4751-93c8-b3ccbb5921f5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import cudaq\n",
+    "from cudaq import spin\n",
+    "import numpy as np\n",
+    "\n",
+    "hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(\n",
+    "    0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)\n",
+    "\n",
+    "@cudaq.kernel\n",
+    "def kernel(angles: list[float]):\n",
+    "\n",
+    "    qubits = cudaq.qvector(2)\n",
+    "    x(qubits[0])\n",
+    "    ry(angles[0], qubits[1])\n",
+    "    x.ctrl(qubits[1], qubits[0])  \n",
+    "\n",
+    "initial_params = np.random.normal(0, np.pi, 2)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6c3de68e-754a-4412-8063-78ee9646b4b0",
+   "metadata": {},
+   "source": [
+    "### Built in CUDA-Q Optimizers and Gradients"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "eea5d9f2-ade2-4411-88a7-b8c5505c29c3",
+   "metadata": {},
+   "source": [
+    "The optimizer and gradient are specified first from a built in CUDA-Q optimizer and gradient technique. An objective function is defined next which uses a lambda expression to evaluate the cost (a CUDA-Q `observe` expectation value). The gradient is calculated using the `compute` method."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "87387c0a-86cf-4dfb-9130-b1c3054e43d5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "optimizer = cudaq.optimizers.Adam()\n",
+    "gradient = cudaq.gradients.CentralDifference()\n",
+    "\n",
+    "\n",
+    "def objective_function(parameter_vector: list[float],\n",
+    "                       hamiltonian=hamiltonian,\n",
+    "                       gradient_strategy=gradient,\n",
+    "                       kernel=kernel) -> tuple[float, list[float]]:\n",
+    "\n",
+    "        get_result = lambda parameter_vector: cudaq.observe(kernel, hamiltonian, parameter_vector).expectation()\n",
+    "\n",
+    "        cost = get_result(parameter_vector)\n",
+    "    \n",
+    "        gradient_vector = gradient_strategy.compute(parameter_vector, get_result, cost)\n",
+    "\n",
+    "        return cost, gradient_vector"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b98f7129-d360-4e9c-9ea5-d4173ecb5ef1",
+   "metadata": {},
+   "source": [
+    "Finally, the optimizer is called to return the optimal cost and parameters."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "713d7619-7b62-42b7-bb46-601ed9883e6a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "energy, parameter = optimizer.optimize(dimensions=1,function=objective_function)\n",
+    "\n",
+    "print(f\"\\nminimized <H> = {round(energy,16)}\")\n",
+    "print(f\"optimal theta 0 = {round(parameter[0],16)}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a36a46fc-b04b-43e3-ac10-3b2ee59c3418",
+   "metadata": {},
+   "source": [
+    "### Third-Party Optimizers\n",
+    "\n",
+    "The same procedure can be accomplised using any third-party such as SciPy. In this case, a simple cost fucntion is defined and provided as an input for the standard SciPy `minimize` function."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0541fa5c-3c4e-44e7-bd13-52d3b07af50e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from scipy.optimize import minimize\n",
+    "\n",
+    "def cost(theta):\n",
+    "\n",
+    "    exp_val = cudaq.observe(kernel, hamiltonian, theta).expectation()\n",
+    "\n",
+    "    return exp_val\n",
+    "\n",
+    "result = minimize(cost, initial_params ,method='COBYLA', options={'maxiter': 40})\n",
+    "print(result)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d73755a8-2c45-41c8-8d9b-d88a0b411869",
+   "metadata": {},
+   "source": [
+    "### Parallel Parameter Shift Gradients"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7b01d93b-0953-4139-8a90-44414327f726",
+   "metadata": {},
+   "source": [
+    "CUDA-Q's `mqpu` backend allows for parallel computation of parameter shift gradients using multiple simulated QPUs. Gradients computed this way can be used in any of the previously discussed optimization procedures.  Below is an example demonstrating how parallel gradient evaluation can be used for a VQE procedure. \n",
+    "\n",
+    "The parameter shift procedure computes two expectations values for each parameter shifted forwards and backwards. These are used to estimate the gradient contribution for that parameter.\n",
+    "\n",
+    "The following code defines a function that takes a kernel, a Hamiltonian (spin operator), and the circuit parameters and produces a parameter shift gradient with shift `epsilon`. The first step of the function builds `xplus` and `xminus` , arrays consisting of the shifted parameters. \n",
+    "\n",
+    "Next, a for loop iterates over all of the parameters and uses the `cudaq.observe_async` to compute the expectation value.  This command also takes `qpu_id` as an in out which specifies the GPU that will be used to simulate the ith QPU.  In the example below, four GPUs (simulated QPUs) are available so the gradient is batched over four devices. \n",
+    "\n",
+    "The results are saved in the `g_plus` and `g_minus` lists, the elements of which are accessed with commands like  `g_plus[1].expectation()` to compute the finite differences and construct the final gradient. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7508c92a-ff80-4a92-9396-691825b1cabb",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import  numpy as np\n",
+    "# cudaq.set_target('nvidia', option = 'mqpu')\n",
+    "\n",
+    "num_qpus = 4\n",
+    "epsilon =np.pi/4\n",
+    "\n",
+    "\n",
+    "def batched_gradient_function(kernel, parameters, hamiltonian, epsilon): \n",
+    "\n",
+    "    #Prepare an array of parameters corresponding to the plus and minus shifts\n",
+    "    x = np.tile(parameters, (len(parameters),1))\n",
+    "    xplus = x + (np.eye(x.shape[0]) * epsilon)\n",
+    "    xminus = x - (np.eye(x.shape[0]) * epsilon)\n",
+    "\n",
+    "    g_plus = []\n",
+    "    g_minus = []\n",
+    "    gradient = []\n",
+    "\n",
+    "    qpu_counter = 0 # Iterate over the number of GPU resources available\n",
+    "    \n",
+    "    \n",
+    "    for i in range(x.shape[0]): \n",
+    "\n",
+    "        g_plus.append(cudaq.observe_async(kernel,hamiltonian, xplus[i], qpu_id = qpu_counter%num_qpus))\n",
+    "        qpu_counter += 1 \n",
+    "\n",
+    "        g_minus.append(cudaq.observe_async(kernel, hamiltonian, xminus[i], qpu_id = qpu_counter%num_qpus))\n",
+    "        qpu_counter += 1 \n",
+    "        \n",
+    "    #use the expectation values to compute the gradient    \n",
+    "    gradient = [(g_plus[i].get().expectation() - g_minus[i].get().expectation()) / (2*epsilon) for i in range(len(g_minus))]\n",
+    "\n",
+    "    return gradient\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9a317073-0e29-40d1-bf09-d168e7227f14",
+   "metadata": {},
+   "source": [
+    "This function can be used in a VQE procedure as presented below. First, the gradient is computed using the initial parameters, then the standard VQE construction is used, but the `batched_gradient_function` is used to evaluate the gradient at each step. This objective function will return the cost and gradient at each step and can be used with any SciPy optimizer that uses a gradient."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "6313f4ed-a620-4982-b587-42e19267ef84",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "gradient = batched_gradient_function(kernel, initial_params, hamiltonian, epsilon)\n",
+    "\n",
+    "\n",
+    "def objective_function(parameter_vector,\n",
+    "                       hamiltonian=hamiltonian,\n",
+    "                       gradient=gradient,\n",
+    "                       kernel=kernel):\n",
+    "\n",
+    "    cost=cudaq.observe(kernel,hamiltonian,parameter_vector).expectation()\n",
+    "   \n",
+    " \n",
+    "    gradient_vector = batched_gradient_function(kernel, initial_params, hamiltonian, epsilon)\n",
+    "\n",
+    "    return cost, gradient_vector\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "edd702a6-213d-469e-861b-9beee6207284",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "result_vqe=minimize(objective_function,initial_params, method='L-BFGS-B', jac=True, tol=1e-8, options={'maxiter': 5})\n",
+    "print(result)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
