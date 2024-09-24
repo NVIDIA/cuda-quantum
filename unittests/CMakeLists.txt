@@ -238,6 +238,7 @@ target_link_libraries(test_photonics
   cudaq
   cudaq-platform-default
   cudaq-em-photonics
+  nvqir
   nvqir-qpp
   gtest_main)
 gtest_discover_tests(test_photonics)
@@ -252,7 +253,8 @@ target_link_libraries(test_utils
   cudaq-platform-default
   cudaq-em-photonics
   nvqir
-  nvqir-qpp fmt::fmt-header-only
+  nvqir-qpp 
+  fmt::fmt-header-only
   gtest_main)
 gtest_discover_tests(test_utils)
 

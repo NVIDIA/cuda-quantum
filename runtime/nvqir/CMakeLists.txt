@@ -15,6 +15,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 set(NVQIR_RUNTIME_SRC
   QIRTypes.cpp
   NVQIR.cpp
+  photonics/PhotonicNVQIR.cpp
   ../cudaq/qis/state.cpp
 )
 
@@ -30,14 +31,14 @@ set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 # and by keeping it private, others can specify the
 # backend library later on
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-common cudaq-spin dl fmt::fmt-header-only)
+  PUBLIC  cudaq-common cudaq-spin dl fmt::fmt-header-only)
 
 install(TARGETS ${LIBRARY_NAME} 
         EXPORT nvqir-targets 
         LIBRARY DESTINATION lib
         INCLUDES DESTINATION include/nvqir)
 
-add_subdirectory(photonics)
+# add_subdirectory(photonics)
 add_subdirectory(qpp)
 add_subdirectory(stim)
 
