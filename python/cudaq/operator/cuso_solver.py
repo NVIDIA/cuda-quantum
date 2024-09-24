@@ -13,7 +13,19 @@ from .builtin_integrators import RungeKuttaIntegrator, cuSuperOpTimeStepper
 from .scipy_integrators import ScipyZvodeIntegrator
 import cupy
 import copy
+import math
+from cupy.cuda.memory import MemoryPointer, UnownedMemory
 
+def as_cuso_state(state):
+    tensor = state.getTensor()
+    pDevice  = tensor.data()
+    dtype = cupy.complex128
+    # print(f"Cupy pointer: {hex(pDevice)}")
+    sizeByte = tensor.get_num_elements() *  tensor.get_element_size()
+    mem = UnownedMemory(pDevice, sizeByte, owner = state)
+    memptr = MemoryPointer(mem, 0)
+    cupy_array = cupy.ndarray(tensor.get_num_elements(), dtype=dtype, memptr=memptr)
+    return CuSuperOpState(cupy_array)
 
 # Master-equation solver using cuSuperOp
 def evolve_me(
@@ -31,8 +43,7 @@ def evolve_me(
     # Note: we would need a CUDAQ state implementation for cuSuperOp
     if not isinstance(initial_state, cudaq_runtime.State):
         raise NotImplementedError("TODO: list of input states")
-
-    initial_state = initial_state.get_impl()
+    initial_state = as_cuso_state(initial_state)
 
     if not isinstance(initial_state, CuSuperOpState):
         raise ValueError("Unknown type")
@@ -78,7 +89,6 @@ def evolve_me(
     integrator.set_state(initial_state, schedule._steps[0])
     exp_vals = []
     intermediate_states = []
-
     for step_idx, parameters in enumerate(schedule):
         # print(f"Current time = {schedule.current_step}")
         if step_idx > 0:
@@ -93,9 +103,14 @@ def evolve_me(
         exp_vals.append(step_exp_vals)
         if store_intermediate_results:
             _, state = integrator.get_state()
-            intermediate_states.append(
-                cudaq_runtime.State.wrap_py_state(
-                    CuSuperOpState(copy.deepcopy(state.storage))))
+            state_length = state.storage.size
+            if is_density_matrix:
+                dimension = int(math.sqrt(state_length))
+                intermediate_states.append(cudaq_runtime.State.from_data(state.storage.reshape((dimension, dimension))))
+            else:
+                dimension = state_length
+                intermediate_states.append(cudaq_runtime.State.from_data(state.storage.reshape((dimension,))))
+
 
     if store_intermediate_results:
         return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)

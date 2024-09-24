@@ -298,13 +298,6 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
       .def_static(
           "from_data",
           [&](py::buffer data) {
-            if (holder.getTarget().name == "nvidia-dynamics") {
-              py::handle cuso_state =
-                  py::module::import("cudaq.operator").attr("CuSuperOpState");
-              return state(
-                  new PyCuSuperOpState(cuso_state.attr("from_data")(data)));
-            }
-
             // This is by default host data
             auto info = data.request();
             if (info.format ==
@@ -360,12 +353,6 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
       .def_static(
           "from_data",
           [&](py::object opaqueData) {
-            if (holder.getTarget().name == "nvidia-dynamics") {
-              py::handle cuso_state =
-                  py::module::import("cudaq.operator").attr("CuSuperOpState");
-              return state(new PyCuSuperOpState(
-                  cuso_state.attr("from_data")(opaqueData)));
-            }
             // Make sure this is a CuPy array
             if (!py::hasattr(opaqueData, "data"))
               throw std::runtime_error(
@@ -391,15 +378,27 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
                   "simulation if FP64.");
 
             // Compute the number of elements in the array
+            std::vector<std::size_t> extents;
             auto numElements = [&]() {
               auto shape = opaqueData.attr("shape").cast<py::tuple>();
               std::size_t numElements = 1;
-              for (auto el : shape)
+              for (auto el : shape) {
                 numElements *= el.cast<std::size_t>();
+                extents.emplace_back(el.cast<std::size_t>());
+              }
               return numElements;
             }();
 
             long ptr = data.attr("ptr").cast<long>();
+            if (holder.getTarget().name == "nvidia-dynamics") {
+              // For nvidia-dynamics, we need to send on the extents to
+              // distinguish state vector vs density matrix.
+              cudaq::TensorStateData tensorData{
+                  std::pair<const void *, std::vector<std::size_t>>{
+                      reinterpret_cast<std::complex<double> *>(ptr), extents}};
+              return state::from_data(tensorData);
+            }
+
             if (typeStr == "complex64")
               return cudaq::state::from_data(std::make_pair(
                   reinterpret_cast<std::complex<float> *>(ptr), numElements));

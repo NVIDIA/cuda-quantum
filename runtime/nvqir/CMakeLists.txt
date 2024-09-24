@@ -45,6 +45,9 @@ endif()
 if (CUTENSORNET_ROOT AND CUDA_FOUND)
   add_subdirectory(cutensornet)  
 endif()
+if (CUDA_FOUND)
+  add_subdirectory(cusuperop)
+endif()
 
 install(EXPORT nvqir-targets
         FILE NVQIRTargets.cmake
