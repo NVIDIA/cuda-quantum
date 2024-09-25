@@ -1,7 +1,4 @@
 on:
-  ## TEMPORARY - NOT TO BE MERGED
-  pull_request:
-       branches: [main]
   workflow_dispatch:
     inputs:
       deployment_id:
