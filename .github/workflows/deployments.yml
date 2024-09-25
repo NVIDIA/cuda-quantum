@@ -1,4 +1,7 @@
 on:
+  ## TEMPORARY - NOT TO BE MERGED
+  pull_request:
+       branches: [main]
   # We update the build caches during the pull_request_target event, 
   # and deploy the images via workflow dispatch on branches with deployment permissions.
   # A dispatch event is automatically triggered when the pull_request_target event
