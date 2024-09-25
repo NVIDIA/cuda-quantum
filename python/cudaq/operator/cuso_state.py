@@ -7,6 +7,7 @@ class CuSuperOpState(object):
     __ctx = WorkStream()
 
     def __init__(self, data):
+        self.hilbert_space_dims = None
         if isinstance(data, DenseMixedState) or isinstance(
                 data, DensePureState):
             self.state = data
@@ -17,6 +18,7 @@ class CuSuperOpState(object):
 
     def init_state(self, hilbert_space_dims: Sequence[int]):
         if self.state is None:
+            self.hilbert_space_dims = hilbert_space_dims
             dm_shape = hilbert_space_dims * 2
             sv_shape = hilbert_space_dims
             try:
@@ -50,4 +52,14 @@ class CuSuperOpState(object):
         if self.state is None:
             return cupy.array_str(self.raw_data)
         return cupy.array_str(self.state.storage)
+
+    def to_dm(self):
+        if self.is_density_matrix():
+            raise ValueError("CuSuperOpState is already a density matrix")
+        dm = cupy.outer(self.state.storage, cupy.conj(self.state.storage))
+        if self.hilbert_space_dims is not None:
+            dm = dm.reshape(self.hilbert_space_dims * 2)
+        dm = cupy.asfortranarray(dm)
+        dm_state = DenseMixedState(self.__ctx, dm)
+        return CuSuperOpState(dm_state)
 
