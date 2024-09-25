@@ -51,9 +51,3 @@ class CuSuperOpState(object):
             return cupy.array_str(self.raw_data)
         return cupy.array_str(self.state.storage)
 
-    @staticmethod
-    def tear_down():
-        CuSuperOpState.__ctx.free()
-
-
-atexit.register(CuSuperOpState.tear_down)
