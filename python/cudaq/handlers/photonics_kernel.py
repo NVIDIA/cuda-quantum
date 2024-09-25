@@ -13,6 +13,8 @@ from typing import List
 
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
+_TARGET_NAME = 'photonics'
+
 # The qudit level must be explicitly defined
 globalQuditLevel = None
 
@@ -33,7 +35,13 @@ class PyQudit:
     id: int
 
     def __del__(self):
-        cudaq_runtime.photonics.release_qudit(self.level, self.id)
+        try:
+            cudaq_runtime.photonics.release_qudit(self.level, self.id)
+        except Exception as e:
+            if _TARGET_NAME == cudaq_runtime.get_target().name:
+                raise e
+            else:
+                pass
 
 
 def _is_qudit_type(q: any) -> bool:
@@ -194,7 +202,7 @@ class PhotonicsHandler(object):
 
     def __init__(self, function):
 
-        if 'photonics' != cudaq_runtime.get_target().name:
+        if _TARGET_NAME != cudaq_runtime.get_target().name:
             raise RuntimeError(
                 "A photonics kernel can only be used with 'photonics' target.")
 

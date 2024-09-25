@@ -360,7 +360,17 @@ class PyKernelDecorator(object):
                 raise RuntimeError(
                     "The 'photonics' target must be used with a valid function."
                 )
-            PhotonicsHandler(self.kernelFunction)(*args)
+            # NOTE: Since this handler does not support MLIR mode (yet), just
+            # invoke the kernel. If calling from a bound function, need to
+            # unpack the arguments, for example, see `pyGetStateLibraryMode`
+            try:
+                context_name = cudaq_runtime.getExecutionContextName()
+            except RuntimeError:
+                context_name = None
+            callable_args = args
+            if "extract-state" == context_name and len(args) == 1:
+                callable_args = args[0]
+            PhotonicsHandler(self.kernelFunction)(*callable_args)
             return
 
         # Prepare captured state storage for the run
