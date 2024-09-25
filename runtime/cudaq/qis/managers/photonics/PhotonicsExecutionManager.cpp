@@ -27,6 +27,84 @@ PhotonicCircuitSimulator *getPhotonicCircuitSimulatorInternal();
 
 namespace cudaq {
 
+struct PhotonicsState : public cudaq::SimulationState {
+  /// @brief The state. This class takes ownership move semantics.
+  qpp::ket state;
+
+  /// @brief The qudit-levels (`qumodes`)
+  std::size_t levels;
+
+  PhotonicsState(qpp::ket &&data, std::size_t lvl)
+      : state(std::move(data)), levels(lvl) {}
+
+  /// TODO: Rename the API to be generic
+  std::size_t getNumQubits() const override {
+    return (std::log2(state.size()) / std::log2(levels));
+  }
+
+  std::complex<double> overlap(const cudaq::SimulationState &other) override {
+    throw "not supported for this photonics simulator";
+  }
+
+  std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override {
+    if (getNumQubits() != basisState.size())
+      throw std::runtime_error(fmt::format(
+          "[photonics] getAmplitude with an invalid number of bits in the "
+          "basis state: expected {}, provided {}.",
+          getNumQubits(), basisState.size()));
+
+    // Convert the basis state to an index value
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [&](std::size_t acc, int bit) { return (acc * levels) + bit; });
+    return state[idx];
+  }
+
+  Tensor getTensor(std::size_t tensorIdx = 0) const override {
+    if (tensorIdx != 0)
+      throw std::runtime_error("[photonics] invalid tensor requested.");
+    return Tensor{
+        reinterpret_cast<void *>(
+            const_cast<std::complex<double> *>(state.data())),
+        std::vector<std::size_t>{static_cast<std::size_t>(state.size())},
+        getPrecision()};
+  }
+
+  /// @brief Return all tensors that represent this state
+  std::vector<Tensor> getTensors() const override { return {getTensor()}; }
+
+  /// @brief Return the number of tensors that represent this state.
+  std::size_t getNumTensors() const override { return 1; }
+
+  std::complex<double>
+  operator()(std::size_t tensorIdx,
+             const std::vector<std::size_t> &indices) override {
+    if (tensorIdx != 0)
+      throw std::runtime_error("[photonics] invalid tensor requested.");
+    if (indices.size() != 1)
+      throw std::runtime_error("[photonics] invalid element extraction.");
+    return state[indices[0]];
+  }
+
+  std::unique_ptr<SimulationState>
+  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
+    throw "not supported for this photonics simulator";
+  }
+
+  void dump(std::ostream &os) const override { os << state << "\n"; }
+
+  precision getPrecision() const override {
+    return cudaq::SimulationState::precision::fp64;
+  }
+
+  void destroyState() override {
+    qpp::ket k;
+    state = k;
+  }
+};
+
 /// @brief The `PhotonicsExecutionManager` implements allocation, deallocation,
 /// and quantum instruction application for the photonics execution manager.
 class PhotonicsExecutionManager : public BasicExecutionManager {

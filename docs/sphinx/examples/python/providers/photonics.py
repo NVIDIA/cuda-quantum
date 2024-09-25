@@ -14,3 +14,6 @@ def photonicsKernel():
 
 counts = cudaq.sample(photonicsKernel)
 print(counts)
+
+state = cudaq.get_state(photonicsKernel)
+print(state)

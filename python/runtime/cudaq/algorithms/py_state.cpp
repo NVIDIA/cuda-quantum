@@ -153,6 +153,21 @@ state pyGetStateRemote(py::object kernel, py::args args) {
                                            size, returnOffset));
 }
 
+state pyGetStateLibraryMode(py::object kernel, py::args args) {
+  return details::extractState([&]() mutable {
+    if (0 == args.size())
+      cudaq::invokeKernel(std::forward<py::object>(kernel));
+    else {
+      std::vector<py::object> argsData;
+      for (size_t i = 0; i < args.size(); i++) {
+        py::object arg = args[i];
+        argsData.emplace_back(std::forward<py::object>(arg));
+      }
+      cudaq::invokeKernel(std::forward<py::object>(kernel), argsData);
+    }
+  });
+}
+
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
 
