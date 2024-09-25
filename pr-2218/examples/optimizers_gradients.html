@@ -680,7 +680,7 @@
 </ol>
 <p>First, the kernel and Hamiltonian and specified below.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -706,7 +706,7 @@
 <h2>Built in CUDA-Q Optimizers and Gradients<a class="headerlink" href="#Built-in-CUDA-Q-Optimizers-and-Gradients" title="Permalink to this heading">¶</a></h2>
 <p>The optimizer and gradient are specified first from a built in CUDA-Q optimizer and gradient technique. An objective function is defined next which uses a lambda expression to evaluate the cost (a CUDA-Q <code class="docutils literal notranslate"><span class="pre">observe</span></code> expectation value). The gradient is calculated using the <code class="docutils literal notranslate"><span class="pre">compute</span></code> method.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">()</span>
@@ -729,8 +729,8 @@
 </div>
 </div>
 <p>Finally, the optimizer is called to return the optimal cost and parameters.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">function</span><span class="o">=</span><span class="n">objective_function</span><span class="p">)</span>
@@ -740,12 +740,22 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+minimized &lt;H&gt; = -1.748382901613712
+optimal theta 0 = 0.58409164053813
+</pre></div></div>
+</div>
 </section>
 <section id="Third-Party-Optimizers">
 <h2>Third-Party Optimizers<a class="headerlink" href="#Third-Party-Optimizers" title="Permalink to this heading">¶</a></h2>
 <p>The same procedure can be accomplised using any third-party such as SciPy. In this case, a simple cost fucntion is defined and provided as an input for the standard SciPy <code class="docutils literal notranslate"><span class="pre">minimize</span></code> function.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
@@ -761,6 +771,20 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ message: Optimization terminated successfully.
+ success: True
+  status: 1
+     fun: -1.7488646919931474
+       x: [ 5.944e-01  1.288e+00]
+    nfev: 33
+   maxcv: 0.0
+</pre></div></div>
+</div>
 </section>
 <section id="Parallel-Parameter-Shift-Gradients">
 <h2>Parallel Parameter Shift Gradients<a class="headerlink" href="#Parallel-Parameter-Shift-Gradients" title="Permalink to this heading">¶</a></h2>
@@ -770,13 +794,13 @@
 <p>Next, a for loop iterates over all of the parameters and uses the <code class="docutils literal notranslate"><span class="pre">cudaq.observe_async</span></code> to compute the expectation value. This command also takes <code class="docutils literal notranslate"><span class="pre">qpu_id</span></code> as an in out which specifies the GPU that will be used to simulate the ith QPU. In the example below, four GPUs (simulated QPUs) are available so the gradient is batched over four devices.</p>
 <p>The results are saved in the <code class="docutils literal notranslate"><span class="pre">g_plus</span></code> and <code class="docutils literal notranslate"><span class="pre">g_minus</span></code> lists, the elements of which are accessed with commands like <code class="docutils literal notranslate"><span class="pre">g_plus[1].expectation()</span></code> to compute the finite differences and construct the final gradient.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span>  <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="c1"># cudaq.set_target(&#39;nvidia&#39;, option = &#39;mqpu&#39;)</span>
 
-<span class="n">num_qpus</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">num_qpus</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">epsilon</span> <span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span>
 
 
@@ -811,7 +835,7 @@
 </div>
 <p>This function can be used in a VQE procedure as presented below. First, the gradient is computed using the initial parameters, then the standard VQE construction is used, but the <code class="docutils literal notranslate"><span class="pre">batched_gradient_function</span></code> is used to evaluate the gradient at each step. This objective function will return the cost and gradient at each step and can be used with any SciPy optimizer that uses a gradient.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gradient</span> <span class="o">=</span> <span class="n">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">initial_params</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
@@ -831,14 +855,28 @@
 <br/></pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result_vqe</span><span class="o">=</span><span class="n">minimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span><span class="n">initial_params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ message: Optimization terminated successfully.
+ success: True
+  status: 1
+     fun: -1.7488646919931474
+       x: [ 5.944e-01  1.288e+00]
+    nfev: 33
+   maxcv: 0.0
+</pre></div></div>
 </div>
 </section>
 </section>

@@ -798,12 +798,12 @@ process is repeated many times and the resulted averaged. The test is passed if 
         <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">bf</span><span class="p">)</span>
 
     <span class="c1"># Gets noiseless probability distribution</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
     <span class="n">clean_result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
         <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">qv</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">circuit_params</span><span class="p">,</span> <span class="n">layer_permutations</span><span class="p">))</span>
 
     <span class="c1"># Performs noisy sampling</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;density-matrix-cpu&#39;</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
     <span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">qv</span><span class="p">,</span>
                                 <span class="n">n</span><span class="p">,</span>
                                 <span class="n">circuit_params</span><span class="p">,</span>
