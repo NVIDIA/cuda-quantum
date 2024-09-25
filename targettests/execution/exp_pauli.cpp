@@ -18,7 +18,7 @@
 // RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target oqc                      --emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target anion                    --emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target anyon                    --emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
