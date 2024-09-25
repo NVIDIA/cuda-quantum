@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: photonics
+name: photonics-cpu
 description: "Photonics QPP-based CPU-only backend target"
 config:
   nvqir-simulation-backend: photonics

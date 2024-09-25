@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 // #include "CircuitSimulator.h"
-#include "PhotonicCircuitSimulator.h"
+#include "nvqir/photonics/PhotonicCircuitSimulator.h"
 // #include "QIRTypes.h"
 // #include "common/Logger.h"
 #include "common/PluginUtils.h"
@@ -65,7 +65,6 @@ PhotonicCircuitSimulator *getPhotonicCircuitSimulatorInternal() {
     photonic_simulator = (*externPhotonicSimGenerator)();
     return photonic_simulator;
   }
-
   photonic_simulator = cudaq::getUniquePluginInstance<PhotonicCircuitSimulator>(
       GetPhotonicCircuitSimulatorSymbol);
   cudaq::info("Creating the {} backend.", photonic_simulator->name());

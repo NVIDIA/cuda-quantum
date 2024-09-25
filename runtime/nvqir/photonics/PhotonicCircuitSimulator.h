@@ -13,18 +13,69 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
+#include "common/Timing.h"
 #include "cudaq/host_config.h"
-#include "nvqir/CircuitSimulator.h"
 
-#include <iostream>
-#include <set>
-#include <span>
-
-using namespace cudaq;
+#include <cstdarg>
+#include <cstddef>
+#include <queue>
+#include <sstream>
+#include <string>
+#include <variant>
 
 namespace nvqir {
 
 enum class QuditOrdering { lsb, msb };
+
+// @brief Collect summary data and print upon simulator termination
+struct PSSummaryData {
+  std::size_t gateCount = 0;
+  std::size_t controlCount = 0;
+  std::size_t targetCount = 0;
+  std::size_t svIO = 0;
+  std::size_t svFLOPs = 0;
+  bool enabled = false;
+  std::string name;
+  PSSummaryData() {
+    if (cudaq::isTimingTagEnabled(cudaq::TIMING_GATE_COUNT))
+      enabled = true;
+  }
+
+  /// @brief Update state-vector-based statistics for a logic gate
+  void svGateUpdate(const std::size_t nControls, const std::size_t nTargets,
+                    const std::size_t stateDimension,
+                    const std::size_t stateVectorSizeBytes) {
+    assert(nControls <= 63);
+    if (enabled) {
+      gateCount++;
+      controlCount += nControls;
+      targetCount += nTargets;
+      // Times 2 because operating on the state vector requires both reading
+      // and writing.
+      svIO += (2 * stateVectorSizeBytes) / (1 << nControls);
+      // For each element of the state vector, 2 complex multiplies and 1
+      // complex accumulate is needed. This is reduced if there if this is a
+      // controlled operation.
+      // Each complex multiply is 6 real ops.
+      // So 2 complex multiplies and 1 complex addition is 2*6+2 = 14 ops.
+      svFLOPs += stateDimension * (14 * nTargets) / (1 << nControls);
+    }
+  }
+
+  ~PSSummaryData() {
+    if (enabled) {
+      cudaq::log("CircuitSimulator '{}' Total Program Metrics [tag={}]:", name,
+                 cudaq::TIMING_GATE_COUNT);
+      cudaq::log("Gate Count = {}", gateCount);
+      cudaq::log("Control Count = {}", controlCount);
+      cudaq::log("Target Count = {}", targetCount);
+      cudaq::log("State Vector I/O (GB) = {:.6f}",
+                 static_cast<double>(svIO) / 1e9);
+      cudaq::log("State Vector GFLOPs = {:.6f}",
+                 static_cast<double>(svFLOPs) / 1e9);
+    }
+  }
+};
 
 /// @brief The PhotonicCircuitSimulator defines a base class for all photonic
 /// simulators that are available to CUDA-Q via the NVQIR library.
@@ -41,13 +92,12 @@ protected:
   virtual void flushGateQueueImpl() = 0;
 
   /// @brief Statistics collected over the life of the simulator.
-  SummaryData summaryData;
+  PSSummaryData summaryData;
 
 public:
-  // The levels of the qudits
-  std::size_t levels;
-
-  PhotonicCircuitSimulator();
+  /// @brief The constructor
+  PhotonicCircuitSimulator() = default;
+  /// @brief The destructor
   virtual ~PhotonicCircuitSimulator() = default;
 
   /// @brief Flush the current queue of gates, i.e.
@@ -83,7 +133,7 @@ public:
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
-  virtual cudaq::observe_result observe(const cudaq::spin_op &term) = 0;
+  // virtual cudaq::observe_result observe(const cudaq::spin_op &term) = 0;
 
   /// @brief Allocate a single qudit, return the qudit as a logical index
   virtual std::size_t allocateQudit() = 0;
@@ -199,12 +249,15 @@ public:
 
 /// @brief The PhotonicCircuitSimulatorBase is the type that is meant to
 /// be subclassed for new simulation strategies. The separation of
-/// CircuitSimulator from CircuitSimulatorBase allows simulation sub-types
-/// to specify the floating point precision for the simulation
+/// PhotonicCircuitSimulator from PhotonicCircuitSimulatorBase allows simulation
+/// sub-types to specify the floating point precision for the simulation
 template <typename ScalarType>
 class PhotonicCircuitSimulatorBase : public PhotonicCircuitSimulator {
 
 private:
+  // The levels of the qudits
+  std::size_t levels;
+
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
 
@@ -311,7 +364,7 @@ protected:
   /// state vector.
   virtual bool measureQudit(const std::size_t quditIdx) = 0;
 
-  /// @brief Return true if this CircuitSimulator can
+  /// @brief Return true if this PhotonicCircuitSimulator can
   /// handle <psi | H | psi> instead of NVQIR applying measure
   /// basis quantum gates to change to the Z basis and sample.
   virtual bool canHandleObserve() { return false; }
@@ -645,7 +698,9 @@ protected:
   QuditOrdering getQuditOrdering() const { return QuditOrdering::lsb; }
 
 public:
+  /// @brief The constructor
   PhotonicCircuitSimulatorBase() = default;
+  /// @brief The destructor
   virtual ~PhotonicCircuitSimulatorBase() = default;
 
   /// @brief Create a simulation-specific PhotonicState
@@ -666,10 +721,11 @@ public:
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
-  cudaq::observe_result observe(const cudaq::spin_op &term) override {
-    throw std::runtime_error("This CircuitSimulator does not implement "
-                             "observe(const cudaq::spin_op &).");
-  }
+  // cudaq::observe_result observe(const cudaq::spin_op &term) override {
+  //   throw std::runtime_error("This PhotonicCircuitSimulator does not
+  //   implement "
+  //                            "observe(const cudaq::spin_op &).");
+  // }
 
   /// @brief Allocate a single qudit, return the qudit as a logical index
   std::size_t allocateQudit() override {
@@ -694,8 +750,9 @@ public:
     nQuditsAllocated++;
     stateDimension = calculateStateDim(nQuditsAllocated);
 
-    // Tell the subtype to grow the state representation
-    addQuditToState();
+    if (!isInTracerMode())
+      // Tell the subtype to grow the state representation
+      addQuditToState();
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -751,8 +808,9 @@ public:
     nQuditsAllocated += count;
     stateDimension = calculateStateDim(nQuditsAllocated);
 
-    // Tell the subtype to allocate more qudits
-    addQuditsToState(count, state);
+    if (!isInTracerMode())
+      // Tell the subtype to allocate more qudits
+      addQuditsToState(count, state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -768,7 +826,7 @@ public:
     if (!state)
       return allocateQudits(count);
 
-    if (count != state->getNumQudits())
+    if (!isInTracerMode() && count != state->getNumQudits())
       throw std::invalid_argument("Dimension mismatch: the input state doesn't "
                                   "match the number of qudits");
 
@@ -795,8 +853,9 @@ public:
     nQuditsAllocated += count;
     stateDimension = calculateStateDim(nQuditsAllocated);
 
-    // Tell the subtype to allocate more qudits
-    addQuditsToState(*state);
+    if (!isInTracerMode())
+      // Tell the subtype to allocate more qudits
+      addQuditsToState(*state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -981,43 +1040,46 @@ public:
     flushAnySamplingTasks();
     auto numRows = std::sqrt(matrix.size());
     auto numQudits = std::log2(numRows) / std::log2(levels);
+    cudaq::info("Applying custom operation with matrix of size {}x{}", numRows,
+                numRows);
     std::vector<std::complex<ScalarType>> actual;
-    if (numQudits > 1 && getQuditOrdering() != QuditOrdering::msb) {
-      // Convert the matrix to LSB qudit ordering
-      auto convertOrdering = [](std::size_t numQudits, std::size_t idx) {
-        std::size_t newIdx = 0;
-        // (std::log2(stateDimension) / std::log2(levels)) - quditIndex - 1;
-        for (std::size_t i = 0; i < numQudits; ++i)
-          if (idx & (1ULL << i))
-            newIdx |= (1ULL << ((numQudits - 1) - i));
-        return newIdx;
-      };
-      actual.resize(matrix.size());
-      for (std::size_t i = 0; i < numRows; i++) {
-        for (std::size_t j = 0; j < numRows; j++) {
-          auto k = convertOrdering(numQudits, i);
-          auto l = convertOrdering(numQudits, j);
-          if (!std::is_same_v<double, ScalarType>) {
-            actual[i * numRows + j] =
-                static_cast<std::complex<ScalarType>>(matrix[k * numRows + l]);
-          } else {
-            auto element = matrix[k * numRows + l];
-            actual[i * numRows + j] =
-                std::complex<ScalarType>(element.real(), element.imag());
-          }
-        }
-      }
-    } else {
-      std::transform(matrix.begin(), matrix.end(), std::back_inserter(actual),
-                     [](auto &&element) -> std::complex<ScalarType> {
-                       if (!std::is_same_v<double, ScalarType>) {
-                         return static_cast<std::complex<ScalarType>>(element);
-                       } else {
-                         return std::complex<ScalarType>(element.real(),
-                                                         element.imag());
-                       }
-                     });
-    }
+    // if (numQudits > 1 && getQuditOrdering() != QuditOrdering::msb) {
+    //   // Convert the matrix to LSB qudit ordering
+    //   auto convertOrdering = [](std::size_t numQudits, std::size_t idx) {
+    //     std::size_t newIdx = 0;
+    //     // (std::log2(stateDimension) / std::log2(levels)) - quditIndex - 1;
+    //     for (std::size_t i = 0; i < numQudits; ++i)
+    //       if (idx & (1ULL << i))
+    //         newIdx |= (1ULL << ((numQudits - 1) - i));
+    //     return newIdx;
+    //   };
+    //   actual.resize(matrix.size());
+    //   for (std::size_t i = 0; i < numRows; i++) {
+    //     for (std::size_t j = 0; j < numRows; j++) {
+    //       auto k = convertOrdering(numQudits, i);
+    //       auto l = convertOrdering(numQudits, j);
+    //       if (!std::is_same_v<double, ScalarType>) {
+    //         actual[i * numRows + j] =
+    //             static_cast<std::complex<ScalarType>>(matrix[k * numRows +
+    //             l]);
+    //       } else {
+    //         auto element = matrix[k * numRows + l];
+    //         actual[i * numRows + j] =
+    //             std::complex<ScalarType>(element.real(), element.imag());
+    //       }
+    //     }
+    //   }
+    // } else {
+    std::transform(matrix.begin(), matrix.end(), std::back_inserter(actual),
+                   [](auto &&element) -> std::complex<ScalarType> {
+                     if (!std::is_same_v<double, ScalarType>) {
+                       return static_cast<std::complex<ScalarType>>(element);
+                     } else {
+                       return std::complex<ScalarType>(element.real(),
+                                                       element.imag());
+                     }
+                   });
+    // }
     if (cudaq::details::should_log(cudaq::details::LogLevel::info))
       cudaq::info(gateToString(customName.empty() ? "unknown op" : customName,
                                controls, {}, targets) +
@@ -1111,6 +1173,7 @@ public:
     // Return the result
     return measureResult;
   }
+
 }; // PhotonicCircuitSimulatorBase
 
 } // namespace nvqir
@@ -1121,20 +1184,20 @@ public:
   extern "C" {                                                                 \
   nvqir::PhotonicCircuitSimulator *getPhotonicCircuitSimulator() {             \
     thread_local static std::unique_ptr<nvqir::PhotonicCircuitSimulator>       \
-        simulator = std::make_unique<CLASSNAME>();                             \
-    return simulator.get();                                                    \
+        photonic_simulator = std::make_unique<CLASSNAME>();                    \
+    return photonic_simulator.get();                                           \
   }                                                                            \
   nvqir::PhotonicCircuitSimulator *CONCAT(getPhotonicCircuitSimulator_,        \
                                           PRINTED_NAME)() {                    \
     thread_local static std::unique_ptr<nvqir::PhotonicCircuitSimulator>       \
-        simulator = std::make_unique<CLASSNAME>();                             \
-    return simulator.get();                                                    \
+        photonic_simulator = std::make_unique<CLASSNAME>();                    \
+    return photonic_simulator.get();                                           \
   }                                                                            \
   }
 
 #define NVQIR_PHOTONIC_SIMULATOR_CLONE_IMPL(CLASSNAME)                         \
   nvqir::PhotonicCircuitSimulator *clone() override {                          \
     thread_local static std::unique_ptr<nvqir::PhotonicCircuitSimulator>       \
-        simulator = std::make_unique<CLASSNAME>();                             \
-    return simulator.get();                                                    \
+        photonic_simulator = std::make_unique<CLASSNAME>();                    \
+    return photonic_simulator.get();                                           \
   }
