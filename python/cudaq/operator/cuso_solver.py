@@ -38,6 +38,8 @@ def evolve_me(
     store_intermediate_results=False,
     integrator: Optional[BaseIntegrator] = None
 ) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
+    # Reset the schedule
+    schedule.reset()
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
 
     # Note: we would need a CUDAQ state implementation for cuSuperOp

@@ -30,7 +30,7 @@ class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
 
 
 class RungeKuttaIntegrator(BaseIntegrator[cuso.State]):
-    n_steps = 100
+    n_steps = 10
 
     def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
         super().__init__(**kwargs)
