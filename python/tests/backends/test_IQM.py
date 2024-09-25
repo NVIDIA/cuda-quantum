@@ -207,7 +207,8 @@ def test_exp_pauli():
         q = cudaq.qvector(2)
         exp_pauli(1.0, q, "XX")
 
-    counts = cudaq.sample(test)
+    shots = 10000
+    counts = cudaq.sample(test, shots_count=shots)
     assert assert_close(counts["00"], shots / 2, 2)
     assert assert_close(counts["11"], shots / 2, 2)
     assert assert_close(counts["01"], 0., 2)
