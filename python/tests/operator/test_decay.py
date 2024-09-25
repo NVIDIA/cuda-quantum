@@ -74,6 +74,25 @@ class TestCavityDecay:
         actual_answer = 9.0 * np.exp(-self.kappa * self.steps)
         np.testing.assert_allclose(actual_answer, expt, atol=self.tol)
 
+    @pytest.mark.parametrize('integrator',
+                             all_integrator_classes, ids=all_integrator_classes)
+    def test_td_collapse_ops(self, integrator):
+        """
+        test time-dependent collapse operators
+        """
+        hamiltonian = self.number
+        schedule = Schedule(self.steps, ["time"])
+        # initial state
+        psi0_ = cp.zeros(self.N, dtype=cp.complex128)
+        psi0_[-1] = 1.0
+        psi0 = cudaq.State.from_data(psi0_)
+        c_op = ScalarOperator(lambda t: np.sqrt(self.kappa * np.exp(-t))) * self.a
+        evolution_result = evolve(hamiltonian, self.dimensions, schedule, psi0, observables=[hamiltonian], collapse_operators=[c_op], store_intermediate_results=True, integrator=integrator())
+        expt = []
+        for exp_vals in evolution_result.expectation_values():
+            expt.append(exp_vals[0].expectation())
+        actual_answer = 9.0 * np.exp(-self.kappa * (1.0 - np.exp(-self.steps)))
+        np.testing.assert_allclose(actual_answer, expt, atol=self.tol)
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -153,11 +153,14 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
                      l2: cuso.OperatorTerm):
     D_terms = []
     
+    def conjugate_coeff(coeff: CallbackCoefficient):
+        if coeff.is_callable:
+            return CallbackCoefficient(lambda t,args : numpy.conjugate(coeff.callback(t,args)))
+        return numpy.conjugate(coeff.scalar)
+
     for term1, modes1, duals1, coeff1 in zip(l1.terms, l1.modes, l1.duals, l1._coefficients):
         for term2, modes2, duals2, coeff2 in zip(l2.terms, l2.modes, l2.duals, l2._coefficients):
-            if coeff1.is_callable or coeff2.is_callable:
-                raise ValueError("Cannot multiply CallbackCoefficients")
-            coeff = coeff1.scalar * numpy.conjugate(coeff2.scalar)
+            coeff = coeff1 * conjugate_coeff(coeff2)
             d1_terms = []
             for sub_op_1, degrees, duals in zip(term1, modes1, duals1):
                 op_mat = sub_op_1._tensor.tensor.numpy()
@@ -181,8 +184,7 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
                 flipped_duals = tuple((not elem for elem in duals))
                 d2_terms.append((op_mat, degrees, flipped_duals))
             D2 = cuso.tensor_product(*d2_terms,
-                                     coeff=-0.5 * coeff1.scalar *
-                                     numpy.conjugate(coeff2.scalar))
+                                     coeff=-0.5 * coeff1 * conjugate_coeff(coeff2))
             D_terms.append(tuple((D2, 1.0)))
 
             d3_terms = []
@@ -194,8 +196,7 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
                 d3_terms.append((numpy.ascontiguousarray(numpy.conj(op_mat).T),
                                  degrees, duals))
             D3 = cuso.tensor_product(*d3_terms,
-                                     coeff=-0.5 * coeff1.scalar *
-                                     numpy.conjugate(coeff2.scalar))
+                                     coeff=-0.5 * coeff1 * conjugate_coeff(coeff2))
             D_terms.append(tuple((D3, 1.0)))
     lindblad = cuso.Operator(hilbert_space_dims, *D_terms)
     return lindblad

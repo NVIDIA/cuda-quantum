@@ -8,10 +8,10 @@
 
 #pragma once
 
+#include "common/ObserveResult.h"
+#include "cudaq/qis/state.h"
 #include <memory>
 #include <optional>
-#include "cudaq/qis/state.h"
-#include "common/ObserveResult.h"
 
 namespace cudaq {
 
@@ -31,12 +31,11 @@ protected:
   std::optional<std::vector<observe_result>> final_expectation_values = {};
 
   // The computed expectation values for each step of the evolution.
-  std::optional<std::vector<std::vector<observe_result>>> expectation_values = {};
+  std::optional<std::vector<std::vector<observe_result>>> expectation_values =
+      {};
 
 public:
-
-  evolve_result(state state)
-    : final_state(state) {}
+  evolve_result(state state) : final_state(state) {}
 
   evolve_result(state state, const std::vector<observe_result> &expectations)
       : final_state(state),
@@ -54,20 +53,24 @@ public:
     final_expectation_values = result;
   }
 
-  evolve_result(std::vector<state> states) 
-    : final_state(states.back()), // FIXME: nice error when states is empty?
-      intermediate_states(std::make_optional<std::vector<state>>(states)) {}
+  evolve_result(const std::vector<state> &states)
+      : final_state(getLastStateIfValid(states)),
+        intermediate_states(std::make_optional<std::vector<state>>(states)) {}
 
-  evolve_result(std::vector<state> states, 
-                std::vector<std::vector<observe_result>> expectations) 
-    : final_state(states.back()),
-      intermediate_states(std::make_optional<std::vector<state>>(states)), 
-      final_expectation_values(std::make_optional<std::vector<observe_result>>(expectations.back())),
-      expectation_values(std::make_optional<std::vector<std::vector<observe_result>>>(expectations)) {}
+  evolve_result(const std::vector<state> &states,
+                const std::vector<std::vector<observe_result>> &expectations)
+      : final_state(getLastStateIfValid(states)),
+        intermediate_states(std::make_optional<std::vector<state>>(states)),
+        final_expectation_values(
+            std::make_optional<std::vector<observe_result>>(
+                expectations.back())),
+        expectation_values(
+            std::make_optional<std::vector<std::vector<observe_result>>>(
+                expectations)) {}
 
-  evolve_result(std::vector<state> states,
+  evolve_result(const std::vector<state> &states,
                 const std::vector<std::vector<double>> &expectations)
-      : final_state(states.back()),
+      : final_state(getLastStateIfValid(states)),
         intermediate_states(std::make_optional<std::vector<state>>(states)) {
     std::vector<std::vector<observe_result>> result;
     const spin_op emptyOp(
@@ -83,21 +86,27 @@ public:
     expectation_values = result;
   }
 
-  state get_final_state() { 
-    return final_state; 
-  }
+  state get_final_state() { return final_state; }
 
   std::optional<std::vector<state>> get_intermediate_states() {
     return intermediate_states;
   }
 
-  std::optional<std::vector<observe_result>> get_final_expectation_values() { 
+  std::optional<std::vector<observe_result>> get_final_expectation_values() {
     return final_expectation_values;
   }
 
-  std::optional<std::vector<std::vector<observe_result>>> get_expectation_values() {
+  std::optional<std::vector<std::vector<observe_result>>>
+  get_expectation_values() {
     return expectation_values;
   }
 
+private:
+  state getLastStateIfValid(const std::vector<state> &states) {
+    if (states.empty())
+      throw std::runtime_error(
+          "Cannot create evolve_result with an empty list of states.");
+    return states.back();
+  }
 };
 } // namespace cudaq
