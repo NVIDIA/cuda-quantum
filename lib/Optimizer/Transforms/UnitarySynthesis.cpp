@@ -185,6 +185,127 @@ Eigen::Matrix4cd interactionMatrixExp(double x, double y, double z) {
   return unitary;
 }
 
+inline bool isSquare(const Eigen::MatrixXcd &in_mat) {
+  return in_mat.rows() == in_mat.cols();
+}
+
+// If the matrix is finite: no NaN elements
+template <typename Derived>
+inline bool isFinite(const Eigen::MatrixBase<Derived> &x) {
+  return ((x - x).array() == (x - x).array()).all();
+}
+
+bool isDiagonal(const Eigen::MatrixXcd &in_mat, double in_tol = TOL) {
+  if (!isFinite(in_mat)) {
+    return false;
+  }
+
+  for (int i = 0; i < in_mat.rows(); ++i) {
+    for (int j = 0; j < in_mat.cols(); ++j) {
+      if (i != j) {
+        if (std::abs(in_mat(i, j)) > in_tol) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+bool allClose(const Eigen::MatrixXcd &in_mat1, const Eigen::MatrixXcd &in_mat2,
+              double in_tol = TOL) {
+  if (!isFinite(in_mat1) || !isFinite(in_mat2)) {
+    return false;
+  }
+
+  if (in_mat1.rows() == in_mat2.rows() && in_mat1.cols() == in_mat2.cols()) {
+    for (int i = 0; i < in_mat1.rows(); ++i) {
+      for (int j = 0; j < in_mat1.cols(); ++j) {
+        if (std::abs(in_mat1(i, j) - in_mat2(i, j)) > in_tol) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+  return false;
+}
+
+bool isHermitian(const Eigen::MatrixXcd &in_mat) {
+  if (!isSquare(in_mat) || !isFinite(in_mat)) {
+    return false;
+  }
+  return allClose(in_mat, in_mat.adjoint());
+}
+
+// Eigen::MatrixXd constructBlockDiagonalMatrix(const Eigen::MatrixXd &top,
+//                                              const Eigen::MatrixXd &bottom) {
+//   Eigen::MatrixXd blockDiagMat = Eigen::MatrixXd::Zero(
+//       top.rows() + bottom.rows(), top.cols() + bottom.cols());
+//   blockDiagMat.block(0, 0, top.rows(), top.cols()) = top;
+//   blockDiagMat.block(top.rows(), top.cols(), bottom.rows(), bottom.cols()) =
+//       bottom;
+//   return blockDiagMat;
+// }
+
+void diagonalize(const Eigen::Matrix4cd &matrix){
+  // Split into two real matrices with the real and imaginary parts
+  Eigen::Matrix4d A;
+  Eigen::Matrix4d B;
+  for (int r = 0; r < matrix.rows(); r++) {
+    for (int c = 0; c < matrix.cols(); c++) {
+      A(r, c) = matrix(r, c).real();
+      B(r, c) = matrix(r, c).imag();
+    }
+  }
+  assert(isHermitian(A * B.transpose()));
+  assert(isHermitian(A.transpose() * B));
+
+  /// Using Eckart-Young
+
+  // Get the orthogonal matrices
+  Eigen::JacobiSVD<Eigen::Matrix4d> svdA(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  assert(svdA.matrixU().isUnitary(TOL));
+  assert(svdA.matrixV().isUnitary(TOL));
+  display4x4Matrix(svdA.singularValues().asDiagonal(), "Diagonal matrix from SVD"); 
+
+  // D is a square diagonal matrix whose diagonal elements are strictly positive
+  Eigen::Matrix4d D = svdA.singularValues().asDiagonal().toDenseMatrix();
+
+  // D and G are square matrices of the same dimension, rank(A)
+  // Find the rank
+  size_t rank = 4;
+  while (rank > 0 && std::abs(A(rank - 1, rank - 1) < TOL)) 
+    rank--;
+  // DG† = GD , DG = G†D
+  Eigen::MatrixXd G = Eigen::MatrixXd::Zero(rank, rank);
+  for (size_t r = 0; r < rank; r++) 
+    for (size_t c = 0; c < rank; c++) 
+      G(r, c) = D(r, c);
+    
+  // Trying something
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(D);
+  // Eigen::MatrixXd Dg = solver.eigenvectors().adjoint() * G * solver.eigenvectors();  
+
+  Eigen::MatrixXd P = solver.eigenvectors(); 
+
+  auto UPrime = P.adjoint() * svdA.matrixU().adjoint();
+  auto V = svdA.matrixV() * P;
+  
+  display4x4Matrix(UPrime.adjoint(), "left");
+  display4x4Matrix(V, "right");
+  // auto bPrime = svdA.matrixU().transpose() * B * svdA.matrixV().transpose();
+  // Eigen::MatrixXd overlap = Eigen::MatrixXd::Zero(rank, rank);
+  // for (size_t r = 0; r < rank;r++) 
+  //   for (size_t c = 0; c < rank; c++) 
+  //     overlap(r, c) = bPrime(r, c);
+    
+  llvm::outs() << isDiagonal(UPrime.adjoint() * matrix * V) << "\n";  
+
+}
+
 struct KAKComponents {
   // KAK decomposition allows to express arbitrary 2-qubit unitary (U) in the
   // form: U = (a1 ⊗ a0) x exp(i(xXX + yYY + zZZ)) x (b1 ⊗ b0) where, a0, a1
@@ -290,8 +411,14 @@ struct TwoQubitOpKAK : public Decomposer {
         MagicBasisMatrixAdj() * specialUnitary * MagicBasisMatrix();
     display4x4Matrix(matrixMagicBasis, "matrixMagicBasis");
 
+    diagonalize(matrixMagicBasis);
+
     /// Step2: Diagonalize the exponentiation of magic matrix
     Eigen::Matrix4cd mSquare = matrixMagicBasis.transpose() * matrixMagicBasis;
+    assert(mSquare.isApprox(mSquare.transpose(), TOL));
+
+
+
     Eigen::ComplexEigenSolver<Eigen::Matrix4cd> solver(mSquare);
     Eigen::Vector4cd eigenVal = solver.eigenvalues();
     Eigen::Matrix4cd eigenVec = solver.eigenvectors();
