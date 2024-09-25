@@ -7,8 +7,9 @@
  ******************************************************************************/
 
 #include "nvqir/photonics/PhotonicCircuitSimulator.h"
-
 #include "qpp.h"
+#include <set>
+#include <span>
 
 using namespace cudaq;
 
@@ -245,11 +246,6 @@ protected:
     state(0) = 1.0;
   }
 
-  // bool measureQubit(const std::size_t index) override {
-  //   throw std::runtime_error(
-  //       "measureQubit not available for this photonic simulator backend.");
-  // }
-
   bool measureQudit(const std::size_t index) override {
     const auto quditIdx = convertQuditIndex(index);
     // If here, then we care about the result bit, so compute it.
@@ -284,12 +280,6 @@ public:
   }
 
   bool canHandleObserve() override { return false; }
-
-  cudaq::observe_result observe(const cudaq::spin_op &term) override {
-    throw std::runtime_error(
-        "This QppPhotonicCircuitSimulator does not implement "
-        "observe(const cudaq::spin_op &).");
-  }
 
   void resetQudit(const std::size_t index) override {
     flushGateQueue();
@@ -366,6 +356,8 @@ public:
 
 } // namespace nvqir
 
+#ifndef __NVQIR_QPP_TOGGLE_CREATE
 /// Register this Simulator with NVQIR.
 NVQIR_REGISTER_PHOTONIC_SIMULATOR(nvqir::QppPhotonicCircuitSimulator<qpp::ket>,
                                   photonics)
+#endif

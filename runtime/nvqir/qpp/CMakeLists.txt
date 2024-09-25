@@ -38,8 +38,8 @@ endmacro()
 
 AddQppBackend(nvqir-qpp QppCircuitSimulator.cpp)
 AddQppBackend(nvqir-dm QppDMCircuitSimulator.cpp)
-AddQppBackend(nvqir-qpp-photonics QppPhotonicCircuitSimulator.cpp)
+AddQppBackend(nvqir-photonics QppPhotonicCircuitSimulator.cpp)
 
 add_target_config(qpp-cpu)
 add_target_config(density-matrix-cpu)
-add_target_config(photonics)
+add_target_config(photonics-cpu)

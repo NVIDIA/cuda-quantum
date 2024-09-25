@@ -6,8 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "common/Logger.h"
-#include "common/PluginUtils.h"
+// #include "common/PluginUtils.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
+#include "cudaq/qis/qudit.h"
 // #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "nvqir/photonics/PhotonicCircuitSimulator.h"
@@ -28,11 +29,12 @@ namespace cudaq {
 
 /// @brief The `PhotonicsExecutionManager` implements allocation, deallocation,
 /// and quantum instruction application for the photonics execution manager.
-class PhotonicsExecutionManager : public cudaq::BasicExecutionManager {
+class PhotonicsExecutionManager : public BasicExecutionManager {
 private:
-  nvqir::PhotonicCircuitSimulator *simulator() {
+  nvqir::PhotonicCircuitSimulator *photonic_simulator() {
     return nvqir::getPhotonicCircuitSimulatorInternal();
   }
+
   /// @brief To improve `qudit` allocation, we defer
   /// single `qudit` allocation requests until the first
   /// encountered `apply` call.
@@ -56,7 +58,7 @@ protected:
 
   /// @brief Allocate a set of `qudits` with a single call.
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    simulator()->allocateQudits(qudits.size());
+    photonic_simulator()->allocateQudits(qudits.size());
     // for (auto &q : qudits)
     //   allocateQudit(q);
   }
@@ -93,12 +95,12 @@ protected:
       }
       const auto numDefaultAllocs =
           requestedAllocations.size() - targets.size();
-      simulator()->allocateQudits(numDefaultAllocs);
+      photonic_simulator()->allocateQudits(numDefaultAllocs);
       // The targets will be allocated in a specific state.
-      simulator()->allocateQudits(targets.size(), state, precision);
+      photonic_simulator()->allocateQudits(targets.size(), state, precision);
     } else {
-      simulator()->allocateQudits(requestedAllocations.size(), state,
-                                  precision);
+      photonic_simulator()->allocateQudits(requestedAllocations.size(), state,
+                                           precision);
     }
     requestedAllocations.clear();
   }
@@ -113,11 +115,11 @@ protected:
       assert(targets.size() < requestedAllocations.size());
       const auto numDefaultAllocs =
           requestedAllocations.size() - targets.size();
-      simulator()->allocateQudits(numDefaultAllocs);
+      photonic_simulator()->allocateQudits(numDefaultAllocs);
       // The targets will be allocated in a specific state.
-      simulator()->allocateQudits(targets.size(), state);
+      photonic_simulator()->allocateQudits(targets.size(), state);
     } else {
-      simulator()->allocateQudits(requestedAllocations.size(), state);
+      photonic_simulator()->allocateQudits(requestedAllocations.size(), state);
     }
     requestedAllocations.clear();
   }
@@ -131,7 +133,7 @@ protected:
   /// @brief Handler for when the photonics execution context changes
   void handleExecutionContextChanged() override {
     requestedAllocations.clear();
-    simulator()->setExecutionContext(executionContext);
+    photonic_simulator()->setExecutionContext(executionContext);
   }
 
   /// @brief Handler for when the current execution context has ended. It
@@ -145,10 +147,10 @@ protected:
       // If there are pending allocations, flush them to the simulator.
       // Making sure the simulator's state is consistent with the number of
       // allocations even though the circuit might be empty.
-      simulator()->allocateQudits(requestedAllocations.size());
+      photonic_simulator()->allocateQudits(requestedAllocations.size());
       requestedAllocations.clear();
     }
-    simulator()->resetExecutionContext();
+    photonic_simulator()->resetExecutionContext();
   }
 
   void executeInstruction(const Instruction &instruction) override {
@@ -167,20 +169,23 @@ protected:
 
     // Apply the gate
     llvm::StringSwitch<std::function<void()>>(gateName)
-        .Case("plus", [&]() { simulator()->plus(localC, localT[0]); })
+        .Case("plus", [&]() { photonic_simulator()->plus(localC, localT[0]); })
         .Case("beam_splitter",
               [&]() {
-                simulator()->beam_splitter(parameters[0], localC, localT);
+                photonic_simulator()->beam_splitter(parameters[0], localC,
+                                                    localT);
               })
         .Case("phase_shift",
               [&]() {
-                simulator()->phase_shift(parameters[0], localC, localT[0]);
+                photonic_simulator()->phase_shift(parameters[0], localC,
+                                                  localT[0]);
               })
         .Default([&]() {
           if (auto iter = registeredOperations.find(gateName);
               iter != registeredOperations.end()) {
             auto data = iter->second->unitary(parameters);
-            simulator()->applyCustomOperation(data, localC, localT, gateName);
+            photonic_simulator()->applyCustomOperation(data, localC, localT,
+                                                       gateName);
             return;
           }
           throw std::runtime_error("[PhotonicsExecutionManager] invalid gate "
@@ -192,13 +197,13 @@ protected:
   int measureQudit(const cudaq::QuditInfo &q,
                    const std::string &registerName) override {
     flushRequestedAllocations();
-    return simulator()->mz(q.id, registerName);
+    return photonic_simulator()->mz(q.id, registerName);
   }
 
   void flushGateQueue() override {
     synchronize();
     flushRequestedAllocations();
-    simulator()->flushGateQueue();
+    photonic_simulator()->flushGateQueue();
   }
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
@@ -207,19 +212,18 @@ protected:
           "photonics simulator";
   }
 
-  /// @brief Method for performing qudit reset.
-  void resetQudit(const cudaq::QuditInfo &q) override {
-    flushRequestedAllocations();
-    simulator()->resetQudit(q.id);
-  }
-
 public:
   PhotonicsExecutionManager() {
-    cudaq::info("[DefaultExecutionManager] Creating the {} backend.",
-                simulator()->name());
+    cudaq::info("[PhotonicsExecutionManager] Creating the {} backend.",
+                photonic_simulator()->name());
   }
 
   virtual ~PhotonicsExecutionManager() = default;
+
+  void resetQudit(const cudaq::QuditInfo &q) override {
+    flushRequestedAllocations();
+    photonic_simulator()->resetQudit(q.id);
+  }
 
 }; // PhotonicsExecutionManager
 

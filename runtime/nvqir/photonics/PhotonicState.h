@@ -13,7 +13,6 @@
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "cudaq/host_config.h"
-#include "nvqir/CircuitSimulator.h"
 
 #include <iostream>
 #include <set>

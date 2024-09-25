@@ -107,6 +107,13 @@ add_library(cudaq::cudaq-qpp-density-matrix-cpu-target SHARED IMPORTED)
     IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
     IMPORTED_SONAME "libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
     IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# QPP photonics Target
+add_library(cudaq::cudaq-photonics-cpu-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-photonics-cpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-photonics${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-photonics${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-photonics")
 # -------------------------
 
 if(NOT TARGET cudaq::cudaq)
