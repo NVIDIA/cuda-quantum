@@ -151,7 +151,6 @@ async def reserveJobId(request: TaskIdRequest):
     return [uuid.uuid4() for _ in range(n)]
 
 
-# returns qpu list
 @app.get("/admin/qpu")
 async def qetQpu(authentication_token: str = Header(...)):
 
