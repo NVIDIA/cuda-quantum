@@ -31,6 +31,7 @@ namespace cudaq::opt {
 #define DEBUG_TYPE "unitary-synthesis"
 
 using namespace mlir;
+using namespace std::complex_literals;
 
 namespace {
 
@@ -63,7 +64,6 @@ struct OneQubitOpZYZ : public Decomposer {
   /// corresponding explanation in https://threeplusone.com/pubs/on_gates.pdf,
   /// Section 4.
   void decompose() override {
-    using namespace std::complex_literals;
     /// Rescale the input unitary matrix, `u`, to be special unitary.
     /// Extract a phase factor, `phase`, so that
     /// `determinant(inverse_phase * unitary) = 1`
@@ -152,158 +152,21 @@ struct OneQubitOpZYZ : public Decomposer {
   }
 };
 
-/// Temporary helper code
-void display4x4Matrix(const Eigen::Matrix4cd &matrix, std::string msg = "") {
-  llvm::outs() << msg << "\n";
-  for (size_t r = 0; r < 4; r++) {
-    for (size_t c = 0; c < 4; c++) {
-      double real =
-          std::abs(matrix(r, c).real()) > TOL ? matrix(r, c).real() : 0.0;
-      double imag =
-          std::abs(matrix(r, c).imag()) > TOL ? matrix(r, c).imag() : 0.0;
-      llvm::outs() << "(" << real << ", " << imag << ")\t";
-    }
-    llvm::outs() << "\n";
-  }
-}
-
 // Compute exp(i(x XX + y YY + z ZZ)) matrix
-Eigen::Matrix4cd interactionMatrixExp(double x, double y, double z) {
-  constexpr std::complex<double> I{0.0, 1.0};
+Eigen::Matrix4cd canonicalVecToMatrix(double x, double y, double z) {
   Eigen::MatrixXcd X{Eigen::MatrixXcd::Zero(2, 2)};
   Eigen::MatrixXcd Y{Eigen::MatrixXcd::Zero(2, 2)};
   Eigen::MatrixXcd Z{Eigen::MatrixXcd::Zero(2, 2)};
   X << 0, 1, 1, 0;
-  Y << 0, -I, I, 0;
+  Y << 0, -1i, 1i, 0;
   Z << 1, 0, 0, -1;
   auto XX = Eigen::kroneckerProduct(X, X);
   auto YY = Eigen::kroneckerProduct(Y, Y);
   auto ZZ = Eigen::kroneckerProduct(Z, Z);
   Eigen::MatrixXcd herm = x * XX + y * YY + z * ZZ;
-  herm = I * herm;
+  herm = 1i * herm;
   Eigen::MatrixXcd unitary = herm.exp();
   return unitary;
-}
-
-inline bool isSquare(const Eigen::MatrixXcd &in_mat) {
-  return in_mat.rows() == in_mat.cols();
-}
-
-// If the matrix is finite: no NaN elements
-template <typename Derived>
-inline bool isFinite(const Eigen::MatrixBase<Derived> &x) {
-  return ((x - x).array() == (x - x).array()).all();
-}
-
-bool isDiagonal(const Eigen::MatrixXcd &in_mat, double in_tol = TOL) {
-  if (!isFinite(in_mat)) {
-    return false;
-  }
-
-  for (int i = 0; i < in_mat.rows(); ++i) {
-    for (int j = 0; j < in_mat.cols(); ++j) {
-      if (i != j) {
-        if (std::abs(in_mat(i, j)) > in_tol) {
-          return false;
-        }
-      }
-    }
-  }
-
-  return true;
-}
-
-bool allClose(const Eigen::MatrixXcd &in_mat1, const Eigen::MatrixXcd &in_mat2,
-              double in_tol = TOL) {
-  if (!isFinite(in_mat1) || !isFinite(in_mat2)) {
-    return false;
-  }
-
-  if (in_mat1.rows() == in_mat2.rows() && in_mat1.cols() == in_mat2.cols()) {
-    for (int i = 0; i < in_mat1.rows(); ++i) {
-      for (int j = 0; j < in_mat1.cols(); ++j) {
-        if (std::abs(in_mat1(i, j) - in_mat2(i, j)) > in_tol) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-  return false;
-}
-
-bool isHermitian(const Eigen::MatrixXcd &in_mat) {
-  if (!isSquare(in_mat) || !isFinite(in_mat)) {
-    return false;
-  }
-  return allClose(in_mat, in_mat.adjoint());
-}
-
-// Eigen::MatrixXd constructBlockDiagonalMatrix(const Eigen::MatrixXd &top,
-//                                              const Eigen::MatrixXd &bottom) {
-//   Eigen::MatrixXd blockDiagMat = Eigen::MatrixXd::Zero(
-//       top.rows() + bottom.rows(), top.cols() + bottom.cols());
-//   blockDiagMat.block(0, 0, top.rows(), top.cols()) = top;
-//   blockDiagMat.block(top.rows(), top.cols(), bottom.rows(), bottom.cols()) =
-//       bottom;
-//   return blockDiagMat;
-// }
-
-void diagonalize(const Eigen::Matrix4cd &matrix){
-  // Split into two real matrices with the real and imaginary parts
-  Eigen::Matrix4d A;
-  Eigen::Matrix4d B;
-  for (int r = 0; r < matrix.rows(); r++) {
-    for (int c = 0; c < matrix.cols(); c++) {
-      A(r, c) = matrix(r, c).real();
-      B(r, c) = matrix(r, c).imag();
-    }
-  }
-  assert(isHermitian(A * B.transpose()));
-  assert(isHermitian(A.transpose() * B));
-
-  /// Using Eckart-Young
-
-  // Get the orthogonal matrices
-  Eigen::JacobiSVD<Eigen::Matrix4d> svdA(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
-  assert(svdA.matrixU().isUnitary(TOL));
-  assert(svdA.matrixV().isUnitary(TOL));
-  display4x4Matrix(svdA.singularValues().asDiagonal(), "Diagonal matrix from SVD"); 
-
-  // D is a square diagonal matrix whose diagonal elements are strictly positive
-  Eigen::Matrix4d D = svdA.singularValues().asDiagonal().toDenseMatrix();
-
-  // D and G are square matrices of the same dimension, rank(A)
-  // Find the rank
-  size_t rank = 4;
-  while (rank > 0 && std::abs(A(rank - 1, rank - 1) < TOL)) 
-    rank--;
-  // DG† = GD , DG = G†D
-  Eigen::MatrixXd G = Eigen::MatrixXd::Zero(rank, rank);
-  for (size_t r = 0; r < rank; r++) 
-    for (size_t c = 0; c < rank; c++) 
-      G(r, c) = D(r, c);
-    
-  // Trying something
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(D);
-  // Eigen::MatrixXd Dg = solver.eigenvectors().adjoint() * G * solver.eigenvectors();  
-
-  Eigen::MatrixXd P = solver.eigenvectors(); 
-
-  auto UPrime = P.adjoint() * svdA.matrixU().adjoint();
-  auto V = svdA.matrixV() * P;
-  
-  display4x4Matrix(UPrime.adjoint(), "left");
-  display4x4Matrix(V, "right");
-  // auto bPrime = svdA.matrixU().transpose() * B * svdA.matrixV().transpose();
-  // Eigen::MatrixXd overlap = Eigen::MatrixXd::Zero(rank, rank);
-  // for (size_t r = 0; r < rank;r++) 
-  //   for (size_t c = 0; c < rank; c++) 
-  //     overlap(r, c) = bPrime(r, c);
-    
-  llvm::outs() << isDiagonal(UPrime.adjoint() * matrix * V) << "\n";  
-
 }
 
 struct KAKComponents {
@@ -322,9 +185,8 @@ struct KAKComponents {
 
 const Eigen::Matrix4cd &MagicBasisMatrix() {
   static Eigen::Matrix4cd MagicBasisMatrix;
-  constexpr std::complex<double> i{0.0, 1.0};
-  MagicBasisMatrix << 1.0, 0.0, 0.0, i, 0.0, i, 1.0, 0, 0, i, -1.0, 0, 1.0, 0,
-      0, -i;
+  MagicBasisMatrix << 1.0, 0.0, 0.0, 1i, 0.0, 1i, 1.0, 0, 0, 1i, -1.0, 0, 1.0,
+      0, 0, -1i;
   MagicBasisMatrix = MagicBasisMatrix * M_SQRT1_2;
   return MagicBasisMatrix;
 }
@@ -345,25 +207,46 @@ const Eigen::Matrix4cd &GammaFactor() {
   return GammaT;
 }
 
+std::tuple<Eigen::Matrix4d, Eigen::Matrix4cd, Eigen::Matrix4d>
+diagonalize(const Eigen::Matrix4cd &matrix) {
+  // Split into two real matrices using the real and imaginary parts
+  Eigen::Matrix4d A;
+  Eigen::Matrix4d B;
+  for (int r = 0; r < matrix.rows(); r++) {
+    for (int c = 0; c < matrix.cols(); c++) {
+      A(r, c) = matrix(r, c).real();
+      B(r, c) = matrix(r, c).imag();
+    }
+  }
+  Eigen::RealQZ<Eigen::Matrix4d> qz(4);
+  qz.compute(A, B);
+  Eigen::Matrix4cd diagonal;
+  for (int k = 0; k < 4; k++)
+    diagonal(k, k) = qz.matrixS()(k, k) + 1i * qz.matrixT()(k, k);
+  return std::make_tuple(qz.matrixQ(), diagonal, qz.matrixZ());
+}
+
 std::tuple<Eigen::Matrix2cd, Eigen::Matrix2cd, std::complex<double>>
 extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
+  Eigen::Matrix4cd mb = MagicBasisMatrix() * matrix * MagicBasisMatrixAdj();
   /// Use Kronecker factorization
-  Eigen::Matrix2cd part1 = Eigen::Matrix2cd::Zero();
-  Eigen::Matrix2cd part2 = Eigen::Matrix2cd::Zero();
-  int r = 0, c = 0;
-  double largest = std::abs(matrix(r, c));
-  for (int i = 0; i < 4; i++)
-    for (int j = 0; j < 4; j++) {
-      if (largest < std::abs(matrix(i, j))) {
-        largest = std::abs(matrix(i, j));
+  size_t r = 0;
+  size_t c = 0;
+  double largest = std::abs(mb(r, c));
+  for (size_t i = 0; i < 4; i++)
+    for (size_t j = 0; j < 4; j++) {
+      if (std::abs(mb(i, j)) >= largest) {
+        largest = std::abs(mb(i, j));
         r = i;
         c = j;
       }
     }
+  Eigen::Matrix2cd part1 = Eigen::Matrix2cd::Zero();
+  Eigen::Matrix2cd part2 = Eigen::Matrix2cd::Zero();
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 2; j++) {
-      part1((r >> 1) ^ i, (c >> 1) ^ j) = matrix(r ^ (i << 1), c ^ (j << 1));
-      part2((r & 1) ^ i, (c & 1) ^ j) = matrix(r ^ i, c ^ j);
+      part1((r >> 1) ^ i, (c >> 1) ^ j) = mb(r ^ (i << 1), c ^ (j << 1));
+      part2((r & 1) ^ i, (c & 1) ^ j) = mb(r ^ i, c ^ j);
     }
   }
   auto det1 = part1.determinant();
@@ -373,17 +256,12 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
   if (std::abs(det2) > TOL)
     part2 /= (std::sqrt(det2));
   std::complex<double> phase =
-      matrix(r, c) / (part1(r >> 1, c >> 1) * part2(r & 1, c & 1));
+      mb(r, c) / (part1(r >> 1, c >> 1) * part2(r & 1, c & 1));
   if (phase.real() < 0.0) {
     part1 *= -1;
     phase = -phase;
   }
-
-  display4x4Matrix(matrix, "input matrix");
-  auto checkResult = phase * Eigen::kroneckerProduct(part1, part2);
-  display4x4Matrix(checkResult, "phase * part1 * part2");
-  // assert(matrix.isApprox(checkResult, TOL));
-
+  assert(mb.isApprox(phase * Eigen::kroneckerProduct(part1, part2), TOL));
   return std::make_tuple(part1, part2, phase);
 }
 
@@ -397,82 +275,39 @@ struct TwoQubitOpKAK : public Decomposer {
   /// Ref: https://arxiv.org/pdf/quant-ph/0507171
   /// Ref: https://arxiv.org/pdf/0806.4015
   void decompose() override {
-    using namespace std::complex_literals;
-    display4x4Matrix(matrix, "Input matrix");
-
     /// Step0: Convert to special unitary
     phase = std::pow(matrix.determinant(), 0.25);
     auto specialUnitary = matrix / phase;
 
-    display4x4Matrix(specialUnitary, "Special unitary target matrix");
-
     /// Step1: Convert the target matrix into magic basis
     Eigen::Matrix4cd matrixMagicBasis =
         MagicBasisMatrixAdj() * specialUnitary * MagicBasisMatrix();
-    display4x4Matrix(matrixMagicBasis, "matrixMagicBasis");
 
-    diagonalize(matrixMagicBasis);
-
-    /// Step2: Diagonalize the exponentiation of magic matrix
-    Eigen::Matrix4cd mSquare = matrixMagicBasis.transpose() * matrixMagicBasis;
-    assert(mSquare.isApprox(mSquare.transpose(), TOL));
-
-
-
-    Eigen::ComplexEigenSolver<Eigen::Matrix4cd> solver(mSquare);
-    Eigen::Vector4cd eigenVal = solver.eigenvalues();
-    Eigen::Matrix4cd eigenVec = solver.eigenvectors();
-
-    assert(mSquare.isApprox(
-        eigenVec * eigenVal.asDiagonal() * eigenVec.adjoint(), TOL));
-
-    assert(std::abs(std::abs(eigenVec.determinant()) - 1.0) < TOL);
-    if (eigenVec.determinant().real() < 0)
-      for (int c = 0; c < eigenVec.cols(); c++)
-        eigenVec(0, c) = -eigenVec(0, c);
-
-    display4x4Matrix(eigenVec, "Eigen vector matrix");
-    assert(std::abs(std::abs(eigenVec.determinant()) - 1.0) < TOL);
-    display4x4Matrix(eigenVec.transpose() * eigenVec, "Is this identity??");
-
-    Eigen::Matrix4cd diagonalMat = eigenVal.asDiagonal().toDenseMatrix();
-    display4x4Matrix(diagonalMat, "Diagonal matrix");
-    assert(std::abs(std::abs(diagonalMat.determinant()) - 1.0) < TOL);
-
-    Eigen::Matrix4cd diagMatSqRoot = diagonalMat.unaryExpr(
-        [](std::complex<double> x) { return std::sqrt(x); });
-
-    display4x4Matrix(diagMatSqRoot, "Square root of diagonal matrix");
-    assert(std::abs(std::abs(diagMatSqRoot.determinant()) - 1.0) < TOL);
-
-    if (diagMatSqRoot.determinant().real() < 0)
-      diagMatSqRoot(0, 0) = -diagMatSqRoot(0, 0);
-    assert(std::abs(std::abs(diagMatSqRoot.determinant()) - 1.0) < TOL);
+    /// Step2: Diagonalize
+    auto [left, diagonal, right] = diagonalize(matrixMagicBasis);
 
     /// Step3: Get the KAK components
-    Eigen::Matrix4cd before = MagicBasisMatrix() * matrixMagicBasis * eigenVec *
-                              diagMatSqRoot.adjoint() * MagicBasisMatrixAdj();
-    assert(std::abs(std::abs(before.determinant()) - 1.0) < TOL);
-    display4x4Matrix(before, "1st component K1 i.e. before");
-
-    Eigen::Matrix4cd after =
-        MagicBasisMatrix() * eigenVec.adjoint() * MagicBasisMatrixAdj();
-    assert(std::abs(std::abs(after.determinant()) - 1.0) < TOL);
-    display4x4Matrix(after, "2nd component K2 i.e. after");
-
+    Eigen::Matrix4cd before = MagicBasisMatrix() * left * MagicBasisMatrixAdj();
+    Eigen::Matrix4cd after = MagicBasisMatrix() * right * MagicBasisMatrixAdj();
     Eigen::Matrix4cd canonicalVec =
-        MagicBasisMatrix() * diagMatSqRoot * MagicBasisMatrixAdj();
-    assert(std::abs(std::abs(canonicalVec.determinant()) - 1.0) < TOL);
-    display4x4Matrix(canonicalVec, "Middle component A i.e. canonical vector");
+        MagicBasisMatrix() * diagonal * MagicBasisMatrixAdj();
 
-    Eigen::Matrix4cd checkInterim = before * canonicalVec * after;
-    display4x4Matrix(checkInterim, "Intermediate output matrix");
-    assert(specialUnitary.isApprox(checkInterim, TOL));
+    assert(specialUnitary.isApprox(before * canonicalVec * after, TOL));
+
+    auto beforeRes = extractSU2FromSO4(left);
+    components.b0 = std::get<0>(beforeRes);
+    components.b1 = std::get<1>(beforeRes);
+    phase *= std::get<2>(beforeRes);
+
+    auto afterRes = extractSU2FromSO4(right);
+    components.a0 = std::get<0>(afterRes);
+    components.a1 = std::get<1>(afterRes);
+    phase *= std::get<2>(afterRes);
 
     /// Step4: Get the coefficients of canonical class vector
     Eigen::Vector4cd diagonalPhases;
     for (size_t i = 0; i < 4; i++)
-      diagonalPhases(i) = std::arg(diagMatSqRoot(i, i));
+      diagonalPhases(i) = std::arg(diagonal(i, i));
 
     auto coefficients = GammaFactor() * diagonalPhases;
     components.x = coefficients(1).real();
@@ -485,31 +320,19 @@ struct TwoQubitOpKAK : public Decomposer {
 
     Eigen::Matrix4cd checkResult =
         before *
-        interactionMatrixExp(components.x, components.y, components.z) * after;
+        canonicalVecToMatrix(components.x, components.y, components.z) * after;
     assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) * checkResult,
                                    TOL));
-
-    auto beforeRes = extractSU2FromSO4(before);
-    components.b0 = std::get<0>(beforeRes);
-    components.b1 = std::get<1>(beforeRes);
-    phase *= std::get<2>(beforeRes);
-
-    auto afterRes = extractSU2FromSO4(after);
-    components.a0 = std::get<0>(afterRes);
-    components.a1 = std::get<1>(afterRes);
-    phase *= std::get<2>(afterRes);
 
     /// Final check
     Eigen::Matrix4cd checkFinal =
         (std::get<2>(beforeRes) *
          Eigen::kroneckerProduct(components.b0, components.b1)) *
-        interactionMatrixExp(components.x, components.y, components.z) *
+        canonicalVecToMatrix(components.x, components.y, components.z) *
         (std::get<2>(afterRes) *
          Eigen::kroneckerProduct(components.a0, components.a1));
-    display4x4Matrix(checkFinal, "Final result");
-    // assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) *
-    // checkFinal,
-    //                                TOL));
+    assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) * checkFinal,
+                                   TOL));
   }
 
   void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
