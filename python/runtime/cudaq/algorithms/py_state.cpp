@@ -139,63 +139,8 @@ state pyGetStateRemote(py::object kernel, py::args args) {
                                            size, returnOffset));
 }
 
-class PyCuSuperOpState : public SimulationState {
-  py::object m_pyState;
-
-protected:
-  std::unique_ptr<SimulationState>
-  createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override {
-    throw std::logic_error("Illegal operation for cuSuperOp.");
-  }
-
-public:
-  PyCuSuperOpState(py::object pyState) : m_pyState(pyState) {};
-
-  Tensor getTensor(std::size_t tensorIdx = 0) const override {
-    throw std::logic_error("Illegal operation for cuSuperOp: getTensor");
-  }
-
-  std::vector<Tensor> getTensors() const override {
-    throw std::logic_error("Illegal operation for cuSuperOp: getTensors");
-  }
-
-  std::size_t getNumTensors() const override {
-    return 1;
-  }
-
-  std::size_t getNumQubits() const override {
-    throw std::logic_error("Illegal operation for cuSuperOp: getNumQubits");
-  }
-
-  std::complex<double> overlap(const SimulationState &other) override {
-    throw std::logic_error("Illegal operation for cuSuperOp: overlap");
-  }
-
-  std::complex<double>
-  getAmplitude(const std::vector<int> &basisState) override {
-    throw std::logic_error("Illegal operation for cuSuperOp: getAmplitude");
-  }
-
-  void dump(std::ostream &os) const override {
-    const std::string state_str = m_pyState.attr("dump")().cast<std::string>();
-    os << state_str << "\n";
-  }
-
-  precision getPrecision() const override {
-    throw std::logic_error("Illegal operation for cuSuperOp: getPrecision");
-  }
-
-  void destroyState() override {}
-
-  py::object get() { return m_pyState; }
-};
-
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
-
-  py::class_<PyCuSuperOpState>(mod, "CuSuperOpStateWrapper",
-                               "Wrapper of Python state")
-      .def("get", &PyCuSuperOpState::get);
 
   py::class_<SimulationState::Tensor>(
       mod, "Tensor",
@@ -689,22 +634,7 @@ index pair.
                 std::make_pair(reinterpret_cast<std::complex<double> *>(ptr),
                                numOtherElements)));
           },
-          "Compute overlap with general CuPy device array.")
-      .def(
-          "get_impl",
-          [&](state &self) {
-            if (holder.getTarget().name != "nvidia-dynamics")
-              throw std::runtime_error("Only supported for Python");
-            auto *statePtr = cudaq::state_helper::getSimulationState(&self);
-            auto *casted = dynamic_cast<PyCuSuperOpState *>(statePtr);
-            if (!casted)
-              throw std::runtime_error("Unexpected type");
-            return casted->get();
-          },
-          "Get the Python implementation")
-      .def_static(
-          "wrap_py_state",
-          [&](py::object &pyState) { return state(new PyCuSuperOpState(pyState)); }, "");
+          "Compute overlap with general CuPy device array.");
 
   mod.def(
       "get_state",

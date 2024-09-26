@@ -241,6 +241,135 @@ class TestCompositeSystems:
                                    atol=self.tol)
 
 
+def coherent_state(N: int, alpha: float):
+    sqrtn = cp.sqrt(cp.arange(0, N, dtype=cp.complex128))
+    sqrtn[0] = 1
+    data = alpha / sqrtn
+    data[0] = cp.exp(-cp.abs(alpha)**2 / 2.0)
+    cp.cumprod(data, out=sqrtn)  # Reuse sqrtn array
+    return sqrtn
+
+
+def coherent_dm(N: int, alpha: float):
+    state = coherent_state(N, alpha)
+    dm = cp.outer(state, cp.conj(state))
+    return dm
+
+
+class CavityModel:
+
+    def __init__(self, n: int, delta: float, alpha0: float, kappa: float):
+        self.n = n
+        self.dimensions = {0: n}
+        self.delta = delta
+        self.alpha0 = alpha0
+        self.kappa = kappa
+        self.tlist = np.linspace(0.0, 0.3, 11)
+
+    def hamiltonian(self):
+        return self.delta * operators.number(0)
+
+    def collapse_ops(self):
+        return [np.sqrt(self.kappa) * operators.annihilate(0)]
+
+    def initial_state(self):
+        return coherent_state(self.n, self.alpha0)
+
+    def observables(self):
+        return [operators.position(0), operators.momentum(0)]
+
+    def _alpha(self, t: float):
+        return self.alpha0 * np.exp(-1j * self.delta * t - 0.5 * self.kappa * t)
+
+    def expected_state(self, t: float):
+        return coherent_dm(self.n, self._alpha(t)).ravel().get()
+
+    def expect(self, t: float):
+        alpha_t = self._alpha(t)
+        exp_x = alpha_t.real
+        exp_p = alpha_t.imag
+        return [exp_x, exp_p]
+
+
+class LossyQubitModel:
+
+    def __init__(self, eps: float, omega: float, gamma: float):
+        self.n = 2
+        self.dimensions = {0: self.n}
+        self.eps = eps
+        self.omega = omega
+        self.gamma = gamma
+        self.tlist = np.linspace(0.0, 1.0, 11)
+
+    def hamiltonian(self):
+        return ScalarOperator(
+            lambda t: self.eps * np.cos(self.omega * t)) * pauli.x(0)
+
+    def collapse_ops(self):
+        return [np.sqrt(self.gamma) * pauli.x(0)]
+
+    def initial_state(self):
+        return cp.array([1.0, 0.0], dtype=cp.complex128)
+
+    def observables(self):
+        return [pauli.x(0), pauli.y(0), pauli.z(0)]
+
+    def _theta(self, t: float) -> float:
+        return 2 * self.eps / self.omega * np.sin(self.omega * t)
+
+    def _eta(self, t: float) -> float:
+        return np.exp(-2 * self.gamma * t)
+
+    def expected_state(self, t: float):
+        theta = self._theta(t)
+        eta = self._eta(t)
+        rho_00 = 0.5 * (1 + eta * np.cos(theta))
+        rho_11 = 0.5 * (1 - eta * np.cos(theta))
+        rho_01 = 0.5j * eta * np.sin(theta)
+        rho_10 = -0.5j * eta * np.sin(theta)
+        return np.array([[rho_00, rho_01], [rho_10, rho_11]],
+                        dtype=np.complex128).ravel()
+
+    def expect(self, t: float):
+        theta = self._theta(t)
+        eta = self._eta(t)
+        exp_x = 0
+        exp_y = -eta * np.sin(theta)
+        exp_z = eta * np.cos(theta)
+        return np.array([exp_x, exp_y, exp_z]).real
+
+
+all_models = [
+    LossyQubitModel(eps=3.0, omega=10.0, gamma=1.0),
+    CavityModel(n=8, delta=2 * np.pi, alpha0=0.5, kappa=2 * np.pi)
+]
+
+
+@pytest.mark.parametrize('integrator', all_integrator_classes)
+@pytest.mark.parametrize('model', all_models)
+def test_analytical_models(integrator, model):
+    rho0 = cudaq.State.from_data(model.initial_state())
+    schedule = Schedule(model.tlist, ["time"])
+    evolution_result = evolve(model.hamiltonian(),
+                              model.dimensions,
+                              schedule,
+                              rho0,
+                              observables=model.observables(),
+                              collapse_operators=model.collapse_ops(),
+                              store_intermediate_results=True,
+                              integrator=integrator())
+    # Check expectation values
+    for i, exp_vals in enumerate(evolution_result.expectation_values()):
+        np.testing.assert_allclose([res.expectation() for res in exp_vals],
+                                   model.expect(model.tlist[i]),
+                                   atol=1e-3)
+    # Check intermediate states
+    for i, state in enumerate(evolution_result.intermediate_states()):
+        np.testing.assert_allclose(state,
+                                   model.expected_state(model.tlist[i]),
+                                   atol=1e-3)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
