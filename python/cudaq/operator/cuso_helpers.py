@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
                                                  CallbackCoefficient | Number]):
-
+    """
+    Visitor class to convert CUDA-Q operator to a CuSuperOp representation.
+    """
     def __init__(self, dimensions: Mapping[int, int]):
         self._dimensions = dimensions
 
@@ -151,6 +153,9 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
 
 def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
                      l2: cuso.OperatorTerm):
+    """
+    Helper function to compute the Lindlad (super-)operator 
+    """
     D_terms = []
     
     def conjugate_coeff(coeff: CallbackCoefficient):
@@ -205,6 +210,9 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
 def constructLiouvillian(hilbert_space_dims: List[int], ham: cuso.OperatorTerm,
                          c_ops: List[cuso.OperatorTerm],
                          is_master_equation: bool):
+    """
+    Helper to construct the Liouvillian (master or Schrodinger equations) operator
+    """
     if not is_master_equation and len(c_ops) > 0:
         raise ValueError(
             "Cannot have collapse operators in non-master equation")
