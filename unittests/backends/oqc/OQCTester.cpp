@@ -15,7 +15,7 @@
 std::string mockPort = "62442";
 std::string auth_token = "fake_auth_token";
 std::string device_id = "qpu:uk:-1:1234567890";
-std::string entry_url = "http://localhost:"+mockPort;
+std::string entry_url = "http://localhost:" + mockPort;
 std::string backendStringTemplate =
     "oqc;emulate;false;url;http://localhost:{};auth_token;{};device;{};";
 
@@ -26,7 +26,7 @@ bool isValidExpVal(double value) {
 
 CUDAQ_TEST(OQCTester, checkSampleSync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, auth_token,device_id);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -43,7 +43,7 @@ CUDAQ_TEST(OQCTester, checkSampleSync) {
 
 CUDAQ_TEST(OQCTester, checkSampleAsync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, auth_token,device_id);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -60,7 +60,7 @@ CUDAQ_TEST(OQCTester, checkSampleAsync) {
 
 CUDAQ_TEST(OQCTester, checkSampleAsyncLoadFromFile) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, auth_token,device_id);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -93,7 +93,7 @@ CUDAQ_TEST(OQCTester, checkSampleAsyncLoadFromFile) {
 
 CUDAQ_TEST(OQCTester, checkObserveSync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, auth_token,device_id);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -116,7 +116,7 @@ CUDAQ_TEST(OQCTester, checkObserveSync) {
 
 CUDAQ_TEST(OQCTester, checkObserveAsync) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, auth_token,device_id);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -141,7 +141,7 @@ CUDAQ_TEST(OQCTester, checkObserveAsync) {
 
 CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, auth_token,device_id);
+                                   mockPort, auth_token, device_id);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);

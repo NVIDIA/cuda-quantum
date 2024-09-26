@@ -9,11 +9,11 @@
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include <iostream>
 #include <map>
 #include <regex>
 #include <sstream>
 #include <thread>
-#include <iostream>
 
 namespace cudaq {
 
@@ -35,8 +35,8 @@ private:
   std::vector<std::string> createNTasks(int n);
 
   /// @brief Gets endpoint of a device
-  std::tuple<std::string,std::string>
-      get_qpu_endpoint(std::string,std::string,std::string);
+  std::tuple<std::string, std::string>
+      get_qpu_endpoint(std::string, std::string, std::string);
 
   /// @brief make a compiler config json string parameterising with number of
   /// shots
@@ -119,9 +119,9 @@ std::string get_from_config(BackendConfig config, const std::string &key,
 }
 
 std::string get_from_config_no_low(BackendConfig config, const std::string &key,
-                            const auto &missing_functor) {
-/// This function does the same with get_from_config, but without lowering
-/// Auth tokens are case sensitive and shouldn't be lowered
+                                   const auto &missing_functor) {
+  /// This function does the same with get_from_config, but without lowering
+  /// Auth tokens are case sensitive and shouldn't be lowered
 
   const auto iter = config.find(key);
   auto item = iter != config.end() ? iter->second : missing_functor();
@@ -141,7 +141,6 @@ void check_machine_allowed(const std::string &machine) {
     throw std::runtime_error(stream.str());
   }
 }
-
 
 } // namespace
 
@@ -163,21 +162,14 @@ void OQCServerHelper::initialize(BackendConfig config) {
     return;
   }
 
-  config["entry_url"] = get_from_config(config, 
-                                        "entry_url", 
-                                        make_env_functor("OQC_URL"));
-  config["target"]    = get_from_config(config, 
-                                        "device", 
-                                        make_env_functor("OQC_DEVICE"));
-  config["auth_token"]= get_from_config_no_low(config, 
-                                               "auth_token", 
-                                        make_env_functor("OQC_AUTH_TOKEN"));
-  auto [device_url,dev_id] = 
-     get_qpu_endpoint(
-         config["entry_url"],
-         config["target"],
-         config["auth_token"]
-     );
+  config["entry_url"] =
+      get_from_config(config, "entry_url", make_env_functor("OQC_URL"));
+  config["target"] =
+      get_from_config(config, "device", make_env_functor("OQC_DEVICE"));
+  config["auth_token"] = get_from_config_no_low(
+      config, "auth_token", make_env_functor("OQC_AUTH_TOKEN"));
+  auto [device_url, dev_id] = get_qpu_endpoint(
+      config["entry_url"], config["target"], config["auth_token"]);
   // Set the necessary configuration variables for the OQC API
 
   config["url"] = device_url;
@@ -188,7 +180,7 @@ void OQCServerHelper::initialize(BackendConfig config) {
   config["qubits"] = Machines.at(machine);
 
   // Construct the API job path
-  config["job_path"] = std::string("/")+dev_id+"/tasks" ; 
+  config["job_path"] = std::string("/") + dev_id + "/tasks";
   parseConfigForCommonParams(config);
 
   // Move the passed config into the member variable backendConfig
@@ -201,9 +193,8 @@ bool OQCServerHelper::keyExists(const std::string &key) const {
 }
 
 std::vector<std::string> OQCServerHelper::createNTasks(int n) {
-/// This function returns the task ids as a vector of string.
-/// The same as "create_task_ids" in QCaaS client, client.py
-
+  /// This function returns the task ids as a vector of string.
+  /// The same as "create_task_ids" in QCaaS client, client.py
 
   RestHeaders headers = OQCServerHelper::getHeaders();
   nlohmann::json job;
@@ -218,28 +209,27 @@ std::vector<std::string> OQCServerHelper::createNTasks(int n) {
   return response;
 }
 
-std::tuple<std::string,std::string>
-      OQCServerHelper::get_qpu_endpoint(std::string server_url,
-                                        std::string qpu_id,
-                                        std::string auth_token){
-    RestHeaders headers;
+std::tuple<std::string, std::string>
+OQCServerHelper::get_qpu_endpoint(std::string server_url, std::string qpu_id,
+                                  std::string auth_token) {
+  RestHeaders headers;
 
-    headers["Authentication-Token"] = auth_token;
-    auto response = client.get(server_url, "/admin/qpu",headers,true);
+  headers["Authentication-Token"] = auth_token;
+  auto response = client.get(server_url, "/admin/qpu", headers, true);
 
-    for (auto item: response["items"]){
-       if(item["id"] == qpu_id){
-          std::string device_url = item["url"];
-          size_t pos = device_url.find('/', 8); //Start fter "https://"
-          std::string qpu_server_url = device_url.substr(0, pos);
-          std::string qpu_device_id  = device_url.substr(pos+1);
-          return std::make_tuple(qpu_server_url,qpu_device_id);
-       }
+  for (auto item : response["items"]) {
+    if (item["id"] == qpu_id) {
+      std::string device_url = item["url"];
+      size_t pos = device_url.find('/', 8); // Start fter "https://"
+      std::string qpu_server_url = device_url.substr(0, pos);
+      std::string qpu_device_id = device_url.substr(pos + 1);
+      return std::make_tuple(qpu_server_url, qpu_device_id);
     }
+  }
 
-    std::stringstream stream;
-    stream << "No device:"+qpu_id+" is on "+server_url+"." << std::endl;
-    throw std::runtime_error(stream.str());
+  std::stringstream stream;
+  stream << "No device:" + qpu_id + " is on " + server_url + "." << std::endl;
+  throw std::runtime_error(stream.str());
 }
 
 std::string OQCServerHelper::makeConfig(int shots) {
@@ -247,15 +237,18 @@ std::string OQCServerHelper::makeConfig(int shots) {
          "\"$data\": {\"repeats\": " +
          std::to_string(shots) +
          ", \"repetition_period\": null, \"results_format\": {\"$type\": "
-         "\"<class 'qat.purr.compiler.config.QuantumResultsFormat'>\", \"$data\": "
+         "\"<class 'qat.purr.compiler.config.QuantumResultsFormat'>\", "
+         "\"$data\": "
          "{\"format\": {\"$type\": \"<enum "
-         "'qat.purr.compiler.config.InlineResultsProcessing'>\", \"$value\": 1}, "
+         "'qat.purr.compiler.config.InlineResultsProcessing'>\", \"$value\": "
+         "1}, "
          "\"transforms\": {\"$type\": \"<enum "
          "'qat.purr.compiler.config.ResultsFormatting'>\", \"$value\": 3}}}, "
          "\"metrics\": {\"$type\": \"<enum "
          "'qat.purr.compiler.config.MetricsType'>\", \"$value\": 6}, "
          "\"active_calibrations\": [], \"optimizations\": {\"$type\": \"<class "
-         "'qat.purr.compiler.config.Tket'>\", \"$data\": {\"tket_optimizations\": "
+         "'qat.purr.compiler.config.Tket'>\", \"$data\": "
+         "{\"tket_optimizations\": "
          "{\"$type\": \"<enum 'qat.purr.compiler.config.TketOptimizations'>\", "
          "\"$value\": 30}}}}}";
 }
@@ -286,7 +279,7 @@ OQCServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   // Return a tuple containing the job path, headers, and the job message
   return std::make_tuple(backendConfig.at("url") +
-                         backendConfig.at("job_path") + "/submit",
+                             backendConfig.at("job_path") + "/submit",
                          getHeaders(), jobs);
 }
 
