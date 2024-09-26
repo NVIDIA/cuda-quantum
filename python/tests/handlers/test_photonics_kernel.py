@@ -195,18 +195,6 @@ def test_unsupported_types():
     assert "Qudit level not set" in repr(e)
 
 
-def test_qudit_level():
-
-    @cudaq.kernel
-    def kernel():
-        q1 = qudit(2)
-        q2 = qudit(3)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel)
-    assert "qudits must be of same level" in repr(e)
-
-
 def test_target_handler():
     cudaq.reset_target()
 
@@ -218,6 +206,18 @@ def test_target_handler():
 
     with pytest.raises(RuntimeError):
         cudaq.sample(kernel)
+
+
+def test_qudit_level():
+
+    @cudaq.kernel
+    def kernel():
+        q1 = qudit(2)
+        q2 = qudit(3)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel)
+    assert "qudits must be of same level" in repr(e)
 
 
 # leave for gdb debugging

@@ -54,11 +54,14 @@ class QuditManager(object):
         cls.allocated_ids.append(id)
         return PyQudit(cls.qudit_level, id)
 
-    @classmethod
-    def release_all(cls):
+    def __enter__(cls):
+        cls.reset()
+
+    def __exit__(cls, exc_type, exc_val, exc_tb):
         while cls.allocated_ids:
             cudaq_runtime.photonics.release_qudit(cls.allocated_ids.pop(),
                                                   cls.qudit_level)
+        cls.reset()
 
 
 def _is_qudit_type(q: any) -> bool:
@@ -225,6 +228,5 @@ class PhotonicsHandler(object):
         self.kernelFunction.__globals__['mz'] = mz
 
     def __call__(self, *args):
-        result = self.kernelFunction(*args)
-        QuditManager.release_all()
-        return result
+        with QuditManager():
+            return self.kernelFunction(*args)
