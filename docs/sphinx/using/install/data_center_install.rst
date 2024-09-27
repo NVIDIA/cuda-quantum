@@ -245,7 +245,7 @@ Python-specific tools:
   in the way as you installed Python itself. If you installed Python via the package manager
   for your system, you may need to install an additional package to get the development headers.
   The package name is usually your python version followed by either a `-dev` or `-devel` suffix.
-  If you are using a `Conda environment <https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-python>`__,
+  If you are using a `Conda environment <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-python.html>`__,
   the necessary headers should already be installed.
 - Pip package manager: Make sure the `pip` module is enable for your Python version.
   We refer to the Python `documentation <https://pip.pypa.io/en/stable/installation/>`__ for
