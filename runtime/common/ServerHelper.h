@@ -106,14 +106,7 @@ public:
 
   /// @brief Create a job payload for the provided TBI parameters
   virtual ServerJobPayload createJob(cudaq::orca::TBIParameters params) {
-    std::vector<ServerMessage> jobs;
-    ServerMessage job;
-    jobs.push_back(job);
-
-    std::map<std::string, std::string> headers;
-
-    // Return a tuple containing the job path, headers, and the job message
-    return std::make_tuple("", headers, jobs);
+    throw std::runtime_error("Not implemented"); 
   };
 
   /// @brief Extract the job id from the server response from posting the job.
