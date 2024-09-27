@@ -368,12 +368,12 @@ struct TwoQubitOpKAK : public Decomposer {
     /// left-to-right. Hence, operations are applied in reverse order.
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
-        SymbolRefAttr::get(rewriter.getContext(), funcName + "b1"), false,
-        ValueRange{}, ValueRange{arguments[1]});
-    rewriter.create<quake::ApplyOp>(
-        loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "b0"), false,
         ValueRange{}, ValueRange{arguments[0]});
+    rewriter.create<quake::ApplyOp>(
+        loc, TypeRange{},
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "b1"), false,
+        ValueRange{}, ValueRange{arguments[1]});
 
     /// TODO: Refactor to use a transformation pass for `quake.exp_pauli`
     /// XX
@@ -382,7 +382,7 @@ struct TwoQubitOpKAK : public Decomposer {
       rewriter.create<quake::HOp>(loc, arguments[1]);
       rewriter.create<quake::XOp>(loc, arguments[0], arguments[1]);
       auto xAngle = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, -2.0 * components.x, floatTy);
+          loc, rewriter, components.x, floatTy);
       rewriter.create<quake::RzOp>(loc, xAngle, ValueRange{}, arguments[1]);
       rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
       rewriter.create<quake::HOp>(loc, arguments[0]);
@@ -396,7 +396,7 @@ struct TwoQubitOpKAK : public Decomposer {
       rewriter.create<quake::RxOp>(loc, piBy2, ValueRange{}, arguments[1]);
       rewriter.create<quake::XOp>(loc, arguments[0], arguments[1]);
       auto yAngle = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, -2.0 * components.y, floatTy);
+          loc, rewriter, components.y, floatTy);
       rewriter.create<quake::RzOp>(loc, yAngle, ValueRange{}, arguments[1]);
       rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
       Value negPiBy2 = rewriter.create<arith::NegFOp>(loc, piBy2);
@@ -407,19 +407,19 @@ struct TwoQubitOpKAK : public Decomposer {
     if (isAboveThreshold(components.z)) {
       rewriter.create<quake::XOp>(loc, arguments[0], arguments[1]);
       auto zAngle = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, -2.0 * components.z, floatTy);
+          loc, rewriter, components.z, floatTy);
       rewriter.create<quake::RzOp>(loc, zAngle, ValueRange{}, arguments[1]);
       rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
     }
 
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
-        SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
-        ValueRange{}, ValueRange{arguments[1]});
-    rewriter.create<quake::ApplyOp>(
-        loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a0"), false,
         ValueRange{}, ValueRange{arguments[0]});
+    rewriter.create<quake::ApplyOp>(
+        loc, TypeRange{},
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
+        ValueRange{}, ValueRange{arguments[1]});
 
     auto globalPhase = 2 * std::arg(phase);
     if (isAboveThreshold(globalPhase)) {
