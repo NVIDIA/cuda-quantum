@@ -74,10 +74,19 @@ public:
 
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
-    // We cannot reliably determine the dimension of each degree of freedom
-    // here.
-    throw std::runtime_error("getAmplitude not implemented for CuSuperOpState");
-    return 0.0;
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+    const auto extractValue = [&](std::size_t idx) {
+      std::complex<double> value;
+      HANDLE_CUDA_ERROR(cudaMemcpy(
+          &value, reinterpret_cast<std::complex<double> *>(devicePtr) + idx,
+          sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
+      return value;
+    };
+
+    return extractValue(idx);
   }
 
   /// @brief Dump the state to the given output stream

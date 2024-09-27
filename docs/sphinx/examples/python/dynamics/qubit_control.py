@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 # This example simulates time evolution of a qubit (transmon) being driven close to resonance in the presence of noise (decoherence). 
 # Thus, it exhibits Rabi oscillations.
+
 # Set the target to our dynamics simulator
 cudaq.set_target("nvidia-dynamics")
 
@@ -23,7 +24,7 @@ nu_d = 9.98
 # Qubit Hamiltonian
 hamiltonian = 0.5 * 2 * np.pi * nu_z * pauli.z(0) 
 # Add modulated driving term to the Hamiltonian
-hamiltonian += ScalarOperator(lambda t: 2 * np.pi * nu_x * np.cos(2 * np.pi * nu_d * t)) * pauli.x(0)
+hamiltonian += 2 * np.pi * nu_x * ScalarOperator(lambda t: np.cos(2 * np.pi * nu_d * t)) * pauli.x(0)
 
 # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
 dimensions = {0: 2}

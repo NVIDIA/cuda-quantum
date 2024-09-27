@@ -127,11 +127,15 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
             return op1 + op2
         return op1 + op2
 
-    def _wrap_callback(self, func):
-
+    def _wrap_callback(self, func, params):
+        time_arg_key = next(iter(params))
         def inplace_func(t, args):
-            return func(t)
-
+            try:
+                return func(**{time_arg_key: t})
+            except Exception as e:
+                print(f"Error in callback function: {e}")
+                raise RuntimeError("Failed to execute callback function")
+        
         return inplace_func
 
     def evaluate(
@@ -140,7 +144,10 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
         logger.info(f"Evaluating {op}")
         if isinstance(op, ScalarOperator):
             if op._constant_value is None:
-                return CallbackCoefficient(self._wrap_callback(op.generator))
+                # FIXME: robust handling of conversion from ScalarOperator to cuSuperOp, which expects (t, args) signature.
+                if len(op.parameters) > 1:
+                    raise ValueError("Callback with extra arguments, in addition to time, is not supported.")
+                return CallbackCoefficient(self._wrap_callback(op.generator, op.parameters))
             else:
                 return op._constant_value
         else:
