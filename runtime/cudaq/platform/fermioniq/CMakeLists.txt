@@ -9,7 +9,7 @@
 set(LIBRARY_NAME cudaq-fermioniq-qpu)
 message(STATUS "Building Fermioniq REST QPU.")
 
-add_library(${LIBRARY_NAME} SHARED FermioniqQPU.cpp FermioniqServerHelper.cpp)
+add_library(${LIBRARY_NAME} SHARED FermioniqQPU.cpp)
 
 target_include_directories(${LIBRARY_NAME} PRIVATE .
     PUBLIC 
@@ -36,3 +36,5 @@ install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-fermioniq-qpu-targets DESTINATION l
 #         DESTINATION lib/cmake/cudaq)
 
 add_target_config(fermioniq)
+
+add_subdirectory(helpers)
