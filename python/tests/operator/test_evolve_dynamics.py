@@ -241,21 +241,6 @@ class TestCompositeSystems:
                                    atol=self.tol)
 
 
-def coherent_state(N: int, alpha: float):
-    sqrtn = cp.sqrt(cp.arange(0, N, dtype=cp.complex128))
-    sqrtn[0] = 1
-    data = alpha / sqrtn
-    data[0] = cp.exp(-cp.abs(alpha)**2 / 2.0)
-    cp.cumprod(data, out=sqrtn)  # Reuse sqrtn array
-    return sqrtn
-
-
-def coherent_dm(N: int, alpha: float):
-    state = coherent_state(N, alpha)
-    dm = cp.outer(state, cp.conj(state))
-    return dm
-
-
 class CavityModel:
 
     def __init__(self, n: int, delta: float, alpha0: float, kappa: float):
@@ -439,6 +424,45 @@ def test_squeezing(integrator):
 
     np.testing.assert_allclose(exp_val_z[-1], sz_ss_analytical, atol=1e-3)
 
+@pytest.mark.parametrize('integrator', all_integrator_classes)
+def test_cat_state(integrator):
+    # Number of Fock levels
+    N = 15
+    # Kerr-nonlinearity
+    chi = 1 * 2 * np.pi
+
+    dimensions = {0: N}
+
+    a = operators.annihilate(0)
+    a_dag = operators.create(0)
+
+    # Defining the Hamiltonian for the system (non-linear Kerr effect)
+    hamiltonian = 0.5 * chi * a_dag * a_dag * a * a
+
+    # we start with a coherent state with alpha=2.0
+    # This will evolve into a cat state.
+    rho0 = cudaq.State.from_data(coherent_state(N, 2.0))
+
+    # Choose the end time at which the state evolves to the exact cat state.
+    steps = np.linspace(0, 0.5 * chi / (2 * np.pi), 51)
+    schedule = Schedule(steps, ["time"])
+
+    # Run the simulation: observe the photon count, position and momentum.
+    evolution_result = evolve(hamiltonian,
+                            dimensions,
+                            schedule,
+                            rho0,
+                            observables=[],
+                            collapse_operators=[],
+                            store_intermediate_results=False,
+                            integrator=integrator())
+
+    # The expected cat state: superposition of |alpla> and |-alpha> coherent states.
+    expected_state = np.exp(1j * np.pi / 4) * coherent_state(N, -2.0j) + np.exp(-1j * np.pi / 4) * coherent_state(N, 2.0j)
+    expected_state = expected_state / cp.linalg.norm(expected_state)
+    final_state = evolution_result.final_state()
+    overlap = final_state.overlap(expected_state)
+    np.testing.assert_allclose(overlap, 1.0, atol=1e-3)
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -117,7 +117,14 @@ def evolve_me(
     if store_intermediate_results:
         return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)
     else:
-        _, final_cuso_state = integrator.get_state()
-        final_state = cudaq_runtime.State.wrap_py_state(
-            CuSuperOpState(copy.deepcopy(final_cuso_state.storage)))
+        _, state = integrator.get_state()
+        state_length = state.storage.size
+        
+        if is_density_matrix:
+            dimension = int(math.sqrt(state_length))
+            final_state = cudaq_runtime.State.from_data(state.storage.reshape((dimension, dimension)))
+        else:
+            dimension = state_length
+            final_state = cudaq_runtime.State.from_data(state.storage.reshape((dimension,)))
+                
         return cudaq_runtime.EvolveResult(final_state, exp_vals[-1])

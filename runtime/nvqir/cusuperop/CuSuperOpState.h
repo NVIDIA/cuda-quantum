@@ -51,10 +51,20 @@ public:
     }
 
     if (!isDensityMatrix) {
-      // FIXME: to do
-      throw std::runtime_error(
-          "[CuSuperOpState] overlap error - not implemented.");
-      return 0.0;
+      Eigen::VectorXcd state(dimension);
+      const auto size = dimension;
+      HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
+                                   size * sizeof(std::complex<double>),
+                                   cudaMemcpyDeviceToHost));
+
+      Eigen::VectorXcd otherState(dimension);
+      HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
+                                   size * sizeof(std::complex<double>),
+                                   cudaMemcpyDeviceToHost));
+      return std::abs(std::inner_product(
+          state.begin(), state.end(), otherState.begin(),
+          std::complex<double>{0., 0.}, [](auto a, auto b) { return a + b; },
+          [](auto a, auto b) { return a * std::conj(b); }));
     }
 
     // FIXME: implement this in GPU memory
