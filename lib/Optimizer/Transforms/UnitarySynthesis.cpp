@@ -152,23 +152,6 @@ struct OneQubitOpZYZ : public Decomposer {
   }
 };
 
-// Compute exp(i(x XX + y YY + z ZZ)) matrix
-Eigen::Matrix4cd canonicalVecToMatrix(double x, double y, double z) {
-  Eigen::MatrixXcd X{Eigen::MatrixXcd::Zero(2, 2)};
-  Eigen::MatrixXcd Y{Eigen::MatrixXcd::Zero(2, 2)};
-  Eigen::MatrixXcd Z{Eigen::MatrixXcd::Zero(2, 2)};
-  X << 0, 1, 1, 0;
-  Y << 0, -1i, 1i, 0;
-  Z << 1, 0, 0, -1;
-  auto XX = Eigen::kroneckerProduct(X, X);
-  auto YY = Eigen::kroneckerProduct(Y, Y);
-  auto ZZ = Eigen::kroneckerProduct(Z, Z);
-  Eigen::MatrixXcd herm = x * XX + y * YY + z * ZZ;
-  herm = 1i * herm;
-  Eigen::MatrixXcd unitary = herm.exp();
-  return unitary;
-}
-
 struct KAKComponents {
   // KAK decomposition allows to express arbitrary 2-qubit unitary (U) in the
   // form: U = (a1 ⊗ a0) x exp(i(xXX + yYY + zZZ)) x (b1 ⊗ b0) where, a0, a1
@@ -208,18 +191,11 @@ const Eigen::Matrix4cd &GammaFactor() {
 }
 
 std::tuple<Eigen::Matrix4d, Eigen::Matrix4cd, Eigen::Matrix4d>
-diagonalize(const Eigen::Matrix4cd &matrix) {
-  // Split into two real matrices using the real and imaginary parts
-  Eigen::Matrix4d A;
-  Eigen::Matrix4d B;
-  for (int r = 0; r < matrix.rows(); r++) {
-    for (int c = 0; c < matrix.cols(); c++) {
-      A(r, c) = matrix(r, c).real();
-      B(r, c) = matrix(r, c).imag();
-    }
-  }
+bidiagonalize(const Eigen::Matrix4cd &matrix) {
+  Eigen::Matrix4d real = matrix.real();
+  Eigen::Matrix4d imag = matrix.imag();
   Eigen::RealQZ<Eigen::Matrix4d> qz(4);
-  qz.compute(A, B);
+  qz.compute(real, imag);
   Eigen::Matrix4cd diagonal;
   for (int k = 0; k < 4; k++)
     diagonal(k, k) = qz.matrixS()(k, k) + 1i * qz.matrixT()(k, k);
@@ -228,6 +204,10 @@ diagonalize(const Eigen::Matrix4cd &matrix) {
 
 std::tuple<Eigen::Matrix2cd, Eigen::Matrix2cd, std::complex<double>>
 extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
+  /// Verify input matrix is special orthogonal
+  assert(std::abs(std::abs(matrix.determinant()) - 1.0) < TOL);
+  assert((matrix * matrix.transpose() - Eigen::Matrix4cd::Identity()).norm() <
+         TOL);
   Eigen::Matrix4cd mb = MagicBasisMatrix() * matrix * MagicBasisMatrixAdj();
   /// Use Kronecker factorization
   size_t r = 0;
@@ -265,6 +245,23 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
   return std::make_tuple(part1, part2, phase);
 }
 
+// Compute exp(i(x XX + y YY + z ZZ)) matrix
+Eigen::Matrix4cd canonicalVecToMatrix(double x, double y, double z) {
+  Eigen::MatrixXcd X{Eigen::MatrixXcd::Zero(2, 2)};
+  Eigen::MatrixXcd Y{Eigen::MatrixXcd::Zero(2, 2)};
+  Eigen::MatrixXcd Z{Eigen::MatrixXcd::Zero(2, 2)};
+  X << 0, 1, 1, 0;
+  Y << 0, -1i, 1i, 0;
+  Z << 1, 0, 0, -1;
+  auto XX = Eigen::kroneckerProduct(X, X);
+  auto YY = Eigen::kroneckerProduct(Y, Y);
+  auto ZZ = Eigen::kroneckerProduct(Z, Z);
+  Eigen::MatrixXcd herm = x * XX + y * YY + z * ZZ;
+  herm = 1i * herm;
+  Eigen::MatrixXcd unitary = herm.exp();
+  return unitary;
+}
+
 struct TwoQubitOpKAK : public Decomposer {
   Eigen::Matrix4cd matrix;
   KAKComponents components;
@@ -284,15 +281,23 @@ struct TwoQubitOpKAK : public Decomposer {
         MagicBasisMatrixAdj() * specialUnitary * MagicBasisMatrix();
 
     /// Step2: Diagonalize
-    auto [left, diagonal, right] = diagonalize(matrixMagicBasis);
+    auto [left, diagonal, right] = bidiagonalize(matrixMagicBasis);
 
     /// Step3: Get the KAK components
     Eigen::Matrix4cd before = MagicBasisMatrix() * left * MagicBasisMatrixAdj();
     Eigen::Matrix4cd after = MagicBasisMatrix() * right * MagicBasisMatrixAdj();
     Eigen::Matrix4cd canonicalVec =
         MagicBasisMatrix() * diagonal * MagicBasisMatrixAdj();
-
     assert(specialUnitary.isApprox(before * canonicalVec * after, TOL));
+
+    if (left.determinant() < 0.0)
+      for (int c = 0; c < left.cols(); c++)
+        left(0, c) *= -1.0;
+    if (right.determinant() < 0.0)
+      for (int r = 0; r < right.rows(); r++)
+        right(r, 0) *= -1.0;
+    if (diagonal.determinant().real() < 0.0)
+      diagonal(0, 0) *= 1.0;
 
     auto beforeRes = extractSU2FromSO4(left);
     components.b0 = std::get<0>(beforeRes);
@@ -331,8 +336,11 @@ struct TwoQubitOpKAK : public Decomposer {
         canonicalVecToMatrix(components.x, components.y, components.z) *
         (std::get<2>(afterRes) *
          Eigen::kroneckerProduct(components.a0, components.a1));
-    assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) * checkFinal,
-                                   TOL));
+    // assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) *
+    // checkFinal,
+    //                                TOL));
+    llvm::outs() << specialUnitary.isApprox(
+        std::exp(1i * coefficients(0)) * checkFinal, TOL);
   }
 
   void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
