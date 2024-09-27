@@ -196,10 +196,16 @@ bidiagonalize(const Eigen::Matrix4cd &matrix) {
   Eigen::Matrix4d imag = matrix.imag();
   Eigen::RealQZ<Eigen::Matrix4d> qz(4);
   qz.compute(real, imag);
-  Eigen::Matrix4cd diagonal;
-  for (int k = 0; k < 4; k++)
-    diagonal(k, k) = qz.matrixS()(k, k) + 1i * qz.matrixT()(k, k);
-  return std::make_tuple(qz.matrixQ(), diagonal, qz.matrixZ());
+  Eigen::Matrix4d left = qz.matrixQ();
+  Eigen::Matrix4d right = qz.matrixZ();
+  if (left.determinant() < 0.0)
+    left.col(0) *= -1.0;
+  if (right.determinant() < 0.0)
+    right.row(0) *= -1.0;
+  /// TODO: Check that matrix is diagonal and absolute values match with
+  /// `qz.matrixS()` and `qz.matrixT()`
+  Eigen::Matrix4cd diagonal = left.transpose() * matrix * right.transpose();
+  return std::make_tuple(left, diagonal, right);
 }
 
 std::tuple<Eigen::Matrix2cd, Eigen::Matrix2cd, std::complex<double>>
@@ -290,25 +296,25 @@ struct TwoQubitOpKAK : public Decomposer {
 
     assert(specialUnitary.isApprox(K1 * A * K2, TOL));
 
-    if (left.determinant() < 0.0)
-      for (int c = 0; c < left.cols(); c++)
-        left(0, c) *= -1.0;
+    auto [a1, a0, aPh] = extractSU2FromSO4(left);
+    assert(a1.isUnitary(TOL) && a0.isUnitary(TOL));
+    components.a0 = a0;
+    components.a1 = a1;
+    phase *= aPh;
 
-    if (right.determinant() < 0.0)
-      for (int r = 0; r < right.rows(); r++)
-        right(r, 0) *= -1.0;
+    assert(K1.isApprox(aPh * Eigen::kroneckerProduct(a1, a0), TOL));
 
-    if (diagonal.determinant().real() < 0.0)
-      diagonal(0, 0) *= 1.0;
+    auto [b1, b0, bPh] = extractSU2FromSO4(right);
+    assert(b1.isUnitary(TOL) && b0.isUnitary(TOL));
+    components.b0 = b0;
+    components.b1 = b1;
+    phase *= bPh;
 
-    llvm::outs() << "Interim check "
-                 << (specialUnitary.isApprox(MagicBasisMatrix() * left *
-                                                 diagonal * right *
-                                                 MagicBasisMatrixAdj(),
-                                             TOL))
-                 << " \n";
+    assert(K2.isApprox(bPh * Eigen::kroneckerProduct(b1, b0), TOL));
 
     /// Step4: Get the coefficients of canonical class vector
+    if (diagonal.determinant().real() < 0.0)
+      diagonal(0, 0) *= 1.0;
 
     Eigen::Vector4cd diagonalPhases;
     for (size_t i = 0; i < 4; i++)
@@ -326,30 +332,11 @@ struct TwoQubitOpKAK : public Decomposer {
     assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) * checkResult,
                                    TOL));
 
-    auto [a1, a0, aPh] = extractSU2FromSO4(left);
-    assert(a1.isUnitary(TOL));
-    assert(a0.isUnitary(TOL));
-    components.a0 = a0;
-    components.a1 = a1;
-    phase *= aPh;
-
-    auto [b1, b0, bPh] = extractSU2FromSO4(right);
-    assert(b1.isUnitary(TOL));
-    assert(b0.isUnitary(TOL));
-    components.b0 = b0;
-    components.b1 = b1;
-    phase *= bPh;
-
     /// Final check
     Eigen::Matrix4cd checkFinal =
         std::exp(1i * coefficients(0)) * aPh * Eigen::kroneckerProduct(a1, a0) *
         canVecToMat * bPh * Eigen::kroneckerProduct(b1, b0);
-
-    llvm::outs() << "**Final check "
-                 << specialUnitary.isApprox(MagicBasisMatrix() * checkFinal *
-                                                MagicBasisMatrixAdj(),
-                                            TOL)
-                 << " **\n";
+    assert(specialUnitary.isApprox(checkFinal, TOL));
   }
 
   void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
