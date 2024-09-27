@@ -111,7 +111,6 @@ std::string OrcaServerHelper::constructGetJobPath(std::string &jobId) {
 bool OrcaServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   auto error = getJobResponse["error_message"].is_null();
   auto status = getJobResponse["job_status"].is_null();
-  cudaq::info("status {}, error {}", status, error);
   if (error & status) {
     return true;
   } else if (!status) {

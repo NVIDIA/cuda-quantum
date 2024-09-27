@@ -35,22 +35,22 @@ cudaq::sample_result sample(std::vector<std::size_t> &input_state,
                             std::vector<std::size_t> &loop_lengths,
                             std::vector<double> &bs_angles,
                             std::vector<double> &ps_angles,
-                            int n_samples = 10000);
+                            int n_samples = 10000, std::size_t qpu_id = 0);
 
 cudaq::sample_result sample(std::vector<std::size_t> &input_state,
                             std::vector<std::size_t> &loop_lengths,
                             std::vector<double> &bs_angles,
-                            int n_samples = 10000);
+                            int n_samples = 10000, std::size_t qpu_id = 0);
 
 async_sample_result sample_async(std::vector<std::size_t> &input_state,
                                  std::vector<std::size_t> &loop_lengths,
                                  std::vector<double> &bs_angles,
                                  std::vector<double> &ps_angles,
-                                 int n_samples = 10000);
+                                 int n_samples = 10000, std::size_t qpu_id = 0);
 
 async_sample_result sample_async(std::vector<std::size_t> &input_state,
                                  std::vector<std::size_t> &loop_lengths,
                                  std::vector<double> &bs_angles,
-                                 int n_samples = 10000);
+                                 int n_samples = 10000, std::size_t qpu_id = 0);
 
 }; // namespace cudaq::orca

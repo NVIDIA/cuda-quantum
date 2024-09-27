@@ -14,9 +14,9 @@
 
 namespace cudaq::orca {
 
-cudaq::sample_result runSampling(TBIParameters &parameters) {
+cudaq::sample_result runSampling(TBIParameters &parameters,
+                                 std::size_t qpu_id = 0) {
   std::size_t shots = parameters.n_samples;
-  int qpu_id = 0;
   auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", shots);
 
   auto &platform = cudaq::get_platform();
@@ -30,9 +30,9 @@ cudaq::sample_result runSampling(TBIParameters &parameters) {
   return ctx->result;
 }
 
-async_sample_result runAsyncSampling(TBIParameters &parameters) {
+async_sample_result runAsyncSampling(TBIParameters &parameters,
+                                     std::size_t qpu_id = 0) {
   std::size_t shots = parameters.n_samples;
-  int qpu_id = 0;
   auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", shots);
 
   // Indicate that this is an async exec
@@ -56,39 +56,41 @@ async_sample_result runAsyncSampling(TBIParameters &parameters) {
 cudaq::sample_result sample(std::vector<std::size_t> &input_state,
                             std::vector<std::size_t> &loop_lengths,
                             std::vector<double> &bs_angles,
-                            std::vector<double> &ps_angles, int n_samples) {
+                            std::vector<double> &ps_angles, int n_samples,
+                            std::size_t qpu_id) {
   TBIParameters parameters{input_state, loop_lengths, bs_angles, ps_angles,
                            n_samples};
-  return runSampling(parameters);
+  return runSampling(parameters, qpu_id);
 }
 
 cudaq::sample_result sample(std::vector<std::size_t> &input_state,
                             std::vector<std::size_t> &loop_lengths,
-                            std::vector<double> &bs_angles, int n_samples) {
+                            std::vector<double> &bs_angles, int n_samples,
+                            std::size_t qpu_id) {
   std::vector<double> ps_angles = {};
   TBIParameters parameters{input_state, loop_lengths, bs_angles, ps_angles,
                            n_samples};
-  return runSampling(parameters);
+  return runSampling(parameters, qpu_id);
 }
 
 async_sample_result sample_async(std::vector<std::size_t> &input_state,
                                  std::vector<std::size_t> &loop_lengths,
                                  std::vector<double> &bs_angles,
-                                 std::vector<double> &ps_angles,
-                                 int n_samples) {
+                                 std::vector<double> &ps_angles, int n_samples,
+                                 std::size_t qpu_id) {
   TBIParameters parameters{input_state, loop_lengths, bs_angles, ps_angles,
                            n_samples};
-  return runAsyncSampling(parameters);
+  return runAsyncSampling(parameters, qpu_id);
 }
 
 async_sample_result sample_async(std::vector<std::size_t> &input_state,
                                  std::vector<std::size_t> &loop_lengths,
-                                 std::vector<double> &bs_angles,
-                                 int n_samples) {
+                                 std::vector<double> &bs_angles, int n_samples,
+                                 std::size_t qpu_id) {
   std::vector<double> ps_angles = {};
   TBIParameters parameters{input_state, loop_lengths, bs_angles, ps_angles,
                            n_samples};
-  return runAsyncSampling(parameters);
+  return runAsyncSampling(parameters, qpu_id);
 }
 
 } // namespace cudaq::orca
