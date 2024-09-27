@@ -333,10 +333,9 @@ struct TwoQubitOpKAK : public Decomposer {
                                    TOL));
 
     /// Final check
-    Eigen::Matrix4cd checkFinal =
-        std::exp(1i * coefficients(0)) * aPh * Eigen::kroneckerProduct(a1, a0) *
-        canVecToMat * bPh * Eigen::kroneckerProduct(b1, b0);
-    assert(specialUnitary.isApprox(checkFinal, TOL));
+    assert(matrix.isApprox(phase * Eigen::kroneckerProduct(a1, a0) *
+                               canVecToMat * Eigen::kroneckerProduct(b1, b0),
+                           TOL));
   }
 
   void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
