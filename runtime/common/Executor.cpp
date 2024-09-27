@@ -77,7 +77,7 @@ details::future Executor::execute(cudaq::orca::TBIParameters params,
   auto response = client.post(jobPostPath, "", job, headers);
   cudaq::info("Job posted, response was {}", response.dump());
 
-  // // Add the job id and the job name.
+  // Add the job id and the job name.
   auto job_id = serverHelper->extractJobId(response);
   if (job_id.empty()) {
     nlohmann::json tmp(job.at("job_id"));
