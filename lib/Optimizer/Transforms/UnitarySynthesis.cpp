@@ -154,9 +154,9 @@ struct OneQubitOpZYZ : public Decomposer {
 
 struct KAKComponents {
   // KAK decomposition allows to express arbitrary 2-qubit unitary (U) in the
-  // form: U = (a1 ⊗ a0) x exp(i(xXX + yYY + zZZ)) x (b1 ⊗ b0) where, a0, a1
-  // (after), b0, b1 (before) are single qubit operations, and the exponential
-  // is specified by the 3 elements of canonical class vector x, y, z
+  // form: U = (a1 ⊗ a0) x exp(i(xXX + yYY + zZZ)) x (b1 ⊗ b0) where, a0, a1,
+  // b0, b1 are single qubit operations, and the exponential is specified by the
+  // 3 elements of canonical class vector x, y, z
   Eigen::Matrix2cd a0;
   Eigen::Matrix2cd a1;
   Eigen::Matrix2cd b0;
@@ -245,11 +245,11 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
   return std::make_tuple(part1, part2, phase);
 }
 
-// Compute exp(i(x XX + y YY + z ZZ)) matrix
+/// Compute exp(i(x XX + y YY + z ZZ)) matrix
 Eigen::Matrix4cd canonicalVecToMatrix(double x, double y, double z) {
-  Eigen::MatrixXcd X{Eigen::MatrixXcd::Zero(2, 2)};
-  Eigen::MatrixXcd Y{Eigen::MatrixXcd::Zero(2, 2)};
-  Eigen::MatrixXcd Z{Eigen::MatrixXcd::Zero(2, 2)};
+  Eigen::Matrix2cd X{Eigen::Matrix2cd::Zero(2, 2)};
+  Eigen::Matrix2cd Y{Eigen::Matrix2cd::Zero(2, 2)};
+  Eigen::Matrix2cd Z{Eigen::Matrix2cd::Zero(2, 2)};
   X << 0, 1, 1, 0;
   Y << 0, -1i, 1i, 0;
   Z << 1, 0, 0, -1;
@@ -284,32 +284,32 @@ struct TwoQubitOpKAK : public Decomposer {
     auto [left, diagonal, right] = bidiagonalize(matrixMagicBasis);
 
     /// Step3: Get the KAK components
-    Eigen::Matrix4cd before = MagicBasisMatrix() * left * MagicBasisMatrixAdj();
-    Eigen::Matrix4cd after = MagicBasisMatrix() * right * MagicBasisMatrixAdj();
-    Eigen::Matrix4cd canonicalVec =
-        MagicBasisMatrix() * diagonal * MagicBasisMatrixAdj();
-    assert(specialUnitary.isApprox(before * canonicalVec * after, TOL));
+    Eigen::Matrix4cd K1 = MagicBasisMatrix() * left * MagicBasisMatrixAdj();
+    Eigen::Matrix4cd A = MagicBasisMatrix() * diagonal * MagicBasisMatrixAdj();
+    Eigen::Matrix4cd K2 = MagicBasisMatrix() * right * MagicBasisMatrixAdj();
+
+    assert(specialUnitary.isApprox(K1 * A * K2, TOL));
 
     if (left.determinant() < 0.0)
       for (int c = 0; c < left.cols(); c++)
         left(0, c) *= -1.0;
+
     if (right.determinant() < 0.0)
       for (int r = 0; r < right.rows(); r++)
         right(r, 0) *= -1.0;
+
     if (diagonal.determinant().real() < 0.0)
       diagonal(0, 0) *= 1.0;
 
-    auto beforeRes = extractSU2FromSO4(left);
-    components.b0 = std::get<0>(beforeRes);
-    components.b1 = std::get<1>(beforeRes);
-    phase *= std::get<2>(beforeRes);
-
-    auto afterRes = extractSU2FromSO4(right);
-    components.a0 = std::get<0>(afterRes);
-    components.a1 = std::get<1>(afterRes);
-    phase *= std::get<2>(afterRes);
+    llvm::outs() << "Interim check "
+                 << (specialUnitary.isApprox(MagicBasisMatrix() * left *
+                                                 diagonal * right *
+                                                 MagicBasisMatrixAdj(),
+                                             TOL))
+                 << " \n";
 
     /// Step4: Get the coefficients of canonical class vector
+
     Eigen::Vector4cd diagonalPhases;
     for (size_t i = 0; i < 4; i++)
       diagonalPhases(i) = std::arg(diagonal(i, i));
@@ -320,40 +320,49 @@ struct TwoQubitOpKAK : public Decomposer {
     components.z = coefficients(3).real();
     phase *= std::exp(1i * coefficients(0));
 
-    llvm::outs() << "x = " << components.x << "\ty = " << components.y
-                 << "\tz = " << components.z << "\n";
-
-    Eigen::Matrix4cd checkResult =
-        before *
-        canonicalVecToMatrix(components.x, components.y, components.z) * after;
+    auto canVecToMat =
+        canonicalVecToMatrix(components.x, components.y, components.z);
+    Eigen::Matrix4cd checkResult = K1 * canVecToMat * K2;
     assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) * checkResult,
                                    TOL));
 
+    auto [a1, a0, aPh] = extractSU2FromSO4(left);
+    assert(a1.isUnitary(TOL));
+    assert(a0.isUnitary(TOL));
+    components.a0 = a0;
+    components.a1 = a1;
+    phase *= aPh;
+
+    auto [b1, b0, bPh] = extractSU2FromSO4(right);
+    assert(b1.isUnitary(TOL));
+    assert(b0.isUnitary(TOL));
+    components.b0 = b0;
+    components.b1 = b1;
+    phase *= bPh;
+
     /// Final check
     Eigen::Matrix4cd checkFinal =
-        (std::get<2>(beforeRes) *
-         Eigen::kroneckerProduct(components.b0, components.b1)) *
-        canonicalVecToMatrix(components.x, components.y, components.z) *
-        (std::get<2>(afterRes) *
-         Eigen::kroneckerProduct(components.a0, components.a1));
-    // assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) *
-    // checkFinal,
-    //                                TOL));
-    llvm::outs() << specialUnitary.isApprox(
-        std::exp(1i * coefficients(0)) * checkFinal, TOL);
+        std::exp(1i * coefficients(0)) * aPh * Eigen::kroneckerProduct(a1, a0) *
+        canVecToMat * bPh * Eigen::kroneckerProduct(b1, b0);
+
+    llvm::outs() << "**Final check "
+                 << specialUnitary.isApprox(MagicBasisMatrix() * checkFinal *
+                                                MagicBasisMatrixAdj(),
+                                            TOL)
+                 << " **\n";
   }
 
   void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
                             PatternRewriter &rewriter,
                             std::string funcName) override {
-    auto b0 = OneQubitOpZYZ(components.b0);
-    b0.emitDecomposedFuncOp(customOp, rewriter, funcName + "b0");
-    auto b1 = OneQubitOpZYZ(components.b1);
-    b1.emitDecomposedFuncOp(customOp, rewriter, funcName + "b1");
     auto a0 = OneQubitOpZYZ(components.a0);
     a0.emitDecomposedFuncOp(customOp, rewriter, funcName + "a0");
     auto a1 = OneQubitOpZYZ(components.a1);
     a1.emitDecomposedFuncOp(customOp, rewriter, funcName + "a1");
+    auto b0 = OneQubitOpZYZ(components.b0);
+    b0.emitDecomposedFuncOp(customOp, rewriter, funcName + "b0");
+    auto b1 = OneQubitOpZYZ(components.b1);
+    b1.emitDecomposedFuncOp(customOp, rewriter, funcName + "b1");
 
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     Location loc = customOp->getLoc();
@@ -373,11 +382,11 @@ struct TwoQubitOpKAK : public Decomposer {
     /// left-to-right. Hence, operations are applied in reverse order.
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
-        SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "b1"), false,
         ValueRange{}, ValueRange{arguments[1]});
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
-        SymbolRefAttr::get(rewriter.getContext(), funcName + "a0"), false,
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "b0"), false,
         ValueRange{}, ValueRange{arguments[0]});
 
     /// TODO: Refactor to use a transformation pass for `quake.exp_pauli`
@@ -416,13 +425,14 @@ struct TwoQubitOpKAK : public Decomposer {
       rewriter.create<quake::RzOp>(loc, zAngle, ValueRange{}, arguments[1]);
       rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
     }
+
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
-        SymbolRefAttr::get(rewriter.getContext(), funcName + "b1"), false,
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
         ValueRange{}, ValueRange{arguments[1]});
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
-        SymbolRefAttr::get(rewriter.getContext(), funcName + "b0"), false,
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "a0"), false,
         ValueRange{}, ValueRange{arguments[0]});
 
     auto globalPhase = 2 * std::arg(phase);
