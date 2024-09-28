@@ -8,37 +8,37 @@
 
 // RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-early-inlining %s | FileCheck %s
 
-module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel1 = "__nvqpp__mlirgen__kernel1_PyKernelEntryPointRewrite"}} {
-  func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint"} {
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel2 = "__nvqpp__mlirgen__kernel2_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint"} {
     %0 = quake.alloca !quake.veq<2>
     %1 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
     %2 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
-    quake.custom_op @__nvqpp__mlirgen__op1_generator_2.rodata %1, %2 : (!quake.ref, !quake.ref) -> ()
+    quake.custom_op @__nvqpp__mlirgen__op2_generator_2.rodata %1, %2 : (!quake.ref, !quake.ref) -> ()
     return
   }
-  cc.global constant @__nvqpp__mlirgen__op1_generator_2.rodata (dense<[(-0.25534141999999999,0.045629179999999998), (0.11619328,0.79785479999999998), (0.19980911000000001,-0.24754117), (0.052455160000000001,0.42272180999999998), (0.48212336,-0.35275169000000001), (0.47307302000000001,2.047710e-01), (0.38804407000000002,0.34346750999999998), (-0.30236461999999997,-0.13199084), (0.53000373000000001,-0.052047940000000001), (-0.055464520000000003,0.044808380000000002), (-0.39853872000000001,-0.60358142999999997), (-0.40979785000000002,0.1422147), (0.20174057000000001,0.50152752), (0.042562830000000003,-0.27803220000000001), (0.14896845,0.29140401999999999), (-0.16938781,0.70203793000000003)]> : tensor<16xcomplex<f64>>) : !cc.array<complex<f64> x 16>
+  cc.global constant @__nvqpp__mlirgen__op2_generator_2.rodata (dense<[(0.18897759,0.33963024000000003), (0.12335641999999999,-0.48243450999999998), (0.42873799000000001,-0.22386284000000001), (-0.38231686999999998,-0.46998072000000002), (0.26665664,0.31917547000000002), (0.66539470999999994,0.25221665999999998), (-0.47503402,-0.12900718), (-0.26305423,0.095708849999999998), (-0.1821702,0.14533362999999999), (0.18060332000000001,-0.34169106999999999), (1.314040e-03,-0.64370212999999998), (0.54215897999999996,0.29670066), (-0.30045970999999999,0.72895551000000003), (-0.26715635999999998,-0.15790472999999999), (-0.069665530000000003,0.32335976999999999), (-0.13738248,0.39211302999999997)]> : tensor<16xcomplex<f64>>) : !cc.array<complex<f64> x 16>
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 3.9582625248746566 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0.93802610748277016 : f64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2.2568237856512323 : f64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 1.1436094116691584 : f64
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint"} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 3.3597983877882998 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1.1124416939078243 : f64
+// CHECK:           %[[VAL_2:.*]] = arith.constant -1.5227607222807453 : f64
+// CHECK:           %[[VAL_3:.*]] = arith.constant 0.41098890378696051 : f64
 // CHECK:           %[[VAL_4:.*]] = arith.constant 1.5707963267948966 : f64
-// CHECK:           %[[VAL_5:.*]] = arith.constant 0.13346974688431834 : f64
-// CHECK:           %[[VAL_6:.*]] = arith.constant -0.43621539909016882 : f64
-// CHECK:           %[[VAL_7:.*]] = arith.constant -1.2996367006005645 : f64
+// CHECK:           %[[VAL_5:.*]] = arith.constant -4.0833361355387012 : f64
+// CHECK:           %[[VAL_6:.*]] = arith.constant 1.2323317339216211 : f64
+// CHECK:           %[[VAL_7:.*]] = arith.constant 0.89327181859161264 : f64
 // CHECK:           %[[VAL_8:.*]] = arith.constant -1.5707963267948966 : f64
-// CHECK:           %[[VAL_9:.*]] = arith.constant 1.2996367006005645 : f64
-// CHECK:           %[[VAL_10:.*]] = arith.constant 0.7280736766746525 : f64
-// CHECK:           %[[VAL_11:.*]] = arith.constant 2.783651792391125 : f64
-// CHECK:           %[[VAL_12:.*]] = arith.constant -1.9066099708330588 : f64
-// CHECK:           %[[VAL_13:.*]] = arith.constant -3.1401730467170035 : f64
-// CHECK:           %[[VAL_14:.*]] = arith.constant 2.2872369478030228 : f64
-// CHECK:           %[[VAL_15:.*]] = arith.constant 1.6888584582114208 : f64
-// CHECK:           %[[VAL_16:.*]] = arith.constant -0.20630121734301887 : f64
-// CHECK:           %[[VAL_17:.*]] = arith.constant 2.0186522227162649 : f64
-// CHECK:           %[[VAL_18:.*]] = arith.constant 2.088853123967366 : f64
+// CHECK:           %[[VAL_9:.*]] = arith.constant -0.89327181859161264 : f64
+// CHECK:           %[[VAL_10:.*]] = arith.constant 0.70669321414482034 : f64
+// CHECK:           %[[VAL_11:.*]] = arith.constant 2.3499858725474598 : f64
+// CHECK:           %[[VAL_12:.*]] = arith.constant 1.0022361850018475 : f64
+// CHECK:           %[[VAL_13:.*]] = arith.constant 0.63586258232390358 : f64
+// CHECK:           %[[VAL_14:.*]] = arith.constant 0.45370093726152877 : f64
+// CHECK:           %[[VAL_15:.*]] = arith.constant -0.57588264019689317 : f64
+// CHECK:           %[[VAL_16:.*]] = arith.constant 1.0308660415707038 : f64
+// CHECK:           %[[VAL_17:.*]] = arith.constant 1.7688004823405488 : f64
+// CHECK:           %[[VAL_18:.*]] = arith.constant 0.44527705872095541 : f64
 // CHECK:           %[[VAL_19:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_20:.*]] = quake.extract_ref %[[VAL_19]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[VAL_21:.*]] = quake.extract_ref %[[VAL_19]][0] : (!quake.veq<2>) -> !quake.ref
