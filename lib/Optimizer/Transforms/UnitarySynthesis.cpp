@@ -374,7 +374,6 @@ struct TwoQubitOpKAK : public Decomposer {
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "b1"), false,
         ValueRange{}, ValueRange{arguments[1]});
-
     /// TODO: Refactor to use a transformation pass for `quake.exp_pauli`
     /// XX
     if (isAboveThreshold(components.x)) {
@@ -384,9 +383,9 @@ struct TwoQubitOpKAK : public Decomposer {
       auto xAngle = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, components.x, floatTy);
       rewriter.create<quake::RzOp>(loc, xAngle, ValueRange{}, arguments[1]);
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
-      rewriter.create<quake::HOp>(loc, arguments[0]);
+      rewriter.create<quake::XOp>(loc, arguments[0], arguments[1]);
       rewriter.create<quake::HOp>(loc, arguments[1]);
+      rewriter.create<quake::HOp>(loc, arguments[0]);
     }
     /// YY
     if (isAboveThreshold(components.y)) {
@@ -398,10 +397,10 @@ struct TwoQubitOpKAK : public Decomposer {
       auto yAngle = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, components.y, floatTy);
       rewriter.create<quake::RzOp>(loc, yAngle, ValueRange{}, arguments[1]);
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
+      rewriter.create<quake::XOp>(loc, arguments[0], arguments[1]);
       Value negPiBy2 = rewriter.create<arith::NegFOp>(loc, piBy2);
-      rewriter.create<quake::RxOp>(loc, negPiBy2, ValueRange{}, arguments[0]);
       rewriter.create<quake::RxOp>(loc, negPiBy2, ValueRange{}, arguments[1]);
+      rewriter.create<quake::RxOp>(loc, negPiBy2, ValueRange{}, arguments[0]);
     }
     /// ZZ
     if (isAboveThreshold(components.z)) {
@@ -409,9 +408,8 @@ struct TwoQubitOpKAK : public Decomposer {
       auto zAngle = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, components.z, floatTy);
       rewriter.create<quake::RzOp>(loc, zAngle, ValueRange{}, arguments[1]);
-      rewriter.create<quake::XOp>(loc, arguments[1], arguments[0]);
+      rewriter.create<quake::XOp>(loc, arguments[0], arguments[1]);
     }
-
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a0"), false,
@@ -420,7 +418,6 @@ struct TwoQubitOpKAK : public Decomposer {
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
         ValueRange{}, ValueRange{arguments[1]});
-
     auto globalPhase = 2 * std::arg(phase);
     if (isAboveThreshold(globalPhase)) {
       auto phase = cudaq::opt::factory::createFloatConstant(
