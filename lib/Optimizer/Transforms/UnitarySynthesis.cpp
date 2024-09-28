@@ -202,9 +202,8 @@ bidiagonalize(const Eigen::Matrix4cd &matrix) {
     left.col(0) *= -1.0;
   if (right.determinant() < 0.0)
     right.row(0) *= -1.0;
-  /// TODO: Check that matrix is diagonal and absolute values match with
-  /// `qz.matrixS()` and `qz.matrixT()`
   Eigen::Matrix4cd diagonal = left.transpose() * matrix * right.transpose();
+  assert(diagonal.isDiagonal(TOL));
   return std::make_tuple(left, diagonal, right);
 }
 
@@ -251,21 +250,18 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
   return std::make_tuple(part1, part2, phase);
 }
 
-/// Compute exp(i(x XX + y YY + z ZZ)) matrix
+/// Compute exp(i(x XX + y YY + z ZZ)) matrix for verification
 Eigen::Matrix4cd canonicalVecToMatrix(double x, double y, double z) {
-  Eigen::Matrix2cd X{Eigen::Matrix2cd::Zero(2, 2)};
-  Eigen::Matrix2cd Y{Eigen::Matrix2cd::Zero(2, 2)};
-  Eigen::Matrix2cd Z{Eigen::Matrix2cd::Zero(2, 2)};
+  Eigen::Matrix2cd X{Eigen::Matrix2cd::Zero()};
+  Eigen::Matrix2cd Y{Eigen::Matrix2cd::Zero()};
+  Eigen::Matrix2cd Z{Eigen::Matrix2cd::Zero()};
   X << 0, 1, 1, 0;
   Y << 0, -1i, 1i, 0;
   Z << 1, 0, 0, -1;
   auto XX = Eigen::kroneckerProduct(X, X);
   auto YY = Eigen::kroneckerProduct(Y, Y);
   auto ZZ = Eigen::kroneckerProduct(Z, Z);
-  Eigen::MatrixXcd herm = x * XX + y * YY + z * ZZ;
-  herm = 1i * herm;
-  Eigen::MatrixXcd unitary = herm.exp();
-  return unitary;
+  return (1i * (x * XX + y * YY + z * ZZ)).exp();
 }
 
 struct TwoQubitOpKAK : public Decomposer {
@@ -281,58 +277,36 @@ struct TwoQubitOpKAK : public Decomposer {
     /// Step0: Convert to special unitary
     phase = std::pow(matrix.determinant(), 0.25);
     auto specialUnitary = matrix / phase;
-
     /// Step1: Convert the target matrix into magic basis
     Eigen::Matrix4cd matrixMagicBasis =
         MagicBasisMatrixAdj() * specialUnitary * MagicBasisMatrix();
-
     /// Step2: Diagonalize
     auto [left, diagonal, right] = bidiagonalize(matrixMagicBasis);
-
     /// Step3: Get the KAK components
-    Eigen::Matrix4cd K1 = MagicBasisMatrix() * left * MagicBasisMatrixAdj();
-    Eigen::Matrix4cd A = MagicBasisMatrix() * diagonal * MagicBasisMatrixAdj();
-    Eigen::Matrix4cd K2 = MagicBasisMatrix() * right * MagicBasisMatrixAdj();
-
-    assert(specialUnitary.isApprox(K1 * A * K2, TOL));
-
     auto [a1, a0, aPh] = extractSU2FromSO4(left);
     assert(a1.isUnitary(TOL) && a0.isUnitary(TOL));
     components.a0 = a0;
     components.a1 = a1;
     phase *= aPh;
-
-    assert(K1.isApprox(aPh * Eigen::kroneckerProduct(a1, a0), TOL));
-
     auto [b1, b0, bPh] = extractSU2FromSO4(right);
     assert(b1.isUnitary(TOL) && b0.isUnitary(TOL));
     components.b0 = b0;
     components.b1 = b1;
     phase *= bPh;
-
-    assert(K2.isApprox(bPh * Eigen::kroneckerProduct(b1, b0), TOL));
-
     /// Step4: Get the coefficients of canonical class vector
     if (diagonal.determinant().real() < 0.0)
       diagonal(0, 0) *= 1.0;
-
     Eigen::Vector4cd diagonalPhases;
     for (size_t i = 0; i < 4; i++)
       diagonalPhases(i) = std::arg(diagonal(i, i));
-
     auto coefficients = GammaFactor() * diagonalPhases;
     components.x = coefficients(1).real();
     components.y = coefficients(2).real();
     components.z = coefficients(3).real();
     phase *= std::exp(1i * coefficients(0));
-
+    /// Final check
     auto canVecToMat =
         canonicalVecToMatrix(components.x, components.y, components.z);
-    Eigen::Matrix4cd checkResult = K1 * canVecToMat * K2;
-    assert(specialUnitary.isApprox(std::exp(1i * coefficients(0)) * checkResult,
-                                   TOL));
-
-    /// Final check
     assert(matrix.isApprox(phase * Eigen::kroneckerProduct(a1, a0) *
                                canVecToMat * Eigen::kroneckerProduct(b1, b0),
                            TOL));
