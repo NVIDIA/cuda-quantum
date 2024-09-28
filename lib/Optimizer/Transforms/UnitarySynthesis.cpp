@@ -54,8 +54,7 @@ struct EulerAngles {
 };
 
 struct OneQubitOpZYZ : public Decomposer {
-  /// TODO: Update to use Eigen matrix
-  std::array<std::complex<double>, 4> matrix;
+  Eigen::Matrix2cd matrix;
   EulerAngles angles;
   /// Updates to the global phase
   double phase;
@@ -67,20 +66,19 @@ struct OneQubitOpZYZ : public Decomposer {
     /// Rescale the input unitary matrix, `u`, to be special unitary.
     /// Extract a phase factor, `phase`, so that
     /// `determinant(inverse_phase * unitary) = 1`
-    auto det = (matrix[0] * matrix[3]) - (matrix[1] * matrix[2]);
+    auto det = matrix.determinant();
     phase = 0.5 * std::arg(det);
-    std::array<std::complex<double>, 4> specialUnitary;
-    std::transform(
-        matrix.begin(), matrix.end(), specialUnitary.begin(),
-        [&](auto element) { return element * std::exp(-1i * phase); });
-    auto abs00 = std::abs(specialUnitary[0]);
-    auto abs01 = std::abs(specialUnitary[1]);
+    Eigen::Matrix2cd specialUnitary = std::exp(-1i * phase) * matrix;
+    auto abs00 = std::abs(specialUnitary(0, 0));
+    auto abs01 = std::abs(specialUnitary(0, 1));
     if (abs00 >= abs01)
       angles.beta = 2 * std::acos(abs00);
     else
       angles.beta = 2 * std::asin(abs01);
-    auto sum = std::atan2(specialUnitary[3].imag(), specialUnitary[3].real());
-    auto diff = std::atan2(specialUnitary[2].imag(), specialUnitary[2].real());
+    auto sum =
+        std::atan2(specialUnitary(1, 1).imag(), specialUnitary(1, 1).real());
+    auto diff =
+        std::atan2(specialUnitary(1, 0).imag(), specialUnitary(1, 0).real());
     angles.alpha = sum + diff;
     angles.gamma = sum - diff;
   }
@@ -139,15 +137,8 @@ struct OneQubitOpZYZ : public Decomposer {
     rewriter.restoreInsertionPoint(insPt);
   }
 
-  OneQubitOpZYZ(const std::vector<std::complex<double>> &vec) {
-    std::copy(vec.begin(), vec.begin() + 4, matrix.begin());
-    decompose();
-  }
-
   OneQubitOpZYZ(const Eigen::Matrix2cd &vec) {
-    for (size_t r = 0; r < 2; r++)
-      for (size_t c = 0; c < 2; c++)
-        matrix[r * 2 + c] = vec(r, c);
+    matrix = vec;
     decompose();
   }
 };
@@ -429,24 +420,26 @@ public:
     /// If the replacement function doesn't exist, create it here
     if (!parentModule.lookupSymbol<func::FuncOp>(funcName)) {
       auto matrix = cudaq::opt::factory::readGlobalConstantArray(globalOp);
-      switch (matrix.size()) {
-      case 4: {
-        auto zyz = OneQubitOpZYZ(matrix);
+      size_t dimension = std::sqrt(matrix.size());
+      auto unitary =
+          Eigen::Map<Eigen::MatrixXcd>(matrix.data(), dimension, dimension);
+      unitary.transposeInPlace();
+      if (!unitary.isUnitary(1e-7)) {
+        customOp.emitWarning("The custom operation matrix must be unitary.");
+        return failure();
+      }
+      switch (dimension) {
+      case 2: {
+        auto zyz = OneQubitOpZYZ(unitary);
         zyz.emitDecomposedFuncOp(customOp, rewriter, funcName);
       } break;
-      case 16: {
-        auto unitary = Eigen::Map<Eigen::Matrix4cd>(matrix.data());
-        unitary.transposeInPlace();
-        if (!unitary.isUnitary(TOL)) {
-          customOp.emitWarning("The custom operation matrix must be unitary.");
-          return failure();
-        }
+      case 4: {
         auto kak = TwoQubitOpKAK(unitary);
         kak.emitDecomposedFuncOp(customOp, rewriter, funcName);
       } break;
       default:
         customOp.emitWarning(
-            "Decomposition of only single qubit custom operations supported.");
+            "Decomposition of only 1 and 2 qubit custom operations supported.");
         return failure();
       }
     }

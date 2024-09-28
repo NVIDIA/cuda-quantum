@@ -20,28 +20,28 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel2 = "__nvqp
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 3.3597983877882998 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1.1124416939078243 : f64
-// CHECK:           %[[VAL_2:.*]] = arith.constant -1.5227607222807453 : f64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0.41098890378696051 : f64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 1.5707963267948966 : f64
-// CHECK:           %[[VAL_5:.*]] = arith.constant -4.0833361355387012 : f64
-// CHECK:           %[[VAL_6:.*]] = arith.constant 1.2323317339216211 : f64
-// CHECK:           %[[VAL_7:.*]] = arith.constant 0.89327181859161264 : f64
-// CHECK:           %[[VAL_8:.*]] = arith.constant -1.5707963267948966 : f64
-// CHECK:           %[[VAL_9:.*]] = arith.constant -0.89327181859161264 : f64
-// CHECK:           %[[VAL_10:.*]] = arith.constant 0.70669321414482034 : f64
-// CHECK:           %[[VAL_11:.*]] = arith.constant 2.3499858725474598 : f64
-// CHECK:           %[[VAL_12:.*]] = arith.constant 1.0022361850018475 : f64
-// CHECK:           %[[VAL_13:.*]] = arith.constant 0.63586258232390358 : f64
-// CHECK:           %[[VAL_14:.*]] = arith.constant 0.45370093726152877 : f64
-// CHECK:           %[[VAL_15:.*]] = arith.constant -0.57588264019689317 : f64
-// CHECK:           %[[VAL_16:.*]] = arith.constant 1.0308660415707038 : f64
-// CHECK:           %[[VAL_17:.*]] = arith.constant 1.7688004823405488 : f64
-// CHECK:           %[[VAL_18:.*]] = arith.constant 0.44527705872095541 : f64
-// CHECK:           %[[VAL_19:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_20:.*]] = quake.extract_ref %[[VAL_19]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           %[[VAL_21:.*]] = quake.extract_ref %[[VAL_19]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3.3597983{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.1124416{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant -1.522760{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0.4109889{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1.5707963{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant -4.083336{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1.2323317{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0.8932718{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_8:.*]] = arith.constant -1.570796{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_9:.*]] = arith.constant -0.893271{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_10:.*]] = arith.constant 0.706693{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_11:.*]] = arith.constant 2.349985{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_12:.*]] = arith.constant 1.002236{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_13:.*]] = arith.constant 0.635862{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_14:.*]] = arith.constant 0.453700{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_15:.*]] = arith.constant -0.57588{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_16:.*]] = arith.constant 1.030866{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_17:.*]] = arith.constant 1.768800{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_18:.*]] = arith.constant 0.445277{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_19:.*]] = quake.alloca !quake.veq<2>
+// CHECK-DAG:       %[[VAL_20:.*]] = quake.extract_ref %[[VAL_19]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-DAG:       %[[VAL_21:.*]] = quake.extract_ref %[[VAL_19]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.ry (%[[VAL_1]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_2]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
