@@ -3,6 +3,15 @@ Introduction
 
 Welcome to CUDA-Q! On this page we will illustrate CUDA-Q with several examples. 
 
+.. tab:: Python
+
+   We're going to take a look at how to construct quantum programs through CUDA-Q's `Kernel` API.
+
+   When you create a `Kernel` and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, `cudaq::sample`. Let's take a closer look!
+
+   .. literalinclude:: ../../examples/python/intro.py
+      :language: python
+
 .. tab:: C++
 
    We're going to take a look at how to construct quantum programs using CUDA-Q kernels.

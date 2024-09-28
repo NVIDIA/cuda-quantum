@@ -8,10 +8,10 @@ Examples that illustrate how to use CUDA-Q for application development are avail
    :maxdepth: 1
 
       Introduction <introduction.rst>
-      Building Kernels <../../examples/building_kernels.ipynb>
+      Building Kernels <multi_control.rst>
       Quantum Operations <quantum_operations.rst>
       Measuring Kernels <../../examples/measuring_kernels.ipynb>
-      Visualising Kernels <../../examples/visualization.ipynb>
+      Visualizing Kernels <../../examples/visualization.ipynb>
       Executing Kernels <../../examples/executing_kernels.ipynb>
       Computing Expectation Values <expectation_values.rst>
       Multi-GPU Workflows <multi_gpu_workflows.rst>
