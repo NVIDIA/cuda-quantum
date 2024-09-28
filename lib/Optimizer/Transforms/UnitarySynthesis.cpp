@@ -72,9 +72,9 @@ struct OneQubitOpZYZ : public Decomposer {
     auto abs00 = std::abs(specialUnitary(0, 0));
     auto abs01 = std::abs(specialUnitary(0, 1));
     if (abs00 >= abs01)
-      angles.beta = 2 * std::acos(abs00);
+      angles.beta = 2.0 * std::acos(abs00);
     else
-      angles.beta = 2 * std::asin(abs01);
+      angles.beta = 2.0 * std::asin(abs01);
     auto sum =
         std::atan2(specialUnitary(1, 1).imag(), specialUnitary(1, 1).real());
     auto diff =
@@ -125,7 +125,7 @@ struct OneQubitOpZYZ : public Decomposer {
     /// track of that.
     /// NOTE: R1-Rz pair results in a half the applied global phase angle,
     /// hence, we need to multiply the angle by 2
-    auto globalPhase = 2 * phase;
+    auto globalPhase = 2.0 * phase;
     if (isAboveThreshold(globalPhase)) {
       auto phase = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, globalPhase, floatTy);
@@ -383,7 +383,7 @@ struct TwoQubitOpKAK : public Decomposer {
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
         ValueRange{}, ValueRange{arguments[0]});
-    auto globalPhase = 2 * std::arg(phase);
+    auto globalPhase = 2.0 * std::arg(phase);
     if (isAboveThreshold(globalPhase)) {
       auto phase = cudaq::opt::factory::createFloatConstant(
           loc, rewriter, globalPhase, floatTy);
