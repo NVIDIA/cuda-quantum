@@ -59,9 +59,6 @@ def evolve_me(
         if len(collapse_operators) == 0:
             me_solve = False
         else:
-            print(
-                "There are collapse operators, but the initial state is a state vector. The state vector will be converted to a density matrix."
-            )
             initial_state = initial_state.to_dm()
             me_solve = True
     else:
