@@ -527,6 +527,58 @@ def test_floquet_steady_state(integrator):
         np.testing.assert_allclose(n[i], expected_steady_state, atol=0.02)
 
 
+@pytest.mark.parametrize('integrator', all_integrator_classes)
+def test_landau_zener(integrator):
+    # Define some shorthand operators
+    sx = pauli.x(0)
+    sz = pauli.z(0)
+    sm = operators.annihilate(0)
+    sm_dag = operators.create(0)
+
+    dimensions = {0: 2}
+
+    # System parameters
+    gamma1 = 0.0001  # relaxation rate
+    gamma2 = 0.005  # dephasing  rate
+    delta = 0.5 * 2 * np.pi  # qubit pauli_x coefficient
+    eps0 = 0.0 * 2 * np.pi  # qubit pauli_z coefficient
+    A = 2.0 * 2 * np.pi  # time-dependent sweep rate
+
+    # Hamiltonian
+    hamiltonian = -delta / 2.0 * sx - eps0 / 2.0 * sz - A / 2.0 * ScalarOperator(
+        lambda t: t) * sz
+
+    # collapse operators: relaxation and dephasing
+    c_op_list = [np.sqrt(gamma1) * sm, np.sqrt(gamma2) * sz]
+
+    # Initial state of the system (ground state)
+    psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
+
+    # Schedule of time steps.
+    steps = np.linspace(-20.0, 20.0, 5000)
+    schedule = Schedule(steps, ["time"])
+
+    # Run the simulation.
+    evolution_result = evolve(hamiltonian,
+                              dimensions,
+                              schedule,
+                              psi0,
+                              observables=[operators.number(0)],
+                              collapse_operators=c_op_list,
+                              store_intermediate_results=True,
+                              integrator=integrator())
+
+    prob1 = [
+        exp_vals[0].expectation()
+        for exp_vals in evolution_result.expectation_values()
+    ]
+
+    analytical_result = 1 - np.exp(-np.pi * delta**2 / (2 * A))
+    for idx, time in enumerate(steps):
+        if time > 10.0:
+            np.testing.assert_allclose(prob1[idx], analytical_result, atol=0.05)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
