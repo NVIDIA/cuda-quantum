@@ -121,10 +121,10 @@ fi
 tensornet_backend_skipped_tests=(\
     examples/cpp/other/builder/vqe_h2_builder.cpp \
     examples/cpp/other/builder/qaoa_maxcut_builder.cpp \
-    examples/cpp/algorithms/vqe_h2.cpp \
-    examples/cpp/algorithms/qaoa_maxcut.cpp \
+    applications/cpp/vqe_h2.cpp \
+    applications/cpp/qaoa_maxcut.cpp \
     examples/cpp/other/builder/builder.cpp \
-    examples/cpp/algorithms/amplitude_estimation.cpp)
+    applications/cpp/amplitude_estimation.cpp)
 
 echo "============================="
 echo "==        C++ Tests        =="
