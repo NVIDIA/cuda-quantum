@@ -12,6 +12,7 @@ import pytest
 import numpy as np
 
 import cudaq
+import random
 
 
 def test_depolarization_channel():
@@ -226,6 +227,7 @@ def test_kraus_channel():
     assert ('1' in counts)
     cudaq.reset_target()
 
+
 def test_row_major():
     cudaq.set_target('density-matrix-cpu')
     cudaq.set_random_seed(13)
@@ -233,10 +235,12 @@ def test_row_major():
     error_prob = 0.2
     shots = 10000
     # Default numpy array is row major
-    kraus_0=np.array([[1.0,0.0], [0.0,np.sqrt(1-error_prob)]],dtype=np.complex128)
-    kraus_1=np.array([[0.0,np.sqrt(error_prob)],[0.0,0.0]],dtype=np.complex128)
+    kraus_0 = np.array([[1.0, 0.0], [0.0, np.sqrt(1 - error_prob)]],
+                       dtype=np.complex128)
+    kraus_1 = np.array([[0.0, np.sqrt(error_prob)], [0.0, 0.0]],
+                       dtype=np.complex128)
     # This will throw if the row-column major convention is mixed up
-    t1_channel=cudaq.KrausChannel([kraus_0,kraus_1])
+    t1_channel = cudaq.KrausChannel([kraus_0, kraus_1])
     noise = cudaq.NoiseModel()
     noise.add_channel('x', [0], t1_channel)
     cudaq.set_noise(noise)
@@ -246,8 +250,9 @@ def test_row_major():
     noisy_counts = cudaq.sample(circuit, shots_count=shots)
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
-    assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.2) 
+    assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.2)
     cudaq.reset_target()
+
 
 def test_column_major():
     cudaq.set_target('density-matrix-cpu')
@@ -257,10 +262,14 @@ def test_column_major():
     shots = 10000
     # Input data in column major
     # Note: same data but with order = 'F' => the buffer storage will be in column major
-    kraus_0=np.array([[1.0,0.0], [0.0,np.sqrt(1-error_prob)]],dtype=np.complex128,order='F')
-    kraus_1=np.array([[0.0,np.sqrt(error_prob)],[0.0,0.0]],dtype=np.complex128,order='F')
+    kraus_0 = np.array([[1.0, 0.0], [0.0, np.sqrt(1 - error_prob)]],
+                       dtype=np.complex128,
+                       order='F')
+    kraus_1 = np.array([[0.0, np.sqrt(error_prob)], [0.0, 0.0]],
+                       dtype=np.complex128,
+                       order='F')
     # This will throw if the row-column major convention is mixed up
-    t1_channel=cudaq.KrausChannel([kraus_0,kraus_1])
+    t1_channel = cudaq.KrausChannel([kraus_0, kraus_1])
     noise = cudaq.NoiseModel()
     noise.add_channel('x', [0], t1_channel)
     cudaq.set_noise(noise)
@@ -270,8 +279,9 @@ def test_column_major():
     noisy_counts = cudaq.sample(circuit, shots_count=shots)
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
-    assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.2) 
+    assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.2)
     cudaq.reset_target()
+
 
 def test_noise_u3():
     cudaq.set_target('density-matrix-cpu')
@@ -279,22 +289,240 @@ def test_noise_u3():
     # Amplitude damping
     error_prob = 0.2
     shots = 10000
-    kraus_0=np.array([[1.0,0.0], [0.0,np.sqrt(1-error_prob)]],dtype=np.complex128)
-    kraus_1=np.array([[0.0,np.sqrt(error_prob)],[0.0,0.0]],dtype=np.complex128)
+    kraus_0 = np.array([[1.0, 0.0], [0.0, np.sqrt(1 - error_prob)]],
+                       dtype=np.complex128)
+    kraus_1 = np.array([[0.0, np.sqrt(error_prob)], [0.0, 0.0]],
+                       dtype=np.complex128)
     # This will throw if the row-column major convention is mixed up
-    t1_channel=cudaq.KrausChannel([kraus_0,kraus_1])
+    t1_channel = cudaq.KrausChannel([kraus_0, kraus_1])
     noise = cudaq.NoiseModel()
     noise.add_channel('u3', [0], t1_channel)
     cudaq.set_noise(noise)
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
     # U3(pi,−pi/2,pi/2) == X
-    circuit.u3(np.pi, -np.pi/2, np.pi/2, q)
+    circuit.u3(np.pi, -np.pi / 2, np.pi / 2, q)
     noisy_counts = cudaq.sample(circuit, shots_count=shots)
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
-    assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.1) 
+    assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.1)
     cudaq.reset_target()
+
+
+def test_all_qubit_channel():
+    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_random_seed(13)
+    noise = cudaq.NoiseModel()
+    bf = cudaq.BitFlipChannel(1.0)
+    noise.add_all_qubit_channel('x', bf)
+    kernel = cudaq.make_kernel()
+    num_qubits = 3
+    qubits = kernel.qalloc(num_qubits)
+    kernel.x(qubits)
+    kernel.mz(qubits)
+    shots = 252
+    noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
+    noisy_counts.dump()
+    # Decay to |000>
+    assert np.isclose(noisy_counts.probability("0" * num_qubits), 1.0)
+    cudaq.reset_target()
+
+
+def test_all_qubit_channel_with_control():
+    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_random_seed(13)
+    noise = cudaq.NoiseModel()
+    k0 = np.array(
+        [[0.99498743710662, 0., 0., 0.], [0., 0.99498743710662, 0., 0.],
+         [0., 0., 0.99498743710662, 0.], [0., 0., 0., 0.99498743710662]],
+        dtype=np.complex128)
+    k1 = np.array(
+        [[0., 0., 0.05773502691896258, 0.], [0., 0., 0., 0.05773502691896258],
+         [0.05773502691896258, 0., 0., 0.], [0., 0.05773502691896258, 0., 0.]],
+        dtype=np.complex128)
+    k2 = np.array([[0., 0., -1j * 0.05773502691896258, 0.],
+                   [0., 0., 0., -1j * 0.05773502691896258],
+                   [1j * 0.05773502691896258, 0., 0., 0.],
+                   [0., 1j * 0.05773502691896258, 0., 0.]],
+                  dtype=np.complex128)
+    k3 = np.array(
+        [[0.05773502691896258, 0., 0., 0.], [0., 0.05773502691896258, 0., 0.],
+         [0., 0., -0.05773502691896258, 0.], [0., 0., 0., -0.05773502691896258]
+        ],
+        dtype=np.complex128)
+    kraus_channel = cudaq.KrausChannel([k0, k1, k2, k3])
+    noise.add_all_qubit_channel('x', kraus_channel, num_controls=1)
+    num_qubits = 5
+    num_tests = 4
+    for i in range(num_tests):
+        kernel = cudaq.make_kernel()
+        qubits = kernel.qalloc(num_qubits)
+        # Pick a qubit pair
+        qubit_pair = random.sample(range(num_qubits), 2)
+        print(f"qubit pair: {qubit_pair}")
+        q = qubits[qubit_pair[0]]
+        r = qubits[qubit_pair[1]]
+        kernel.h(q)
+        kernel.cx(q, r)
+        kernel.mz(qubits)
+        shots = 1024
+        noisy_counts = cudaq.sample(kernel,
+                                    shots_count=shots,
+                                    noise_model=noise)
+        noisy_counts.dump()
+        # All tests have some noisy states beside the bell pair.
+        assert (len(noisy_counts) > 2)
+    cudaq.reset_target()
+
+
+def test_all_qubit_channel_with_control_prefix():
+    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_random_seed(13)
+    noise = cudaq.NoiseModel()
+    k0 = np.array(
+        [[0.99498743710662, 0., 0., 0.], [0., 0.99498743710662, 0., 0.],
+         [0., 0., 0.99498743710662, 0.], [0., 0., 0., 0.99498743710662]],
+        dtype=np.complex128)
+    k1 = np.array(
+        [[0., 0., 0.05773502691896258, 0.], [0., 0., 0., 0.05773502691896258],
+         [0.05773502691896258, 0., 0., 0.], [0., 0.05773502691896258, 0., 0.]],
+        dtype=np.complex128)
+    k2 = np.array([[0., 0., -1j * 0.05773502691896258, 0.],
+                   [0., 0., 0., -1j * 0.05773502691896258],
+                   [1j * 0.05773502691896258, 0., 0., 0.],
+                   [0., 1j * 0.05773502691896258, 0., 0.]],
+                  dtype=np.complex128)
+    k3 = np.array(
+        [[0.05773502691896258, 0., 0., 0.], [0., 0.05773502691896258, 0., 0.],
+         [0., 0., -0.05773502691896258, 0.], [0., 0., 0., -0.05773502691896258]
+        ],
+        dtype=np.complex128)
+    kraus_channel = cudaq.KrausChannel([k0, k1, k2, k3])
+    noise.add_all_qubit_channel('cx', kraus_channel)
+    num_qubits = 5
+    num_tests = 4
+    for i in range(num_tests):
+        kernel = cudaq.make_kernel()
+        qubits = kernel.qalloc(num_qubits)
+        # Pick a qubit pair
+        qubit_pair = random.sample(range(num_qubits), 2)
+        print(f"qubit pair: {qubit_pair}")
+        q = qubits[qubit_pair[0]]
+        r = qubits[qubit_pair[1]]
+        kernel.h(q)
+        kernel.cx(q, r)
+        kernel.mz(qubits)
+        shots = 1024
+        noisy_counts = cudaq.sample(kernel,
+                                    shots_count=shots,
+                                    noise_model=noise)
+        noisy_counts.dump()
+        # All tests have some noisy states beside the bell pair.
+        assert (len(noisy_counts) > 2)
+    cudaq.reset_target()
+
+
+def test_callback_channel():
+    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_random_seed(13)
+
+    def noise_cb(qubits, params):
+        if qubits[0] != 2:
+            return cudaq.BitFlipChannel(1.0)
+        return cudaq.KrausChannel()
+
+    noise = cudaq.NoiseModel()
+    noise.add_channel('x', noise_cb)
+    kernel = cudaq.make_kernel()
+    num_qubits = 5
+    qubits = kernel.qalloc(num_qubits)
+    kernel.x(qubits)
+    kernel.mz(qubits)
+    shots = 252
+    noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
+    noisy_counts.dump()
+    # All qubits, except q[2], are flipped.
+    assert np.isclose(noisy_counts.probability("00100"), 1.0)
+    cudaq.reset_target()
+
+
+def test_callback_channel_with_params():
+    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_random_seed(13)
+
+    def noise_cb(qubits, params):
+        assert len(params) == 1
+        # For testing: only add noise if the angle is positive.
+        if params[0] > 0:
+            return cudaq.BitFlipChannel(1.0)
+        return cudaq.KrausChannel()
+
+    noise = cudaq.NoiseModel()
+    noise.add_channel('rx', noise_cb)
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    # Rx(pi) == X
+    kernel.rx(np.pi, qubit)
+    kernel.mz(qubit)
+    shots = 252
+    noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
+    noisy_counts.dump()
+    # Due to 100% bit-flip, it becomes "0".
+    assert np.isclose(noisy_counts.probability("0"), 1.0)
+
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    # Rx(-pi) == X
+    kernel.rx(-np.pi, qubit)
+    kernel.mz(qubit)
+    shots = 252
+    noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
+    noisy_counts.dump()
+    # Due to our custom setup, a negative angle will have no noise.
+    assert np.isclose(noisy_counts.probability("1"), 1.0)
+    cudaq.reset_target()
+
+
+def check_custom_op_noise(noise_model):
+    cudaq.set_random_seed(13)
+    cudaq.set_target('density-matrix-cpu')
+
+    @cudaq.kernel
+    def basic():
+        q = cudaq.qubit()
+        custom_x(q)
+
+    shots = 100
+    counts = cudaq.sample(basic, shots_count=shots, noise_model=noise_model)
+    counts.dump()
+    assert np.isclose(counts.probability("0"), 1.0)
+    cudaq.reset_target()
+
+
+def test_custom_op():
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    # (Gate name + Operand)
+    noise = cudaq.NoiseModel()
+    # Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.
+    bit_flip_one = cudaq.BitFlipChannel(1.0)
+    noise.add_channel('custom_x', [0], bit_flip_one)
+    check_custom_op_noise(noise)
+
+    # All-qubit
+    noise = cudaq.NoiseModel()
+    # Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.
+    noise.add_all_qubit_channel('custom_x', bit_flip_one)
+    check_custom_op_noise(noise)
+
+    # Callback
+    def noise_cb(qubits, params):
+        return bit_flip_one
+
+    noise = cudaq.NoiseModel()
+    noise.add_channel('custom_x', noise_cb)
+    check_custom_op_noise(noise)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

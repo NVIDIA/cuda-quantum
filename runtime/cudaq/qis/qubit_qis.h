@@ -1198,11 +1198,19 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
       [[maybe_unused]] std::complex<double> i(0, 1.);                          \
       return __VA_ARGS__;                                                      \
     }                                                                          \
+    static inline const bool registered_ = []() {                              \
+      cudaq::customOpRegistry::getInstance()                                   \
+          .registerOperation<CONCAT(NAME, _operation)>(#NAME);                 \
+      return true;                                                             \
+    }();                                                                       \
   };                                                                           \
   CUDAQ_MOD_TEMPLATE                                                           \
   void NAME(Args &&...args) {                                                  \
-    cudaq::getExecutionManager()->registerOperation<CONCAT(NAME, _operation)>( \
-        #NAME);                                                                \
+    /* Perform registration at call site as well in case the static            \
+     * initialization was not executed in the same context, e.g., remote       \
+     * execution.*/                                                            \
+    cudaq::customOpRegistry::getInstance()                                     \
+        .registerOperation<CONCAT(NAME, _operation)>(#NAME);                   \
     details::genericApplicator<mod, NUMT, NUMP>(#NAME,                         \
                                                 std::forward<Args>(args)...);  \
   }                                                                            \
