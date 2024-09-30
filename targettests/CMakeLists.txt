@@ -30,8 +30,10 @@ set(CUDAQ_TEST_DEPENDS
     cudaq-opt
     cudaq-translate
     FileCheck
-    split-file
 )
+# We require split-file, which should be installed along with FileCheck, but
+# the CI doesn't do it. Comment this out and open a bug.
+#   split-file
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   set(CUDAQ_TEST_DEPENDS ${CUDAQ_TEST_DEPENDS}
     cudaq-quake
