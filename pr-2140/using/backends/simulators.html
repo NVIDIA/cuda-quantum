@@ -26,6 +26,7 @@
         <script src="../../_static/clipboard.min.js"></script>
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -218,6 +219,28 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/H2-MRQKS.html">Multi-Reference Quantum Krylov Algorithm (H2 Example)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/Shors.html">Factoring Integers With Shor’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/Shors.html#Shor's-algorithm">Shor’s algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/Shors.html#Solving-the-order-finding-problem-classically">Solving the order-finding problem classically</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/Shors.html#Solving-the-order-finding-problem-with-a-quantum-algorithm">Solving the order-finding problem with a quantum algorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/Shors.html#Determining-the-order-from-the-measurement-results-of-the-phase-kernel">Determining the order from the measurement results of the phase kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/Shors.html#Postscript">Postscript</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html">Compiling Unitaries Using Diffusion Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Setup-and-compilation">Setup and compilation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Load-model">Load model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Unitary-compilation">Unitary compilation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Simulate-kernels">Simulate kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Compare-unitaries">Compare unitaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/unitary_compilation.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="backends.html">   Backends</a><ul class="current">
@@ -504,6 +527,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/default_ops.html">Quantum Operations</a><ul>
@@ -530,6 +557,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -636,7 +670,9 @@ use <code class="code docutils literal notranslate"><span class="pre">cudaq.set_
 <p class="admonition-title">Note</p>
 <p>This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
-<p>In the single-GPU mode, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides the following environment variable options.</p>
+<p>In the single-GPU mode, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides the following
+environment variable options. Any environment variables must be set prior to
+setting the target.</p>
 <table class="docutils align-default" id="id4">
 <caption><span class="caption-text"><strong>Environment variable options supported in single-GPU mode</strong></span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
 <colgroup>
@@ -711,11 +747,11 @@ invoking the program with the command</p>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>(1) The order of the option settings are interchangeable.
-For example, <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='mgpu,fp64')</span></code> is equivalent to <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='fp64.mgpu')</span></code>.</p>
-<ol class="arabic simple" start="2">
+<ul class="simple">
+<li><p>The order of the option settings are interchangeable.
+For example, <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='mgpu,fp64')</span></code> is equivalent to <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='fp64,mgpu')</span></code>.</p></li>
 <li><p>The <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target has single-precision as the default setting. Thus, using <code class="code docutils literal notranslate"><span class="pre">option='mgpu'</span></code> implies that <code class="code docutils literal notranslate"><span class="pre">option='mgpu,fp32'</span></code>.</p></li>
-</ol>
+</ul>
 </div>
 </div>
 <input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
@@ -739,7 +775,8 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 </div>
 <p>In addition to those environment variable options supported in the single-GPU mode,
 the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides the following environment variable options particularly for
-the multi-node multi-GPU configuration.</p>
+the multi-node multi-GPU configuration. Any environment variables must be set
+prior to setting the target.</p>
 <table class="docutils align-default" id="id5">
 <caption><span class="caption-text"><strong>Additional environment variable options for multi-node multi-GPU mode</strong></span><a class="headerlink" href="#id5" title="Permalink to this table">¶</a></caption>
 <colgroup>
@@ -847,7 +884,7 @@ use the following commands:</p>
 <p id="tensor-backends">CUDA-Q provides a couple of tensor-network simulator targets accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library.
 These backends are available for use from both C++ and Python.</p>
-<p>Tensor network-based simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> can be performed efficiently, thanks to <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance.</p>
+<p>Tensor network simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> can be performed efficiently, thanks to <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance.</p>
 <section id="id2">
 <h3>Multi-node multi-GPU<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend represents quantum states and circuits as tensor networks in an exact form (no approximation).
@@ -964,13 +1001,13 @@ See the section <a class="reference internal" href="../install/local_installatio
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The parallelism of Jacobi method (the default <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting) gives GPU better performance on small and medium size matrices.
-If you expect the a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
+If you expect a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
 </div>
 </section>
 </section>
 <section id="default-simulator">
 <h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
-<p id="id3">If no explicit target is set, i.e. if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA-Q makes a default choice for the simulator.</p>
+<p id="id3">If no explicit target is set, i.e., if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA-Q makes a default choice for the simulator.</p>
 <p>If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. This will utilize the <a class="reference internal" href="#cuquantum-single-gpu"><span class="std std-ref">cuQuantum single-GPU state vector simulator</span></a>.
 On CPU-only systems, the default target is set to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> which uses the <a class="reference internal" href="#openmp-cpu-only"><span class="std std-ref">OpenMP CPU-only simulator</span></a>.</p>
 <p>The default simulator can be overridden by the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code>. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
