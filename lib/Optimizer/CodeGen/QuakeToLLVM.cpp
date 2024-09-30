@@ -462,11 +462,12 @@ public:
           cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numElements);
 
       // Set the string literal data
-      auto strPtr = rewriter.create<LLVM::GEPOp>(
-          loc, LLVM::LLVMPointerType::get(rewriter.getI8Type()), alloca,
-          ValueRange{zero, zero});
-      auto castedPauli = rewriter.create<LLVM::BitcastOp>(
-          loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+      auto charPtrTy = cudaq::opt::factory::getPointerType(context);
+      auto strPtrTy = LLVM::LLVMPointerType::get(charPtrTy);
+      auto strPtr = rewriter.create<LLVM::GEPOp>(loc, strPtrTy, alloca,
+                                                 ValueRange{zero, zero});
+      auto castedPauli =
+          rewriter.create<LLVM::BitcastOp>(loc, charPtrTy, pauliWord);
       rewriter.create<LLVM::StoreOp>(loc, castedPauli, strPtr);
 
       // Set the integer length
@@ -476,8 +477,8 @@ public:
       rewriter.create<LLVM::StoreOp>(loc, size, intPtr);
 
       // Cast to raw opaque pointer
-      auto castedStore = rewriter.create<LLVM::BitcastOp>(
-          loc, cudaq::opt::factory::getPointerType(context), alloca);
+      auto castedStore =
+          rewriter.create<LLVM::BitcastOp>(loc, charPtrTy, alloca);
       operands.push_back(castedStore);
       rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                                 operands);
