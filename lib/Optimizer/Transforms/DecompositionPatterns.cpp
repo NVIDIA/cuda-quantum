@@ -368,9 +368,8 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
     }
 
     // Assert that we have a constant known pauli word
-    if (!optPauliWordStr.has_value()) {
+    if (!optPauliWordStr.has_value())
       return failure();
-    }
 
     auto pauliWordStr = optPauliWordStr.value();
 
