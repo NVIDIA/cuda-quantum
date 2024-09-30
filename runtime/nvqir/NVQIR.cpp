@@ -603,7 +603,8 @@ void __quantum__rt__result_record_output(Result *r, int8_t *name) {
 }
 
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,
-                                    Array *controls, Array *targets) {
+                                    Array *controls, Array *targets,
+                                    const char *name) {
   auto ctrlsVec = arrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
@@ -613,12 +614,13 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
   auto numElements = nToPowTwo * nToPowTwo;
   std::vector<std::complex<double>> unitaryMatrix(unitary,
                                                   unitary + numElements);
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(unitaryMatrix,
-                                                             ctrlsVec, tgtsVec);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      unitaryMatrix, ctrlsVec, tgtsVec, name);
 }
 
 void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
-                                         Array *controls, Array *targets) {
+                                         Array *controls, Array *targets,
+                                         const char *name) {
 
   auto ctrlsVec = arrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
@@ -641,8 +643,8 @@ void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
   for (auto const &row : unitaryConj2D)
     unitaryFlattened.insert(unitaryFlattened.end(), row.begin(), row.end());
 
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(unitaryFlattened,
-                                                             ctrlsVec, tgtsVec);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      unitaryFlattened, ctrlsVec, tgtsVec, name);
 }
 
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.
