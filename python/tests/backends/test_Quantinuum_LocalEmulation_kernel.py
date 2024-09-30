@@ -287,6 +287,25 @@ def test_2q_unitary_synthesis():
     assert counts["0010011"] == 1000
 
 
+def test_3q_unitary_synthesis():
+    cudaq.register_operation(
+        "toffoli",
+        np.array([
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0
+        ]))
+
+    @cudaq.kernel
+    def test_toffoli():
+        q = cudaq.qvector(3)
+        x(q)
+        toffoli(q[0], q[1], q[2])
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(test_toffoli)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
