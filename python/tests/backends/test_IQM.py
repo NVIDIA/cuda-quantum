@@ -266,7 +266,7 @@ def test_2q_unitary_synthesis():
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    assert counts["0010011"] > 990
+    assert counts["0010011"] == 999
 
 
 # leave for gdb debugging

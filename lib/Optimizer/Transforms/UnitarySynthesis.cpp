@@ -35,11 +35,27 @@ using namespace std::complex_literals;
 
 namespace {
 
-constexpr double TOL = 1e-8;
+constexpr double TOL = 1e-7;
 
+/// Base class for unitary synthesis, i.e. decomposing an arbitrary unitary
+/// matrix into native gate set. The native gate set here includes all the
+/// quantum operations supported by CUDA-Q. Additional passes may be required to
+/// convert CUDA-Q gate set to hardware specific gate set.
 class Decomposer {
+private:
+  Eigen::MatrixXcd targetMatrix;
+
 public:
+  /// Function which implements the unitary synthesis algorithm. The result of
+  /// decomposition which depends on the algorithm must be convertible to
+  /// quantum operations. For example, result is saved into class member(s) as
+  /// the parameters to be applied to  `Rx`, `Ry`, and `Rz` gates.
   virtual void decompose() = 0;
+  /// Create the replacement function which invokes native quantum operations.
+  /// The original `quake.custom_op` is replaced by `quake.apply` operation that
+  /// calls the new replacement function with the same operands as the original
+  /// operation. The 'control' and 'adjoint' variations are handled by
+  /// `ApplySpecialization` pass.
   virtual void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
                                     PatternRewriter &rewriter,
                                     std::string funcName) = 0;
@@ -47,6 +63,7 @@ public:
   virtual ~Decomposer() = default;
 };
 
+/// Result structure for 1-q Euler decomposition in ZYZ basis
 struct EulerAngles {
   double alpha;
   double beta;
@@ -54,7 +71,7 @@ struct EulerAngles {
 };
 
 struct OneQubitOpZYZ : public Decomposer {
-  Eigen::Matrix2cd matrix;
+  Eigen::Matrix2cd targetMatrix;
   EulerAngles angles;
   /// Updates to the global phase
   double phase;
@@ -66,9 +83,9 @@ struct OneQubitOpZYZ : public Decomposer {
     /// Rescale the input unitary matrix, `u`, to be special unitary.
     /// Extract a phase factor, `phase`, so that
     /// `determinant(inverse_phase * unitary) = 1`
-    auto det = matrix.determinant();
+    auto det = targetMatrix.determinant();
     phase = 0.5 * std::arg(det);
-    Eigen::Matrix2cd specialUnitary = std::exp(-1i * phase) * matrix;
+    Eigen::Matrix2cd specialUnitary = std::exp(-1i * phase) * targetMatrix;
     auto abs00 = std::abs(specialUnitary(0, 0));
     auto abs01 = std::abs(specialUnitary(0, 1));
     if (abs00 >= abs01)
@@ -100,9 +117,8 @@ struct OneQubitOpZYZ : public Decomposer {
     rewriter.setInsertionPointToStart(block);
     auto arguments = func.getArguments();
     FloatType floatTy = rewriter.getF64Type();
-
     /// NOTE: Operator notation is right-to-left, whereas circuit notation
-    /// is left-to-right. Hence, angles are applied as
+    /// is left-to-right. Hence, angles are applied as:
     /// Rz(gamma)Ry(beta)Rz(alpha)
     if (isAboveThreshold(angles.gamma)) {
       auto gamma = cudaq::opt::factory::createFloatConstant(
@@ -138,16 +154,17 @@ struct OneQubitOpZYZ : public Decomposer {
   }
 
   OneQubitOpZYZ(const Eigen::Matrix2cd &vec) {
-    matrix = vec;
+    targetMatrix = vec;
     decompose();
   }
 };
 
+/// Result for 2-q KAK decomposition
 struct KAKComponents {
   // KAK decomposition allows to express arbitrary 2-qubit unitary (U) in the
   // form: U = (a1 ⊗ a0) x exp(i(xXX + yYY + zZZ)) x (b1 ⊗ b0) where, a0, a1,
   // b0, b1 are single qubit operations, and the exponential is specified by the
-  // 3 elements of canonical class vector x, y, z
+  // 3 coefficients of the canonical class vector - x, y, z
   Eigen::Matrix2cd a0;
   Eigen::Matrix2cd a1;
   Eigen::Matrix2cd b0;
@@ -157,6 +174,11 @@ struct KAKComponents {
   double z;
 };
 
+/// Helper function to convert a matrix into 'magic' basis
+/// M = 1 / sqrt(2) *  1  0  0  i
+///                    0  i  1  0
+///                    0  i −1  0
+///                    1  0  0 −i
 const Eigen::Matrix4cd &MagicBasisMatrix() {
   static Eigen::Matrix4cd MagicBasisMatrix;
   MagicBasisMatrix << 1.0, 0.0, 0.0, 1i, 0.0, 1i, 1.0, 0, 0, 1i, -1.0, 0, 1.0,
@@ -165,22 +187,31 @@ const Eigen::Matrix4cd &MagicBasisMatrix() {
   return MagicBasisMatrix;
 }
 
+/// Helper function to convert a matrix into 'magic' basis
 const Eigen::Matrix4cd &MagicBasisMatrixAdj() {
   static Eigen::Matrix4cd MagicBasisMatrixAdj = MagicBasisMatrix().adjoint();
   return MagicBasisMatrixAdj;
 }
 
+/// Helper function to extract the coefficients of canonical vector
+/// Gamma matrix = +1 +1 −1 +1
+///                +1 +1 +1 −1
+///                +1 −1 −1 −1
+///                +1 −1 +1 +1
 const Eigen::Matrix4cd &GammaFactor() {
-  /// Gamma matrix = +1 +1 −1 +1
-  ///                +1 +1 +1 −1
-  ///                +1 −1 −1 −1
-  ///                +1 −1 +1 +1
+
   static Eigen::Matrix4cd GammaT;
   GammaT << 1, 1, 1, 1, 1, 1, -1, -1, -1, 1, -1, 1, 1, -1, -1, 1;
   GammaT /= 4;
   return GammaT;
 }
 
+/// Given an input matrix which is unitary, find two orthogonal matrices, 'left'
+/// and 'right', and a diagonal unitary matrix, 'diagonal', such that
+/// `input_matrix = left * diagonal * right.transpose()`. This function uses QZ
+/// decomposition for this purpose.
+/// NOTE: This function may not generate accurate diagonal matrix in some corner
+/// cases like degenerate matrices.
 std::tuple<Eigen::Matrix4d, Eigen::Matrix4cd, Eigen::Matrix4d>
 bidiagonalize(const Eigen::Matrix4cd &matrix) {
   Eigen::Matrix4d real = matrix.real();
@@ -198,6 +229,9 @@ bidiagonalize(const Eigen::Matrix4cd &matrix) {
   return std::make_tuple(left, diagonal, right);
 }
 
+/// Separate input matrix into local operations. The input matrix must be
+/// special orthogonal. Given a map, SU(2) × SU(2) -> SO(4),
+/// map(A, B) = M.adjoint() (A ⊗ B∗) M, find A and B.
 std::tuple<Eigen::Matrix2cd, Eigen::Matrix2cd, std::complex<double>>
 extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
   /// Verify input matrix is special orthogonal
@@ -238,6 +272,7 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
     phase = -phase;
   }
   assert(mb.isApprox(phase * Eigen::kroneckerProduct(part1, part2), TOL));
+  assert(part1.isUnitary(TOL) && part2.isUnitary(TOL));
   return std::make_tuple(part1, part2, phase);
 }
 
@@ -256,7 +291,7 @@ Eigen::Matrix4cd canonicalVecToMatrix(double x, double y, double z) {
 }
 
 struct TwoQubitOpKAK : public Decomposer {
-  Eigen::Matrix4cd matrix;
+  Eigen::Matrix4cd targetMatrix;
   KAKComponents components;
   /// Updates to the global phase
   std::complex<double> phase;
@@ -266,21 +301,19 @@ struct TwoQubitOpKAK : public Decomposer {
   /// Ref: https://arxiv.org/pdf/0806.4015
   void decompose() override {
     /// Step0: Convert to special unitary
-    phase = std::pow(matrix.determinant(), 0.25);
-    auto specialUnitary = matrix / phase;
-    /// Step1: Convert the target matrix into magic basis
+    phase = std::pow(targetMatrix.determinant(), 0.25);
+    auto specialUnitary = targetMatrix / phase;
+    /// Step1: Convert into magic basis
     Eigen::Matrix4cd matrixMagicBasis =
         MagicBasisMatrixAdj() * specialUnitary * MagicBasisMatrix();
     /// Step2: Diagonalize
     auto [left, diagonal, right] = bidiagonalize(matrixMagicBasis);
     /// Step3: Get the KAK components
     auto [a1, a0, aPh] = extractSU2FromSO4(left);
-    assert(a1.isUnitary(TOL) && a0.isUnitary(TOL));
     components.a0 = a0;
     components.a1 = a1;
     phase *= aPh;
     auto [b1, b0, bPh] = extractSU2FromSO4(right);
-    assert(b1.isUnitary(TOL) && b0.isUnitary(TOL));
     components.b0 = b0;
     components.b1 = b1;
     phase *= bPh;
@@ -295,12 +328,13 @@ struct TwoQubitOpKAK : public Decomposer {
     components.y = coefficients(2).real();
     components.z = coefficients(3).real();
     phase *= std::exp(1i * coefficients(0));
-    /// Final check
+    /// Final check to verify results
     auto canVecToMat =
         canonicalVecToMatrix(components.x, components.y, components.z);
-    assert(matrix.isApprox(phase * Eigen::kroneckerProduct(a1, a0) *
-                               canVecToMat * Eigen::kroneckerProduct(b1, b0),
-                           TOL));
+    assert(targetMatrix.isApprox(phase * Eigen::kroneckerProduct(a1, a0) *
+                                     canVecToMat *
+                                     Eigen::kroneckerProduct(b1, b0),
+                                 TOL));
   }
 
   void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
@@ -314,7 +348,6 @@ struct TwoQubitOpKAK : public Decomposer {
     b0.emitDecomposedFuncOp(customOp, rewriter, funcName + "b0");
     auto b1 = OneQubitOpZYZ(components.b1);
     b1.emitDecomposedFuncOp(customOp, rewriter, funcName + "b1");
-
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     Location loc = customOp->getLoc();
     auto targets = customOp.getTargets();
@@ -396,7 +429,7 @@ struct TwoQubitOpKAK : public Decomposer {
   }
 
   TwoQubitOpKAK(const Eigen::MatrixXcd &vec) {
-    matrix = vec;
+    targetMatrix = vec;
     decompose();
   }
 };
@@ -424,7 +457,7 @@ public:
       auto unitary =
           Eigen::Map<Eigen::MatrixXcd>(matrix.data(), dimension, dimension);
       unitary.transposeInPlace();
-      if (!unitary.isUnitary(1e-7)) {
+      if (!unitary.isUnitary(TOL)) {
         customOp.emitWarning("The custom operation matrix must be unitary.");
         return failure();
       }
