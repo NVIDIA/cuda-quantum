@@ -354,8 +354,10 @@ def test_analytical_models(integrator, model):
                                    model.expected_state(model.tlist[i]),
                                    atol=1e-3)
 
+
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_squeezing(integrator):
+
     def n_thermal(w: float, w_th: float):
         """
         Return the number of average photons in thermal equilibrium for a
@@ -365,7 +367,6 @@ def test_squeezing(integrator):
             return 1.0 / (np.exp(w / w_th) - 1.0)
         else:
             return 0.0
-
 
     # Problem parameters
     w0 = 1.0 * 2 * np.pi
@@ -384,7 +385,7 @@ def test_squeezing(integrator):
     # Collapse operators
     c_ops = [
         np.sqrt(gamma0) * (pauli.minus(0) * np.cosh(r) +
-                        pauli.plus(0) * np.sinh(r) * np.exp(1j * theta))
+                           pauli.plus(0) * np.sinh(r) * np.exp(1j * theta))
     ]
 
     # System dimension
@@ -399,15 +400,15 @@ def test_squeezing(integrator):
 
     # Run the simulation
     evolution_result = evolve(hamiltonian,
-                            dimensions,
-                            schedule,
-                            psi0,
-                            observables=[pauli.x(0),
-                                        pauli.y(0),
-                                        pauli.z(0)],
-                            collapse_operators=c_ops,
-                            store_intermediate_results=True,
-                            integrator=ScipyZvodeIntegrator())
+                              dimensions,
+                              schedule,
+                              psi0,
+                              observables=[pauli.x(0),
+                                           pauli.y(0),
+                                           pauli.z(0)],
+                              collapse_operators=c_ops,
+                              store_intermediate_results=True,
+                              integrator=ScipyZvodeIntegrator())
 
     exp_val_x = [
         exp_vals[0].expectation()
@@ -423,6 +424,7 @@ def test_squeezing(integrator):
     ]
 
     np.testing.assert_allclose(exp_val_z[-1], sz_ss_analytical, atol=1e-3)
+
 
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_cat_state(integrator):
@@ -449,20 +451,81 @@ def test_cat_state(integrator):
 
     # Run the simulation: observe the photon count, position and momentum.
     evolution_result = evolve(hamiltonian,
-                            dimensions,
-                            schedule,
-                            rho0,
-                            observables=[],
-                            collapse_operators=[],
-                            store_intermediate_results=False,
-                            integrator=integrator())
+                              dimensions,
+                              schedule,
+                              rho0,
+                              observables=[],
+                              collapse_operators=[],
+                              store_intermediate_results=False,
+                              integrator=integrator())
 
     # The expected cat state: superposition of |alpla> and |-alpha> coherent states.
-    expected_state = np.exp(1j * np.pi / 4) * coherent_state(N, -2.0j) + np.exp(-1j * np.pi / 4) * coherent_state(N, 2.0j)
+    expected_state = np.exp(1j * np.pi / 4) * coherent_state(N, -2.0j) + np.exp(
+        -1j * np.pi / 4) * coherent_state(N, 2.0j)
     expected_state = expected_state / cp.linalg.norm(expected_state)
     final_state = evolution_result.final_state()
     overlap = final_state.overlap(expected_state)
     np.testing.assert_allclose(overlap, 1.0, atol=1e-3)
+
+
+@pytest.mark.parametrize('integrator', all_integrator_classes)
+def test_floquet_steady_state(integrator):
+    # two-level system coupled with the external heat bath (fixed temperature)
+    # (time-dependent Hamiltonian and multiple collapse operators)
+    delta = (2 * np.pi) * 0.3
+    eps_0 = (2 * np.pi) * 1.0
+    A = (2 * np.pi) * 0.05
+    w = (2 * np.pi) * 1.0
+    kappa_1 = 0.15
+    kappa_2 = 0.05
+    sx = pauli.x(0)
+    sz = pauli.z(0)
+    sm = operators.annihilate(0)
+    sm_dag = operators.create(0)
+    dimensions = {0: 2}
+
+    # Hamiltonian
+    hamiltonian = -delta / 2.0 * sx - eps_0 / 2.0 * sz + A / 2.0 * ScalarOperator(
+        lambda t: np.sin(w * t)) * sz
+
+    psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
+
+    # Thermal population
+    n_th = 0.5
+
+    # Collapse operators
+    c_op_list = [
+        np.sqrt(kappa_1 * (1 + n_th)) * sm,
+        np.sqrt(kappa_1 * n_th) * sm_dag,
+        np.sqrt(kappa_2) * sz
+    ]
+
+    # Schedule of time steps.
+    steps = np.linspace(0, 50, 500)
+    schedule = Schedule(steps, ["time"])
+
+    # Run the simulation.
+    # First, we run the simulation without any collapse operators (no decoherence).
+    evolution_result = evolve(hamiltonian,
+                              dimensions,
+                              schedule,
+                              psi0,
+                              observables=[operators.number(0)],
+                              collapse_operators=c_op_list,
+                              store_intermediate_results=True,
+                              integrator=integrator())
+
+    expected_steady_state = 0.27
+    n = [
+        exp_vals[0].expectation()
+        for exp_vals in evolution_result.expectation_values()
+    ]
+
+    # should converge to the steady-state after half of the duration
+    for i in range(len(n) // 2, len(n)):
+        # Note: the final population is still oscillating.
+        np.testing.assert_allclose(n[i], expected_steady_state, atol=0.02)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
