@@ -231,6 +231,33 @@ def test_arbitrary_unitary_synthesis():
     assert counts["1"] == 1000
 
 
+def test_exp_pauli():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, "XX")
+
+    counts = cudaq.sample(test)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
+def test_exp_pauli_param():
+
+    @cudaq.kernel
+    def test_param(w: cudaq.pauli_word):
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, w)
+
+    # FIXME: should work after new launchKernel becomes default.
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(test_param, cudaq.pauli_word("XX"))
+    assert 'Remote rest platform Quake lowering failed.' in repr(e)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
