@@ -188,6 +188,20 @@ def test_OQC_state_preparation_builder():
     assert not '11' in counts
 
 
+def test_exp_pauli():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, "XX")
+
+    counts = cudaq.sample(test)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
 def test_1q_unitary_synthesis():
 
     cudaq.register_operation("custom_h",
