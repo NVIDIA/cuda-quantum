@@ -106,7 +106,7 @@ public:
 
   /// @brief Create a job payload for the provided TBI parameters
   virtual ServerJobPayload createJob(cudaq::orca::TBIParameters params) {
-    throw std::runtime_error("Not implemented"); 
+    throw std::runtime_error("Not implemented");
   };
 
   /// @brief Extract the job id from the server response from posting the job.
