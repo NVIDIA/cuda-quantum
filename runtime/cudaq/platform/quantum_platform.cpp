@@ -151,7 +151,8 @@ quantum_platform::get_remote_capabilities(const std::size_t qpu_id) const {
 void quantum_platform::launchKernel(std::string kernelName,
                                     void (*kernelFunc)(void *), void *args,
                                     std::uint64_t voidStarSize,
-                                    std::uint64_t resultOffset) {
+                                    std::uint64_t resultOffset,
+                                    const std::vector<void *> &rawArgs) {
   std::size_t qpu_id = 0;
 
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
@@ -160,7 +161,8 @@ void quantum_platform::launchKernel(std::string kernelName,
     qpu_id = iter->second;
 
   auto &qpu = platformQPUs[qpu_id];
-  qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset);
+  qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset,
+                    rawArgs);
 }
 
 void quantum_platform::launchKernel(std::string kernelName,
@@ -212,7 +214,7 @@ void cudaq::altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
   auto &platform = *cudaq::getQuantumPlatformInternal();
   std::string kernName = kernelName;
   platform.launchKernel(kernName, kernelFunc, kernelArgs, argsSize,
-                        resultOffset);
+                        resultOffset, {});
 }
 
 void cudaq::streamlinedLaunchKernel(const char *kernelName,
@@ -234,5 +236,6 @@ void cudaq::hybridLaunchKernel(const char *kernelName, void (*kernel)(void *),
   if (platform.is_remote(platform.get_current_qpu()))
     platform.launchKernel(kernName, rawArgs);
   else
-    platform.launchKernel(kernName, kernel, args, argsSize, resultOffset);
+    platform.launchKernel(kernName, kernel, args, argsSize, resultOffset,
+                          rawArgs);
 }

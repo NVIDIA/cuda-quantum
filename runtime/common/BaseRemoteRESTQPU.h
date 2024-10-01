@@ -583,7 +583,8 @@ public:
   /// synchronous invocation.
   void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+                    std::uint64_t resultOffset,
+                    const std::vector<void *> &rawArgs) override {
     cudaq::info("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
@@ -593,7 +594,11 @@ public:
           "cudaq::observe(), or cudaq::draw().");
 
     // Get the Quake code, lowered according to config file.
-    auto codes = lowerQuakeCode(kernelName, args);
+    // FIXME: For python, we reach here with rawArgs being empty and args having
+    // the arguments. Python should be using the streamlined argument synthesis,
+    // but apparently it isn't. This works around that bug.
+    auto codes = rawArgs.empty() ? lowerQuakeCode(kernelName, args)
+                                 : lowerQuakeCode(kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
   }
 

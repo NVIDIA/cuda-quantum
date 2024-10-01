@@ -37,6 +37,7 @@ void cudaq::opt::commonPipelineConvertToQIR(
   if (convertTo && convertTo->equals("qir-base"))
     pm.addNestedPass<func::FuncOp>(createDelayMeasurementsPass());
   pm.addPass(createConvertMathToFuncs());
+  pm.addPass(createSymbolDCEPass());
   pm.addPass(createConvertToQIR());
 }
 

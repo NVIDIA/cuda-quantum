@@ -18,10 +18,6 @@
 
 namespace cudaq::opt {
 
-/// Pass to generate the device code loading stubs.
-std::unique_ptr<mlir::Pass>
-createGenerateDeviceCodeLoader(bool genAsQuake = false);
-
 /// Add a pass pipeline to transform call between kernels to direct calls that
 /// do not go through the runtime layers, inline all calls, and detect if calls
 /// to kernels remain in the fully inlined into entry point kernel.
