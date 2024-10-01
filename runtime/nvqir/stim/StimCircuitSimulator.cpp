@@ -45,7 +45,9 @@ protected:
 
   /// @brief Apply the noise channel on \p qubits
   void applyNoiseChannel(const std::string_view gateName,
-                         const std::vector<std::size_t> &qubits) override {
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets,
+                         const std::vector<double> &params) override {
     // Do nothing if no execution context
     if (!executionContext)
       return;
@@ -59,13 +61,15 @@ protected:
 
     // Cast size_t to uint32_t
     std::vector<std::uint32_t> stimTargets;
-    stimTargets.reserve(qubits.size());
-    for (auto q : qubits)
+    stimTargets.reserve(controls.size() + targets.size());
+    for (auto q : controls)
+      stimTargets.push_back(static_cast<std::uint32_t>(q));
+    for (auto q : targets)
       stimTargets.push_back(static_cast<std::uint32_t>(q));
 
     // Get the Kraus channels specified for this gate and qubits
-    auto krausChannels =
-        executionContext->noiseModel->get_channels(gName, qubits);
+    auto krausChannels = executionContext->noiseModel->get_channels(
+        gName, controls, targets, params);
 
     // If none, do nothing
     if (krausChannels.empty())
