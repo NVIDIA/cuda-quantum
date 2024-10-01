@@ -651,18 +651,18 @@ about the existence of other states that will call for a 3D extension.</p>
 Tools not found, installing. Please restart your kernel after this is done.
 Collecting qutip&gt;=5
   Downloading qutip-5.0.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (28.0 MB)
-     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">49.3 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">52.0 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
 Requirement already satisfied: matplotlib&gt;=3.5 in /usr/local/lib/python3.10/dist-packages (3.9.2)
 Requirement already satisfied: numpy&gt;=1.22 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.26.4)
-Requirement already satisfied: scipy&gt;=1.9 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.10.1)
 Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (24.1)
-Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.7)
-Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
-Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.4)
-Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.3.0)
-Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (4.53.1)
+Requirement already satisfied: scipy&gt;=1.9 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.10.1)
 Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (10.4.0)
+Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
+Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.3.0)
+Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.4)
+Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (4.53.1)
 Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (2.9.0.post0)
+Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.7)
 Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib&gt;=3.5) (1.16.0)
 Installing collected packages: qutip
 Successfully installed qutip-5.0.4
@@ -692,7 +692,7 @@ New libraries have been installed. Please restart your kernel!
 </div>
 </div>
 <p>Next, we instantiate a random number generator, so we can get random outputs. We then create 4 random single-qubit states by using <code class="docutils literal notranslate"><span class="pre">cudaq.add_to_bloch_sphere()</span></code> on the output state obtained from the random kernel.</p>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
@@ -704,6 +704,143 @@ New libraries have been installed. Please restart your kernel!
     <span class="n">blochSphereList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sph</span><span class="p">)</span>
 <br/></pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = &#34;__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite&#34;}} {
+  func.func @__nvqpp__mlirgen__kernel(%arg0: !cc.stdvec&lt;f64&gt;) attributes {&#34;cudaq-entrypoint&#34;} {
+    %0 = quake.alloca !quake.ref
+    %1 = cc.stdvec_data %arg0 : (!cc.stdvec&lt;f64&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;
+    %2 = cc.cast %1 : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt;
+    %3 = cc.load %2 : !cc.ptr&lt;f64&gt;
+    quake.rz (%3) %0 : (f64, !quake.ref) -&gt; ()
+    %4 = cc.compute_ptr %1[1] : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt;
+    %5 = cc.load %4 : !cc.ptr&lt;f64&gt;
+    quake.rx (%5) %0 : (f64, !quake.ref) -&gt; ()
+    %6 = cc.compute_ptr %1[2] : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt;
+    %7 = cc.load %6 : !cc.ptr&lt;f64&gt;
+    quake.rz (%7) %0 : (f64, !quake.ref) -&gt; ()
+    return
+  }
+  llvm.func @deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)
+  llvm.mlir.global private constant @kernelCodeHolder.extract_device_code(&#34;module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = \22__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite\22}} { func.func @__nvqpp__mlirgen__kernel(%arg0: !cc.stdvec&lt;f64&gt; loc(unknown)) attributes {\22cudaq-entrypoint\22} {\0A  %0 = quake.alloca !quake.ref loc(unknown)\0A  %1 = cc.stdvec_data %arg0 : (!cc.stdvec&lt;f64&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt; loc(unknown)\0A  %2 = cc.cast %1 : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %3 = cc.load %2 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rz (%3) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  %4 = cc.compute_ptr %1[1] : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %5 = cc.load %4 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rx (%5) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  %6 = cc.compute_ptr %1[2] : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %7 = cc.load %6 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rz (%7) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  return loc(unknown)\0A} loc(unknown)\0Allvm.func @deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)\0A\0A}\0A\00&#34;) {addr_space = 0 : i32}
+  llvm.mlir.global private constant @kernelCodeHolder.extract_device_name(&#34;kernel\00&#34;) {addr_space = 0 : i32}
+  llvm.func @kernel.init_func() {
+    %0 = llvm.mlir.addressof @kernelCodeHolder.extract_device_name : !llvm.ptr&lt;array&lt;7 x i8&gt;&gt;
+    %1 = llvm.mlir.addressof @kernelCodeHolder.extract_device_code : !llvm.ptr&lt;array&lt;1043 x i8&gt;&gt;
+    %2 = llvm.bitcast %0 : !llvm.ptr&lt;array&lt;7 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
+    %3 = llvm.bitcast %1 : !llvm.ptr&lt;array&lt;1043 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
+    llvm.call @deviceCodeHolderAdd(%2, %3) : (!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;) -&gt; ()
+    llvm.return
+  }
+  llvm.mlir.global_ctors {ctors = [@kernel.init_func], priorities = [17 : i32]}
+  func.func private @hybridLaunchKernel(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i64, !cc.ptr&lt;i8&gt;)
+  func.func private @cudaqRegisterKernelName(!cc.ptr&lt;i8&gt;)
+  func.func private @cudaqRegisterArgsCreator(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;)
+  func.func private @malloc(i64) -&gt; !cc.ptr&lt;i8&gt;
+  func.func private @free(!cc.ptr&lt;i8&gt;)
+  func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr&lt;none&gt;, !cc.ptr&lt;none&gt;, i64)
+  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i1&gt;, !cc.ptr&lt;i1&gt;, !cc.ptr&lt;i1&gt;}&gt;&gt;, !cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i1&gt;, !cc.ptr&lt;i1&gt;, !cc.ptr&lt;i1&gt;}&gt;&gt;)
+  func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i1)
+  func.func private @__nvqpp_zeroDynamicResult() -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt; {
+    %c0_i64 = arith.constant 0 : i64
+    %0 = cc.cast %c0_i64 : (i64) -&gt; !cc.ptr&lt;i8&gt;
+    %1 = cc.undef !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    %2 = cc.insert_value %0, %1[0] : (!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;, !cc.ptr&lt;i8&gt;) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    %3 = cc.insert_value %c0_i64, %2[1] : (!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;, i64) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    return %3 : !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+  }
+  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr&lt;i8&gt;, %arg1: i64, %arg2: !cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;&gt;) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt; {
+    %0 = cc.compute_ptr %arg2[1] : (!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;&gt;) -&gt; !cc.ptr&lt;i64&gt;
+    %1 = cc.load %0 : !cc.ptr&lt;i64&gt;
+    %2 = arith.addi %arg1, %1 : i64
+    %3 = call @malloc(%2) : (i64) -&gt; !cc.ptr&lt;i8&gt;
+    %4 = cc.cast %3 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;
+    %false = arith.constant false
+    call @llvm.memcpy.p0i8.p0i8.i64(%3, %arg0, %arg1, %false) : (!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i1) -&gt; ()
+    %5 = cc.compute_ptr %arg2[0] : (!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;&gt;) -&gt; !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    %6 = cc.load %5 : !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    %7 = cc.compute_ptr %4[%arg1] : (!cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;, i64) -&gt; !cc.ptr&lt;i8&gt;
+    call @llvm.memcpy.p0i8.p0i8.i64(%7, %6, %1, %false) : (!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i1) -&gt; ()
+    %8 = cc.undef !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    %9 = cc.insert_value %3, %8[0] : (!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;, !cc.ptr&lt;i8&gt;) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    %10 = cc.insert_value %2, %9[1] : (!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;, i64) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    return %10 : !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+  }
+  llvm.mlir.global external constant @kernel.kernelName(&#34;kernel\00&#34;) {addr_space = 0 : i32}
+  func.func @kernel.returnOffset() -&gt; i64 {
+    %c2147483647_i64 = arith.constant 2147483647 : i64
+    return %c2147483647_i64 : i64
+  }
+  func.func @kernel.thunk(%arg0: !cc.ptr&lt;i8&gt;, %arg1: i1) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt; {
+    %0 = cc.cast %arg0 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.struct&lt;{i64}&gt;&gt;
+    %1 = cc.load %0 : !cc.ptr&lt;!cc.struct&lt;{i64}&gt;&gt;
+    %2 = cc.sizeof !cc.struct&lt;{i64}&gt; : i64
+    %3 = cc.cast %arg0 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;
+    %4 = cc.compute_ptr %3[%2] : (!cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;, i64) -&gt; !cc.ptr&lt;i8&gt;
+    %5 = cc.extract_value %1[0] : (!cc.struct&lt;{i64}&gt;) -&gt; i64
+    %c8_i64 = arith.constant 8 : i64
+    %6 = arith.divsi %5, %c8_i64 : i64
+    %7 = cc.cast %4 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;f64&gt;
+    %8 = cc.stdvec_init %7, %6 : (!cc.ptr&lt;f64&gt;, i64) -&gt; !cc.stdvec&lt;f64&gt;
+    %9 = cc.cast %4 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;
+    %10 = cc.compute_ptr %9[%5] : (!cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;, i64) -&gt; !cc.ptr&lt;i8&gt;
+    call @__nvqpp__mlirgen__kernel(%8) : (!cc.stdvec&lt;f64&gt;) -&gt; ()
+    %11 = call @__nvqpp_zeroDynamicResult() : () -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    return %11 : !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+  }
+  func.func @kernel.argsCreator(%arg0: !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;, %arg1: !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;) -&gt; i64 {
+    %0 = cc.undef !cc.struct&lt;{i64}&gt;
+    %1 = cc.cast %arg0 : (!cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;!cc.ptr&lt;i8&gt; x ?&gt;&gt;
+    %c0_i64 = arith.constant 0 : i64
+    %2 = cc.compute_ptr %1[0] : (!cc.ptr&lt;!cc.array&lt;!cc.ptr&lt;i8&gt; x ?&gt;&gt;) -&gt; !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    %3 = cc.load %2 : !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    %4 = cc.cast %3 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;}&gt;&gt;
+    %5 = cc.compute_ptr %4[1] : (!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;}&gt;&gt;) -&gt; !cc.ptr&lt;!cc.ptr&lt;f64&gt;&gt;
+    %6 = cc.compute_ptr %4[0] : (!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;}&gt;&gt;) -&gt; !cc.ptr&lt;!cc.ptr&lt;f64&gt;&gt;
+    %7 = cc.load %5 : !cc.ptr&lt;!cc.ptr&lt;f64&gt;&gt;
+    %8 = cc.load %6 : !cc.ptr&lt;!cc.ptr&lt;f64&gt;&gt;
+    %9 = cc.cast %7 : (!cc.ptr&lt;f64&gt;) -&gt; i64
+    %10 = cc.cast %8 : (!cc.ptr&lt;f64&gt;) -&gt; i64
+    %11 = arith.subi %9, %10 : i64
+    %12 = cc.insert_value %11, %0[0] : (!cc.struct&lt;{i64}&gt;, i64) -&gt; !cc.struct&lt;{i64}&gt;
+    %13 = arith.addi %c0_i64, %11 : i64
+    %14 = cc.sizeof !cc.struct&lt;{i64}&gt; : i64
+    %15 = arith.addi %14, %13 : i64
+    %16 = call @malloc(%15) : (i64) -&gt; !cc.ptr&lt;i8&gt;
+    %17 = cc.cast %16 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.struct&lt;{i64}&gt;&gt;
+    cc.store %12, %17 : !cc.ptr&lt;!cc.struct&lt;{i64}&gt;&gt;
+    %18 = cc.cast %16 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;
+    %19 = cc.compute_ptr %18[%14] : (!cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;, i64) -&gt; !cc.ptr&lt;i8&gt;
+    %20 = cc.extract_value %12[0] : (!cc.struct&lt;{i64}&gt;) -&gt; i64
+    %21 = cc.compute_ptr %1[0] : (!cc.ptr&lt;!cc.array&lt;!cc.ptr&lt;i8&gt; x ?&gt;&gt;) -&gt; !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    %22 = cc.load %21 : !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    %23 = cc.cast %22 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;}&gt;&gt;
+    %false = arith.constant false
+    %24 = cc.compute_ptr %23[0] : (!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;, !cc.ptr&lt;f64&gt;}&gt;&gt;) -&gt; !cc.ptr&lt;!cc.ptr&lt;f64&gt;&gt;
+    %25 = cc.load %24 : !cc.ptr&lt;!cc.ptr&lt;f64&gt;&gt;
+    %26 = cc.cast %25 : (!cc.ptr&lt;f64&gt;) -&gt; !cc.ptr&lt;i8&gt;
+    call @llvm.memcpy.p0i8.p0i8.i64(%19, %26, %20, %false) : (!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i1) -&gt; ()
+    %27 = cc.cast %19 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;
+    %28 = cc.compute_ptr %27[%20] : (!cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;, i64) -&gt; !cc.ptr&lt;i8&gt;
+    cc.store %16, %arg1 : !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    return %15 : i64
+  }
+  llvm.func @kernel.kernelRegFunc() {
+    %0 = llvm.mlir.addressof @kernel.kernelName : !llvm.ptr&lt;array&lt;7 x i8&gt;&gt;
+    %1 = cc.cast %0 : (!llvm.ptr&lt;array&lt;7 x i8&gt;&gt;) -&gt; !cc.ptr&lt;i8&gt;
+    func.call @cudaqRegisterKernelName(%1) : (!cc.ptr&lt;i8&gt;) -&gt; ()
+    %f = func.constant @kernel.argsCreator : (!cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;, !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;) -&gt; i64
+    %2 = cc.func_ptr %f : ((!cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;, !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;) -&gt; i64) -&gt; !cc.ptr&lt;i8&gt;
+    func.call @cudaqRegisterArgsCreator(%1, %2) : (!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;) -&gt; ()
+    llvm.return
+  }
+  llvm.mlir.global_ctors {ctors = [@kernel.kernelRegFunc], priorities = [17 : i32]}
+}
+</pre></div></div>
 </div>
 <p>We can display the spheres with <code class="docutils literal notranslate"><span class="pre">cudaq.show()</span></code>. Show the first sphere:</p>
 <div class="nbinput docutils container">
@@ -835,7 +972,7 @@ New libraries have been installed. Please restart your kernel!
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
+<div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
@@ -850,6 +987,131 @@ q2 : ┤ h ├─────┤ y ├┤ z ├─┼───────╳─
 q3 : ┤ h ├────────────────╳─────────────────────
      ╰───╯
 
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_to_draw = &#34;__nvqpp__mlirgen__kernel_to_draw_PyKernelEntryPointRewrite&#34;}} {
+  func.func @__nvqpp__mlirgen__kernel_to_draw() attributes {&#34;cudaq-entrypoint&#34;} {
+    %c4_i64 = arith.constant 4 : i64
+    %cst = arith.constant 3.141590e+00 : f64
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %0 = quake.alloca !quake.veq&lt;4&gt;
+    %1 = cc.loop while ((%arg0 = %c0_i64) -&gt; (i64)) {
+      %7 = arith.cmpi slt, %arg0, %c4_i64 : i64
+      cc.condition %7(%arg0 : i64)
+    } do {
+    ^bb0(%arg0: i64):
+      %7 = quake.extract_ref %0[%arg0] : (!quake.veq&lt;4&gt;, i64) -&gt; !quake.ref
+      quake.h %7 : (!quake.ref) -&gt; ()
+      cc.continue %arg0 : i64
+    } step {
+    ^bb0(%arg0: i64):
+      %7 = arith.addi %arg0, %c1_i64 : i64
+      cc.continue %7 : i64
+    } {invariant}
+    %2 = quake.extract_ref %0[0] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref
+    %3 = quake.extract_ref %0[1] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref
+    quake.x [%2] %3 : (!quake.ref, !quake.ref) -&gt; ()
+    %4 = quake.concat %2, %3 : (!quake.ref, !quake.ref) -&gt; !quake.veq&lt;2&gt;
+    %5 = quake.extract_ref %0[2] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref
+    quake.y [%4] %5 : (!quake.veq&lt;2&gt;, !quake.ref) -&gt; ()
+    quake.z %5 : (!quake.ref) -&gt; ()
+    quake.swap %2, %3 : (!quake.ref, !quake.ref) -&gt; ()
+    %6 = quake.extract_ref %0[3] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref
+    quake.swap %2, %6 : (!quake.ref, !quake.ref) -&gt; ()
+    quake.swap %3, %5 : (!quake.ref, !quake.ref) -&gt; ()
+    quake.r1 (%cst) %2 : (f64, !quake.ref) -&gt; ()
+    quake.t&lt;adj&gt; %3 : (!quake.ref) -&gt; ()
+    quake.s %5 : (!quake.ref) -&gt; ()
+    return
+  }
+  llvm.func @deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)
+  llvm.mlir.global private constant @kernel_to_drawCodeHolder.extract_device_code(&#34;module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_to_draw = \22__nvqpp__mlirgen__kernel_to_draw_PyKernelEntryPointRewrite\22}} { func.func @__nvqpp__mlirgen__kernel_to_draw() attributes {\22cudaq-entrypoint\22} {\0A  %c4_i64 = arith.constant 4 : i64 loc(unknown)\0A  %cst = arith.constant 3.141590e+00 : f64 loc(unknown)\0A  %c1_i64 = arith.constant 1 : i64 loc(unknown)\0A  %c0_i64 = arith.constant 0 : i64 loc(unknown)\0A  %0 = quake.alloca !quake.veq&lt;4&gt; loc(unknown)\0A  %1 = cc.loop while ((%arg0 = %c0_i64) -&gt; (i64)) {\0A    %7 = arith.cmpi slt, %arg0, %c4_i64 : i64 loc(unknown)\0A    cc.condition %7(%arg0 : i64) loc(unknown)\0A  } do {\0A  ^bb0(%arg0: i64 loc(unknown)):\0A    %7 = quake.extract_ref %0[%arg0] : (!quake.veq&lt;4&gt;, i64) -&gt; !quake.ref loc(unknown)\0A    quake.h %7 : (!quake.ref) -&gt; () loc(unknown)\0A    cc.continue %arg0 : i64 loc(unknown)\0A  } step {\0A  ^bb0(%arg0: i64 loc(unknown)):\0A    %7 = arith.addi %arg0, %c1_i64 : i64 loc(unknown)\0A    cc.continue %7 : i64 loc(unknown)\0A  } {invariant} loc(unknown)\0A  %2 = quake.extract_ref %0[0] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  %3 = quake.extract_ref %0[1] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.x [%2] %3 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  %4 = quake.concat %2, %3 : (!quake.ref, !quake.ref) -&gt; !quake.veq&lt;2&gt; loc(unknown)\0A  %5 = quake.extract_ref %0[2] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.y [%4] %5 : (!quake.veq&lt;2&gt;, !quake.ref) -&gt; () loc(unknown)\0A  quake.z %5 : (!quake.ref) -&gt; () loc(unknown)\0A  quake.swap %2, %3 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  %6 = quake.extract_ref %0[3] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.swap %2, %6 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  quake.swap %3, %5 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  quake.r1 (%cst) %2 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  quake.t&lt;adj&gt; %3 : (!quake.ref) -&gt; () loc(unknown)\0A  quake.s %5 : (!quake.ref) -&gt; () loc(unknown)\0A  return loc(unknown)\0A} loc(unknown)\0Allvm.func @deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)\0A\0A}\0A\00&#34;) {addr_space = 0 : i32}
+  llvm.mlir.global private constant @kernel_to_drawCodeHolder.extract_device_name(&#34;kernel_to_draw\00&#34;) {addr_space = 0 : i32}
+  llvm.func @kernel_to_draw.init_func() {
+    %0 = llvm.mlir.addressof @kernel_to_drawCodeHolder.extract_device_name : !llvm.ptr&lt;array&lt;15 x i8&gt;&gt;
+    %1 = llvm.mlir.addressof @kernel_to_drawCodeHolder.extract_device_code : !llvm.ptr&lt;array&lt;2038 x i8&gt;&gt;
+    %2 = llvm.bitcast %0 : !llvm.ptr&lt;array&lt;15 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
+    %3 = llvm.bitcast %1 : !llvm.ptr&lt;array&lt;2038 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
+    llvm.call @deviceCodeHolderAdd(%2, %3) : (!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;) -&gt; ()
+    llvm.return
+  }
+  llvm.mlir.global_ctors {ctors = [@kernel_to_draw.init_func], priorities = [17 : i32]}
+  func.func private @hybridLaunchKernel(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i64, !cc.ptr&lt;i8&gt;)
+  func.func private @cudaqRegisterKernelName(!cc.ptr&lt;i8&gt;)
+  func.func private @cudaqRegisterArgsCreator(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;)
+  func.func private @malloc(i64) -&gt; !cc.ptr&lt;i8&gt;
+  func.func private @free(!cc.ptr&lt;i8&gt;)
+  func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr&lt;none&gt;, !cc.ptr&lt;none&gt;, i64)
+  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i1&gt;, !cc.ptr&lt;i1&gt;, !cc.ptr&lt;i1&gt;}&gt;&gt;, !cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i1&gt;, !cc.ptr&lt;i1&gt;, !cc.ptr&lt;i1&gt;}&gt;&gt;)
+  func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i1)
+  func.func private @__nvqpp_zeroDynamicResult() -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt; {
+    %c0_i64 = arith.constant 0 : i64
+    %0 = cc.cast %c0_i64 : (i64) -&gt; !cc.ptr&lt;i8&gt;
+    %1 = cc.undef !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    %2 = cc.insert_value %0, %1[0] : (!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;, !cc.ptr&lt;i8&gt;) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    %3 = cc.insert_value %c0_i64, %2[1] : (!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;, i64) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    return %3 : !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+  }
+  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr&lt;i8&gt;, %arg1: i64, %arg2: !cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;&gt;) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt; {
+    %0 = cc.compute_ptr %arg2[1] : (!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;&gt;) -&gt; !cc.ptr&lt;i64&gt;
+    %1 = cc.load %0 : !cc.ptr&lt;i64&gt;
+    %2 = arith.addi %arg1, %1 : i64
+    %3 = call @malloc(%2) : (i64) -&gt; !cc.ptr&lt;i8&gt;
+    %4 = cc.cast %3 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;
+    %false = arith.constant false
+    call @llvm.memcpy.p0i8.p0i8.i64(%3, %arg0, %arg1, %false) : (!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i1) -&gt; ()
+    %5 = cc.compute_ptr %arg2[0] : (!cc.ptr&lt;!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;&gt;) -&gt; !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    %6 = cc.load %5 : !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    %7 = cc.compute_ptr %4[%arg1] : (!cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;, i64) -&gt; !cc.ptr&lt;i8&gt;
+    call @llvm.memcpy.p0i8.p0i8.i64(%7, %6, %1, %false) : (!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i1) -&gt; ()
+    %8 = cc.undef !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    %9 = cc.insert_value %3, %8[0] : (!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;, !cc.ptr&lt;i8&gt;) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    %10 = cc.insert_value %2, %9[1] : (!cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;, i64) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    return %10 : !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+  }
+  llvm.mlir.global external constant @kernel_to_draw.kernelName(&#34;kernel_to_draw\00&#34;) {addr_space = 0 : i32}
+  func.func @kernel_to_draw.returnOffset() -&gt; i64 {
+    %c2147483647_i64 = arith.constant 2147483647 : i64
+    return %c2147483647_i64 : i64
+  }
+  func.func @kernel_to_draw.thunk(%arg0: !cc.ptr&lt;i8&gt;, %arg1: i1) -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt; {
+    %0 = cc.cast %arg0 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.struct&lt;{}&gt;&gt;
+    %1 = cc.load %0 : !cc.ptr&lt;!cc.struct&lt;{}&gt;&gt;
+    %2 = cc.sizeof !cc.struct&lt;{}&gt; : i64
+    %3 = cc.cast %arg0 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;
+    %4 = cc.compute_ptr %3[%2] : (!cc.ptr&lt;!cc.array&lt;i8 x ?&gt;&gt;, i64) -&gt; !cc.ptr&lt;i8&gt;
+    call @__nvqpp__mlirgen__kernel_to_draw() : () -&gt; ()
+    %5 = call @__nvqpp_zeroDynamicResult() : () -&gt; !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+    return %5 : !cc.struct&lt;{!cc.ptr&lt;i8&gt;, i64}&gt;
+  }
+  func.func @kernel_to_draw.argsCreator(%arg0: !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;, %arg1: !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;) -&gt; i64 {
+    %0 = cc.undef !cc.struct&lt;{}&gt;
+    %1 = cc.cast %arg0 : (!cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;!cc.ptr&lt;i8&gt; x ?&gt;&gt;
+    %c0_i64 = arith.constant 0 : i64
+    %2 = cc.sizeof !cc.struct&lt;{}&gt; : i64
+    %3 = call @malloc(%2) : (i64) -&gt; !cc.ptr&lt;i8&gt;
+    %4 = cc.cast %3 : (!cc.ptr&lt;i8&gt;) -&gt; !cc.ptr&lt;!cc.struct&lt;{}&gt;&gt;
+    cc.store %0, %4 : !cc.ptr&lt;!cc.struct&lt;{}&gt;&gt;
+    cc.store %3, %arg1 : !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;
+    return %2 : i64
+  }
+  llvm.func @kernel_to_draw.kernelRegFunc() {
+    %0 = llvm.mlir.addressof @kernel_to_draw.kernelName : !llvm.ptr&lt;array&lt;15 x i8&gt;&gt;
+    %1 = cc.cast %0 : (!llvm.ptr&lt;array&lt;15 x i8&gt;&gt;) -&gt; !cc.ptr&lt;i8&gt;
+    func.call @cudaqRegisterKernelName(%1) : (!cc.ptr&lt;i8&gt;) -&gt; ()
+    %f = func.constant @kernel_to_draw.argsCreator : (!cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;, !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;) -&gt; i64
+    %2 = cc.func_ptr %f : ((!cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;, !cc.ptr&lt;!cc.ptr&lt;i8&gt;&gt;) -&gt; i64) -&gt; !cc.ptr&lt;i8&gt;
+    func.call @cudaqRegisterArgsCreator(%1, %2) : (!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;) -&gt; ()
+    llvm.return
+  }
+  llvm.mlir.global_ctors {ctors = [@kernel_to_draw.kernelRegFunc], priorities = [17 : i32]}
+}
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
