@@ -50,7 +50,7 @@ struct difficult_symphony {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__difficult_symphony(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f32>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f32>{{.*}}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_1:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f32>) -> !cc.ptr<!cc.array<f32 x ?>>
 // clang-format on
 
