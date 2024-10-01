@@ -12,7 +12,7 @@ on an arbitrary number of control qubits.
    .. toctree::
       :hidden:
 
-      ../../examples/building_kernels.ipynb
+      ../../examples/python/building_kernels.ipynb
 
 .. tab:: C++ 
 

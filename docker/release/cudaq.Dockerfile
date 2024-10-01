@@ -116,9 +116,9 @@ RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
     && mkdir -p /home/cudaq/.ssh && mkdir -p /var/run/sshd
 ENV PATH="$PATH:/home/cudaq/.local/bin"
 
-ADD ./docs/sphinx/examples/ /home/cudaq/examples/
+ADD ./docs/sphinx/applications/ /home/cudaq/applications/
 ADD ./docker/release/README.md /home/cudaq/README.md
-RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorials \
+RUN mv /home/cudaq/applications/python /home/cudaq/tutorials \
     && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 
 USER cudaq
