@@ -112,7 +112,9 @@ public:
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+                    std::uint64_t resultOffset,
+                    const std::vector<void *> &rawArgs) override {
+    // Remote simulation cannot deal with rawArgs. Drop them on the floor.
     launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
                      nullptr);
   }

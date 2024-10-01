@@ -739,7 +739,9 @@ protected:
   /// model. Unimplemented on the base class, sub-types can implement noise
   /// modeling.
   virtual void applyNoiseChannel(const std::string_view gateName,
-                                 const std::vector<std::size_t> &qubits) {}
+                                 const std::vector<std::size_t> &controls,
+                                 const std::vector<std::size_t> &targets,
+                                 const std::vector<double> &params) {}
 
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
@@ -762,11 +764,10 @@ protected:
         throw std::runtime_error("Unknown exception in applyGate");
       }
       if (executionContext && executionContext->noiseModel) {
-        std::vector<std::size_t> noiseQubits{next.controls.begin(),
-                                             next.controls.end()};
-        noiseQubits.insert(noiseQubits.end(), next.targets.begin(),
-                           next.targets.end());
-        applyNoiseChannel(next.operationName, noiseQubits);
+        std::vector<double> params(next.parameters.begin(),
+                                   next.parameters.end());
+        applyNoiseChannel(next.operationName, next.controls, next.targets,
+                          params);
       }
       gateQueue.pop();
     }

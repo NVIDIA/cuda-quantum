@@ -329,6 +329,8 @@ namespace {
 
 LogicalResult transform(ModuleOp module, func::FuncOp funcOp,
                         double phaseThreshold) {
+  if (funcOp.empty())
+    return success();
   auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
   auto toErase = std::vector<mlir::Operation *>();
   auto result = success();
