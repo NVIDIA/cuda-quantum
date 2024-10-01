@@ -582,6 +582,108 @@ def test_landau_zener(integrator):
             np.testing.assert_allclose(prob1[idx], analytical_result, atol=0.05)
 
 
+@pytest.mark.parametrize('integrator', all_integrator_classes)
+def test_cross_resonance(integrator):
+    # Device parameters
+    # Detuning between two qubits
+    delta = 100 * 2 * np.pi
+    # Static coupling between qubits
+    J = 7 * 2 * np.pi
+    # spurious electromagnetic crosstalk
+    m2 = 0.2
+    # Drive strength
+    Omega = 20 * 2 * np.pi
+
+    # Qubit Hamiltonian
+    hamiltonian = delta / 2 * pauli.z(0) + J * (
+        pauli.minus(1) * pauli.plus(0) + pauli.plus(1) *
+        pauli.minus(0)) + Omega * pauli.x(0) + m2 * Omega * pauli.x(1)
+
+    # Dimensions of sub-system
+    dimensions = {0: 2, 1: 2}
+
+    # Initial state of the system (ground state).
+    rho0 = cudaq.State.from_data(
+        cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
+
+    # Two initial states: |00> and |10>.
+    # We show the 'conditional' evolution when controlled qubit is in |1> state.
+    psi_00 = cudaq.State.from_data(
+        cp.array([1.0, 0.0, 0.0, 0.0], dtype=cp.complex128))
+    psi_10 = cudaq.State.from_data(
+        cp.array([0.0, 0.0, 1.0, 0.0], dtype=cp.complex128))
+
+    # Schedule of time steps.
+    steps = np.linspace(0.0, 1.0, 1001)
+    schedule = Schedule(steps, ["time"])
+
+    # Run the simulation.
+    # Control bit = 0
+    evolution_result_00 = evolve(hamiltonian,
+                                 dimensions,
+                                 schedule,
+                                 psi_00,
+                                 observables=[
+                                     pauli.x(0),
+                                     pauli.y(0),
+                                     pauli.z(0),
+                                     pauli.x(1),
+                                     pauli.y(1),
+                                     pauli.z(1)
+                                 ],
+                                 collapse_operators=[],
+                                 store_intermediate_results=True,
+                                 integrator=integrator())
+
+    # Control bit = 1
+    evolution_result_10 = evolve(hamiltonian,
+                                 dimensions,
+                                 schedule,
+                                 psi_10,
+                                 observables=[
+                                     pauli.x(0),
+                                     pauli.y(0),
+                                     pauli.z(0),
+                                     pauli.x(1),
+                                     pauli.y(1),
+                                     pauli.z(1)
+                                 ],
+                                 collapse_operators=[],
+                                 store_intermediate_results=True,
+                                 integrator=integrator())
+
+    get_result = lambda idx, res: [
+        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+    ]
+    results_00 = [
+        get_result(0, evolution_result_00),
+        get_result(1, evolution_result_00),
+        get_result(2, evolution_result_00),
+        get_result(3, evolution_result_00),
+        get_result(4, evolution_result_00),
+        get_result(5, evolution_result_00)
+    ]
+    results_10 = [
+        get_result(0, evolution_result_10),
+        get_result(1, evolution_result_10),
+        get_result(2, evolution_result_10),
+        get_result(3, evolution_result_10),
+        get_result(4, evolution_result_10),
+        get_result(5, evolution_result_10)
+    ]
+
+    def freq_from_crossings(sig):
+        """
+        Estimate frequency by counting zero crossings
+        """
+        crossings = np.where(np.diff(np.sign(sig)))[0]
+        return 1.0 / np.mean(np.diff(crossings))
+
+    freq_0 = freq_from_crossings(results_00[5])
+    freq_1 = freq_from_crossings(results_10[5])
+    np.testing.assert_allclose(freq_0, 2.0 * freq_1, atol=0.01)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

@@ -98,10 +98,12 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
                                                      op1.duals,
                                                      op1._coefficients):
                 combined_terms = []
-                for sub_op, degrees, duals in zip(term1, modes1, duals1):
-                    combined_terms.append((sub_op, degrees, duals))
                 for sub_op, degrees, duals in zip(term2, modes2, duals2):
                     combined_terms.append((sub_op, degrees, duals))
+                    
+                for sub_op, degrees, duals in zip(term1, modes1, duals1):
+                    combined_terms.append((sub_op, degrees, duals))
+                
                 new_opterm += cuso.tensor_product(*combined_terms,
                                                   coeff=coeff1 * coeff2)
         return new_opterm
