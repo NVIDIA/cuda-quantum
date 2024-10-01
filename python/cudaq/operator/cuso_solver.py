@@ -69,10 +69,10 @@ def evolve_me(
         # Always solve the master equation if the input is a density matrix
         me_solve = True
 
-    ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions))
+    ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions, schedule))
     linblad_terms = []
     for c_op in collapse_operators:
-        linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(dimensions)))
+        linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(dimensions, schedule)))
     liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
                                        linblad_terms, me_solve)
 
@@ -82,7 +82,7 @@ def evolve_me(
     if integrator is None:
         integrator = RungeKuttaIntegrator(stepper)
     else:
-        integrator.set_system(dimensions, hamiltonian, collapse_operators)
+        integrator.set_system(dimensions, schedule, hamiltonian, collapse_operators)
     expectation_op = [
         cuso.Operator(
             hilbert_space_dims,

@@ -53,11 +53,11 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
             hilbert_space_dims = tuple(
                 self.dimensions[d] for d in range(len(self.dimensions)))
             ham_term = self.hamiltonian._evaluate(
-                CuSuperOpHamConversion(self.dimensions))
+                CuSuperOpHamConversion(self.dimensions, self.schedule))
             linblad_terms = []
             for c_op in self.collapse_operators:
                 linblad_terms.append(
-                    c_op._evaluate(CuSuperOpHamConversion(self.dimensions)))
+                    c_op._evaluate(CuSuperOpHamConversion(self.dimensions, self.schedule)))
             is_master_equation = True if type(
                 self.state) == cuso.DenseMixedState else False
             liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,

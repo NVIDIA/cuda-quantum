@@ -40,7 +40,7 @@ psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 
 # Schedule of time steps.
 steps = np.linspace(-20.0, 20.0, 5000)
-schedule = Schedule(steps, ["time"])
+schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
 evolution_result = evolve(hamiltonian,

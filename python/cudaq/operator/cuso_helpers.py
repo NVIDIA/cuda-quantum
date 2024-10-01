@@ -6,6 +6,7 @@ from .manipulation import OperatorArithmetics
 import cusuperop as cuso
 from cusuperop._internal.callbacks import CallbackCoefficient
 import logging
+from .schedule import Schedule
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +17,9 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
     Visitor class to convert CUDA-Q operator to a CuSuperOp representation.
     """
 
-    def __init__(self, dimensions: Mapping[int, int]):
+    def __init__(self, dimensions: Mapping[int, int], schedule: Schedule = None):
         self._dimensions = dimensions
+        self._schedule = schedule
 
     def _callback_mult_op(self, scalar: CallbackCoefficient,
                           op: cuso.OperatorTerm) -> cuso.OperatorTerm:
@@ -141,11 +143,15 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
         return op1 + op2
 
     def _wrap_callback(self, func, params):
-        time_arg_key = next(iter(params))
-
+        for param in params:
+            if param not in self._schedule._parameters:
+                raise ValueError(f"Parameter '{param}' not found in schedule. Valid schedule parameters are: {self._schedule._parameters}")
+        
         def inplace_func(t, args):
+            call_params = dict(((parameter, self._schedule._get_value(parameter, t))
+                     for parameter in self._schedule._parameters))
             try:
-                return func(**{time_arg_key: t})
+                return func(**call_params)
             except Exception as e:
                 print(f"Error in callback function: {e}")
                 raise RuntimeError("Failed to execute callback function")

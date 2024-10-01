@@ -14,10 +14,11 @@ import numpy as np
 import cupy as cp
 
 cudaq.set_target("nvidia-dynamics")
-all_integrator_classes = [
-    CUDATorchDiffEqDopri5Integrator  #, CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqRK4Integrator
-    # [RungeKuttaIntegrator, ScipyZvodeIntegrator]
-]  # , CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator, CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqDopri8Integrator, CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator, CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqRK4Integrator]
+ci_integrators = [RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator]
+all_integrators = [RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator, CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator, CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqDopri8Integrator, CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator, CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqRK4Integrator]
+
+# By default, only test representatives from each integrator collection.
+all_integrator_classes = ci_integrators
 
 
 class TestCavityDecay:
@@ -42,7 +43,7 @@ class TestCavityDecay:
         test simple constant decay, constant Hamiltonian
         """
         hamiltonian = self.number
-        schedule = Schedule(self.steps, ["time"])
+        schedule = Schedule(self.steps, ["t"])
         # initial state
         psi0_ = cp.zeros(self.N, dtype=cp.complex128)
         psi0_[-1] = 1.0
@@ -69,7 +70,7 @@ class TestCavityDecay:
         test time-dependent Hamiltonian with constant decay
         """
         hamiltonian = ScalarOperator(lambda t: 1.0) * self.number
-        schedule = Schedule(self.steps, ["time"])
+        schedule = Schedule(self.steps, ["t"])
         # initial state
         psi0_ = cp.zeros(self.N, dtype=cp.complex128)
         psi0_[-1] = 1.0
@@ -96,7 +97,7 @@ class TestCavityDecay:
         test time-dependent collapse operators
         """
         hamiltonian = self.number
-        schedule = Schedule(self.steps, ["time"])
+        schedule = Schedule(self.steps, ["t"])
         # initial state
         psi0_ = cp.zeros(self.N, dtype=cp.complex128)
         psi0_[-1] = 1.0
@@ -219,7 +220,7 @@ class TestCompositeSystems:
         """
         test composite system
         """
-        schedule = Schedule(self.steps, ["time"])
+        schedule = Schedule(self.steps, ["t"])
         evolution_result = evolve(
             self.hamiltonian,
             self.dimensions,
@@ -337,7 +338,7 @@ all_models = [
 @pytest.mark.parametrize('model', all_models)
 def test_analytical_models(integrator, model):
     rho0 = cudaq.State.from_data(model.initial_state())
-    schedule = Schedule(model.tlist, ["time"])
+    schedule = Schedule(model.tlist, ["t"])
     evolution_result = evolve(model.hamiltonian(),
                               model.dimensions,
                               schedule,
@@ -399,7 +400,7 @@ def test_squeezing(integrator):
     psi0 = cudaq.State.from_data(psi0_)
     # Simulation time points
     steps = np.linspace(0, 50, 1001)
-    schedule = Schedule(steps, ["time"])
+    schedule = Schedule(steps, ["t"])
 
     # Run the simulation
     evolution_result = evolve(hamiltonian,
@@ -450,7 +451,7 @@ def test_cat_state(integrator):
 
     # Choose the end time at which the state evolves to the exact cat state.
     steps = np.linspace(0, 0.5 * chi / (2 * np.pi), 51)
-    schedule = Schedule(steps, ["time"])
+    schedule = Schedule(steps, ["t"])
 
     # Run the simulation: observe the photon count, position and momentum.
     evolution_result = evolve(hamiltonian,
@@ -505,7 +506,7 @@ def test_floquet_steady_state(integrator):
 
     # Schedule of time steps.
     steps = np.linspace(0, 50, 500)
-    schedule = Schedule(steps, ["time"])
+    schedule = Schedule(steps, ["t"])
 
     # Run the simulation.
     # First, we run the simulation without any collapse operators (no decoherence).
@@ -559,7 +560,7 @@ def test_landau_zener(integrator):
 
     # Schedule of time steps.
     steps = np.linspace(-20.0, 20.0, 5000)
-    schedule = Schedule(steps, ["time"])
+    schedule = Schedule(steps, ["t"])
 
     # Run the simulation.
     evolution_result = evolve(hamiltonian,
@@ -615,7 +616,7 @@ def test_cross_resonance(integrator):
 
     # Schedule of time steps.
     steps = np.linspace(0.0, 1.0, 1001)
-    schedule = Schedule(steps, ["time"])
+    schedule = Schedule(steps, ["t"])
 
     # Run the simulation.
     # Control bit = 0

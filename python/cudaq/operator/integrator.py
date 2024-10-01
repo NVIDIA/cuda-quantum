@@ -2,6 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Sequence, Mapping
 from .expressions import Operator
+from .schedule import Schedule
 
 TState = TypeVar('TState')
 
@@ -24,6 +25,7 @@ class BaseIntegrator(ABC, Generic[TState]):
         self.integrator_options.update(kwargs)
         self.t = None
         self.dimensions = None
+        self.schedule = None
         self.hamiltonian = None
         self.stepper = None
         self.collapse_operators = None
@@ -42,9 +44,11 @@ class BaseIntegrator(ABC, Generic[TState]):
 
     def set_system(self,
                    dimensions: Mapping[int, int],
+                   schedule: Schedule,
                    hamiltonian: Operator,
                    collapse_operators: Sequence[Operator] = []):
         self.dimensions = dimensions
+        self.schedule = schedule
         self.hamiltonian = hamiltonian
         self.collapse_operators = collapse_operators
 

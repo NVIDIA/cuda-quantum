@@ -42,7 +42,7 @@ def dgaussian(t):
 
 # Schedule of time steps.
 steps = np.linspace(0.0, cutoff, 201)
-schedule = Schedule(steps, ["time"])
+schedule = Schedule(steps, ["t"])
 
 # We optimize for a X(pi/2) rotation
 target_state = np.array([1.0 / np.sqrt(2), -1j / np.sqrt(2), 0.0],

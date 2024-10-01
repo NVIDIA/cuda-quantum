@@ -38,7 +38,7 @@ t_final = 0.5 / nu_x
 tau = .005
 n_steps = int(np.ceil(t_final / tau)) + 1
 steps1 = np.linspace(0, t_final, n_steps)
-schedule = Schedule(steps1, ["time"])
+schedule = Schedule(steps1, ["t"])
 
 # Run the simulation.
 # First, we run the simulation without any collapse operators (no decoherence).
