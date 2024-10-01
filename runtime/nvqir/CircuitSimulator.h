@@ -752,7 +752,17 @@ protected:
         summaryData.svGateUpdate(
             next.controls.size(), next.targets.size(), stateDimension,
             stateDimension * sizeof(std::complex<ScalarType>));
-      applyGate(next);
+      try {
+        applyGate(next);
+      } catch (std::exception &e) {
+        while (!gateQueue.empty())
+          gateQueue.pop();
+        throw e;
+      } catch (...) {
+        while (!gateQueue.empty())
+          gateQueue.pop();
+        throw std::runtime_error("Unknown exception in applyGate");
+      }
       if (executionContext && executionContext->noiseModel) {
         std::vector<double> params(next.parameters.begin(),
                                    next.parameters.end());
