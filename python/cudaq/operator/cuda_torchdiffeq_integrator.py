@@ -21,7 +21,6 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
         self.stepper = stepper
         self.solver = solver
         self.dm_shape = None
-        self.step_size = None
         self.n_steps = 10
         self.order = None
 
@@ -43,7 +42,6 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
         self.atol = self.integrator_options.get('atol', self.atol)
         self.rtol = self.integrator_options.get('rtol', self.rtol)
         self.order = self.integrator_options.get('order', None)
-        self.step_size = self.integrator_options.get('step_size', None)
 
     def integrate(self, t):
         if self.stepper is None:
@@ -60,9 +58,11 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
             for c_op in self.collapse_operators:
                 linblad_terms.append(
                     c_op._evaluate(CuSuperOpHamConversion(self.dimensions)))
-            is_master_equation = True if type(self.state) == cuso.DenseMixedState else False
+            is_master_equation = True if type(
+                self.state) == cuso.DenseMixedState else False
             liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
-                                               linblad_terms, is_master_equation)
+                                               linblad_terms,
+                                               is_master_equation)
             cuso_ctx = self.state._ctx
             self.stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)
 
@@ -78,21 +78,13 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
         # time span
         t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
 
-        # options for odeint
-        options = {}
-        if self.step_size is not None:
-            options['step_size'] = self.step_size
-        else:
-            options['step_size'] = (t - self.t) / self.n_steps
-
         # solve ODE using TorchDiffEq
         solution = odeint(self.compute_rhs,
                           y0,
                           t_span,
                           method=self.solver,
                           rtol=self.rtol,
-                          atol=self.atol,
-                          options=options)
+                          atol=self.atol)
 
         # solution at final time
         y_t = solution[-1]
@@ -163,20 +155,24 @@ class CUDATorchDiffEqExplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
     def __init__(self, stepper: BaseTimeStepper[cuso.State] = None, **kwargs):
         super().__init__(stepper, solver='explicit_adams', **kwargs)
 
+
 class CUDATorchDiffEqFehlberg2Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self, stepper: BaseTimeStepper[cuso.State] = None, **kwargs):
         super().__init__(stepper, solver='fehlberg2', **kwargs)
+
 
 class CUDATorchDiffEqHeun3Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self, stepper: BaseTimeStepper[cuso.State] = None, **kwargs):
         super().__init__(stepper, solver='heun3', **kwargs)
 
+
 class CUDATorchDiffEqImplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self, stepper: BaseTimeStepper[cuso.State] = None, **kwargs):
         super().__init__(stepper, solver='implicit_adams', **kwargs)
+
 
 class CUDATorchDiffEqFixedAdamsIntegrator(CUDATorchDiffEqIntegrator):
 
