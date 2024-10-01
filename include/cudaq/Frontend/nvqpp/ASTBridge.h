@@ -499,6 +499,9 @@ public:
   bool isItaniumCXXABI();
 
 private:
+  /// Check that the value on the top of the stack is an entry-point kernel.
+  bool hasTOSEntryKernel();
+
   /// Map the block arguments to the names of the function parameters.
   void addArgumentSymbols(mlir::Block *entryBlock,
                           mlir::ArrayRef<clang::ParmVarDecl *> parameters);

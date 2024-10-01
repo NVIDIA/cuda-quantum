@@ -1317,13 +1317,45 @@ public:
     StringRef generatorName = sref.getRootReference();
     auto globalOp =
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
+    const auto customOpName = [&]() -> std::string {
+      auto globalName = generatorName.str();
+      // IMPORTANT: this must match the logic to generate global data
+      // globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
+      const std::string nvqppPrefix = "__nvqpp__mlirgen__";
+      const std::string generatorSuffix = "_generator";
+      if (globalName.starts_with(nvqppPrefix)) {
+        globalName = globalName.substr(nvqppPrefix.size());
+        const size_t pos = globalName.find(generatorSuffix);
+        if (pos != std::string::npos)
+          return globalName.substr(0, pos);
+      }
+
+      return "";
+    }();
+
+    // Create a global string for the op name
+    auto insertPoint = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+    // Create the custom op name global
+    auto builder = cudaq::IRBuilder::atBlockEnd(parentModule.getBody());
+    auto opNameGlobal =
+        builder.genCStringLiteralAppendNul(loc, parentModule, customOpName);
+    // Shift back to the function
+    rewriter.restoreInsertionPoint(insertPoint);
+    // Get the string address and bit cast
+    auto opNameRef = rewriter.create<LLVM::AddressOfOp>(
+        loc, cudaq::opt::factory::getPointerType(opNameGlobal.getType()),
+        opNameGlobal.getSymName());
+    auto castedOpNameRef = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(context), opNameRef);
+
     if (!globalOp)
       return op.emitOpError("global not found for custom op");
 
     auto complex64Ty =
         typeConverter->convertType(ComplexType::get(rewriter.getF64Type()));
     auto complex64PtrTy = LLVM::LLVMPointerType::get(complex64Ty);
-    Type type = getTypeConverter()->convertType(globalOp.getType());
+    Type type = typeConverter->convertType(globalOp.getType());
     auto addrOp = rewriter.create<LLVM::AddressOfOp>(loc, type, generatorName);
     auto unitaryData =
         rewriter.create<LLVM::BitcastOp>(loc, complex64PtrTy, addrOp);
@@ -1335,12 +1367,13 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             qirFunctionName, LLVM::LLVMVoidType::get(context),
             {complex64PtrTy, cudaq::opt::getArrayType(context),
-             cudaq::opt::getArrayType(context)},
+             cudaq::opt::getArrayType(context),
+             LLVM::LLVMPointerType::get(rewriter.getI8Type())},
             parentModule);
 
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
         op, TypeRange{}, customSymbolRef,
-        ValueRange{unitaryData, controlArr, targetArr});
+        ValueRange{unitaryData, controlArr, targetArr, castedOpNameRef});
 
     return success();
   }
