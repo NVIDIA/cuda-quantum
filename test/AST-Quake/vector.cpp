@@ -39,6 +39,21 @@ struct simple_float_rotation {
   }
 };
 
+struct difficult_symphony {
+  auto operator()(std::vector<float> theta) __qpu__ {
+    float *firstData = theta.data();
+    cudaq::qvector q(1);
+    rx(firstData[0], q[0]);
+    mz(q);
+  }
+};
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__difficult_symphony(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f32>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_1:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f32>) -> !cc.ptr<!cc.array<f32 x ?>>
+// clang-format on
+
 int main() {
   std::vector<double> vec_args = {0.63};
 
@@ -62,6 +77,9 @@ int main() {
   for (auto &[bits, count] : float_counts) {
     printf("Observed: %s, %lu\n", bits.c_str(), count);
   }
+
+  auto bob_counts = cudaq::sample(difficult_symphony{}, float_args);
+  bob_counts.dump();
 
   // can get <ZZ...Z> from counts too
   printf("Exp: %lf\n", float_counts.expectation());

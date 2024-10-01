@@ -1260,6 +1260,17 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           return pushValue(builder.create<cc::ComputePtrOp>(
               loc, elePtrTy, vecPtr, ValueRange{negativeOneIndex}));
         }
+    if (funcName.equals("data"))
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+	  // data() returns a pointer to a sequence of elements.
+          auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
+          auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+          return pushValue(
+              builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec));
+        }
 
     TODO_loc(loc, "unhandled std::vector member function, " + funcName);
   }
