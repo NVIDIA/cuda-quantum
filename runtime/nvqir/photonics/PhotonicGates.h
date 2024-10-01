@@ -134,8 +134,8 @@ getPhotonicGateByName(PhotonicGateName name, const std::size_t levels,
     auto length = levels * levels;
     std::vector<std::complex<Scalar>> u(length, 0.0);
     u.at(levels - 1) = 1.;
-    for (size_t i = 1; i < levels; i++) {
-      u.at(i * levels + (i - i)) = 1.;
+    for (std::size_t i = 1; i < levels; i++) {
+      u.at(i * levels + (i - 1)) = 1.;
     }
     return u;
   }
@@ -152,7 +152,7 @@ getPhotonicGateByName(PhotonicGateName name, const std::size_t levels,
     auto length = levels * levels;
     std::vector<std::complex<Scalar>> PS(length, 0.0);
     // static constexpr std::complex<double> im = std::complex<double>(0, 1.);
-    for (size_t i = 0; i < levels; i++) {
+    for (std::size_t i = 0; i < levels; i++) {
       PS.at(i * levels + i) =
           std::exp(nvqir::im<Scalar> * static_cast<Scalar>(i) * phi);
     }

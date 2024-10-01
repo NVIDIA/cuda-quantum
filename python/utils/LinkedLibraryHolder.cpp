@@ -13,6 +13,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/target_control.h"
 #include "nvqir/CircuitSimulator.h"
+#include "nvqir/photonics/PhotonicCircuitSimulator.h"
 #include <fstream>
 #include <regex>
 #include <sstream>
@@ -22,6 +23,7 @@
 // Our hook into configuring the NVQIR backend.
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
+void __nvqir__setPhotonicCircuitSimulator(nvqir::PhotonicCircuitSimulator *);
 }
 
 namespace cudaq {
@@ -383,6 +385,17 @@ LinkedLibraryHolder::getSimulator(const std::string &simName) {
       std::string("getCircuitSimulator_") + simName);
 }
 
+nvqir::PhotonicCircuitSimulator *
+LinkedLibraryHolder::getPhotonicSimulator(const std::string &simName) {
+  auto end = availableSimulators.end();
+  auto iter = std::find(availableSimulators.begin(), end, simName);
+  if (iter == end)
+    throw std::runtime_error("Invalid simulator requested: " + simName);
+
+  return getUniquePluginInstance<nvqir::PhotonicCircuitSimulator>(
+      std::string("getPhotonicCircuitSimulator_") + simName);
+}
+
 quantum_platform *
 LinkedLibraryHolder::getPlatform(const std::string &platformName) {
   auto end = availablePlatforms.end();
@@ -454,7 +467,11 @@ void LinkedLibraryHolder::setTarget(
   cudaq::info("Setting target={} (sim={}, platform={})", targetName,
               target.simulatorName, target.platformName);
 
-  __nvqir__setCircuitSimulator(getSimulator(target.simulatorName));
+  if (targetName != "photonics-cpu")
+    __nvqir__setCircuitSimulator(getSimulator(target.simulatorName));
+  else
+    __nvqir__setPhotonicCircuitSimulator(
+        getPhotonicSimulator(target.simulatorName));
   auto *platform = getPlatform(target.platformName);
 
   // Pack the config into the backend string name
@@ -477,7 +494,7 @@ void LinkedLibraryHolder::setTarget(
   setQuantumPlatformInternal(platform);
   currentTarget = targetName;
 
-  if ("photonics" == targetName) {
+  if ("photonics-cpu" == targetName) {
     std::filesystem::path libPath =
         cudaqLibPath / fmt::format("libcudaq-em-photonics.{}", libSuffix);
     auto *em = getUniquePluginInstance<ExecutionManager>(

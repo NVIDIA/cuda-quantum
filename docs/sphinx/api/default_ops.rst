@@ -706,13 +706,13 @@ This operation returns the measurement results of the input qudit(s).
 
     .. code-block:: python
 
-        qutrits = [qudit(3) for _ in range(2)]
-        mz(qutrits)
+        qumodes = [qudit(3) for _ in range(2)]
+        mz(qumodes)
 
 
 .. tab:: C++
 
     .. code-block:: cpp
 
-        cudaq::qvector<3> qutrits(2);
-        mz(qutrits);
+        cudaq::qvector<3> qumodes(2);
+        mz(qumodes);

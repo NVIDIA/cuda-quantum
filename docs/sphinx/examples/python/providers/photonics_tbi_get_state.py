@@ -1,7 +1,7 @@
 import cudaq
 import numpy as np
 
-cudaq.set_target("photonics")
+cudaq.set_target("photonics-cpu")
 
 
 @cudaq.kernel
@@ -14,20 +14,18 @@ def TBI(
     n_modes = len(input_state)
     level = sum(input_state) + 1  # qudit level
 
-    quds = [qudit(level) for _ in range(n_modes)]
+    qumodes = [qudit(level) for _ in range(n_modes)]
 
     for i in range(n_modes):
         for _ in range(input_state[i]):
-            plus(quds[i])
+            plus(qumodes[i])
 
     counter = 0
     for j in loop_lengths:
         for i in range(n_modes - j):
-            beam_splitter(quds[i], quds[i + j], bs_angles[counter])
-            phase_shift(quds[i], ps_angles[counter])
+            beam_splitter(qumodes[i], qumodes[i + j], bs_angles[counter])
+            phase_shift(qumodes[i], ps_angles[counter])
             counter += 1
-
-    mz(quds)
 
 
 input_state = [2, 1, 3, 1]
@@ -36,10 +34,5 @@ n_beam_splitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
 bs_angles = np.linspace(np.pi / 3, np.pi / 6, n_beam_splitters)
 ps_angles = np.linspace(np.pi / 3, np.pi / 5, n_beam_splitters)
 
-counts = cudaq.sample(TBI,
-                      bs_angles,
-                      ps_angles,
-                      input_state,
-                      loop_lengths,
-                      shots_count=1000000)
-counts.dump()
+state = cudaq.get_state(TBI, bs_angles, ps_angles, input_state, loop_lengths)
+state.dump()
