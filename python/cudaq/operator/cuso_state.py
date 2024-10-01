@@ -129,4 +129,3 @@ class CuSuperOpState(object):
         dm = cupy.asfortranarray(dm)
         dm_state = DenseMixedState(self.__ctx, dm)
         return CuSuperOpState(dm_state)
-

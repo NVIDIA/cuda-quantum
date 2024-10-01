@@ -6,3 +6,4 @@ from .schedule import Schedule
 from .cuso_state import CuSuperOpState, to_cupy_array, ket2dm, coherent_state, coherent_dm, wigner_function
 from .builtin_integrators import RungeKuttaIntegrator
 from .scipy_integrators import ScipyZvodeIntegrator
+from .cuda_torchdiffeq_integrator import CUDATorchDiffEqRK4Integrator, CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator, CUDATorchDiffEqDopri5Integrator, CUDATorchDiffEqDopri8Integrator, CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator, CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqFehlberg2Integrator, CUDATorchDiffEqHeun3Integrator, CUDATorchDiffEqImplicitAdamsIntegrator, CUDATorchDiffEqFixedAdamsIntegrator

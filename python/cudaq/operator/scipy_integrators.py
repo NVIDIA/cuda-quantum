@@ -6,6 +6,7 @@ from scipy.integrate._ode import zvode
 from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
 from .builtin_integrators import cuSuperOpTimeStepper
 
+
 class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
     n_steps = 2500
     atol = 1e-8
@@ -20,9 +21,10 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.state_data_shape = None
-    
+
     def compute_rhs(self, t, vec):
-        rho_data = cupy.asfortranarray(cupy.array(vec).reshape(self.state_data_shape))
+        rho_data = cupy.asfortranarray(
+            cupy.array(vec).reshape(self.state_data_shape))
         state_type = self.state.__class__
         temp_state = state_type(self.state._ctx, rho_data)
         result = self.stepper.compute(temp_state, t)
@@ -52,17 +54,24 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
     def integrate(self, t):
         if self.stepper is None:
             if self.hamiltonian is None or self.collapse_operators is None or self.dimensions is None:
-                raise ValueError("Hamiltonian and collapse operators are required for integrator if no stepper is provided")
-            hilbert_space_dims = tuple(self.dimensions[d] for d in range(len(self.dimensions)))
-            ham_term = self.hamiltonian._evaluate(CuSuperOpHamConversion(self.dimensions))
+                raise ValueError(
+                    "Hamiltonian and collapse operators are required for integrator if no stepper is provided"
+                )
+            hilbert_space_dims = tuple(
+                self.dimensions[d] for d in range(len(self.dimensions)))
+            ham_term = self.hamiltonian._evaluate(
+                CuSuperOpHamConversion(self.dimensions))
             linblad_terms = []
             for c_op in self.collapse_operators:
-                linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(self.dimensions)))
+                linblad_terms.append(
+                    c_op._evaluate(CuSuperOpHamConversion(self.dimensions)))
             is_master_equation = isinstance(self.state, cuso.DenseMixedState)
-            liouvillian = constructLiouvillian(hilbert_space_dims, ham_term, linblad_terms, is_master_equation)
+            liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
+                                               linblad_terms,
+                                               is_master_equation)
             cuso_ctx = self.state._ctx
             self.stepper = cuSuperOpTimeStepper(liouvillian, cuso_ctx)
-        
+
         if t <= self.t:
             raise ValueError(
                 "Integration time must be greater than current time")

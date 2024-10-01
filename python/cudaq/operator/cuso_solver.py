@@ -16,16 +16,20 @@ import copy
 import math
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
 
+
 def as_cuso_state(state):
     tensor = state.getTensor()
-    pDevice  = tensor.data()
+    pDevice = tensor.data()
     dtype = cupy.complex128
     # print(f"Cupy pointer: {hex(pDevice)}")
-    sizeByte = tensor.get_num_elements() *  tensor.get_element_size()
-    mem = UnownedMemory(pDevice, sizeByte, owner = state)
+    sizeByte = tensor.get_num_elements() * tensor.get_element_size()
+    mem = UnownedMemory(pDevice, sizeByte, owner=state)
     memptr = MemoryPointer(mem, 0)
-    cupy_array = cupy.ndarray(tensor.get_num_elements(), dtype=dtype, memptr=memptr)
+    cupy_array = cupy.ndarray(tensor.get_num_elements(),
+                              dtype=dtype,
+                              memptr=memptr)
     return CuSuperOpState(cupy_array)
+
 
 # Master-equation solver using cuSuperOp
 def evolve_me(
@@ -105,11 +109,14 @@ def evolve_me(
             state_length = state.storage.size
             if is_density_matrix:
                 dimension = int(math.sqrt(state_length))
-                intermediate_states.append(cudaq_runtime.State.from_data(state.storage.reshape((dimension, dimension))))
+                intermediate_states.append(
+                    cudaq_runtime.State.from_data(
+                        state.storage.reshape((dimension, dimension))))
             else:
                 dimension = state_length
-                intermediate_states.append(cudaq_runtime.State.from_data(state.storage.reshape((dimension,))))
-
+                intermediate_states.append(
+                    cudaq_runtime.State.from_data(
+                        state.storage.reshape((dimension,))))
 
     if store_intermediate_results:
         return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)
