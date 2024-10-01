@@ -58,7 +58,7 @@ Gamma_2 = 0.2
 t_final = 5.5 / max(Gamma_1, Gamma_2)
 n_steps = int(np.ceil(t_final / tau)) + 1
 steps2 = np.linspace(0, t_final, n_steps)
-schedule = Schedule(steps2, ["time"])
+schedule = Schedule(steps2, ["t"])
 
 evolution_result_decay = evolve(hamiltonian,
                           dimensions,
