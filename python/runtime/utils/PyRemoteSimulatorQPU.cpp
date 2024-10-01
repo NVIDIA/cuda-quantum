@@ -51,7 +51,8 @@ launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
                  std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
                  const std::string &m_simName, const std::string &name,
                  void (*kernelFunc)(void *), void *args,
-                 std::uint64_t voidStarSize, std::uint64_t resultOffset) {
+                 std::uint64_t voidStarSize, std::uint64_t resultOffset,
+                 const std::vector<void *> &rawArgs) {
   auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(args);
   auto m_module = wrapper->mod;
   auto callableNames = wrapper->callableNames;
@@ -131,12 +132,14 @@ public:
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+                    std::uint64_t resultOffset,
+                    const std::vector<void *> &rawArgs) override {
     cudaq::info("PyRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                 "(simulator = {})",
                 name, qpu_id, m_simName);
     ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
-                       name, kernelFunc, args, voidStarSize, resultOffset);
+                       name, kernelFunc, args, voidStarSize, resultOffset,
+                       rawArgs);
   }
 
   void launchKernel(const std::string &name,
@@ -177,12 +180,14 @@ public:
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+                    std::uint64_t resultOffset,
+                    const std::vector<void *> &rawArgs) override {
     cudaq::info("PyNvcfSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                 "(simulator = {})",
                 name, qpu_id, m_simName);
     ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
-                       name, kernelFunc, args, voidStarSize, resultOffset);
+                       name, kernelFunc, args, voidStarSize, resultOffset,
+                       rawArgs);
   }
 
   void launchKernel(const std::string &name,
