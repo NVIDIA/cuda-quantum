@@ -42,16 +42,19 @@ def _register_evolution_kernels(
             register_operation(kernel_name, evolution_matrix)
 
             if collapse_operators is not None and len(
-                    collapse_operators) > 0 and step_idx == 1:
+                    collapse_operators) > 0:
                 global noise
                 for collapse_op in collapse_operators:
                     L = collapse_op.to_matrix(dimensions)
                     G = -0.5 * numpy.dot(L.conj().T, L)
                     M0 = G * dt + numpy.eye(2**len(dimensions))
                     M1 = numpy.sqrt(dt) * L
-                    # FIXME: need https://github.com/NVIDIA/cuda-quantum/pull/2168 for proper handling of noise model for custom gates.
-                    noise.add_channel("unknown op", qubits,
+                    try:
+                        noise.add_channel(kernel_name, qubits,
                                       cudaq_runtime.KrausChannel([M0, M1]))
+                    except Exception as e:
+                        print(f"Error adding noise channel, perhaps the time step is too large.")
+                        raise e
 
         yield kernel_name, parameters
 
