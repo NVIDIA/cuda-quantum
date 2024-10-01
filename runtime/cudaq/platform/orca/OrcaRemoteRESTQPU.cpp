@@ -61,7 +61,8 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
 void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
                                      void (*kernelFunc)(void *), void *args,
                                      std::uint64_t voidStarSize,
-                                     std::uint64_t resultOffset) {
+                                     std::uint64_t resultOffset,
+                                     const std::vector<void *> &rawArgs) {
   cudaq::info("launching ORCA remote rest experiment ({})", kernelName);
 
   // TODO future iterations of this should support non-void return types.

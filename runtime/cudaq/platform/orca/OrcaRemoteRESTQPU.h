@@ -110,11 +110,12 @@ public:
   /// specific target backend configuration file.
   void setTargetBackend(const std::string &backend) override;
 
-  /// @brief Launch the kernel. Handle all pertinent
-  /// modifications for the execution context.
+  /// @brief Launch the kernel. Handle all pertinent modifications for the
+  /// execution context.
   void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override;
+                    std::uint64_t resultOffset,
+                    const std::vector<void *> &rawArgs) override;
   void launchKernel(const std::string &kernelName,
                     const std::vector<void *> &rawArgs) override {
     throw std::runtime_error("launch kernel on raw args not implemented");

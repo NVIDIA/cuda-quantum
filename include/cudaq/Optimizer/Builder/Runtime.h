@@ -29,4 +29,23 @@ static constexpr const char launchKernelHybridFuncName[] = "hybridLaunchKernel";
 
 static constexpr const char mangledNameMap[] = "quake.mangled_name_map";
 
+static constexpr const char deviceCodeHolderAdd[] =
+    "__cudaq_deviceCodeHolderAdd";
+
+static constexpr const char registerLinkableKernel[] =
+    "__cudaq_registerLinkableKernel";
+static constexpr const char getLinkableKernelKey[] =
+    "__cudaq_getLinkableKernelKey";
+static constexpr const char getLinkableKernelName[] =
+    "__cudaq_getLinkableKernelName";
+static constexpr const char getLinkableKernelDeviceSide[] =
+    "__cudaq_getLinkableKernelDeviceFunction";
+
+static constexpr const char CudaqRegisterLambdaName[] =
+    "cudaqRegisterLambdaName";
+static constexpr const char CudaqRegisterArgsCreator[] =
+    "cudaqRegisterArgsCreator";
+static constexpr const char CudaqRegisterKernelName[] =
+    "cudaqRegisterKernelName";
+
 } // namespace cudaq::runtime

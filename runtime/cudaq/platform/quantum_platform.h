@@ -144,7 +144,8 @@ public:
   // quantum kernels.
   void launchKernel(std::string kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset);
+                    std::uint64_t resultOffset,
+                    const std::vector<void *> &rawArgs);
   void launchKernel(std::string kernelName, const std::vector<void *> &);
 
   // This method is the hook for executing SerializedCodeExecutionContext
