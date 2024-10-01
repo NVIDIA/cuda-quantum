@@ -51,6 +51,17 @@ inline bool operator<(const IntrinsicCode &icode, const IntrinsicCode &jcode) {
 static constexpr IntrinsicCode intrinsicTable[] = {
     // Initialize a (preallocated) buffer (the first parameter) with i64 values
     // on the semi-open range `[0..n)` where `n` is the second parameter.
+    {cudaq::runtime::getLinkableKernelKey,
+     {},
+     R"#(
+  func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
+)#"},
+    {cudaq::runtime::registerLinkableKernel,
+     {},
+     R"#(
+  func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>) -> ()
+)#"},
+
     {cudaq::setCudaqRangeVector,
      {},
      R"#(
@@ -309,6 +320,24 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      R"#(
   func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ())#"},
+
+    {cudaq::runtime::CudaqRegisterArgsCreator,
+     {},
+     R"#(
+  func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+)#"},
+    {cudaq::runtime::CudaqRegisterKernelName,
+     {cudaq::runtime::CudaqRegisterArgsCreator,
+      cudaq::runtime::CudaqRegisterLambdaName,
+      cudaq::runtime::registerLinkableKernel,
+      cudaq::runtime::getLinkableKernelKey},
+     "func.func private @cudaqRegisterKernelName(!cc.ptr<i8>) -> ()"},
+
+    {cudaq::runtime::CudaqRegisterLambdaName,
+     {},
+     R"#(
+  llvm.func @cudaqRegisterLambdaName(!llvm.ptr<i8>, !llvm.ptr<i8>) attributes {sym_visibility = "private"}
+)#"},
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
