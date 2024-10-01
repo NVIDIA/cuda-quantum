@@ -8,15 +8,15 @@ Examples that illustrate how to use CUDA-Q for application development are avail
    :maxdepth: 1
 
       Introduction <introduction.rst>
-      Building Kernels <../../examples/building_kernels.ipynb>
+      Building Kernels <multi_control.rst>
       Quantum Operations <quantum_operations.rst>
-      Measuring Kernels <../../examples/measuring_kernels.ipynb>
-      Visualising Kernels <../../examples/visualization.ipynb>
-      Executing Kernels <../../examples/executing_kernels.ipynb>
+      Measuring Kernels <../../examples/python/measuring_kernels.ipynb>
+      Visualizing Kernels <../../examples/python/visualization.ipynb>
+      Executing Kernels <../../examples/python/executing_kernels.ipynb>
       Computing Expectation Values <expectation_values.rst>
       Multi-GPU Workflows <multi_gpu_workflows.rst>
-      Optimizers & Gradients  <../../examples/optimizers_gradients.ipynb>
-      Noisy Simulations <../../examples/noisy_simulations.ipynb>
-      Constructing Operators <../../examples/operators.ipynb>
-      Performance Optimizations <../../examples/performance_optimizations.ipynb>
+      Optimizers & Gradients  <../../examples/python/optimizers_gradients.ipynb>
+      Noisy Simulations <../../examples/python/noisy_simulations.ipynb>
+      Constructing Operators <../../examples/python/operators.ipynb>
+      Performance Optimizations <../../examples/python/performance_optimizations.ipynb>
       Using Quantum Hardware Providers <hardware_providers.rst>
