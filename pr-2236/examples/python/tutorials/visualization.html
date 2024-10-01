@@ -651,18 +651,18 @@ about the existence of other states that will call for a 3D extension.</p>
 Tools not found, installing. Please restart your kernel after this is done.
 Collecting qutip&gt;=5
   Downloading qutip-5.0.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (28.0 MB)
-     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">52.0 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">28.0/28.0 MB</span> <span class="ansi-red-fg">56.7 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
 Requirement already satisfied: matplotlib&gt;=3.5 in /usr/local/lib/python3.10/dist-packages (3.9.2)
-Requirement already satisfied: numpy&gt;=1.22 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.26.4)
 Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (24.1)
 Requirement already satisfied: scipy&gt;=1.9 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.10.1)
+Requirement already satisfied: numpy&gt;=1.22 in /usr/local/lib/python3.10/dist-packages (from qutip&gt;=5) (1.26.4)
 Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (10.4.0)
-Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
-Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.3.0)
+Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.7)
+Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (2.9.0.post0)
 Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (3.1.4)
 Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (4.53.1)
-Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (2.9.0.post0)
-Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.4.7)
+Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (0.12.1)
+Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib&gt;=3.5) (1.3.0)
 Requirement already satisfied: six&gt;=1.5 in /usr/lib/python3/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib&gt;=3.5) (1.16.0)
 Installing collected packages: qutip
 Successfully installed qutip-5.0.4
@@ -725,21 +725,24 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = &#34;__n
     quake.rz (%7) %0 : (f64, !quake.ref) -&gt; ()
     return
   }
-  llvm.func @deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)
-  llvm.mlir.global private constant @kernelCodeHolder.extract_device_code(&#34;module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = \22__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite\22}} { func.func @__nvqpp__mlirgen__kernel(%arg0: !cc.stdvec&lt;f64&gt; loc(unknown)) attributes {\22cudaq-entrypoint\22} {\0A  %0 = quake.alloca !quake.ref loc(unknown)\0A  %1 = cc.stdvec_data %arg0 : (!cc.stdvec&lt;f64&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt; loc(unknown)\0A  %2 = cc.cast %1 : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %3 = cc.load %2 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rz (%3) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  %4 = cc.compute_ptr %1[1] : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %5 = cc.load %4 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rx (%5) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  %6 = cc.compute_ptr %1[2] : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %7 = cc.load %6 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rz (%7) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  return loc(unknown)\0A} loc(unknown)\0Allvm.func @deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)\0A\0A}\0A\00&#34;) {addr_space = 0 : i32}
+  llvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)
+  llvm.mlir.global private constant @kernelCodeHolder.extract_device_code(&#34;module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = \22__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite\22}} { func.func @__nvqpp__mlirgen__kernel(%arg0: !cc.stdvec&lt;f64&gt; loc(unknown)) attributes {\22cudaq-entrypoint\22} {\0A  %0 = quake.alloca !quake.ref loc(unknown)\0A  %1 = cc.stdvec_data %arg0 : (!cc.stdvec&lt;f64&gt;) -&gt; !cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt; loc(unknown)\0A  %2 = cc.cast %1 : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %3 = cc.load %2 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rz (%3) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  %4 = cc.compute_ptr %1[1] : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %5 = cc.load %4 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rx (%5) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  %6 = cc.compute_ptr %1[2] : (!cc.ptr&lt;!cc.array&lt;f64 x ?&gt;&gt;) -&gt; !cc.ptr&lt;f64&gt; loc(unknown)\0A  %7 = cc.load %6 : !cc.ptr&lt;f64&gt; loc(unknown)\0A  quake.rz (%7) %0 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  return loc(unknown)\0A} loc(unknown)\0Allvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)\0A\0A}\0A\00&#34;) {addr_space = 0 : i32}
   llvm.mlir.global private constant @kernelCodeHolder.extract_device_name(&#34;kernel\00&#34;) {addr_space = 0 : i32}
   llvm.func @kernel.init_func() {
     %0 = llvm.mlir.addressof @kernelCodeHolder.extract_device_name : !llvm.ptr&lt;array&lt;7 x i8&gt;&gt;
-    %1 = llvm.mlir.addressof @kernelCodeHolder.extract_device_code : !llvm.ptr&lt;array&lt;1043 x i8&gt;&gt;
+    %1 = llvm.mlir.addressof @kernelCodeHolder.extract_device_code : !llvm.ptr&lt;array&lt;1051 x i8&gt;&gt;
     %2 = llvm.bitcast %0 : !llvm.ptr&lt;array&lt;7 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
-    %3 = llvm.bitcast %1 : !llvm.ptr&lt;array&lt;1043 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
-    llvm.call @deviceCodeHolderAdd(%2, %3) : (!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;) -&gt; ()
+    %3 = llvm.bitcast %1 : !llvm.ptr&lt;array&lt;1051 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
+    llvm.call @__cudaq_deviceCodeHolderAdd(%2, %3) : (!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;) -&gt; ()
     llvm.return
   }
   llvm.mlir.global_ctors {ctors = [@kernel.init_func], priorities = [17 : i32]}
   func.func private @hybridLaunchKernel(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i64, !cc.ptr&lt;i8&gt;)
-  func.func private @cudaqRegisterKernelName(!cc.ptr&lt;i8&gt;)
   func.func private @cudaqRegisterArgsCreator(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;)
+  llvm.func @cudaqRegisterLambdaName(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;) attributes {sym_visibility = &#34;private&#34;}
+  func.func private @__cudaq_registerLinkableKernel(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;)
+  func.func private @__cudaq_getLinkableKernelKey(!cc.ptr&lt;i8&gt;) -&gt; i64
+  func.func private @cudaqRegisterKernelName(!cc.ptr&lt;i8&gt;)
   func.func private @malloc(i64) -&gt; !cc.ptr&lt;i8&gt;
   func.func private @free(!cc.ptr&lt;i8&gt;)
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr&lt;none&gt;, !cc.ptr&lt;none&gt;, i64)
@@ -1030,21 +1033,24 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_to_draw = 
     quake.s %5 : (!quake.ref) -&gt; ()
     return
   }
-  llvm.func @deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)
-  llvm.mlir.global private constant @kernel_to_drawCodeHolder.extract_device_code(&#34;module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_to_draw = \22__nvqpp__mlirgen__kernel_to_draw_PyKernelEntryPointRewrite\22}} { func.func @__nvqpp__mlirgen__kernel_to_draw() attributes {\22cudaq-entrypoint\22} {\0A  %c4_i64 = arith.constant 4 : i64 loc(unknown)\0A  %cst = arith.constant 3.141590e+00 : f64 loc(unknown)\0A  %c1_i64 = arith.constant 1 : i64 loc(unknown)\0A  %c0_i64 = arith.constant 0 : i64 loc(unknown)\0A  %0 = quake.alloca !quake.veq&lt;4&gt; loc(unknown)\0A  %1 = cc.loop while ((%arg0 = %c0_i64) -&gt; (i64)) {\0A    %7 = arith.cmpi slt, %arg0, %c4_i64 : i64 loc(unknown)\0A    cc.condition %7(%arg0 : i64) loc(unknown)\0A  } do {\0A  ^bb0(%arg0: i64 loc(unknown)):\0A    %7 = quake.extract_ref %0[%arg0] : (!quake.veq&lt;4&gt;, i64) -&gt; !quake.ref loc(unknown)\0A    quake.h %7 : (!quake.ref) -&gt; () loc(unknown)\0A    cc.continue %arg0 : i64 loc(unknown)\0A  } step {\0A  ^bb0(%arg0: i64 loc(unknown)):\0A    %7 = arith.addi %arg0, %c1_i64 : i64 loc(unknown)\0A    cc.continue %7 : i64 loc(unknown)\0A  } {invariant} loc(unknown)\0A  %2 = quake.extract_ref %0[0] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  %3 = quake.extract_ref %0[1] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.x [%2] %3 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  %4 = quake.concat %2, %3 : (!quake.ref, !quake.ref) -&gt; !quake.veq&lt;2&gt; loc(unknown)\0A  %5 = quake.extract_ref %0[2] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.y [%4] %5 : (!quake.veq&lt;2&gt;, !quake.ref) -&gt; () loc(unknown)\0A  quake.z %5 : (!quake.ref) -&gt; () loc(unknown)\0A  quake.swap %2, %3 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  %6 = quake.extract_ref %0[3] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.swap %2, %6 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  quake.swap %3, %5 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  quake.r1 (%cst) %2 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  quake.t&lt;adj&gt; %3 : (!quake.ref) -&gt; () loc(unknown)\0A  quake.s %5 : (!quake.ref) -&gt; () loc(unknown)\0A  return loc(unknown)\0A} loc(unknown)\0Allvm.func @deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)\0A\0A}\0A\00&#34;) {addr_space = 0 : i32}
+  llvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)
+  llvm.mlir.global private constant @kernel_to_drawCodeHolder.extract_device_code(&#34;module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_to_draw = \22__nvqpp__mlirgen__kernel_to_draw_PyKernelEntryPointRewrite\22}} { func.func @__nvqpp__mlirgen__kernel_to_draw() attributes {\22cudaq-entrypoint\22} {\0A  %c4_i64 = arith.constant 4 : i64 loc(unknown)\0A  %cst = arith.constant 3.141590e+00 : f64 loc(unknown)\0A  %c1_i64 = arith.constant 1 : i64 loc(unknown)\0A  %c0_i64 = arith.constant 0 : i64 loc(unknown)\0A  %0 = quake.alloca !quake.veq&lt;4&gt; loc(unknown)\0A  %1 = cc.loop while ((%arg0 = %c0_i64) -&gt; (i64)) {\0A    %7 = arith.cmpi slt, %arg0, %c4_i64 : i64 loc(unknown)\0A    cc.condition %7(%arg0 : i64) loc(unknown)\0A  } do {\0A  ^bb0(%arg0: i64 loc(unknown)):\0A    %7 = quake.extract_ref %0[%arg0] : (!quake.veq&lt;4&gt;, i64) -&gt; !quake.ref loc(unknown)\0A    quake.h %7 : (!quake.ref) -&gt; () loc(unknown)\0A    cc.continue %arg0 : i64 loc(unknown)\0A  } step {\0A  ^bb0(%arg0: i64 loc(unknown)):\0A    %7 = arith.addi %arg0, %c1_i64 : i64 loc(unknown)\0A    cc.continue %7 : i64 loc(unknown)\0A  } {invariant} loc(unknown)\0A  %2 = quake.extract_ref %0[0] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  %3 = quake.extract_ref %0[1] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.x [%2] %3 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  %4 = quake.concat %2, %3 : (!quake.ref, !quake.ref) -&gt; !quake.veq&lt;2&gt; loc(unknown)\0A  %5 = quake.extract_ref %0[2] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.y [%4] %5 : (!quake.veq&lt;2&gt;, !quake.ref) -&gt; () loc(unknown)\0A  quake.z %5 : (!quake.ref) -&gt; () loc(unknown)\0A  quake.swap %2, %3 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  %6 = quake.extract_ref %0[3] : (!quake.veq&lt;4&gt;) -&gt; !quake.ref loc(unknown)\0A  quake.swap %2, %6 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  quake.swap %3, %5 : (!quake.ref, !quake.ref) -&gt; () loc(unknown)\0A  quake.r1 (%cst) %2 : (f64, !quake.ref) -&gt; () loc(unknown)\0A  quake.t&lt;adj&gt; %3 : (!quake.ref) -&gt; () loc(unknown)\0A  quake.s %5 : (!quake.ref) -&gt; () loc(unknown)\0A  return loc(unknown)\0A} loc(unknown)\0Allvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;)\0A\0A}\0A\00&#34;) {addr_space = 0 : i32}
   llvm.mlir.global private constant @kernel_to_drawCodeHolder.extract_device_name(&#34;kernel_to_draw\00&#34;) {addr_space = 0 : i32}
   llvm.func @kernel_to_draw.init_func() {
     %0 = llvm.mlir.addressof @kernel_to_drawCodeHolder.extract_device_name : !llvm.ptr&lt;array&lt;15 x i8&gt;&gt;
-    %1 = llvm.mlir.addressof @kernel_to_drawCodeHolder.extract_device_code : !llvm.ptr&lt;array&lt;2038 x i8&gt;&gt;
+    %1 = llvm.mlir.addressof @kernel_to_drawCodeHolder.extract_device_code : !llvm.ptr&lt;array&lt;2046 x i8&gt;&gt;
     %2 = llvm.bitcast %0 : !llvm.ptr&lt;array&lt;15 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
-    %3 = llvm.bitcast %1 : !llvm.ptr&lt;array&lt;2038 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
-    llvm.call @deviceCodeHolderAdd(%2, %3) : (!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;) -&gt; ()
+    %3 = llvm.bitcast %1 : !llvm.ptr&lt;array&lt;2046 x i8&gt;&gt; to !llvm.ptr&lt;i8&gt;
+    llvm.call @__cudaq_deviceCodeHolderAdd(%2, %3) : (!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;) -&gt; ()
     llvm.return
   }
   llvm.mlir.global_ctors {ctors = [@kernel_to_draw.init_func], priorities = [17 : i32]}
   func.func private @hybridLaunchKernel(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, i64, i64, !cc.ptr&lt;i8&gt;)
-  func.func private @cudaqRegisterKernelName(!cc.ptr&lt;i8&gt;)
   func.func private @cudaqRegisterArgsCreator(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;)
+  llvm.func @cudaqRegisterLambdaName(!llvm.ptr&lt;i8&gt;, !llvm.ptr&lt;i8&gt;) attributes {sym_visibility = &#34;private&#34;}
+  func.func private @__cudaq_registerLinkableKernel(!cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;, !cc.ptr&lt;i8&gt;)
+  func.func private @__cudaq_getLinkableKernelKey(!cc.ptr&lt;i8&gt;) -&gt; i64
+  func.func private @cudaqRegisterKernelName(!cc.ptr&lt;i8&gt;)
   func.func private @malloc(i64) -&gt; !cc.ptr&lt;i8&gt;
   func.func private @free(!cc.ptr&lt;i8&gt;)
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr&lt;none&gt;, !cc.ptr&lt;none&gt;, i64)
