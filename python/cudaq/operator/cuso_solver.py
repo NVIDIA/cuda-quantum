@@ -123,12 +123,14 @@ def evolve_me(
     else:
         _, state = integrator.get_state()
         state_length = state.storage.size
-        
+
         if is_density_matrix:
             dimension = int(math.sqrt(state_length))
-            final_state = cudaq_runtime.State.from_data(state.storage.reshape((dimension, dimension)))
+            final_state = cudaq_runtime.State.from_data(
+                state.storage.reshape((dimension, dimension)))
         else:
             dimension = state_length
-            final_state = cudaq_runtime.State.from_data(state.storage.reshape((dimension,)))
-                
+            final_state = cudaq_runtime.State.from_data(
+                state.storage.reshape((dimension,)))
+
         return cudaq_runtime.EvolveResult(final_state, exp_vals[-1])
