@@ -40,6 +40,7 @@ install(TARGETS ${LIBRARY_NAME}
 
 # add_subdirectory(photonics)
 add_subdirectory(qpp)
+add_subdirectory(stim)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_subdirectory(custatevec)
