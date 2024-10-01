@@ -17,7 +17,9 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
     Visitor class to convert CUDA-Q operator to a CuSuperOp representation.
     """
 
-    def __init__(self, dimensions: Mapping[int, int], schedule: Schedule = None):
+    def __init__(self,
+                 dimensions: Mapping[int, int],
+                 schedule: Schedule = None):
         self._dimensions = dimensions
         self._schedule = schedule
 
@@ -102,10 +104,10 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
                 combined_terms = []
                 for sub_op, degrees, duals in zip(term2, modes2, duals2):
                     combined_terms.append((sub_op, degrees, duals))
-                    
+
                 for sub_op, degrees, duals in zip(term1, modes1, duals1):
                     combined_terms.append((sub_op, degrees, duals))
-                
+
                 new_opterm += cuso.tensor_product(*combined_terms,
                                                   coeff=coeff1 * coeff2)
         return new_opterm
@@ -145,11 +147,14 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
     def _wrap_callback(self, func, params):
         for param in params:
             if param not in self._schedule._parameters:
-                raise ValueError(f"Parameter '{param}' not found in schedule. Valid schedule parameters are: {self._schedule._parameters}")
-        
+                raise ValueError(
+                    f"Parameter '{param}' not found in schedule. Valid schedule parameters are: {self._schedule._parameters}"
+                )
+
         def inplace_func(t, args):
-            call_params = dict(((parameter, self._schedule._get_value(parameter, t))
-                     for parameter in self._schedule._parameters))
+            call_params = dict(
+                ((parameter, self._schedule._get_value(parameter, t))
+                 for parameter in self._schedule._parameters))
             try:
                 return func(**call_params)
             except Exception as e:
@@ -158,17 +163,27 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
 
         return inplace_func
 
+    def _wrap_callback_tensor(self, op):
+
+        def c_callback(t, args):
+            try:
+                call_params = dict(
+                    ((parameter, self._schedule._get_value(parameter, t))
+                     for parameter in self._schedule._parameters))
+                op_mat = op.to_matrix(self._dimensions, **call_params)
+                return op_mat
+            except Exception as e:
+                print(f"Error in callback function: {e}")
+                raise RuntimeError("Failed to execute callback function")
+
+        return c_callback
+
     def evaluate(
         self, op: ElementaryOperator | ScalarOperator
     ) -> cuso.OperatorTerm | CallbackCoefficient | Number:
         logger.info(f"Evaluating {op}")
         if isinstance(op, ScalarOperator):
             if op._constant_value is None:
-                # FIXME: robust handling of conversion from ScalarOperator to cuSuperOp, which expects (t, args) signature.
-                if len(op.parameters) > 1:
-                    raise ValueError(
-                        "Callback with extra arguments, in addition to time, is not supported."
-                    )
                 return CallbackCoefficient(
                     self._wrap_callback(op.generator, op.parameters))
             else:
@@ -176,10 +191,21 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
         else:
             if op._id == "identity":
                 return 1.0
-            # FIXME: handle callback tensor
-            op_mat = op.to_matrix(self._dimensions)
-            return cuso.tensor_product(
-                (cuso.TensorOperator(op_mat), op.degrees), coeff=1.0)
+            if len(op.parameters) > 0:
+                for param in op.parameters:
+                    if param not in self._schedule._parameters:
+                        raise ValueError(
+                            f"Parameter '{param}' of operator '{op._id}' not found in schedule. Valid schedule parameters are: {self._schedule._parameters}"
+                        )
+                cuso_callback = self._wrap_callback_tensor(op)
+                c_representative_tensor = cuso_callback(0.0, ())
+                return cuso.tensor_product((cuso.TensorOperator(
+                    c_representative_tensor, cuso_callback), op.degrees),
+                                           coeff=1.0)
+            else:
+                op_mat = op.to_matrix(self._dimensions)
+                return cuso.tensor_product(
+                    (cuso.TensorOperator(op_mat), op.degrees), coeff=1.0)
 
 
 def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
