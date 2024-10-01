@@ -49,6 +49,10 @@ private:
     requestedAllocations.clear();
   }
 
+  bool isInTracerMode() {
+    return executionContext && executionContext->name == "tracer";
+  }
+
 protected:
   /// @brief Qudit allocation method: a zeroState is first initialized, the
   /// following ones are added via kron operators
@@ -205,6 +209,18 @@ protected:
     synchronize();
     flushRequestedAllocations();
     photonic_simulator()->flushGateQueue();
+  }
+
+  int measure(const cudaq::QuditInfo &target,
+              const std::string registerName = "") override {
+    if (isInTracerMode())
+      return 0;
+
+    // We hit a measure, need to exec / clear instruction queue
+    synchronize();
+
+    // Instruction executed, run the measure call
+    return measureQudit(target, registerName);
   }
 
   /// @brief Measure the state in the basis described by the given `spin_op`.

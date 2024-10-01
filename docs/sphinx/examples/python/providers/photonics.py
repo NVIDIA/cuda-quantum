@@ -1,15 +1,15 @@
 import cudaq
 
-cudaq.set_target("photonics")
+cudaq.set_target("photonics-cpu")
 
 
 @cudaq.kernel
 def photonicsKernel():
-    qutrits = [qudit(3) for _ in range(2)]
-    plus(qutrits[0])
-    plus(qutrits[1])
-    plus(qutrits[1])
-    mz(qutrits)
+    qumodes = [qudit(3) for _ in range(2)]
+    plus(qumodes[0])
+    plus(qumodes[1])
+    plus(qumodes[1])
+    mz(qumodes)
 
 
 counts = cudaq.sample(photonicsKernel)

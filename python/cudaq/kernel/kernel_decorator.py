@@ -355,10 +355,10 @@ class PyKernelDecorator(object):
         except RuntimeError:
             target_name = None
 
-        if 'photonics' == target_name:
+        if 'photonics-cpu' == target_name:
             if self.kernelFunction is None:
                 raise RuntimeError(
-                    "The 'photonics' target must be used with a valid function."
+                    "The 'photonics-cpu' target must be used with a valid function."
                 )
             PhotonicsHandler(self.kernelFunction)(*args)
             return

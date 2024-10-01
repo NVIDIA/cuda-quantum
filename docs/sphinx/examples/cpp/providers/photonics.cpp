@@ -9,11 +9,11 @@
 
 struct photonicsKernel {
   void operator()() __qpu__ {
-    cudaq::qvector<3> qutrits(2);
-    plus(qutrits[0]);
-    plus(qutrits[1]);
-    plus(qutrits[1]);
-    mz(qutrits);
+    cudaq::qvector<3> qumodes(2);
+    plus(qumodes[0]);
+    plus(qumodes[1]);
+    plus(qumodes[1]);
+    mz(qumodes);
   }
 };
 

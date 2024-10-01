@@ -1,7 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ --target photonics-cpu photonics_tbi_sample.cpp -o tbi_sample.x
-// ./tbi_sample.x
+// nvq++ --target photonics-cpu photonics_tbi_sample.cpp -o
+// photonics_tbi_sample.x && ./photonics_tbi_sample.x
 // ```
 
 #include "cudaq.h"
@@ -12,8 +12,8 @@
 // Global variables
 static const std::size_t one{1};
 
-static constexpr std::size_t n_modes{3};
-static constexpr std::array<std::size_t, n_modes> input_state{1, 1, 2};
+static constexpr std::size_t n_modes{4};
+static constexpr std::array<std::size_t, n_modes> input_state{2, 1, 3, 1};
 
 static constexpr std::size_t d{
     std::accumulate(input_state.begin(), input_state.end(), one)};
@@ -26,22 +26,22 @@ struct TBI {
     auto n_modes = ::n_modes;
     const auto d = ::d;
 
-    cudaq::qvector<d> quds(n_modes); // |00...00> d-dimensions
+    cudaq::qvector<d> qumodes(n_modes); // |00...00> d-dimensions
     for (std::size_t i = 0; i < n_modes; i++) {
       for (std::size_t j = 0; j < input_state[i]; j++) {
-        plus(quds[i]); // setting to |input_state>
+        plus(qumodes[i]); // setting to |input_state>
       }
     }
 
     std::size_t c = 0;
     for (std::size_t ll : loop_lengths) {
       for (std::size_t i = 0; i < (n_modes - ll); i++) {
-        beam_splitter(quds[i], quds[i + ll], bs_angles[c]);
-        phase_shift(quds[i], ps_angles[c]);
+        beam_splitter(qumodes[i], qumodes[i + ll], bs_angles[c]);
+        phase_shift(qumodes[i], ps_angles[c]);
         c++;
       }
     }
-    mz(quds);
+    mz(qumodes);
   }
 };
 
@@ -76,9 +76,5 @@ int main() {
   auto counts = cudaq::sample(1000000, TBI{}, bs_angles, ps_angles, input_state,
                               loop_lengths);
 
-  for (auto &[k, v] : counts) {
-    std::cout << k << ":" << v << " ";
-  }
-  std::cout << std::endl;
-  return 0;
+  counts.dump();
 }

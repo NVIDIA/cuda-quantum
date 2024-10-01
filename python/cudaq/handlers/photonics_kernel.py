@@ -113,7 +113,7 @@ def plus(qudit: PyQudit):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args(qudit)
-    cudaq_runtime.photonics.apply_operation('plusGate', [],
+    cudaq_runtime.photonics.apply_operation('plus', [],
                                             [[qudit.level, qudit.id]])
 
 
@@ -131,7 +131,7 @@ def phase_shift(qudit: PyQudit, phi: float):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args(qudit)
-    cudaq_runtime.photonics.apply_operation('phaseShiftGate', [phi],
+    cudaq_runtime.photonics.apply_operation('phase_shift', [phi],
                                             [[qudit.level, qudit.id]])
 
 
@@ -150,7 +150,7 @@ def beam_splitter(q: PyQudit, r: PyQudit, theta: float):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args([q, r])
-    cudaq_runtime.photonics.apply_operation('beamSplitterGate', [theta],
+    cudaq_runtime.photonics.apply_operation('beam_splitter', [theta],
                                             [[q.level, q.id], [r.level, r.id]])
 
 
@@ -182,8 +182,8 @@ def mz(qudits: PyQudit | List[PyQudit], register_name=''):
 class PhotonicsHandler(object):
     """
     The `PhotonicsHandler` class serves as to process CUDA-Q kernels for the 
-    `photonics` target.
-    The target must be set to `photonics` prior to invoking a `PhotonicsHandler`.
+    `photonics-cpu` target.
+    The target must be set to `photonics-cpu` prior to invoking a `PhotonicsHandler`.
 
     The quantum operations in this kernel apply to qudits defined by 
     `qudit(level=N)` or a list of qudits. The qudits within a kernel must be of
@@ -194,9 +194,9 @@ class PhotonicsHandler(object):
 
     def __init__(self, function):
 
-        if 'photonics' != cudaq_runtime.get_target().name:
+        if 'photonics-cpu' != cudaq_runtime.get_target().name:
             raise RuntimeError(
-                "A photonics kernel can only be used with 'photonics' target.")
+                "A photonics kernel can only be used with 'photonics-cpu' target.")
 
         global globalQuditLevel
         globalQuditLevel = None
