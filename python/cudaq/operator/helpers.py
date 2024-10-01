@@ -53,7 +53,7 @@ class _OperatorHelpers:
         # Also, Python caches already used patterns, so compiling on
         # the fly seems fine.
         def keyword_pattern(word):
-            return r"(?:^\s*" + word + ":\s*\r?\n)"
+            return r"(?:^\\s*" + word + ":\\s*\r?\n)"
 
         def param_pattern(param_name):
             return r"(?:^\s*" + param_name + r"\s*(\(.*\))?:)\s*(.*)$"
@@ -72,7 +72,7 @@ class _OperatorHelpers:
                                   re.MULTILINE)
                 if match is not None:
                     param_docs = match.group(2) + split[1][match.end(2):]
-                    match = re.search(param_pattern("\S*?"), param_docs,
+                    match = re.search(param_pattern("\\S*?"), param_docs,
                                       re.MULTILINE)
                     if match is not None:
                         param_docs = param_docs[:match.start(0)]

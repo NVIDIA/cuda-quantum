@@ -15,17 +15,20 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
     """
     Visitor class to convert CUDA-Q operator to a CuSuperOp representation.
     """
+
     def __init__(self, dimensions: Mapping[int, int]):
         self._dimensions = dimensions
 
     def _callback_mult_op(self, scalar: CallbackCoefficient,
                           op: cuso.OperatorTerm) -> cuso.OperatorTerm:
         new_opterm = cuso.OperatorTerm(dtype=op.dtype)
-        for term, modes, duals, coeff in zip(op.terms, op.modes, op.duals, op._coefficients):
+        for term, modes, duals, coeff in zip(op.terms, op.modes, op.duals,
+                                             op._coefficients):
             combined_terms = []
             for sub_op, degrees, duals in zip(term, modes, duals):
                 combined_terms.append((sub_op, degrees, duals))
-            new_opterm += cuso.tensor_product(*combined_terms, coeff=coeff * scalar)
+            new_opterm += cuso.tensor_product(*combined_terms,
+                                              coeff=coeff * scalar)
         return new_opterm
 
     def tensor(
@@ -51,14 +54,18 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
         if isinstance(op2, CallbackCoefficient):
             return self._callback_mult_op(op2, op1)
         new_opterm = cuso.OperatorTerm(dtype=op1.dtype)
-        for term2, modes2, duals2, coeff2 in zip(op2.terms, op2.modes, op2.duals, op2._coefficients):
-            for term1, modes1, duals1, coeff1 in zip(op1.terms, op1.modes, op1.duals, op1._coefficients):
+        for term2, modes2, duals2, coeff2 in zip(op2.terms, op2.modes,
+                                                 op2.duals, op2._coefficients):
+            for term1, modes1, duals1, coeff1 in zip(op1.terms, op1.modes,
+                                                     op1.duals,
+                                                     op1._coefficients):
                 combined_terms = []
                 for sub_op, degrees, duals in zip(term1, modes1, duals1):
                     combined_terms.append((sub_op, degrees, duals))
                 for sub_op, degrees, duals in zip(term2, modes2, duals2):
-                    combined_terms.append((sub_op, degrees, duals))    
-                new_opterm += cuso.tensor_product(*combined_terms, coeff=coeff1 * coeff2)
+                    combined_terms.append((sub_op, degrees, duals))
+                new_opterm += cuso.tensor_product(*combined_terms,
+                                                  coeff=coeff1 * coeff2)
         return new_opterm
 
     def mul(
@@ -85,14 +92,18 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
         if isinstance(op2, CallbackCoefficient):
             return self._callback_mult_op(op2, op1)
         new_opterm = cuso.OperatorTerm(dtype=op1.dtype)
-        for term2, modes2, duals2, coeff2 in zip(op2.terms, op2.modes, op2.duals, op2._coefficients):
-            for term1, modes1, duals1, coeff1 in zip(op1.terms, op1.modes, op1.duals, op1._coefficients):
+        for term2, modes2, duals2, coeff2 in zip(op2.terms, op2.modes,
+                                                 op2.duals, op2._coefficients):
+            for term1, modes1, duals1, coeff1 in zip(op1.terms, op1.modes,
+                                                     op1.duals,
+                                                     op1._coefficients):
                 combined_terms = []
                 for sub_op, degrees, duals in zip(term1, modes1, duals1):
                     combined_terms.append((sub_op, degrees, duals))
                 for sub_op, degrees, duals in zip(term2, modes2, duals2):
-                    combined_terms.append((sub_op, degrees, duals))    
-                new_opterm += cuso.tensor_product(*combined_terms, coeff=coeff1 * coeff2)
+                    combined_terms.append((sub_op, degrees, duals))
+                new_opterm += cuso.tensor_product(*combined_terms,
+                                                  coeff=coeff1 * coeff2)
         return new_opterm
 
     def _scalar_to_op(
@@ -129,13 +140,14 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
 
     def _wrap_callback(self, func, params):
         time_arg_key = next(iter(params))
+
         def inplace_func(t, args):
             try:
                 return func(**{time_arg_key: t})
             except Exception as e:
                 print(f"Error in callback function: {e}")
                 raise RuntimeError("Failed to execute callback function")
-        
+
         return inplace_func
 
     def evaluate(
@@ -146,8 +158,11 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
             if op._constant_value is None:
                 # FIXME: robust handling of conversion from ScalarOperator to cuSuperOp, which expects (t, args) signature.
                 if len(op.parameters) > 1:
-                    raise ValueError("Callback with extra arguments, in addition to time, is not supported.")
-                return CallbackCoefficient(self._wrap_callback(op.generator, op.parameters))
+                    raise ValueError(
+                        "Callback with extra arguments, in addition to time, is not supported."
+                    )
+                return CallbackCoefficient(
+                    self._wrap_callback(op.generator, op.parameters))
             else:
                 return op._constant_value
         else:
@@ -155,7 +170,8 @@ class CuSuperOpHamConversion(OperatorArithmetics[cuso.OperatorTerm |
                 return 1.0
             # FIXME: handle callback tensor
             op_mat = op.to_matrix(self._dimensions)
-            return cuso.tensor_product((cuso.TensorOperator(op_mat), op.degrees), coeff=1.0)
+            return cuso.tensor_product(
+                (cuso.TensorOperator(op_mat), op.degrees), coeff=1.0)
 
 
 def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
@@ -164,20 +180,25 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
     Helper function to compute the Lindlad (super-)operator 
     """
     D_terms = []
-    
+
     def conjugate_coeff(coeff: CallbackCoefficient):
         if coeff.is_callable:
-            return CallbackCoefficient(lambda t,args : numpy.conjugate(coeff.callback(t,args)))
+            return CallbackCoefficient(
+                lambda t, args: numpy.conjugate(coeff.callback(t, args)))
         return numpy.conjugate(coeff.scalar)
 
-    for term1, modes1, duals1, coeff1 in zip(l1.terms, l1.modes, l1.duals, l1._coefficients):
-        for term2, modes2, duals2, coeff2 in zip(l2.terms, l2.modes, l2.duals, l2._coefficients):
+    for term1, modes1, duals1, coeff1 in zip(l1.terms, l1.modes, l1.duals,
+                                             l1._coefficients):
+        for term2, modes2, duals2, coeff2 in zip(l2.terms, l2.modes, l2.duals,
+                                                 l2._coefficients):
             coeff = coeff1 * conjugate_coeff(coeff2)
             d1_terms = []
             for sub_op_1, degrees, duals in zip(term1, modes1, duals1):
                 op_mat = sub_op_1._tensor.tensor.numpy()
                 d1_terms.append((op_mat, degrees, duals))
-            for sub_op_2, degrees, duals in zip(reversed(term2), reversed(modes2), reversed(duals2)):
+            for sub_op_2, degrees, duals in zip(reversed(term2),
+                                                reversed(modes2),
+                                                reversed(duals2)):
                 op_mat = sub_op_2._tensor.tensor.numpy()
                 flipped_duals = tuple((not elem for elem in duals))
                 d1_terms.append((numpy.ascontiguousarray(numpy.conj(op_mat).T),
@@ -186,7 +207,9 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
             D_terms.append(tuple((D1, 1.0)))
 
             d2_terms = []
-            for sub_op_2, degrees, duals in zip(reversed(term2), reversed(modes2), reversed(duals2)):
+            for sub_op_2, degrees, duals in zip(reversed(term2),
+                                                reversed(modes2),
+                                                reversed(duals2)):
                 op_mat = sub_op_2._tensor.tensor.numpy()
                 flipped_duals = tuple((not elem for elem in duals))
                 d2_terms.append((numpy.ascontiguousarray(numpy.conj(op_mat).T),
@@ -196,19 +219,23 @@ def computeLindladOp(hilbert_space_dims: List[int], l1: cuso.OperatorTerm,
                 flipped_duals = tuple((not elem for elem in duals))
                 d2_terms.append((op_mat, degrees, flipped_duals))
             D2 = cuso.tensor_product(*d2_terms,
-                                     coeff=-0.5 * coeff1 * conjugate_coeff(coeff2))
+                                     coeff=-0.5 * coeff1 *
+                                     conjugate_coeff(coeff2))
             D_terms.append(tuple((D2, 1.0)))
 
             d3_terms = []
             for sub_op_1, degrees, duals in zip(term1, modes1, duals1):
                 op_mat = sub_op_1._tensor.tensor.numpy()
                 d3_terms.append((op_mat, degrees, duals))
-            for sub_op_2, degrees, duals in zip(reversed(term2), reversed(modes2), reversed(duals2)):
+            for sub_op_2, degrees, duals in zip(reversed(term2),
+                                                reversed(modes2),
+                                                reversed(duals2)):
                 op_mat = sub_op_2._tensor.tensor.numpy()
                 d3_terms.append((numpy.ascontiguousarray(numpy.conj(op_mat).T),
                                  degrees, duals))
             D3 = cuso.tensor_product(*d3_terms,
-                                     coeff=-0.5 * coeff1 * conjugate_coeff(coeff2))
+                                     coeff=-0.5 * coeff1 *
+                                     conjugate_coeff(coeff2))
             D_terms.append(tuple((D3, 1.0)))
     lindblad = cuso.Operator(hilbert_space_dims, *D_terms)
     return lindblad

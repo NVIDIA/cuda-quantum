@@ -22,7 +22,7 @@ class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
             self.liouvillian_action.prepare(self.ctx, (self.state,))
         state_type = self.state.__class__
         # FIXME: reduce temporary allocations.
-        # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step. 
+        # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step.
         action_result = state_type(self.ctx,
                                    cupy.zeros_like(self.state.storage))
         self.liouvillian_action.compute(t, (), (self.state,), action_result)

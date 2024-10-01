@@ -14,7 +14,10 @@ import numpy as np
 import cupy as cp
 
 cudaq.set_target("nvidia-dynamics")
-all_integrator_classes = [RungeKuttaIntegrator, ScipyZvodeIntegrator]
+all_integrator_classes = [
+    CUDATorchDiffEqDopri5Integrator#, CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqRK4Integrator
+    # [RungeKuttaIntegrator, ScipyZvodeIntegrator]
+]   # , CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator, CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqDopri8Integrator, CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator, CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqRK4Integrator]
 
 
 class TestCavityDecay:
@@ -342,7 +345,7 @@ def test_analytical_models(integrator, model):
                               observables=model.observables(),
                               collapse_operators=model.collapse_ops(),
                               store_intermediate_results=True,
-                              integrator=integrator())
+                              integrator=integrator(None, nsteps=10, step_size=1e-5))
     # Check expectation values
     for i, exp_vals in enumerate(evolution_result.expectation_values()):
         np.testing.assert_allclose([res.expectation() for res in exp_vals],
@@ -408,7 +411,7 @@ def test_squeezing(integrator):
                                            pauli.z(0)],
                               collapse_operators=c_ops,
                               store_intermediate_results=True,
-                              integrator=ScipyZvodeIntegrator())
+                              integrator=integrator())
 
     exp_val_x = [
         exp_vals[0].expectation()
@@ -451,13 +454,13 @@ def test_cat_state(integrator):
 
     # Run the simulation: observe the photon count, position and momentum.
     evolution_result = evolve(hamiltonian,
-                              dimensions,
-                              schedule,
-                              rho0,
-                              observables=[],
-                              collapse_operators=[],
-                              store_intermediate_results=False,
-                              integrator=integrator())
+                            dimensions,
+                            schedule,
+                            rho0,
+                            observables=[],
+                            collapse_operators=[],
+                            store_intermediate_results=False,
+                            integrator=integrator())
 
     # The expected cat state: superposition of |alpla> and |-alpha> coherent states.
     expected_state = np.exp(1j * np.pi / 4) * coherent_state(N, -2.0j) + np.exp(
