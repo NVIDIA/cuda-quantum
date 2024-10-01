@@ -47,10 +47,11 @@ __qpu__ void touringLondon() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_touringLondon._Z13touringLondonv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           call @__nvqpp__mlirgen__function_doubleDeckerBus._Z15doubleDeckerBusv(%[[VAL_0]]) : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> ()
-// CHECK:           %[[VAL_1:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[VAL_1:.*]] = cc.load %[[VAL_10]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
 // CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i64>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_3]] : (!cc.ptr<!cc.ptr<i8>>, i64) -> !cc.stdvec<i32>
+// CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_4]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<i32 x ?>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
