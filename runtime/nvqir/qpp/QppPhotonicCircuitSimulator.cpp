@@ -149,8 +149,6 @@ protected:
   /// The QPP state representation (qpp::ket or qpp::cmat)
   StateType state;
 
-  std::size_t levels;
-
   std::size_t convertQuditIndex(std::size_t quditIndex) {
     assert(stateDimension > 0 && "The state is empty, and thus has no qudits");
     // return (std::log2(stateDimension) / std::log2(levels)) - quditIndex - 1;
@@ -159,6 +157,7 @@ protected:
 
   qpp::cmat toQppMatrix(const std::vector<std::complex<double>> &data,
                         std::size_t nTargets) {
+
     auto nRows = std::pow(levels, nTargets);
     assert(data.size() == nRows * nRows &&
            "Invalid number of gate matrix elements passed to toQppMatrix");
@@ -235,10 +234,10 @@ protected:
     }
 
     if (controls.empty()) {
-      state = qpp::apply(state, matrix, targets);
+      state = qpp::apply(state, matrix, targets, levels);
       return;
     }
-    state = qpp::applyCTRL(state, matrix, controls, targets);
+    state = qpp::applyCTRL(state, matrix, controls, targets, levels);
   }
 
   void setToZeroState() override {
@@ -246,7 +245,7 @@ protected:
     state(0) = 1.0;
   }
 
-  bool measureQudit(const std::size_t index) override {
+  int measureQudit(const std::size_t index) override {
     const auto quditIdx = convertQuditIndex(index);
     // If here, then we care about the result bit, so compute it.
     const auto measurement_tuple =
@@ -301,35 +300,35 @@ public:
       measuredDigits.push_back(convertQuditIndex(index));
     }
 
-    auto sampleResult = qpp::sample(shots, state, measuredDigits, 2);
+    auto sampleResult = qpp::sample(shots, state, measuredDigits, levels);
     // Convert to what we expect
     std::stringstream bitstream;
     cudaq::ExecutionResult counts;
 
     // Expectation value from the counts
-    double expVal = 0.0;
+    // double expVal = 0.0;
     for (auto [result, count] : sampleResult) {
-      // Push back each term in the vector of bits to the bitstring.
-      for (const auto &bit : result) {
-        bitstream << bit;
+      // Push back each term in the vector of digits to the digit_string.
+      std::stringstream digit_string;
+      for (const auto &digit : result) {
+        digit_string << digit;
       }
 
       // Add to the sample result
       // in mid-circ sampling mode this will append 1 bitstring
-      auto bitstring = bitstream.str();
-      counts.appendResult(bitstring, count);
-      auto par = cudaq::sample_result::has_even_parity(bitstring);
-      auto p = count / (double)shots;
-      if (!par) {
-        p = -p;
-      }
-      expVal += p;
+      counts.appendResult(digit_string.str(), count);
+      // auto par = cudaq::sample_result::has_even_parity(bitstring);
+      // auto p = count / (double)shots;
+      // if (!par) {
+      //   p = -p;
+      // }
+      // expVal += p;
       // Reset the state.
       bitstream.str("");
       bitstream.clear();
     }
 
-    counts.expectationValue = expVal;
+    // counts.expectationValue = expVal;
     return counts;
   }
 

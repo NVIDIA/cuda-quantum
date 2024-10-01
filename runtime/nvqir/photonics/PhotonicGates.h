@@ -180,7 +180,7 @@ struct beam_splitter {
   std::vector<ComplexT<ScalarType>>
   getGate(const std::size_t levels, std::vector<ScalarType> angles = {}) {
     return getPhotonicGateByName<ScalarType>(PhotonicGateName::BeamSplitterGate,
-                                             levels);
+                                             levels, angles);
   }
   const std::string name() const { return "beam_splitter"; }
 };
@@ -191,7 +191,7 @@ struct phase_shift {
   std::vector<ComplexT<ScalarType>>
   getGate(const std::size_t levels, std::vector<ScalarType> angles = {}) {
     return getPhotonicGateByName<ScalarType>(PhotonicGateName::PhaseShiftGate,
-                                             levels);
+                                             levels, angles);
   }
   const std::string name() const { return "phase_shift"; }
 };
