@@ -10,4 +10,5 @@ name: photonics-cpu
 description: "Photonics QPP-based CPU-only backend target"
 config:
   nvqir-simulation-backend: photonics
+  # link-libs: ["-lcudaq-em-photonics"]
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]

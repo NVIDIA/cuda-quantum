@@ -1,7 +1,15 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
 // Compile and run with:
 // ```
-// nvq++ --target photonics photonics_tbi.cpp -o tbi.x
-// ./tbi.x
+// nvq++ --target photonics-cpu photonics_tbi_get_state.cpp -o tbi_get_state.x
+// ./tbi_get_state.x
 // ```
 
 #include "cudaq.h"
@@ -12,8 +20,8 @@
 // Global variables
 static const std::size_t one{1};
 
-static constexpr std::size_t n_modes{4};
-static constexpr std::array<std::size_t, n_modes> input_state{2, 1, 3, 1};
+static constexpr std::size_t n_modes{3};
+static constexpr std::array<std::size_t, n_modes> input_state{1, 1, 2};
 
 static constexpr std::size_t d{
     std::accumulate(input_state.begin(), input_state.end(), one)};
@@ -41,7 +49,6 @@ struct TBI {
         c++;
       }
     }
-    mz(quds);
   }
 };
 
@@ -73,12 +80,13 @@ int main() {
   LinearSpacedArray(bs_angles, M_PI / 3, M_PI / 6, n_beam_splitters);
   LinearSpacedArray(ps_angles, M_PI / 3, M_PI / 5, n_beam_splitters);
 
-  auto counts = cudaq::sample(1000000, TBI{}, bs_angles, ps_angles, input_state,
-                              loop_lengths);
+  auto state =
+      cudaq::get_state(TBI{}, bs_angles, ps_angles, input_state, loop_lengths);
 
-  for (auto &[k, v] : counts) {
-    std::cout << k << ":" << v << " ";
-  }
-  std::cout << std::endl;
-  return 0;
+  state.dump();
+  // for (auto &[k, v] : counts) {
+  //   std::cout << k << ":" << v << " ";
+  // }
+  // std::cout << std::endl;
+  // return 0;
 }

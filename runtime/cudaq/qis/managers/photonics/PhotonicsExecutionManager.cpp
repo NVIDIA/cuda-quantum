@@ -58,6 +58,7 @@ protected:
 
   /// @brief Allocate a set of `qudits` with a single call.
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    photonic_simulator()->setLevels(qudits[0].levels);
     photonic_simulator()->allocateQudits(qudits.size());
     // for (auto &q : qudits)
     //   allocateQudit(q);

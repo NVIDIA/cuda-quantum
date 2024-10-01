@@ -86,6 +86,9 @@ struct PSSummaryData {
 /// state vector), sampling, and measurements.
 class PhotonicCircuitSimulator {
 protected:
+  /// @brief The number of levels for the qudits
+  std::size_t levels;
+
   /// @brief Flush the current queue of gates, i.e.
   /// apply them to the state. Internal and meant for
   /// subclasses to implement
@@ -99,6 +102,8 @@ public:
   PhotonicCircuitSimulator() = default;
   /// @brief The destructor
   virtual ~PhotonicCircuitSimulator() = default;
+
+  void setLevels(std::size_t newLevels) { levels = newLevels; }
 
   /// @brief Flush the current queue of gates, i.e.
   /// apply them to the state.
@@ -213,7 +218,7 @@ public:
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM
 
   /// @brief Measure the qudit with given index
-  virtual bool mz(const std::size_t quditIdx) = 0;
+  virtual std::size_t mz(const std::size_t quditIdx) = 0;
 
   /// @brief Measure operation. Here we check what the current execution
   /// context is. If the context is sample, then we do nothing but store the
@@ -223,8 +228,8 @@ public:
   /// qudit, collapse the state, and then store the sample qudit for final full
   /// state sampling. We also return the bit result. If no execution context,
   /// just measure, collapse, and return the bit.
-  virtual bool mz(const std::size_t quditIdx,
-                  const std::string &registerName) = 0;
+  virtual std::size_t mz(const std::size_t quditIdx,
+                         const std::string &registerName) = 0;
 
   /// @brief Reset the qudit to the |0> state
   virtual void resetQudit(const std::size_t quditIdx) = 0;
@@ -255,9 +260,6 @@ template <typename ScalarType>
 class PhotonicCircuitSimulatorBase : public PhotonicCircuitSimulator {
 
 private:
-  // The levels of the qudits
-  std::size_t levels;
-
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
 
@@ -345,6 +347,8 @@ protected:
   /// @brief Return the current multi-qudit state dimension
   virtual std::size_t calculateStateDim(const std::size_t numQudits) {
     assert(numQudits < 30);
+    cudaq::info("[calculateStateDim] levels {},  numQudits {}.", levels,
+                numQudits);
     return std::pow(levels, numQudits);
   }
 
@@ -362,7 +366,7 @@ protected:
   }
   /// @brief Measure the qudit and return the result. Collapse the
   /// state vector.
-  virtual bool measureQudit(const std::size_t quditIdx) = 0;
+  virtual int measureQudit(const std::size_t quditIdx) = 0;
 
   /// @brief Return true if this PhotonicCircuitSimulator can
   /// handle <psi | H | psi> instead of NVQIR applying measure
@@ -700,6 +704,7 @@ protected:
 public:
   /// @brief The constructor
   PhotonicCircuitSimulatorBase() = default;
+
   /// @brief The destructor
   virtual ~PhotonicCircuitSimulatorBase() = default;
 
@@ -1140,7 +1145,7 @@ public:
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_ONE_PARAM
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM
 
-  bool mz(const std::size_t quditIdx) { return mz(quditIdx, ""); }
+  std::size_t mz(const std::size_t quditIdx) { return mz(quditIdx, ""); }
 
   /// @brief Measure operation. Here we check what the current execution
   /// context is. If the context is sample, then we do nothing but store the
@@ -1150,8 +1155,8 @@ public:
   /// qudit, collapse the state, and then store the sample qudit for final
   /// full state sampling. We also return the bit result. If no execution
   /// context, just measure, collapse, and return the bit.
-  bool mz(const std::size_t quditIdx,
-          const std::string &registerName) override {
+  std::size_t mz(const std::size_t quditIdx,
+                 const std::string &registerName) override {
     // Flush the Gate Queue
     flushGateQueue();
 
@@ -1164,11 +1169,11 @@ public:
 
     // Get the actual measurement from the subtype measureQudit implementation
     auto measureResult = measureQudit(quditIdx);
-    auto bitResult = measureResult == true ? "1" : "0";
+    // auto bitResult = measureResult == true ? "1" : "0";
 
     // If this CUDA-Q kernel has conditional statements on measure results
     // then we want to handle the sampling a bit differently.
-    handleSamplingWithConditionals(quditIdx, bitResult, registerName);
+    // handleSamplingWithConditionals(quditIdx, bitResult, registerName);
 
     // Return the result
     return measureResult;
