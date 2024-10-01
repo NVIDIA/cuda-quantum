@@ -44,6 +44,8 @@ Common
 .. doxygenclass:: cudaq::async_result
     :members:
 
+.. doxygentypedef:: async_sample_result
+
 
 .. doxygenstruct:: cudaq::ExecutionResult
     :members:
