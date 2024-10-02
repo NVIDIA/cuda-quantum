@@ -7,14 +7,15 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: cudaq-quake %cpp_std %s -verify
+// RUN: cudaq-quake %s -verify
 
 #include "cudaq.h"
 
 struct s {
     cudaq::qview<> s;
 };
-struct test { // expected-error {{recursive quantum struct types are not allowed.}}
+// expected-error@+1{{recursive quantum struct types are not allowed.}}
+struct test {
   cudaq::qview<> q;
   cudaq::qview<> r;
   s s;
@@ -25,8 +26,3 @@ __qpu__ void entry_ctor() {
   test tt(q, r, s); 
   h(tt.r[0]);
 }
-// expected-error@* {{}}
-// expected-error@* {{}}
-// expected-error@* {{}}
-// expected-error@* {{}}
-// expected-error@* {{}}

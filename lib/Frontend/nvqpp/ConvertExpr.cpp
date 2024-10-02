@@ -1122,6 +1122,9 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
       return pushValue(builder.create<cc::ComputePtrOp>(
           loc, cc::PointerType::get(ty), object, offsets));
     }
+    if (isa<quake::StruqType>(object.getType()))
+      return pushValue(
+          builder.create<quake::GetMemberOp>(loc, ty, object, offset));
     // We have a struct value
     offsets.push_back(offset);
     return pushValue(
@@ -2413,6 +2416,9 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   bool allRef = std::all_of(last.begin(), last.end(), [](auto v) {
     return isa<quake::RefType, quake::VeqType>(v.getType());
   });
+  if (allRef && isa<quake::StruqType>(initListTy))
+    return pushValue(builder.create<quake::MakeStruqOp>(loc, initListTy, last));
+
   if (allRef && !isa<cc::StructType>(initListTy)) {
     // Initializer list contains all quantum reference types. In this case we
     // want to create quake code to concatenate the references into a veq.
@@ -2486,16 +2492,8 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   }
 
   // If quantum, use value semantics with cc insert / extract value.
-  if (isQuantumStructType(eleTy)) {
-    Value undefOpRes = builder.create<cc::UndefOp>(loc, eleTy);
-    for (auto iter : llvm::enumerate(last)) {
-      std::int32_t i = iter.index();
-      auto v = iter.value();
-      undefOpRes =
-          builder.create<cc::InsertValueOp>(loc, eleTy, undefOpRes, v, i);
-    }
-    return pushValue(undefOpRes);
-  }
+  if (isa<quake::StruqType>(eleTy))
+    return pushValue(builder.create<quake::MakeStruqOp>(loc, eleTy, last));
 
   Value alloca = (numEles > 1)
                      ? builder.create<cc::AllocaOp>(loc, eleTy, arrSize)
@@ -2589,21 +2587,15 @@ static Type getEleTyFromVectorCtor(Type ctorTy) {
 
 bool QuakeBridgeVisitor::VisitCXXParenListInitExpr(
     clang::CXXParenListInitExpr *x) {
-  if (auto ty = peekType(); isQuantumStructType(ty)) {
-    auto loc = toLocation(x);
-    auto structTy = dyn_cast<cc::StructType>(ty);
-    auto last = lastValues(structTy.getMembers().size());
-    Value undefOpRes = builder.create<cc::UndefOp>(loc, structTy);
-    for (auto iter : llvm::enumerate(last)) {
-      std::int32_t i = iter.index();
-      auto v = iter.value();
-      undefOpRes =
-          builder.create<cc::InsertValueOp>(loc, structTy, undefOpRes, v, i);
-    }
-    return pushValue(undefOpRes);
-  }
-
-  return false;
+  auto ty = peekType();
+  assert(ty && "type must be present");
+  LLVM_DEBUG(llvm::dbgs() << "paren list type: " << ty << '\n');
+  auto structTy = dyn_cast<quake::StruqType>(ty);
+  if (!structTy)
+    return true;
+  auto loc = toLocation(x);
+  auto last = lastValues(structTy.getMembers().size());
+  return pushValue(builder.create<quake::MakeStruqOp>(loc, structTy, last));
 }
 
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
@@ -2901,16 +2893,17 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return true;
   }
 
-  // Just walk through copy constructors for quantum struct types.
-  if (ctor->isCopyOrMoveConstructor() && isQuantumStructType(ctorTy))
-    return true;
-
-  if (ctor->isCopyOrMoveConstructor() && parent->isPOD()) {
-    // Copy or move constructor on a POD struct. The value stack should contain
-    // the object to load the value from.
-    auto fromStruct = popValue();
-    assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
-    return pushValue(builder.create<cc::LoadOp>(loc, fromStruct));
+  if (ctor->isCopyOrMoveConstructor()) {
+    // Just walk through copy constructors for quantum struct types.
+    if (isa<quake::StruqType>(ctorTy))
+      return true;
+    if (parent->isPOD()) {
+      // Copy or move constructor on a POD struct. The value stack should
+      // contain the object to load the value from.
+      auto fromStruct = popValue();
+      assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
+      return pushValue(builder.create<cc::LoadOp>(loc, fromStruct));
+    }
   }
 
   if (ctor->isCopyConstructor() && ctor->isTrivial() &&

@@ -22,12 +22,6 @@ static bool isArithmeticType(Type t) {
   return isa<IntegerType, FloatType, ComplexType>(t);
 }
 
-/// Is \p t a quantum reference type. In the bridge, quantum types are always
-/// reference types.
-static bool isQuantumType(Type t) {
-  return isa<quake::VeqType, quake::RefType>(t);
-}
-
 /// Allow `array of [array of]* T`, where `T` is arithmetic.
 static bool isStaticArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t)) {
@@ -144,7 +138,8 @@ static bool isKernelResultType(Type t) {
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
-         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
+         quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
+         isFunctionCallable(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -243,33 +238,41 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   auto *ctx = builder.getContext();
   if (!x->getDefinition())
     return pushType(cc::StructType::get(ctx, name, /*isOpaque=*/true));
+
   SmallVector<Type> fieldTys =
       lastTypes(std::distance(x->field_begin(), x->field_end()));
   auto [width, alignInBytes] = getWidthAndAlignment(x);
-  cc::StructType ty =
-      name.empty()
-          ? cc::StructType::get(ctx, fieldTys, width, alignInBytes)
-          : cc::StructType::get(ctx, name, fieldTys, width, alignInBytes);
+  bool isStruq = !fieldTys.empty();
+  for (auto ty : fieldTys)
+    if (!quake::isQuantumReferenceType(ty))
+      isStruq = false;
 
-  // Do some error analysis on the struct. Check the following:
-  // Does this struct contain contain a quantum struct? Recursive quantum types
-  // are not allowed
-  // Is this a struct with both classical and quantum types? Not allowed
-  // Does this struct have user-specified methods? Not allowd
+  auto ty = [&]() -> Type {
+    if (isStruq)
+      return quake::StruqType::get(ctx, fieldTys);
+    if (name.empty())
+      return cc::StructType::get(ctx, fieldTys, width, alignInBytes);
+    return cc::StructType::get(ctx, name, fieldTys, width, alignInBytes);
+  }();
 
-  for (auto fieldTy : fieldTys)
-    if (isQuantumStructType(fieldTy))
-      reportClangError(x, mangler,
-                       "recursive quantum struct types are not allowed.");
+  // Do some error analysis on the product type. Check the following:
 
-  if (!isQuantumStructType(ty))
+  // - If this is a struq, does it contain contain a struq member? Not allowed.
+  if (isa<quake::StruqType>(ty))
     for (auto fieldTy : fieldTys)
-      if (quake::isQuantumType(fieldTy))
+      if (isa<quake::StruqType>(fieldTy))
+        reportClangError(x, mangler,
+                         "recursive quantum struct types are not allowed.");
+
+  // - Is this a struct does it have quantum types? Not allowed.
+  if (!isa<quake::StruqType>(ty))
+    for (auto fieldTy : fieldTys)
+      if (quake::isQuakeType(fieldTy))
         reportClangError(
             x, mangler,
             "hybrid quantum-classical struct types are not allowed.");
 
-  // for any kind of struct struct, throw error if it has methods
+  // - Does this product type have (user-defined) member functions? Not allowed.
   if (auto *cxxRd = dyn_cast<clang::CXXRecordDecl>(x)) {
     auto numMethods = [&cxxRd]() {
       std::size_t count = 0;

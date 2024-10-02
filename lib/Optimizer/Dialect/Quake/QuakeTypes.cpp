@@ -58,6 +58,42 @@ quake::VeqType::verify(llvm::function_ref<InFlightDiagnostic()> emitError,
 
 //===----------------------------------------------------------------------===//
 
+Type quake::StruqType::parse(AsmParser &parser) {
+  if (parser.parseLess())
+    return {};
+  std::string name;
+  auto *ctx = parser.getContext();
+  StringAttr nameAttr;
+  if (succeeded(parser.parseOptionalString(&name))) {
+    nameAttr = StringAttr::get(ctx, name);
+    if (parser.parseColon())
+      return {};
+  }
+  SmallVector<Type> members;
+  do {
+    Type member;
+    auto optTy = parser.parseOptionalType(member);
+    if (!optTy.has_value())
+      break;
+    if (!succeeded(*optTy))
+      return {};
+    members.push_back(member);
+  } while (succeeded(parser.parseOptionalComma()));
+  if (parser.parseGreater())
+    return {};
+  return quake::StruqType::get(ctx, nameAttr, members);
+}
+
+void quake::StruqType::print(AsmPrinter &printer) const {
+   printer << '<';
+   if (getName())
+      printer << getName() << ": ";
+   llvm::interleaveComma(getMembers(), printer);
+   printer << '>';
+}
+
+//===----------------------------------------------------------------------===//
+
 void quake::QuakeDialect::registerTypes() {
-  addTypes<ControlType, MeasureType, RefType, VeqType, WireType>();
+  addTypes<ControlType, MeasureType, RefType, StruqType, VeqType, WireType>();
 }

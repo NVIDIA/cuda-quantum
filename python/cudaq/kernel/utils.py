@@ -237,6 +237,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 emitFatalError(
                     f'hybrid quantum-classical data types not allowed in kernel code.'
                 )
+            return quake.StruqType.getNamed(ctx, id, structTys)
 
         return cc.StructType.getNamed(ctx, id, structTys)
 
