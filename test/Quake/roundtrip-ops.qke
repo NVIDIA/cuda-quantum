@@ -801,3 +801,41 @@ func.func @indirect_callable2(%arg : !cc.indirect_callable<(i32) -> i64>) -> i64
 // CHECK:           %[[VAL_2:.*]] = cc.call_indirect_callable %[[VAL_0]], %[[VAL_1]] : (!cc.indirect_callable<(i32) -> i64>, i32) -> i64
 // CHECK:           return %[[VAL_2]] : i64
 // CHECK:         }
+
+func.func @quantum_product_type() {
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.alloca !quake.veq<4>
+  %2 = quake.make_struq %0, %1 : (!quake.veq<3>, !quake.veq<4>) -> !quake.struq<!quake.veq<?>, !quake.veq<?>>
+  %3 = quake.get_member %2[0] : (!quake.struq<!quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+  %4 = quake.get_member %2[1] : (!quake.struq<!quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+  %10 = quake.alloca !quake.veq<5>
+  %11 = quake.alloca !quake.veq<6>
+  %12 = quake.make_struq %10, %11 : (!quake.veq<5>, !quake.veq<6>) -> !quake.struq<"gumby": !quake.veq<?>, !quake.veq<?>>
+  %13 = quake.get_member %12[0] : (!quake.struq<"gumby": !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+  %14 = quake.get_member %12[1] : (!quake.struq<"gumby": !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+  %20 = quake.alloca !quake.veq<7>
+  %21 = quake.alloca !quake.veq<8>
+  %22 = quake.make_struq %20, %21 : (!quake.veq<7>, !quake.veq<8>) -> !quake.struq<!quake.veq<7>, !quake.veq<8>>
+  %23 = quake.get_member %22[0] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<7>
+  %24 = quake.get_member %22[1] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<8>
+  return
+ }
+
+// CHECK-LABEL:   func.func @quantum_product_type() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_2:.*]] = quake.make_struq %[[VAL_0]], %[[VAL_1]] : (!quake.veq<3>, !quake.veq<4>) -> !quake.struq<!quake.veq<?>, !quake.veq<?>>
+// CHECK:           %[[VAL_3:.*]] = quake.get_member %[[VAL_2]][0] : (!quake.struq<!quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = quake.get_member %[[VAL_2]][1] : (!quake.struq<!quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<6>
+// CHECK:           %[[VAL_7:.*]] = quake.make_struq %[[VAL_5]], %[[VAL_6]] : (!quake.veq<5>, !quake.veq<6>) -> !quake.struq<"gumby": !quake.veq<?>, !quake.veq<?>>
+// CHECK:           %[[VAL_8:.*]] = quake.get_member %[[VAL_7]][0] : (!quake.struq<"gumby": !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_9:.*]] = quake.get_member %[[VAL_7]][1] : (!quake.struq<"gumby": !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<7>
+// CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.veq<8>
+// CHECK:           %[[VAL_12:.*]] = quake.make_struq %[[VAL_10]], %[[VAL_11]] : (!quake.veq<7>, !quake.veq<8>) -> !quake.struq<!quake.veq<7>, !quake.veq<8>>
+// CHECK:           %[[VAL_13:.*]] = quake.get_member %[[VAL_12]][0] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<7>
+// CHECK:           %[[VAL_14:.*]] = quake.get_member %[[VAL_12]][1] : (!quake.struq<!quake.veq<7>, !quake.veq<8>>) -> !quake.veq<8>
+// CHECK:           return
+// CHECK:         }
