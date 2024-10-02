@@ -44,6 +44,8 @@ Common
 .. doxygenclass:: cudaq::async_result
     :members:
 
+.. doxygentypedef:: async_sample_result
+
 
 .. doxygenstruct:: cudaq::ExecutionResult
     :members:
@@ -231,5 +233,7 @@ Namespaces
 .. doxygennamespace:: cudaq::orca
     :desc-only:
 
-.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000)
-.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000)
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)
