@@ -252,7 +252,7 @@ class PyASTBridge(ast.NodeVisitor):
         Return False otherwise.
         """
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
-               ty) or quake.StruqType.isinstance(ty)
+            ty) or quake.StruqType.isinstance(ty)
 
     def isMeasureResultType(self, ty, value):
         """
