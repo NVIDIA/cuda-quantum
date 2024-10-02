@@ -1939,7 +1939,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if isStruq:
                     # If we have a quantum struct. We cannot allocate classical
                     # memory and load / store quantum type values to that memory
-                    # space, so use quake.MakeStruqOp.
+                    # space, so use `quake.MakeStruqOp`.
                     self.pushValue(quake.MakeStruqOp(structTy, ctorArgs).result)
                     return
 
