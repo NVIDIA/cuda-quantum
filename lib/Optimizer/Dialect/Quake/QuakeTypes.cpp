@@ -85,11 +85,11 @@ Type quake::StruqType::parse(AsmParser &parser) {
 }
 
 void quake::StruqType::print(AsmPrinter &printer) const {
-   printer << '<';
-   if (getName())
-      printer << getName() << ": ";
-   llvm::interleaveComma(getMembers(), printer);
-   printer << '>';
+  printer << '<';
+  if (getName())
+    printer << getName() << ": ";
+  llvm::interleaveComma(getMembers(), printer);
+  printer << '>';
 }
 
 //===----------------------------------------------------------------------===//

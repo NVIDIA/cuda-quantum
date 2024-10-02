@@ -34,7 +34,7 @@ inline bool isQuakeType(mlir::Type ty) {
   return isQuantumType(ty) || mlir::isa<quake::MeasureType>(ty);
 }
 
-/// \returns true if \p ty is a quantum reference type, excluding struq.
+/// \returns true if \p ty is a quantum reference type, excluding `struq`.
 inline bool isNonStruqReferenceType(mlir::Type ty) {
   return mlir::isa<quake::RefType, quake::VeqType>(ty);
 }
