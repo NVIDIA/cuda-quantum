@@ -24,6 +24,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/TargetConfig.h"
@@ -106,6 +107,10 @@ protected:
   /// after each pass. This is similar to `-mlir-print-ir-before-all` and
   /// `-mlir-print-ir-after-all` in `cudaq-opt`.
   bool enablePrintMLIREachPass = false;
+
+  /// @brief Flag indicating whether we should enable MLIR pass statistics
+  /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
+  bool enablePassStatistics = false;
 
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
@@ -248,6 +253,8 @@ public:
         getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
     enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+    enablePassStatistics =
+        getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", enablePassStatistics);
 
     // If the very verbose enablePrintMLIREachPass flag is set, then
     // multi-threading must be disabled.
@@ -482,6 +489,9 @@ public:
         // Create a new Module to clone the ansatz into it
         auto tmpModuleOp = builder.create<mlir::ModuleOp>();
         tmpModuleOp.push_back(ansatz.clone());
+        moduleOp.walk([&](quake::WireSetOp wireSetOp) {
+          tmpModuleOp.push_back(wireSetOp.clone());
+        });
 
         // Extract the binary symplectic encoding
         auto [binarySymplecticForm, coeffs] = term.get_raw_data();
@@ -497,7 +507,14 @@ public:
           pm.enableIRPrinting();
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
-        runPassPipeline(passPipelineConfig, tmpModuleOp);
+        // The full pass pipeline was run above, but the ansatz pass can
+        // introduce gates that aren't supported by the backend, so we need to
+        // re-run the gate set mapping if that existed in the original pass
+        // pipeline.
+        auto csvSplit = cudaq::split(passPipelineConfig, ',');
+        for (auto &pass : csvSplit)
+          if (pass.ends_with("-gate-set-mapping"))
+            runPassPipeline(pass, tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else
@@ -527,7 +544,7 @@ public:
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
-                               enablePrintMLIREachPass)))
+                               enablePrintMLIREachPass, enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
@@ -563,7 +580,8 @@ public:
   /// synchronous invocation.
   void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset) override {
+                    std::uint64_t resultOffset,
+                    const std::vector<void *> &rawArgs) override {
     cudaq::info("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
@@ -573,7 +591,11 @@ public:
           "cudaq::observe(), or cudaq::draw().");
 
     // Get the Quake code, lowered according to config file.
-    auto codes = lowerQuakeCode(kernelName, args);
+    // FIXME: For python, we reach here with rawArgs being empty and args having
+    // the arguments. Python should be using the streamlined argument synthesis,
+    // but apparently it isn't. This works around that bug.
+    auto codes = rawArgs.empty() ? lowerQuakeCode(kernelName, args)
+                                 : lowerQuakeCode(kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
   }
 

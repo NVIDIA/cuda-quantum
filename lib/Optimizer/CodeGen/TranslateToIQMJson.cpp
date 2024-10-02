@@ -70,6 +70,14 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
 static LogicalResult emitOperation(nlohmann::json &json,
                                    cudaq::Emitter &emitter,
+                                   quake::BorrowWireOp op) {
+  auto name = std::string("QB") + std::to_string(op.getIdentity() + 1);
+  emitter.getOrAssignName(op.getResult(), name);
+  return success();
+}
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter,
                                    quake::ExtractRefOp op) {
   std::optional<int64_t> index = std::nullopt;
   if (op.hasConstantIndex())
@@ -105,6 +113,13 @@ static LogicalResult emitOperation(nlohmann::json &json,
     json["args"] = nlohmann::json::object();
     for (auto control : optor.getControls())
       qubits.push_back(emitter.getOrAssignName(control).str());
+
+    // Propagate the name of this qubit into the operation output values.
+    emitter.getOrAssignName(
+        optor->getResult(0),
+        emitter.getOrAssignName(optor.getControls()[0]).str());
+    emitter.getOrAssignName(optor->getResult(1),
+                            emitter.getOrAssignName(optor.getTarget(0)).str());
   } else {
     json["name"] = name;
 
@@ -121,6 +136,10 @@ static LogicalResult emitOperation(nlohmann::json &json,
     };
     json["args"]["angle_t"] = convertToFullTurns(*parameter0);
     json["args"]["phase_t"] = convertToFullTurns(*parameter1);
+
+    // Propagate the name of this qubit into the operation output values.
+    emitter.getOrAssignName(optor->getResult(0),
+                            emitter.getOrAssignName(optor.getTarget(0)).str());
   }
 
   if (optor.getTargets().size() != 1)
@@ -164,6 +183,8 @@ static LogicalResult emitOperation(nlohmann::json &json,
       // Quake
       .Case<quake::AllocaOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<quake::BorrowWireOp>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
       .Case<quake::ExtractRefOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
       .Case<quake::OperatorInterface>(
@@ -173,6 +194,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
       // Ignore
       .Case<quake::DiscriminateOp>([](auto) { return success(); })
       .Case<quake::DeallocOp>([](auto) { return success(); })
+      .Case<quake::ReturnWireOp>([](auto) { return success(); })
       .Case<func::ReturnOp>([](auto) { return success(); })
       .Case<arith::ConstantOp>([](auto) { return success(); })
       .Default([&](Operation *) -> LogicalResult {

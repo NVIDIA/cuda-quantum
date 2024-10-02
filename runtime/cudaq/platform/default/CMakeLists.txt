@@ -42,6 +42,8 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(rest)
   add_subdirectory(rest_server)
 endif()
+  
+add_target_config(opt-test)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_target_config(nvidia)

@@ -16,9 +16,11 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
@@ -356,7 +358,7 @@ mlir::LogicalResult
 qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
                               llvm::raw_string_ostream &output,
                               const std::string &additionalPasses, bool printIR,
-                              bool printIntermediateMLIR) {
+                              bool printIntermediateMLIR, bool printStats) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   const std::uint32_t qir_major_version = 1;
@@ -369,9 +371,20 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   mlir::PassManager pm(context);
   if (printIntermediateMLIR)
     pm.enableIRPrinting();
+  if (printStats)
+    pm.enableStatistics();
   std::string errMsg;
   llvm::raw_string_ostream errOs(errMsg);
-  cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
+  bool containsWireSet =
+      op->walk<mlir::WalkOrder::PreOrder>([](quake::WireSetOp wireSetOp) {
+          return mlir::WalkResult::interrupt();
+        }).wasInterrupted();
+
+  if (containsWireSet)
+    cudaq::opt::addWiresetToProfileQIRPipeline(pm, qirProfile);
+  else
+    cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
+
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&
       failed(parsePassPipeline(additionalPasses, pm, errOs)))
@@ -468,10 +481,10 @@ void registerToQIRTranslation() {
       _profile, "translate from quake to " _profile,                           \
       [](mlir::Operation *op, llvm::raw_string_ostream &output,                \
          const std::string &additionalPasses, bool printIR,                    \
-         bool printIntermediateMLIR) {                                         \
-        return qirProfileTranslationFunction(_profile, op, output,             \
-                                             additionalPasses, printIR,        \
-                                             printIntermediateMLIR);           \
+         bool printIntermediateMLIR, bool printStats) {                        \
+        return qirProfileTranslationFunction(                                  \
+            _profile, op, output, additionalPasses, printIR,                   \
+            printIntermediateMLIR, printStats);                                \
       })
 
   // Base Profile and Adaptive Profile are very similar, so they use the same
@@ -486,11 +499,13 @@ void registerToOpenQASMTranslation() {
       "qasm2", "translate from quake to openQASM 2.0",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
-         bool printIntermediateMLIR) {
+         bool printIntermediateMLIR, bool printStats) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "qasm2 translation");
         mlir::PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
+        if (printStats)
+          pm.enableStatistics();
         cudaq::opt::addPipelineTranslateToOpenQASM(pm);
         mlir::DefaultTimingManager tm;
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
@@ -515,11 +530,13 @@ void registerToIQMJsonTranslation() {
       "iqm", "translate from quake to IQM's json format",
       [](mlir::Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
-         bool printIntermediateMLIR) {
+         bool printIntermediateMLIR, bool printStats) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "iqm translation");
         mlir::PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
+        if (printStats)
+          pm.enableStatistics();
         cudaq::opt::addPipelineTranslateToIQMJson(pm);
         mlir::DefaultTimingManager tm;
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
@@ -537,6 +554,85 @@ void registerToIQMJsonTranslation() {
         }
         return passed;
       });
+}
+
+void insertSetupAndCleanupOperations(mlir::Operation *module) {
+  mlir::OpBuilder modBuilder(module);
+  auto *context = module->getContext();
+  auto arrayQubitTy = cudaq::opt::getArrayType(context);
+  auto voidTy = mlir::LLVM::LLVMVoidType::get(context);
+  auto boolTy = modBuilder.getI1Type();
+  mlir::FlatSymbolRefAttr allocateSymbol =
+      cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRArrayQubitAllocateArray, arrayQubitTy,
+          {modBuilder.getI64Type()}, dyn_cast<mlir::ModuleOp>(module));
+  mlir::FlatSymbolRefAttr releaseSymbol =
+      cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRArrayQubitReleaseArray, {voidTy}, {arrayQubitTy},
+          dyn_cast<mlir::ModuleOp>(module));
+  mlir::FlatSymbolRefAttr isDynamicSymbol =
+      cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRisDynamicQubitManagement, {boolTy}, {},
+          dyn_cast<mlir::ModuleOp>(module));
+  mlir::FlatSymbolRefAttr setDynamicSymbol =
+      cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRsetDynamicQubitManagement, {voidTy}, {boolTy},
+          dyn_cast<mlir::ModuleOp>(module));
+  mlir::FlatSymbolRefAttr clearResultMapsSymbol =
+      cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRClearResultMaps, {voidTy}, {},
+          dyn_cast<mlir::ModuleOp>(module));
+
+  // Iterate through all operations in the ModuleOp
+  mlir::SmallVector<mlir::LLVM::LLVMFuncOp> funcs;
+  module->walk([&](mlir::LLVM::LLVMFuncOp func) { funcs.push_back(func); });
+  for (auto &func : funcs) {
+    if (!func->hasAttr(cudaq::entryPointAttrName))
+      continue;
+    std::int64_t num_qubits = -1;
+    if (auto requiredQubits = func->getAttrOfType<mlir::StringAttr>(
+            cudaq::opt::QIRRequiredQubitsAttrName))
+      requiredQubits.strref().getAsInteger(10, num_qubits);
+
+    // Further processing on funcOp if needed
+    auto &blocks = func.getBlocks();
+    if (blocks.size() < 1 || num_qubits < 0)
+      continue;
+
+    mlir::Block &block = *blocks.begin();
+    mlir::OpBuilder builder(&block, block.begin());
+    auto loc = builder.getUnknownLoc();
+
+    auto origMode = builder.create<mlir::LLVM::CallOp>(
+        loc, mlir::TypeRange{boolTy}, isDynamicSymbol, mlir::ValueRange{});
+
+    // Create constant op
+    auto numQubitsVal =
+        cudaq::opt::factory::genLlvmI64Constant(loc, builder, num_qubits);
+    auto falseVal = builder.create<mlir::LLVM::ConstantOp>(
+        loc, boolTy, builder.getI16IntegerAttr(false));
+
+    // Invoke allocate function with constant op
+    auto qubitAlloc = builder.create<mlir::LLVM::CallOp>(
+        loc, mlir::TypeRange{arrayQubitTy}, allocateSymbol,
+        mlir::ValueRange{numQubitsVal.getResult()});
+    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
+                                       setDynamicSymbol,
+                                       mlir::ValueRange{falseVal.getResult()});
+
+    // At the end of the function, deallocate the qubits and restore the
+    // simulator state.
+    builder.setInsertionPoint(std::prev(blocks.end())->getTerminator());
+    builder.create<mlir::LLVM::CallOp>(
+        loc, mlir::TypeRange{voidTy}, releaseSymbol,
+        mlir::ValueRange{qubitAlloc.getResult()});
+    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
+                                       setDynamicSymbol,
+                                       mlir::ValueRange{origMode.getResult()});
+    builder.create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{voidTy},
+                                       clearResultMapsSymbol,
+                                       mlir::ValueRange{});
+  }
 }
 
 mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
@@ -567,10 +663,22 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     mlir::PassManager pm(context);
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);
+
+    bool containsWireSet =
+        module
+            ->walk<mlir::WalkOrder::PreOrder>([](quake::WireSetOp wireSetOp) {
+              return mlir::WalkResult::interrupt();
+            })
+            .wasInterrupted();
+
     // Even though we're not lowering all the way to a real QIR profile for this
     // emulated path, we need to pass in the `convertTo` in order to mimic what
     // the non-emulated path would do.
-    cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
+    if (containsWireSet)
+      cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
+    else
+      cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
+
     mlir::DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
@@ -579,6 +687,15 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
     timingScope.stop();
+
+    // Insert necessary calls to qubit allocations and qubit releases if the
+    // original module contained WireSetOp's. This is required because the
+    // output of the above pipeline will produce IR that uses statically
+    // allocated qubit IDs in that case, and the simulator needs these
+    // additional calls in order to operate properly.
+    if (containsWireSet)
+      insertSetupAndCleanupOperations(module);
+
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
       throw std::runtime_error(

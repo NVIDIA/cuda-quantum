@@ -962,8 +962,9 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
-    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
+    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
+    pm.addPass(createSymbolDCEPass());
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");

@@ -6,10 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "common/Logger.h"
-// #include "common/PluginUtils.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
-// #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "nvqir/photonics/PhotonicCircuitSimulator.h"
 
@@ -186,9 +184,11 @@ protected:
                                                   localT[0]);
               })
         .Default([&]() {
-          if (auto iter = registeredOperations.find(gateName);
-              iter != registeredOperations.end()) {
-            auto data = iter->second->unitary(parameters);
+          if (cudaq::customOpRegistry::getInstance().isOperationRegistered(
+                  gateName)) {
+            const auto &op =
+                cudaq::customOpRegistry::getInstance().getOperation(gateName);
+            auto data = op.unitary(parameters);
             photonic_simulator()->applyCustomOperation(data, localC, localT,
                                                        gateName);
             return;

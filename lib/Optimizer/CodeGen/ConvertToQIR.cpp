@@ -68,7 +68,7 @@ public:
   /// Measurement counter for unnamed measurements. Resets every module.
   unsigned measureCounter = 0;
 
-  // This is an ad hox transformation to convert constant array values into a
+  // This is an ad hoc transformation to convert constant array values into a
   // buffer of constants.
   LogicalResult eraseConstantArrayOps() {
     bool ok = true;

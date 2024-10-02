@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/CustomOp.h"
 #include "common/QuditIdTracker.h"
 #include "cudaq/host_config.h"
 #include "cudaq/spin_op.h"
@@ -61,17 +62,6 @@ public:
 using measure_result = bool;
 #endif
 
-/// @brief Define a `unitary_operation` type that exposes
-/// a sub-type specific unitary representation of the
-/// operation.
-struct unitary_operation {
-  /// @brief Given a set of rotation parameters, return
-  /// a row-major 1D array representing the unitary operation
-  virtual std::vector<std::complex<double>> unitary(
-      const std::vector<double> &parameters = std::vector<double>()) const = 0;
-  virtual ~unitary_operation() {}
-};
-
 /// The ExecutionManager provides a base class describing a concrete sub-system
 /// for allocating qudits and executing quantum instructions on those qudits.
 /// This type is templated on the concrete qudit type (`qubit`, `qmode`, etc).
@@ -95,10 +85,6 @@ protected:
 
   /// Internal - At qudit deallocation, return the qudit index
   void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
-
-  /// @brief Keep track of a registry of user-provided unitary operations.
-  std::unordered_map<std::string, std::unique_ptr<cudaq::unitary_operation>>
-      registeredOperations;
 
 public:
   ExecutionManager() = default;
@@ -180,14 +166,13 @@ public:
   /// provided operation name.
   template <typename T>
   void registerOperation(const std::string &name) {
-    auto iter = registeredOperations.find(name);
-    if (iter != registeredOperations.end())
-      return;
-    registeredOperations.insert({name, std::make_unique<T>()});
+    customOpRegistry::getInstance().registerOperation<T>(name);
   }
 
   /// Clear the registered operations
-  virtual void clearRegisteredOperations() { registeredOperations.clear(); }
+  virtual void clearRegisteredOperations() {
+    customOpRegistry::getInstance().clearRegisteredOperations();
+  }
 
   virtual ~ExecutionManager() = default;
 };

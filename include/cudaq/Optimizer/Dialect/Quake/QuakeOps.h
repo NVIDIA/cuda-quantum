@@ -70,6 +70,13 @@ void genericOpPrinter(mlir::OpAsmPrinter &_odsPrinter, mlir::Operation *op,
 // Utility functions to test the form of an operation.
 //===----------------------------------------------------------------------===//
 
+// Is \p op in the Quake dialect?
+inline bool isQuakeOperation(mlir::Operation *op) {
+  if (auto *dialect = op->getDialect())
+    return dialect->getNamespace().equals("quake");
+  return false;
+}
+
 namespace quake {
 /// Returns true if and only if any quantum operand has type `!quake.ref` or
 /// `!quake.veq`.

@@ -24,6 +24,8 @@ enum TargetFeatureFlag : unsigned {
   flagsFP64 = 0x0002,
   flagsMgpu = 0x0004,
   flagsMqpu = 0x0008,
+  flagsDepAnalysis = 0x0010,
+  flagsQPP = 0x0020,
 };
 
 /// @brief Configuration argument type annotation
@@ -69,6 +71,8 @@ struct BackendEndConfigEntry {
   std::optional<bool> LibraryMode;
   /// IR lowering configuration (hardware REST QPU)
   std::string PlatformLoweringConfig;
+  /// Exact cudaq-opt passes for pseudo-targets
+  std::string TargetPassPipeline;
   /// Codegen emission configuration (hardware REST QPU)
   std::string CodegenEmission;
   /// Post code generation IR passes configuration (hardware REST QPU)

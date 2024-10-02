@@ -13,6 +13,7 @@ from typing import Callable, List
 
 from .utils import globalRegisteredOperations
 from .kernel_builder import PyKernel, __generalCustomOperation
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 def register_operation(operation_name: str, unitary):
@@ -58,5 +59,8 @@ def register_operation(operation_name: str, unitary):
     # Make available to kernel builder object
     setattr(PyKernel, operation_name,
             partialmethod(__generalCustomOperation, operation_name))
+    # Let the runtime know about this registered operation.
+    # Note: the matrix generator/construction is not known by the ExecutionManager in this case since we don't expect the ExecutionManager to be involved.
+    cudaq_runtime.register_custom_operation(operation_name)
 
     return

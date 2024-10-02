@@ -40,9 +40,66 @@ constructor should validate the completeness (CPTP) relation.
 A :code:`cudaq::noise_model` encapsulates a mapping of quantum operation names to a 
 vector of :code:`kraus_channel` that is to be applied after invocation of that 
 quantum operation. A :code:`noise_model` can be constructed with a nullary constructor, and 
-:code:`kraus_channels` can be added via a templated :code:`add_channel` method, where the 
-template type is the quantum operation the channel applies to (e.g. :code:`model.add_channel\<cudaq::types::h\>(channel)`). Clients (e.g. simulator backends) can retrieve the :code:`kraus_channel` to 
+:code:`kraus_channels` can be added via :code:`add_channel` and :code:`add_all_qubit_channel` methods with 
+the operation given as a string or as a template argument. 
+The operation name or the template type specifies the quantum operation the channel applies to 
+(e.g. :code:`model.add_channel\<cudaq::types::h\>(channel)` or :code:`model.add_channel("h", channel)`). 
+Clients (e.g. simulator backends) can retrieve the :code:`kraus_channel` to 
 apply to the simulated state via a :code:`noise_model::get_channel(...)` call. 
+
+When adding an error channel to a noise model for a quantum operation
+we can assign the noise channel to instances of that operation on specific qubit operands or 
+to any occurrence of the operation, regardless of which qubits it acts on. 
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        # Add a noise channel to z gate on qubit 0
+        noise.add_channel('z', [0], noise_channel)
+        # Add a noise channel to x gate, regardless of qubit operands. 
+        noise.add_all_qubit_channel('x', noise_channel)
+
+
+.. tab:: C++
+
+    .. code-block:: cpp
+        
+        // Add a noise channel to z gate on qubit 0
+        noise.add_channel("z", {0}, noise_channel);
+        // Add a noise channel to x gate, regardless of qubit operands. 
+        noise.add_all_qubit_channel("x", noise_channel)
+
+In addition to static noise channels, users can also define a noise channel as a 
+callback function, which returns a concrete channel definition in terms of Kraus matrices 
+depending on the gate operands and gate parameters if any.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        # Noise channel callback function
+        def noise_cb(qubits, params):
+           # Construct a channel based on specific operands and parameters
+           ...
+           return noise_channel 
+        
+        # Add a dynamic noise channel to the 'rx' gate.
+        noise.add_channel('rx', noise_cb)
+
+
+.. tab:: C++
+
+    .. code-block:: cpp
+        
+        // Add a dynamic noise channel to the 'rx' gate.
+        noise.add_channel("rx",
+            [](const auto &qubits, const auto &params) -> cudaq::kraus_channel {
+                // Construct a channel based on specific operands and parameters
+                ...
+                return noiseChannel;
+            });
+
 
 Noise models can be constructed via the :code:`cudaq::noise_model` and specified for 
 execution via a public :code:`cudaq::set_noise(cudaq::noise_model&)` function. This function 

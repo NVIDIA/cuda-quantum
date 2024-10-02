@@ -58,22 +58,6 @@ state pyGetState(py::object kernel, py::args args) {
   });
 }
 
-state pyGetStateLibraryMode(py::object kernel, py::args args) {
-  return details::extractState([&]() mutable {
-    if (0 == args.size())
-      cudaq::invokeKernel(std::forward<py::object>(kernel));
-    else {
-      args = simplifiedValidateInputArguments(args);
-      std::vector<py::object> argsData;
-      for (size_t i = 0; i < args.size(); i++) {
-        py::object arg = args[i];
-        argsData.emplace_back(std::forward<py::object>(arg));
-      }
-      cudaq::invokeKernel(std::forward<py::object>(kernel), argsData);
-    }
-  });
-}
-
 /// @brief Python implementation of the `RemoteSimulationState`.
 // Note: Python kernel arguments are wrapped hence need to be unwrapped
 // accordingly.
@@ -151,6 +135,22 @@ state pyGetStateRemote(py::object kernel, py::args args) {
       pyCreateNativeKernel(kernelName, kernelMod, *argData);
   return state(new PyRemoteSimulationState(kernelName, argWrapper, argData,
                                            size, returnOffset));
+}
+
+state pyGetStateLibraryMode(py::object kernel, py::args args) {
+  return details::extractState([&]() mutable {
+    if (0 == args.size())
+      cudaq::invokeKernel(std::forward<py::object>(kernel));
+    else {
+      args = simplifiedValidateInputArguments(args);
+      std::vector<py::object> argsData;
+      for (size_t i = 0; i < args.size(); i++) {
+        py::object arg = args[i];
+        argsData.emplace_back(std::forward<py::object>(arg));
+      }
+      cudaq::invokeKernel(std::forward<py::object>(kernel), argsData);
+    }
+  });
 }
 
 /// @brief Bind the get_state cudaq function

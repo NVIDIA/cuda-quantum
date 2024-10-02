@@ -10,6 +10,7 @@
 #include "cudaq.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
+#include "runtime/common/py_CustomOpRegistry.h"
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
@@ -103,6 +104,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindVQE(cudaqRuntime);
   cudaq::bindAltLaunchKernel(cudaqRuntime);
   cudaq::bindTestUtils(cudaqRuntime, *holder.get());
+  cudaq::bindCustomOpRegistry(cudaqRuntime);
 
   cudaqRuntime.def("set_random_seed", &cudaq::set_random_seed,
                    "Provide the seed for backend quantum kernel simulation.");

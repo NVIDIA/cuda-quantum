@@ -196,7 +196,7 @@ public:
                     const std::vector<std::size_t> &controls,                  \
                     const std::size_t quditIdx) = 0;
 
-#define PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM(NAME)                   \
+#define PHOTONIC_CIRCUIT_SIMULATOR_TWO_QUDIT_ONE_PARAM(NAME)                   \
   void NAME(const double angle, const std::vector<std::size_t> quditIdxs) {    \
     std::vector<std::size_t> tmp;                                              \
     NAME(angle, tmp, quditIdxs);                                               \
@@ -210,12 +210,12 @@ public:
   /// @brief The phase_shift gate
   PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_ONE_PARAM(phase_shift)
   /// @brief The beam_splitter gate
-  PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM(beam_splitter)
+  PHOTONIC_CIRCUIT_SIMULATOR_TWO_QUDIT_ONE_PARAM(beam_splitter)
 
 // Undef those preprocessor defines.
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_ONE_PARAM
-#undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM
+#undef PHOTONIC_CIRCUIT_SIMULATOR_TWO_QUDIT_ONE_PARAM
 
   /// @brief Measure the qudit with given index
   virtual std::size_t mz(const std::size_t quditIdx) = 0;
@@ -1125,7 +1125,7 @@ public:
         std::vector<std::size_t>{quditIdx});                                   \
   }
 
-#define PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM(NAME)                   \
+#define PHOTONIC_CIRCUIT_SIMULATOR_TWO_QUDIT_ONE_PARAM(NAME)                   \
   using PhotonicCircuitSimulator::NAME;                                        \
   void NAME(const double angle, const std::vector<std::size_t> &controls,      \
             const std::vector<std::size_t> quditsIdxs) override {              \
@@ -1138,12 +1138,12 @@ public:
   /// @brief The phase_shift gate
   PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_ONE_PARAM(phase_shift)
   /// @brief The beam_splitter gate
-  PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM(beam_splitter)
+  PHOTONIC_CIRCUIT_SIMULATOR_TWO_QUDIT_ONE_PARAM(beam_splitter)
 
 // Undef those preprocessor defines.
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_ONE_PARAM
-#undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM
+#undef PHOTONIC_CIRCUIT_SIMULATOR_TWO_QUDIT_ONE_PARAM
 
   std::size_t mz(const std::size_t quditIdx) { return mz(quditIdx, ""); }
 

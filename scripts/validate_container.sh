@@ -70,6 +70,10 @@ available_backends=`\
         if grep -q "library-mode-execution-manager: photonics" $file ; then 
           continue
         fi 
+        # Skip optimization test targets
+        if [[ $file == *"opt-test.yml" ]]; then
+          continue
+        fi
         if grep -q "nvqir-simulation-backend: stim" $file ; then 
           continue
         fi 
@@ -177,7 +181,7 @@ do
             # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
             # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
             # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
-            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel"* || "$ex" == *"builder.cpp"* ]];
+            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel_mode"* || "$ex" == *"builder.cpp"* ]];
             then
                 let "skipped+=1"
                 echo "Skipping $t target.";

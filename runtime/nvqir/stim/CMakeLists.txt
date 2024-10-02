@@ -12,6 +12,11 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 set(STIM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/tpls/Stim)
 set(STIM_BINARY_DIR ${CMAKE_BINARY_DIR}/tpls/Stim)
 
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+    # Constrain to AVX-2 to keep ourselves compatible with x86-64-v3.
+    set(SIMD_WIDTH 256 CACHE INTERNAL "Pass SIMD width to Stim subproject")
+endif()
+
 # The EXCLUDE_FROM_ALL makes it so that only libstim is built. If other targets
 # are desired (like the command-line tool), remove EXCLUDE_FROM_ALL below.
 add_subdirectory(${STIM_SOURCE_DIR} ${STIM_BINARY_DIR} EXCLUDE_FROM_ALL)

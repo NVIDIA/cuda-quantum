@@ -138,7 +138,9 @@ protected:
   /// @param gateName
   /// @param qubits
   void applyNoiseChannel(const std::string_view gateName,
-                         const std::vector<std::size_t> &qubits) override {
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets,
+                         const std::vector<double> &params) override {
     // Do nothing if no execution context
     if (!executionContext)
       return;
@@ -149,15 +151,16 @@ protected:
 
     // Get the name as a string
     std::string gName(gateName);
-
+    std::vector<std::size_t> qubits{controls.begin(), controls.end()};
+    qubits.insert(qubits.end(), targets.begin(), targets.end());
     std::vector<std::size_t> casted_qubits;
     for (auto index : qubits) {
       casted_qubits.push_back(convertQubitIndex(index));
     }
 
     // Get the Kraus channels specified for this gate and qubits
-    auto krausChannels =
-        executionContext->noiseModel->get_channels(gName, qubits);
+    auto krausChannels = executionContext->noiseModel->get_channels(
+        gName, targets, controls, params);
 
     // If none, do nothing
     if (krausChannels.empty())

@@ -14,6 +14,7 @@
 #include "cuda_runtime_api.h"
 #endif
 #include "cudaq/platform.h"
+#include "cudaq/qis/qkernel_ref.h"
 #include "cudaq/utils/registry.h"
 #include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
@@ -210,7 +211,8 @@ static std::shared_mutex globalRegistryMutex;
 
 static std::vector<std::pair<std::string, std::string>> quakeRegistry;
 
-void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
+void cudaq::registry::__cudaq_deviceCodeHolderAdd(const char *key,
+                                                  const char *code) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   auto it = std::find_if(quakeRegistry.begin(), quakeRegistry.end(),
                          [&](const auto &pair) { return pair.first == key; });
@@ -233,10 +235,48 @@ static std::vector<std::string> kernelRegistry;
 
 static std::map<std::string, cudaq::KernelArgsCreator> argsCreators;
 static std::map<std::string, std::string> lambdaNames;
+static std::map<void *, std::pair<const char *, void *>> linkableKernelRegistry;
 
 void cudaq::registry::cudaqRegisterKernelName(const char *kernelName) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   kernelRegistry.emplace_back(kernelName);
+}
+
+void cudaq::registry::__cudaq_registerLinkableKernel(void *hostSideFunc,
+                                                     const char *kernelName,
+                                                     void *deviceSideFunc) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
+  linkableKernelRegistry.insert(
+      {hostSideFunc, std::pair{kernelName, deviceSideFunc}});
+}
+
+std::intptr_t cudaq::registry::__cudaq_getLinkableKernelKey(void *p) {
+  if (!p)
+    throw std::runtime_error("cannot get kernel key, nullptr");
+  const auto &qk = *reinterpret_cast<const cudaq::qkernel_ref<void()> *>(p);
+  return reinterpret_cast<std::intptr_t>(*qk.get_entry_kernel_from_holder());
+}
+
+const char *cudaq::registry::getLinkableKernelNameOrNull(std::intptr_t key) {
+  auto iter = linkableKernelRegistry.find(reinterpret_cast<void *>(key));
+  if (iter != linkableKernelRegistry.end())
+    return iter->second.first;
+  return nullptr;
+}
+
+const char *cudaq::registry::__cudaq_getLinkableKernelName(std::intptr_t key) {
+  auto *result = getLinkableKernelNameOrNull(key);
+  if (!result)
+    throw std::runtime_error("kernel key is not present: kernel name unknown");
+  return result;
+}
+
+void *
+cudaq::registry::__cudaq_getLinkableKernelDeviceFunction(std::intptr_t key) {
+  auto iter = linkableKernelRegistry.find(reinterpret_cast<void *>(key));
+  if (iter != linkableKernelRegistry.end())
+    return iter->second.second;
+  throw std::runtime_error("kernel key is not present: kernel unknown");
 }
 
 void cudaq::registry::cudaqRegisterArgsCreator(const char *name,

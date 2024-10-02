@@ -1,0 +1,141 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --add-wireset --assign-wire-indices --dep-analysis %s | FileCheck %s
+
+// A more complete functional test
+func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %4 = quake.h %2 : (!quake.wire) -> !quake.wire
+  %5 = quake.h %1 : (!quake.wire) -> !quake.wire
+  %6:2 = quake.x [%3] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %7 = quake.h %6#0 : (!quake.wire) -> !quake.wire
+  %8 = quake.y %6#1 : (!quake.wire) -> !quake.wire
+  %9 = quake.z %8 : (!quake.wire) -> !quake.wire
+  %10:2 = quake.x [%4] %9 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %11 = quake.h %10#0 : (!quake.wire) -> !quake.wire
+  %measOut, %wires = quake.mz %10#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %12 = quake.discriminate %measOut : (!quake.measure) -> i1
+  quake.sink %wires : !quake.wire
+  quake.sink %11 : !quake.wire
+  quake.sink %7 : !quake.wire
+  return %12 : i1
+}
+
+// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+
+// CHECK-LABEL:   func.func @test1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[VAL_3:.*]] = quake.h %[[VAL_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]]:2 = quake.x {{\[}}%[[VAL_1]]] %[[VAL_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_5:.*]] = quake.h %[[VAL_4]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_6:.*]] = quake.y %[[VAL_4]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_7:.*]] = quake.h %[[VAL_5]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.z %[[VAL_6]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_9:.*]]:2 = quake.x {{\[}}%[[VAL_7]]] %[[VAL_8]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_10:.*]], %[[VAL_11:.*]] = quake.mz %[[VAL_9]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
+// CHECK:           quake.return_wire %[[VAL_11]] : !quake.wire
+// CHECK:           %[[VAL_13:.*]] = quake.h %[[VAL_9]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           quake.return_wire %[[VAL_13]] : !quake.wire
+// CHECK:           return %[[VAL_12]] : i1
+// CHECK:         }
+
+// This a test mostly for scheduling
+func.func @test2() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3 = quake.h %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.x %3 : (!quake.wire) -> !quake.wire
+  %5 = quake.y %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.h %1 : (!quake.wire) -> !quake.wire
+  %7:2 = quake.x [%0] %6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %8:2 = quake.x [%7#0] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %9 = quake.z %7#1 : (!quake.wire) -> !quake.wire
+  %10 = quake.y %9 : (!quake.wire) -> !quake.wire
+  %11 = quake.x %10 : (!quake.wire) -> !quake.wire
+  %measOut, %wires = quake.mz %11 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %8#0 : !quake.wire
+  quake.sink %8#1 : !quake.wire
+  quake.sink %wires : !quake.wire
+  %12 = quake.discriminate %measOut : (!quake.measure) -> i1
+  return %12 : i1
+}
+
+// CHECK-LABEL:   func.func @test2() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[2] : !quake.wire
+// CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[VAL_3:.*]] = quake.h %[[VAL_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_5:.*]]:2 = quake.x {{\[}}%[[VAL_4]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_6:.*]] = quake.x %[[VAL_3]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_7:.*]] = quake.z %[[VAL_5]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.y %[[VAL_6]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_9:.*]] = quake.y %[[VAL_7]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_10:.*]]:2 = quake.x {{\[}}%[[VAL_5]]#0] %[[VAL_8]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.return_wire %[[VAL_10]]#0 : !quake.wire
+// CHECK:           quake.return_wire %[[VAL_10]]#1 : !quake.wire
+// CHECK:           %[[VAL_11:.*]] = quake.x %[[VAL_9]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_12:.*]], %[[VAL_13:.*]] = quake.mz %[[VAL_11]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           quake.return_wire %[[VAL_13]] : !quake.wire
+// CHECK:           %[[VAL_14:.*]] = quake.discriminate %[[VAL_12]] : (!quake.measure) -> i1
+// CHECK:           return %[[VAL_14]] : i1
+// CHECK:         }
+
+// This is a basic dead-code check
+func.func @test3() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
+  quake.sink %0 : !quake.wire
+  quake.sink %wires : !quake.wire
+  return %2 : i1
+}
+
+// CHECK-LABEL:   func.func @test3() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[VAL_1:.*]], %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
+// CHECK:           quake.return_wire %[[VAL_2]] : !quake.wire
+// CHECK:           return %[[VAL_3]] : i1
+// CHECK:         }
+
+// This a test mostly for scheduling
+func.func @test4() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3 = quake.h %2#1 : (!quake.wire) -> !quake.wire
+  %4:2 = quake.x [%2#0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.mz %4#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %6 = quake.discriminate %5#0 : (!quake.measure) -> i1
+  quake.sink %5#1 : !quake.wire
+  quake.sink %4#1 : !quake.wire
+  return %6 : i1
+}
+
+// CHECK-LABEL:   func.func @test4() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-DAG:       %[[VAL_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK-DAG:       %[[VAL_1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[VAL_2:.*]]:2 = quake.x {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_3:.*]] = quake.h %[[VAL_2]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]]:2 = quake.x {{\[}}%[[VAL_2]]#0] %[[VAL_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.return_wire %[[VAL_4]]#1 : !quake.wire
+// CHECK:           %[[VAL_5:.*]], %[[VAL_6:.*]] = quake.mz %[[VAL_4]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK-DAG:       %[[VAL_7:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
+// CHECK-DAG:       quake.return_wire %[[VAL_6]] : !quake.wire
+// CHECK:           return %[[VAL_7]] : i1
+// CHECK:         }

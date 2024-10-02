@@ -43,6 +43,8 @@ static Type genBufferType(Type ty) {
   auto *ctx = ty.getContext();
   if (isa<cudaq::cc::CallableType>(ty))
     return cudaq::cc::PointerType::get(ctx);
+  if (isa<cudaq::cc::IndirectCallableType>(ty))
+    return IntegerType::get(ctx, 64);
   if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(ty)) {
     auto i64Ty = IntegerType::get(ctx, 64);
     if (isOutput) {
@@ -368,6 +370,8 @@ static Type convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
+  if (isa<cc::IndirectCallableType>(ty))
+    return cc::PointerType::get(IntegerType::get(ty.getContext(), 8));
   if (auto memrefTy = dyn_cast<cc::CharspanType>(ty)) {
     // `pauli_word` is an object with a std::vector in the header files at
     // present. This data type *must* be updated if it becomes a std::string

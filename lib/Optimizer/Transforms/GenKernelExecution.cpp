@@ -34,14 +34,6 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-// Define some constant function name strings.
-static constexpr const char CudaqRegisterLambdaName[] =
-    "cudaqRegisterLambdaName";
-static constexpr const char CudaqRegisterArgsCreator[] =
-    "cudaqRegisterArgsCreator";
-static constexpr const char CudaqRegisterKernelName[] =
-    "cudaqRegisterKernelName";
-
 /// This value is used to indicate that a kernel does not return a result.
 static constexpr std::uint64_t NoResultOffset =
     std::numeric_limits<std::int32_t>::max();
@@ -744,6 +736,12 @@ public:
                                             Value trailingData, Value val,
                                             Type inTy, std::int64_t off,
                                             cudaq::cc::StructType structTy) {
+    if (isa<cudaq::cc::IndirectCallableType>(inTy)) {
+      auto i64Ty = builder.getI64Type();
+      auto key =
+          builder.create<cudaq::cc::ExtractValueOp>(loc, i64Ty, val, off);
+      return {builder.create<cudaq::cc::CastOp>(loc, inTy, key), trailingData};
+    }
     if (isa<cudaq::cc::CallableType>(inTy))
       return {builder.create<cudaq::cc::UndefOp>(loc, inTy), trailingData};
     if (auto stdVecTy = dyn_cast<cudaq::cc::SpanLikeType>(inTy)) {
@@ -1162,6 +1160,21 @@ public:
         // If the argument is a callable, skip it.
         if (isa<cudaq::cc::CallableType>(quakeTy))
           continue;
+
+        // Argument is a packaged kernel. In this case, the argument is some
+        // unknown kernel that may be called. The packaged argument is coming
+        // from opaque C++ host code, so we need to identify what kernel it
+        // references and then pass its name as a span of characters to the
+        // launch kernel.
+        if (isa<cudaq::cc::IndirectCallableType>(quakeTy)) {
+          auto kernKey = builder.create<func::CallOp>(
+              loc, builder.getI64Type(), cudaq::runtime::getLinkableKernelKey,
+              ValueRange{arg});
+          stVal = builder.create<cudaq::cc::InsertValueOp>(
+              loc, stVal.getType(), stVal, kernKey.getResult(0), idx);
+          continue;
+        }
+
         // If the argument is an empty struct, skip it.
         if (auto strTy = dyn_cast<cudaq::cc::StructType>(quakeTy))
           if (strTy.isEmpty())
@@ -1180,7 +1193,7 @@ public:
                 loc, ptrInTy.getElementType());
             builder.create<func::CallOp>(loc, std::nullopt,
                                          cudaq::stdvecBoolUnpackToInitList,
-                                         ArrayRef<Value>{tmp, arg});
+                                         ValueRange{tmp, arg});
             arg = blockValues[idx] = tmp;
           }
           // FIXME: call the `size` member function. For expediency, assume this
@@ -1311,7 +1324,9 @@ public:
               builder.create<func::CallOp>(loc, std::nullopt, "free",
                                            ArrayRef<Value>{heapCast});
             }
-          } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(quakeTy)) {
+            continue;
+          }
+          if (auto strTy = dyn_cast<cudaq::cc::StructType>(quakeTy)) {
             if (cudaq::cc::isDynamicType(strTy))
               vecToBuffer = encodeDynamicStructData(loc, builder, strTy, arg,
                                                     temp, vecToBuffer);
@@ -1512,11 +1527,12 @@ public:
     return true;
   }
 
-  LLVM::LLVMFuncOp registerKernelForExecution(Location loc, OpBuilder &builder,
-                                              const std::string &classNameStr,
-                                              LLVM::GlobalOp kernelNameObj,
-                                              func::FuncOp argsCreatorFunc,
-                                              StringRef mangledName) {
+  /// Generate a function to be executed at load-time which will register the
+  /// kernel with the runtime.
+  LLVM::LLVMFuncOp registerKernelWithRuntimeForExecution(
+      Location loc, OpBuilder &builder, const std::string &classNameStr,
+      LLVM::GlobalOp kernelNameObj, func::FuncOp argsCreatorFunc,
+      StringRef mangledName) {
     auto module = getOperation();
     auto *ctx = builder.getContext();
     auto ptrType = cudaq::cc::PointerType::get(builder.getI8Type());
@@ -1530,7 +1546,8 @@ public:
         loc, cudaq::opt::factory::getPointerType(kernelNameObj.getType()),
         kernelNameObj.getSymName());
     auto castKernRef = builder.create<cudaq::cc::CastOp>(loc, ptrType, kernRef);
-    builder.create<func::CallOp>(loc, std::nullopt, CudaqRegisterKernelName,
+    builder.create<func::CallOp>(loc, std::nullopt,
+                                 cudaq::runtime::CudaqRegisterKernelName,
                                  ValueRange{castKernRef});
 
     if (isCodegenPackedData(codegenKind)) {
@@ -1543,7 +1560,7 @@ public:
       auto castLoadArgsCreator =
           builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrType, loadArgsCreator);
       builder.create<func::CallOp>(
-          loc, std::nullopt, CudaqRegisterArgsCreator,
+          loc, std::nullopt, cudaq::runtime::CudaqRegisterArgsCreator,
           ValueRange{castKernRef, castLoadArgsCreator});
     }
 
@@ -1557,15 +1574,6 @@ public:
       if (demangledName.find("$_") != std::string::npos) {
         auto insertPoint = builder.saveInsertionPoint();
         builder.setInsertionPointToStart(module.getBody());
-
-        // Create the function if it doesn't already exist.
-        if (!module.lookupSymbol<LLVM::LLVMFuncOp>(CudaqRegisterLambdaName))
-          builder.create<LLVM::LLVMFuncOp>(
-              module.getLoc(), CudaqRegisterLambdaName,
-              LLVM::LLVMFunctionType::get(
-                  cudaq::opt::factory::getVoidType(ctx),
-                  {cudaq::opt::factory::getPointerType(ctx),
-                   cudaq::opt::factory::getPointerType(ctx)}));
 
         // Create this global name, it is unique for any lambda
         // bc classNameStr contains the parentFunc + varName
@@ -1585,7 +1593,8 @@ public:
             loc, cudaq::opt::factory::getPointerType(ctx), lambdaRef);
         auto castKernelRef = builder.create<cudaq::cc::CastOp>(
             loc, cudaq::opt::factory::getPointerType(ctx), castKernRef);
-        builder.create<LLVM::CallOp>(loc, std::nullopt, CudaqRegisterLambdaName,
+        builder.create<LLVM::CallOp>(loc, std::nullopt,
+                                     cudaq::runtime::CudaqRegisterLambdaName,
                                      ValueRange{castLambdaRef, castKernelRef});
       }
     }
@@ -1597,8 +1606,6 @@ public:
   // Load the prototypes of runtime functions that we may call into the Module.
   LogicalResult loadPrototypes() {
     ModuleOp module = getOperation();
-    auto *ctx = module.getContext();
-    auto builder = OpBuilder::atBlockEnd(module.getBody());
     auto mangledNameMap =
         module->getAttrOfType<DictionaryAttr>(cudaq::runtime::mangledNameMap);
     if (!mangledNameMap || mangledNameMap.empty())
@@ -1624,15 +1631,9 @@ public:
       return module.emitError("invalid codegen kind value.");
     }
 
-    auto loc = module.getLoc();
-    auto ptrType = cudaq::cc::PointerType::get(builder.getI8Type());
-    auto regKern = builder.create<func::FuncOp>(
-        loc, CudaqRegisterKernelName, FunctionType::get(ctx, {ptrType}, {}));
-    regKern.setPrivate();
-    auto regArgs = builder.create<func::FuncOp>(
-        loc, CudaqRegisterArgsCreator,
-        FunctionType::get(ctx, {ptrType, ptrType}, {}));
-    regArgs.setPrivate();
+    if (failed(irBuilder.loadIntrinsic(
+            module, cudaq::runtime::CudaqRegisterKernelName)))
+      return module.emitError("could not load kernel registration API");
 
     if (failed(irBuilder.loadIntrinsic(module, "malloc")))
       return module.emitError("could not load malloc");
@@ -1766,9 +1767,9 @@ public:
 
       // Generate a function at startup to register this kernel as having
       // been processed for kernel execution.
-      auto initFun =
-          registerKernelForExecution(loc, builder, classNameStr, kernelNameObj,
-                                     argsCreatorFunc, mangledName);
+      auto initFun = registerKernelWithRuntimeForExecution(
+          loc, builder, classNameStr, kernelNameObj, argsCreatorFunc,
+          mangledName);
 
       // Create a global with a default ctor to be run at program startup.
       // The ctor will execute the above function, which will register this

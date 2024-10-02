@@ -1,0 +1,77 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-early-inlining %s | FileCheck %s
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel1 = "__nvqpp__mlirgen__kernel1_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<2>
+    %1 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+    %2 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    quake.custom_op @__nvqpp__mlirgen__op1_generator_2.rodata %1, %2 : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+  cc.global constant @__nvqpp__mlirgen__op1_generator_2.rodata (dense<[(-0.25534141999999999,0.045629179999999998), (0.11619328,0.79785479999999998), (0.19980911000000001,-0.24754117), (0.052455160000000001,0.42272180999999998), (0.48212336,-0.35275169000000001), (0.47307302000000001,2.047710e-01), (0.38804407000000002,0.34346750999999998), (-0.30236461999999997,-0.13199084), (0.53000373000000001,-0.052047940000000001), (-0.055464520000000003,0.044808380000000002), (-0.39853872000000001,-0.60358142999999997), (-0.40979785000000002,0.1422147), (0.20174057000000001,0.50152752), (0.042562830000000003,-0.27803220000000001), (0.14896845,0.29140401999999999), (-0.16938781,0.70203793000000003)]> : tensor<16xcomplex<f64>>) : !cc.array<complex<f64> x 16>
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint"} {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3.95826252{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0.93802610{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2.25682378{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1.14360941{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1.57079632{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.13346974{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant -0.4362153{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant -1.2996367{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_8:.*]] = arith.constant -1.5707963{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_9:.*]] = arith.constant 1.29963670{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_10:.*]] = arith.constant 0.7280736{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_11:.*]] = arith.constant 2.7836517{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_12:.*]] = arith.constant -1.906609{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_13:.*]] = arith.constant -3.140173{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_14:.*]] = arith.constant 2.2872369{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_15:.*]] = arith.constant 1.6888584{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_16:.*]] = arith.constant -0.206301{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_17:.*]] = arith.constant 2.0186522{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_18:.*]] = arith.constant 2.0888531{{[0-9]+}} : f64
+// CHECK-DAG:       %[[VAL_19:.*]] = quake.alloca !quake.veq<2>
+// CHECK-DAG:       %[[VAL_20:.*]] = quake.extract_ref %[[VAL_19]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-DAG:       %[[VAL_21:.*]] = quake.extract_ref %[[VAL_19]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_1]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_2]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_12]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_11]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_10]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_20]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_21]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_21]]] %[[VAL_20]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_3]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_21]]] %[[VAL_20]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_21]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_20]] : (!quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_4]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_4]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_21]]] %[[VAL_20]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_5]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_21]]] %[[VAL_20]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_8]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_8]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_21]]] %[[VAL_20]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_6]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_21]]] %[[VAL_20]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_15]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_14]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_13]]) %[[VAL_21]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_18]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_17]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_16]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.r1 (%[[VAL_7]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_9]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }

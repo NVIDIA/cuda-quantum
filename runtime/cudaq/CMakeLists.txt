@@ -9,7 +9,7 @@
 add_subdirectory(spin)
 
 set(LIBRARY_NAME cudaq)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 # Create the CUDA-Q Library

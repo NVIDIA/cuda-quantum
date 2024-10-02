@@ -252,6 +252,7 @@ public:
     return true;
   }
 
+  // NB: DataRecursionQueue* argument intentionally omitted.
   bool TraverseLambdaExpr(clang::LambdaExpr *x) {
     bool saveQuantumTypesNotAllowed = quantumTypesNotAllowed;
     // Rationale: a lambda expression may be passed from classical C++ code into

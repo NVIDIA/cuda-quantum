@@ -7,13 +7,17 @@
  ******************************************************************************/
 
 #include "ArgumentConversion.h"
+#include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Todo.h"
+#include "cudaq/qis/pauli_word.h"
+#include "cudaq/utils/registry.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/Parser/Parser.h"
 
 using namespace mlir;
 
@@ -199,7 +203,7 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         return {};
       })
       .Case([&](cudaq::cc::CharspanType strTy) {
-        return genConstant(builder, *static_cast<const std::string *>(p),
+        return genConstant(builder, static_cast<cudaq::pauli_word *>(p)->str(),
                            substMod);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
@@ -224,6 +228,11 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
   auto eleTy = vecTy.getElementType();
   auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
   auto eleSize = cudaq::opt::getDataSize(layout, eleTy);
+  if (isa<cudaq::cc::CharspanType>(eleTy)) {
+    // char span type (i.e. pauli word) is a `vector<char>`
+    eleSize = sizeof(VectorType);
+  }
+
   assert(eleSize && "element must have a size");
   auto loc = builder.getUnknownLoc();
   std::int32_t vecSize = delta / eleSize;
@@ -282,6 +291,33 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
     cursor += eleSize;
   }
   return aggie;
+}
+
+Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
+                  void *p, ModuleOp sourceMod, ModuleOp substMod,
+                  llvm::DataLayout &layout) {
+  auto key = cudaq::registry::__cudaq_getLinkableKernelKey(p);
+  auto *name = cudaq::registry::getLinkableKernelNameOrNull(key);
+  if (!name)
+    return {};
+  auto code = cudaq::get_quake_by_name(name, /*throwException=*/false);
+  auto *ctx = builder.getContext();
+  auto fromModule = parseSourceString<ModuleOp>(code, ctx);
+  OpBuilder cloneBuilder(ctx);
+  cloneBuilder.setInsertionPointToStart(substMod.getBody());
+  for (auto &i : *fromModule->getBody()) {
+    auto s = dyn_cast_if_present<SymbolOpInterface>(i);
+    if (!s || sourceMod.lookupSymbol(s.getNameAttr()) ||
+        substMod.lookupSymbol(s.getNameAttr()))
+      continue;
+    auto clone = cloneBuilder.clone(i);
+    cast<SymbolOpInterface>(clone).setPrivate();
+  }
+  auto loc = builder.getUnknownLoc();
+  auto func = builder.create<func::ConstantOp>(
+      loc, indCallTy.getSignature(),
+      std::string{cudaq::runtime::cudaqGenPrefixName} + name);
+  return builder.create<cudaq::cc::CastOp>(loc, indCallTy, func);
 }
 
 //===----------------------------------------------------------------------===//
@@ -361,7 +397,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
               return {};
             })
             .Case([&](cc::CharspanType strTy) {
-              return buildSubst(*static_cast<const std::string *>(argPtr),
+              return buildSubst(static_cast<cudaq::pauli_word *>(argPtr)->str(),
                                 substModule);
             })
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
@@ -379,6 +415,10 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             })
             .Case([&](cc::ArrayType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
+            })
+            .Case([&](cc::IndirectCallableType ty) {
+              return buildSubst(ty, argPtr, sourceModule, substModule,
+                                dataLayout);
             })
             .Default({});
     if (subst)
@@ -406,8 +446,10 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
   if (numDrop >= arguments.size())
     return;
   std::vector<void *> partialArgs;
+  int drop = numDrop;
   for (void *arg : arguments) {
-    if (numDrop--) {
+    if (drop > 0) {
+      drop--;
       partialArgs.push_back(nullptr);
       continue;
     }

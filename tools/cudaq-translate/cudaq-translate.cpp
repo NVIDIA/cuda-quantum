@@ -63,7 +63,7 @@ static llvm::cl::opt<std::string> convertTo(
     "convert-to",
     llvm::cl::desc(
         "Specify the translation output to be created. [Default: \"qir\"]"),
-    llvm::cl::value_desc("target dialect [\"qir\", \"qir-adaptive\", "
+    llvm::cl::value_desc("target assembly format [\"qir\", \"qir-adaptive\", "
                          "\"qir-base\", \"openqasm2\", \"iqm\"]"),
     llvm::cl::init("qir"));
 
