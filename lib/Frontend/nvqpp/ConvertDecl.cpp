@@ -658,9 +658,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   if (auto qType = dyn_cast<quake::RefType>(type)) {
     // Variable is of !quake.ref type.
     if (x->hasInit() && !valueStack.empty()) {
-      auto val = popValue();
-      symbolTable.insert(name, val);
-      return pushValue(val);
+      symbolTable.insert(name, peekValue());
+      return true;
     }
     auto zero = builder.create<mlir::arith::ConstantIntOp>(
         loc, 0, builder.getIntegerType(64));
@@ -670,6 +669,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
     return pushValue(addressTheQubit);
+  }
+
+  if (isa<quake::StruqType>(type)) {
+    // A pure quantum struct is just passed along by value. It cannot be stored
+    // to a variable.
+    symbolTable.insert(name, peekValue());
+    return true;
   }
 
   // Here we maybe have something like auto var = mz(qreg)
