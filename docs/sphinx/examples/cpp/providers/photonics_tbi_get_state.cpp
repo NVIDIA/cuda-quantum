@@ -8,8 +8,8 @@
 
 // Compile and run with:
 // ```
-// nvq++ --target photonics-cpu photonics_tbi_get_state.cpp -o tbi_get_state.x
-// && ./tbi_get_state.x
+// nvq++ --target photonics-cpu photonics_tbi_get_state.cpp -o
+// photonics_tbi_get_state.x && ./photonics_tbi_get_state.x
 // ```
 
 #include "cudaq.h"
