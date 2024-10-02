@@ -75,6 +75,7 @@ ADD scripts/validate_container.sh /home/cudaq/validate.sh
 ADD scripts/configure_build.sh /home/cudaq/configure_build.sh
 ADD docker/test/installer/mpi_cuda_check.cpp /home/cudaq/mpi_cuda_check.cpp
 ADD docs/sphinx/examples/cpp /home/cudaq/examples
+ADD docs/sphinx/applications/cpp /home/cudaq/applications
 
 # Wheel to check side-by-side installation of Python and C++ support
 ARG cuda_quantum_wheel='cuda_quantum_*.whl'
