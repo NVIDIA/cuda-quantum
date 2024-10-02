@@ -210,4 +210,6 @@ class PhotonicsHandler(object):
         self.kernelFunction.__globals__['mz'] = mz
 
     def __call__(self, *args):
+        if len(args) != len(self.kernelFunction.__annotations__):
+            args = args[0]
         return self.kernelFunction(*args)

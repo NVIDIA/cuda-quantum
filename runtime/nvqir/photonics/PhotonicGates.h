@@ -20,7 +20,7 @@ enum class PhotonicGateName {
   PhaseShiftGate,
 };
 
-/// @brief Returns a precomputed factorial for n up tp 30
+/// @brief Returns a precomputed factorial for n up to 30
 double _fast_factorial(int n) {
   static std::vector<double> FACTORIAL_TABLE = {
       1.,
@@ -62,7 +62,7 @@ double _fast_factorial(int n) {
   return FACTORIAL_TABLE[n];
 }
 
-/// @brief Computes the kronecker delta of two values
+/// @brief Computes the Kronecker delta of two values
 int _kron(int a, int b) {
   if (a == b)
     return 1;
@@ -119,8 +119,8 @@ void _calc_beam_splitter(std::vector<std::complex<Scalar>> &BS,
               _calc_beam_splitter_elem(N1, N2, n1, n2, theta);
         }
       } // end for N1
-    } // end for n2
-  } // end for n1
+    }   // end for n2
+  }     // end for n1
 }
 
 /// @brief Given the gate name (an element of the GateName enum),
