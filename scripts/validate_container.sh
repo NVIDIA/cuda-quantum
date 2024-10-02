@@ -60,7 +60,7 @@ installed_backends=`\
     done`
 
 # remote_rest targets are automatically filtered, 
-# so is execution on the photonics backend
+# so is execution on the photonics backend and the stim backend
 # This will test all NVIDIA-derivative targets in the legacy mode,
 # i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
 available_backends=`\
@@ -74,6 +74,9 @@ available_backends=`\
         if [[ $file == *"opt-test.yml" ]]; then
           continue
         fi
+        if grep -q "nvqir-simulation-backend: stim" $file ; then 
+          continue
+        fi 
         platform=$(cat $file | grep "platform-qpu:")
         qpu=${platform##* }
         requirements=$(cat $file | grep "gpu-requirements:")

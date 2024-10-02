@@ -108,7 +108,7 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_DM
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(KernelsTester, checkFromState) {
   {

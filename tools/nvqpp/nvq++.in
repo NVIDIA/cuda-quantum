@@ -98,6 +98,9 @@ function f_option_handling {
 	-fkernel-exec-kind=*)
 		KERNEL_EXECUTION_KIND="{codegen=${1#*=}}"
 		;;
+	-fno-set-target-backend)
+		SET_TARGET_BACKEND=false
+		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
 		ARGS="${ARGS} $1"
@@ -347,6 +350,7 @@ DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
 CPPSTD=-std=c++20
 CUDAQ_OPT_EXTRA_PASSES=
+SET_TARGET_BACKEND=true
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -638,7 +642,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	else
 		error_exit "Invalid Target: ($TARGET_CONFIG)"
 	fi
-	if ${GEN_TARGET_BACKEND}; then
+	if ${GEN_TARGET_BACKEND} && ${SET_TARGET_BACKEND}; then
 		# Add a function that will run before main and set the target
 		# backend on the quantum_platform
 		TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
@@ -708,8 +712,7 @@ if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 fi
 if ${ENABLE_DEVICE_CODE_LOADERS}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(quake-add-metadata)")
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "const-prop-complex,lift-array-value,func.func(get-concrete-matrix),device-code-loader{use-quake=1}")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(quake-add-metadata),const-prop-complex,lift-array-value,func.func(get-concrete-matrix),device-code-loader")
 fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
