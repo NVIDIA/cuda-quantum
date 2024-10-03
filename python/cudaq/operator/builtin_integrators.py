@@ -2,7 +2,7 @@ from .integrator import BaseTimeStepper, BaseIntegrator
 import cusuperop as cuso
 import cupy
 from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
-
+from .timing_helper import ScopeTimer
 
 class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
 
@@ -19,13 +19,19 @@ class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
 
         if state != self.state:
             self.state = state
-            self.liouvillian_action.prepare(self.ctx, (self.state,))
+            timer = ScopeTimer("liouvillian_action.prepare")
+            with timer:
+                self.liouvillian_action.prepare(self.ctx, (self.state,))
         state_type = self.state.__class__
         # FIXME: reduce temporary allocations.
         # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step.
-        action_result = state_type(self.ctx,
+        timer = ScopeTimer("compute.action_result")
+        with timer:
+            action_result = state_type(self.ctx,
                                    cupy.zeros_like(self.state.storage))
-        self.liouvillian_action.compute(t, (), (self.state,), action_result)
+        timer = ScopeTimer("liouvillian_action.compute")
+        with timer:
+            self.liouvillian_action.compute(t, (), (self.state,), action_result)
         return action_result
 
 

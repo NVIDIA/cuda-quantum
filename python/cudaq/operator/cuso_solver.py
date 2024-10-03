@@ -15,7 +15,7 @@ import cupy
 import copy
 import math
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
-
+from .timing_helper import ScopeTimer
 
 def as_cuso_state(state):
     tensor = state.getTensor()
@@ -49,13 +49,16 @@ def evolve_me(
     # Note: we would need a CUDAQ state implementation for cuSuperOp
     if not isinstance(initial_state, cudaq_runtime.State):
         raise NotImplementedError("TODO: list of input states")
-    initial_state = as_cuso_state(initial_state)
+    
+    with ScopeTimer("evolve.as_cuso_state") as timer:
+        initial_state = as_cuso_state(initial_state)
 
     if not isinstance(initial_state, CuSuperOpState):
         raise ValueError("Unknown type")
 
     if not initial_state.is_initialized():
-        initial_state.init_state(hilbert_space_dims)
+        with ScopeTimer("evolve.init_state") as timer:
+            initial_state.init_state(hilbert_space_dims)
 
     is_density_matrix = initial_state.is_density_matrix()
     me_solve = False
@@ -63,17 +66,22 @@ def evolve_me(
         if len(collapse_operators) == 0:
             me_solve = False
         else:
-            initial_state = initial_state.to_dm()
+            with ScopeTimer("evolve.initial_state.to_dm") as timer:
+                initial_state = initial_state.to_dm()
             me_solve = True
     else:
         # Always solve the master equation if the input is a density matrix
         me_solve = True
-
-    ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions, schedule))
+    
+    with ScopeTimer("evolve.hamiltonian._evaluate") as timer:
+        ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions, schedule))
     linblad_terms = []
     for c_op in collapse_operators:
-        linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(dimensions, schedule)))
-    liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
+        with ScopeTimer("evolve.collapse_operators._evaluate") as timer:
+            linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(dimensions, schedule)))
+    
+    with ScopeTimer("evolve.constructLiouvillian") as timer:
+        liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
                                        linblad_terms, me_solve)
 
     initial_state = initial_state.get_impl()
@@ -95,12 +103,15 @@ def evolve_me(
     for step_idx, parameters in enumerate(schedule):
         # print(f"Current time = {schedule.current_step}")
         if step_idx > 0:
-            integrator.integrate(schedule.current_step)
+            with ScopeTimer("evolve.integrator.integrate") as timer:
+                integrator.integrate(schedule.current_step)
         step_exp_vals = []
         for obs_idx, obs in enumerate(expectation_op):
             _, state = integrator.get_state()
-            obs.prepare_expectation(cuso_ctx, state)
-            exp_val = obs.compute_expectation(schedule.current_step, (), state)
+            with ScopeTimer("evolve.prepare_expectation") as timer:
+                obs.prepare_expectation(cuso_ctx, state)
+            with ScopeTimer("evolve.compute_expectation") as timer:
+                exp_val = obs.compute_expectation(schedule.current_step, (), state)
             # print(f"Time = {schedule.current_step}: Exp = {float(cp.real(exp_val[0]))}")
             step_exp_vals.append(float(cupy.real(exp_val[0])))
         exp_vals.append(step_exp_vals)
@@ -109,14 +120,16 @@ def evolve_me(
             state_length = state.storage.size
             if is_density_matrix:
                 dimension = int(math.sqrt(state_length))
-                intermediate_states.append(
-                    cudaq_runtime.State.from_data(
-                        state.storage.reshape((dimension, dimension))))
+                with ScopeTimer("evolve.intermediate_states.append") as timer:
+                    intermediate_states.append(
+                        cudaq_runtime.State.from_data(
+                            state.storage.reshape((dimension, dimension))))
             else:
                 dimension = state_length
-                intermediate_states.append(
-                    cudaq_runtime.State.from_data(
-                        state.storage.reshape((dimension,))))
+                with ScopeTimer("evolve.intermediate_states.append") as timer:
+                    intermediate_states.append(
+                        cudaq_runtime.State.from_data(
+                            state.storage.reshape((dimension,))))
 
     if store_intermediate_results:
         return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)
@@ -126,11 +139,13 @@ def evolve_me(
 
         if is_density_matrix:
             dimension = int(math.sqrt(state_length))
-            final_state = cudaq_runtime.State.from_data(
-                state.storage.reshape((dimension, dimension)))
+            with ScopeTimer("evolve.final_state") as timer:
+                final_state = cudaq_runtime.State.from_data(
+                    state.storage.reshape((dimension, dimension)))
         else:
             dimension = state_length
-            final_state = cudaq_runtime.State.from_data(
-                state.storage.reshape((dimension,)))
+            with ScopeTimer("evolve.final_state") as timer:
+                final_state = cudaq_runtime.State.from_data(
+                    state.storage.reshape((dimension,)))
 
         return cudaq_runtime.EvolveResult(final_state, exp_vals[-1])
