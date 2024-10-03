@@ -980,63 +980,11 @@ struct FuseWithConstantArray
     return failure();
   }
 };
-struct FoldQuantumStructMember
-    : public OpRewritePattern<cudaq::cc::ExtractValueOp> {
-  using OpRewritePattern::OpRewritePattern;
-
-  // Replace
-  //
-  // %6 = cc.extract_value %5[2]:(!cc.struct<{..., !veq<?>}>) -> !veq<?>
-  //
-  // in code like
-  //
-  // %0 = quake.alloca !quake.veq<4>
-  // %1 = quake.relax_size %0 : (!quake.veq<4>) -> !quake.veq<?>
-  // ...
-  // %5 = cc.insert_value %1, %4[2] : (cc.struct..., !veq<?>) -> cc.struct...
-  // %6 = cc.extract_value %5[2]:(!cc.struct<{..., !veq<?>}>) -> !veq<?>
-  //
-  // with
-  //
-  // %0 = quake.alloca !quake.veq<4>
-
-  LogicalResult matchAndRewrite(cudaq::cc::ExtractValueOp evOp,
-                                PatternRewriter &rewriter) const override {
-    using namespace cudaq;
-
-    // Only operate on quantum extractions.
-    if (!quake::isQuantumType(evOp.getResult().getType()))
-      return failure();
-
-    auto base = evOp.getAggregate();
-    auto idx = evOp.getRawConstantIndices()[0];
-
-    Value originalVeq;
-    cc::InsertValueOp ivOp = base.getDefiningOp<cc::InsertValueOp>();
-    while (ivOp) {
-      if (idx == ivOp.getPosition()[0]) {
-        originalVeq = ivOp.getValue();
-        break;
-      }
-      ivOp = ivOp.getContainer().getDefiningOp<cc::InsertValueOp>();
-    }
-
-    if (!ivOp)
-      return failure();
-
-    if (auto relaxSizeOp = originalVeq.getDefiningOp<quake::RelaxSizeOp>())
-      originalVeq = relaxSizeOp.getInputVec();
-
-    rewriter.replaceOp(evOp, originalVeq);
-    return success();
-  }
-};
-
 } // namespace
 
 void cudaq::cc::ExtractValueOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseWithConstantArray, FoldQuantumStructMember>(context);
+  patterns.add<FuseWithConstantArray>(context);
 }
 
 //===----------------------------------------------------------------------===//
