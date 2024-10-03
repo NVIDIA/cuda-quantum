@@ -636,7 +636,7 @@ jobs:
           done
 
           # Test C++ examples with NVQC
-          for filename in `find examples/cpp/ applications/cpp/ -name '*.cpp'`; do
+          for filename in `find examples/cpp/ applications/cpp/ targets/cpp/ -name '*.cpp'`; do
             if [[ "$filename" == *"nvqc"* ]]; then
               echo "$filename"
               nvqc_config=""

@@ -27,6 +27,7 @@ ARG cuda_quantum_wheel=cuda_quantum-0.0.0-cp39-cp39-manylinux_2_28_x86_64.whl
 COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY docs/sphinx/applications/python /tmp/applications/
+COPY docs/sphinx/targets/python /tmp/targets/
 COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
 COPY python/README.md /tmp/README.md
