@@ -1,15 +1,7 @@
-/*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
- * All rights reserved.                                                        *
- *                                                                             *
- * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
-
 // Compile and run with:
 // ```
-// nvq++ --target photonics-cpu photonics_tbi_get_state.cpp -o
-// photonics_tbi_get_state.x && ./photonics_tbi_get_state.x
+// nvq++ --target photonics-cpu photonics_tbi_get_state.cpp
+// ./a.out
 // ```
 
 #include "cudaq.h"

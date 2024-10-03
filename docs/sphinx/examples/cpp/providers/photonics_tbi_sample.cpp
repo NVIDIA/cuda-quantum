@@ -1,7 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ --target photonics-cpu photonics_tbi_sample.cpp -o
-// photonics_tbi_sample.x && ./photonics_tbi_sample.x
+// nvq++ --target photonics-cpu photonics_tbi_sample.cpp
+// ./a.out
 // ```
 
 #include "cudaq.h"
