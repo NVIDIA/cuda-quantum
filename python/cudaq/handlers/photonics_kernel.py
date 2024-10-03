@@ -133,7 +133,7 @@ def plus(qudit: PyQudit):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args(qudit)
-    cudaq_runtime.photonics.apply_operation('plus', [],
+    cudaq_runtime.photonics.apply_operation("plus", [],
                                             [[qudit.level, qudit.id]])
 
 
@@ -151,7 +151,7 @@ def phase_shift(qudit: PyQudit, phi: float):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args(qudit)
-    cudaq_runtime.photonics.apply_operation('phase_shift', [phi],
+    cudaq_runtime.photonics.apply_operation("phase_shift", [phi],
                                             [[qudit.level, qudit.id]])
 
 
@@ -170,7 +170,7 @@ def beam_splitter(q: PyQudit, r: PyQudit, theta: float):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args([q, r])
-    cudaq_runtime.photonics.apply_operation('beam_splitter', [theta],
+    cudaq_runtime.photonics.apply_operation("beam_splitter", [theta],
                                             [[q.level, q.id], [r.level, r.id]])
 
 
