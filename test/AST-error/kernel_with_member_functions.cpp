@@ -11,9 +11,13 @@
 
 #include "cudaq.h"
 
+// expected-error@+1 {{struct with user-defined methods is not allowed}}
 struct test {
-  cudaq::qubit &r;
   cudaq::qview<> q;
+  int myMethod() { return 0; }
 };
 
-__qpu__ test kernel(cudaq::qubit &q, cudaq::qview<> qq) { return test(q, qq); } // expected-error {{kernel result type not supported}}
+__qpu__ void kernel() {
+  cudaq::qvector q(2);
+  test t(q);
+}

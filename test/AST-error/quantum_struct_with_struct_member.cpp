@@ -14,7 +14,8 @@
 struct s {
     cudaq::qview<> s;
 };
-// expected-error@+1{{recursive quantum struct types are not allowed.}}
+// expected-error@+2{{recursive quantum struct types are not allowed}}
+// expected-error@+1{{quantum struct has invalid member type}}
 struct test {
   cudaq::qview<> q;
   cudaq::qview<> r;

@@ -11,12 +11,24 @@
 
 #include "cudaq.h"
 
-struct test { // expected-error {{struct with user-defined methods is not allowed in quantum kernel.}}
+// expected-error@+1 {{hybrid quantum-classical struct types are not allowed}}
+struct test {
+  int i;
+  double d;
   cudaq::qview<> q;
-  int myMethod() { return 0; }
 };
 
-__qpu__ void kernel() {
-  cudaq::qvector q(2);
-  test t(q);
+__qpu__ void hello(cudaq::qubit &q) { h(q); }
+
+__qpu__ void kernel(test t) {
+  h(t.q);
+  hello(t.q[0]);
+}
+
+__qpu__ void entry(int i) {
+  cudaq::qvector q(i);
+  test tt{1, 2.2, q};
+  // this fails non-default ctor ConvertExpr:2899, 
+  // but this is not what we are testing here
+  // kernel(tt); 
 }

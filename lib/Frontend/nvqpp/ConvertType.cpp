@@ -257,12 +257,41 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
 
   // Do some error analysis on the product type. Check the following:
 
-  // - If this is a struq, does it contain contain a struq member? Not allowed.
-  if (isa<quake::StruqType>(ty))
+  // - If this is a struq:
+  if (isa<quake::StruqType>(ty)) {
+    // -- does it contain invalid C++ types?
+    for (auto *field : x->fields()) {
+      auto *ty = field->getType().getTypePtr();
+      bool isRef = false;
+      if (ty->isLValueReferenceType()) {
+        auto *lref = cast<clang::LValueReferenceType>(ty);
+        isRef = true;
+        ty = lref->getPointeeType().getTypePtr();
+      }
+      if (auto *tyDecl = ty->getAsRecordDecl()) {
+        if (auto *ident = tyDecl->getIdentifier()) {
+          auto name = ident->getName();
+          if (isInNamespace(tyDecl, "cudaq")) {
+            if (isRef) {
+              // can be owning container; so can be qubit, qarray, or qvector
+              if ((name.equals("qudit") || name.equals("qubit") ||
+                   name.equals("qvector") || name.equals("qarray")))
+                continue;
+            }
+            // must be qview or qview&
+            if (name.equals("qview"))
+              continue;
+          }
+        }
+      }
+      reportClangError(x, mangler, "quantum struct has invalid member type.");
+    }
+    // -- does it contain contain a struq member? Not allowed.
     for (auto fieldTy : fieldTys)
       if (isa<quake::StruqType>(fieldTy))
         reportClangError(x, mangler,
                          "recursive quantum struct types are not allowed.");
+  }
 
   // - Is this a struct does it have quantum types? Not allowed.
   if (!isa<quake::StruqType>(ty))
