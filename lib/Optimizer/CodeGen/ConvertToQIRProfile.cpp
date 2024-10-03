@@ -457,10 +457,11 @@ struct QIRToQIRProfileQIRPass
     RewritePatternSet patterns(context);
     // Note: LoadMeasureResult is not compliant with the Base Profile, so don't
     // add it here unless we're specifically doing the Adaptive Profile.
-    patterns.insert<AddrOfCisToBase, ArrayGetElementPtrConv, CallAlloc,
-                    CalleeConv, EraseArrayAlloc, EraseArrayRelease,
-                    EraseDeadArrayGEP, MeasureCallConv,
-                    MeasureToRegisterCallConv, XCtrlOneTargetToCNot>(context);
+    patterns
+        .insert<AddrOfCisToBase, ArrayGetElementPtrConv, CallAlloc, CalleeConv,
+                EraseArrayAlloc, EraseArrayRelease, EraseDeadArrayGEP,
+                MeasureCallConv, MeasureToRegisterCallConv,
+                XCtrlOneTargetToCNot, ZCtrlOneTargetToCZ>(context);
     if (convertTo.getValue() == "qir-adaptive")
       patterns.insert<LoadMeasureResult>(context);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
@@ -503,6 +504,11 @@ struct QIRProfilePreparationPass
     // Add cnot declaration as it may be referenced after peepholes run.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRCnot, LLVM::LLVMVoidType::get(ctx),
+        {cudaq::opt::getQubitType(ctx), cudaq::opt::getQubitType(ctx)}, module);
+
+    // Add cz declaration as it may be referenced after peepholes run.
+    cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::opt::QIRCZ, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getQubitType(ctx)}, module);
 
     // Add measure_body as it has a different signature than measure.
