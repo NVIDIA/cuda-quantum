@@ -10,6 +10,7 @@ on an arbitrary number of control qubits.
    to any controlled operation.
 
    .. toctree::
+      :hidden:
 
       ../../examples/python/building_kernels.ipynb
 
