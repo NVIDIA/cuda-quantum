@@ -135,7 +135,7 @@ echo "============================="
 
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/cpp/ docs/applications/cpp/ -name '*.cpp' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -275,7 +275,7 @@ mkdir -p $(python3 -m site --user-site)
 # excluded from this test. 
 # Same with afqmc.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-for ex in `find examples/ -name '*.py' | sort`;
+for ex in `find examples/ targets/ -name '*.py' | sort`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -312,7 +312,7 @@ do
     echo "============================="
 done
 
-if [ -n "$(find $(pwd)/python/ docs/applications/python/ -name '*.ipynb')" ]; then
+if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     echo "Validating notebooks:"
     export OMP_NUM_THREADS=8 
     echo "$available_backends" | python3 notebook_validation.py
