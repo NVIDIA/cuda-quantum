@@ -1109,26 +1109,25 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
   if (auto *field = dyn_cast<clang::FieldDecl>(x->getMemberDecl())) {
     auto loc = toLocation(x->getSourceRange());
     auto object = popValue(); // DeclRefExpr
-    SmallVector<cc::ComputePtrArg> offsets;
-    std::int32_t offset = field->getFieldIndex();
     auto ty = popType();
-    if (auto ptrStructTy = dyn_cast<cc::PointerType>(object.getType())) {
-      auto eleTy = cast<cc::PointerType>(object.getType()).getElementType();
-      if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
-        if (arrTy.isUnknownSize())
-          offsets.push_back(0);
-      offsets.push_back(offset);
-
-      return pushValue(builder.create<cc::ComputePtrOp>(
-          loc, cc::PointerType::get(ty), object, offsets));
-    }
-    if (isa<quake::StruqType>(object.getType()))
+    std::int32_t offset = field->getFieldIndex();
+    if (isa<quake::StruqType>(object.getType())) {
       return pushValue(
           builder.create<quake::GetMemberOp>(loc, ty, object, offset));
-    // We have a struct value
+    }
+    if (!isa<cc::PointerType>(object.getType())) {
+      reportClangError(x, mangler,
+                       "internal error: struct must be an object in memory");
+      return false;
+    }
+    auto eleTy = cast<cc::PointerType>(object.getType()).getElementType();
+    SmallVector<cc::ComputePtrArg> offsets;
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+      if (arrTy.isUnknownSize())
+        offsets.push_back(0);
     offsets.push_back(offset);
-    return pushValue(
-        builder.create<cc::ExtractValueOp>(loc, ty, object, offsets));
+    return pushValue(builder.create<cc::ComputePtrOp>(
+        loc, cc::PointerType::get(ty), object, offsets));
   }
   return true;
 }
@@ -2209,36 +2208,43 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     if (isCudaQType(typeName)) {
       auto idx_var = popValue();
       auto qreg_var = popValue();
-
-      if (isa<clang::DeclRefExpr>(x->getArg(0))) {
-        // Get name of the qreg, e.g. qr, and use it to construct a name for the
-        // element, which is intended to be qr%n when n is the index of the
-        // accessed qubit.
-        StringRef qregName = getNamedDecl(x->getArg(0))->getName();
-        auto name = getQubitSymbolTableName(qregName, idx_var);
-        char *varName = strdup(name.c_str());
-
-        // If the name exists in the symbol table, return its stored value.
-        if (symbolTable.count(name))
-          return replaceTOSValue(symbolTable.lookup(name));
-
-        // Otherwise create an operation to access the qubit, store that value
-        // in the symbol table, and return the AddressQubit operation's
-        // resulting value.
+      auto *arg0 = x->getArg(0);
+      if (auto *memExpr = dyn_cast<clang::MemberExpr>(arg0)) {
+        // This is a subscript operator on a data member and the type is a
+        // quantum type (likely a `qview`). This can only happen in a quantum
+        // `struct`, which the spec says must be one-level deep at most and must
+        // only contain references to qubits explicitly allocated in other
+        // variables. `qreg_var` will be a `quake.get_member`. Do not add this
+        // extract `Op` to the symbol table, but always generate a new
+        // `quake.extract_ref` `Op` to get the exact qubit (reference) value.
         auto address_qubit =
             builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
-
-        symbolTable.insert(StringRef(varName), address_qubit);
         return replaceTOSValue(address_qubit);
       }
+      // Get name of the qreg, e.g. qr, and use it to construct a name for the
+      // element, which is intended to be qr%n when n is the index of the
+      // accessed qubit.
+      if (!isa<clang::DeclRefExpr>(arg0))
+        reportClangError(x, mangler,
+                         "internal error: expected a variable name");
+      StringRef qregName = getNamedDecl(arg0)->getName();
+      auto name = getQubitSymbolTableName(qregName, idx_var);
+      char *varName = strdup(name.c_str());
 
-      // We have a quantum value that is not in the symbol table.
-      // Here we will just extract the qubit. This is likely
-      // coming from a quantum struct member.
+      // If the name exists in the symbol table, return its stored value.
+      if (symbolTable.count(name))
+        return replaceTOSValue(symbolTable.lookup(name));
+
+      // Otherwise create an operation to access the qubit, store that value
+      // in the symbol table, and return the AddressQubit operation's
+      // resulting value.
       auto address_qubit =
           builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
 
-      // symbolTable.insert(StringRef(varName), address_qubit);
+      // NB: varName is built from the variable name *and* the index value. This
+      // front-end optimization is likely unnecessary as the compiler can always
+      // canonicalize and merge identical quake.extract_ref operations.
+      symbolTable.insert(StringRef(varName), address_qubit);
       return replaceTOSValue(address_qubit);
     }
     if (typeName == "vector") {
