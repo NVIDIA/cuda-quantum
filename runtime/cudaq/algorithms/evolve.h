@@ -21,11 +21,12 @@ namespace cudaq {
 using async_evolve_result = std::future<evolve_result>;
 
 template <typename QuantumKernel>
-evolve_result evolve(state initial_state, 
-                     QuantumKernel &&kernel, 
+evolve_result evolve(state initial_state, QuantumKernel &&kernel,
                      std::vector<std::function<spin_op()>> observables = {}) {
-  state final_state = get_state(std::forward<QuantumKernel>(kernel), initial_state);
-  if (observables.size() == 0) return evolve_result(final_state);
+  state final_state =
+      get_state(std::forward<QuantumKernel>(kernel), initial_state);
+  if (observables.size() == 0)
+    return evolve_result(final_state);
 
   auto prepare_state = [final_state]() { auto qs = qvector<2>(final_state); };
   std::vector<observe_result> final_expectations;
@@ -36,9 +37,9 @@ evolve_result evolve(state initial_state,
 }
 
 template <typename QuantumKernel>
-evolve_result evolve(state initial_state, 
-                     std::vector<QuantumKernel> kernels, 
-                     std::vector<std::vector<std::function<spin_op()>>> observables = {}) {
+evolve_result
+evolve(state initial_state, std::vector<QuantumKernel> kernels,
+       std::vector<std::vector<std::function<spin_op()>>> observables = {}) {
   // FIXME: check vector lengths
   std::vector<state> intermediate_states = {};
   std::vector<std::vector<observe_result>> expectation_values = {};
@@ -47,35 +48,40 @@ evolve_result evolve(state initial_state,
     if (intermediate_states.size() == 0) {
       intermediate_states.push_back(get_state(kernel, initial_state));
     } else {
-      intermediate_states.push_back(get_state(kernel, intermediate_states.back()));
+      intermediate_states.push_back(
+          get_state(kernel, intermediate_states.back()));
     }
     if (observables.size() > 0) {
       std::vector<observe_result> expectations = {};
-      auto prepare_state = [intermediate_states]() { auto qs = qvector<2>(intermediate_states.back()); };
+      auto prepare_state = [intermediate_states]() {
+        auto qs = qvector<2>(intermediate_states.back());
+      };
       for (auto observable : observables[++step_idx]) {
-        expectations.push_back(observe(prepare_state, observable()));     
+        expectations.push_back(observe(prepare_state, observable()));
       }
       expectation_values.push_back(expectations);
     }
   }
-  if (step_idx < 0) return evolve_result(intermediate_states);
+  if (step_idx < 0)
+    return evolve_result(intermediate_states);
   return evolve_result(intermediate_states, expectation_values);
 }
 
 template <typename QuantumKernel>
-async_evolve_result evolve_async(state initial_state, 
-                                 QuantumKernel &&kernel, 
-                                 std::vector<std::function<spin_op()>> observables = {}, 
-                                 std::size_t qpu_id = 0) {
+async_evolve_result
+evolve_async(state initial_state, QuantumKernel &&kernel,
+             std::vector<std::function<spin_op()>> observables = {},
+             std::size_t qpu_id = 0,
+             std::optional<cudaq::noise_model> noise_model = std::nullopt) {
   auto &platform = cudaq::get_platform();
   std::promise<evolve_result> promise;
   auto f = promise.get_future();
 
   QuantumTask wrapped = detail::make_copyable_function(
-      [p = std::move(promise), 
-       func = std::forward<QuantumKernel>(kernel), 
-       initial_state,
-       observables]() mutable {
+      [p = std::move(promise), func = std::forward<QuantumKernel>(kernel),
+       initial_state, observables, noise_model, &platform]() mutable {
+        if (noise_model.has_value())
+          platform.set_noise(&noise_model.value());
         p.set_value(evolve(initial_state, func, observables));
       });
 
@@ -84,19 +90,20 @@ async_evolve_result evolve_async(state initial_state,
 }
 
 template <typename QuantumKernel>
-async_evolve_result evolve_async(state initial_state, 
-                                 std::vector<QuantumKernel> kernels, 
-                                 std::vector<std::vector<std::function<spin_op()>>> observables = {}, 
-                                 std::size_t qpu_id = 0) {
+async_evolve_result evolve_async(
+    state initial_state, std::vector<QuantumKernel> kernels,
+    std::vector<std::vector<std::function<spin_op()>>> observables = {},
+    std::size_t qpu_id = 0,
+    std::optional<cudaq::noise_model> noise_model = std::nullopt) {
   auto &platform = cudaq::get_platform();
   std::promise<evolve_result> promise;
   auto f = promise.get_future();
 
   QuantumTask wrapped = detail::make_copyable_function(
-      [p = std::move(promise), 
-       kernels, 
-       initial_state,
-       observables]() mutable {
+      [p = std::move(promise), kernels, initial_state, observables, noise_model,
+       &platform]() mutable {
+        if (noise_model.has_value())
+          platform.set_noise(&noise_model.value());
         p.set_value(evolve(initial_state, kernels, observables));
       });
 

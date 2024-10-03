@@ -15,26 +15,68 @@ from ..runtime.observe import observe
 from .integrator import BaseIntegrator
 from .cuso_solver import evolve_me
 
-def _compute_step_matrix(hamiltonian: Operator, dimensions: Mapping[int, int], parameters: Mapping[str, NumericType]) -> NDArray[complexfloating]:
+
+def _compute_step_matrix(hamiltonian: Operator, dimensions: Mapping[int, int],
+                         parameters: Mapping[str, NumericType],
+                         dt: float) -> NDArray[complexfloating]:
     op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
-    # FIXME: Use approximative approach (series expansion, integrator), 
+    # FIXME: Use approximative approach (series expansion, integrator),
     # and maybe use GPU acceleration for matrix manipulations if it makes sense.
-    return scipy.linalg.expm(-1j * op_matrix)
+    return scipy.linalg.expm(-1j * op_matrix * dt)
+
+
+def _add_noise_channel_for_step(step_kernel_name: str,
+                                noise_model: cudaq_runtime.NoiseModel,
+                                collapse_operators: Sequence[Operator],
+                                dimensions: Mapping[int, int],
+                                parameters: Mapping[str,
+                                                    NumericType], dt: float):
+    for collapse_op in collapse_operators:
+        L = collapse_op.to_matrix(dimensions, **parameters)
+        G = -0.5 * numpy.dot(L.conj().T, L)
+        M0 = G * dt + numpy.eye(2**len(dimensions))
+        M1 = numpy.sqrt(dt) * L
+        try:
+            noise_model.add_all_qubit_channel(
+                step_kernel_name, cudaq_runtime.KrausChannel([M0, M1]))
+        except Exception as e:
+            print(
+                f"Error adding noise channel, perhaps the time step is too large."
+            )
+            raise e
+
 
 # FIXME: move to C++
-def _evolution_kernel(num_qubits: int, 
-                      compute_step_matrix: Callable[[Mapping[str, NumericType]], NDArray[numpy.complexfloating]], 
-                      schedule: Iterable[Mapping[str, NumericType]],
-                      split_into_steps = False) -> Generator[PyKernel]:
+def _evolution_kernel(
+    num_qubits: int,
+    compute_step_matrix: Callable[[Mapping[str, NumericType], float],
+                                  NDArray[numpy.complexfloating]],
+    tlist: Sequence[float],
+    schedule: Iterable[Mapping[str, NumericType]],
+    split_into_steps=False,
+    register_kraus_channel: Optional[Callable[
+        [str, Mapping[str, NumericType], float], None]] = None
+) -> Generator[PyKernel]:
     kernel_base_name = "".join(filter(str.isalnum, str(uuid.uuid4())))
+
     def register_operations():
         for step_idx, parameters in enumerate(schedule):
-            # We could make operators hashable and try to use that to do some kernel caching, 
+            # We could make operators hashable and try to use that to do some kernel caching,
             # but there is no guarantee that if the hash is equal, the operator is equal.
             # Overall it feels like a better choice to just take a uuid here.
             operation_name = f"evolve_{kernel_base_name}_{step_idx}"
-            register_operation(operation_name, compute_step_matrix(parameters))
+            # Note: the first step is expected to be the identity matrix, i.e., initial state.
+            if step_idx == 0:
+                evolution_matrix = numpy.eye(2**num_qubits,
+                                             dtype=numpy.complex128)
+                register_operation(operation_name, evolution_matrix)
+            else:
+                dt = tlist[step_idx] - tlist[step_idx - 1]
+                register_operation(operation_name,
+                                   compute_step_matrix(parameters, dt))
+                register_kraus_channel(operation_name, parameters, dt)
             yield operation_name
+
     operation_names = register_operations()
 
     evolution, initial_state = make_kernel(cudaq_runtime.State)
@@ -48,8 +90,8 @@ def _evolution_kernel(num_qubits: int,
             yield evolution
             evolution, initial_state = make_kernel(cudaq_runtime.State)
             qs = evolution.qalloc(initial_state)
-    if not split_into_steps: yield evolution
-
+    if not split_into_steps:
+        yield evolution
 
 
 # Top level API for the CUDA-Q master equation solver.
@@ -121,20 +163,54 @@ def evolve(
 
     num_qubits = len(hamiltonian.degrees)
     parameters = [mapping for mapping in schedule]
-    observable_spinops = [lambda step_parameters: op._to_spinop(dimensions, **step_parameters) for op in observables]
-    compute_step_matrix = lambda step_parameters: _compute_step_matrix(hamiltonian, dimensions, step_parameters)
+    schedule.reset()
+    tlist = [schedule.current_step for _ in schedule]
+    observable_spinops = [
+        lambda step_parameters, op=op: op._to_spinop(
+            dimensions, **step_parameters) for op in observables
+    ]
+    compute_step_matrix = lambda step_parameters, dt: _compute_step_matrix(
+        hamiltonian, dimensions, step_parameters, dt)
+    noise = cudaq_runtime.NoiseModel()
+    add_noise_channel_for_step = lambda step_kernel_name, step_parameters, dt: _add_noise_channel_for_step(
+        step_kernel_name, noise, collapse_operators, dimensions,
+        step_parameters, dt)
 
     # FIXME: deal with a sequence of initial states
     if store_intermediate_results:
-        evolution = _evolution_kernel(num_qubits, compute_step_matrix, parameters, split_into_steps = True)
+        evolution = _evolution_kernel(
+            num_qubits,
+            compute_step_matrix,
+            tlist,
+            parameters,
+            split_into_steps=True,
+            register_kraus_channel=add_noise_channel_for_step)
         kernels = [kernel for kernel in evolution]
-        if len(observables) == 0: return cudaq_runtime.evolve(initial_state, kernels)
-        return cudaq_runtime.evolve(initial_state, kernels, parameters, observable_spinops)
+        if len(observables) == 0:
+            return cudaq_runtime.evolve(initial_state, kernels)
+        if len(collapse_operators) > 0:
+            cudaq_runtime.set_noise(noise)
+        result = cudaq_runtime.evolve(initial_state, kernels, parameters,
+                                      observable_spinops)
+        cudaq_runtime.unset_noise()
+        return result
     else:
-        kernel = next(_evolution_kernel(num_qubits, compute_step_matrix, parameters))
-        if len(observables) == 0: return cudaq_runtime.evolve(initial_state, kernel)
+        kernel = next(
+            _evolution_kernel(
+                num_qubits,
+                compute_step_matrix,
+                tlist,
+                parameters,
+                register_kraus_channel=add_noise_channel_for_step))
+        if len(observables) == 0:
+            return cudaq_runtime.evolve(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
-        return cudaq_runtime.evolve(initial_state, kernel, parameters[-1], observable_spinops)
+        if len(collapse_operators) > 0:
+            cudaq_runtime.set_noise(noise)
+        result = cudaq_runtime.evolve(initial_state, kernel, parameters[-1],
+                                      observable_spinops)
+        cudaq_runtime.unset_noise()
+        return result
 
 
 def evolve_async(
@@ -181,18 +257,55 @@ def evolve_async(
 
     num_qubits = len(hamiltonian.degrees)
     parameters = [mapping for mapping in schedule]
-    observable_spinops = [lambda step_parameters: op._to_spinop(dimensions, **step_parameters) for op in observables]
-    compute_step_matrix = lambda step_parameters: _compute_step_matrix(hamiltonian, dimensions, step_parameters)
+    schedule.reset()
+    tlist = [schedule.current_step for _ in schedule]
+    observable_spinops = [
+        lambda step_parameters, op=op: op._to_spinop(
+            dimensions, **step_parameters) for op in observables
+    ]
+    compute_step_matrix = lambda step_parameters, dt: _compute_step_matrix(
+        hamiltonian, dimensions, step_parameters, dt)
+    noise = cudaq_runtime.NoiseModel()
+    add_noise_channel_for_step = lambda step_kernel_name, step_parameters, dt: _add_noise_channel_for_step(
+        step_kernel_name, noise, collapse_operators, dimensions,
+        step_parameters, dt)
 
     # FIXME: deal with a sequence of initial states
     if store_intermediate_results:
-        evolution = _evolution_kernel(num_qubits, compute_step_matrix, parameters, split_into_steps = True)
+        evolution = _evolution_kernel(
+            num_qubits,
+            compute_step_matrix,
+            tlist,
+            parameters,
+            split_into_steps=True,
+            register_kraus_channel=add_noise_channel_for_step)
         kernels = [kernel for kernel in evolution]
-        if len(observables) == 0: return cudaq_runtime.evolve_async(initial_state, kernels)
-        return cudaq_runtime.evolve_async(initial_state, kernels, parameters, observable_spinops)
+        if len(observables) == 0:
+            return cudaq_runtime.evolve_async(initial_state, kernels)
+        if len(collapse_operators) > 0:
+            return cudaq_runtime.evolve_async(initial_state,
+                                              kernels,
+                                              parameters,
+                                              observable_spinops,
+                                              noise_model=noise)
+        return cudaq_runtime.evolve_async(initial_state, kernels, parameters,
+                                          observable_spinops)
     else:
-        kernel = next(_evolution_kernel(num_qubits, compute_step_matrix, parameters))
-        if len(observables) == 0: return cudaq_runtime.evolve_async(initial_state, kernel)
+        kernel = next(
+            _evolution_kernel(
+                num_qubits,
+                compute_step_matrix,
+                tlist,
+                parameters,
+                register_kraus_channel=add_noise_channel_for_step))
+        if len(observables) == 0:
+            return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
-        return cudaq_runtime.evolve_async(initial_state, kernel, parameters[-1], observable_spinops)
-
+        if len(collapse_operators) > 0:
+            cudaq_runtime.evolve_async(initial_state,
+                                       kernel,
+                                       parameters[-1],
+                                       observable_spinops,
+                                       noise_model=noise)
+        return cudaq_runtime.evolve_async(initial_state, kernel, parameters[-1],
+                                          observable_spinops)

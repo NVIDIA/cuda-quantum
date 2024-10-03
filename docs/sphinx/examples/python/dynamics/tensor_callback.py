@@ -20,12 +20,11 @@ nu_x = 1.0
 # Note: we chose a frequency slightly different from the resonant frequency to demonstrate the off-resonance effect.
 nu_d = 9.98 
 
-def test(t):
-    print("HEY")
+def callback_tensor(t):
     return np.cos(2 * np.pi * nu_d * t) * np.array([[0., 1.], [1., 0.]], dtype = np.complex128)
 
 # Let's define the control term as a callback tensor
-ElementaryOperator.define("control_term", [2], test)
+ElementaryOperator.define("control_term", [2], callback_tensor)
 
 
 
