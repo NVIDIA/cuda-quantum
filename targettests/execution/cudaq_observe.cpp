@@ -49,7 +49,7 @@ int main() {
   return 0;
 }
 
-// Note: seeds 2 and 12 will push this to -2 instead of -1. All all other
-// seeds in 1-100 range will be -1.x.
+// Note: seeds 2 and 12 will push this to -2 instead of -1. All other seeds in
+// 1-100 range will be -1.x.
 
 // CHECK: Energy is -1.
