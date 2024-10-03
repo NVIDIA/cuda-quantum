@@ -48,7 +48,8 @@ class QuditManager(object):
         if cls.qudit_level is None:
             cls.qudit_level = level
         elif level != cls.qudit_level:
-            raise RuntimeError("The qudits must be of same level within a kernel.")
+            raise RuntimeError(
+                "The qudits must be of same level within a kernel.")
         id = cudaq_runtime.photonics.allocate_qudit(cls.qudit_level)
         cls.allocated_ids.append(id)
         return PyQudit(cls.qudit_level, id)
@@ -58,9 +59,8 @@ class QuditManager(object):
 
     def __exit__(cls, exc_type, exc_val, exc_tb):
         while cls.allocated_ids:
-            cudaq_runtime.photonics.release_qudit(
-                cls.allocated_ids.pop(), cls.qudit_level
-            )
+            cudaq_runtime.photonics.release_qudit(cls.allocated_ids.pop(),
+                                                  cls.qudit_level)
         cls.reset()
 
 
@@ -133,7 +133,8 @@ def plus(qudit: PyQudit):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args(qudit)
-    cudaq_runtime.photonics.apply_operation("plus", [], [[qudit.level, qudit.id]])
+    cudaq_runtime.photonics.apply_operation("plus", [],
+                                            [[qudit.level, qudit.id]])
 
 
 def phase_shift(qudit: PyQudit, phi: float):
@@ -150,9 +151,8 @@ def phase_shift(qudit: PyQudit, phi: float):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args(qudit)
-    cudaq_runtime.photonics.apply_operation(
-        "phase_shift", [phi], [[qudit.level, qudit.id]]
-    )
+    cudaq_runtime.photonics.apply_operation("phase_shift", [phi],
+                                            [[qudit.level, qudit.id]])
 
 
 def beam_splitter(q: PyQudit, r: PyQudit, theta: float):
@@ -170,9 +170,8 @@ def beam_splitter(q: PyQudit, r: PyQudit, theta: float):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args([q, r])
-    cudaq_runtime.photonics.apply_operation(
-        "beam_splitter", [theta], [[q.level, q.id], [r.level, r.id]]
-    )
+    cudaq_runtime.photonics.apply_operation("beam_splitter", [theta],
+                                            [[q.level, q.id], [r.level, r.id]])
 
 
 def mz(qudits: PyQudit | List[PyQudit], register_name=''):
@@ -191,7 +190,8 @@ def mz(qudits: PyQudit | List[PyQudit], register_name=''):
     """
     _check_args(qudits)
     if isinstance(qudits, PyQudit):
-        return cudaq_runtime.photonics.measure(qudits.level, qudits.id, register_name)
+        return cudaq_runtime.photonics.measure(qudits.level, qudits.id,
+                                               register_name)
     if isinstance(qudits, List):
         return [
             cudaq_runtime.photonics.measure(q.level, q.id, register_name)
