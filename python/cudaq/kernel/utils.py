@@ -349,11 +349,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
             return cc.CallableType.get(ctx, argInstance.argTypes)
-    else:
-        if argType == list[int]:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
-        if argType == list[float]:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
     for name, (customTys, memberTys) in globalRegisteredTypes.items():
         if argType == customTys:
@@ -378,6 +373,12 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 return quake.StruqType.getNamed(ctx, name, structTys)
 
             return cc.StructType.getNamed(ctx, name, structTys)
+
+    if 'argInstance' not in kwargs:
+        if argType == list[int]:
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
+        if argType == list[float]:
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
     emitFatalError(
         f"Can not handle conversion of python type {argType} to MLIR type.")
