@@ -220,7 +220,8 @@ def evolve_async(
     initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
-    store_intermediate_results=False
+    store_intermediate_results=False,
+    integrator: Optional[BaseIntegrator] = None
 ) -> cudaq_runtime.AsyncEvolveResult | Sequence[
         cudaq_runtime.AsyncEvolveResult]:
     """
@@ -234,6 +235,12 @@ def evolve_async(
         during the evolution of each initial state. See the `EvolveResult` for more 
         information about the data computed during evolution.
     """
+    target_name = cudaq_runtime.get_target().name
+    if target_name == "nvidia-dynamics":
+        return cudaq_runtime.evolve_async(lambda: evolve_me(hamiltonian, dimensions, schedule, initial_state,
+                         collapse_operators, observables,
+                         store_intermediate_results, integrator))
+    
     simulator = cudaq_runtime.get_target().simulator.strip()
     if simulator == "":
         raise NotImplementedError(

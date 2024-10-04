@@ -322,6 +322,13 @@ void bindPyEvolve(py::module &mod) {
       py::arg("initial_state"), py::arg("kernel"), py::arg("params"),
       py::arg("observables"), py::arg("qpu_id") = 0,
       py::arg("noise_model") = std::nullopt, "");
+  mod.def(
+      "evolve_async",
+      [](std::function<evolve_result()> evolveFunctor, std::size_t qpu_id = 0) {
+        py::gil_scoped_release release;
+        return evolve_async(evolveFunctor, qpu_id);
+      },
+      py::arg("evolve_function"), py::arg("qpu_id") = 0);
 }
 
 } // namespace cudaq

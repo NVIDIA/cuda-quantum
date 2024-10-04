@@ -333,13 +333,19 @@ all_models = [
     CavityModel(n=8, delta=2 * np.pi, alpha0=0.5, kappa=2 * np.pi)
 ]
 
+def sync_run(*args, **kwargs):
+    return evolve(*args, **kwargs)
+
+def async_run(*args, **kwargs):
+    return evolve_async(*args, **kwargs).get()
 
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 @pytest.mark.parametrize('model', all_models)
-def test_analytical_models(integrator, model):
+@pytest.mark.parametrize('runner', [sync_run, async_run])
+def test_analytical_models(integrator, model, runner):
     rho0 = cudaq.State.from_data(model.initial_state())
     schedule = Schedule(model.tlist, ["t"])
-    evolution_result = evolve(model.hamiltonian(),
+    evolution_result = runner(model.hamiltonian(),
                               model.dimensions,
                               schedule,
                               rho0,
