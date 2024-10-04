@@ -588,7 +588,7 @@ protected:
         executionContext->result.append(tmp);
       }
     }
-
+    deallocateQudits(sampleQudits);
     sampleQudits.clear();
     registerNameToMeasuredQudit.clear();
   }
@@ -656,13 +656,13 @@ protected:
           gateQueue.pop();
         throw std::runtime_error("Unknown exception in applyGate");
       }
-      if (executionContext && executionContext->noiseModel) {
-        std::vector<std::size_t> noiseQudits{next.controls.begin(),
-                                             next.controls.end()};
-        noiseQudits.insert(noiseQudits.end(), next.targets.begin(),
-                           next.targets.end());
-        applyNoiseChannel(next.operationName, noiseQudits);
-      }
+      // if (executionContext && executionContext->noiseModel) {
+      //   std::vector<std::size_t> noiseQudits{next.controls.begin(),
+      //                                        next.controls.end()};
+      //   noiseQudits.insert(noiseQudits.end(), next.targets.begin(),
+      //                      next.targets.end());
+      //   applyNoiseChannel(next.operationName, noiseQudits);
+      // }
       gateQueue.pop();
     }
     // // For CUDA-based simulators, this calls cudaDeviceSynchronize()
@@ -994,8 +994,18 @@ public:
 
     // Set the state data if requested.
     if (executionContext->name == "extract-state") {
+      if (sampleQudits.empty()) {
+        if (isInBatchMode())
+          sampleQudits.resize(batchModeCurrentNumQudits);
+        else
+          sampleQudits.resize(nQuditsAllocated);
+        std::iota(sampleQudits.begin(), sampleQudits.end(), 0);
+      }
       flushGateQueue();
       executionContext->simulationState = getSimulationState();
+
+      deallocateQudits(sampleQudits);
+      sampleQudits.clear();
     }
 
     // Deallocate the deferred qudits, but do so
@@ -1169,11 +1179,10 @@ public:
 
     // Get the actual measurement from the subtype measureQudit implementation
     auto measureResult = measureQudit(quditIdx);
-    // auto bitResult = measureResult == true ? "1" : "0";
-
+    auto bitResult = std::to_string(measureResult);
     // If this CUDA-Q kernel has conditional statements on measure results
     // then we want to handle the sampling a bit differently.
-    // handleSamplingWithConditionals(quditIdx, bitResult, registerName);
+    handleSamplingWithConditionals(quditIdx, bitResult, registerName);
 
     // Return the result
     return measureResult;

@@ -43,25 +43,6 @@ struct QppPhotonicState : public PhotonicState {
     return (std::log2(state.size()) / std::log2(levels));
   }
 
-  // std::unique_ptr<SimulationState>
-  // createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
-  //   throw std::runtime_error(
-  //       "createFromSizeAndPtr not available for this photonic simulator "
-  //       "backend.");
-  // }
-
-  // std::size_t getNumQubits() const override {
-  //   throw std::runtime_error(
-  //       "getNumQubits data not available for this photonic simulator
-  //       backend.");
-  // }
-
-  // std::complex<double> overlap(const cudaq::SimulationState &other) override
-  // {
-  //   throw std::runtime_error(
-  //       "overlap data not available for this photonic simulator backend.");
-  // }
-
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
     if (getNumQudits() != basisState.size())
@@ -216,7 +197,7 @@ protected:
       state = qpp::kron(casted->state, state);
   }
 
-  void deallocateStateImpl() {
+  void deallocateStateImpl() override {
     qpp::ket tmp;
     state = tmp;
   }
