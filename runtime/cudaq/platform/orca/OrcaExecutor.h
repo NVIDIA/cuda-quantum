@@ -13,7 +13,7 @@
 
 namespace cudaq {
 
-/// @brief The Executor subclass for 'orca' target which has a distinct sampling
+/// @brief The Executor subclass for ORCA target which has a distinct sampling
 /// API.
 class OrcaExecutor : public Executor {
 public:
