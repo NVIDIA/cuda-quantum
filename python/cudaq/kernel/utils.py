@@ -363,6 +363,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 if numQuantumMemberTys != len(structTys):
                     emitFatalError(
                         f'hybrid quantum-classical data types not allowed')
+                return quake.StruqType.getNamed(ctx, name, structTys)
 
             return cc.StructType.getNamed(ctx, name, structTys)
 
