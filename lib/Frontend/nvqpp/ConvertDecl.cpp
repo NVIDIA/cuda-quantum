@@ -177,7 +177,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(cc::StateType::get(ctx));
     if (name.equals("pauli_word"))
       return pushType(cc::CharspanType::get(ctx));
-    if (name.equals("qkernel_ref")) {
+    if (name.equals("qkernel")) {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the function's signature.
       if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
