@@ -1155,7 +1155,9 @@ public:
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_ONE_PARAM
 #undef PHOTONIC_CIRCUIT_SIMULATOR_ONE_QUDIT_TWO_PARAM
 
-  std::size_t mz(const std::size_t quditIdx) { return mz(quditIdx, ""); }
+  std::size_t mz(const std::size_t quditIdx) override {
+    return mz(quditIdx, "");
+  }
 
   /// @brief Measure operation. Here we check what the current execution
   /// context is. If the context is sample, then we do nothing but store the
