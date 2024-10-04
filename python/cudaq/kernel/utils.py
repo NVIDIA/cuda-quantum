@@ -233,9 +233,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             (quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty) or
              quake.StruqType.isinstance(ty)) else 0 for ty in structTys
         ])
-        numStruqMemberTys = sum([
-            1 if (quake.StruqType.isinstance(ty)) else 0 for ty in structTys
-        ])
+        numStruqMemberTys = sum(
+            [1 if (quake.StruqType.isinstance(ty)) else 0 for ty in structTys])
         if numQuantumMemberTys != 0:  # we have quantum member types
             if numQuantumMemberTys != len(structTys):
                 emitFatalError(
@@ -375,8 +374,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                         f'hybrid quantum-classical data types not allowed')
                 if numStruqMemberTys != 0:
                     emitFatalError(
-                        f'recursive quantum struct types not allowed.'
-                    )
+                        f'recursive quantum struct types not allowed.')
                 return quake.StruqType.getNamed(ctx, name, structTys)
 
             return cc.StructType.getNamed(ctx, name, structTys)
