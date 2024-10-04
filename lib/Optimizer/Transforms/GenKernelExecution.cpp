@@ -608,6 +608,8 @@ public:
       op->erase();
     for (std::size_t i = 0, end = funcOp.getNumResults(); i != end; ++i)
       funcOp.eraseResult(0);
+    modifiedDevKernels.insert(
+        std::pair<StringRef, Type>{funcOp.getName(), newFuncTy.getInput(0)});
   }
 
   /// In the thunk, we need to unpack any `std::vector` objects encoded in the
@@ -1776,11 +1778,46 @@ public:
       // kernel as having been processed.
       cudaq::opt::factory::createGlobalCtorCall(
           module, FlatSymbolRefAttr::get(ctx, initFun.getName()));
-      LLVM_DEBUG(llvm::dbgs() << module << '\n');
+
+      SmallVector<Operation *> deadCalls;
+      module.walk([&](func::CallOp call) {
+        if (!call.getResults().empty()) {
+          auto callee = call.getCallee();
+          auto iter = modifiedDevKernels.find(callee);
+          if (iter != modifiedDevKernels.end()) {
+            OpBuilder builder(call);
+            Type ty = call.getResult(0).getType();
+            auto loc = call.getLoc();
+            auto strTy = cast<cudaq::cc::StructType>(
+                cast<cudaq::cc::PointerType>(iter->second).getElementType());
+            auto buff = builder.create<cudaq::cc::AllocaOp>(loc, strTy);
+            SmallVector<Value> args = {buff};
+            args.append(call.getOperands().begin(), call.getOperands().end());
+            builder.create<func::CallOp>(loc, TypeRange{}, callee, args);
+            auto buffPtrPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(strTy.getMember(0)), buff,
+                ArrayRef<cudaq::cc::ComputePtrArg>{0});
+            auto buffPtr = builder.create<cudaq::cc::LoadOp>(loc, buffPtrPtr);
+            auto buffSizePtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(strTy.getMember(1)), buff,
+                ArrayRef<cudaq::cc::ComputePtrArg>{1});
+            auto buffSize = builder.create<cudaq::cc::LoadOp>(loc, buffSizePtr);
+            auto sv = builder.create<cudaq::cc::StdvecInitOp>(loc, ty, buffPtr,
+                                                              buffSize);
+            call.getResult(0).replaceAllUsesWith(sv);
+            deadCalls.push_back(call);
+          }
+        }
+      });
+      for (auto *op : deadCalls)
+        op->erase();
+
+      LLVM_DEBUG(llvm::dbgs() << "final module:\n" << module << '\n');
     }
     out.keep();
   }
 
   const DataLayout *dataLayout = nullptr;
+  DenseMap<StringRef, Type> modifiedDevKernels;
 };
 } // namespace
