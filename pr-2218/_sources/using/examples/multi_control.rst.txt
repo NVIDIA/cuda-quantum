@@ -9,10 +9,8 @@ on an arbitrary number of control qubits.
    CUDA-Q kernel. Alternatively, one may pass multiple arguments for control qubits or vectors
    to any controlled operation.
 
-   .. toctree::
-      :hidden:
-
-      ../../examples/python/building_kernels.ipynb
+   .. literalinclude:: ../../examples/python/building_kernels.py
+      :language: python
 
 .. tab:: C++ 
 

@@ -123,21 +123,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/examples/multi_control.html">   Building Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/building_kernels.html">Building Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Defining-Kernels">Defining Kernels</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Initializing-states">Initializing states</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Applying-Gates">Applying Gates</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Controlled-Operations">Controlled Operations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Multi-Controlled-Operations">Multi-Controlled Operations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Adjoint-Operations">Adjoint Operations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Custom-Operations">Custom Operations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Building-Kernels-with-Kernels">Building Kernels with Kernels</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/building_kernels.html#Parameterized-Kernels">Parameterized Kernels</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/multi_control.html">   Building Kernels</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
@@ -1205,7 +1191,7 @@ Total elapsed time (s) =  3.145601095049642
 <section id="Gate-Fusion-for-Larger-Circuits">
 <h2>Gate Fusion for Larger Circuits<a class="headerlink" href="#Gate-Fusion-for-Larger-Circuits" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q simulations take advantage of a technique called gate fusion. Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place.</p>
-<p><img alt="gate-fuse.png" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="gate-fuse.png" src="../../_images/gate-fuse1.png" /></p>
 <p>This is particularly important for larger circuits and can have a significant impact on the performance of the simulation. Each system is different, so you should test different gate fusion levels to find out what is best for your system. You can find more information <a class="reference external" href="https://developer.nvidia.com/blog/new-nvidia-cuda-q-features-boost-quantum-application-performance/">here</a>.</p>
 </section>
 </section>
