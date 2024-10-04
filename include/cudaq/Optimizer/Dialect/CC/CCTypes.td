@@ -195,17 +195,16 @@ def cc_CallableType : CCType<"Callable", "callable"> {
 }
 
 def cc_IndirectCallableType : CCType<"IndirectCallable", "indirect_callable"> {
-  let summary = "Proxy for cudaq::qkernel_ref.";
+  let summary = "Proxy for cudaq::qkernel.";
   let description = [{
     An entry-point kernel may take a reference to another kernel as an argument.
     The passed kernel may be entirely opaque at compile-time with its definition
     present in some other compilation module.
 
-    It is on the programmer to use the cudaq::qkernel_ref type. This wrapper
-    class is very much like std::function, but it extends that functionality
-    with some extra information for the runtime to be able to "link" the
-    distinct kernels on the device side and provide, for example, LTO at
-    JIT compile time.
+    It is on the programmer to use the cudaq::qkernel type. This wrapper class
+    is very much like std::function, but it extends that functionality with some
+    extra information for the runtime to be able to "link" the distinct kernels
+    on the device side and provide, for example, LTO at JIT compile time.
   }];
 
   let parameters = (ins "mlir::FunctionType":$signature);

@@ -34,15 +34,14 @@ __qpu__ void dunkadee(cudaq::qvector<> &q) { x(q[0]); }
 #include "emulib.h"
 #include <iostream>
 
-__qpu__ void
-userKernel(const cudaq::qkernel_ref<void(cudaq::qvector<> &)> &init) {
+__qpu__ void userKernel(const cudaq::qkernel<void(cudaq::qvector<> &)> &init) {
   cudaq::qvector q(2);
   init(q);
 }
 
 int main() {
   cudaq::sample(10, userKernel,
-                cudaq::qkernel_ref<void(cudaq::qvector<> &)>{dunkadee});
+                cudaq::qkernel<void(cudaq::qvector<> &)>{dunkadee});
   std::cout << "Hello, World!\n";
   return 0;
 }
