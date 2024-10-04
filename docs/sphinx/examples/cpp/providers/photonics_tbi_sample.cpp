@@ -1,7 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target photonics-cpu photonics_tbi_sample.cpp
-// ./a.out
+// nvq++ --target photonics-cpu photonics_tbi_sample.cpp && ./a.out
 // ```
 
 #include "cudaq.h"
@@ -10,13 +9,13 @@
 #include <iostream>
 
 // Global variables
-static const std::size_t one{1};
+static constexpr std::size_t one = 1;
 
-static constexpr std::size_t n_modes{4};
-static constexpr std::array<std::size_t, n_modes> input_state{2, 1, 3, 1};
+static constexpr std::size_t n_modes = 4;
+static constexpr std::array<std::size_t, n_modes> input_state = {2, 1, 3, 1};
 
-static constexpr std::size_t d{
-    std::accumulate(input_state.begin(), input_state.end(), one)};
+static constexpr std::size_t d =
+    std::accumulate(input_state.begin(), input_state.end(), one);
 
 struct TBI {
   auto operator()(std::vector<double> const &bs_angles,
@@ -41,27 +40,27 @@ struct TBI {
         c++;
       }
     }
-    mz(qumodes);
   }
 };
 
 template <typename T>
-void LinearSpacedArray(std::vector<T> &xs, T min, T max, std::size_t N) {
+void LinearSpacedArray(std::vector<T> &array, T min, T max, std::size_t N) {
   T h = (max - min) / static_cast<T>(N - 1);
-  typename std::vector<T>::iterator x;
   T val;
-  for (x = xs.begin(), val = min; x != xs.end(); ++x, val += h) {
-    *x = val;
+  typename std::vector<T>::iterator array_it;
+  for (array_it = array.begin(), val = min; array_it != array.end();
+       ++array_it, val += h) {
+    *array_it = val;
   }
 }
 
 int main() {
-  std::size_t n_loops{2};
-  std::vector<std::size_t> loop_lengths{1, 2};
+  std::size_t n_loops = 2;
+  std::vector<std::size_t> loop_lengths = {1, 2};
   std::vector<std::size_t> input_state(std::begin(::input_state),
                                        std::end(::input_state));
 
-  const std::size_t zero{0};
+  const std::size_t zero = 0;
   std::size_t sum_loop_lenghts{
       std::accumulate(loop_lengths.begin(), loop_lengths.end(), zero)};
 
