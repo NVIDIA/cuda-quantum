@@ -434,6 +434,34 @@ struct CallAlloc : public OpRewritePattern<LLVM::CallOp> {
   }
 };
 
+// %1 = address_of @__quantum__qis__z__ctl
+// %2 = call @invokewithControlBits %1, %ctrl, %targ
+// ─────────────────────────────────────────────────
+// %2 = call __quantum__qis__cz %ctrl, %targ
+struct ZCtrlOneTargetToCZ : public OpRewritePattern<LLVM::CallOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(LLVM::CallOp call,
+                                PatternRewriter &rewriter) const override {
+    ValueRange args(call.getArgOperands());
+    if (args.size() == 4 && call.getCallee() &&
+        call.getCallee()->equals(cudaq::opt::NVQIRInvokeWithControlBits)) {
+      if (auto addrOf = dyn_cast_or_null<mlir::LLVM::AddressOfOp>(
+              args[1].getDefiningOp())) {
+        if (addrOf.getGlobalName().startswith(
+                std::string(cudaq::opt::QIRQISPrefix) + "z__ctl")) {
+          rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+              call, TypeRange{}, cudaq::opt::QIRCZ, args.drop_front(2));
+          if (addrOf.use_empty())
+            addrOf.erase();
+          return success();
+        }
+      }
+    }
+    return failure();
+  }
+};
+
 /// QIR to the Specific QIR Profile
 ///
 /// This pass converts patterns in LLVM-IR dialect using QIR calls, etc. into a

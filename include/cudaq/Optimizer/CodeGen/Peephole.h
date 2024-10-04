@@ -31,17 +31,6 @@ inline bool callToInvokeWithXCtrlOneTarget(mlir::StringRef callee,
   return false;
 }
 
-inline bool callToInvokeWithZCtrlOneTarget(mlir::StringRef callee,
-                                           mlir::ValueRange args) {
-  if ((args.size() == 4) && (callee == cudaq::opt::NVQIRInvokeWithControlBits))
-    if (auto addrOf = dyn_cast_or_null<mlir::LLVM::AddressOfOp>(
-            args[1].getDefiningOp())) {
-      return addrOf.getGlobalName().startswith(
-          std::string(cudaq::opt::QIRQISPrefix) + "z__ctl");
-    }
-  return false;
-}
-
 inline bool isIntToPtrOp(mlir::Value operand) {
   return dyn_cast_or_null<mlir::LLVM::IntToPtrOp>(operand.getDefiningOp());
 }
