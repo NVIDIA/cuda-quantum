@@ -7,16 +7,17 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: cudaq-quake %cpp_std %s -verify
+// RUN: cudaq-quake %s -verify
 
 #include "cudaq.h"
 
-struct test { // expected-error {{struct with user-defined methods is not allowed in quantum kernel.}}
+struct test {
+  cudaq::qubit &r;
   cudaq::qview<> q;
-  int myMethod() { return 0; }
 };
 
-__qpu__ void kernel() {
-  cudaq::qvector q(2);
-  test t(q);
+// expected-error@+1 {{kernel result type not supported}}
+__qpu__ test kernel(cudaq::qubit &q, cudaq::qview<> qq) {
+  test result(q, qq);
+  return result;
 }

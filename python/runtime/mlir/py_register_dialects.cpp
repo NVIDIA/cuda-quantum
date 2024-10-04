@@ -110,16 +110,16 @@ void registerQuakeDialectAndTypes(py::module &m) {
 
             return wrap(quake::StruqType::get(unwrap(ctx), inTys));
           })
-      .def_classmethod(
-          "getNamed",
-          [](py::object cls, MlirContext ctx, const std::string &name,
-             py::list aggregateTypes) {
-            SmallVector<Type> inTys;
-            for (auto &t : aggregateTypes)
-              inTys.push_back(unwrap(t.cast<MlirType>()));
+      .def_classmethod("getNamed",
+                       [](py::object cls, MlirContext ctx,
+                          const std::string &name, py::list aggregateTypes) {
+                         SmallVector<Type> inTys;
+                         for (auto &t : aggregateTypes)
+                           inTys.push_back(unwrap(t.cast<MlirType>()));
 
-            return wrap(quake::StruqType::get(unwrap(ctx), name, inTys));
-          })
+                         return wrap(
+                             quake::StruqType::get(unwrap(ctx), name, inTys));
+                       })
       .def_classmethod(
           "getTypes",
           [](py::object cls, MlirType structTy) {
@@ -133,7 +133,7 @@ void registerQuakeDialectAndTypes(py::module &m) {
               ret.push_back(wrap(t));
             return ret;
           })
-     .def_classmethod("getName", [](py::object cls, MlirType structTy) {
+      .def_classmethod("getName", [](py::object cls, MlirType structTy) {
         auto ty = dyn_cast<quake::StruqType>(unwrap(structTy));
         if (!ty)
           throw std::runtime_error(

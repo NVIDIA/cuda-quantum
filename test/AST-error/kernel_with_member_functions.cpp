@@ -7,27 +7,17 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: cudaq-quake %cpp_std %s -verify
+// RUN: cudaq-quake %s -verify
 
 #include "cudaq.h"
 
-struct test { // expected-error {{hybrid quantum-classical struct types are not allowed.}}
-  int i;
-  double d;
+// expected-error@+1 {{struct with user-defined methods is not allowed}}
+struct test {
   cudaq::qview<> q;
+  int myMethod() { return 0; }
 };
 
-__qpu__ void hello(cudaq::qubit &q) { h(q); }
-
-__qpu__ void kernel(test t) {
-  h(t.q);
-  hello(t.q[0]);
-}
-
-__qpu__ void entry(int i) {
-  cudaq::qvector q(i);
-  test tt{1, 2.2, q};
-  // this fails non-default ctor ConvertExpr:2899, 
-  // but this is not what we are testing here
-  // kernel(tt); 
+__qpu__ void kernel() {
+  cudaq::qvector q(2);
+  test t(q);
 }

@@ -39,7 +39,7 @@ void quake::VeqType::print(AsmPrinter &os) const {
 Type quake::VeqType::parse(AsmParser &parser) {
   if (parser.parseLess())
     return {};
-  std::size_t size;
+  std::size_t size = 0;
   if (succeeded(parser.parseOptionalQuestion()))
     size = 0;
   else if (parser.parseInteger(size))
@@ -85,11 +85,11 @@ Type quake::StruqType::parse(AsmParser &parser) {
 }
 
 void quake::StruqType::print(AsmPrinter &printer) const {
-   printer << '<';
-   if (getName())
-      printer << getName() << ": ";
-   llvm::interleaveComma(getMembers(), printer);
-   printer << '>';
+  printer << '<';
+  if (getName())
+    printer << getName() << ": ";
+  llvm::interleaveComma(getMembers(), printer);
+  printer << '>';
 }
 
 //===----------------------------------------------------------------------===//
