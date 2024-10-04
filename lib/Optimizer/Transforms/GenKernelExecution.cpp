@@ -1811,7 +1811,6 @@ public:
       });
       for (auto *op : deadCalls)
         op->erase();
-      module.dump();
 
       LLVM_DEBUG(llvm::dbgs() << "final module:\n" << module << '\n');
     }
