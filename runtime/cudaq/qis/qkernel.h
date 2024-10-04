@@ -17,9 +17,9 @@
 namespace cudaq {
 
 /// In library mode, the quake compiler is not involved. To streamline things,
-/// just have qkernel_ref alias the std::function template class.
+/// just have `qkernel` alias the std::function template class.
 template <typename Sig>
-using qkernel_ref = std::function<Sig>;
+using qkernel = std::function<Sig>;
 
 } // namespace cudaq
 
@@ -100,7 +100,7 @@ template <typename A>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<A>>;
 #endif
 
-/// A qkernel_ref<> must be used to wrap `CUDA-Q` kernels (callables annotated
+/// A `qkernel` must be used to wrap `CUDA-Q` kernels (callables annotated
 /// with the `__qpu__` attribute) when those kernels are \e referenced other
 /// than by a direct call in code outside of quantum kernels proper. Supports
 /// free functions, classes with call operators, and lambdas.
@@ -110,18 +110,18 @@ using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<A>>;
 /// either stitch together execution in a simulation environment and/or JIT
 /// compile and re-link these kernels into a cohesive quantum circuit.
 template <typename>
-class qkernel_ref;
+class qkernel;
 
 template <typename R, typename... As>
-class qkernel_ref<R(As...)> {
+class qkernel<R(As...)> {
 public:
-  qkernel_ref() {}
-  qkernel_ref(std::nullptr_t) {}
-  qkernel_ref(const qkernel_ref &) = default;
-  qkernel_ref(qkernel_ref &&) = default;
+  qkernel() {}
+  qkernel(std::nullptr_t) {}
+  qkernel(const qkernel &) = default;
+  qkernel(qkernel &&) = default;
 
   template <typename FUNC,
-            bool SELF = std::is_same_v<remove_cvref_t<FUNC>, qkernel_ref>>
+            bool SELF = std::is_same_v<remove_cvref_t<FUNC>, qkernel>>
   using DecayType = typename std::enable_if_t<!SELF, std::decay<FUNC>>::type;
 
   template <typename FUNC, typename DFUNC = DecayType<FUNC>,
@@ -131,7 +131,7 @@ public:
   struct CallableType : RES {};
 
   template <typename S, typename = std::enable_if_t<CallableType<S>::value>>
-  qkernel_ref(S &&f) {
+  qkernel(S &&f) {
     using PS = remove_cvref_t<S>;
     if constexpr (std::is_same_v<PS, R (*)(As...)> ||
                   std::is_same_v<PS, R(As...)>) {
@@ -162,31 +162,31 @@ private:
 // Deduction guides for C++20.
 
 template <typename R, typename... As>
-qkernel_ref(R (*)(As...)) -> qkernel_ref<R(As...)>;
+qkernel(R (*)(As...)) -> qkernel<R(As...)>;
 
 template <typename>
-struct qkernel_ref_deduction_guide_helper {};
+struct qkernel_deduction_guide_helper {};
 
 template <typename R, typename P, typename... As>
-struct qkernel_ref_deduction_guide_helper<R (P::*)(As...)> {
+struct qkernel_deduction_guide_helper<R (P::*)(As...)> {
   using type = R(As...);
 };
 template <typename R, typename P, typename... As>
-struct qkernel_ref_deduction_guide_helper<R (P::*)(As...) const> {
+struct qkernel_deduction_guide_helper<R (P::*)(As...) const> {
   using type = R(As...);
 };
 template <typename R, typename P, typename... As>
-struct qkernel_ref_deduction_guide_helper<R (P::*)(As...) &> {
+struct qkernel_deduction_guide_helper<R (P::*)(As...) &> {
   using type = R(As...);
 };
 template <typename R, typename P, typename... As>
-struct qkernel_ref_deduction_guide_helper<R (P::*)(As...) const &> {
+struct qkernel_deduction_guide_helper<R (P::*)(As...) const &> {
   using type = R(As...);
 };
 
-template <typename F, typename S = typename qkernel_ref_deduction_guide_helper<
+template <typename F, typename S = typename qkernel_deduction_guide_helper<
                           decltype(&F::operator())>::type>
-qkernel_ref(F) -> qkernel_ref<S>;
+qkernel(F) -> qkernel<S>;
 
 #endif // CUDAQ_USE_STD20
 

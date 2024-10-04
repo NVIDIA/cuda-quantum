@@ -11,8 +11,8 @@
 
 #include "cudaq.h"
 
-__qpu__ void entry(const cudaq::qkernel_ref<void(cudaq::qvector<> &)> &o,
-                   const cudaq::qkernel_ref<void(cudaq::qvector<> &, int)> &p) {
+__qpu__ void entry(const cudaq::qkernel<void(cudaq::qvector<> &)> &o,
+                   const cudaq::qkernel<void(cudaq::qvector<> &, int)> &p) {
   cudaq::qvector q(2);
   o(q);
   p(q, 1);
@@ -25,4 +25,3 @@ int main() {
   entry(l, m);
   return 0;
 }
-

@@ -42,8 +42,7 @@ void HereIsTheThing::operator()(cudaq::qvector<> &q) __qpu__ {
 #include "classlib.h"
 #include <iostream>
 
-__qpu__ void
-userKernel(const cudaq::qkernel_ref<void(cudaq::qvector<> &)> &init) {
+__qpu__ void userKernel(const cudaq::qkernel<void(cudaq::qvector<> &)> &init) {
   cudaq::qvector q(2);
   init(q);
 }

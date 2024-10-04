@@ -14,7 +14,7 @@
 #include "cuda_runtime_api.h"
 #endif
 #include "cudaq/platform.h"
-#include "cudaq/qis/qkernel_ref.h"
+#include "cudaq/qis/qkernel.h"
 #include "cudaq/utils/registry.h"
 #include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
@@ -253,7 +253,7 @@ void cudaq::registry::__cudaq_registerLinkableKernel(void *hostSideFunc,
 std::intptr_t cudaq::registry::__cudaq_getLinkableKernelKey(void *p) {
   if (!p)
     throw std::runtime_error("cannot get kernel key, nullptr");
-  const auto &qk = *reinterpret_cast<const cudaq::qkernel_ref<void()> *>(p);
+  const auto &qk = *reinterpret_cast<const cudaq::qkernel<void()> *>(p);
   return reinterpret_cast<std::intptr_t>(*qk.get_entry_kernel_from_holder());
 }
 
