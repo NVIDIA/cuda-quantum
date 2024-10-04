@@ -2209,7 +2209,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto idx_var = popValue();
       auto qreg_var = popValue();
       auto *arg0 = x->getArg(0);
-      if (auto *memExpr = dyn_cast<clang::MemberExpr>(arg0)) {
+      if (isa<clang::MemberExpr>(arg0)) {
         // This is a subscript operator on a data member and the type is a
         // quantum type (likely a `qview`). This can only happen in a quantum
         // `struct`, which the spec says must be one-level deep at most and must
