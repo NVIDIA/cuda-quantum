@@ -5,15 +5,15 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #pragma once
 
+#include "OrcaExecutor.h"
 #include "common/ExecutionContext.h"
-#include "common/Executor.h"
 #include "common/Future.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/platform/qpu.h"
-
 #include "orca_qpu.h"
 
 namespace cudaq {
@@ -40,7 +40,7 @@ protected:
   bool emulate = false;
 
   // Pointer to the concrete Executor for this QPU
-  std::unique_ptr<Executor> executor;
+  std::unique_ptr<OrcaExecutor> executor;
 
   /// @brief Pointer to the concrete ServerHelper, provides
   /// specific JSON payloads and POST/GET URL paths.
@@ -60,7 +60,7 @@ public:
     std::filesystem::path cudaqLibPath{getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     // Default is to run sampling via the remote rest call
-    executor = std::make_unique<Executor>();
+    executor = std::make_unique<OrcaExecutor>();
   }
 
   OrcaRemoteRESTQPU(OrcaRemoteRESTQPU &&) = delete;

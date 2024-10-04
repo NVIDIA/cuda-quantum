@@ -54,9 +54,9 @@ public:
   void initialize(BackendConfig config) override;
 
   /// @brief Create a job payload for the provided TBI parameters
-  ServerJobPayload createJob(cudaq::orca::TBIParameters params) override;
+  ServerJobPayload createJob(cudaq::orca::TBIParameters params);
 
-  // // /// @brief Create a job payload for the provided quantum codes
+  /// @brief Create a job payload for the provided quantum codes
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
     std::vector<ServerMessage> jobs;

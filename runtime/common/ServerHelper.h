@@ -14,7 +14,6 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "Registry.h"
-#include "cudaq/orca.h"
 #include <filesystem>
 
 namespace cudaq {
@@ -103,11 +102,6 @@ public:
   /// create and return the Job payload that is compatible with this server.
   virtual ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) = 0;
-
-  /// @brief Create a job payload for the provided TBI parameters
-  virtual ServerJobPayload createJob(cudaq::orca::TBIParameters params) {
-    throw std::runtime_error("Not implemented");
-  };
 
   /// @brief Extract the job id from the server response from posting the job.
   virtual std::string extractJobId(ServerMessage &postResponse) = 0;
