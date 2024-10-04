@@ -81,8 +81,9 @@ struct QppPhotonicState : public PhotonicState {
   // /// @brief Return the number of tensors that represent this state.
   std::size_t getNumTensors() const override { return 1; }
 
-  std::complex<double> operator()(std::size_t tensorIdx,
-                                  const std::vector<std::size_t> &indices) {
+  std::complex<double>
+  operator()(std::size_t tensorIdx,
+             const std::vector<std::size_t> &indices) override {
     if (tensorIdx != 0)
       throw std::runtime_error("[qpp-state] invalid tensor requested.");
     if (indices.size() != 1)
