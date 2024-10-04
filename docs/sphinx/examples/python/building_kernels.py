@@ -1,7 +1,3 @@
-# # Building Kernels
-#
-# This section will cover the most basic CUDA-Q construct, a quantum kernel. Topics include, building kernels, initializing states, and applying gate operations.
-
 # ### Defining Kernels
 #
 # Kernels are the building blocks of quantum algorithms in CUDA-Q. A kernel is specified by using the following syntax. `cudaq.qubit` builds a register consisting of a single qubit, while `cudaq.qvector` builds a register of $N$ qubits.
