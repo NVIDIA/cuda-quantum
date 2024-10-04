@@ -21,14 +21,13 @@
 
 #include "cudaq.h"
 
-__qpu__ void userKernel(const cudaq::qkernel_ref<void(cudaq::qvector<> &)> &);
+__qpu__ void userKernel(const cudaq::qkernel<void(cudaq::qvector<> &)> &);
 
 //--- anonlib.cpp
 
 #include "anonlib.h"
 
-__qpu__ void
-userKernel(const cudaq::qkernel_ref<void(cudaq::qvector<> &)> &init) {
+__qpu__ void userKernel(const cudaq::qkernel<void(cudaq::qvector<> &)> &init) {
   cudaq::qvector q(2);
   init(q);
 }
