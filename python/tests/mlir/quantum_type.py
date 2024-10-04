@@ -6,7 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
+# Workaround for kernels that may appear in jumbled order.
+# RUN: PYTHONPATH=../../ pytest -rP  %s > %t && FileCheck %s < %t && FileCheck --check-prefix=NAUGHTY %s < %t && FileCheck --check-prefix=NICE %s < %t
 
 import pytest
 
@@ -47,19 +48,19 @@ def test_custom_quantum_type():
     # Test here is that it compiles and runs successfully
     print(run)
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__logicalH(
-# CHECK-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
-# CHECK:           %[[VAL_3:.*]] = quake.get_member %[[VAL_0]][0] : (!quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
-# CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_3]] : (!quake.veq<?>) -> i64
-# CHECK:           return
-# CHECK:         }
+# NAUGHTY-LABEL:   func.func @__nvqpp__mlirgen__logicalH(
+# NAUGHTY-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
+# NAUGHTY:           %[[VAL_3:.*]] = quake.get_member %[[VAL_0]][0] : (!quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+# NAUGHTY:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_3]] : (!quake.veq<?>) -> i64
+# NAUGHTY:           return
+# NAUGHTY:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__logicalX(
-# CHECK-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
-# CHECK:           %[[VAL_3:.*]] = quake.get_member %[[VAL_0]][1] : (!quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
-# CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_3]] : (!quake.veq<?>) -> i64
-# CHECK:           return
-# CHECK:         }
+# NICE-LABEL:   func.func @__nvqpp__mlirgen__logicalX(
+# NICE-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
+# NICE:           %[[VAL_3:.*]] = quake.get_member %[[VAL_0]][1] : (!quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> !quake.veq<?>
+# NICE:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_3]] : (!quake.veq<?>) -> i64
+# NICE:           return
+# NICE:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__logicalZ(
 # CHECK-SAME:      %[[VAL_0:.*]]: !quake.struq<"patch": !quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) {
