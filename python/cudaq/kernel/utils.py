@@ -356,9 +356,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
             ]
             numQuantumMemberTys = sum([
-                1 if (quake.RefType.isinstance(ty) or
-                      quake.VeqType.isinstance(ty) or
-                      quake.StruqType.isinstance(ty)) else 0 for ty in structTys
+                1 if
+                (quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty) or
+                 quake.StruqType.isinstance(ty)) else 0 for ty in structTys
             ])
             if numQuantumMemberTys != 0:  # we have quantum member types
                 if numQuantumMemberTys != len(structTys):
