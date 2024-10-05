@@ -69,7 +69,6 @@ nbsphinx_thumbnails = {
     'examples/python/tutorials/hybrid_qnns': '_images/hybrid.png',
     'examples/python/tutorials/multi_gpu_workflows': '_images/circsplit.png',
 }
-nbsphinx_widgets_path = ""
 
 imgmath_latex_preamble = r'\usepackage{braket}'
 
