@@ -5,7 +5,7 @@
    "id": "29b3f948-cc6a-4776-ad75-1dc259e0c298",
    "metadata": {},
    "source": [
-    "# The Bernstein-Vazirani Algorithm\n",
+    "# Bernstein-Vazirani Algorithm\n",
     "\n",
     "The Bernstein-Vazirani (BV) algorithm demonstrates an exponential speedup over classical methods for the particular task: \n",
     "\n",
@@ -86,22 +86,12 @@
    "execution_count": 1,
    "id": "883762a1-d271-4692-adad-d64daa20805d",
    "metadata": {},
-   "outputs": [
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "/usr/local/lib/python3.10/dist-packages/qutip/__init__.py:66: UserWarning: The new version of Cython, (>= 3.0.0) is not supported.\n",
-      "  warnings.warn(\n"
-     ]
-    }
-   ],
+   "outputs": [],
    "source": [
     "import cudaq\n",
     "from typing import List\n",
     "\n",
-    "cudaq.set_target('qpp-cpu')\n",
-    "# cudaq.set_target('nvidia')  # GPU backend which enables scaling to large problem sizes"
+    "cudaq.set_target('nvidia')  # GPU backend which enables scaling to large problem sizes"
    ]
   },
   {
