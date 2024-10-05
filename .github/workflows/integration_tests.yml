@@ -69,7 +69,7 @@ env:
   NGC_QUANTUM_TEAM: cuda-quantum
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
-  NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40G:gl40g_1.br25_2xlarge:1:1
+  NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40S:gl40s_1.br25_2xlarge:1:1
   # If vars below are changed, it is recommended to also update the
   # workflow_dispatch defaults above so they stay in sync.
   cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
