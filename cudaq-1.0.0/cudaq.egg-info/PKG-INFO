@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: cudaq
+Version: 1.0.0
+Summary: A CUDA version autodetecting package for cudaq
+Home-page: https://github.com/NVIDIA/cuda-quantum
+Author: NVIDIA Corporation
+Author-email: 
+License: NVIDIA Proprietary Software
+Keywords: cuda,cudaq
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering
+Classifier: Environment :: GPU :: NVIDIA CUDA
+Classifier: Environment :: GPU :: NVIDIA CUDA :: 11
+Classifier: Environment :: GPU :: NVIDIA CUDA :: 12
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+
+UNKNOWN
+

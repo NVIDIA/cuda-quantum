@@ -1,0 +1,12 @@
+LICENSE
+MANIFEST.in
+README.rst
+cuda_autodetect.py
+setup.cfg
+setup.py
+cudaq.egg-info/PKG-INFO
+cudaq.egg-info/SOURCES.txt
+cudaq.egg-info/dependency_links.txt
+cudaq.egg-info/not-zip-safe
+cudaq.egg-info/requires.txt
+cudaq.egg-info/top_level.txt
