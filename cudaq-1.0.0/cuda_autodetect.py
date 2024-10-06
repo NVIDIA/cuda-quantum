@@ -3,6 +3,7 @@ import sys
 import ctypes
 from typing import List
 import pkg_resources
+import distutils.util
 
 try:
     from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
@@ -202,7 +203,12 @@ if _bdist_wheel is not None:
 
     class bdist_wheel(_bdist_wheel):
 
-        # Adopted from https://discuss.python.org/t/wheel-caching-and-non-deterministic-builds/7687
+        def get_tag(self):
+            platform = distutils.util.get_platform().replace('-', '_')
+            python_tag = 'cp39'
+            abi_tag = 'cp39'
+            plat_tag = platform
+            return python_tag, abi_tag, plat_tag
 
         def finalize_options(self):
             super().finalize_options()
@@ -212,7 +218,7 @@ if _bdist_wheel is not None:
             if PACKAGE_RESOLUTION is None:
                 assert False, "something went wrong"
             build_tag = PACKAGE_RESOLUTION.split("-")[-1]
-
+            
             # per PEP 427, build tag must start with a digit
             self.build_number = f"0_{build_tag}"
 else:
