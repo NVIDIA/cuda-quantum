@@ -26,6 +26,7 @@ CUDA-Q Backends
 * :ref:`qpp-cpu <qpp-cpu-backend>`
 * :ref:`quantinuum <quantinuum-backend>`
 * :ref:`remote-mqpu <mqpu-platform>`
+* :ref:`stim <stim-backend>`
 * :ref:`tensornet <tensor-backends>`
 * :ref:`tensornet-mps <tensor-backends>`
 

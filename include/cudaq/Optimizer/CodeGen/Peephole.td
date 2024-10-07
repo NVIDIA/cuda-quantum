@@ -17,7 +17,7 @@ include "mlir/IR/PatternBase.td"
 //===----------------------------------------------------------------------===//
 
 def InvokeOnXWithOneControl : Constraint<CPred<
-    "callToInvokeWithXCtrlOneTarget($0.getValue(), $1)">>;
+    "$0 && callToInvokeWithXCtrlOneTarget($0.getValue(), $1)">>;
 
 def CreateCallCnot : NativeCodeCall<
     "[&]() -> std::size_t {"
@@ -35,7 +35,7 @@ def XCtrlOneTargetToCNot : Pat<
 
 //===----------------------------------------------------------------------===//
 
-def NeedsRenaming : Constraint<CPred<"needsToBeRenamed($0.getValue())">>;
+def NeedsRenaming : Constraint<CPred<"$0 && needsToBeRenamed($0.getValue())">>;
 
 def CreateAddressOf : NativeCodeCall<
     "$_builder.create<mlir::LLVM::AddressOfOp>($_loc, $0.getType(),"
@@ -52,7 +52,7 @@ def AddrOfCisToBase : Pat<
 
 // Apply special rule for `mz`. See below.
 def FuncNotMeasure : Constraint<CPred<
-    "!$_self.getValue().startswith(cudaq::opt::QIRMeasure)">>;
+    "!($_self && $_self.getValue().startswith(cudaq::opt::QIRMeasure))">>;
 
 def CreateCallOp : NativeCodeCall<
     "[&]() -> std::size_t {"
@@ -72,7 +72,7 @@ def CalleeConv : Pat<
 //===----------------------------------------------------------------------===//
 
 def IsArrayGetElementPtrId : Constraint<CPred<
-    "$0.getValue().str() == cudaq::opt::QIRArrayGetElementPtr1d">>;
+    "$0 && $0.getValue().str() == cudaq::opt::QIRArrayGetElementPtr1d">>;
 
 def EraseArrayGEPOp : NativeCodeCall<
     "$_builder.create<mlir::LLVM::UndefOp>($_loc,"
@@ -85,7 +85,7 @@ def EraseDeadArrayGEP : Pat<
 //===----------------------------------------------------------------------===//
 
 def IsaAllocateCall : Constraint<CPred<
-    "$0.getValue().str() == cudaq::opt::QIRArrayQubitAllocateArray">>;
+    "$0 && $0.getValue().str() == cudaq::opt::QIRArrayQubitAllocateArray">>;
 
 def EraseArrayAllocateOp : NativeCodeCall<
     "$_builder.create<mlir::LLVM::UndefOp>($_loc,"
@@ -103,8 +103,8 @@ def EraseArrayAlloc : Pat<
 //===----------------------------------------------------------------------===//
 
 def IsaReleaseCall : Constraint<CPred<
-    "$0.getValue().str() == cudaq::opt::QIRArrayQubitReleaseArray || "
-    "$0.getValue().str() == cudaq::opt::QIRArrayQubitReleaseQubit">>;
+    "$0 && ($0.getValue().str() == cudaq::opt::QIRArrayQubitReleaseArray || "
+    "$0.getValue().str() == cudaq::opt::QIRArrayQubitReleaseQubit)">>;
 
 def EraseArrayReleaseOp : NativeCodeCall<"static_cast<std::size_t>(0)">;
 
@@ -120,7 +120,7 @@ def EraseArrayRelease : Pat<
 //===----------------------------------------------------------------------===//
 
 def IsaMeasureCall : Constraint<CPred<
-    "$_self.getValue() == cudaq::opt::QIRMeasure">>;
+    "$_self && $_self.getValue() == cudaq::opt::QIRMeasure">>;
     
 def IsaIntToPtrOperand : Constraint<CPred<"isIntToPtrOp($0[0])">>;
 
@@ -138,7 +138,7 @@ def MeasureCallConv : Pat<
 //===----------------------------------------------------------------------===//
 
 def IsaMeasureToRegisterCall : Constraint<CPred<
-    "$_self.getValue() == cudaq::opt::QIRMeasureToRegister">>;
+    "$_self && $_self.getValue() == cudaq::opt::QIRMeasureToRegister">>;
 
 // %result = call @__quantum__qis__mz__to__register(%qbit, i8) : (!Qubit) -> i1
 // ────────────────────────────────────────────────────────────────────────────

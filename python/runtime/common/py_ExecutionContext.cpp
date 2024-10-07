@@ -48,5 +48,9 @@ void bindExecutionContext(py::module &mod) {
     auto &platform = cudaq::get_platform();
     return platform.supports_conditional_feedback();
   });
+  mod.def("getExecutionContextName", []() {
+    auto &self = cudaq::get_platform();
+    return self.get_exec_ctx()->name;
+  });
 }
 } // namespace cudaq

@@ -112,10 +112,10 @@ setting the target.
     - Number of CPU threads used for circuit processing. The default value is `8`.
   * - ``CUDAQ_MAX_CPU_MEMORY_GB``
     - non-negative integer, or `NONE`
-    - CPU memory size (in GB) allowed for state-vector migration. `NONE` means unlimited (up to physical memory constraints). Default is 0 (disabled). 
+    - CPU memory size (in GB) allowed for state-vector migration. `NONE` means unlimited (up to physical memory constraints). Default is 0GB (disabled, variable is not set to any value).
   * - ``CUDAQ_MAX_GPU_MEMORY_GB``
     - positive integer, or `NONE`
-    - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default. 
+    - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default.
 
 .. deprecated:: 0.8
     The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
@@ -169,10 +169,11 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
 
     .. note::
-        (1) The order of the option settings are interchangeable.
-        For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64.mgpu')`.
+        
+        * The order of the option settings are interchangeable.
+          For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64,mgpu')`.
 
-        (2) The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
+        * The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
 
 .. tab:: C++
 
@@ -300,6 +301,40 @@ use the following commands:
         ./program.x
 
 
+Clifford-Only Simulation (CPU)
+++++++++++++++++++++++++++++++++++
+
+.. _stim-backend:
+
+This target provides a fast simulator for circuits containing *only* Clifford
+gates. Any non-Clifford gates (such as T gates and Toffoli gates) are not
+supported. This simulator is based on the `Stim <https://github.com/quantumlib/Stim>`_
+library.
+
+To execute a program on the :code:`stim` target, use the following commands:
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        python3 program.py [...] --target stim
+
+    The target can also be defined in the application code by calling
+
+    .. code:: python 
+
+        cudaq.set_target('stim')
+
+    If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target stim program.cpp [...] -o program.x
+        ./program.x
+
+
 Tensor Network Simulators
 ==================================
 
@@ -309,7 +344,7 @@ CUDA-Q provides a couple of tensor-network simulator targets accelerated with
 the :code:`cuTensorNet` library. 
 These backends are available for use from both C++ and Python.
 
-Tensor network-based simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via :code:`cudaq::observe` can be performed efficiently, thanks to :code:`cuTensorNet` contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
+Tensor network simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via :code:`cudaq::observe` can be performed efficiently, thanks to :code:`cuTensorNet` contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
 
 Multi-node multi-GPU
 +++++++++++++++++++++++++++++++++++
@@ -442,14 +477,14 @@ Specific aspects of the simulation can be configured by defining the following e
 
 .. note::
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
-    If you expect the a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
+    If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
 
 Default Simulator
 ==================================
 
 .. _default-simulator:
 
-If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA-Q makes a default choice for the simulator.
+If no explicit target is set, i.e., if the code is compiled without any :code:`--target` flags, then CUDA-Q makes a default choice for the simulator.
 
 If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to `nvidia`. This will utilize the :ref:`cuQuantum single-GPU state vector simulator <cuQuantum single-GPU>`.  
 On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:`OpenMP CPU-only simulator <OpenMP CPU-only>`.

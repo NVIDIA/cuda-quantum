@@ -207,9 +207,11 @@ protected:
                 simulator()->applyExpPauli(parameters[0], localC, localT, op);
               })
         .Default([&]() {
-          if (auto iter = registeredOperations.find(gateName);
-              iter != registeredOperations.end()) {
-            auto data = iter->second->unitary(parameters);
+          if (cudaq::customOpRegistry::getInstance().isOperationRegistered(
+                  gateName)) {
+            const auto &op =
+                cudaq::customOpRegistry::getInstance().getOperation(gateName);
+            auto data = op.unitary(parameters);
             simulator()->applyCustomOperation(data, localC, localT, gateName);
             return;
           }

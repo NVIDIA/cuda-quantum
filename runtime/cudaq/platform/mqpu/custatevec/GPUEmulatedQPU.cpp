@@ -38,7 +38,8 @@ public:
   }
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t, std::uint64_t) override {
+                    void *args, std::uint64_t, std::uint64_t,
+                    const std::vector<void *> &rawArgs) override {
     cudaq::info("QPU::launchKernel GPU {}", qpu_id);
     cudaSetDevice(qpu_id);
     kernelFunc(args);

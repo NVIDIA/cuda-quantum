@@ -200,7 +200,22 @@ def test_IQM_state_preparation_builder():
     assert assert_close(counts["11"], 0., 2)
 
 
-def test_arbitrary_unitary_synthesis():
+def test_exp_pauli():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, "XX")
+
+    shots = 10000
+    # gives results like { 11:7074 10:0 01:0 00:2926 }
+    counts = cudaq.sample(test, shots_count=shots)
+    counts.dump()
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["10"], 0., 2)
+
+
+def test_1q_unitary_synthesis():
 
     cudaq.register_operation("custom_h",
                              1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
@@ -232,9 +247,41 @@ def test_arbitrary_unitary_synthesis():
         custom_x.ctrl(qubits[0], qubits[1])
 
     counts = cudaq.sample(bell)
-    counts.dump()
     # Gives result like { 11:499 10:0 01:0 00:499 }
     assert counts['01'] == 0 and counts['10'] == 0
+
+
+def test_2q_unitary_synthesis():
+
+    cudaq.register_operation(
+        "custom_cnot",
+        np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]))
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        custom_cnot(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell_pair)
+    # Gives result like { 11:499 10:0 01:0 00:499 }
+    assert counts['01'] == 0 and counts['10'] == 0
+
+    cudaq.register_operation(
+        "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                               -1]))
+
+    @cudaq.kernel
+    def ctrl_z_kernel():
+        qubits = cudaq.qvector(5)
+        controls = cudaq.qvector(2)
+        custom_cz(qubits[1], qubits[0])
+        x(qubits[2])
+        custom_cz(qubits[3], qubits[2])
+        x(controls)
+
+    counts = cudaq.sample(ctrl_z_kernel)
+    assert counts["0010011"] == 999
 
 
 # leave for gdb debugging

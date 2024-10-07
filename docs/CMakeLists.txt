@@ -141,6 +141,7 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(DepolarizingNoise noise_depolarization.py)
   add_pycudaq_test(PhaseFlipNoise noise_phase_flip.py)
   add_pycudaq_test(KrausNoise noise_kraus_operator.py)
+  add_pycudaq_test(NoiseCallback noise_callback.py)
   
   if (CUTENSORNET_ROOT AND CUDA_FOUND) 
     # This example uses tensornet backend.

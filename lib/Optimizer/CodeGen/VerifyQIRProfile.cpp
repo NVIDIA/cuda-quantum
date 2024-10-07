@@ -48,7 +48,10 @@ struct VerifyQIRProfilePass
     bool isBaseProfile = convertTo.getValue() == "qir-base";
     func.walk([&](Operation *op) {
       if (auto call = dyn_cast<LLVM::CallOp>(op)) {
-        auto funcName = call.getCalleeAttr().getValue();
+        auto funcNameAttr = call.getCalleeAttr();
+        if (!funcNameAttr)
+          return WalkResult::advance();
+        auto funcName = funcNameAttr.getValue();
         if (!funcName.startswith("__quantum_") ||
             funcName.equals(cudaq::opt::QIRCustomOp)) {
           call.emitOpError("unexpected call in QIR base profile");

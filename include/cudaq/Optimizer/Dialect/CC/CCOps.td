@@ -1439,6 +1439,49 @@ def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
   }];
 }
 
+def cc_CallIndirectCallableOp : CCOp<"call_indirect_callable",
+    [CallOpInterface]> {
+  let summary = "Call a C++ callable, unresolved, at run-time.";
+  let description = [{
+    This effectively connects a call from one kernel to another kernel, which
+    would have been done at link-time in host code, at run-time on the device
+    side. This allows calls between kernels defined in separate compilation
+    units. The definitions of these caller/callee functions are not both present
+    at compile-time, so they are exposed to the CUDAQ runtime for stitching or
+    LTO at JIT compile time.
+  }];
+
+  let arguments = (ins
+    cc_IndirectCallableType:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>:$results);
+  let hasVerifier = 1;
+  let hasCanonicalizer = 1;
+
+  let assemblyFormat = [{
+    $callee (`,` $args^)? `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    /// Get the argument operands to the called function.
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return ++operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    mlir::CallInterfaceCallable getCallableForCallee() { return getCallee(); }
+
+    mlir::FunctionType getFunctionType() {
+      return mlir::FunctionType::get(getContext(), getOperands().getType(),
+        getResults().getTypes());
+    }
+  }];
+}
+
 def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
   let summary = "Construction of a callable object.";
   let description = [{

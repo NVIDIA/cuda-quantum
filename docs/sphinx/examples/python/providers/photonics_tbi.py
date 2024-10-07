@@ -43,3 +43,6 @@ counts = cudaq.sample(TBI,
                       loop_lengths,
                       shots_count=1000000)
 counts.dump()
+
+state = cudaq.get_state(TBI, bs_angles, ps_angles, input_state, loop_lengths)
+state.dump()

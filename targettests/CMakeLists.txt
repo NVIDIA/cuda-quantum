@@ -26,14 +26,22 @@ set(CUDAQ_TEST_PARAMS
 get_property(test_cudaq_libraries GLOBAL PROPERTY CUDAQ_RUNTIME_LIBS)
 
 set(CUDAQ_TEST_DEPENDS
+    CircuitCheck
     cudaq-opt
     cudaq-translate
-    CircuitCheck
     FileCheck
+)
+# We require split-file, which should be installed along with FileCheck, but
+# the CI doesn't do it. Comment this out and open a bug.
+#   split-file
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  set(CUDAQ_TEST_DEPENDS ${CUDAQ_TEST_DEPENDS}
     cudaq-quake
     fixup-linkage
+    nvq++
     ${test_cudaq_libraries}
-)
+  )
+endif()
 
 add_custom_target(nvqpp-targettest-depends DEPENDS ${CUDAQ_TEST_DEPENDS})
 set_target_properties(nvqpp-targettest-depends PROPERTIES FOLDER "TargetTests")

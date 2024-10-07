@@ -119,6 +119,8 @@ static bool isKernelSignatureType(FunctionType t);
 static bool isKernelCallable(Type t) {
   if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(t))
     return isKernelSignatureType(lambdaTy.getSignature());
+  if (auto lambdaTy = dyn_cast<cudaq::cc::IndirectCallableType>(t))
+    return isKernelSignatureType(lambdaTy.getSignature());
   return false;
 }
 
@@ -364,8 +366,8 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
   if (t->getPointeeType()->isUndeducedAutoType())
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
-  if (isa<cc::CallableType, cc::SpanLikeType, quake::VeqType, quake::RefType>(
-          eleTy))
+  if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
+          quake::VeqType, quake::RefType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -376,8 +378,9 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   // FIXME: LLVMStructType is promoted as a temporary workaround.
-  if (isa<cc::CallableType, cc::SpanLikeType, cc::ArrayType, cc::StructType,
-          quake::VeqType, quake::RefType, LLVM::LLVMStructType>(eleTy))
+  if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
+          cc::SpanLikeType, cc::StructType, quake::VeqType, quake::RefType,
+          LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }

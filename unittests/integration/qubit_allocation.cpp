@@ -10,6 +10,9 @@
 #include <algorithm>
 #include <cudaq/algorithm.h>
 
+// Stim does not support arbitrary state vectors.
+#ifndef CUDAQ_BACKEND_STIM
+
 std::vector<cudaq::complex> randomState(int numQubits) {
   std::vector<cudaq::complex> stateVec(1ULL << numQubits);
   std::generate(stateVec.begin(), stateVec.end(), []() -> cudaq::complex {
@@ -330,4 +333,6 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
     EXPECT_NEAR(std::abs(overlap), 0.5, 1e-6);
   }
 }
+#endif
+
 #endif
