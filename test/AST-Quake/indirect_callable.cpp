@@ -12,19 +12,19 @@
 
 __qpu__ int rando_qernel(double);
 
-__qpu__ void superstar_qernel(const cudaq::qkernel_ref<int(double)>& bob, double dub) {
+__qpu__ void superstar_qernel(const cudaq::qkernel<int(double)>& bob, double dub) {
    auto size = bob(dub);
    cudaq::qvector q(size);
    mz(q);
 }
 
 void meanwhile_on_safari() {
-   cudaq::qkernel_ref<int(double)> tiger{rando_qernel};
+   cudaq::qkernel<int(double)> tiger{rando_qernel};
    superstar_qernel(tiger, 11.0);
 }
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_superstar_qernel._Z16superstar_qernelRKN5cudaq11qkernel_refIFidEEEd(
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_superstar_qernel._Z16superstar_qernelRKN5cudaq7qkernelIFidEEEd(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.indirect_callable<(f64) -> i32>,
 // CHECK-SAME:      %[[VAL_1:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_2:.*]] = cc.alloca f64
@@ -40,7 +40,7 @@ void meanwhile_on_safari() {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @_Z16superstar_qernelRKN5cudaq11qkernel_refIFidEEEd(
+// CHECK-LABEL:   func.func @_Z16superstar_qernelRKN5cudaq7qkernelIFidEEEd(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:      %[[VAL_1:.*]]: f64) attributes {no_this} {
 // CHECK:           return

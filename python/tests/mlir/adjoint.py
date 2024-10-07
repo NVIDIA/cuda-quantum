@@ -275,6 +275,7 @@ def test_sample_adjoint_qreg():
     print(kernel)
 
 
+# CHECK-LABEL: test_sample_adjoint_qreg
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
