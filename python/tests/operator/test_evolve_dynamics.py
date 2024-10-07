@@ -440,7 +440,7 @@ def test_squeezing(integrator):
 def test_cat_state(integrator):
     # Number of Fock levels
     N = 15
-    # Kerr-nonlinearity
+    # Kerr non-linearity
     chi = 1 * 2 * np.pi
 
     dimensions = {0: N}
@@ -469,7 +469,7 @@ def test_cat_state(integrator):
                               store_intermediate_results=False,
                               integrator=integrator())
 
-    # The expected cat state: superposition of |alpla> and |-alpha> coherent states.
+    # The expected cat state: superposition of `|alpla>` and `|-alpha>` coherent states.
     expected_state = np.exp(1j * np.pi / 4) * coherent_state(N, -2.0j) + np.exp(
         -1j * np.pi / 4) * coherent_state(N, 2.0j)
     expected_state = expected_state / cp.linalg.norm(expected_state)
@@ -596,7 +596,7 @@ def test_cross_resonance(integrator):
     delta = 100 * 2 * np.pi
     # Static coupling between qubits
     J = 7 * 2 * np.pi
-    # spurious electromagnetic crosstalk
+    # spurious electromagnetic `crosstalk`
     m2 = 0.2
     # Drive strength
     Omega = 20 * 2 * np.pi

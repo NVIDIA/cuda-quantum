@@ -53,12 +53,10 @@ void bindComplexMatrix(py::module &mod) {
            "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
            "numpy.ndarray.")
       .def(
-          "num_rows", 
-          [](complex_matrix &m) { return m.rows(); },
+          "num_rows", [](complex_matrix &m) { return m.rows(); },
           "Returns the number of rows in the matrix.")
       .def(
-          "num_columns", 
-          [](complex_matrix &m) { return m.cols(); },
+          "num_columns", [](complex_matrix &m) { return m.cols(); },
           "Returns the number of columns in the matrix.")
       .def(
           "__getitem__",

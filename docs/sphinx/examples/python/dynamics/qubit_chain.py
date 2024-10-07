@@ -14,7 +14,7 @@ cudaq.set_target("nvidia-dynamics")
 # Number of qubits
 N = 6
 
-# Qubits are modeled as simple transmons.
+# Qubits are modeled as simple `transmons`.
 # Qubit resonance frequency
 nu_z = 4.0
 

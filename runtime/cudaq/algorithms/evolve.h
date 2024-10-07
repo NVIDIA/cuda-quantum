@@ -111,8 +111,9 @@ async_evolve_result evolve_async(
   return f;
 }
 
-inline async_evolve_result evolve_async(std::function<evolve_result()> evolveFunctor,
-                                 std::size_t qpu_id = 0) {
+inline async_evolve_result
+evolve_async(std::function<evolve_result()> evolveFunctor,
+             std::size_t qpu_id = 0) {
   auto &platform = cudaq::get_platform();
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument(

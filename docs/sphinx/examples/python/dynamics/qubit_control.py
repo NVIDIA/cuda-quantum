@@ -5,7 +5,7 @@ import cupy as cp
 import os
 import matplotlib.pyplot as plt
 
-# This example simulates time evolution of a qubit (transmon) being driven close to resonance in the presence of noise (decoherence). 
+# This example simulates time evolution of a qubit (`transmon`) being driven close to resonance in the presence of noise (decoherence). 
 # Thus, it exhibits Rabi oscillations.
 
 # Set the target to our dynamics simulator

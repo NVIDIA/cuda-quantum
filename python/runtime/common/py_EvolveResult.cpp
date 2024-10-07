@@ -6,17 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <optional>
-#include <pybind11/stl.h>
 #include "py_EvolveResult.h"
 #include "common/EvolveResult.h"
 #include "cudaq/algorithms/evolve.h"
+#include <optional>
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 
 namespace cudaq {
 /// @brief Bind the `cudaq::evolve_result` and `cudaq::async_evolve_result`
-/// data classes to python as `cudaq.EvolveResult` and `cudaq.AsyncEvolveResult`.
+/// data classes to python as `cudaq.EvolveResult` and
+/// `cudaq.AsyncEvolveResult`.
 void bindEvolveResult(py::module &mod) {
   py::class_<evolve_result>(
       mod, "EvolveResult",
@@ -99,7 +100,8 @@ void bindEvolveResult(py::module &mod) {
       .def(
           "get", [](async_evolve_result &self) { return self.get(); },
           py::call_guard<py::gil_scoped_release>(),
-          "Retrieve the evolution result from the asynchronous evolve execution\n.");
+          "Retrieve the evolution result from the asynchronous evolve "
+          "execution\n.");
 }
 
 } // namespace cudaq

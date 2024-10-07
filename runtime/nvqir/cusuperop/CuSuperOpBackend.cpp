@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CuSuperOpState.h"
 #include "CircuitSimulator.h"
+#include "CuSuperOpState.h"
 namespace {
 
 class CuSuperOpSim : public nvqir::CircuitSimulatorBase<double> {
@@ -38,8 +38,6 @@ public:
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     return std::make_unique<cudaq::CuSuperOpState>();
   }
-
-
 
   void addQubitToState() override {}
   void deallocateStateImpl() override {}

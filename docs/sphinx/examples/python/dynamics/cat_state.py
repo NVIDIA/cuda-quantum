@@ -13,7 +13,7 @@ cudaq.set_target("nvidia-dynamics")
 
 # Number of Fock levels
 N = 15
-# Kerr-nonlinearity
+# Kerr non-linearity
 chi = 1 * 2 * np.pi
 
 dimensions = {0: N}
@@ -53,7 +53,7 @@ photon_count = get_result(0, evolution_result)
 position = get_result(1, evolution_result)
 momentum = get_result(2, evolution_result)
 
-# The expected cat state: superposition of |alpla> and |-alpha> coherent states.
+# The expected cat state: superposition of `|alpla>` and `|-alpha>` coherent states.
 expected_state = np.exp(1j * np.pi / 4) * coherent_state(N, -2.0j) + np.exp(
     -1j * np.pi / 4) * coherent_state(N, 2.0j)
 expected_state = expected_state / cp.linalg.norm(expected_state)

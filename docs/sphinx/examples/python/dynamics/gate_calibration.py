@@ -16,7 +16,7 @@ sigma = 0.01  # sigma of the Gaussian pulse
 cutoff = 4.0 * sigma  # total length of drive pulse
 
 # Dimensions of sub-system
-# We model transmon as a 3-level system to account for leakage.
+# We model `transmon` as a 3-level system to account for leakage.
 dimensions = {0: 3}
 
 # Initial state of the system (ground state).

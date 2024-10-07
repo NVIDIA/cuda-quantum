@@ -16,7 +16,7 @@ cudaq.set_target("nvidia-dynamics")
 delta = 100 * 2 * np.pi
 # Static coupling between qubits
 J = 7 * 2 * np.pi
-# spurious electromagnetic crosstalk
+# spurious electromagnetic `crosstalk`
 m2 = 0.2
 # Drive strength
 Omega = 20 * 2 * np.pi

@@ -5,7 +5,7 @@ import cupy as cp
 import os
 import matplotlib.pyplot as plt
 
-# This example simulates time evolution of a qubit (transmon) being driven by a pulse.
+# This example simulates time evolution of a qubit (`transmon`) being driven by a pulse.
 # The pulse is a modulated signal with a gaussian envelop.
 
 # Set the target to our dynamics simulator

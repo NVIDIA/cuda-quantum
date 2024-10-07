@@ -23,7 +23,7 @@ dimensions = {0: 2}
 
 # System parameters
 gamma1 = 0.0001  # relaxation rate
-gamma2 = 0.005  # dephasing  rate
+gamma2 = 0.005  # `dephasing`  rate
 delta = 0.5 * 2 * np.pi  # qubit pauli_x coefficient
 eps0 = 0.0 * 2 * np.pi  # qubit pauli_z coefficient
 A = 2.0 * 2 * np.pi  # time-dependent sweep rate
@@ -32,7 +32,7 @@ A = 2.0 * 2 * np.pi  # time-dependent sweep rate
 hamiltonian = -delta / 2.0 * sx - eps0 / 2.0 * sz - A / 2.0 * ScalarOperator(
     lambda t: t) * sz
 
-# collapse operators: relaxation and dephasing
+# collapse operators: relaxation and `dephasing`
 c_op_list = [np.sqrt(gamma1) * sm, np.sqrt(gamma2) * sz]
 
 # Initial state of the system (ground state)

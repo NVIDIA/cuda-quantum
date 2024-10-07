@@ -10,7 +10,7 @@ import os
 cudaq.set_target("nvidia-dynamics")
 
 # In this example, we simulate a two-level system that decays into a squeezed vacuum state.
-# The master equation is given in "The theory of open quantum systems", by Francesco Petruccione and Heinz-Peter Breuer, section 3.4.3 - 3.4.4.
+# The master equation is given in "The theory of open quantum systems", by `Francesco Petruccione and Heinz-Peter Breuer`, section 3.4.3 - 3.4.4.
 
 
 def n_thermal(w: float, w_th: float):
