@@ -51,7 +51,7 @@ int main() {
   int flags[1 << 5] = {0};
   for (auto &&[b, c] : result) {
     int off = std::stoi(b, nullptr, 2);
-    if (off >= (1 << 5)) {
+    if (off >= (1 << 5) || off < 0) {
       std::cout << "Amazingly incorrect: " << b << '\n';
       return 1;
     }
