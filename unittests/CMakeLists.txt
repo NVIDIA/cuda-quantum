@@ -239,7 +239,7 @@ target_link_libraries(test_photonics
   cudaq-platform-default
   cudaq-em-photonics
   nvqir
-  nvqir-qpp
+  nvqir-photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "nvqir/photonics/PhotonicCircuitSimulator.h"
-#include "qpp.h"
+#include <qpp.h>
 #include <set>
 #include <span>
 

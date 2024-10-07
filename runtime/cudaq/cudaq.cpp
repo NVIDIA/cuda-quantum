@@ -28,6 +28,7 @@
 namespace nvqir {
 void tearDownBeforeMPIFinalize();
 void setRandomSeed(std::size_t);
+void setPhotonicRandomSeed(std::size_t seed);
 } // namespace nvqir
 
 namespace cudaq::mpi {
@@ -408,7 +409,19 @@ void set_random_seed(std::size_t seed) {
   platform.onRandomSeedSet(seed);
 }
 
+/// @brief Note: a seed value of 0 will cause broadcast operations to use
+/// std::random_device (or something similar) as a seed for the PRNGs, so this
+/// will not be repeatable for those operations.
+void set_photonic_random_seed(std::size_t seed) {
+  cudaq_random_seed = seed;
+  nvqir::setPhotonicRandomSeed(seed);
+  auto &platform = cudaq::get_platform();
+  // Notify the platform that a new random seed value is set.
+  platform.onRandomSeedSet(seed);
+}
+
 std::size_t get_random_seed() { return cudaq_random_seed; }
+
 
 int num_available_gpus() {
   int nDevices = 0;
