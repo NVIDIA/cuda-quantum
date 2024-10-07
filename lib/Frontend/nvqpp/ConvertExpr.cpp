@@ -2838,8 +2838,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       if (ctor->isDefaultConstructor())
         reportClangError(ctor, mangler,
                          "Default std::vector<T> constructor within quantum "
-                         "kernel is not allowed "
-                         "(cannot resize the vector).");
+                         "kernel is not allowed (cannot resize the vector).");
+
+      if (ctor->isMoveConstructor()) {
+        // Just use the !cc.stdvec<T> value at TOS.
+        return true;
+      }
     }
   }
 
