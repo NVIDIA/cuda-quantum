@@ -55,5 +55,4 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
   std::string name = serverHelper->name();
   return details::future(ids, name, config);
 }
-
 } // namespace cudaq
