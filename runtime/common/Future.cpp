@@ -49,7 +49,6 @@ sample_result future::get() {
     } else {
       // For each register, add the results into result.
       for (auto &regName : c.register_names()) {
-        // results.emplace_back(c.to_map(regName), regName);
         results.emplace_back(c.get_result_for_register(regName));
         results.back().sequentialData = c.sequential_data(regName);
       }
