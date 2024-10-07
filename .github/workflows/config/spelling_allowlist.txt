@@ -25,6 +25,8 @@ DGX
 DOI
 Deuteron
 Doxygen
+fermioniq
+Fermioniq
 FPGAs
 Fortran
 Fourier
