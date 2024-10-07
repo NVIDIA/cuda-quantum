@@ -452,8 +452,6 @@ struct ZCtrlOneTargetToCZ : public OpRewritePattern<LLVM::CallOp> {
                 std::string(cudaq::opt::QIRQISPrefix) + "z__ctl")) {
           rewriter.replaceOpWithNewOp<LLVM::CallOp>(
               call, TypeRange{}, cudaq::opt::QIRCZ, args.drop_front(2));
-          if (addrOf.use_empty())
-            addrOf.erase();
           return success();
         }
       }
