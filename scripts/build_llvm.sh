@@ -156,7 +156,7 @@ if [ -z "${llvm_projects##*openmp;*}" ]; then
   # There are no suitable distribution components for libomp. 
   # We instead manually build suitable targets.
   install_targets+=" omp"
-  llvm_components+="omptarget;openmp-resource-headers;pstl;"
+  llvm_components+="omptarget;openmp-resource-headers;"
   projects=("${projects[@]/openmp}")
 fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
@@ -215,7 +215,6 @@ cmake_args=" \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
   -DLLVM_ENABLE_PROJECTS='"${llvm_projects%;}"' \
   -DLLVM_ENABLE_RUNTIMES='"${llvm_runtimes%;}"' \
-  -DLIBCXX_ENABLE_PARALLEL_ALGORITHMS=${[ -n "$(echo $install_targets | grep omp)" ] && echo ON || echo OFF} \
   -DLLVM_DISTRIBUTION_COMPONENTS='"${llvm_components%;}"' \
   -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
   -DZLIB_ROOT='"$ZLIB_INSTALL_PREFIX"' \

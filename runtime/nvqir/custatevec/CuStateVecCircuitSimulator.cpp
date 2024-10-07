@@ -705,7 +705,9 @@ public:
     }
 
     counts.expectationValue = expVal;
+
     HANDLE_ERROR(custatevecSamplerDestroy(sampler));
+
     return counts;
   }
 

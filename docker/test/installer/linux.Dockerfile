@@ -14,20 +14,16 @@ FROM ${base_image_mpibuild} AS mpibuild
 ARG base_image_mpibuild
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
-ARG cudart_version
 
 ## [Prerequisites]
 ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
 RUN CUDA_DISTRIBUTION=rhel9 bash runtime_dependencies.sh ${base_image_mpibuild}
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        autoconf libtool flex make wget
-
-ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
-RUN source /cuda-quantum/scripts/configure_build.sh install-gcc && \
-    dnf install -y --nobest --setopt=install_weak_deps=False \
-        cuda-cudart-devel-$(echo ${cudart_version} | tr . -)
+        autoconf libtool flex make wget \
+        gcc-toolset-11 cuda-cudart-devel-11-8
 
 ## [Build]
+ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 RUN source /cuda-quantum/scripts/configure_build.sh build-openmpi
 
 # [CUDA-Q Installation]

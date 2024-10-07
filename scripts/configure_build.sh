@@ -26,7 +26,7 @@ if [ "$1" == "install-cuda" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>CUDAInstall]
-    CUDA_VERSION=${CUDA_VERSION:-11.8}
+    CUDA_VERSION=11.8
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -43,7 +43,7 @@ if [ "$1" == "install-cudart" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>CUDARTInstall]
-    CUDA_VERSION=${CUDA_VERSION:-11.8}
+    CUDA_VERSION=11.8
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -52,14 +52,13 @@ if [ "$1" == "install-cudart" ]; then
     version_suffix=$(echo ${CUDA_VERSION} | tr . -)
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
-        cuda-cudart-${version_suffix} \
-        libcusolver-${version_suffix} \
-        libcublas-${version_suffix}
+        cuda-nvtx-${version_suffix} cuda-cudart-${version_suffix} \
+        libcusolver-${version_suffix} libcublas-${version_suffix}
 # [<CUDARTInstall]
 fi
 
 if [ "$1" == "install-cuquantum" ]; then
-    CUDA_VERSION=${CUDA_VERSION:-11.8}
+    CUDA_VERSION=11.8
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
@@ -75,7 +74,7 @@ if [ "$1" == "install-cuquantum" ]; then
 fi
 
 if [ "$1" == "install-cutensor" ]; then
-    CUDA_VERSION=${CUDA_VERSION:-11.8}
+    CUDA_VERSION=11.8
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuTensorInstall]
@@ -92,7 +91,7 @@ fi
 
 if [ "$1" == "install-gcc" ]; then
 # [>gccInstall]
-    GCC_VERSION=${GCC_VERSION:-11}
+    GCC_VERSION=11
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
     # Enabling the toolchain globally is only needed for debug builds

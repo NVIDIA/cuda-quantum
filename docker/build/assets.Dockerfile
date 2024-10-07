@@ -18,8 +18,6 @@
 ARG base_image=amd64/almalinux:8
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
-ARG cuda_version
-ENV CUDA_VERSION=${cuda_version}
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 

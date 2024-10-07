@@ -42,25 +42,11 @@
     [
         {
             "platform": "linux/amd64",
-            "cuda_major": 12,
-            "operating_systems": 
-            [
-                "debian:12"
-            ],
-            "debian:12": 
-            {
-                "libcdev_package": "libc6-dev",
-                "cudart_version": 12.3,
-                "cuda_distribution": "debian12"
-            }
-        },
-        {
-            "platform": "linux/amd64",
-            "cuda_major": 11,
             "operating_systems": 
             [
                 "ubuntu:22.04",
                 "redhat/ubi8:8.0",
+                "debian:12",
                 "opensuse/leap:15.5",
                 "fedora:38"
             ],
@@ -97,7 +83,6 @@
         },
         {
             "platform": "linux/arm64",
-            "cuda_major": 11,
             "operating_systems": 
             [
                 "ubuntu:22.04",
