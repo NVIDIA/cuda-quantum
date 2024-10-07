@@ -30,8 +30,8 @@ def TBI(
     mz(qumodes)
 
 
-input_state = [2, 1, 3, 1]
-loop_lengths = [1, 2]
+input_state = [1, 0, 1, 0, 1, 0, 1, 0]
+loop_lengths = [1, 1]
 
 n_beam_splitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
 bs_angles = np.linspace(np.pi / 3, np.pi / 6, n_beam_splitters)

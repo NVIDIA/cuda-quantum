@@ -422,7 +422,6 @@ void set_photonic_random_seed(std::size_t seed) {
 
 std::size_t get_random_seed() { return cudaq_random_seed; }
 
-
 int num_available_gpus() {
   int nDevices = 0;
 #ifdef CUDAQ_HAS_CUDA
