@@ -331,6 +331,7 @@ def test_sample_control_qreg_args():
     print(kernel)
 
 
+# CHECK-LABEL: test_sample_control_qreg_args
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.ref
@@ -387,6 +388,7 @@ def test_sample_apply_call_control():
     print(kernel)
 
 
+# CHECK-LABEL: test_sample_apply_call_control
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref

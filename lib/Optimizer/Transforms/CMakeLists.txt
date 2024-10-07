@@ -41,6 +41,7 @@ add_cudaq_library(OptTransforms
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
+  DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
   PruneCtrlRelations.cpp
@@ -50,6 +51,7 @@ add_cudaq_library(OptTransforms
   RefToVeqAlloc.cpp
   RegToMem.cpp
   StatePreparation.cpp
+  UnitarySynthesis.cpp
   WiresToWiresets.cpp
 
   DEPENDS
@@ -62,4 +64,9 @@ add_cudaq_library(OptTransforms
     MLIRIR
     OptimBuilder
     QuakeDialect
+)
+
+target_include_directories(OptTransforms SYSTEM
+  PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
+  PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )

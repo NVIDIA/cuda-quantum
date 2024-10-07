@@ -48,6 +48,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_NoiseModel.cpp
     ../runtime/common/py_ObserveResult.cpp
     ../runtime/common/py_SampleResult.cpp
+    ../runtime/common/py_CustomOpRegistry.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
@@ -93,6 +94,7 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq 
     cudaq-common 
     cudaq-em-default
+    cudaq-em-photonics
     fmt::fmt-header-only
     unzip_util
 )

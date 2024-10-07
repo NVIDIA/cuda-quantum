@@ -43,6 +43,8 @@ static Type genBufferType(Type ty) {
   auto *ctx = ty.getContext();
   if (isa<cudaq::cc::CallableType>(ty))
     return cudaq::cc::PointerType::get(ctx);
+  if (isa<cudaq::cc::IndirectCallableType>(ty))
+    return IntegerType::get(ctx, 64);
   if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(ty)) {
     auto i64Ty = IntegerType::get(ctx, 64);
     if (isOutput) {
@@ -368,6 +370,8 @@ static Type convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
+  if (isa<cc::IndirectCallableType>(ty))
+    return cc::PointerType::get(IntegerType::get(ty.getContext(), 8));
   if (auto memrefTy = dyn_cast<cc::CharspanType>(ty)) {
     // `pauli_word` is an object with a std::vector in the header files at
     // present. This data type *must* be updated if it becomes a std::string
@@ -577,6 +581,37 @@ Value factory::createCast(OpBuilder &builder, Location loc, Type toType,
   return builder.create<cudaq::cc::CastOp>(loc, toType, fromValue,
                                            signExtend ? unit : none,
                                            zeroExtend ? unit : none);
+}
+
+std::vector<std::complex<double>>
+factory::readGlobalConstantArray(cudaq::cc::GlobalOp &global) {
+  std::vector<std::complex<double>> result{};
+
+  auto attr = global.getValue();
+  auto elementsAttr = cast<mlir::ElementsAttr>(attr.value());
+  auto eleTy = elementsAttr.getElementType();
+  auto values = elementsAttr.getValues<mlir::Attribute>();
+
+  for (auto it = values.begin(); it != values.end(); ++it) {
+    auto valAttr = *it;
+
+    auto v = [&]() -> std::complex<double> {
+      if (isa<FloatType>(eleTy))
+        return {cast<FloatAttr>(valAttr).getValue().convertToDouble(),
+                static_cast<double>(0.0)};
+      if (isa<IntegerType>(eleTy))
+        return {static_cast<double>(cast<IntegerAttr>(valAttr).getInt()),
+                static_cast<double>(0.0)};
+      assert(isa<ComplexType>(eleTy));
+      auto arrayAttr = cast<mlir::ArrayAttr>(valAttr);
+      auto real = cast<FloatAttr>(arrayAttr[0]).getValue().convertToDouble();
+      auto imag = cast<FloatAttr>(arrayAttr[1]).getValue().convertToDouble();
+      return {real, imag};
+    }();
+
+    result.push_back(v);
+  }
+  return result;
 }
 
 } // namespace cudaq::opt

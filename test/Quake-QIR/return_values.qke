@@ -57,7 +57,7 @@ func.func @test_0(%1: !cc.ptr<!cc.struct<{!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>}
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__test_0({ i8*, i64 }* nocapture writeonly sret({ i8*, i64 }) 
-// CHECK-SAME:           %[[VAL_0:.*]], i32 %[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK-SAME:           %[[VAL_0:.*]], i32 %[[VAL_1:.*]]) {{.*}}{
 // CHECK:         %[[VAL_2:.*]] = sext i32 %[[VAL_1]] to i64
 // CHECK:         %[[VAL_3:.*]] = tail call %[[VAL_4:.*]]* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_2]])
 // CHECK:         %[[VAL_5:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_4]]* %[[VAL_3]])
@@ -104,7 +104,7 @@ func.func @test_0(%1: !cc.ptr<!cc.struct<{!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>}
 // CHECK:       }
 
 // CHECK-LABEL: define void @test_0({ i8*, i8*, i8* }* sret({ i8*, i8*, i8* }) 
-// CHECK-SAME:       %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]], i32 %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK-SAME:       %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]], i32 %[[VAL_2:.*]]) {{.*}}{
 // CHECK:         %[[VAL_3:.*]] = alloca { i32, { i1*, i64 } }, align 8
 // CHECK:         %[[VAL_4:.*]] = bitcast { i32, { i1*, i64 } }* %[[VAL_3]] to i8*
 // CHECK:         %[[VAL_5:.*]] = getelementptr inbounds { i32, { i1*, i64 } }, { i32, { i1*, i64 } }* %[[VAL_3]], i64 0, i32 0
@@ -141,7 +141,7 @@ func.func @test_1(%1: !cc.ptr<!cc.struct<{i1, i1}>> {llvm.sret = !cc.struct<{i1,
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__test_1({ i1, i1 }* nocapture writeonly sret({ i1, i1 }) 
-// CHECK-SAME:       %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK-SAME:       %[[VAL_0:.*]]) {{.*}}{
 // CHECK:         %[[VAL_1:.*]] = tail call %[[VAL_2:.*]]* @__quantum__rt__qubit_allocate_array(i64 2)
 // CHECK:         %[[VAL_3:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 0)
 // CHECK:         %[[VAL_4:.*]] = bitcast i8* %[[VAL_3]] to %[[VAL_5:.*]]**
@@ -166,8 +166,7 @@ func.func @test_1(%1: !cc.ptr<!cc.struct<{i1, i1}>> {llvm.sret = !cc.struct<{i1,
 // CHECK:       }
 
 // CHECK-LABEL: define void @test_1({ i1, i1 }* nocapture writeonly sret({ i1, i1 }) 
-// CHECK-SAME:      %[[VAL_0:.*]], i8* nocapture readnone
-// CHECK-SAME:      %[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK-SAME:      %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]]) {{.*}}{
 // CHECK:         %[[VAL_2:.*]] = alloca [2 x i8], align 8
 // CHECK:         %[[VAL_3:.*]] = getelementptr inbounds [2 x i8], [2 x i8]* %[[VAL_2]], i64 0, i64 0
 // CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_1.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_1.thunk to i8*), i8* nonnull %[[VAL_3]], i64 2, i64 0)
@@ -202,14 +201,13 @@ func.func @test_2(%1: !cc.ptr<!cc.struct<{i16, f32, f64, i64}>> {llvm.sret = !cc
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__test_2({ i16, float, double, i64 }* nocapture writeonly sret({ i16, float, double, i64 }) 
-// CHECK-SAME:        %[[VAL_0:.*]]) local_unnamed_addr #{{[0-9]+}} {
+// CHECK-SAME:        %[[VAL_0:.*]]) {{.*}}{
 // CHECK:         store { i16, float, double, i64 } { i16 8, float 0x40159999A0000000, double 3.783000e+01, i64 1479 }, { i16, float, double, i64 }* %[[VAL_0]], align 8
 // CHECK:         ret void
 // CHECK:       }
 
 // CHECK-LABEL: define void @test_2({ i16, float, double, i64 }* nocapture writeonly sret({ i16, float, double, i64 }) 
-// CHECK-SAME:          %[[VAL_0:.*]], i8* nocapture readnone
-// CHECK-SAME:          %[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK-SAME:          %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]]) {{.*}}{
 // CHECK:         %[[VAL_2:.*]] = alloca { { i16, float, double, i64 } }, align 8
 // CHECK:         %[[VAL_3:.*]] = bitcast { { i16, float, double, i64 } }* %[[VAL_2]] to i8*
 // CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_2.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_2.thunk to i8*), i8* nonnull %[[VAL_3]], i64 24, i64 0)
@@ -249,7 +247,7 @@ func.func @test_3(%1: !cc.ptr<!cc.array<i64 x 5>> {llvm.sret = !cc.array<i64 x 5
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__test_3([5 x i64]* nocapture writeonly sret([5 x i64]) 
-// CHECK-SAME:        %[[VAL_0:.*]]) local_unnamed_addr #{{[0-9]+}} {
+// CHECK-SAME:        %[[VAL_0:.*]]) {{.*}}{
 // CHECK:         %[[VAL_1:.*]] = getelementptr inbounds [5 x i64], [5 x i64]* %[[VAL_0]], i64 0, i64 0
 // CHECK:         store i64 5, i64* %[[VAL_1]], align 8
 // CHECK:         %[[VAL_2:.*]] = getelementptr inbounds [5 x i64], [5 x i64]* %[[VAL_0]], i64 0, i64 1
@@ -264,8 +262,7 @@ func.func @test_3(%1: !cc.ptr<!cc.array<i64 x 5>> {llvm.sret = !cc.array<i64 x 5
 // CHECK:       }
 
 // CHECK-LABEL: define void @test_3([5 x i64]* nocapture writeonly sret([5 x i64]) 
-// CHECK-SAME:      %[[VAL_0:.*]], i8* nocapture readnone
-// CHECK-SAME:      %[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK-SAME:      %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]]) {{.*}}{
 // CHECK:         %[[VAL_2:.*]] = alloca { [5 x i64] }, align 8
 // CHECK:         %[[VAL_3:.*]] = bitcast { [5 x i64] }* %[[VAL_2]] to i8*
 // CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_3.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_3.thunk to i8*), i8* nonnull %[[VAL_3]], i64 40, i64 0)
@@ -303,7 +300,7 @@ func.func @test_4(%1: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct<{i
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__test_4({ i64, double }* nocapture writeonly sret({ i64, double }) 
-// CHECK-SAME:     %[[VAL_0:.*]]) local_unnamed_addr #{{[0-9]+}} {
+// CHECK-SAME:     %[[VAL_0:.*]]) {{.*}}{
 // CHECK:         %[[VAL_1:.*]] = getelementptr inbounds { i64, double }, { i64, double }* %[[VAL_0]], i64 0, i32 0
 // CHECK:         store i64 537892, i64* %[[VAL_1]], align 8
 // CHECK:         %[[VAL_2:.*]] = getelementptr { i64, double }, { i64, double }* %[[VAL_0]], i64 0, i32 1
@@ -312,8 +309,7 @@ func.func @test_4(%1: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct<{i
 // CHECK:       }
 
 // CHECK-LABEL: define void @test_4({ i64, double }* nocapture writeonly sret({ i64, double }) 
-// CHECK-SAME:     %[[VAL_0:.*]], i8* nocapture readnone
-// CHECK-SAME:     %[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK-SAME:     %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]]) {{.*}}{
 // CHECK:         %[[VAL_2:.*]] = alloca { i64, double }, align 8
 // CHECK:         %[[VAL_3:.*]] = bitcast { i64, double }* %[[VAL_2]] to i8*
 // CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_4.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_4.thunk to i8*), i8* nonnull %[[VAL_3]], i64 16, i64 0)
@@ -339,7 +335,7 @@ func.func @test_5(%0: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct<{i
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__test_5({ i64, double }* nocapture writeonly sret({ i64, double }) 
-// CHECK-SAME:       %[[VAL_0:.*]]) local_unnamed_addr #{{[0-9]+}} {
+// CHECK-SAME:       %[[VAL_0:.*]]) {{.*}}{
 // CHECK:         %[[VAL_1:.*]] = getelementptr inbounds { i64, double }, { i64, double }* %[[VAL_0]], i64 0, i32 0
 // CHECK:         store i64 537892, i64* %[[VAL_1]], align 8
 // CHECK:         %[[VAL_2:.*]] = getelementptr { i64, double }, { i64, double }* %[[VAL_0]], i64 0, i32 1
@@ -348,7 +344,7 @@ func.func @test_5(%0: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct<{i
 // CHECK:       }
 
 // CHECK-LABEL: define void @test_5({ i64, double }* nocapture writeonly sret({ i64, double }) 
-// CHECK-SAME:       %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK-SAME:       %[[VAL_0:.*]]) {{.*}}{
 // CHECK:         %[[VAL_1:.*]] = alloca { i64, double }, align 8
 // CHECK:         %[[VAL_2:.*]] = bitcast { i64, double }* %[[VAL_1]] to i8*
 // CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_5.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_5.thunk to i8*), i8* nonnull %[[VAL_2]], i64 16, i64 0)
@@ -365,7 +361,7 @@ func.func @test_5(%0: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct<{i
 
 }
 
-
+//===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: define i64 @test_0.returnOffset()
 // CHECK:         ret i64 8

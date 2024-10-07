@@ -227,3 +227,9 @@ Namespaces
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T &localValue, const BinaryFunction &function)
 .. doxygenfunction:: cudaq::mpi::broadcast(std::vector<double> &data, int rootRank)
 .. doxygenfunction:: cudaq::mpi::broadcast(std::string &data, int rootRank)
+
+.. doxygennamespace:: cudaq::orca
+    :desc-only:
+
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000)
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000)

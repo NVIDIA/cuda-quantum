@@ -228,3 +228,8 @@ MPI Submodule
 .. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
 .. automethod:: cudaq.mpi::finalize
+
+ORCA Submodule
+=============================
+
+.. automethod:: cudaq.orca::sample
