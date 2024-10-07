@@ -11,8 +11,9 @@
 // Global variables
 static constexpr std::size_t one = 1;
 
-static constexpr std::size_t n_modes = 4;
-static constexpr std::array<std::size_t, n_modes> input_state = {2, 1, 3, 1};
+static constexpr std::size_t n_modes = 8;
+static constexpr std::array<std::size_t, n_modes> input_state = {1, 0, 1, 0,
+                                                                 1, 0, 1, 0};
 
 static constexpr std::size_t d =
     std::accumulate(input_state.begin(), input_state.end(), one);
