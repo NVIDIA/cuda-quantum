@@ -120,8 +120,8 @@ public:
   /// @brief Noise type enumeration
   noise_model_type noise_type = noise_model_type::unknown;
 
-  /// @brief Noise probability
-  real probability = 0.0;
+  /// @brief Noise parameter values
+  std::vector<real> parameters;
 
   ~kraus_channel() = default;
 
@@ -269,7 +269,7 @@ public:
         k3v{std::sqrt(probability / three), 0, 0,
             negOne * std::sqrt(probability / three)};
     ops = {k0v, k1v, k2v, k3v};
-    this->probability = probability;
+    this->parameters.push_back(probability);
     noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
   }
@@ -284,7 +284,7 @@ public:
     std::vector<cudaq::complex> k0v{1, 0, 0, std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), 0, 0};
     ops = {k0v, k1v};
-    this->probability = probability;
+    this->parameters.push_back(probability);
     noise_type = noise_model_type::amplitude_damping_channel;
     validateCompleteness();
   }
@@ -300,7 +300,7 @@ public:
                                     std::sqrt(1 - probability)},
         k1v{0, std::sqrt(probability), std::sqrt(probability), 0};
     ops = {k0v, k1v};
-    this->probability = probability;
+    this->parameters.push_back(probability);
     noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
   }
@@ -317,7 +317,7 @@ public:
                                     std::sqrt(1 - probability)},
         k1v{std::sqrt(probability), 0, 0, negOne * std::sqrt(probability)};
     ops = {k0v, k1v};
-    this->probability = probability;
+    this->parameters.push_back(probability);
     noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
   }
