@@ -22,8 +22,7 @@ public:
   /// @brief Set the noise model, only allow this for
   /// emulation.
   void setNoiseModel(const cudaq::noise_model *model) override {
-    throw std::runtime_error(
-          "Noise modeling is not allowed on this backend");
+    throw std::runtime_error("Noise modeling is not allowed on this backend");
   }
 
   /// Reset the execution context
@@ -63,7 +62,7 @@ public:
   /// platform directory for the targeted backend.
   std::vector<cudaq::KernelExecution>
   getQuakeCodes(const std::string &kernelName, void *kernelArgs,
-                 const std::vector<void *> &rawArgs) {
+                const std::vector<void *> &rawArgs) {
 
     auto [m_module, contextPtr, updatedArgs] =
         extractQuakeCodeAndContext(kernelName, kernelArgs);

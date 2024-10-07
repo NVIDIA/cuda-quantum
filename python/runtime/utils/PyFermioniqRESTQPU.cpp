@@ -22,8 +22,7 @@ void registerToOpenQASMTranslation();
 void registerToIQMJsonTranslation();
 void registerLLVMDialectTranslation(MLIRContext *context);
 
-
-}
+} // namespace cudaq
 
 namespace cudaq {
 

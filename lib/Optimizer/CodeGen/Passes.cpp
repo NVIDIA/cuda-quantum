@@ -88,7 +88,6 @@ static void addFermioniqPipeline(OpPassManager &pm) {
   pm.addPass(createBasisConversionPass(options));
 }
 
-
 void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("anyon-cgate-set-mapping",
                              "Convert kernels to Anyon gate set.",

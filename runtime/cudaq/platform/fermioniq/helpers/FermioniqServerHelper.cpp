@@ -17,7 +17,6 @@
 
 namespace cudaq {
 
-
 /// @brief The FermioniqServerHelper class extends the ServerHelper class to
 /// handle interactions with the Fermioniq server for submitting and retrieving
 /// quantum computation jobs.
@@ -117,7 +116,6 @@ private:
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
 };
-
 
 // Initialize the Fermioniq server helper with a given backend configuration
 void FermioniqServerHelper::initialize(BackendConfig config) {
@@ -510,4 +508,5 @@ FermioniqServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
 } // namespace cudaq
 
 // Register the Fermioniq server helper in the CUDA-Q server helper factory
-CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::FermioniqServerHelper, fermioniq)
+CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::FermioniqServerHelper,
+                    fermioniq)

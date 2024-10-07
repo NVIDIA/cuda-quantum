@@ -423,7 +423,7 @@ sample_result::to_map(const std::string_view registerName) const {
 }
 
 ExecutionResult sample_result::get_result_for_register(
-  const std::string_view registerName) const {
+    const std::string_view registerName) const {
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
     return ExecutionResult();
