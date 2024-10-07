@@ -25,7 +25,6 @@ DGX
 DOI
 Deuteron
 Doxygen
-fermioniq
 Fermioniq
 FPGAs
 Fortran
@@ -200,6 +199,7 @@ expressivity
 extensibility
 extremal
 fermionic
+fermioniq
 fmt
 frontend
 frontends
