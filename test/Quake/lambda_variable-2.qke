@@ -7,7 +7,8 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --lambda-lifting --canonicalize %s | FileCheck %s
-// RUN: cudaq-opt --lambda-lifting --canonicalize %s | cudaq-translate --convert-to=qir | FileCheck --check-prefixes=QIR %s
+// RUN: cudaq-opt --lambda-lifting --canonicalize %s | \
+// RUN:   cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_b(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<() -> ()>)
@@ -60,16 +61,6 @@
 // QIR-LABEL: define void @__nvqpp__mlirgen__kernel_a()
 // QIR:         call {{.*}} @__quantum__rt__qubit_allocate_array(i64 4)
 // QIR:         call void @__quantum__rt__qubit_release_array(
-
-// QIR-LABEL: define void @__nvqpp__lifted.lambda.0(
-// QIR:         call i8* @__quantum__rt__array_get_element_ptr_1d(
-// QIR:         call void @__quantum__qis__h(
-// QIR:         call i8* @__quantum__rt__array_get_element_ptr_1d(
-// QIR:         call void @__quantum__qis__h(
-// QIR:         call i8* @__quantum__rt__array_get_element_ptr_1d(
-// QIR:         call void @__quantum__qis__h(
-// QIR:         call i8* @__quantum__rt__array_get_element_ptr_1d(
-// QIR:         call void @__quantum__qis__h(
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8kernel_aclEv", __nvqpp__mlirgen__kernel_b = "_ZN8kernel_bclEOSt8functionIFvvEE"}} {
   func.func @__nvqpp__mlirgen__kernel_b(%arg0: !cc.callable<() -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {

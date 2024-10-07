@@ -102,7 +102,10 @@ private:
       return;
     FunctionAnalysisData data;
     funcOp->walk([&](LLVM::CallOp callOp) {
-      StringRef funcName = callOp.getCalleeAttr().getValue();
+      auto funcNameAttr = callOp.getCalleeAttr();
+      if (!funcNameAttr)
+        return;
+      auto funcName = funcNameAttr.getValue();
 
       // For every allocation call, create a range of integers to uniquely
       // identify the qubits in the allocation.
@@ -356,7 +359,10 @@ struct QIRToQIRProfileFuncPass
       return op.empty() || op.getPassthroughAttr();
     });
     target.addDynamicallyLegalOp<LLVM::CallOp>([](LLVM::CallOp op) {
-      StringRef funcName = op.getCalleeAttr().getValue();
+      auto funcNameAttr = op.getCalleeAttr();
+      if (!funcNameAttr)
+        return true;
+      auto funcName = funcNameAttr.getValue();
       return (!funcName.equals(cudaq::opt::QIRArrayQubitAllocateArray) &&
               !funcName.equals(cudaq::opt::QIRQubitAllocate)) ||
              op->hasAttr(cudaq::opt::StartingOffsetAttrName);
@@ -545,7 +551,6 @@ std::unique_ptr<Pass> cudaq::opt::createQIRProfilePreparationPass() {
 }
 
 //===----------------------------------------------------------------------===//
-
 // The various passes defined here should be added as a pass pipeline.
 
 void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
