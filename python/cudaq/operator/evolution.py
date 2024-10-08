@@ -102,6 +102,92 @@ def _evolution_kernel(
         yield evolution
 
 
+def evolve_single(
+        hamiltonian: Operator,
+        dimensions: Mapping[int, int],
+        schedule: Schedule,
+        initial_state: cudaq_runtime.State,
+        collapse_operators: Sequence[Operator] = [],
+        observables: Sequence[Operator] = [],
+        store_intermediate_results=False,
+        integrator: Optional[BaseIntegrator] = None
+) -> cudaq_runtime.EvolveResult:
+    target_name = cudaq_runtime.get_target().name
+    if target_name == "nvidia-dynamics":
+        return evolve_me(hamiltonian, dimensions, schedule, initial_state,
+                         collapse_operators, observables,
+                         store_intermediate_results, integrator)
+
+    simulator = cudaq_runtime.get_target().simulator.strip()
+    if simulator == "":
+        raise NotImplementedError(
+            "time evolution is currently only supported on simulator targets")
+
+    # Unless we are using `cuSuperoperator` for the execution,
+    # we can only handle qubits at this time.
+    if any(dimension != 2 for dimension in dimensions.values()):
+        # FIXME: `tensornet` can potentially handle qudits
+        raise ValueError(
+            "computing the time evolution is only possible for qubits; use the nvidia-dynamics target to simulate time evolution of arbitrary d-level systems"
+        )
+    # Unless we are using `cuSuperoperator` for the execution,
+    # we cannot handle simulating the effect of collapse operators.
+    if len(collapse_operators) > 0 and simulator != "dm":
+        raise ValueError(
+            "collapse operators can only be defined when using the nvidia-dynamics or density-matrix-cpu target"
+        )
+
+    num_qubits = len(hamiltonian.degrees)
+    parameters = [mapping for mapping in schedule]
+    schedule.reset()
+    tlist = [schedule.current_step for _ in schedule]
+    observable_spinops = [
+        lambda step_parameters, op=op: op._to_spinop(
+            dimensions, **step_parameters) for op in observables
+    ]
+    compute_step_matrix = lambda step_parameters, dt: _compute_step_matrix(
+        hamiltonian, dimensions, step_parameters, dt)
+    noise = cudaq_runtime.NoiseModel()
+    add_noise_channel_for_step = lambda step_kernel_name, step_parameters, dt: _add_noise_channel_for_step(
+        step_kernel_name, noise, collapse_operators, dimensions,
+        step_parameters, dt)
+
+    if store_intermediate_results:
+        evolution = _evolution_kernel(
+            num_qubits,
+            compute_step_matrix,
+            tlist,
+            parameters,
+            split_into_steps=True,
+            register_kraus_channel=add_noise_channel_for_step)
+        kernels = [kernel for kernel in evolution]
+        if len(observables) == 0:
+            return cudaq_runtime.evolve(initial_state, kernels)
+        if len(collapse_operators) > 0:
+            cudaq_runtime.set_noise(noise)
+        result = cudaq_runtime.evolve(initial_state, kernels, parameters,
+                                      observable_spinops)
+        cudaq_runtime.unset_noise()
+        return result
+    else:
+        kernel = next(
+            _evolution_kernel(
+                num_qubits,
+                compute_step_matrix,
+                tlist,
+                parameters,
+                register_kraus_channel=add_noise_channel_for_step))
+        if len(observables) == 0:
+            return cudaq_runtime.evolve(initial_state, kernel)
+        # FIXME: permit to compute expectation values for operators defined as matrix
+        if len(collapse_operators) > 0:
+            cudaq_runtime.set_noise(noise)
+        result = cudaq_runtime.evolve(initial_state, kernel, parameters[-1],
+                                      observable_spinops)
+        cudaq_runtime.unset_noise()
+        return result
+
+
 # Top level API for the CUDA-Q master equation solver.
 def evolve(
     hamiltonian: Operator,
@@ -144,105 +230,29 @@ def evolve(
         initial state. See `EvolveResult` for more information about the data computed
         during evolution.
     """
-    target_name = cudaq_runtime.get_target().name
-    if target_name == "nvidia-dynamics":
-        return evolve_me(hamiltonian, dimensions, schedule, initial_state,
-                         collapse_operators, observables,
-                         store_intermediate_results, integrator)
-
-    simulator = cudaq_runtime.get_target().simulator.strip()
-    if simulator == "":
-        raise NotImplementedError(
-            "time evolution is currently only supported on simulator targets")
-
-    # Unless we are using `cuSuperoperator` for the execution,
-    # we can only handle qubits at this time.
-    if any(dimension != 2 for dimension in dimensions.values()):
-        # FIXME: `tensornet` can potentially handle qudits
-        raise ValueError(
-            "computing the time evolution is only possible for qubits; use the nvidia-dynamics target to simulate time evolution of arbitrary d-level systems"
-        )
-    # Unless we are using `cuSuperoperator` for the execution,
-    # we cannot handle simulating the effect of collapse operators.
-    if len(collapse_operators) > 0 and simulator != "dm":
-        raise ValueError(
-            "collapse operators can only be defined when using the nvidia-dynamics or density-matrix-cpu target"
-        )
-
-    num_qubits = len(hamiltonian.degrees)
-    parameters = [mapping for mapping in schedule]
-    schedule.reset()
-    tlist = [schedule.current_step for _ in schedule]
-    observable_spinops = [
-        lambda step_parameters, op=op: op._to_spinop(
-            dimensions, **step_parameters) for op in observables
-    ]
-    compute_step_matrix = lambda step_parameters, dt: _compute_step_matrix(
-        hamiltonian, dimensions, step_parameters, dt)
-    noise = cudaq_runtime.NoiseModel()
-    add_noise_channel_for_step = lambda step_kernel_name, step_parameters, dt: _add_noise_channel_for_step(
-        step_kernel_name, noise, collapse_operators, dimensions,
-        step_parameters, dt)
-
-    # FIXME: deal with a sequence of initial states
-    if store_intermediate_results:
-        evolution = _evolution_kernel(
-            num_qubits,
-            compute_step_matrix,
-            tlist,
-            parameters,
-            split_into_steps=True,
-            register_kraus_channel=add_noise_channel_for_step)
-        kernels = [kernel for kernel in evolution]
-        if len(observables) == 0:
-            return cudaq_runtime.evolve(initial_state, kernels)
-        if len(collapse_operators) > 0:
-            cudaq_runtime.set_noise(noise)
-        result = cudaq_runtime.evolve(initial_state, kernels, parameters,
-                                      observable_spinops)
-        cudaq_runtime.unset_noise()
-        return result
+    if isinstance(initial_state, Sequence):
+        return [
+            evolve_single(hamiltonian, dimensions, schedule, state,
+                          collapse_operators, observables,
+                          store_intermediate_results, integrator)
+            for state in initial_state
+        ]
     else:
-        kernel = next(
-            _evolution_kernel(
-                num_qubits,
-                compute_step_matrix,
-                tlist,
-                parameters,
-                register_kraus_channel=add_noise_channel_for_step))
-        if len(observables) == 0:
-            return cudaq_runtime.evolve(initial_state, kernel)
-        # FIXME: permit to compute expectation values for operators defined as matrix
-        if len(collapse_operators) > 0:
-            cudaq_runtime.set_noise(noise)
-        result = cudaq_runtime.evolve(initial_state, kernel, parameters[-1],
-                                      observable_spinops)
-        cudaq_runtime.unset_noise()
-        return result
+        return evolve_single(hamiltonian, dimensions, schedule, initial_state,
+                             collapse_operators, observables,
+                             store_intermediate_results, integrator)
 
 
-def evolve_async(
+def evolve_single_async(
     hamiltonian: Operator,
     dimensions: Mapping[int, int],
     schedule: Schedule,
-    initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
+    initial_state: cudaq_runtime.State,
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
     store_intermediate_results=False,
     integrator: Optional[BaseIntegrator] = None
-) -> cudaq_runtime.AsyncEvolveResult | Sequence[
-        cudaq_runtime.AsyncEvolveResult]:
-    """
-    Asynchronously computes the time evolution of one or more initial state(s) 
-    under the defined operator(s). See `cudaq.evolve` for more details about the
-    parameters passed here.
-    
-    Returns:
-        The handle to a single evolution result if a single initial state is provided, 
-        or a sequence of handles to the evolution results representing the data computed 
-        during the evolution of each initial state. See the `EvolveResult` for more 
-        information about the data computed during evolution.
-    """
+) -> cudaq_runtime.AsyncEvolveResult:
     target_name = cudaq_runtime.get_target().name
     if target_name == "nvidia-dynamics":
         return cudaq_runtime.evolve_async(
@@ -325,3 +335,39 @@ def evolve_async(
                                        noise_model=noise)
         return cudaq_runtime.evolve_async(initial_state, kernel, parameters[-1],
                                           observable_spinops)
+
+
+def evolve_async(
+    hamiltonian: Operator,
+    dimensions: Mapping[int, int],
+    schedule: Schedule,
+    initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
+    collapse_operators: Sequence[Operator] = [],
+    observables: Sequence[Operator] = [],
+    store_intermediate_results=False,
+    integrator: Optional[BaseIntegrator] = None
+) -> cudaq_runtime.AsyncEvolveResult | Sequence[
+        cudaq_runtime.AsyncEvolveResult]:
+    """
+    Asynchronously computes the time evolution of one or more initial state(s) 
+    under the defined operator(s). See `cudaq.evolve` for more details about the
+    parameters passed here.
+    
+    Returns:
+        The handle to a single evolution result if a single initial state is provided, 
+        or a sequence of handles to the evolution results representing the data computed 
+        during the evolution of each initial state. See the `EvolveResult` for more 
+        information about the data computed during evolution.
+    """
+    if isinstance(initial_state, Sequence):
+        return [
+            evolve_single_async(hamiltonian, dimensions, schedule, state,
+                                collapse_operators, observables,
+                                store_intermediate_results, integrator)
+            for state in initial_state
+        ]
+    else:
+        return evolve_single_async(hamiltonian, dimensions, schedule,
+                                   initial_state, collapse_operators,
+                                   observables, store_intermediate_results,
+                                   integrator)

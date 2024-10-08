@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import os
+import os, uuid
 
 import pytest
 import cudaq
@@ -14,8 +14,16 @@ import numpy as np
 import cupy as cp
 
 cudaq.set_target("nvidia-dynamics")
-ci_integrators = [RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator]
-all_integrators = [RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator, CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator, CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqDopri8Integrator, CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator, CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqRK4Integrator]
+ci_integrators = [
+    RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator
+]
+all_integrators = [
+    RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator,
+    CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator,
+    CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqDopri8Integrator,
+    CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator,
+    CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqRK4Integrator
+]
 
 # By default, only test representatives from each integrator collection.
 all_integrator_classes = ci_integrators
@@ -333,11 +341,14 @@ all_models = [
     CavityModel(n=8, delta=2 * np.pi, alpha0=0.5, kappa=2 * np.pi)
 ]
 
+
 def sync_run(*args, **kwargs):
     return evolve(*args, **kwargs)
 
+
 def async_run(*args, **kwargs):
     return evolve_async(*args, **kwargs).get()
+
 
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 @pytest.mark.parametrize('model', all_models)
@@ -689,6 +700,70 @@ def test_cross_resonance(integrator):
     freq_0 = freq_from_crossings(results_00[5])
     freq_1 = freq_from_crossings(results_10[5])
     np.testing.assert_allclose(freq_0, 2.0 * freq_1, atol=0.01)
+
+
+@pytest.mark.parametrize('integrator', all_integrator_classes)
+def test_tensor_callback(integrator):
+    # Device parameters
+    # Qubit resonant frequency
+    nu_z = 10.0
+    # Transverse term
+    nu_x = 1.0
+    # Harmonic driving frequency
+    # Note: we chose a frequency slightly different from the resonant frequency to demonstrate the off-resonance effect.
+    nu_d = 9.98
+
+    def callback_tensor(t):
+        return np.cos(2 * np.pi * nu_d * t) * np.array([[0., 1.], [1., 0.]],
+                                                       dtype=np.complex128)
+
+    # Let's define the control term as a callback tensor
+    op_name = "control_term_" + str(uuid.uuid4())
+    ElementaryOperator.define(op_name, [2], callback_tensor)
+
+    # Qubit Hamiltonian
+    hamiltonian = 0.5 * 2 * np.pi * nu_z * pauli.z(0)
+    # Add modulated driving term to the Hamiltonian
+    hamiltonian += 2 * np.pi * nu_x * ElementaryOperator(op_name, [0])
+
+    # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
+    dimensions = {0: 2}
+
+    # Initial state of the system (ground state).
+    rho0 = cudaq.State.from_data(
+        cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
+
+    # Schedule of time steps.
+    t_final = 0.5 / nu_x
+    tau = .005
+    n_steps = int(np.ceil(t_final / tau)) + 1
+    steps1 = np.linspace(0, t_final, n_steps)
+    schedule = Schedule(steps1, ["t"])
+
+    # Run the simulation.
+    # First, we run the simulation without any collapse operators (no decoherence).
+    evolution_result = evolve(hamiltonian,
+                              dimensions,
+                              schedule,
+                              rho0,
+                              observables=[pauli.x(0),
+                                           pauli.y(0),
+                                           pauli.z(0)],
+                              collapse_operators=[],
+                              store_intermediate_results=True,
+                              integrator=ScipyZvodeIntegrator())
+
+    get_result = lambda idx, res: [
+        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+    ]
+    ideal_results = [
+        get_result(0, evolution_result),
+        get_result(1, evolution_result),
+        get_result(2, evolution_result)
+    ]
+    np.testing.assert_allclose(ideal_results[0][-1], 0, atol=0.1)
+    np.testing.assert_allclose(ideal_results[1][-1], 0, atol=0.1)
+    np.testing.assert_allclose(ideal_results[2][-1], -1, atol=0.1)
 
 
 # leave for gdb debugging
