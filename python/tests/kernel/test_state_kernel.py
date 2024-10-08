@@ -13,10 +13,6 @@ from typing import List
 
 import cudaq
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
 
 skipIfNoGQPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
@@ -94,7 +90,6 @@ def check_state_vector_integration(entity):
     assert np.allclose(want_state, bell_state, atol=1e-3)
 
 
-@skipIfPythonLessThan39
 def test_state_vector_integration():
     """
     An integration test on the state vector class. Uses a CUDA-Q

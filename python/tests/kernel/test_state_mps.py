@@ -15,11 +15,6 @@ import cudaq
 
 cp = pytest.importorskip('cupy')
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
-
 skipIfNoGPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('tensornet-mps')),
     reason="tensornet-mps backend not available")
