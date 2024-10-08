@@ -22,7 +22,7 @@ target-arguments:
   - key: url
     required: false
     type: string
-    platform-arg: url 
+    platform-arg: url
     help-string: "Specify URL."
   - key: machine
     required: false
