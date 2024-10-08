@@ -175,7 +175,7 @@ class OperatorSum:
         Arguments:
             dimensions: A mapping that specifies the number of levels, that is
                 the dimension, of each degree of freedom that the operator acts on.
-            **kwargs: Keyword arguments needed to evaluate the operator. All
+            `kwargs`: Keyword arguments needed to evaluate the operator. All
                 required parameters and their documentation, if available, can be 
                 queried by accessing the `parameter` property.
 
@@ -184,17 +184,10 @@ class OperatorSum:
         """
         # FIXME: make sure we have enough tests that are not consisting of spin operators,
         # then enable the code below and check tests with and without this.
-        # FIXME: while the convention (endianness) in operators should match the one in
-        # the rest of CUDA-Q, there are some bugs in spinop arithmetics that need to be fixed.
-        # For example, while pauliX(0) * (pauliZ(0) + pauliZ(1)) evaluates correctly,
-        # this does not: (pauliZ(0) + pauliZ(1)) * pauliX(0)
-        '''
-        if self._is_spinop and all([dim == 2 for dim in dimensions.values()]):
-            # For spin operators we can compute the matrix more efficiently.
-            spin_op = self._evaluate(_SpinArithmetics(**kwargs))
-            if isinstance(spin_op, (complex, float, int)): return numpy.array([spin_op], dtype=numpy.complex128)
-            else: return _OperatorHelpers.cmatrix_to_nparray(spin_op.to_matrix())
-        '''
+        # FIXME: while the convention (`endianness`) in operators should match the one in
+        # the rest of CUDA-Q, there are some bugs in `spinop` arithmetic that need to be fixed.
+        # For example, while `pauliX(0) * (pauliZ(0) + pauliZ(1))` evaluates correctly,
+        # this does not: `(pauliZ(0) + pauliZ(1)) * pauliX(0)`
         return self._evaluate(MatrixArithmetics(dimensions, **kwargs)).matrix
 
     # To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
@@ -211,7 +204,7 @@ class OperatorSum:
         """
         Creates a representation of the operator as `pauli_word` that can be passed
         as an argument to quantum kernels.
-        Raises a ValueError if the operator contains non-Pauli suboperators.
+        Raises a ValueError if the operator contains non-Pauli sub-operators.
         """
         return self._evaluate(PauliWordConversion()).pauli_word
 
@@ -653,7 +646,7 @@ class ElementaryOperator(ProductOperator):
         Arguments:
             dimensions: A mapping that specifies the number of levels, that is
                 the dimension, of each degree of freedom that the operator acts on.
-            **kwargs: Keyword arguments needed to evaluate the operator. All
+            `kwargs`: Keyword arguments needed to evaluate the operator. All
                 required parameters and their documentation, if available, can be 
                 queried by accessing the `parameter` property.
 
@@ -906,7 +899,7 @@ class ScalarOperator(ProductOperator):
         Invokes the generator with the given keyword arguments.
 
         Arguments:
-            **kwargs: Keyword arguments needed to evaluate the generator. All
+            `kwargs`: Keyword arguments needed to evaluate the generator. All
                 required parameters and their documentation, if available, can be 
                 queried by accessing the `parameter` property.
 
@@ -927,7 +920,7 @@ class ScalarOperator(ProductOperator):
             dimensions: (unused, passed for consistency) 
                 A mapping that specifies the number of levels, that is
                 the dimension, of each degree of freedom that the operator acts on.
-            **kwargs: Keyword arguments needed to evaluate the generator. All
+            `kwargs`: Keyword arguments needed to evaluate the generator. All
                 required parameters and their documentation, if available, can be 
                 queried by accessing the `parameter` property.
 

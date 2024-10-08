@@ -95,7 +95,7 @@ class _OperatorHelpers:
             **kwargs: Any) -> tuple[Sequence[Any], Mapping[str, Any]]:
         """
         Extracts the positional argument and keyword only arguments 
-        for the given function from the passed kwargs. 
+        for the given function from the passed `kwargs`. 
         """
         arg_spec = inspect.getfullargspec(fct)
         signature = inspect.signature(fct)
@@ -107,7 +107,7 @@ class _OperatorHelpers:
             kwargs = kwargs.copy()  # We will modify and return a copy
 
         def find_in_kwargs(arg_name: str) -> Any:
-            # Try to get the argument from the kwargs passed during operator
+            # Try to get the argument from the `kwargs` passed during operator
             # evaluation.
             arg_value = kwargs.get(arg_name)
             if arg_value is None:
@@ -128,8 +128,8 @@ class _OperatorHelpers:
         if consumes_kwargs:
             return extracted_args, kwargs
         elif len(arg_spec.kwonlyargs) > 0:
-            # If we can't pass all remaining kwargs,
-            # we need to create a separate dictionary for kwonlyargs.
+            # If we can't pass all remaining `kwargs`,
+            # we need to create a separate dictionary for `kwonlyargs`.
             kwonlyargs: dict[str, Any] = {}
             for arg_name in arg_spec.kwonlyargs:
                 kwonlyargs[arg_name] = find_in_kwargs(arg_name)
@@ -172,9 +172,9 @@ class _OperatorHelpers:
             cmatrix: cudaq_runtime.ComplexMatrix
     ) -> NDArray[numpy.complexfloating]:
         """
-        Converts a `cudaq.ComplexMatrix` to the corresponding numpy array.
+        Converts a `cudaq.ComplexMatrix` to the corresponding `numpy` array.
         """
-        # FIXME: implement conversion in py_matrix.cpp instead and ensure consistency with numpy.array -> ComplexMatrix
+        # FIXME: implement conversion in `py_matrix.cpp` instead and ensure consistency with `numpy.array` -> `ComplexMatrix`
         return numpy.array(
             [[cmatrix[row, column]
               for row in range(cmatrix.num_rows())]

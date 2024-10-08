@@ -155,14 +155,14 @@ def evolve(
         raise NotImplementedError(
             "time evolution is currently only supported on simulator targets")
 
-    # Unless we are using cuSuperoperator for the execution,
+    # Unless we are using `cuSuperoperator` for the execution,
     # we can only handle qubits at this time.
     if any(dimension != 2 for dimension in dimensions.values()):
-        # FIXME: tensornet can potentially handle qudits
+        # FIXME: `tensornet` can potentially handle qudits
         raise ValueError(
             "computing the time evolution is only possible for qubits; use the nvidia-dynamics target to simulate time evolution of arbitrary d-level systems"
         )
-    # Unless we are using cuSuperoperator for the execution,
+    # Unless we are using `cuSuperoperator` for the execution,
     # we cannot handle simulating the effect of collapse operators.
     if len(collapse_operators) > 0 and simulator != "dm":
         raise ValueError(
@@ -257,14 +257,14 @@ def evolve_async(
     elif simulator == "nvidia-dynamics":  # FIXME: update once we know the target name
         raise NotImplementedError(f"{simulator} backend does not yet exist")
 
-    # Unless we are using cuSuperoperator for the execution,
+    # Unless we are using `cuSuperoperator` for the execution,
     # we can only handle qubits at this time.
     if any(dimension != 2 for dimension in dimensions.values()):
-        # FIXME: tensornet can potentially handle qudits
+        # FIXME: `tensornet` can potentially handle qudits
         raise ValueError(
             "computing the time evolution is only possible for qubits; use the nvidia-dynamics target to simulate time evolution of arbitrary d-level systems"
         )
-    # Unless we are using cuSuperoperator for the execution,
+    # Unless we are using `cuSuperoperator` for the execution,
     # we cannot handle simulating the effect of collapse operators.
     if len(collapse_operators) > 0 and simulator != "dm":
         raise ValueError(

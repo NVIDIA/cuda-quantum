@@ -342,8 +342,8 @@ class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator |
         have dimension two.
 
         Arguments:
-            **kwargs: Keyword arguments needed to evaluate, that is access data in,
+            `kwargs`: Keyword arguments needed to evaluate, that is access data in,
                 the leaf nodes of the operator expression. Leaf nodes are 
-                values of type ElementaryOperator or ScalarOperator.
+                values of type `ElementaryOperator` or `ScalarOperator`.
         """
         self._kwargs = kwargs
