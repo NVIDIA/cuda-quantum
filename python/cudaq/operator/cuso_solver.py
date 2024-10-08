@@ -14,7 +14,7 @@ from ..runtime.observe import observe
 from .schedule import Schedule
 from .expressions import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-import cusuperop as cuso
+from .cuso_helpers import cuso
 from .cuso_state import CuSuperOpState
 from .integrator import BaseIntegrator
 from .builtin_integrators import RungeKuttaIntegrator, cuSuperOpTimeStepper
@@ -41,21 +41,23 @@ def as_cuso_state(state):
 
 # Master-equation solver using `cuSuperOp`
 def evolve_me(
-    hamiltonian: Operator,
-    dimensions: Mapping[int, int],
-    schedule: Schedule,
-    initial_state: cudaq_runtime.State | Sequence[cudaq_runtime.State],
-    collapse_operators: Sequence[Operator] = [],
-    observables: Sequence[Operator] = [],
-    store_intermediate_results=False,
-    integrator: Optional[BaseIntegrator] = None
-) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
+        hamiltonian: Operator,
+        dimensions: Mapping[int, int],
+        schedule: Schedule,
+        initial_state: cudaq_runtime.State,
+        collapse_operators: Sequence[Operator] = [],
+        observables: Sequence[Operator] = [],
+        store_intermediate_results=False,
+        integrator: Optional[BaseIntegrator] = None
+) -> cudaq_runtime.EvolveResult:
+    if cuso is None:
+        raise ImportError(
+            "[nvidia-dynamics] Failed to import cuSuperOp module. Please check your installation."
+        )
+
     # Reset the schedule
     schedule.reset()
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
-
-    if not isinstance(initial_state, cudaq_runtime.State):
-        raise NotImplementedError("TODO: list of input states")
 
     with ScopeTimer("evolve.as_cuso_state") as timer:
         initial_state = as_cuso_state(initial_state)

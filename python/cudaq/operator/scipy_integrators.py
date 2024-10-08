@@ -7,12 +7,17 @@
 # ============================================================================ #
 
 from .integrator import BaseTimeStepper, BaseIntegrator
-import cusuperop as cuso
+from .cuso_helpers import cuso
 import cupy
-from scipy.integrate import ode
-from scipy.integrate._ode import zvode
 from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
 from .builtin_integrators import cuSuperOpTimeStepper
+
+has_scipy = True
+try:
+    from scipy.integrate import ode
+    from scipy.integrate._ode import zvode
+except ImportError:
+    has_scipy = False
 
 
 class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
@@ -22,11 +27,15 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
     order = 12
 
     def __init__(self, stepper: BaseTimeStepper[cuso.State], **kwargs):
+        if not has_scipy:
+            raise ImportError("scipy is required to use this integrator.")
         super().__init__(**kwargs)
         self.stepper = stepper
         self.state_data_shape = None
 
     def __init__(self, **kwargs):
+        if not has_scipy:
+            raise ImportError("scipy is required to use this integrator.")
         super().__init__(**kwargs)
         self.state_data_shape = None
 

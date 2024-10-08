@@ -11,10 +11,15 @@ from typing import Mapping, List, Sequence
 from numbers import Number
 from .expressions import ElementaryOperator, ScalarOperator
 from .manipulation import OperatorArithmetics
-import cusuperop as cuso
 from cusuperop._internal.callbacks import CallbackCoefficient
 import logging
 from .schedule import Schedule
+
+cuso = None
+try:
+    import cusuperop as cuso
+except ImportError:
+    cuso = None 
 
 logger = logging.getLogger(__name__)
 

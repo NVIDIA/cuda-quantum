@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 from .integrator import BaseTimeStepper, BaseIntegrator
-import cusuperop as cuso
+from .cuso_helpers import cuso
 import cupy
 from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
 from .timing_helper import ScopeTimer

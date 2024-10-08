@@ -6,15 +6,25 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import torch.utils
-import torch.utils.dlpack
 from .integrator import BaseTimeStepper, BaseIntegrator
-import cusuperop as cuso
+from .cuso_helpers import cuso
 import cupy as cp
-import torch
-from torchdiffeq import odeint
 from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
 from .builtin_integrators import cuSuperOpTimeStepper
+
+has_torch = True
+has_torchdiffeq = True
+try:
+    import torch
+    import torch.utils
+    import torch.utils.dlpack
+except ImportError:
+    has_torch = False
+
+try:
+    from torchdiffeq import odeint
+except ImportError:
+    has_torchdiffeq = False
 
 
 class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
@@ -25,6 +35,15 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
                  stepper: BaseTimeStepper[cuso.State],
                  solver: str = 'rk4',
                  **kwargs):
+        if not has_torch:
+            # If users don't have torch (hence, no torchdiffeq as well), raise an error when they want to use it.
+            raise ImportError(
+                'torch and torchdiffeq are required to use Torch-based integrators.'
+            )
+        if not has_torchdiffeq:
+            raise ImportError(
+                'torchdiffeq is required to use Torch-based integrators.')
+
         super().__init__(**kwargs)
         self.stepper = stepper
         self.solver = solver
