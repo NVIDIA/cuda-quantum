@@ -213,8 +213,37 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
     # One final check to see if this is a custom data type.
     if id in globalRegisteredTypes:
-        _, memberTys = globalRegisteredTypes[id]
+        pyType, memberTys = globalRegisteredTypes[id]
         structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
+        for ty in structTys:
+            if cc.StructType.isinstance(ty):
+                localEmitFatalError(
+                    'recursive struct types are not allowed in kernels.')
+
+        if len({
+                k: v
+                for k, v in pyType.__dict__.items()
+                if not (k.startswith('__') and k.endswith('__'))
+        }) != 0:
+            localEmitFatalError(
+                'struct types with user specified methods are not allowed.')
+
+        numQuantumMemberTys = sum([
+            1 if
+            (quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty) or
+             quake.StruqType.isinstance(ty)) else 0 for ty in structTys
+        ])
+        numStruqMemberTys = sum(
+            [1 if (quake.StruqType.isinstance(ty)) else 0 for ty in structTys])
+        if numQuantumMemberTys != 0:  # we have quantum member types
+            if numQuantumMemberTys != len(structTys):
+                emitFatalError(
+                    f'hybrid quantum-classical data types not allowed in kernel code.'
+                )
+            if numStruqMemberTys != 0:
+                emitFatalError(f'recursive quantum struct types not allowed.')
+            return quake.StruqType.getNamed(ctx, id, structTys)
+
         return cc.StructType.getNamed(ctx, id, structTys)
 
     localEmitFatalError(
@@ -320,18 +349,36 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
             return cc.CallableType.get(ctx, argInstance.argTypes)
-    else:
-        if argType == list[int]:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
-        if argType == list[float]:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
     for name, (customTys, memberTys) in globalRegisteredTypes.items():
         if argType == customTys:
             structTys = [
                 mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
             ]
+            numQuantumMemberTys = sum([
+                1 if
+                (quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty) or
+                 quake.StruqType.isinstance(ty)) else 0 for ty in structTys
+            ])
+            numStruqMemberTys = sum([
+                1 if (quake.StruqType.isinstance(ty)) else 0 for ty in structTys
+            ])
+            if numQuantumMemberTys != 0:  # we have quantum member types
+                if numQuantumMemberTys != len(structTys):
+                    emitFatalError(
+                        f'hybrid quantum-classical data types not allowed')
+                if numStruqMemberTys != 0:
+                    emitFatalError(
+                        f'recursive quantum struct types not allowed.')
+                return quake.StruqType.getNamed(ctx, name, structTys)
+
             return cc.StructType.getNamed(ctx, name, structTys)
+
+    if 'argInstance' not in kwargs:
+        if argType == list[int]:
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
+        if argType == list[float]:
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
     emitFatalError(
         f"Can not handle conversion of python type {argType} to MLIR type.")
