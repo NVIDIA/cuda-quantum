@@ -8,6 +8,12 @@
 #include "cudaq/orca.h"
 #include "cudaq.h"
 
+#include <fstream>
+#include <iostream>
+
+#include <chrono>
+#include <thread>
+
 // define helper function to generate linear spaced vectors
 template <typename T>
 void linear_spaced_vector(std::vector<T> &xs, T min, T max, std::size_t N) {
@@ -20,6 +26,8 @@ void linear_spaced_vector(std::vector<T> &xs, T min, T max, std::size_t N) {
 }
 
 int main() {
+  using namespace std::this_thread;     // sleep_for, sleep_until
+  using namespace std::chrono_literals; // `ns`, `us`, `ms`, `s`, `h`, etc.
 
   // A time-bin boson sampling experiment: An input state of 4 indistinguishable
   // photons mixed with 4 vacuum states across 8 time bins (modes) enter the
@@ -60,10 +68,14 @@ int main() {
   // we can also set number of requested samples
   int n_samples{10000};
 
-  // Submit to ORCA synchronously (e.g., wait for the job result to be returned
-  // before proceeding with the rest of the execution).
+  // Submit to ORCA synchronously (e.g., wait for the job result to be
+  // returned before proceeding with the rest of the execution).
+  std::cout << "Submitting to ORCA Server synchronously" << std::endl;
   auto counts =
       cudaq::orca::sample(input_state, loop_lengths, bs_angles, n_samples);
+
+  // Print the results
+  counts.dump();
 
   // If the system includes phase shifters, the phase shifter angles can be
   // included in the call
@@ -73,8 +85,27 @@ int main() {
   //                                   ps_angles, n_samples);
   // ```
 
-  // Print the results
-  counts.dump();
+  // Alternatively we can submit to ORCA asynchronously (e.g., continue
+  // executing code in the file until the job has been returned).
+  std::cout << "Submitting to ORCA Server asynchronously" << std::endl;
+  auto async_results = cudaq::orca::sample_async(input_state, loop_lengths,
+                                                 bs_angles, n_samples);
+
+  // Can write the future to file:
+  {
+    std::ofstream out("saveMe.json");
+    out << async_results;
+  }
+
+  // Then come back and read it in later.
+  cudaq::async_result<cudaq::sample_result> readIn;
+  std::ifstream in("saveMe.json");
+  in >> readIn;
+
+  sleep_for(200ms); // wait for the job to be processed
+  // Get the results of the read in future.
+  auto async_counts = readIn.get();
+  async_counts.dump();
 
   return 0;
 }

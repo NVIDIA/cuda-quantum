@@ -8,8 +8,14 @@
 
 set(LIBRARY_NAME cudaq-orca-qpu)
 message(STATUS "Building ORCA REST QPU.")
+set(ORCA_SRC
+  OrcaExecutor.cpp
+  OrcaQPU.cpp
+  OrcaRemoteRESTQPU.cpp
+  OrcaServerHelper.cpp
+)
 
-add_library(${LIBRARY_NAME} SHARED OrcaQPU.cpp)
+add_library(${LIBRARY_NAME} SHARED ${ORCA_SRC})
 
 target_include_directories(${LIBRARY_NAME} PRIVATE .
     PUBLIC 
@@ -29,10 +35,5 @@ target_link_libraries(${LIBRARY_NAME}
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-orca-qpu-targets DESTINATION lib)
-
-# install(EXPORT cudaq-orca-qpu-targets
-#         FILE CUDAQQPUOrcaTargets.cmake
-#         NAMESPACE cudaq::orca::
-#         DESTINATION lib/cmake/cudaq)
 
 add_target_config(orca)
