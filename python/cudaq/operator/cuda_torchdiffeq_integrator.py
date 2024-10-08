@@ -36,7 +36,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
                  solver: str = 'rk4',
                  **kwargs):
         if not has_torch:
-            # If users don't have torch (hence, no torchdiffeq as well), raise an error when they want to use it.
+            # If users don't have torch (hence, no `torchdiffeq` as well), raise an error when they want to use it.
             raise ImportError(
                 'torch and torchdiffeq are required to use Torch-based integrators.'
             )

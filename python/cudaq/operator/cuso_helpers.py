@@ -19,7 +19,7 @@ cuso = None
 try:
     import cusuperop as cuso
 except ImportError:
-    cuso = None 
+    cuso = None
 
 logger = logging.getLogger(__name__)
 
