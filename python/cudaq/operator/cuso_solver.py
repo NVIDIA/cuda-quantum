@@ -30,7 +30,6 @@ def as_cuso_state(state):
     tensor = state.getTensor()
     pDevice = tensor.data()
     dtype = cupy.complex128
-    # print(f"Cupy pointer: {hex(pDevice)}")
     sizeByte = tensor.get_num_elements() * tensor.get_element_size()
     mem = UnownedMemory(pDevice, sizeByte, owner=state)
     memptr = MemoryPointer(mem, 0)
@@ -40,7 +39,7 @@ def as_cuso_state(state):
     return CuSuperOpState(cupy_array)
 
 
-# Master-equation solver using cuSuperOp
+# Master-equation solver using `cuSuperOp`
 def evolve_me(
     hamiltonian: Operator,
     dimensions: Mapping[int, int],
@@ -55,7 +54,6 @@ def evolve_me(
     schedule.reset()
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
 
-    # Note: we would need a CUDAQ state implementation for cuSuperOp
     if not isinstance(initial_state, cudaq_runtime.State):
         raise NotImplementedError("TODO: list of input states")
 
@@ -113,7 +111,6 @@ def evolve_me(
     exp_vals = []
     intermediate_states = []
     for step_idx, parameters in enumerate(schedule):
-        # print(f"Current time = {schedule.current_step}")
         if step_idx > 0:
             with ScopeTimer("evolve.integrator.integrate") as timer:
                 integrator.integrate(schedule.current_step)
@@ -125,7 +122,6 @@ def evolve_me(
             with ScopeTimer("evolve.compute_expectation") as timer:
                 exp_val = obs.compute_expectation(schedule.current_step, (),
                                                   state)
-            # print(f"Time = {schedule.current_step}: Exp = {float(cp.real(exp_val[0]))}")
             step_exp_vals.append(float(cupy.real(exp_val[0])))
         exp_vals.append(step_exp_vals)
         if store_intermediate_results:

@@ -24,8 +24,8 @@ dimensions = {0: 2}
 # System parameters
 gamma1 = 0.0001  # relaxation rate
 gamma2 = 0.005  # `dephasing`  rate
-delta = 0.5 * 2 * np.pi  # qubit pauli_x coefficient
-eps0 = 0.0 * 2 * np.pi  # qubit pauli_z coefficient
+delta = 0.5 * 2 * np.pi  # qubit `pauli_x` coefficient
+eps0 = 0.0 * 2 * np.pi  # qubit `pauli_z` coefficient
 A = 2.0 * 2 * np.pi  # time-dependent sweep rate
 
 # Hamiltonian

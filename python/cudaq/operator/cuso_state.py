@@ -17,7 +17,6 @@ def to_cupy_array(state):
     tensor = state.getTensor()
     pDevice = tensor.data()
     dtype = cupy.complex128
-    # print(f"Cupy pointer: {hex(pDevice)}")
     sizeByte = tensor.get_num_elements() * tensor.get_element_size()
     mem = UnownedMemory(pDevice, sizeByte, owner=state)
     memptr = MemoryPointer(mem, 0)
@@ -37,7 +36,7 @@ def coherent_state(N: int, alpha: float):
     sqrtn[0] = 1
     data = alpha / sqrtn
     data[0] = cupy.exp(-cupy.abs(alpha)**2 / 2.0)
-    cupy.cumprod(data, out=sqrtn)  # Reuse sqrtn array
+    cupy.cumprod(data, out=sqrtn)
     return sqrtn
 
 
@@ -47,7 +46,7 @@ def coherent_dm(N: int, alpha: float):
 
 def wigner_function(state, xvec, yvec):
     """
-    Evaluate the wigner functions input state
+    Evaluate the Wigner functions input state
     """
     g = numpy.sqrt(2)
     if isinstance(state, cudaq_runtime.State):

@@ -34,7 +34,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cuso.State]):
 
     def compute_rhs(self, t, vec):
         t_scalar = t.item()
-        # vec is a torch tensor on GPU
+        # `vec` is a torch tensor on GPU
         # convert torch tensor to CuPy array without copying data
         vec_cupy = cp.from_dlpack(torch.utils.dlpack.to_dlpack(vec))
         rho_data = cp.asfortranarray(vec_cupy.reshape(self.dm_shape))

@@ -16,7 +16,7 @@ from .helpers import _OperatorHelpers, NumericType
 from .schedule import Schedule
 from ..kernel.register_op import register_operation
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-# FIXME: PyKernelDecorator is documented but not accessible in the API due to shadowing by the kernel module.
+# FIXME: `PyKernelDecorator` is documented but not accessible in the API due to shadowing by the kernel module.
 #from ..kernel.kernel_decorator import PyKernelDecorator
 from ..kernel.kernel_builder import PyKernel, make_kernel
 from ..runtime.observe import observe
@@ -28,7 +28,7 @@ def _compute_step_matrix(hamiltonian: Operator, dimensions: Mapping[int, int],
                          parameters: Mapping[str, NumericType],
                          dt: float) -> NDArray[complexfloating]:
     op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
-    # FIXME: Use approximative approach (series expansion, integrator),
+    # FIXME: Use `approximative` approach (series expansion, integrator),
     # and maybe use GPU acceleration for matrix manipulations if it makes sense.
     return scipy.linalg.expm(-1j * op_matrix * dt)
 
@@ -69,9 +69,9 @@ def _evolution_kernel(
 
     def register_operations():
         for step_idx, parameters in enumerate(schedule):
-            # We could make operators hashable and try to use that to do some kernel caching,
+            # We could make operators `hashable` and try to use that to do some kernel caching,
             # but there is no guarantee that if the hash is equal, the operator is equal.
-            # Overall it feels like a better choice to just take a uuid here.
+            # Overall it feels like a better choice to just take a `uuid` here.
             operation_name = f"evolve_{kernel_base_name}_{step_idx}"
             # Note: the first step is expected to be the identity matrix, i.e., initial state.
             if step_idx == 0:
@@ -90,7 +90,7 @@ def _evolution_kernel(
     evolution, initial_state = make_kernel(cudaq_runtime.State)
     qs = evolution.qalloc(initial_state)
     for operation_name in operation_names:
-        # FIXME: #(*qs) causes infinite loop
+        # FIXME: `#(*qs)` causes infinite loop
         # FIXME: It would be nice if a registered operation could take a vector of qubits?
         targets = [qs[i] for i in range(num_qubits)]
         evolution.__getattr__(f"{operation_name}")(*targets)
@@ -118,7 +118,7 @@ def evolve(
     operator(s). 
 
     Arguments:
-        hamiltonian: Operator that describes the behavior of a quantum system
+        `hamiltonian`: Operator that describes the behavior of a quantum system
             without noise.
         dimensions: A mapping that specifies the number of levels, that is
             the dimension, of each degree of freedom that any of the operator 
@@ -132,7 +132,7 @@ def evolve(
         initial_state: A single state or a sequence of states of a quantum system.
         collapse_operators: A sequence of operators that describe the influence of 
             noise on the quantum system.
-        observables: A sequence of operators for which to compute their expectation
+        `observables`: A sequence of operators for which to compute their expectation
             value during evolution. If `store_intermediate_results` is set to True,
             the expectation values are computed after each step in the schedule, 
             and otherwise only the final expectation values at the end of the 

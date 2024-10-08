@@ -301,6 +301,6 @@ def constructLiouvillian(hilbert_space_dims: List[int], ham: cuso.OperatorTerm,
             lindbladian = computeLindladOp(hilbert_space_dims, c_op, c_op)
             liouvillian += lindbladian
     else:
-        # Schrodinger equation: d/dt psi = -iH psi
+        # Schrodinger equation: `d/dt psi = -iH psi`
         liouvillian = hamiltonian
     return liouvillian

@@ -6,7 +6,7 @@ import os
 import matplotlib.pyplot as plt
 
 # This example simulates time evolution of a qubit (`transmon`) being driven by a pulse.
-# The pulse is a modulated signal with a gaussian envelop.
+# The pulse is a modulated signal with a Gaussian envelop.
 
 # Set the target to our dynamics simulator
 cudaq.set_target("nvidia-dynamics")
@@ -18,10 +18,10 @@ r = 0.1
 # Frequency of the qubit transition in GHz.
 w = 5.
 
-# Sample rate of the backend in ns.
+# Sample rate of the backend in `ns`.
 dt = 1 / 4.5
 
-# Define gaussian envelope function to approximately implement an sx gate.
+# Define gaussian envelope function to approximately implement a `rx(pi/2)` gate.
 amp = 1. / 2.0
 sig = 1.0 / r / amp
 T = 6 * sig

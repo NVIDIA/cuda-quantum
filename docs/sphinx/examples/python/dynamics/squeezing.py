@@ -29,7 +29,7 @@ w0 = 1.0 * 2 * np.pi
 gamma0 = 0.05
 # the temperature of the environment
 w_th = 0.0 * 2 * np.pi
-# the number of average excitations in the environment mode w0 at temperature w_th
+# the number of average excitations in the environment mode `w0` at temperature `w_th`
 Nth = n_thermal(w0, w_th)
 # squeezing parameter for the environment
 r = 1.0
