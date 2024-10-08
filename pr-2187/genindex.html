@@ -247,6 +247,7 @@
 <li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#clifford-only-simulation-cpu">Clifford-Only Simulation (CPU)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="using/backends/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
@@ -524,6 +525,10 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/default_ops.html">Quantum Operations</a><ul>
@@ -550,6 +555,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -697,6 +709,8 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.NoiseModel.add_all_qubit_channel">add_all_qubit_channel() (cudaq.NoiseModel method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel.add_channel">add_channel() (cudaq.NoiseModel method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.all_gather">all_gather() (in module cudaq.mpi)</a>
@@ -777,6 +791,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq12async_resultE">cudaq::async_result (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq12async_result3getEv">cudaq::async_result::get (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq19async_sample_resultE">cudaq::async_sample_result (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20BaseNvcfSimulatorQPUE">cudaq::BaseNvcfSimulatorQPU (C++ class)</a>
 </li>
@@ -968,9 +984,13 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq13kraus_channel13kraus_channelEDpRRNSt16initializer_listI1TEE">cudaq::kraus_channel::kraus_channel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERK13kraus_channel">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERNSt6vectorI8kraus_opEE">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelERRNSt6vectorI8kraus_opEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel13kraus_channelEv">[4]</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel10noise_typeE">cudaq::kraus_channel::noise_type (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channelaSERK13kraus_channel">cudaq::kraus_channel::operator= (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channelixEKNSt6size_tE">cudaq::kraus_channel::operator[] (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel10parametersE">cudaq::kraus_channel::parameters (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13kraus_channel9push_backE8kraus_op">cudaq::kraus_channel::push_back (C++ function)</a>
 </li>
@@ -1010,13 +1030,29 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_modelE">cudaq::noise_model (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq11noise_model11add_channelEvRKNSt6vectorINSt6size_tEEERK13kraus_channel">cudaq::noise_model::add_channel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model11add_channelERKNSt6stringERKNSt6vectorINSt6size_tEEERK13kraus_channel">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq11noise_model21add_all_qubit_channelEvRK13kraus_channeli">cudaq::noise_model::add_all_qubit_channel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model21add_all_qubit_channelERKNSt6stringERK13kraus_channeli">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq11noise_model11add_channelEvRK15PredicateFuncTy">cudaq::noise_model::add_channel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq11noise_model11add_channelEvRKNSt6vectorINSt6size_tEEERK13kraus_channel">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model11add_channelERKNSt6stringERK15PredicateFuncTy">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model11add_channelERKNSt6stringERKNSt6vectorINSt6size_tEEERK13kraus_channel">[3]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq11noise_model5emptyEv">cudaq::noise_model::empty (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0ENK5cudaq11noise_model12get_channelsENSt6vectorI13kraus_channelEERKNSt6vectorINSt6size_tEEE">cudaq::noise_model::get_channels (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq11noise_model12get_channelsERKNSt6stringERKNSt6vectorINSt6size_tEEE">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0ENK5cudaq11noise_model12get_channelsENSt6vectorI13kraus_channelEERKNSt6vectorINSt6size_tEEERKNSt6vectorINSt6size_tEEERKNSt6vectorIdEE">cudaq::noise_model::get_channels (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq11noise_model12get_channelsERKNSt6stringERKNSt6vectorINSt6size_tEEERKNSt6vectorINSt6size_tEEERKNSt6vectorIdEE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model11noise_modelEv">cudaq::noise_model::noise_model (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model15PredicateFuncTyE">cudaq::noise_model::PredicateFuncTy (C++ type)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16noise_model_typeE">cudaq::noise_model_type (C++ enum)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16noise_model_type25amplitude_damping_channelE">cudaq::noise_model_type::amplitude_damping_channel (C++ enumerator)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16noise_model_type16bit_flip_channelE">cudaq::noise_model_type::bit_flip_channel (C++ enumerator)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16noise_model_type22depolarization_channelE">cudaq::noise_model_type::depolarization_channel (C++ enumerator)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16noise_model_type18phase_flip_channelE">cudaq::noise_model_type::phase_flip_channel (C++ enumerator)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16noise_model_type7unknownE">cudaq::noise_model_type::unknown (C++ enumerator)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18num_available_gpusEv">cudaq::num_available_gpus (C++ function)</a>
 </li>
@@ -1046,6 +1082,14 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9optimizer17requiresGradientsEv">cudaq::optimizer::requiresGradients (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orcaE">cudaq::orca (C++ type)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca6sampleERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEERNSt6vectorIdEEiNSt6size_tE">cudaq::orca::sample (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca6sampleERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEEiNSt6size_tE">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca12sample_asyncERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEERNSt6vectorIdEEiNSt6size_tE">cudaq::orca::sample_async (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca12sample_asyncERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEEiNSt6size_tE">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channelE">cudaq::phase_flip_channel (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUE">cudaq::QPU (C++ class)</a>
@@ -1064,7 +1108,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU11isSimulatorEv">cudaq::QPU::isSimulator (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringEPFvPvEPvNSt8uint64_tENSt8uint64_tE">cudaq::QPU::launchKernel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringERKNSt6vectorIPvEE">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringEPFvPvEPvNSt8uint64_tENSt8uint64_tERKNSt6vectorIPvEE">cudaq::QPU::launchKernel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringERKNSt6vectorIPvEE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU29launchSerializedCodeExecutionERKNSt6stringERN5cudaq30SerializedCodeExecutionContextE">cudaq::QPU::launchSerializedCodeExecution (C++ function)</a>
 </li>
@@ -1074,6 +1118,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU21resetExecutionContextEv">cudaq::QPU::resetExecutionContext (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU19setExecutionContextEP16ExecutionContext">cudaq::QPU::setExecutionContext (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU5setIdENSt6size_tE">cudaq::QPU::setId (C++ function)</a>
@@ -1090,8 +1136,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5beginEv">cudaq::qreg::begin (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5clearEv">cudaq::qreg::clear (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontENSt6size_tE">cudaq::qreg::front (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontEv">[1]</a>
@@ -1818,7 +1862,11 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.sample">sample() (in module cudaq)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.orca.sample">(in module cudaq.orca)</a>
 </li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.sample_async">sample_async() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult">SampleResult (class in cudaq)</a>

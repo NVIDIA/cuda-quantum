@@ -250,6 +250,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#clifford-only-simulation-cpu">Clifford-Only Simulation (CPU)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
@@ -527,6 +528,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/default_ops.html">Quantum Operations</a><ul>
@@ -553,6 +558,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -823,7 +835,7 @@ Python-specific tools:</p>
 in the way as you installed Python itself. If you installed Python via the package manager
 for your system, you may need to install an additional package to get the development headers.
 The package name is usually your python version followed by either a <code class="code docutils literal notranslate"><span class="pre">-dev</span></code> or <code class="code docutils literal notranslate"><span class="pre">-devel</span></code> suffix.
-If you are using a <a class="reference external" href="https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-python">Conda environment</a>,
+If you are using a <a class="reference external" href="https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-python.html">Conda environment</a>,
 the necessary headers should already be installed.</p></li>
 <li><p>Pip package manager: Make sure the <code class="code docutils literal notranslate"><span class="pre">pip</span></code> module is enable for your Python version.
 We refer to the Python <a class="reference external" href="https://pip.pypa.io/en/stable/installation/">documentation</a> for

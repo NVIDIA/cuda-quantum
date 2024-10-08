@@ -250,6 +250,7 @@
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#clifford-only-simulation-cpu">Clifford-Only Simulation (CPU)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
@@ -527,6 +528,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/default_ops.html">Quantum Operations</a><ul>
@@ -553,6 +558,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#user-defined-custom-operations">User-Defined Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#photonic-operations-on-qudits">Photonic Operations on Qudits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#plus"><code class="code docutils literal notranslate"><span class="pre">plus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#phase-shift"><code class="code docutils literal notranslate"><span class="pre">phase_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#beam-splitter"><code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#id1"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -820,6 +832,12 @@ alternating time-bins in a circuit composed of two delay lines in series.</p>
 variable <code class="docutils literal notranslate"><span class="pre">ORCA_ACCESS_URL</span></code> that can be set so that the ORCA target can look for it during
 configuration.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_ACCESS_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;ORCA API Server&gt;&quot;</span>
+</pre></div>
+</div>
+<p>Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
+environment variable named <code class="docutils literal notranslate"><span class="pre">ORCA_AUTH_TOKEN</span></code>. For example, if the token is <code class="code docutils literal notranslate"><span class="pre">AbCdEf123456</span></code>,
+you can set the environment variable as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_AUTH_TOKEN</span><span class="o">=</span><span class="s2">&quot;AbCdEf123456&quot;</span>
 </pre></div>
 </div>
 </section>

@@ -44,6 +44,8 @@ Common
 .. doxygenclass:: cudaq::async_result
     :members:
 
+.. doxygentypedef:: async_sample_result
+
 
 .. doxygenstruct:: cudaq::ExecutionResult
     :members:
@@ -115,6 +117,8 @@ Noise Modeling
 .. doxygenclass:: cudaq::noise_model
     :members:
 
+.. doxygenenum:: cudaq::noise_model_type
+
 Kernel Builder
 ===============
 
@@ -166,7 +170,9 @@ Platform
 
 .. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
 
-.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU    
+.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
+
+.. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:
@@ -225,3 +231,11 @@ Namespaces
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T &localValue, const BinaryFunction &function)
 .. doxygenfunction:: cudaq::mpi::broadcast(std::vector<double> &data, int rootRank)
 .. doxygenfunction:: cudaq::mpi::broadcast(std::string &data, int rootRank)
+
+.. doxygennamespace:: cudaq::orca
+    :desc-only:
+
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+.. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)
