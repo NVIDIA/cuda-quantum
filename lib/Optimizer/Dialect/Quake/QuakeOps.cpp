@@ -498,6 +498,52 @@ LogicalResult quake::ExtractRefOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// GetMemberOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::GetMemberOp::verify() {
+  std::uint32_t index = getIndex();
+  auto strTy = cast<quake::StruqType>(getStruq().getType());
+  std::uint32_t size = strTy.getNumMembers();
+  if (index >= size)
+    return emitOpError("invalid index [" + std::to_string(index) +
+                       "] because >= size [" + std::to_string(size) + "]");
+  if (getType() != strTy.getMembers()[index])
+    return emitOpError("result type does not match member " +
+                       std::to_string(index) + " type");
+  return success();
+}
+
+namespace {
+struct BypassMakeStruq : public OpRewritePattern<quake::GetMemberOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::GetMemberOp getMem,
+                                PatternRewriter &rewriter) const override {
+    if (auto makeStruq =
+            getMem.getStruq().getDefiningOp<quake::MakeStruqOp>()) {
+      auto toStrTy = cast<quake::StruqType>(getMem.getStruq().getType());
+      std::uint32_t idx = getMem.getIndex();
+      Value from = makeStruq.getOperand(idx);
+      auto toTy = toStrTy.getMembers()[idx];
+      if (from.getType() != toTy) {
+        rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(getMem, toTy, from);
+      } else {
+        rewriter.replaceOp(getMem, from);
+      }
+      return success();
+    }
+    return failure();
+  }
+};
+} // namespace
+
+void quake::GetMemberOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<BypassMakeStruq>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // InitializeStateOp
 //===----------------------------------------------------------------------===//
 
@@ -565,6 +611,26 @@ struct ForwardAllocaTypePattern
 void quake::InitializeStateOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<ForwardAllocaTypePattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// MakeStruqOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::MakeStruqOp::verify() {
+  if (getType().getNumMembers() != getNumOperands())
+    return emitOpError("result type has different member count than operands");
+  for (auto [ty, opnd] : llvm::zip(getType().getMembers(), getOperands())) {
+    if (ty == opnd.getType())
+      continue;
+    auto veqTy = dyn_cast<quake::VeqType>(ty);
+    auto veqOpndTy = dyn_cast<quake::VeqType>(opnd.getType());
+    if (veqTy && !veqTy.hasSpecifiedSize() && veqOpndTy &&
+        veqOpndTy.hasSpecifiedSize())
+      continue;
+    return emitOpError("member type not compatible with operand type");
+  }
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
