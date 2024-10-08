@@ -37,10 +37,13 @@ port = 62443
 with os.popen("git rev-parse --show-toplevel") as f:
     git_top = f.read().strip()
     if os.path.isdir(git_top):
-        target_config_origin = os.path.join(f"{git_top}", "runtime/cudaq/platform/default/rest/helpers/iqm")
+        target_config_origin = os.path.join(
+            f"{git_top}", "runtime/cudaq/platform/default/rest/helpers/iqm")
         target_config_dest = os.path.join(f"{git_top}", "targettests")
-        shutil.copy(os.path.join(target_config_origin, "Adonis.txt"), os.path.join(target_config_dest, "Adonis Variant.txt"))
-        shutil.copy(os.path.join(target_config_origin, "Apollo.txt"), os.path.join(target_config_dest, "Apollo Variant.txt"))
+        shutil.copy(os.path.join(target_config_origin, "Adonis.txt"),
+                    os.path.join(target_config_dest, "Adonis Variant.txt"))
+        shutil.copy(os.path.join(target_config_origin, "Apollo.txt"),
+                    os.path.join(target_config_dest, "Apollo Variant.txt"))
 
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
@@ -59,7 +62,8 @@ def startUpMockServer():
 
     if not check_server_connection(port):
         p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.", returncode=1)
+        pytest.exit("Mock server did not start in time, skipping tests.",
+                    returncode=1)
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
@@ -194,6 +198,90 @@ def test_IQM_state_preparation_builder():
     assert assert_close(counts["10"], shots / 2, 2)
     assert assert_close(counts["01"], 0., 2)
     assert assert_close(counts["11"], 0., 2)
+
+
+def test_exp_pauli():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, "XX")
+
+    shots = 10000
+    # gives results like { 11:7074 10:0 01:0 00:2926 }
+    counts = cudaq.sample(test, shots_count=shots)
+    counts.dump()
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["10"], 0., 2)
+
+
+def test_1q_unitary_synthesis():
+
+    cudaq.register_operation("custom_h",
+                             1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
+    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def basic_x():
+        qubit = cudaq.qubit()
+        custom_x(qubit)
+
+    counts = cudaq.sample(basic_x)
+    counts.dump()
+    # Gives result like { 1:999 0:0 }
+    assert counts['0'] == 0
+
+    @cudaq.kernel
+    def basic_h():
+        qubit = cudaq.qubit()
+        custom_h(qubit)
+
+    counts = cudaq.sample(basic_h)
+    counts.dump()
+    assert "0" in counts and "1" in counts
+
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        custom_h(qubits[0])
+        custom_x.ctrl(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell)
+    # Gives result like { 11:499 10:0 01:0 00:499 }
+    assert counts['01'] == 0 and counts['10'] == 0
+
+
+def test_2q_unitary_synthesis():
+
+    cudaq.register_operation(
+        "custom_cnot",
+        np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]))
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        custom_cnot(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell_pair)
+    # Gives result like { 11:499 10:0 01:0 00:499 }
+    assert counts['01'] == 0 and counts['10'] == 0
+
+    cudaq.register_operation(
+        "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                               -1]))
+
+    @cudaq.kernel
+    def ctrl_z_kernel():
+        qubits = cudaq.qvector(5)
+        controls = cudaq.qvector(2)
+        custom_cz(qubits[1], qubits[0])
+        x(qubits[2])
+        custom_cz(qubits[3], qubits[2])
+        x(controls)
+
+    counts = cudaq.sample(ctrl_z_kernel)
+    assert counts["0010011"] == 999
 
 
 # leave for gdb debugging

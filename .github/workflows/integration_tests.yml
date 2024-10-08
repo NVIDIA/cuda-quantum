@@ -16,6 +16,7 @@ on:
         type: choice
         options:
           - nightly
+          - anyon
           - ionq
           - iqm
           - oqc
@@ -68,7 +69,7 @@ env:
   NGC_QUANTUM_TEAM: cuda-quantum
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
-  NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40:gl40_1.br20_2xlarge:1:1
+  NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40S:gl40s_1.br25_2xlarge:1:1
   # If vars below are changed, it is recommended to also update the
   # workflow_dispatch defaults above so they stay in sync.
   cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
@@ -255,6 +256,59 @@ jobs:
             filelist="targettests/*/*.cpp"
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
           fi
+      
+      - name: Setup anyon account
+        # This step is currently bypassed during nightly runs due to
+        # maintenance. Restore the if check to the original value when
+        # maintenance is complete.
+        #if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'anyon'
+        if: inputs.target == 'anyon'
+        run: |
+          curl -X POST -H "Content Type: application/json" -d '{ "username":"${{ secrets.BACKEND_LOGIN_USERNAME }}","password":"${{ secrets.BACKEND_LOGIN_PASSWORD }}" }' https://api.anyon.cloud/login > credentials.json
+          id_token=`cat credentials.json | jq -r '."id_token"'`
+          refresh_token=`cat credentials.json | jq -r '."refresh_token"'`
+          echo "key: $id_token" > ~/.anyon_config
+          echo "refresh: $refresh_token" >> ~/.anyon_config
+
+      - name: QIR syntax check (Anyon)
+        # This step is currently bypassed during nightly runs due to
+        # maintenance. Restore the if check to the original value when
+        # maintenance is complete.
+        #if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'anyon'
+        if: inputs.target == 'anyon'
+        run: |
+          echo "### QIR syntax check (Anyon)" >> $GITHUB_STEP_SUMMARY
+          export CUDAQ_LOG_LEVEL="info"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for filename in ${{ steps.gettests.outputs.testlist }}; do
+            case $filename in
+              targettests/anyon/*)
+                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+                nvq++ -v $filename -DSYNTAX_CHECK --target anyon --anyon-machine telegraph-8q
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              ;;
+            esac
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
 
       - name: Setup quantinum account
         if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'quantinuum'
@@ -553,8 +607,8 @@ jobs:
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
             # unsupport_args and compile_errors are compile error tests
             # nested_vectors: Compiler fails to synthesize nested vector parameters (https://github.com/NVIDIA/cuda-quantum/issues/2001)
-            # state_init: New argument synthesis is not executed for nvqc (https://github.com/NVIDIA/cuda-quantum/issues/2146)
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]]; then
+            # qvector_init_from_state, qvector_init_from_state_lazy, test_trotter: New argument synthesis is not executed for nvqc (https://github.com/NVIDIA/cuda-quantum/issues/2146)
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]] && [[ "$filename" != *"qvector_init_from_state_lazy"* ]] && [[ "$filename" != *"test_trotter"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs

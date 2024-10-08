@@ -60,7 +60,7 @@ installed_backends=`\
     done`
 
 # remote_rest targets are automatically filtered, 
-# so is execution on the photonics backend
+# so is execution on the photonics backend and the stim backend
 # This will test all NVIDIA-derivative targets in the legacy mode,
 # i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
 available_backends=`\
@@ -68,6 +68,13 @@ available_backends=`\
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
     do
         if grep -q "library-mode-execution-manager: photonics" $file ; then 
+          continue
+        fi 
+        # Skip optimization test targets
+        if [[ $file == *"opt-test.yml" ]]; then
+          continue
+        fi
+        if grep -q "nvqir-simulation-backend: stim" $file ; then 
           continue
         fi 
         platform=$(cat $file | grep "platform-qpu:")
@@ -174,7 +181,7 @@ do
             # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
             # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
             # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
-            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel"* || "$ex" == *"builder.cpp"* ]];
+            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel_mode"* || "$ex" == *"builder.cpp"* ]];
             then
                 let "skipped+=1"
                 echo "Skipping $t target.";

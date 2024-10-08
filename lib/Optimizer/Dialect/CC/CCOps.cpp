@@ -319,6 +319,9 @@ LogicalResult cudaq::cc::CastOp::verify() {
       auto iTy2 = cast<IntegerType>(outTy);
       if ((iTy1.getWidth() < iTy2.getWidth()) && !getSint() && !getZint())
         return emitOpError("integer extension must be signed or unsigned.");
+    } else if (isa<IntegerType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
+      // ok: nop
+      // the indirect callable value is an integer key on the device side.
     } else if (isa<IntegerType>(inTy) && isa<cc::PointerType>(outTy)) {
       // ok: inttoptr
     } else if (isa<cc::PointerType>(inTy) && isa<IntegerType>(outTy)) {
@@ -354,6 +357,9 @@ LogicalResult cudaq::cc::CastOp::verify() {
   } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
     // ok, type conversion of a complex value
     // NB: use complex.re or complex.im to convert (extract) a fp value.
+  } else if (isa<FunctionType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
+    // ok, type conversion of a function to an indirect callable
+    // Folding will remove this.
   } else {
     // Could support a bitcast of a float with pointer size bits to/from a
     // pointer, but that doesn't seem like it would be very common.
@@ -379,8 +385,9 @@ struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
         // %5 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<V>
         rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
                                                        castToCast.getValue());
+        return success();
       }
-    return success();
+    return failure();
   }
 };
 
@@ -406,11 +413,13 @@ struct SimplifyIntegerCompare : public OpRewritePattern<arith::CmpIOp> {
       auto rhsVal = rhsCast.getValue();
       if (lhsVal.getType() == rhsVal.getType() &&
           lhsCast.getSint() == rhsCast.getSint() &&
-          lhsCast.getZint() == rhsCast.getZint())
+          lhsCast.getZint() == rhsCast.getZint()) {
         rewriter.replaceOpWithNewOp<arith::CmpIOp>(
             compare, compare.getType(), compare.getPredicate(), lhsVal, rhsVal);
+        return success();
+      }
     }
-    return success();
+    return failure();
   }
 };
 
@@ -429,8 +438,9 @@ struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
       auto arrAttr = rewriter.getArrayAttr({rePart, imPart});
       rewriter.replaceOpWithNewOp<complex::ConstantOp>(
           create, ComplexType::get(eleTy), arrAttr);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -764,7 +774,7 @@ struct FuseAddressArithmetic
           return success();
         }
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -967,7 +977,7 @@ struct FuseWithConstantArray
           return success();
         }
       }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1058,8 +1068,9 @@ struct ForwardStdvecInitData
       Value cast = rewriter.create<cudaq::cc::CastOp>(
           data.getLoc(), data.getType(), ini.getBuffer());
       rewriter.replaceOp(data, cast);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1085,8 +1096,9 @@ struct ForwardStdvecInitSize
       Value cast = rewriter.create<cudaq::cc::CastOp>(
           size.getLoc(), size.getType(), ini.getLength());
       rewriter.replaceOp(size, cast);
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1507,9 +1519,9 @@ struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
           }
         }
       }
+      return success();
     }
-
-    return success();
+    return failure();
   }
 };
 } // namespace
@@ -1640,7 +1652,7 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
   LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
                                 PatternRewriter &rewriter) const override {
     if (scope.hasAllocation())
-      return success();
+      return failure();
 
     // scope does not allocate, so the region can be inlined into the parent.
     auto loc = scope.getLoc();
@@ -1940,6 +1952,56 @@ LogicalResult cudaq::cc::CallCallableOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// CallIndirectCallableOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::CallIndirectCallableOp::verify() {
+  FunctionType funcTy =
+      cast<IndirectCallableType>(getCallee().getType()).getSignature();
+
+  // Check argument types.
+  auto argTys = funcTy.getInputs();
+  if (argTys.size() != getArgOperands().size())
+    return emitOpError("call has incorrect arity");
+  for (auto [targArg, argVal] : llvm::zip(argTys, getArgOperands()))
+    if (targArg != argVal.getType())
+      return emitOpError("argument type mismatch");
+
+  // Check return types.
+  auto resTys = funcTy.getResults();
+  if (resTys.size() != getResults().size())
+    return emitOpError("call has incorrect coarity");
+  for (auto [targRes, callVal] : llvm::zip(resTys, getResults()))
+    if (targRes != callVal.getType())
+      return emitOpError("result type mismatch");
+  return success();
+}
+
+namespace {
+struct MakeDirectCall
+    : public OpRewritePattern<cudaq::cc::CallIndirectCallableOp> {
+  using Base = OpRewritePattern<cudaq::cc::CallIndirectCallableOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CallIndirectCallableOp indCall,
+                                PatternRewriter &rewriter) const override {
+    if (auto cast = indCall.getCallee().getDefiningOp<cudaq::cc::CastOp>())
+      if (auto fn = cast.getValue().getDefiningOp<func::ConstantOp>()) {
+        rewriter.replaceOpWithNewOp<func::CallIndirectOp>(indCall, fn,
+                                                          indCall.getArgs());
+        return success();
+      }
+    return failure();
+  }
+};
+} // namespace
+
+void cudaq::cc::CallIndirectCallableOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<MakeDirectCall>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // ConditionOp
 //===----------------------------------------------------------------------===//
 
@@ -2149,8 +2211,9 @@ struct ReplaceInLoop : public OpRewritePattern<FROM> {
       rewriter.splitBlock(scopeBlock, scopePt);
       rewriter.setInsertionPointToEnd(scopeBlock);
       rewriter.replaceOpWithNewOp<WITH>(fromOp, fromOp.getOperands());
+      return success();
     }
-    return success();
+    return failure();
   }
 };
 

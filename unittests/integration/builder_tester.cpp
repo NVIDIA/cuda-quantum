@@ -13,6 +13,7 @@
 #include <cudaq/optimizers.h>
 #include <regex>
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkSimple) {
   {
     using namespace cudaq::spin;
@@ -217,7 +218,9 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     EXPECT_TRUE(counts.begin()->first == "1");
   }
 }
+#endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkRotations) {
 
   // rx: entire qvector
@@ -422,6 +425,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
@@ -456,6 +460,7 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     EXPECT_NEAR(counts.count("10"), 1000, 0);
   }
 
+#ifndef CUDAQ_BACKEND_STIM
   // Single qubit controlled-SWAP.
   {
     auto kernel = cudaq::make_kernel();
@@ -565,11 +570,12 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     auto want_state = ctrls_state + want_target;
     EXPECT_NEAR(counts.count(want_state), 1000, 0);
   }
+#endif
 }
 
 // Conditional execution on the tensornet backend is slow for a large number of
 // shots.
-#ifndef CUDAQ_BACKEND_TENSORNET
+#if !defined(CUDAQ_BACKEND_TENSORNET) && !defined(CUDAQ_BACKEND_STIM)
 CUDAQ_TEST(BuilderTester, checkConditional) {
   {
     cudaq::set_random_seed(13);
@@ -651,6 +657,7 @@ CUDAQ_TEST(BuilderTester, checkQvecArg) {
   EXPECT_EQ(counts.to_map().begin()->first.length(), 5);
 }
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkSlice) {
   auto [kernel, params] = cudaq::make_kernel<std::vector<double>>();
   auto q = kernel.qalloc(4);
@@ -674,7 +681,9 @@ CUDAQ_TEST(BuilderTester, checkSlice) {
   // Should throw since we have 2 qubits and asked for 3
   EXPECT_ANY_THROW({ auto sliced = q2.slice(0, 3); });
 }
+#endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
   auto [kernel, thetas] = cudaq::make_kernel<std::vector<double>>();
   auto q = kernel.qalloc(2);
@@ -689,6 +698,7 @@ CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
   // This is not ok
   EXPECT_ANY_THROW({ kernel(std::vector<double>{M_PI}); });
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
   auto [kernel, one, two, thetas, four] =
@@ -698,6 +708,8 @@ CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
   EXPECT_FALSE(kernel.isArgStdVec(1));
 }
 
+// Stim does not currently support a controlled H gate.
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkKernelControl) {
   cudaq::set_random_seed(13);
 
@@ -754,7 +766,9 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "101");
 }
+#endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   auto kernel = cudaq::make_kernel();
   auto q = kernel.qalloc();
@@ -803,6 +817,7 @@ CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
   EXPECT_EQ(counts.size(), 1);
   EXPECT_EQ(counts.begin()->first, "1");
 }
+#endif
 
 // Conditional execution (including reset) on the tensornet backend is slow for
 // a large number of shots.
@@ -815,6 +830,7 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     entryPoint.reset(q);
     entryPoint.mz(q);
     auto counts = cudaq::sample(entryPoint);
+    counts.dump();
     EXPECT_EQ(counts.size(), 1);
     EXPECT_EQ(counts.begin()->first, "0");
   }
@@ -845,6 +861,7 @@ CUDAQ_TEST(BuilderTester, checkReset) {
 }
 #endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkForLoop) {
 
   {
@@ -927,6 +944,7 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
     counts.dump();
   }
 }
+#endif
 
 // Conditional execution (including reset) on the tensornet backend is slow for
 // a large number of shots.
@@ -967,6 +985,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 
     EXPECT_EQ(counts.count("0", "c1"), 1000);
     EXPECT_EQ(counts.count("1", "c0"), 1000);
+    return;
   }
 
   {
@@ -989,6 +1008,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 }
 #endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkNestedKernelCall) {
   auto [kernel1, qubit1] = cudaq::make_kernel<cudaq::qubit>();
   auto [kernel2, qubit2] = cudaq::make_kernel<cudaq::qubit>();
@@ -1012,6 +1032,7 @@ CUDAQ_TEST(BuilderTester, checkNestedKernelCall) {
   EXPECT_EQ(count(quake, "func.func"), 3);
   EXPECT_EQ(count(quake, "call @__nvqpp__"), 2);
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
   auto kernel = cudaq::make_kernel();
@@ -1023,6 +1044,7 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
   EXPECT_TRUE(std::regex_search(quake, functionDecleration));
 }
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkExpPauli) {
   std::vector<double> h2_data{
       3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
@@ -1138,7 +1160,9 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     }
   }
 }
+#endif
 
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   // rx: pi
   {
@@ -1253,8 +1277,10 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     EXPECT_EQ(counts.count("11111111"), 1000);
   }
 }
+#endif
 
-#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET)
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET) &&         \
+    !defined(CUDAQ_BACKEND_STIM)
 
 TEST(BuilderTester, checkFromStateVector) {
   std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};

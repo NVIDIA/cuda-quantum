@@ -91,9 +91,10 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::SpanLikeType,
-              LLVM::LLVMStructType, quake::ControlType, quake::RefType,
-              quake::VeqType, quake::WireType>(parmTy)) {
+      if (isa<FunctionType, cc::CallableType, cc::IndirectCallableType,
+              cc::PointerType, cc::SpanLikeType, LLVM::LLVMStructType,
+              quake::ControlType, quake::RefType, quake::VeqType,
+              quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
@@ -176,6 +177,14 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(cc::StateType::get(ctx));
     if (name.equals("pauli_word"))
       return pushType(cc::CharspanType::get(ctx));
+    if (name.equals("qkernel")) {
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      // Traverse template argument 0 to get the function's signature.
+      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
+      auto fnTy = cast<FunctionType>(popType());
+      return pushType(cc::IndirectCallableType::get(fnTy));
+    }
     auto loc = toLocation(x);
     TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }
@@ -252,7 +261,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           return false;
         members.push_back(popType());
       }
-      return pushType(cc::StructType::get(ctx, members));
+      auto [width, align] = getWidthAndAlignment(x);
+      return pushType(cc::StructType::get(ctx, members, width, align));
     }
     if (name.equals("tuple")) {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
@@ -265,9 +275,14 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           return false;
         members.push_back(popType());
       }
-      if (tuplesAreReversed)
+      auto [width, align] = getWidthAndAlignment(x);
+      if (tuplesAreReversed) {
         std::reverse(members.begin(), members.end());
-      return pushType(cc::StructType::get(ctx, members));
+        // Resets are for libstdc++ calling convention compatibility.
+        width = 0;
+        align = 0;
+      }
+      return pushType(cc::StructType::get(ctx, members, width, align));
     }
     if (ignoredClass(x))
       return true;

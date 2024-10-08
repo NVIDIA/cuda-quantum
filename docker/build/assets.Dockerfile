@@ -293,7 +293,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
-    filtered=" --filter-out Kernel/(inline-qpu-func|signature-2)" && \
+    filtered=" --filter-out Kernel/inline-qpu-func" && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         filtered+="|TargetConfig/check_compile"; \
     fi && \
