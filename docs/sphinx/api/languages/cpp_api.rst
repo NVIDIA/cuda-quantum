@@ -76,6 +76,8 @@ Common
 
 .. doxygenclass:: cudaq::RemoteSimulationState
 
+.. doxygenstruct:: cudaq::PhotonicState
+
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
 
