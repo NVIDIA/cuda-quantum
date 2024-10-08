@@ -38,7 +38,6 @@ install(TARGETS ${LIBRARY_NAME}
         LIBRARY DESTINATION lib
         INCLUDES DESTINATION include/nvqir)
 
-# add_subdirectory(photonics)
 add_subdirectory(qpp)
 add_subdirectory(stim)
 

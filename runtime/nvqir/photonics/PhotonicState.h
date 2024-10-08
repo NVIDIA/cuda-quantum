@@ -18,13 +18,11 @@
 #include <set>
 #include <span>
 
-using namespace cudaq;
-
-namespace nvqir {
+namespace cudaq {
 
 /// @brief PhotonicState provides an implementation of `SimulationState` that
 /// encapsulates the state data for the Photonic Circuit Simulators.
-struct PhotonicState : public cudaq::SimulationState {
+struct PhotonicState : public SimulationState {
 protected:
   virtual std::unique_ptr<PhotonicState>
   createPSFromSizeAndPtr(std::size_t, void *, std::size_t dataType) = 0;
@@ -118,4 +116,4 @@ public:
   }
 }; // PhotonicState
 
-} // namespace nvqir
+} // namespace cudaq
