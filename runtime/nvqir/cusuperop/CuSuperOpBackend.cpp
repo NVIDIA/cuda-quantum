@@ -39,14 +39,35 @@ public:
     return std::make_unique<cudaq::CuSuperOpState>();
   }
 
-  void addQubitToState() override {}
-  void deallocateStateImpl() override {}
-  bool measureQubit(const std::size_t qubitIdx) override { return false; }
-  void applyGate(const GateApplicationTask &task) override {}
-  void setToZeroState() override {}
-  void resetQubit(const std::size_t qubitIdx) override {}
+  void addQubitToState() override {
+    throw std::runtime_error(
+        "[nvidia-dynamics] Quantum gate simulation is not supported.");
+  }
+  void deallocateStateImpl() override {
+    throw std::runtime_error(
+        "[nvidia-dynamics] Quantum gate simulation is not supported.");
+  }
+  bool measureQubit(const std::size_t qubitIdx) override {
+    throw std::runtime_error("[nvidia-dynamics] Quantum gate simulation is not "
+                             "supported.");
+    return false;
+  }
+  void applyGate(const GateApplicationTask &task) override {
+    throw std::runtime_error(
+        "[nvidia-dynamics] Quantum gate simulation is not supported.");
+  }
+  void setToZeroState() override {
+    throw std::runtime_error(
+        "[nvidia-dynamics] Quantum gate simulation is not supported.");
+  }
+  void resetQubit(const std::size_t qubitIdx) override {
+    throw std::runtime_error(
+        "[nvidia-dynamics] Quantum gate simulation is not supported.");
+  }
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubitIdxs,
                                 const int shots) override {
+    throw std::runtime_error("[nvidia-dynamics] Quantum gate simulation is not "
+                             "supported.");
     return cudaq::ExecutionResult();
   }
   std::string name() const override { return "nvidia-dynamics"; }
