@@ -1,4 +1,3 @@
-LICENSE
 MANIFEST.in
 README.rst
 cuda_autodetect.py

@@ -1,5 +1,5 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 from cuda_autodetect import infer_best_package, bdist_wheel
 
 package_ver = '1.0.0'
