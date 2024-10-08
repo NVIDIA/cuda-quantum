@@ -10,7 +10,6 @@
 #include "PhotonicGates.h"
 #include "PhotonicState.h"
 
-#include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "common/Timing.h"
@@ -119,7 +118,7 @@ public:
   /// @brief Provide a mechanism for simulators to
   /// create and return a `PhotonicState` instance from
   /// a user-specified data set.
-  virtual std::unique_ptr<PhotonicState>
+  virtual std::unique_ptr<cudaq::PhotonicState>
   createStateFromData(const cudaq::state_data &) = 0;
 
   /// @brief Set the current noise model to consider when
@@ -150,7 +149,7 @@ public:
                      cudaq::simulation_precision::fp32) = 0;
 
   virtual std::vector<std::size_t>
-  allocateQudits(std::size_t count, const PhotonicState *state) = 0;
+  allocateQudits(std::size_t count, const cudaq::PhotonicState *state) = 0;
 
   /// @brief Deallocate the qudit with give unique index
   virtual void deallocate(const std::size_t quditIdx) = 0;
@@ -375,7 +374,7 @@ protected:
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
-  virtual std::unique_ptr<PhotonicState> getSimulationState() {
+  virtual std::unique_ptr<cudaq::PhotonicState> getSimulationState() {
     throw std::runtime_error(
         "Simulation data not available for this simulator backend.");
   }
@@ -530,7 +529,7 @@ protected:
       addQuditToState();
   }
 
-  virtual void addQuditsToState(const PhotonicState &state) {
+  virtual void addQuditsToState(const cudaq::PhotonicState &state) {
     throw std::runtime_error("State initialization must be handled by "
                              "subclasses, override addQubitsToState.");
   }
@@ -710,7 +709,7 @@ public:
 
   /// @brief Create a simulation-specific PhotonicState
   /// instance from a user-provided data set.
-  std::unique_ptr<PhotonicState>
+  std::unique_ptr<cudaq::PhotonicState>
   createStateFromData(const cudaq::state_data &data) override {
     return getSimulationState()->createPSFromData(data);
   }
@@ -826,8 +825,9 @@ public:
   }
 
   /// @brief Allocate `count` qudits in a specific state.
-  std::vector<std::size_t> allocateQudits(std::size_t count,
-                                          const PhotonicState *state) override {
+  std::vector<std::size_t>
+  allocateQudits(std::size_t count,
+                 const cudaq::PhotonicState *state) override {
     if (!state)
       return allocateQudits(count);
 

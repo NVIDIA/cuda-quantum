@@ -15,9 +15,9 @@ using namespace cudaq;
 
 namespace nvqir {
 
-/// @brief QppState provides an implementation of `SimulationState` that
+/// @brief QppPhotonicState provides an implementation of `PhotonicState` that
 /// encapsulates the state data for the Qpp Circuit Simulator.
-struct QppPhotonicState : public PhotonicState {
+struct QppPhotonicState : public cudaq::PhotonicState {
   /// @brief The state. This class takes ownership move semantics.
   qpp::ket state;
 
@@ -185,7 +185,7 @@ protected:
     return;
   }
 
-  void addQuditsToState(const QppPhotonicState &in_state) {
+  void addQuditsToState(const cudaq::PhotonicState &in_state) override {
     const QppPhotonicState *const casted =
         dynamic_cast<const QppPhotonicState *>(&in_state);
     if (!casted)
@@ -236,11 +236,15 @@ protected:
     const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
     const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
     const auto &collapsed_state = post_meas_states[measurement_result];
-
-    state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
-                                       collapsed_state.size());
-
-    cudaq::info("Measured qudit {} -> {}", quditIdx, measurement_result);
+    if constexpr (std::is_same_v<StateType, qpp::ket>) {
+      state = Eigen::Map<const StateType>(collapsed_state.data(),
+                                          collapsed_state.size());
+    } else {
+      state = Eigen::Map<const StateType>(collapsed_state.data(),
+                                          collapsed_state.rows(),
+                                          collapsed_state.cols());
+    }
+    cudaq::info("Measured qubit {} -> {}", quditIdx, measurement_result);
     return measurement_result;
   }
 
@@ -314,7 +318,7 @@ public:
     return counts;
   }
 
-  std::unique_ptr<PhotonicState> getSimulationState() override {
+  std::unique_ptr<cudaq::PhotonicState> getSimulationState() override {
     flushGateQueue();
     return std::make_unique<QppPhotonicState>(std::move(state), levels);
   }

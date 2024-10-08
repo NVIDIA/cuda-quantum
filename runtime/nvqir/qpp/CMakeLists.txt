@@ -34,8 +34,6 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 endmacro()
 
-
-
 AddQppBackend(nvqir-qpp QppCircuitSimulator.cpp)
 AddQppBackend(nvqir-dm QppDMCircuitSimulator.cpp)
 AddQppBackend(nvqir-photonics QppPhotonicCircuitSimulator.cpp)
