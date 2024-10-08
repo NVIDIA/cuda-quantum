@@ -2344,6 +2344,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd></dl>
 
 </div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel10noise_typeE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a2c982452ceb13b1b518087f6a3ca32d0"></span><a class="reference internal" href="#_CPPv4N5cudaq16noise_model_typeE" title="cudaq::noise_model_type"><span class="n"><span class="pre">noise_model_type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">noise_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq16noise_model_typeE" title="cudaq::noise_model_type"><span class="n"><span class="pre">noise_model_type</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq16noise_model_type7unknownE" title="cudaq::noise_model_type::unknown"><span class="n"><span class="pre">unknown</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel10noise_typeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Noise type enumeration. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel10parametersE">
+<span class="target" id="classcudaq_1_1kraus__channel_1a4f2bd65c8844a33419cf273436747843"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq4realE" title="cudaq::real"><span class="n"><span class="pre">real</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">parameters</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel10parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Noise parameter values. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2468,6 +2483,38 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd></dl>
 
 </div>
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_typeE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">noise_model_type</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_typeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Noise model enumerated type that allows downstream simulators of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref"><span class="pre">kraus_channel</span></span></a></code> objects to apply simulator-specific logic for well-known noise models. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type7unknownE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5aad921d60486366258809553a3db49a4a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unknown</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type7unknownE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type22depolarization_channelE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5ae929ee38cfe5edcb239b9c21fb3e3387"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization_channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type22depolarization_channelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type25amplitude_damping_channelE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a319331f39218db335141c4e93138836f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_damping_channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type25amplitude_damping_channelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type16bit_flip_channelE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a1b278bac9f8ec713b5d25f994d5522d9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bit_flip_channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type16bit_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16noise_model_type18phase_flip_channelE">
+<span class="target" id="NoiseModel_8h_1a8410c9abbed0e7dfcf2c5db0919e46e5a47d7b6d93e6a7373d773f10e9971fba6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_flip_channel</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16noise_model_type18phase_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </section>
