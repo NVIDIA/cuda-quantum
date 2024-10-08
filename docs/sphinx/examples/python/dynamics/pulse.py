@@ -21,7 +21,7 @@ w = 5.
 # Sample rate of the backend in `ns`.
 dt = 1 / 4.5
 
-# Define gaussian envelope function to approximately implement a `rx(pi/2)` gate.
+# Define Gaussian envelope function to approximately implement a `rx(pi/2)` gate.
 amp = 1. / 2.0
 sig = 1.0 / r / amp
 T = 6 * sig
