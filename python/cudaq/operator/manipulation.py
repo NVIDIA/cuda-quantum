@@ -191,7 +191,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
             dimensions: A mapping that specifies the number of levels, that 
                 is the dimension, of each degree of freedom that the evaluated 
                 operator can act on.
-            **kwargs: Keyword arguments needed to evaluate, that is access data in,
+            `kwargs`: Keyword arguments needed to evaluate, that is access data in,
                 the leaf nodes of the operator expression. Leaf nodes are 
                 values of type ElementaryOperator or ScalarOperator.
         """
@@ -247,7 +247,7 @@ class PauliWordConversion(OperatorArithmetics[cudaq_runtime.pauli_word]):
 
             Arguments:
                 degrees: The degrees of freedom that the matrix applies to.
-                pauli_word: The `pauli_word` representation of an evaluated operator.
+                `pauli_word`: The `pauli_word` representation of an evaluated operator.
             """
             self._degrees = tuple(degrees)
             self._pauli_word = pauli_word

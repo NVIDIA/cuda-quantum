@@ -430,7 +430,7 @@ class ElementaryOperator(ProductOperator):
                 ]):
                     raise ValueError(f'no built-in operator {id} has been defined '\
                                     f'for {len(dimensions)} degree(s) of freedom with dimension(s) {dimensions}')
-                # If the population of kwargs here is changed, adjust the filtering
+                # If the population of `kwargs` here is changed, adjust the filtering
                 # in the `parameters` property below.
                 for forwarded in forwarded_as_kwarg[0]:
                     kwargs[forwarded] = kwargs.get(
@@ -753,7 +753,7 @@ class ScalarOperator(ProductOperator):
             """
             assert(create_key == ScalarOperator._create_key), \
                    f"operator definitions must be created using the `{self.__class__.__name__}.generator` setter"
-            # A variable number of arguments (i.e. *args) cannot be supported
+            # A variable number of arguments (i.e. `*args`) cannot be supported
             # for generators; it would prevent proper argument handling while
             # supporting additions and multiplication of all kinds of operators.
             arg_spec = inspect.getfullargspec(generator)
