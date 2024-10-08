@@ -22,12 +22,6 @@ static bool isArithmeticType(Type t) {
   return isa<IntegerType, FloatType, ComplexType>(t);
 }
 
-/// Is \p t a quantum reference type. In the bridge, quantum types are always
-/// reference types.
-static bool isQuantumType(Type t) {
-  return isa<quake::VeqType, quake::RefType>(t);
-}
-
 /// Allow `array of [array of]* T`, where `T` is arithmetic.
 static bool isStaticArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t)) {
@@ -144,7 +138,8 @@ static bool isKernelResultType(Type t) {
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
-         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
+         quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
+         isFunctionCallable(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -243,13 +238,93 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   auto *ctx = builder.getContext();
   if (!x->getDefinition())
     return pushType(cc::StructType::get(ctx, name, /*isOpaque=*/true));
+
   SmallVector<Type> fieldTys =
       lastTypes(std::distance(x->field_begin(), x->field_end()));
   auto [width, alignInBytes] = getWidthAndAlignment(x);
-  if (name.empty())
-    return pushType(cc::StructType::get(ctx, fieldTys, width, alignInBytes));
-  return pushType(
-      cc::StructType::get(ctx, name, fieldTys, width, alignInBytes));
+  bool isStruq = !fieldTys.empty();
+  for (auto ty : fieldTys)
+    if (!quake::isQuantumReferenceType(ty))
+      isStruq = false;
+
+  auto ty = [&]() -> Type {
+    if (isStruq)
+      return quake::StruqType::get(ctx, fieldTys);
+    if (name.empty())
+      return cc::StructType::get(ctx, fieldTys, width, alignInBytes);
+    return cc::StructType::get(ctx, name, fieldTys, width, alignInBytes);
+  }();
+
+  // Do some error analysis on the product type. Check the following:
+
+  // - If this is a struq:
+  if (isa<quake::StruqType>(ty)) {
+    // -- does it contain invalid C++ types?
+    for (auto *field : x->fields()) {
+      auto *ty = field->getType().getTypePtr();
+      bool isRef = false;
+      if (ty->isLValueReferenceType()) {
+        auto *lref = cast<clang::LValueReferenceType>(ty);
+        isRef = true;
+        ty = lref->getPointeeType().getTypePtr();
+      }
+      if (auto *tyDecl = ty->getAsRecordDecl()) {
+        if (auto *ident = tyDecl->getIdentifier()) {
+          auto name = ident->getName();
+          if (isInNamespace(tyDecl, "cudaq")) {
+            if (isRef) {
+              // can be owning container; so can be qubit, qarray, or qvector
+              if ((name.equals("qudit") || name.equals("qubit") ||
+                   name.equals("qvector") || name.equals("qarray")))
+                continue;
+            }
+            // must be qview or qview&
+            if (name.equals("qview"))
+              continue;
+          }
+        }
+      }
+      reportClangError(x, mangler, "quantum struct has invalid member type.");
+    }
+    // -- does it contain contain a struq member? Not allowed.
+    for (auto fieldTy : fieldTys)
+      if (isa<quake::StruqType>(fieldTy))
+        reportClangError(x, mangler,
+                         "recursive quantum struct types are not allowed.");
+  }
+
+  // - Is this a struct does it have quantum types? Not allowed.
+  if (!isa<quake::StruqType>(ty))
+    for (auto fieldTy : fieldTys)
+      if (quake::isQuakeType(fieldTy))
+        reportClangError(
+            x, mangler,
+            "hybrid quantum-classical struct types are not allowed.");
+
+  // - Does this product type have (user-defined) member functions? Not allowed.
+  if (auto *cxxRd = dyn_cast<clang::CXXRecordDecl>(x)) {
+    auto numMethods = [&cxxRd]() {
+      std::size_t count = 0;
+      for (auto methodIter = cxxRd->method_begin();
+           methodIter != cxxRd->method_end(); ++methodIter) {
+        // Don't check if this is a __qpu__ struct method
+        if (auto attr = (*methodIter)->getAttr<clang::AnnotateAttr>();
+            attr && attr->getAnnotation().str() == cudaq::kernelAnnotation)
+          continue;
+        // Check if the method is not implicit (i.e., user-defined)
+        if (!(*methodIter)->isImplicit())
+          count++;
+      }
+      return count;
+    }();
+
+    if (numMethods > 0)
+      reportClangError(
+          x, mangler,
+          "struct with user-defined methods is not allowed in quantum kernel.");
+  }
+
+  return pushType(ty);
 }
 
 bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *t) {

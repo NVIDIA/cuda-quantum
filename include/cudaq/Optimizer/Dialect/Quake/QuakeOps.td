@@ -642,6 +642,54 @@ def quake_ReturnWireOp : QuakeOp<"return_wire"> {
 }
 
 //===----------------------------------------------------------------------===//
+// Struq handling
+//===----------------------------------------------------------------------===//
+
+def quake_MakeStruqOp : QuakeOp<"make_struq", [Pure]> {
+  let summary = "create a quantum struct from a set of quantum references";
+  let description = [{
+    Given a list of values of quantum reference type, creates a new quantum
+    product reference type. This is a logical grouping and does not imply any
+    new quantum references are created.
+
+    This operation can be useful for grouping a number of values of type `veq`
+    into a logical product type, which may be passed to a pure device kernel
+    as a single unit, for example. These product types may always be erased into
+    a vector of the quantum references used to compose them via a make_struq op.
+  }];
+
+  let arguments = (ins Variadic<NonStruqRefType>:$veqs);
+  let results = (outs StruqType);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $veqs `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def quake_GetMemberOp : QuakeOp<"get_member", [Pure]> {
+  let summary = "extract quantum references from a quantum struct";
+  let description = [{
+    The get_member operation can be used to extract a set of quantum references
+    from a quantum struct (product) type. The fields in the quantum struct are
+    indexed from 0 to $n-1$ where $n$ is the number of fields. An index outside
+    of this range will produce a verification error.
+  }];
+
+  let arguments = (ins
+    StruqType:$struq,
+    I32Attr:$index
+  );
+  let results = (outs NonStruqRefType);
+  let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $struq `[` $index `]` `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+//===----------------------------------------------------------------------===//
 // ToControl, FromControl pair
 //===----------------------------------------------------------------------===//
 

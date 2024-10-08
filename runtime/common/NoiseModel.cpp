@@ -82,7 +82,9 @@ kraus_channel::kraus_channel(std::vector<kraus_op> &_ops) : ops(_ops) {
   validateCompleteness();
 }
 
-kraus_channel::kraus_channel(const kraus_channel &other) : ops(other.ops) {}
+kraus_channel::kraus_channel(const kraus_channel &other)
+    : ops(other.ops), noise_type(other.noise_type),
+      parameters(other.parameters) {}
 
 std::size_t kraus_channel::size() const { return ops.size(); }
 
@@ -94,6 +96,8 @@ kraus_op &kraus_channel::operator[](const std::size_t idx) { return ops[idx]; }
 
 kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
   ops = other.ops;
+  noise_type = other.noise_type;
+  parameters = other.parameters;
   return *this;
 }
 

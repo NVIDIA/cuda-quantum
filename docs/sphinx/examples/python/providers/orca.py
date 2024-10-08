@@ -1,4 +1,5 @@
 import cudaq
+import time
 
 import numpy as np
 import os
@@ -45,9 +46,11 @@ bs_angles = np.linspace(np.pi / 8, np.pi / 3, n_beam_splitters)
 # we can also set number of requested samples
 n_samples = 10000
 
+# Option A:
 # By using the synchronous `cudaq.orca.sample`, the execution of
 # any remaining classical code in the file will occur only
 # after the job has been returned from ORCA Server.
+print("Submitting to ORCA Server synchronously")
 counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, n_samples)
 
 # If the system includes phase shifters, the phase shifter angles can be
@@ -58,4 +61,33 @@ counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles, n_samples)
 # ```
 
 # Print the results
+print(counts)
+
+# Option B:
+# By using the asynchronous `cudaq.orca.sample_async`, the remaining
+# classical code will be executed while the job is being handled
+# by Orca. This is ideal when submitting via a queue over
+# the cloud.
+print("Submitting to ORCA Server asynchronously")
+async_results = cudaq.orca.sample_async(input_state, loop_lengths, bs_angles,
+                                        n_samples)
+# ... more classical code to run ...
+
+# We can either retrieve the results later in the program with
+# ```
+# async_counts = async_results.get()
+# ```
+# or we can also write the job reference (`async_results`) to
+# a file and load it later or from a different process.
+file = open("future.txt", "w")
+file.write(str(async_results))
+file.close()
+
+# We can later read the file content and retrieve the job
+# information and results.
+time.sleep(0.2)  # wait for the job to be processed
+same_file = open("future.txt", "r")
+retrieved_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
+
+counts = retrieved_async_results.get()
 print(counts)
