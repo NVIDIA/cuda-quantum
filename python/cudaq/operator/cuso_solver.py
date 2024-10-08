@@ -15,29 +15,12 @@ from .schedule import Schedule
 from .expressions import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .cuso_helpers import cuso
-from .cuso_state import CuSuperOpState
+from .cuso_state import CuSuperOpState, as_cuso_state
 from .integrator import BaseIntegrator
 from .builtin_integrators import RungeKuttaIntegrator, cuSuperOpTimeStepper
-from .scipy_integrators import ScipyZvodeIntegrator
 import cupy
-import copy
 import math
-from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from .timing_helper import ScopeTimer
-
-
-def as_cuso_state(state):
-    tensor = state.getTensor()
-    pDevice = tensor.data()
-    dtype = cupy.complex128
-    sizeByte = tensor.get_num_elements() * tensor.get_element_size()
-    mem = UnownedMemory(pDevice, sizeByte, owner=state)
-    memptr = MemoryPointer(mem, 0)
-    cupy_array = cupy.ndarray(tensor.get_num_elements(),
-                              dtype=dtype,
-                              memptr=memptr)
-    return CuSuperOpState(cupy_array)
-
 
 # Master-equation solver using `cuSuperOp`
 def evolve_me(

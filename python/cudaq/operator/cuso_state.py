@@ -13,11 +13,14 @@ from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
+# Wrap state data (on device memory) as a `cupy` array.
+# Note: the cupy array only holds a reference to the GPU memory buffer, no copy.
 def to_cupy_array(state):
     tensor = state.getTensor()
     pDevice = tensor.data()
     dtype = cupy.complex128
     sizeByte = tensor.get_num_elements() * tensor.get_element_size()
+    # Use `UnownedMemory` to wrap the device pointer
     mem = UnownedMemory(pDevice, sizeByte, owner=state)
     memptr = MemoryPointer(mem, 0)
     cupy_array = cupy.ndarray(tensor.get_num_elements(),
@@ -25,12 +28,13 @@ def to_cupy_array(state):
                               memptr=memptr)
     return cupy_array
 
-
+# Helper to convert a state vector to a density matrix
 def ket2dm(ket: cupy.ndarray) -> cupy.ndarray:
     return cupy.outer(ket.reshape((ket.size, 1)),
                       cupy.conjugate(ket.reshape((ket.size, 1))))
 
 
+# Helper to create a 'coherent' state as a state vector.
 def coherent_state(N: int, alpha: float):
     sqrtn = cupy.sqrt(cupy.arange(0, N, dtype=cupy.complex128))
     sqrtn[0] = 1
@@ -40,14 +44,13 @@ def coherent_state(N: int, alpha: float):
     return sqrtn
 
 
+# Helper to create a coherent state as a density matrix.
 def coherent_dm(N: int, alpha: float):
     return ket2dm(coherent_state(N, alpha))
 
 
-def wigner_function(state, xvec, yvec):
-    """
-    Evaluate the Wigner functions input state
-    """
+# Evaluate the Wigner functions input state
+def wigner_function(state: cudaq_runtime.State | cupy.ndarray, xvec: cupy.ndarray, yvec: cupy.ndarray):
     g = numpy.sqrt(2)
     if isinstance(state, cudaq_runtime.State):
         state = to_cupy_array(state)
@@ -88,6 +91,7 @@ def wigner_function(state, xvec, yvec):
     return 0.5 * W * g**2
 
 
+# A Python wrapper of `cuSuperOp` state.
 class CuSuperOpState(object):
     __ctx = WorkStream()
 
@@ -147,3 +151,7 @@ class CuSuperOpState(object):
         dm = cupy.asfortranarray(dm)
         dm_state = DenseMixedState(self.__ctx, dm)
         return CuSuperOpState(dm_state)
+
+# Wrap a CUDA-Q state as a `CuSuperOpState`
+def as_cuso_state(state):
+    return CuSuperOpState(to_cupy_array(state))
