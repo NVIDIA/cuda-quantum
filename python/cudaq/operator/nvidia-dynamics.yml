@@ -7,6 +7,6 @@
 # ============================================================================ #
 
 name: nvidia-dynamics
-description: "cuSuperOp backend"
+description: "Dynamics simulation backend"
 config:
   nvqir-simulation-backend: nvidia-dynamics
