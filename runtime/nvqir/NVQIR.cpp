@@ -542,6 +542,14 @@ void __quantum__qis__cnot__body(Qubit *q, Qubit *r) {
   nvqir::getCircuitSimulatorInternal()->x(controls, rI);
 }
 
+void __quantum__qis__cz__body(Qubit *q, Qubit *r) {
+  auto qI = qubitToSizeT(q);
+  auto rI = qubitToSizeT(r);
+  ScopedTraceWithContext("NVQIR::cz", qI, rI);
+  std::vector<std::size_t> controls{qI};
+  nvqir::getCircuitSimulatorInternal()->z(controls, rI);
+}
+
 void __quantum__qis__reset(Qubit *q) {
   auto qI = qubitToSizeT(q);
   ScopedTraceWithContext("NVQIR::reset", qI);
