@@ -166,20 +166,41 @@ PYBIND11_MODULE(_quakeDialects, m) {
   orcaSubmodule.def(
       "sample",
       py::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
-                        std::vector<double> &, std::vector<double> &, int>(
+                        std::vector<double> &, std::vector<double> &, int,
+                        std::size_t>(&cudaq::orca::sample),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      py::arg("input_state"), py::arg("loop_lengths"), py::arg("bs_angles"),
+      py::arg("ps_angles"), py::arg("n_samples") = 10000,
+      py::arg("qpu_id") = 0);
+  orcaSubmodule.def(
+      "sample",
+      py::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
+                        std::vector<double> &, int, std::size_t>(
           &cudaq::orca::sample),
       "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
       "ORCA's backends",
       py::arg("input_state"), py::arg("loop_lengths"), py::arg("bs_angles"),
-      py::arg("ps_angles") = nullptr, py::arg("n_samples") = 10000);
+      py::arg("n_samples") = 10000, py::arg("qpu_id") = 0);
   orcaSubmodule.def(
-      "sample",
+      "sample_async",
       py::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
-                        std::vector<double> &, int>(&cudaq::orca::sample),
+                        std::vector<double> &, std::vector<double> &, int,
+                        std::size_t>(&cudaq::orca::sample_async),
       "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
       "ORCA's backends",
       py::arg("input_state"), py::arg("loop_lengths"), py::arg("bs_angles"),
-      py::arg("n_samples") = 10000);
+      py::arg("ps_angles"), py::arg("n_samples") = 10000,
+      py::arg("qpu_id") = 0);
+  orcaSubmodule.def(
+      "sample_async",
+      py::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
+                        std::vector<double> &, int, std::size_t>(
+          &cudaq::orca::sample_async),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      py::arg("input_state"), py::arg("loop_lengths"), py::arg("bs_angles"),
+      py::arg("n_samples") = 10000, py::arg("qpu_id") = 0);
 
   auto photonicsSubmodule = cudaqRuntime.def_submodule("photonics");
   photonicsSubmodule.def(
@@ -217,7 +238,6 @@ PYBIND11_MODULE(_quakeDialects, m) {
         cudaq::getExecutionManager()->returnQudit(cudaq::QuditInfo(level, id));
       },
       "Release a qudit of given id.", py::arg("level"), py::arg("id"));
-
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
