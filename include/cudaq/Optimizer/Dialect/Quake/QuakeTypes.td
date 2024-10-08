@@ -162,6 +162,41 @@ def VeqType : QuakeType<"Veq", "veq"> {
 }
 
 //===----------------------------------------------------------------------===//
+// StruqType: quantum reference type; product of veq and ref types.
+//===----------------------------------------------------------------------===//
+
+def StruqType : QuakeType<"Struq", "struq"> {
+  let summary = "a product type of quantum references";
+  let description = [{
+    This type allows one to group veqs of quantum references together in a
+    single product type.
+
+    To support Python, a struq type can be assigned a name. This allows the
+    python bridge to perform dictionary based lookups on member field names.
+  }];
+
+  let parameters = (ins
+    "mlir::StringAttr":$name,
+    ArrayRefParameter<"mlir::Type">:$members
+  );
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+    std::size_t getNumMembers() const { return getMembers().size(); }
+  }];
+
+  let builders = [
+    TypeBuilder<(ins CArg<"llvm::ArrayRef<mlir::Type>">:$members), [{
+      return $_get($_ctxt, mlir::StringAttr{}, members);
+    }]>,
+    TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
+                     CArg<"llvm::ArrayRef<mlir::Type>">:$members), [{
+      return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name), members);
+    }]>
+  ];
+}
+
+//===----------------------------------------------------------------------===//
 // MeasureType: classical data type
 //===----------------------------------------------------------------------===//
 
@@ -183,14 +218,19 @@ def MeasureType : QuakeType<"Measure", "measure"> {
 }
 
 def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, VeqType.predicate,
-        ControlType.predicate, RefType.predicate]>, "quake quantum types">;
+        ControlType.predicate, RefType.predicate, StruqType.predicate]>,
+        "quake quantum types">;
 def AnyQType : Type<AnyQTypeLike.predicate, "quantum type">;
 def AnyQTargetTypeLike : TypeConstraint<Or<[WireType.predicate,
         VeqType.predicate, RefType.predicate]>, "quake quantum target types">;
 def AnyQTargetType : Type<AnyQTargetTypeLike.predicate, "quantum target type">;
-def AnyRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
+def AnyRefTypeLike : TypeConstraint<Or<[VeqType.predicate, StruqType.predicate,
         RefType.predicate]>, "quake quantum reference types">;
 def AnyRefType : Type<AnyRefTypeLike.predicate, "quantum reference type">;
+def NonStruqRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
+        RefType.predicate]>, "non-struct quake quantum reference types">;
+def NonStruqRefType : Type<NonStruqRefTypeLike.predicate,
+        "non-struct quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
         ControlType.predicate]>, "quake quantum value types">;
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;

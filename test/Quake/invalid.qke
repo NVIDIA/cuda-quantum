@@ -1,0 +1,56 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s -split-input-file -verify-diagnostics
+
+func.func @test_struq() {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = arith.constant 1 : i32
+  %2 = arith.constant 2.0 : f32
+  // expected-error@+1 {{must be non-struct quantum reference type}}
+  %6 = quake.make_struq %0, %1, %2 : (!quake.veq<4>, i32, f32) -> !quake.struq<!quake.veq<?>, i32, f32>
+  return
+}
+
+// -----
+
+func.func @test_struq() {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.alloca !quake.veq<7>
+  // expected-error@+1 {{member type not compatible with operand type}}
+  %6 = quake.make_struq %0, %1 : (!quake.veq<4>, !quake.veq<7>) -> !quake.struq<!quake.veq<3>, !quake.veq<8>>
+  return
+}
+
+// -----
+
+func.func @test_struq() {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.alloca !quake.veq<7>
+  // expected-error@+1 {{result type has different member count than operands}}
+  %6 = quake.make_struq %0, %1 : (!quake.veq<4>, !quake.veq<7>) -> !quake.struq<!quake.veq<?>>
+  return
+}
+
+// -----
+
+func.func @test_struq() {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.alloca !quake.veq<7>
+  // expected-error@+1 {{result type has different member count than operands}}
+  %6 = quake.make_struq %0, %1 : (!quake.veq<4>, !quake.veq<7>) -> !quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>
+  return
+}
+
+// -----
+
+func.func @test_struq(%arg : !quake.struq<!quake.veq<1>, !quake.veq<2>, !quake.veq<3>>) {
+  // expected-error@+1 {{invalid index}}
+  %6 = quake.get_member %arg[3] : (!quake.struq<!quake.veq<1>, !quake.veq<2>, !quake.veq<3>>) -> !quake.veq<1>
+  return
+}

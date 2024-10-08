@@ -336,6 +336,43 @@ public:
   }
 };
 
+class GetMemberOpPattern : public ConvertOpToLLVMPattern<quake::GetMemberOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::GetMemberOp extract, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto toTy = getTypeConverter()->convertType(extract.getType());
+    std::int64_t position = adaptor.getIndex();
+    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
+        extract, toTy, adaptor.getStruq(), ArrayRef<std::int64_t>{position});
+    return success();
+  }
+};
+
+class MakeStruqOpPattern : public ConvertOpToLLVMPattern<quake::MakeStruqOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MakeStruqOp mkStruq, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = mkStruq.getLoc();
+    auto *ctx = rewriter.getContext();
+    auto toTy = getTypeConverter()->convertType(mkStruq.getType());
+    Value result = rewriter.create<LLVM::UndefOp>(loc, toTy);
+    std::int64_t count = 0;
+    for (auto op : adaptor.getOperands()) {
+      auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{count});
+      result = rewriter.create<LLVM::InsertValueOp>(loc, toTy, result, op, off);
+      count++;
+    }
+    rewriter.replaceOp(mkStruq, result);
+    return success();
+  }
+};
+
 class SubveqOpRewrite : public ConvertOpToLLVMPattern<quake::SubVeqOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
@@ -1386,19 +1423,21 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
   auto *context = patterns.getContext();
   patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, MxToMz, MyToMz,
                   ReturnBitRewrite>(context);
-  patterns.insert<
-      AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
-      DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
-      ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
-      OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
-      OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
-      OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
-      OneTargetTwoParamRewrite<quake::PhasedRxOp>,
-      OneTargetOneParamRewrite<quake::RxOp>,
-      OneTargetOneParamRewrite<quake::RyOp>,
-      OneTargetOneParamRewrite<quake::RzOp>,
-      OneTargetTwoParamRewrite<quake::U2Op>,
-      OneTargetThreeParamRewrite<quake::U3Op>, QmemRAIIOpRewrite, ResetRewrite,
-      SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>>(typeConverter);
+  patterns
+      .insert<AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
+              DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
+              ExpPauliRewrite, GetMemberOpPattern, MakeStruqOpPattern,
+              OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
+              OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
+              OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
+              OneTargetOneParamRewrite<quake::R1Op>,
+              OneTargetTwoParamRewrite<quake::PhasedRxOp>,
+              OneTargetOneParamRewrite<quake::RxOp>,
+              OneTargetOneParamRewrite<quake::RyOp>,
+              OneTargetOneParamRewrite<quake::RzOp>,
+              OneTargetTwoParamRewrite<quake::U2Op>,
+              OneTargetThreeParamRewrite<quake::U3Op>, QmemRAIIOpRewrite,
+              ResetRewrite, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>>(
+          typeConverter);
   patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
 }
