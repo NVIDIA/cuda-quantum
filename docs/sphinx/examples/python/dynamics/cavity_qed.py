@@ -26,7 +26,7 @@ sm_dag = operators.create(0)
 hamiltonian = 2 * np.pi * operators.number(1) + 2 * np.pi * operators.number(
     0) + 2 * np.pi * 0.25 * (sm * a_dag + sm_dag * a)
 
-# Initial state of the system 
+# Initial state of the system
 # Atom in ground state
 qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
 
@@ -60,9 +60,17 @@ evolution_result_decay = evolve(
     store_intermediate_results=True,
     integrator=ScipyZvodeIntegrator())
 
-get_result = lambda idx, res: [exp_vals[idx].expectation() for exp_vals in res.expectation_values()]
-ideal_results = [get_result(0, evolution_result), get_result(1, evolution_result)]
-decay_results = [get_result(0, evolution_result_decay), get_result(1, evolution_result_decay)]
+get_result = lambda idx, res: [
+    exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+]
+ideal_results = [
+    get_result(0, evolution_result),
+    get_result(1, evolution_result)
+]
+decay_results = [
+    get_result(0, evolution_result_decay),
+    get_result(1, evolution_result_decay)
+]
 
 fig = plt.figure(figsize=(18, 6))
 

@@ -5,31 +5,32 @@ import cupy as cp
 import os
 import matplotlib.pyplot as plt
 
-# This example simulates time evolution of a qubit (`transmon`) being driven close to resonance in the presence of noise (decoherence). 
+# This example simulates time evolution of a qubit (`transmon`) being driven close to resonance in the presence of noise (decoherence).
 # Thus, it exhibits Rabi oscillations.
 
 # Set the target to our dynamics simulator
 cudaq.set_target("nvidia-dynamics")
 
 # Device parameters
-# Qubit resonant frequency 
+# Qubit resonant frequency
 nu_z = 10.0
 # Transverse term
 nu_x = 1.0
 # Harmonic driving frequency
 # Note: we chose a frequency slightly different from the resonant frequency to demonstrate the off-resonance effect.
-nu_d = 9.98 
+nu_d = 9.98
+
 
 def callback_tensor(t):
-    return np.cos(2 * np.pi * nu_d * t) * np.array([[0., 1.], [1., 0.]], dtype = np.complex128)
+    return np.cos(2 * np.pi * nu_d * t) * np.array([[0., 1.], [1., 0.]],
+                                                   dtype=np.complex128)
+
 
 # Let's define the control term as a callback tensor
 ElementaryOperator.define("control_term", [2], callback_tensor)
 
-
-
 # Qubit Hamiltonian
-hamiltonian = 0.5 * 2 * np.pi * nu_z * pauli.z(0) 
+hamiltonian = 0.5 * 2 * np.pi * nu_z * pauli.z(0)
 # Add modulated driving term to the Hamiltonian
 hamiltonian += 2 * np.pi * nu_x * ElementaryOperator("control_term", [0])
 
@@ -53,7 +54,9 @@ evolution_result = evolve(hamiltonian,
                           dimensions,
                           schedule,
                           rho0,
-                          observables=[pauli.x(0), pauli.y(0), pauli.z(0)],
+                          observables=[pauli.x(0),
+                                       pauli.y(0),
+                                       pauli.z(0)],
                           collapse_operators=[],
                           store_intermediate_results=True,
                           integrator=ScipyZvodeIntegrator())
@@ -67,18 +70,32 @@ n_steps = int(np.ceil(t_final / tau)) + 1
 steps2 = np.linspace(0, t_final, n_steps)
 schedule = Schedule(steps2, ["t"])
 
-evolution_result_decay = evolve(hamiltonian,
-                          dimensions,
-                          schedule,
-                          rho0,
-                          observables=[pauli.x(0), pauli.y(0), pauli.z(0)],
-                          collapse_operators=[np.sqrt(Gamma_1) * pauli.plus(0), np.sqrt(Gamma_2) * pauli.z(0)],
-                          store_intermediate_results=True,
-                          integrator=ScipyZvodeIntegrator())
+evolution_result_decay = evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    rho0,
+    observables=[pauli.x(0), pauli.y(0), pauli.z(0)],
+    collapse_operators=[
+        np.sqrt(Gamma_1) * pauli.plus(0),
+        np.sqrt(Gamma_2) * pauli.z(0)
+    ],
+    store_intermediate_results=True,
+    integrator=ScipyZvodeIntegrator())
 
-get_result = lambda idx, res: [exp_vals[idx].expectation() for exp_vals in res.expectation_values()]
-ideal_results = [get_result(0, evolution_result), get_result(1, evolution_result), get_result(2, evolution_result)]
-decoherence_results = [get_result(0, evolution_result_decay), get_result(1, evolution_result_decay), get_result(2, evolution_result_decay)]
+get_result = lambda idx, res: [
+    exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+]
+ideal_results = [
+    get_result(0, evolution_result),
+    get_result(1, evolution_result),
+    get_result(2, evolution_result)
+]
+decoherence_results = [
+    get_result(0, evolution_result_decay),
+    get_result(1, evolution_result_decay),
+    get_result(2, evolution_result_decay)
+]
 
 fig = plt.figure(figsize=(18, 6))
 

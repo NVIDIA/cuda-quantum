@@ -25,6 +25,7 @@ import math
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from .timing_helper import ScopeTimer
 
+
 def as_cuso_state(state):
     tensor = state.getTensor()
     pDevice = tensor.data()
@@ -57,7 +58,7 @@ def evolve_me(
     # Note: we would need a CUDAQ state implementation for cuSuperOp
     if not isinstance(initial_state, cudaq_runtime.State):
         raise NotImplementedError("TODO: list of input states")
-    
+
     with ScopeTimer("evolve.as_cuso_state") as timer:
         initial_state = as_cuso_state(initial_state)
 
@@ -80,17 +81,19 @@ def evolve_me(
     else:
         # Always solve the master equation if the input is a density matrix
         me_solve = True
-    
+
     with ScopeTimer("evolve.hamiltonian._evaluate") as timer:
-        ham_term = hamiltonian._evaluate(CuSuperOpHamConversion(dimensions, schedule))
+        ham_term = hamiltonian._evaluate(
+            CuSuperOpHamConversion(dimensions, schedule))
     linblad_terms = []
     for c_op in collapse_operators:
         with ScopeTimer("evolve.collapse_operators._evaluate") as timer:
-            linblad_terms.append(c_op._evaluate(CuSuperOpHamConversion(dimensions, schedule)))
-    
+            linblad_terms.append(
+                c_op._evaluate(CuSuperOpHamConversion(dimensions, schedule)))
+
     with ScopeTimer("evolve.constructLiouvillian") as timer:
         liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
-                                       linblad_terms, me_solve)
+                                           linblad_terms, me_solve)
 
     initial_state = initial_state.get_impl()
     cuso_ctx = initial_state._ctx
@@ -98,7 +101,8 @@ def evolve_me(
     if integrator is None:
         integrator = RungeKuttaIntegrator(stepper)
     else:
-        integrator.set_system(dimensions, schedule, hamiltonian, collapse_operators)
+        integrator.set_system(dimensions, schedule, hamiltonian,
+                              collapse_operators)
     expectation_op = [
         cuso.Operator(
             hilbert_space_dims,
@@ -119,7 +123,8 @@ def evolve_me(
             with ScopeTimer("evolve.prepare_expectation") as timer:
                 obs.prepare_expectation(cuso_ctx, state)
             with ScopeTimer("evolve.compute_expectation") as timer:
-                exp_val = obs.compute_expectation(schedule.current_step, (), state)
+                exp_val = obs.compute_expectation(schedule.current_step, (),
+                                                  state)
             # print(f"Time = {schedule.current_step}: Exp = {float(cp.real(exp_val[0]))}")
             step_exp_vals.append(float(cupy.real(exp_val[0])))
         exp_vals.append(step_exp_vals)

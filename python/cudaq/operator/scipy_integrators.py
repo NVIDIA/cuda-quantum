@@ -72,7 +72,8 @@ class ScipyZvodeIntegrator(BaseIntegrator[cuso.State]):
             linblad_terms = []
             for c_op in self.collapse_operators:
                 linblad_terms.append(
-                    c_op._evaluate(CuSuperOpHamConversion(self.dimensions, self.schedule)))
+                    c_op._evaluate(
+                        CuSuperOpHamConversion(self.dimensions, self.schedule)))
             is_master_equation = isinstance(self.state, cuso.DenseMixedState)
             liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
                                                linblad_terms,

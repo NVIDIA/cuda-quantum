@@ -12,6 +12,7 @@ import cupy
 from .cuso_helpers import CuSuperOpHamConversion, constructLiouvillian
 from .timing_helper import ScopeTimer
 
+
 class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
 
     def __init__(self, liouvillian: cuso.Operator, ctx: cuso.WorkStream):
@@ -36,7 +37,7 @@ class cuSuperOpTimeStepper(BaseTimeStepper[cuso.State]):
         timer = ScopeTimer("compute.action_result")
         with timer:
             action_result = state_type(self.ctx,
-                                   cupy.zeros_like(self.state.storage))
+                                       cupy.zeros_like(self.state.storage))
         timer = ScopeTimer("liouvillian_action.compute")
         with timer:
             self.liouvillian_action.compute(t, (), (self.state,), action_result)
@@ -74,7 +75,8 @@ class RungeKuttaIntegrator(BaseIntegrator[cuso.State]):
             linblad_terms = []
             for c_op in self.collapse_operators:
                 linblad_terms.append(
-                    c_op._evaluate(CuSuperOpHamConversion(self.dimensions, self.schedule)))
+                    c_op._evaluate(
+                        CuSuperOpHamConversion(self.dimensions, self.schedule)))
             is_master_equation = isinstance(self.state, cuso.DenseMixedState)
             liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
                                                linblad_terms,

@@ -5,7 +5,6 @@ import cupy as cp
 import os
 import matplotlib.pyplot as plt
 
-
 # Set the target to our dynamics simulator
 cudaq.set_target("nvidia-dynamics")
 
@@ -36,17 +35,25 @@ evolution_result = evolve(hamiltonian,
 
 # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
 evolution_result_decay = evolve(hamiltonian,
-                          dimensions,
-                          schedule,
-                          rho0,
-                          observables=[pauli.y(0), pauli.z(0)],
-                          collapse_operators=[np.sqrt(0.05) * pauli.x(0)],
-                          store_intermediate_results=True,
-                          integrator=RungeKuttaIntegrator())
+                                dimensions,
+                                schedule,
+                                rho0,
+                                observables=[pauli.y(0), pauli.z(0)],
+                                collapse_operators=[np.sqrt(0.05) * pauli.x(0)],
+                                store_intermediate_results=True,
+                                integrator=RungeKuttaIntegrator())
 
-get_result = lambda idx, res: [exp_vals[idx].expectation() for exp_vals in res.expectation_values()]
-ideal_results = [get_result(0, evolution_result), get_result(1, evolution_result)]
-decay_results = [get_result(0, evolution_result_decay), get_result(1, evolution_result_decay)]
+get_result = lambda idx, res: [
+    exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+]
+ideal_results = [
+    get_result(0, evolution_result),
+    get_result(1, evolution_result)
+]
+decay_results = [
+    get_result(0, evolution_result_decay),
+    get_result(1, evolution_result_decay)
+]
 
 fig = plt.figure(figsize=(18, 6))
 

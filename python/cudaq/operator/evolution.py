@@ -245,10 +245,11 @@ def evolve_async(
     """
     target_name = cudaq_runtime.get_target().name
     if target_name == "nvidia-dynamics":
-        return cudaq_runtime.evolve_async(lambda: evolve_me(hamiltonian, dimensions, schedule, initial_state,
-                         collapse_operators, observables,
-                         store_intermediate_results, integrator))
-    
+        return cudaq_runtime.evolve_async(
+            lambda: evolve_me(hamiltonian, dimensions, schedule, initial_state,
+                              collapse_operators, observables,
+                              store_intermediate_results, integrator))
+
     simulator = cudaq_runtime.get_target().simulator.strip()
     if simulator == "":
         raise NotImplementedError(
