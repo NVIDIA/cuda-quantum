@@ -23,7 +23,7 @@ import math
 from .timing_helper import ScopeTimer
 
 # Master-equation solver using `cuSuperOp`
-def evolve_me(
+def evolve_dynamics(
         hamiltonian: Operator,
         dimensions: Mapping[int, int],
         schedule: Schedule,
