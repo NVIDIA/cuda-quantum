@@ -3,9 +3,8 @@
 // nvq++ --target photonics-cpu photonics_tbi_get_state.cpp && ./a.out
 // ```
 
-#include "cudaq.h"
-#include "cudaq/photonics.h"
-
+#include <cudaq.h>
+#include <cudaq/photonics.h>
 #include <iostream>
 
 // Global variables
@@ -44,17 +43,6 @@ struct TBI {
   }
 };
 
-template <typename T>
-void LinearSpacedArray(std::vector<T> &array, T min, T max, std::size_t N) {
-  T h = (max - min) / static_cast<T>(N - 1);
-  T val;
-  typename std::vector<T>::iterator array_it;
-  for (array_it = array.begin(), val = min; array_it != array.end();
-       ++array_it, val += h) {
-    *array_it = val;
-  }
-}
-
 int main() {
   std::size_t n_loops = 2;
   std::vector<std::size_t> loop_lengths = {1, 2};
@@ -67,16 +55,15 @@ int main() {
 
   std::size_t n_beam_splitters = n_loops * ::n_modes - sum_loop_lenghts;
 
-  std::vector<double> bs_angles(n_beam_splitters);
-  std::vector<double> ps_angles(n_beam_splitters);
-
-  LinearSpacedArray(bs_angles, M_PI / 3, M_PI / 6, n_beam_splitters);
-  LinearSpacedArray(ps_angles, M_PI / 3, M_PI / 5, n_beam_splitters);
+  std::vector<double> bs_angles =
+      cudaq::linspace(M_PI / 3, M_PI / 6, n_beam_splitters);
+  std::vector<double> ps_angles =
+      cudaq::linspace(M_PI / 3, M_PI / 5, n_beam_splitters);
 
   auto state =
       cudaq::get_state(TBI{}, bs_angles, ps_angles, input_state, loop_lengths);
 
   state.dump();
 
-  retunr 0;
+  return 0;
 }
