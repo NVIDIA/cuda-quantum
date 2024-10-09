@@ -14,7 +14,6 @@
 namespace cudaq {
 
 void set_random_seed(std::size_t);
-void set_photonic_random_seed(std::size_t);
 std::size_t get_random_seed();
 
 /// @brief An ArgumentSet is a tuple of vectors of general arguments to a

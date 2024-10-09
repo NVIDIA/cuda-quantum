@@ -108,9 +108,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
 
   cudaqRuntime.def("set_random_seed", &cudaq::set_random_seed,
                    "Provide the seed for backend quantum kernel simulation.");
-  cudaqRuntime.def(
-      "set_photonic_random_seed", &cudaq::set_photonic_random_seed,
-      "Provide the seed for backend photonic quantum kernel simulation.");
+
   cudaqRuntime.def("num_available_gpus", &cudaq::num_available_gpus,
                    "The number of available GPUs detected on the system.");
 
