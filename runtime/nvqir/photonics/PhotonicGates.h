@@ -66,8 +66,7 @@ double _fast_factorial(int n) {
 int _kron(int a, int b) {
   if (a == b)
     return 1;
-  else
-    return 0;
+  return 0;
 }
 
 /// @brief Computes a single element in the matrix representing a beam
