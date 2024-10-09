@@ -32,7 +32,7 @@ When you contribute code to this repository, whether be it an example, bug fix,
 or feature, make sure that you can contribute your work under the used
 [open-source license](./LICENSE), that is make sure no license and/or patent
 conflict is introduced by your pull-request. To confirm this, you will need to
-[sign your commits](#signing-your-work) as described below. Thanks in advance
+[sign off on your commits](#signing-your-work) as described below. Thanks in advance
 for your patience as we review your contributions; we do appreciate them!
 
 ## Signing Your Work
@@ -55,10 +55,7 @@ This will append the following to your commit message:
 Signed-off-by: Your Name <your@email.com>
 ```
 
-For more information about configuring Git to sign your commits by default, see
-[here](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification).
-
-By signing your commits you attest to the [Developer Certificate of Origin
+By signing off on your commits you attest to the [Developer Certificate of Origin
 (DCO)](https://developercertificate.org/). Full text of the DCO:
 
 ```txt
