@@ -55,6 +55,9 @@ This will append the following to your commit message:
 Signed-off-by: Your Name <your@email.com>
 ```
 
+For more information about configuring Git to sign your commits by default,
+see [here](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification).
+
 By signing your commits you attest to the [Developer Certificate of Origin
 (DCO)](https://developercertificate.org/). Full text of the DCO:
 
