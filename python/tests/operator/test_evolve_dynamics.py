@@ -11,19 +11,24 @@ import pytest
 import cudaq
 from cudaq.operator import *
 import numpy as np
-import cupy as cp
+
+skipIfNoGpu = pytest.mark.skipif(not (cudaq.num_available_gpus() > 0), reason='No GPU')
+cp = pytest.importorskip('cupy')
 
 cudaq.set_target("nvidia-dynamics")
-ci_integrators = [
-    RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator
-]
-all_integrators = [
-    RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator,
-    CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator,
-    CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqDopri8Integrator,
-    CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator,
-    CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqRK4Integrator
-]
+try:
+    ci_integrators = [
+        RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator
+    ]
+    all_integrators = [
+        RungeKuttaIntegrator, ScipyZvodeIntegrator, CUDATorchDiffEqDopri5Integrator,
+        CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator,
+        CUDATorchDiffEqFixedAdamsIntegrator, CUDATorchDiffEqDopri8Integrator,
+        CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator,
+        CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqRK4Integrator
+    ]
+except:
+    ci_integrators = []
 
 # By default, only test representatives from each integrator collection.
 all_integrator_classes = ci_integrators
@@ -43,6 +48,7 @@ class TestCavityDecay:
     def const_c_ops(self, request):
         return request.param
 
+    @skipIfNoGpu
     @pytest.mark.parametrize('integrator',
                              all_integrator_classes,
                              ids=all_integrator_classes)
@@ -97,6 +103,7 @@ class TestCavityDecay:
         actual_answer = 9.0 * np.exp(-self.kappa * self.steps)
         np.testing.assert_allclose(actual_answer, expt, atol=self.tol)
 
+    @skipIfNoGpu
     @pytest.mark.parametrize('integrator',
                              all_integrator_classes,
                              ids=all_integrator_classes)
@@ -220,6 +227,7 @@ class TestCompositeSystems:
         0.46413733, 0.46561558, 0.46864443
     ]
 
+    @skipIfNoGpu
     @pytest.mark.parametrize('integrator',
                              all_integrator_classes,
                              ids=all_integrator_classes)
@@ -350,6 +358,7 @@ def async_run(*args, **kwargs):
     return evolve_async(*args, **kwargs).get()
 
 
+@skipIfNoGpu
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 @pytest.mark.parametrize('model', all_models)
 @pytest.mark.parametrize('runner', [sync_run, async_run])
@@ -376,6 +385,7 @@ def test_analytical_models(integrator, model, runner):
                                    atol=1e-3)
 
 
+@skipIfNoGpu
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_squeezing(integrator):
 
@@ -447,6 +457,7 @@ def test_squeezing(integrator):
     np.testing.assert_allclose(exp_val_z[-1], sz_ss_analytical, atol=1e-3)
 
 
+@skipIfNoGpu
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_cat_state(integrator):
     # Number of Fock levels
@@ -489,6 +500,7 @@ def test_cat_state(integrator):
     np.testing.assert_allclose(overlap, 1.0, atol=1e-3)
 
 
+@skipIfNoGpu
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_floquet_steady_state(integrator):
     # two-level system coupled with the external heat bath (fixed temperature)
@@ -548,6 +560,7 @@ def test_floquet_steady_state(integrator):
         np.testing.assert_allclose(n[i], expected_steady_state, atol=0.02)
 
 
+@skipIfNoGpu
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_landau_zener(integrator):
     # Define some shorthand operators
@@ -600,6 +613,7 @@ def test_landau_zener(integrator):
             np.testing.assert_allclose(prob1[idx], analytical_result, atol=0.05)
 
 
+@skipIfNoGpu
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_cross_resonance(integrator):
     # Device parameters
@@ -702,6 +716,7 @@ def test_cross_resonance(integrator):
     np.testing.assert_allclose(freq_0, 2.0 * freq_1, atol=0.01)
 
 
+@skipIfNoGpu
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 def test_tensor_callback(integrator):
     # Device parameters
