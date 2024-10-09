@@ -220,10 +220,10 @@ public:
     return result;
   }
 
-  bool VisitFunctionDecl(clang::FunctionDecl *func) {
+  bool VisitFunctionDecl(clang::FunctionDecl *x) {
     if (ignoreTemplate)
       return true;
-    func = func->getDefinition();
+    auto *func = x->getDefinition();
 
     if (func) {
       bool runChecks = false;
@@ -248,6 +248,9 @@ public:
         processQpu(cudaq::details::getTagNameOfFunctionDecl(func, mangler),
                    func);
       }
+    } else if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(x)) {
+      // Add declarations to support separate compilation.
+      processQpu(cudaq::details::getTagNameOfFunctionDecl(x, mangler), x);
     }
     return true;
   }
@@ -268,9 +271,9 @@ public:
     if (ignoreTemplate)
       return true;
     if (const auto *cxxMethodDecl = lambda->getCallOperator())
-      if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition();
-          f && cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
-        processQpu(cudaq::details::getTagNameOfFunctionDecl(f, mangler), f);
+      if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition())
+        if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
+          processQpu(cudaq::details::getTagNameOfFunctionDecl(f, mangler), f);
     return true;
   }
 

@@ -707,7 +707,7 @@ if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 	if ${DO_LINK}; then
 		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-early-inlining")
 	else
-		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(indirect-to-direct-calls),inline")
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "indirect-to-direct-calls,inline")
 	fi
 fi
 if ${ENABLE_DEVICE_CODE_LOADERS}; then
