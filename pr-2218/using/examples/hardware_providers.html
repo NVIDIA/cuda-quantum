@@ -1021,6 +1021,7 @@ parameters of the time bin interferometer.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">time</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -1067,9 +1068,11 @@ parameters of the time bin interferometer.</p>
 <span class="c1"># we can also set number of requested samples</span>
 <span class="n">n_samples</span> <span class="o">=</span> <span class="mi">10000</span>
 
+<span class="c1"># Option A:</span>
 <span class="c1"># By using the synchronous `cudaq.orca.sample`, the execution of</span>
 <span class="c1"># any remaining classical code in the file will occur only</span>
 <span class="c1"># after the job has been returned from ORCA Server.</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Submitting to ORCA Server synchronously&quot;</span><span class="p">)</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
 
 <span class="c1"># If the system includes phase shifters, the phase shifter angles can be</span>
@@ -1080,6 +1083,35 @@ parameters of the time bin interferometer.</p>
 <span class="c1"># ```</span>
 
 <span class="c1"># Print the results</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+
+<span class="c1"># Option B:</span>
+<span class="c1"># By using the asynchronous `cudaq.orca.sample_async`, the remaining</span>
+<span class="c1"># classical code will be executed while the job is being handled</span>
+<span class="c1"># by Orca. This is ideal when submitting via a queue over</span>
+<span class="c1"># the cloud.</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Submitting to ORCA Server asynchronously&quot;</span><span class="p">)</span>
+<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">,</span>
+                                        <span class="n">n_samples</span><span class="p">)</span>
+<span class="c1"># ... more classical code to run ...</span>
+
+<span class="c1"># We can either retrieve the results later in the program with</span>
+<span class="c1"># ```</span>
+<span class="c1"># async_counts = async_results.get()</span>
+<span class="c1"># ```</span>
+<span class="c1"># or we can also write the job reference (`async_results`) to</span>
+<span class="c1"># a file and load it later or from a different process.</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
+<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c1"># We can later read the file content and retrieve the job</span>
+<span class="c1"># information and results.</span>
+<span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>  <span class="c1"># wait for the job to be processed</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1094,6 +1126,10 @@ parameters of the time bin interferometer.</p>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/orca.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;chrono&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;thread&gt;</span>
 
 <span class="c1">// define helper function to generate linear spaced vectors</span>
 <span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
@@ -1107,6 +1143,8 @@ parameters of the time bin interferometer.</p>
 <span class="p">}</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">this_thread</span><span class="p">;</span><span class="w">     </span><span class="c1">// sleep_for, sleep_until</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">chrono_literals</span><span class="p">;</span><span class="w"> </span><span class="c1">// `ns`, `us`, `ms`, `s`, `h`, etc.</span>
 
 <span class="w">  </span><span class="c1">// A time-bin boson sampling experiment: An input state of 4 indistinguishable</span>
 <span class="w">  </span><span class="c1">// photons mixed with 4 vacuum states across 8 time bins (modes) enter the</span>
@@ -1147,10 +1185,14 @@ parameters of the time bin interferometer.</p>
 <span class="w">  </span><span class="c1">// we can also set number of requested samples</span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">n_samples</span><span class="p">{</span><span class="mi">10000</span><span class="p">};</span>
 
-<span class="w">  </span><span class="c1">// Submit to ORCA synchronously (e.g., wait for the job result to be returned</span>
-<span class="w">  </span><span class="c1">// before proceeding with the rest of the execution).</span>
+<span class="w">  </span><span class="c1">// Submit to ORCA synchronously (e.g., wait for the job result to be</span>
+<span class="w">  </span><span class="c1">// returned before proceeding with the rest of the execution).</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Submitting to ORCA Server synchronously&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">orca</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">n_samples</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Print the results</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="w">  </span><span class="c1">// If the system includes phase shifters, the phase shifter angles can be</span>
 <span class="w">  </span><span class="c1">// included in the call</span>
@@ -1160,8 +1202,27 @@ parameters of the time bin interferometer.</p>
 <span class="w">  </span><span class="c1">//                                   ps_angles, n_samples);</span>
 <span class="w">  </span><span class="c1">// ```</span>
 
-<span class="w">  </span><span class="c1">// Print the results</span>
-<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// Alternatively we can submit to ORCA asynchronously (e.g., continue</span>
+<span class="w">  </span><span class="c1">// executing code in the file until the job has been returned).</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Submitting to ORCA Server asynchronously&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">async_results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">orca</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span><span class="w"> </span><span class="n">loop_lengths</span><span class="p">,</span>
+<span class="w">                                                 </span><span class="n">bs_angles</span><span class="p">,</span><span class="w"> </span><span class="n">n_samples</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Can write the future to file:</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="n">out</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">async_results</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Then come back and read it in later.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">in</span><span class="p">(</span><span class="s">&quot;saveMe.json&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">in</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">readIn</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">200</span><span class="n">ms</span><span class="p">);</span><span class="w"> </span><span class="c1">// wait for the job to be processed</span>
+<span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">async_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">readIn</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">async_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>

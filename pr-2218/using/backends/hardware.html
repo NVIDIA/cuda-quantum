@@ -893,6 +893,12 @@ configuration.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_ACCESS_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;ORCA API Server&gt;&quot;</span>
 </pre></div>
 </div>
+<p>Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
+environment variable named <code class="docutils literal notranslate"><span class="pre">ORCA_AUTH_TOKEN</span></code>. For example, if the token is <code class="code docutils literal notranslate"><span class="pre">AbCdEf123456</span></code>,
+you can set the environment variable as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_AUTH_TOKEN</span><span class="o">=</span><span class="s2">&quot;AbCdEf123456&quot;</span>
+</pre></div>
+</div>
 </section>
 <section id="id8">
 <h3>Submission from C++<a class="headerlink" href="#id8" title="Permalink to this heading">¶</a></h3>
