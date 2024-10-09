@@ -28,6 +28,5 @@ for i in range(qpu_count):
 
 print("Sampling jobs launched for asynchronous processing.")
 
-for idx in range(len(count_futures)):
-    counts = count_futures[idx].get()
-    print(counts)
+for counts in count_futures:
+    counts.get().dump()
