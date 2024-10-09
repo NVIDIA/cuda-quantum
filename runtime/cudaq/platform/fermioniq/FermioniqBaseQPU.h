@@ -12,6 +12,8 @@
 
 namespace cudaq {
 
+/// @brief The `FermioniqBaseQPU` is a QPU that allows users to
+// submit kernels to the Fermioniq simulator.
 class FermioniqBaseQPU : public BaseRemoteRESTQPU {
 public:
   virtual bool isRemote() override { return true; }

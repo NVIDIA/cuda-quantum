@@ -17,16 +17,8 @@ std::string get_quake_by_name(const std::string &);
 
 namespace {
 
-/// @brief The `RemoteRESTQPU` is a subtype of QPU that enables the
-/// execution of CUDA-Q kernels on remotely hosted quantum computing
-/// services via a REST Client / Server interaction. This type is meant
-/// to be general enough to support any remotely hosted service. Specific
-/// details about JSON payloads are abstracted via an abstract type called
-/// ServerHelper, which is meant to be subtyped by each provided remote QPU
-/// service. Moreover, this QPU handles launching kernels under a number of
-/// Execution Contexts, including sampling and observation via synchronous or
-/// asynchronous client invocations. This type should enable both QIR-based
-/// backends as well as those that take OpenQASM2 as input.
+/// @brief The `FermioniqRestQPU` is a subtype of QPU that enables the
+/// execution of CUDA-Q kernels on the Fermioniq simulator via a REST Client.
 class FermioniqRestQPU : public cudaq::FermioniqBaseQPU {
 protected:
   std::tuple<ModuleOp, MLIRContext *, void *>
