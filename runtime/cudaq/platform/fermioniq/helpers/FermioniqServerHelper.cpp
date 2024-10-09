@@ -102,7 +102,7 @@ private:
   std::vector<std::string> circuit_names;
 
   /// @brief exp time of token
-  std::chrono::_V2::system_clock::time_point tokenExpTime;
+  std::chrono::system_clock::time_point tokenExpTime;
 
   /// @brief Helper method to retrieve the value of an environment variable.
   std::string getEnvVar(const std::string &key, const std::string &defaultVal,
