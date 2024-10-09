@@ -403,18 +403,14 @@ thread_local static std::size_t cudaq_random_seed = 0;
 /// will not be repeatable for those operations.
 void set_random_seed(std::size_t seed) {
   cudaq_random_seed = seed;
-  nvqir::setRandomSeed(seed);
-  auto &platform = cudaq::get_platform();
-  // Notify the platform that a new random seed value is set.
-  platform.onRandomSeedSet(seed);
-}
+  try {
+    nvqir::setRandomSeed(seed);
+  } catch (std::exception &e) {
+    cudaq::info("Failed to set random seed in NVQIR, setting photonic random "
+                "seed in PhotonicNVQIR");
+    nvqir::setPhotonicRandomSeed(seed);
+  }
 
-/// @brief Note: a seed value of 0 will cause broadcast operations to use
-/// std::random_device (or something similar) as a seed for the PRNGs, so this
-/// will not be repeatable for those operations.
-void set_photonic_random_seed(std::size_t seed) {
-  cudaq_random_seed = seed;
-  nvqir::setPhotonicRandomSeed(seed);
   auto &platform = cudaq::get_platform();
   // Notify the platform that a new random seed value is set.
   platform.onRandomSeedSet(seed);

@@ -93,7 +93,6 @@ has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target
 get_targets = cudaq_runtime.get_targets
 set_random_seed = cudaq_runtime.set_random_seed
-set_photonic_random_seed = cudaq_runtime.set_photonic_random_seed
 mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
 set_noise = cudaq_runtime.set_noise
