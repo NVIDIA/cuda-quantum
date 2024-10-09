@@ -4,30 +4,92 @@ The CUDA-Q language extension provides certain fundamental types that are pertin
 to quantum-classical computing. These types are provided via defined classical library
 types in C++ in the :code:`cudaq` namespace. 
 
-:code:`cudaq::qudit<Levels>`
-----------------------------
-**[1]** The :code:`cudaq::qudit` models a :math:`D`-level unit of quantum information. The state of
-this system (for :math:`N` qudits) can be described by a :math:`D`\ :sup:`N`\-dimensional vector in
-Hilbert space with the absolute square of all elements summing to 1. 
+Qudit
+=====
 
-**[2]** The :code:`cudaq::qudit` encapsulates a unique :code:`std::size_t` modeling the index of the
-qudit in the underlying quantum memory space (assuming an infinite register
-of available qudits). 
+A qudit is a model to represent a :math:`d`-level (or :math:`d`-dimensional)
+quantum system. Mathematically, we describe the state of a qudit using a
+:math:`d`-dimensional vector of unit form, living in the vector space
+:math:`\mathbb{C}^d` (a Hilbert space). Qudits with known values for
+:math:`d` have specific name. A qubit has dimension 2, a qutrit has dimension 3,
+and so on.
 
-**[4]** To adhere to the no-cloning theorem of quantum mechanics,
-the :code:`cudaq::qudit` is non-copyable and non-movable. Therefore, all :code:`cudaq::qudit` 
-instances must be passed by reference, and the no-cloning theorem is satisfied
-at compile-time. 
+In a CUDA Quantum implementation, objects of type :code:`qudit` must adhere to
+the following constraints:
 
-**[5]** :code:`cudaq::qudit` instances can only be allocated within CUDA-Q quantum
-kernel code and can never be allocated from classical host code.
+**[1]** Objects of type :code:`qudit` shall be parameterized with :math:`d`,
+to indicate its dimension.
 
-**[6]** All instantiated :code:`cudaq::qudit` instances start in the :code:`|0>` computational basis 
-state and serve as the primary input argument for quantum intrinsic operations 
-modeling typical logical quantum gate operations.
+**[2]** Objects of type :code:`qudit` shall not carry a quantum state.
 
-**[7]** :code:`cudaq::qudit` instances can be negated when leveraged as controls in 
-quantum operation invocations. The mechanism for negation should be via overloading of :code:`qudit<N>::operator!()`.
+**[3]** Objects of type :code:`qudit` shall identify a qudit in the underlying
+quantum system. The identifier shall be unique and valid during the
+lifetime of the :code:`qudit` object.
+
+**[4]** Objects of type :code:`qudit` and any directly or indirectly derived
+type shall only be used within quantum kernel code.
+
+**[5]** The default constructor shall create an object of type :code:`qudit`
+that references a qudit in the :math:`|0\rangle` computational basis state.
+
+**[6]** Objects of type :code:`qudit` may be non-copyable.
+
+**[7]** Objects of type :code:`qudit` may be non-movable.
+
+**[8]** Objects of type :code:`qudit` may have a mechanism that indicates the
+presence of implicit Pauli-X operators surrounding the qudit use as a control.
+For example (pseudocode):
+
+.. code-block:: cpp
+
+    cudaq::qudit control;
+    cudaq::qudit target;
+
+    op(!control, target) // Implies: x(control)
+                         //          op(control, target)
+                         //          x(control)
+
+C++ Implementation :code:`cudaq::qudit<Levels>`
+-----------------------------------------------
+
+The C++ implementation of CUDA Quantum defines the templated type
+:code:`cudaq::qudit` to reference qudits. The template parameter defines
+the dimension, :math:`d`, of the qudit, also known as the number of logical
+levels allowed by the qudit (hence use of `Levels` as parameter name).
+
+The :code:`cudaq::qudit` type encapsulates a unique identifier of type
+:code:`std::size_t` modeling the index of the qudit in the underlying quantum
+memory space (assuming an infinite register of available qudits). This
+identifier is unique and valid only through the lifetime of the object.
+
+To facilitate memory handling and hide internal details from the developer,
+instances of :code:`cudaq::qudit` are non-copyable and non-movable. Therefore,
+all objects of this type must be passed by reference. Qudits are implicitly
+deallocated upon the destruction of :code:`cudaq::qudit` object that references
+it.
+
+:code:`cudaq::qudit` instances can be negated when leveraged as controls in 
+quantum operators. The mechanism for negation is via overloading of
+:code:`qudit<Levels>::operator!()`.
+
+In library mode, it is the runtime responsibilities to:
+
+**[1]** Guarantee that all :code:`cudaq::qudit` instances are allocated within
+quantum kernel code (and can never from classical host code).
+
+**[2]** Guarantee that all :code:`cudaq::qudit` instances used directly or
+indirectly within quantum kernel code have the same dimension.
+
+**[3]** Guarantee the implicit deallocation the qudit referenced by a
+:code:`cudaq::qudit` instance upon its destruction.
+
+**[4]** Guarantee that all :code:`cudaq::qudit` default constructed instances
+are referencing a qudit in the :math:`|0\rangle` computational basis
+state.
+
+**[5]** Properly handle uses :code:`cudaq::qudit` instances as negated controls.
+
+In compilation mode, these responsibilities fall under the compiler.
 
 The :code:`cudaq::qudit` takes on the following structure
 
@@ -37,6 +99,7 @@ The :code:`cudaq::qudit` takes on the following structure
     class qudit {
       protected: 
         const std::size_t idx = 0;
+
       public:
         qudit();
         qudit(const qudit&) = delete;
@@ -48,8 +111,10 @@ The :code:`cudaq::qudit` takes on the following structure
 
 :code:`cudaq::qubit`
 --------------------
-**[1]** The specification provides a primitive :code:`cudaq::qubit` type which models a
-single quantum bit (:math:`2`-level) in the discrete quantum memory space.
+The C++ implementation of CUDA Quantum provides a primitive :code:`cudaq::qubit`
+type which references a single quantum bit (:math:`2`-level) in the discrete
+quantum memory space.
+
 :code:`cudaq::qubit` is an alias for :code:`cudaq::qudit<2>` 
 
 .. code-block:: cpp
@@ -63,17 +128,12 @@ single quantum bit (:math:`2`-level) in the discrete quantum memory space.
   .. code-block:: cpp
 
       {
-        // Allocate a qubit in the |0> state
-        cudaq::qubit q;
-        // Put the qubit in a superposition of |0> and |1>
-        h(q); // cudaq::h == hadamard, ADL leveraged
-        printf("ID = %lu\n", q.id()); // prints 0
-        cudaq::qubit r;
-        printf("ID = %lu\n", r.id()); // prints 1
-        // qubit out of scope, implicit deallocation
-      }
+        cudaq::qubit q; // Allocate a qubit in the |0> state
+        cudaq::h(q);    // Put the qubit in a superposition of |0> and |1>
+      } // Qubit `q` goes out of scope, implicit deallocation.
+
+      // Allocate a new qubit in the |0> state
       cudaq::qubit q;
-      printf("ID = %lu\n", q.id()); // prints 0 (previous deallocated)
 
 .. tab:: Python 
 
@@ -83,11 +143,7 @@ single quantum bit (:math:`2`-level) in the discrete quantum memory space.
     q = cudaq.qubit()
     # Put the qubit in a superposition of |0> and |1>
     h(q)
-    print("ID = {}".format(q.id())) # prints 0
-    
-    r = cudaq.qubit()
-    print("ID = {}", r.id()) # prints 1
-    # qubits go out of scope, implicit deallocation
+    # Qubits `q` goes out of scope, implicit deallocation
     
 Quantum Containers
 ------------------
@@ -182,7 +238,7 @@ The :code:`cudaq::qview` should take on the following structure:
           std::vector<qudit<Levels>> qudits;
 
         public:
-          // Construct a qreg with `size` qudits in the |0> state.
+          // Construct a qvector with `size` qudits in the |0> state.
           qvector(std::size_t size);
           qvector(const qvector&) = delete;
 
@@ -289,7 +345,7 @@ The :code:`cudaq::qarray` should take on the following structure:
           std::array<qudit<Levels>, N> qudits;
 
         public:
-          // Construct a qreg with `size` qudits in the |0> state.
+          // Construct an qarray with `size` qudits in the |0> state.
           qarray();
           qarray(const qvector&) = delete;
           qarray(qarray &&) = delete;
