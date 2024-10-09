@@ -49,6 +49,7 @@ There are many ways in which you can get involved with CUDA-Q. If you are
 interested in developing quantum applications with CUDA-Q, this repository is a
 great place to get started! For more information about contributing to the
 CUDA-Q platform, please take a look at [Contributing.md](./Contributing.md).
+Happy coding!
 
 ## License
 
