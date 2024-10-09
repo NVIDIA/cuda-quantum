@@ -32,7 +32,7 @@ When you contribute code to this repository, whether be it an example, bug fix,
 or feature, make sure that you can contribute your work under the used
 [open-source license](./LICENSE), that is make sure no license and/or patent
 conflict is introduced by your pull-request. To confirm this, you will need to
-[sign off on your commits](#signing-your-work) as described below. Thanks in advance
+[sign off on your commits](#commit-sign-off) as described below. Thanks in advance
 for your patience as we review your contributions; we do appreciate them!
 
 ## Commit Sign-off
