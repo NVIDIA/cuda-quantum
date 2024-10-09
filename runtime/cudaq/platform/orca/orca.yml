@@ -17,6 +17,8 @@ config:
   link-libs: ["-lcudaq-orca-qpu"]
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
+  # Allow use of the multi-QPU library
+  platform-library: mqpu
 
 target-arguments:
   - key: url

@@ -14,7 +14,8 @@ namespace cudaq {
 /// @brief This setTargetBackend override is in charge of reading the
 /// specific target backend configuration file.
 void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
-  cudaq::info("Remote REST platform is targeting {}.", backend);
+  cudaq::info("OrcaRemoteRESTQPU platform is targeting {} with qpu_id = {}.",
+              backend, qpu_id);
 
   // First we see if the given backend has extra config params
   auto mutableBackend = backend;
@@ -63,10 +64,15 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
                                      std::uint64_t voidStarSize,
                                      std::uint64_t resultOffset,
                                      const std::vector<void *> &rawArgs) {
-  cudaq::info("launching ORCA remote rest experiment ({})", kernelName);
+
+  cudaq::info("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
+              kernelName, qpu_id);
+
+  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+  auto ctx = contexts[tid];
 
   // TODO future iterations of this should support non-void return types.
-  if (!executionContext)
+  if (!ctx)
     throw std::runtime_error("Remote rest execution can only be performed "
                              "via cudaq::sample() or cudaq::observe().");
 
@@ -74,19 +80,19 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
       *((struct cudaq::orca::TBIParameters *)args);
   std::size_t shots = params.n_samples;
 
-  executionContext->shots = shots;
+  ctx->shots = shots;
 
   cudaq::details::future future;
   future = executor->execute(params, kernelName);
 
   // Keep this asynchronous if requested
-  if (executionContext->asyncExec) {
-    executionContext->futureResult = future;
+  if (ctx->asyncExec) {
+    ctx->futureResult = future;
     return;
   }
 
   // Otherwise make this synchronous
-  executionContext->result = future.get();
+  ctx->result = future.get();
 }
 
 } // namespace cudaq

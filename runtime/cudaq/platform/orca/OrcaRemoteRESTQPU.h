@@ -26,7 +26,7 @@ namespace cudaq {
 /// that includes sampling via synchronous client invocations.
 class OrcaRemoteRESTQPU : public cudaq::QPU {
 protected:
-  /// The number of shots
+  /// @brief The number of shots
   std::optional<int> nShots;
 
   /// @brief the platform file path, CUDAQ_INSTALL/platforms
@@ -39,7 +39,7 @@ protected:
   /// execution locally.
   bool emulate = false;
 
-  // Pointer to the concrete Executor for this QPU
+  /// @brief Pointer to the concrete Executor for this QPU
   std::unique_ptr<OrcaExecutor> executor;
 
   /// @brief Pointer to the concrete ServerHelper, provides
@@ -49,6 +49,9 @@ protected:
   /// @brief Mapping of general key-values for backend
   /// configuration.
   std::map<std::string, std::string> backendConfig;
+
+  /// @brief Mapping of thread and execution context
+  std::unordered_map<std::size_t, cudaq::ExecutionContext *> contexts;
 
 private:
   /// @brief RestClient used for HTTP requests.
@@ -68,8 +71,14 @@ public:
   /// @brief The destructor
   virtual ~OrcaRemoteRESTQPU() = default;
 
-  /// Enqueue a quantum task on the asynchronous execution queue.
+  /// @brief Get id of the thread this queue executes on.
+  std::thread::id getExecutionThreadId() const {
+    return execution_queue->getExecutionThreadId();
+  }
+
+  /// @brief Enqueue a quantum task on the asynchronous execution queue.
   void enqueue(cudaq::QuantumTask &task) override {
+    cudaq::info("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
     execution_queue->enqueue(task);
   }
 
@@ -79,31 +88,30 @@ public:
   /// @brief Return true if the current backend supports conditional feedback
   bool supportsConditionalFeedback() override { return false; }
 
-  /// Provide the number of shots
+  /// @brief Provide the number of shots
   void setShots(int _nShots) override { nShots = _nShots; }
 
-  /// Clear the number of shots
+  /// @brief Clear the number of shots
   void clearShots() override { nShots = std::nullopt; }
 
   /// @brief Return true if the current backend is remote
   virtual bool isRemote() override { return !emulate; }
 
-  /// Store the execution context for launchKernel
+  /// @brief Store the execution context for launching kernel
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    if (!context)
-      return;
-
-    cudaq::info("Remote Rest QPU setting execution context to {}",
-                context->name);
-
-    // Execution context is valid
-    executionContext = context;
+    cudaq::info("OrcaRemoteRESTQPU::setExecutionContext QPU {}", qpu_id);
+    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    contexts.emplace(tid, context);
+    cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
   }
 
-  /// Reset the execution context
+  /// @brief Overrides resetExecutionContext to forward to the ExecutionManager
   void resetExecutionContext() override {
-    // do nothing here
-    executionContext = nullptr;
+    cudaq::info("OrcaRemoteRESTQPU::resetExecutionContext QPU {}", qpu_id);
+    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    cudaq::getExecutionManager()->resetExecutionContext();
+    contexts[tid] = nullptr;
+    contexts.erase(tid);
   }
 
   /// @brief This setTargetBackend override is in charge of reading the
