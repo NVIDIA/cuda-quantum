@@ -490,7 +490,7 @@ jobs:
           export ORCA_ACCESS_URL='${{ secrets.ORCA_ACCESS_URL }}'
           set +e # Allow script to keep going through errors
           test_err_sum=0
-          cpp_tests="docs/sphinx/examples/cpp/providers/orca.cpp"
+          cpp_tests="docs/sphinx/examples/cpp/providers/orca.cpp docs/sphinx/examples/cpp/providers/orca_mqpu.cpp"
           for filename in $cpp_tests; do
             [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
             nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
@@ -509,7 +509,7 @@ jobs:
               test_err_sum=$((test_err_sum+1))
             fi
           done
-          python_tests="docs/sphinx/examples/python/providers/orca.py"
+          python_tests="docs/sphinx/examples/python/providers/orca.py docs/sphinx/examples/python/providers/orca_mqpu.py"
           for filename in $python_tests; do
             [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
             python3 $filename 1> /dev/null
