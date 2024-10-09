@@ -14,7 +14,7 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 # Wrap state data (on device memory) as a `cupy` array.
-# Note: the cupy array only holds a reference to the GPU memory buffer, no copy.
+# Note: the `cupy` array only holds a reference to the GPU memory buffer, no copy.
 def to_cupy_array(state):
     tensor = state.getTensor()
     pDevice = tensor.data()
@@ -27,6 +27,7 @@ def to_cupy_array(state):
                               dtype=dtype,
                               memptr=memptr)
     return cupy_array
+
 
 # Helper to convert a state vector to a density matrix
 def ket2dm(ket: cupy.ndarray) -> cupy.ndarray:
@@ -50,7 +51,8 @@ def coherent_dm(N: int, alpha: float):
 
 
 # Evaluate the Wigner functions input state
-def wigner_function(state: cudaq_runtime.State | cupy.ndarray, xvec: cupy.ndarray, yvec: cupy.ndarray):
+def wigner_function(state: cudaq_runtime.State | cupy.ndarray,
+                    xvec: cupy.ndarray, yvec: cupy.ndarray):
     g = numpy.sqrt(2)
     if isinstance(state, cudaq_runtime.State):
         state = to_cupy_array(state)
@@ -151,6 +153,7 @@ class CuSuperOpState(object):
         dm = cupy.asfortranarray(dm)
         dm_state = DenseMixedState(self.__ctx, dm)
         return CuSuperOpState(dm_state)
+
 
 # Wrap a CUDA-Q state as a `CuSuperOpState`
 def as_cuso_state(state):

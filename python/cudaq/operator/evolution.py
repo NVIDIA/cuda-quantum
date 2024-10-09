@@ -22,6 +22,7 @@ from ..kernel.kernel_builder import PyKernel, make_kernel
 from ..runtime.observe import observe
 from .integrator import BaseIntegrator
 
+
 def _compute_step_matrix(hamiltonian: Operator, dimensions: Mapping[int, int],
                          parameters: Mapping[str, NumericType],
                          dt: float) -> NDArray[complexfloating]:
@@ -115,10 +116,12 @@ def evolve_single(
         try:
             from .cuso_solver import evolve_dynamics
         except:
-            raise ImportError("Failed to load nvidia-dynamics solver. Please check your installation")
+            raise ImportError(
+                "Failed to load nvidia-dynamics solver. Please check your installation"
+            )
         return evolve_dynamics(hamiltonian, dimensions, schedule, initial_state,
-                         collapse_operators, observables,
-                         store_intermediate_results, integrator)
+                               collapse_operators, observables,
+                               store_intermediate_results, integrator)
 
     simulator = cudaq_runtime.get_target().simulator.strip()
     if simulator == "":
@@ -260,12 +263,14 @@ def evolve_single_async(
         try:
             from .cuso_solver import evolve_dynamics
         except:
-            raise ImportError("Failed to load nvidia-dynamics solver. Please check your installation")
-        
-        return cudaq_runtime.evolve_async(
-            lambda: evolve_dynamics(hamiltonian, dimensions, schedule, initial_state,
-                              collapse_operators, observables,
-                              store_intermediate_results, integrator))
+            raise ImportError(
+                "Failed to load nvidia-dynamics solver. Please check your installation"
+            )
+
+        return cudaq_runtime.evolve_async(lambda: evolve_dynamics(
+            hamiltonian, dimensions, schedule, initial_state,
+            collapse_operators, observables, store_intermediate_results,
+            integrator))
 
     simulator = cudaq_runtime.get_target().simulator.strip()
     if simulator == "":

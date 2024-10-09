@@ -22,6 +22,7 @@ import cupy
 import math
 from .timing_helper import ScopeTimer
 
+
 # Master-equation solver using `cuSuperOp`
 def evolve_dynamics(
         hamiltonian: Operator,
