@@ -35,7 +35,7 @@ conflict is introduced by your pull-request. To confirm this, you will need to
 [sign off on your commits](#signing-your-work) as described below. Thanks in advance
 for your patience as we review your contributions; we do appreciate them!
 
-## Signing Your Work
+## Commit Sign-off
 
 We require that all contributors "sign-off" on their commits. This certifies
 that the contribution is your original work, or you have rights to submit it
