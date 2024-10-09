@@ -174,6 +174,8 @@ Platform
 
 .. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
 
+.. doxygenclass:: cudaq::FermioniqBaseQPU
+
 .. doxygenclass:: cudaq::quantum_platform
     :members:
 
