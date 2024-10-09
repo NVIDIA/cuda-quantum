@@ -57,5 +57,6 @@ def main():
     phase = rwpe_kernel(n_iterations, mu, sigma)
     print(f"Phase = {phase:.6f}")
 
+
 if __name__ == "__main__":
     main()
