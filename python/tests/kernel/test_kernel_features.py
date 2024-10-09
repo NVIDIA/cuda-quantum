@@ -194,12 +194,12 @@ def test_2grover_compute_action():
 def test_pauli_word_input():
 
     h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
+        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0,
+        -0.220041, -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0,
+        2, 0, 0, 0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063,
+        -0, 2, 2, 0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202,
+        0, 2, 0, 0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2,
+        0.174073, 0, 1, 1, 3, 3, -0.0454063, -0, 15
     ]
     h = cudaq.SpinOperator(h2_data, 4)
 
@@ -242,12 +242,12 @@ def test_pauli_word_input():
 
 def test_exp_pauli():
     h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
+        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0,
+        -0.220041, -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0,
+        2, 0, 0, 0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063,
+        -0, 2, 2, 0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202,
+        0, 2, 0, 0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2,
+        0.174073, 0, 1, 1, 3, 3, -0.0454063, -0, 15
     ]
     h = cudaq.SpinOperator(h2_data, 4)
 
@@ -1723,6 +1723,102 @@ def test_custom_quantum_type():
     # Test here is that it compiles and runs successfully
     print(run)
     run()
+
+
+def test_disallow_hybrid_types():
+    from dataclasses import dataclass
+    # Ensure we don't allow hybrid type s
+    @dataclass
+    class hybrid:
+        q: cudaq.qview
+        i: int
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test():
+            q = cudaq.qvector(2)
+            h = hybrid(q, 1)
+
+        test()
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def testtest(h: hybrid):
+            x(h.q[h.i])
+
+        testtest.compile()
+
+
+def test_disallow_quantum_struct_return():
+    from dataclasses import dataclass
+    # Ensure we don't allow hybrid type s
+    @dataclass
+    class T:
+        q: cudaq.qview
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test() -> T:
+            q = cudaq.qvector(2)
+            h = T(q)
+            return h
+
+        test()
+
+def test_disallow_recursive_quantum_struct():
+    from dataclasses import dataclass
+    @dataclass
+    class T:
+        q: cudaq.qview
+
+    @dataclass
+    class Holder:
+        t : T
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test():
+            q = cudaq.qvector(2)
+            t = T(q)
+            hh = Holder(t)
+
+        print(test)
+    
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test(hh : Holder):
+            pass
+
+        print(test)
+
+def test_disallow_struct_with_methods():
+    from dataclasses import dataclass
+    @dataclass
+    class T:
+        q: cudaq.qview
+        def doSomething(self):
+            pass 
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test(t : T):
+            pass 
+
+        print(test)
+    
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel 
+        def test():
+            q = cudaq.qvector(2)
+            t = T(q)
+        print(test)
 
 
 @skipIfPythonLessThan39
