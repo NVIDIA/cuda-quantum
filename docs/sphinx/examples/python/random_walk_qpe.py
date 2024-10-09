@@ -11,8 +11,8 @@ from cudaq import spin
 # that incorporates non-trivial control flow and conditional
 # quantum instruction invocation.
 
-# Define the random walk phase estimation (rwpe) kernel
 
+# Define the random walk phase estimation kernel
 @cudaq.kernel
 def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
     iteration = 0
@@ -24,7 +24,7 @@ def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
     # Alias them
     aux = qubits[0]
 
-    target = qubits[number_of_qubits -1]
+    target = qubits[number_of_qubits - 1]
 
     x(target)
 
@@ -38,7 +38,7 @@ def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
         h(aux)
         if mz(aux):
             x(aux)
-            mu = mu +  sigma * .6065
+            mu = mu + sigma * .6065
         else:
             mu = mu - sigma * .6065
 
@@ -46,6 +46,7 @@ def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
         iteration += 1
 
     return 2.0 * mu
+
 
 # Main function to execute the kernel
 def main():
