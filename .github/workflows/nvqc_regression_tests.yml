@@ -128,7 +128,9 @@ jobs:
             # nested_vectors: related to vector of pauli_words (https://github.com/NVIDIA/cuda-quantum/issues/1957)
             # custom_operation: https://github.com/NVIDIA/cuda-quantum/issues/1985
             # return_values: only supported in 0.8 NVQC service.
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"state_overlap"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"pauli_word"* ]] && [[ "$filename" != *"custom_operation"* ]] && [[ "$filename" != *"return_values"* ]]; then
+            # qvector_init_from_vector: only supported in 0.8 NVQC service.
+            # qvector_init_from_state, qvector_init_from_state_lazy, test_trotter: not supported yet on nvqc: https://github.com/NVIDIA/cuda-quantum/issues/2146
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"state_overlap"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"pauli_word"* ]] && [[ "$filename" != *"custom_operation"* ]] && [[ "$filename" != *"return_values"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]] && [[ "$filename" != *"qvector_init_from_state_lazy"* ]] && [[ "$filename" != *"qvector_init_from_vector"* ]] && [[ "$filename" != *"test_trotter"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
@@ -192,7 +194,7 @@ jobs:
 
           # Test NVQC Python examples + Python MLIR execution tests (not IR tests)
           python3 -m pip install pytest
-          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py' -not -path '*/python/tutorials/*'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -306,7 +308,7 @@ jobs:
           set +e # Allow script to keep going through errors
           python$python_version -m pip install pytest
           test_err_sum=0
-          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py' -not -path '*/python/tutorials/*'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"

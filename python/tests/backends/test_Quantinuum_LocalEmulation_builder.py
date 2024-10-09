@@ -137,6 +137,41 @@ def test_quantinuum_state_preparation():
     assert not '111' in counts
 
 
+def test_quantinuum_state_synthesis():
+    kernel, state = cudaq.make_kernel(cudaq.State)
+    qubits = kernel.qalloc(state)
+
+    state = cudaq.State.from_data(
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, state)
+    assert 'Could not successfully apply quake-synth.' in repr(e)
+
+
+def test_exp_pauli():
+    test = cudaq.make_kernel()
+    q = test.qalloc(2)
+    test.exp_pauli(1.0, q, "XX")
+
+    counts = cudaq.sample(test)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
+def test_exp_pauli_param():
+    test, w = cudaq.make_kernel(cudaq.pauli_word)
+    q = test.qalloc(2)
+    test.exp_pauli(1.0, q, w)
+
+    # FIXME: should work after new launchKernel becomes default.
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(test, cudaq.pauli_word("XX"))
+    assert 'Remote rest platform Quake lowering failed.' in repr(e)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

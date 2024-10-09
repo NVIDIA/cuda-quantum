@@ -19,7 +19,7 @@ namespace nvqir {
 CircuitSimulator *getCircuitSimulatorInternal();
 }
 
-namespace {
+namespace cudaq {
 
 /// The DefaultExecutionManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the current CircuitSimulator
@@ -207,9 +207,11 @@ protected:
                 simulator()->applyExpPauli(parameters[0], localC, localT, op);
               })
         .Default([&]() {
-          if (auto iter = registeredOperations.find(gateName);
-              iter != registeredOperations.end()) {
-            auto data = iter->second->unitary(parameters);
+          if (cudaq::customOpRegistry::getInstance().isOperationRegistered(
+                  gateName)) {
+            const auto &op =
+                cudaq::customOpRegistry::getInstance().getOperation(gateName);
+            auto data = op.unitary(parameters);
             simulator()->applyCustomOperation(data, localC, localT, gateName);
             return;
           }
@@ -249,9 +251,9 @@ public:
   }
 };
 
-} // namespace
+} // namespace cudaq
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(DefaultExecutionManager, default)
 
 extern "C" {
 /// C interface to the (default) execution manager's methods.

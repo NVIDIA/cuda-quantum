@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "JITExecutionCache.h"
+#include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -22,7 +24,6 @@
 #include "cudaq/platform/qpu.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
-
 #include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
@@ -31,7 +32,6 @@
 #include "mlir/InitAllPasses.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
-
 #include <fmt/core.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -97,10 +97,11 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(
         cudaq::opt::createPySynthCallableBlockArgs(names));
-    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
+    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
+    pm.addPass(createSymbolDCEPass());
     cudaq::opt::addPipelineConvertToQIR(pm);
 
     DefaultTimingManager tm;
@@ -510,15 +511,28 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto enablePrintMLIREachPass =
       getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
+  auto &platform = cudaq::get_platform();
+  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
+  auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
+  auto isSimulator = isLocalSimulator || isRemoteSimulator;
+
+  cudaq::opt::ArgumentConverter argCon(name, unwrap(module), isSimulator);
+  argCon.gen(runtimeArgs.getArgs());
+  std::string kernName = cudaq::runtime::cudaqGenPrefixName + name;
+  SmallVector<StringRef> kernels = {kernName};
+  std::string substBuff;
+  llvm::raw_string_ostream ss(substBuff);
+  ss << argCon.getSubstitutionModule();
+  SmallVector<StringRef> substs = {substBuff};
   PassManager pm(context);
-  pm.addPass(cudaq::opt::createQuakeSynthesizer(name, rawArgs, 0, true));
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createArgumentSynthesisPass(kernels, substs));
   pm.addPass(createCanonicalizerPass());
 
-  // Run state preparation for quantum devices only.
+  // Run state preparation for quantum devices (or their emulation) only.
   // Simulators have direct implementation of state initialization
   // in their runtime.
-  auto &platform = cudaq::get_platform();
-  if (!platform.is_simulator() || platform.is_emulated()) {
+  if (!isSimulator) {
     pm.addPass(cudaq::opt::createConstPropComplex());
     pm.addPass(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createStatePreparation());

@@ -312,6 +312,16 @@ configuration.
 
   export ORCA_ACCESS_URL="https://<ORCA API Server>"
 
+
+Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
+environment variable named ``ORCA_AUTH_TOKEN``. For example, if the token is :code:`AbCdEf123456`,
+you can set the environment variable as follows:
+
+.. code:: bash
+
+  export ORCA_AUTH_TOKEN="AbCdEf123456"
+
+
 Submission from C++
 `````````````````````````
 

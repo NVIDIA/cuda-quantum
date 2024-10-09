@@ -91,8 +91,9 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::SpanLikeType,
-              LLVM::LLVMStructType, quake::ControlType, quake::RefType,
+      if (isa<FunctionType, cc::CallableType, cc::IndirectCallableType,
+              cc::PointerType, cc::SpanLikeType, LLVM::LLVMStructType,
+              quake::ControlType, quake::RefType, quake::StruqType,
               quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
@@ -176,6 +177,14 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(cc::StateType::get(ctx));
     if (name.equals("pauli_word"))
       return pushType(cc::CharspanType::get(ctx));
+    if (name.equals("qkernel")) {
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      // Traverse template argument 0 to get the function's signature.
+      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
+      auto fnTy = cast<FunctionType>(popType());
+      return pushType(cc::IndirectCallableType::get(fnTy));
+    }
     auto loc = toLocation(x);
     TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }
@@ -252,7 +261,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           return false;
         members.push_back(popType());
       }
-      return pushType(cc::StructType::get(ctx, members));
+      auto [width, align] = getWidthAndAlignment(x);
+      return pushType(cc::StructType::get(ctx, members, width, align));
     }
     if (name.equals("tuple")) {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
@@ -265,7 +275,14 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           return false;
         members.push_back(popType());
       }
-      return pushType(cc::StructType::get(ctx, members));
+      auto [width, align] = getWidthAndAlignment(x);
+      if (tuplesAreReversed) {
+        std::reverse(members.begin(), members.end());
+        // Resets are for libstdc++ calling convention compatibility.
+        width = 0;
+        align = 0;
+      }
+      return pushType(cc::StructType::get(ctx, members, width, align));
     }
     if (ignoredClass(x))
       return true;
@@ -641,9 +658,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   if (auto qType = dyn_cast<quake::RefType>(type)) {
     // Variable is of !quake.ref type.
     if (x->hasInit() && !valueStack.empty()) {
-      auto val = popValue();
-      symbolTable.insert(name, val);
-      return pushValue(val);
+      symbolTable.insert(name, peekValue());
+      return true;
     }
     auto zero = builder.create<mlir::arith::ConstantIntOp>(
         loc, 0, builder.getIntegerType(64));
@@ -653,6 +669,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
     return pushValue(addressTheQubit);
+  }
+
+  if (isa<quake::StruqType>(type)) {
+    // A pure quantum struct is just passed along by value. It cannot be stored
+    // to a variable.
+    symbolTable.insert(name, peekValue());
+    return true;
   }
 
   // Here we maybe have something like auto var = mz(qreg)
@@ -786,6 +809,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     Value cast = builder.create<cc::CastOp>(loc, type, initValue);
     symbolTable.insert(x->getName(), cast);
     return pushValue(cast);
+  }
+
+  // Don't allocate memory for a quantum or value-semantic struct.
+  if (auto insertValOp = initValue.getDefiningOp<cc::InsertValueOp>()) {
+    symbolTable.insert(x->getName(), initValue);
+    return pushValue(initValue);
   }
 
   // Initialization expression resulted in a value. Create a variable and save

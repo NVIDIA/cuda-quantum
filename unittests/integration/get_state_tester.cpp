@@ -14,6 +14,9 @@
 
 using namespace cudaq;
 
+// State operations not supported in Stim.
+#ifndef CUDAQ_BACKEND_STIM
+
 CUDAQ_TEST(GetStateTester, checkSimple) {
   auto kernel = []() __qpu__ {
     cudaq::qubit q, r;
@@ -164,4 +167,25 @@ CUDAQ_TEST(GetStateTester, checkOverlapFromHostVector) {
   // Check overlap with host vector
   EXPECT_NEAR(1.0, state.overlap(hostState).real(), 1e-3);
 }
+#endif
+
+CUDAQ_TEST(GetStateTester, checkKron) {
+  auto force_kron = [](std::vector<std::complex<cudaq::real>> vec) __qpu__ {
+    cudaq::qubit a;
+    cudaq::qvector qvec(vec);
+  };
+  // Construct a 6-qubit |111111> state
+  const int num_qubits_input_state = 6;
+  std::vector<std::complex<cudaq::real>> hostStateData(
+      1 << num_qubits_input_state);
+  hostStateData[hostStateData.size() - 1] = 1.0;
+
+  auto counts = cudaq::sample(force_kron, hostStateData);
+
+  // Expect a single state with a deterministic outcome
+  EXPECT_EQ(counts.size(), 1);
+  EXPECT_EQ(counts.begin()->first,
+            "0" + std::string(num_qubits_input_state, '1'));
+}
+
 #endif

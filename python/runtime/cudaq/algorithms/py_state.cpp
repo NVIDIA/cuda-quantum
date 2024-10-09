@@ -62,17 +62,16 @@ state pyGetState(py::object kernel, py::args args) {
 // Note: Python kernel arguments are wrapped hence need to be unwrapped
 // accordingly.
 class PyRemoteSimulationState : public RemoteSimulationState {
-  cudaq::ArgWrapper argsWrapper;
-  std::size_t argsSize;
   // Holder of args data for clean-up.
   cudaq::OpaqueArguments *argsData;
+  mlir::ModuleOp kernelMod;
 
 public:
   PyRemoteSimulationState(const std::string &in_kernelName,
                           cudaq::ArgWrapper args,
                           cudaq::OpaqueArguments *argsDataToOwn,
                           std::size_t size, std::size_t returnOffset)
-      : argsWrapper(args), argsSize(size), argsData(argsDataToOwn) {
+      : argsData(argsDataToOwn), kernelMod(args.mod) {
     this->kernelName = in_kernelName;
   }
 
@@ -86,18 +85,19 @@ public:
       // execute and then reset
       platform.set_exec_ctx(&context);
       // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
-      // ArgWrapper pointer.
-      platform.launchKernel(kernelName, nullptr,
-                            reinterpret_cast<void *>(
-                                const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
-                            argsSize, 0);
+      // ModuleOp pointer as the first element in the args array in StreamLined
+      // mode.
+      auto args = argsData->getArgs();
+      args.insert(args.begin(),
+                  const_cast<void *>(static_cast<const void *>(&kernelMod)));
+      platform.launchKernel(kernelName, args);
       platform.reset_exec_ctx();
       state = std::move(context.simulationState);
     }
   }
 
-  std::tuple<std::string, void *, std::size_t> getKernelInfo() const override {
-    return {kernelName, argsWrapper.rawArgs, argsSize};
+  std::pair<std::string, std::vector<void *>> getKernelInfo() const override {
+    return {kernelName, argsData->getArgs()};
   }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override {
@@ -109,10 +109,10 @@ public:
         static_cast<const cudaq::SimulationState *>(this),
         static_cast<const cudaq::SimulationState *>(&otherState));
     platform.set_exec_ctx(&context);
-    platform.launchKernel(
-        kernelName, nullptr,
-        reinterpret_cast<void *>(const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
-        0, 0);
+    auto args = argsData->getArgs();
+    args.insert(args.begin(),
+                const_cast<void *>(static_cast<const void *>(&kernelMod)));
+    platform.launchKernel(kernelName, args);
     platform.reset_exec_ctx();
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();
@@ -135,6 +135,21 @@ state pyGetStateRemote(py::object kernel, py::args args) {
       pyCreateNativeKernel(kernelName, kernelMod, *argData);
   return state(new PyRemoteSimulationState(kernelName, argWrapper, argData,
                                            size, returnOffset));
+}
+
+state pyGetStateLibraryMode(py::object kernel, py::args args) {
+  return details::extractState([&]() mutable {
+    if (0 == args.size())
+      cudaq::invokeKernel(std::forward<py::object>(kernel));
+    else {
+      std::vector<py::object> argsData;
+      for (size_t i = 0; i < args.size(); i++) {
+        py::object arg = args[i];
+        argsData.emplace_back(std::forward<py::object>(arg));
+      }
+      cudaq::invokeKernel(std::forward<py::object>(kernel), argsData);
+    }
+  });
 }
 
 /// @brief Bind the get_state cudaq function
@@ -442,7 +457,7 @@ index pair.
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitude of |0101>, assuming this is a 4-qubit state.
-  amplitude = state.amplitude([0,1,0,1])#")
+  amplitude = state.amplitude([0,1,0,1]))#")
       .def(
           "amplitude",
           [](state &s, const std::string &bitString) {
@@ -456,7 +471,7 @@ index pair.
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitude of |0101>, assuming this is a 4-qubit state.
-  amplitude = state.amplitude('0101')#")
+  amplitude = state.amplitude('0101'))#")
       .def(
           "amplitudes",
           [](state &s, const std::vector<std::vector<int>> &basisStates) {
@@ -470,7 +485,7 @@ index pair.
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitude of |0101> and |1010>, assuming this is a 4-qubit state.
-  amplitudes = state.amplitudes([[0,1,0,1], [1,0,1,0])#")
+  amplitudes = state.amplitudes([[0,1,0,1], [1,0,1,0]]))#")
       .def(
           "amplitudes",
           [](state &s, const std::vector<std::string> &bitStrings) {
@@ -488,7 +503,7 @@ index pair.
   # Create a simulation state.
   state = cudaq.get_state(kernel)
   # Return the amplitudes of |0101> and |1010>, assuming this is a 4-qubit state.
-  amplitudes = state.amplitudes(['0101', '1010'])#")
+  amplitudes = state.amplitudes(['0101', '1010']))#")
       .def(
           "dump",
           [](state &self) {
@@ -629,6 +644,8 @@ index pair.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "nvqc")
           return pyGetStateRemote(kernel, args);
+        if (holder.getTarget().name == "photonics")
+          return pyGetStateLibraryMode(kernel, args);
         return pyGetState(kernel, args);
       },
       R"#(Return the :class:`State` of the system after execution of the provided `kernel`.

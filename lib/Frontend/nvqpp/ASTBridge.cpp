@@ -252,6 +252,7 @@ public:
     return true;
   }
 
+  // NB: DataRecursionQueue* argument intentionally omitted.
   bool TraverseLambdaExpr(clang::LambdaExpr *x) {
     bool saveQuantumTypesNotAllowed = quantumTypesNotAllowed;
     // Rationale: a lambda expression may be passed from classical C++ code into
@@ -300,7 +301,22 @@ public:
     return true;
   }
 
+  bool isTupleReverseVar(clang::VarDecl *decl) {
+    if (cudaq::isInNamespace(decl, "cudaq"))
+      return decl->getName().equals("TupleIsReverse");
+    return false;
+  }
+
   bool VisitVarDecl(clang::VarDecl *x) {
+    if (isTupleReverseVar(x)) {
+      auto loc = x->getLocation();
+      auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
+          x->getASTContext(), &loc, false);
+      if (opt) {
+        LLVM_DEBUG(llvm::dbgs() << "tuples are reversed: " << *opt << '\n');
+        tuplesAreReversed = !opt->isZero();
+      }
+    }
     // The check to make sure that quantum data types are only used in kernels
     // is done here. This checks both variable declarations and parameters.
     if (quantumTypesNotAllowed)
@@ -320,6 +336,8 @@ public:
     return true;
   }
 
+  bool isTupleReversed() const { return tuplesAreReversed; }
+
 private:
   cudaq::EmittedFunctionsCollection &functionsToEmit;
   clang::CallGraph &callGraphBuilder;
@@ -330,6 +348,7 @@ private:
   const clang::CXXRecordDecl *checkedClass = nullptr;
   bool ignoreTemplate = false;
   bool quantumTypesNotAllowed = false;
+  bool tuplesAreReversed = false;
 };
 } // namespace
 
@@ -540,10 +559,10 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
   llvm::SmallVector<clang::Decl *> reachableFuncs =
       listReachableFunctions(callGraphBuilder.getRoot());
   auto *ctx = module->getContext();
-  details::QuakeBridgeVisitor visitor(&astContext, ctx, builder, module.get(),
-                                      symbol_table, functionsToEmit,
-                                      reachableFuncs, cxx_mangled_kernel_names,
-                                      ci, mangler, customOperationNames);
+  details::QuakeBridgeVisitor visitor(
+      &astContext, ctx, builder, module.get(), symbol_table, functionsToEmit,
+      reachableFuncs, cxx_mangled_kernel_names, ci, mangler,
+      customOperationNames, tuplesAreReversed);
 
   // First generate declarations for all kernels.
   bool ok = true;
@@ -619,6 +638,7 @@ bool ASTBridgeAction::ASTBridgeConsumer::HandleTopLevelDecl(
   // Loop over all decls, saving the function decls that are quantum kernels.
   for (const auto *decl : dg)
     finder.TraverseDecl(const_cast<clang::Decl *>(decl));
+  tuplesAreReversed |= finder.isTupleReversed();
   return true;
 }
 

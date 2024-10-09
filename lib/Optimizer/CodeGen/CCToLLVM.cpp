@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
 #include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
@@ -185,6 +186,50 @@ public:
     auto call2 = rewriter.create<LLVM::CallOp>(loc, resultTy, arguments2);
     rewriter.create<LLVM::BrOp>(loc, call2.getResults(), endBlock);
     rewriter.replaceOp(call, endBlock->getArguments());
+    return success();
+  }
+};
+
+class CallIndirectCallableOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::CallIndirectCallableOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CallIndirectCallableOp call, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = call.getLoc();
+    auto parentModule = call->getParentOfType<ModuleOp>();
+    auto funcPtrTy = getTypeConverter()->convertType(
+        cast<cudaq::cc::IndirectCallableType>(call.getCallee().getType())
+            .getSignature());
+    auto ptrTy = LLVM::LLVMPointerType::get(rewriter.getI8Type());
+    auto funcTy = cast<LLVM::LLVMFunctionType>(
+        cast<LLVM::LLVMPointerType>(funcPtrTy).getElementType());
+    auto i64Ty = rewriter.getI64Type(); // intptr_t
+    FlatSymbolRefAttr funSymbol = cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::runtime::getLinkableKernelDeviceSide, ptrTy, {i64Ty},
+        parentModule);
+
+    // Use the runtime helper function to convert the key to a pointer to the
+    // function that was intended to be called. This can only be functional if
+    // the runtime support has been linked into the executable and the
+    // device-side functions are located in the same address space as well. None
+    // of these functions should be expected to reside on remote hardware.
+    // Therefore, this will likely only be useful in a simulation target.
+    auto lookee = rewriter.create<LLVM::CallOp>(
+        loc, ptrTy, funSymbol, ValueRange{adaptor.getCallee()});
+    auto lookup =
+        rewriter.create<LLVM::BitcastOp>(loc, funcPtrTy, lookee.getResult());
+
+    // Call the function that was just found in the map.
+    SmallVector<Value> args = {lookup.getResult()};
+    args.append(adaptor.getArgs().begin(), adaptor.getArgs().end());
+    if (isa<LLVM::LLVMVoidType>(funcTy.getReturnType()))
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(call, std::nullopt, args);
+    else
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(call, funcTy.getReturnType(),
+                                                args);
     return success();
   }
 };
@@ -495,6 +540,33 @@ public:
   }
 };
 
+class OffsetOfOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::OffsetOfOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  // Use the GEP approach for now. LLVM is planning to remove support for this
+  // at some point. See: https://github.com/llvm/llvm-project/issues/71507
+  LogicalResult
+  matchAndRewrite(cudaq::cc::OffsetOfOp offsetOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto inputTy = offsetOp.getInputType();
+    SmallVector<cudaq::cc::ComputePtrArg> args;
+    for (std::int32_t i : offsetOp.getConstantIndices())
+      args.push_back(i);
+    auto resultTy = offsetOp.getType();
+    auto loc = offsetOp.getLoc();
+    // TODO: replace this with some target-specific memory layout computation
+    // when we upgrade to a newer MLIR.
+    auto zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto ptrTy = cudaq::cc::PointerType::get(inputTy);
+    auto nul = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
+    Value nextPtr =
+        rewriter.create<cudaq::cc::ComputePtrOp>(loc, ptrTy, nul, args);
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(offsetOp, resultTy, nextPtr);
+    return success();
+  }
+};
+
 class StdvecDataOpPattern
     : public ConvertOpToLLVMPattern<cudaq::cc::StdvecDataOp> {
 public:
@@ -643,11 +715,13 @@ public:
 void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                           RewritePatternSet &patterns) {
   patterns.insert<AddressOfOpPattern, AllocaOpPattern, CallableClosureOpPattern,
-                  CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
+                  CallableFuncOpPattern, CallCallableOpPattern,
+                  CallIndirectCallableOpPattern, CastOpPattern,
                   ComputePtrOpPattern, CreateStringLiteralOpPattern,
                   ExtractValueOpPattern, FuncToPtrOpPattern, GlobalOpPattern,
                   InsertValueOpPattern, InstantiateCallableOpPattern,
-                  LoadOpPattern, PoisonOpPattern, SizeOfOpPattern,
-                  StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-                  StoreOpPattern, UndefOpPattern>(typeConverter);
+                  LoadOpPattern, OffsetOfOpPattern, PoisonOpPattern,
+                  SizeOfOpPattern, StdvecDataOpPattern, StdvecInitOpPattern,
+                  StdvecSizeOpPattern, StoreOpPattern, UndefOpPattern>(
+      typeConverter);
 }

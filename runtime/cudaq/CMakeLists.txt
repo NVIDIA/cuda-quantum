@@ -9,7 +9,7 @@
 add_subdirectory(spin)
 
 set(LIBRARY_NAME cudaq)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 # Create the CUDA-Q Library
@@ -17,10 +17,11 @@ add_library(${LIBRARY_NAME}
          SHARED cudaq.cpp 
                 target_control.cpp
                 algorithms/draw.cpp
-                qis/state.cpp
-                qis/remote_state.cpp
-                platform/quantum_platform.cpp 
+                platform/quantum_platform.cpp
+                qis/execution_manager_c_api.cpp
                 qis/execution_manager.cpp
+                qis/remote_state.cpp
+                qis/state.cpp
                 utils/cudaq_utils.cpp
                 distributed/mpi_plugin.cpp)
 

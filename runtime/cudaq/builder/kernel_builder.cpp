@@ -941,7 +941,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   names.emplace_back(mlir::StringAttr::get(ctx, kernelName),
                      mlir::StringAttr::get(ctx, "BuilderKernel.EntryPoint"));
   auto mapAttr = mlir::DictionaryAttr::get(ctx, names);
-  module->setAttr("quake.mangled_name_map", mapAttr);
+  module->setAttr(cudaq::runtime::mangledNameMap, mapAttr);
 
   // Tag as an entrypoint if it is one
   tagEntryPoint(builder, module, StringRef{});
@@ -962,8 +962,9 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
-    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
+    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
+    pm.addPass(createSymbolDCEPass());
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");

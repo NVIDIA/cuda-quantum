@@ -66,10 +66,9 @@ Returns:
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     cudaq_runtime.setExecutionContext(ctx)
 
-    if hasattr(kernel, 'metadata') and kernel.metadata['conditionalOnMeasure']:
+    if hasattr(kernel, 'metadata') and kernel.metadata.get(
+            'conditionalOnMeasure', False):
         ctx.hasConditionalsOnMeasureResults = True
-
-    cudaq_runtime.setExecutionContext(ctx)
 
     platformSupportsConditionalFeedback = cudaq_runtime.supportsConditionalFeedback(
     )
