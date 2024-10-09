@@ -72,9 +72,11 @@ int main() {
 
   LinearSpacedArray(bs_angles, M_PI / 3, M_PI / 6, n_beam_splitters);
   LinearSpacedArray(ps_angles, M_PI / 3, M_PI / 5, n_beam_splitters);
-
+  
   auto counts = cudaq::sample(1000000, TBI{}, bs_angles, ps_angles, input_state,
                               loop_lengths);
 
   counts.dump();
+
+  return 0;
 }

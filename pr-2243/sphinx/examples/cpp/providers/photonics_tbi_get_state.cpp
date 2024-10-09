@@ -77,4 +77,6 @@ int main() {
       cudaq::get_state(TBI{}, bs_angles, ps_angles, input_state, loop_lengths);
 
   state.dump();
+
+  retunr 0;
 }
