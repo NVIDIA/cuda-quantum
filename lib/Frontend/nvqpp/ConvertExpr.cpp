@@ -382,13 +382,22 @@ static SmallVector<Value> convertKernelArgs(OpBuilder &builder, Location loc,
       result.push_back(v);
       continue;
     }
-    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(vTy))
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(vTy)) {
       if (ptrTy.getElementType() == kTy) {
         // Promote pass-by-reference to pass-by-value.
         auto load = builder.create<cudaq::cc::LoadOp>(loc, v);
         result.push_back(load);
         continue;
       }
+      if (auto kPtrTy = dyn_cast<cudaq::cc::PointerType>(kTy))
+        if (auto vArrTy =
+                dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType()))
+          if (kPtrTy.getElementType() == vArrTy.getElementType()) {
+            // ok, degenerate the array to a pointer to a scalar
+            result.push_back(builder.create<cudaq::cc::CastOp>(loc, kPtrTy, v));
+            continue;
+          }
+    }
     if (auto vVecTy = dyn_cast<quake::VeqType>(vTy))
       if (auto kVecTy = dyn_cast<quake::VeqType>(kTy)) {
         // Both are Veq but the Veq are not identical. If the callee has a
