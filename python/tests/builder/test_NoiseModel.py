@@ -15,10 +15,11 @@ import cudaq
 import random
 
 
-def test_depolarization_channel():
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_depolarization_channel(target: str):
     """Tests the depolarization channel in the case of a non-zero probability."""
     cudaq.set_random_seed(13)
-    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_target(target)
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
     circuit.x(q)
@@ -43,10 +44,11 @@ def test_depolarization_channel():
     assert ('1' in counts)
 
 
-def test_depolarization_channel_simple():
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_depolarization_channel_simple(target: str):
     """Tests the depolarization channel in the case of `probability = 1.0`"""
     cudaq.set_random_seed(13)
-    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_target(target)
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     noise = cudaq.NoiseModel()
@@ -114,10 +116,11 @@ def test_amplitude_damping_simple():
     cudaq.reset_target()
 
 
-def test_phase_flip_simple():
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_phase_flip_simple(target: str):
     """Tests the phase flip channel in the case of `probability = 1.0`"""
     cudaq.set_random_seed(13)
-    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_target(target)
     noise = cudaq.NoiseModel()
     # Phase flip channel with `1.0` probability of the qubit
     # undergoing a phase rotation of 180 degrees (π).
@@ -150,13 +153,14 @@ def test_phase_flip_simple():
     cudaq.reset_target()
 
 
-def test_bit_flip_simple():
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_bit_flip_simple(target: str):
     """
     Tests the bit flip channel with the probability at `0.0` on qubit 0, 
     and `1.0` on qubit 1.
     """
     cudaq.set_random_seed(13)
-    cudaq.set_target('density-matrix-cpu')
+    cudaq.set_target(target)
     noise = cudaq.NoiseModel()
     # Bit flip channel with `0.0` probability of the qubit flipping 180 degrees.
     bit_flip_zero = cudaq.BitFlipChannel(0.0)
@@ -309,8 +313,9 @@ def test_noise_u3():
     cudaq.reset_target()
 
 
-def test_all_qubit_channel():
-    cudaq.set_target('density-matrix-cpu')
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_all_qubit_channel(target: str):
+    cudaq.set_target(target)
     cudaq.set_random_seed(13)
     noise = cudaq.NoiseModel()
     bf = cudaq.BitFlipChannel(1.0)
