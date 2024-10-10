@@ -28,7 +28,7 @@ struct TBI {
     cudaq::qvector<d> qumodes(n_modes); // |00...00> d-dimensions
     for (std::size_t i = 0; i < n_modes; i++) {
       for (std::size_t j = 0; j < input_state[i]; j++) {
-        plus(qumodes[i]); // setting to |input_state>
+        create(qumodes[i]); // setting to |input_state>
       }
     }
 
@@ -45,7 +45,7 @@ struct TBI {
 
 int main() {
   std::size_t n_loops = 2;
-  std::vector<std::size_t> loop_lengths = {1, 2};
+  std::vector<std::size_t> loop_lengths = {1, 1};
   std::vector<std::size_t> input_state(std::begin(::input_state),
                                        std::end(::input_state));
 

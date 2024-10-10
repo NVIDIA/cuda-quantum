@@ -18,7 +18,7 @@ def TBI(
 
     for i in range(n_modes):
         for _ in range(input_state[i]):
-            plus(qumodes[i])
+            create(qumodes[i])
 
     counter = 0
     for j in loop_lengths:

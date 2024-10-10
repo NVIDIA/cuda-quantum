@@ -28,10 +28,10 @@ int main() {
 
   // half of 8 time bins is filled with a single photon and the other half is
   // filled with the vacuum state (empty)
-  std::vector<std::size_t> input_state{1, 0, 1, 0, 1, 0, 1, 0};
+  std::vector<std::size_t> input_state = {1, 0, 1, 0, 1, 0, 1, 0};
 
   // The time bin interferometer in this example has two loops, each of length 1
-  std::vector<std::size_t> loop_lengths{1, 1};
+  std::vector<std::size_t> loop_lengths = {1, 1};
 
   // helper variables to calculate the number of beam splitters and phase
   // shifters needed in the TBI
@@ -43,12 +43,12 @@ int main() {
 
   // beam splitter angles (created as a linear spaced vector of angles)
   std::vector<double> bs_angles =
-      cudaq::linspace(M_PI / 8, M_PI / 3, n_beam_splitters);
+      cudaq::linspace(M_PI / 3, M_PI / 6, n_beam_splitters);
 
   // Optionally, we can also specify the phase shifter angles (created as a
   // linear spaced vector of angles), if the system includes phase shifters
   // ```
-  // std::vector<double> ps_angles = cudaq::linspace(M_PI / 6, M_PI / 3,
+  // std::vector<double> ps_angles = cudaq::linspace(M_PI / 3, M_PI / 5,
   // n_beam_splitters);
   // ```
 
