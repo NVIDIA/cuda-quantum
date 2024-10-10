@@ -507,14 +507,17 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   auto astTy = x->getType();
   // Verify the argument and return types are valid for a kernel.
   auto *protoTy = dyn_cast<clang::FunctionProtoType>(astTy.getTypePtr());
-  if (!protoTy) {
-    reportClangError(x, mangler, "kernel must have a prototype");
+  auto syntaxError = [&]<unsigned N>(const char(&msg)[N]) -> bool {
+    reportClangError(x, mangler, msg);
+    [[maybe_unused]] auto ty = popType();
+    LLVM_DEBUG(llvm::dbgs() << "invalid type: " << ty << '\n');
     return false;
-  }
+  };
+  if (!protoTy)
+    return syntaxError("kernel must have a prototype");
   if (protoTy->getNumParams() != funcTy.getNumInputs()) {
     // The arity of the function doesn't match, so report an error.
-    reportClangError(x, mangler, "kernel has unexpected arguments");
-    return false;
+    return syntaxError("kernel has unexpected arguments");
   }
   for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
     // Structs, lambdas, functions are valid callable objects. Also pure
@@ -522,14 +525,12 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
     if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p) ||
         isReferenceToCudaqStateType(t))
       continue;
-    reportClangError(p, mangler, "kernel argument type not supported");
-    return false;
+    return syntaxError("kernel argument type not supported");
   }
   for (auto t : funcTy.getResults()) {
     if (isKernelResultType(t))
       continue;
-    reportClangError(x, mangler, "kernel result type not supported");
-    return false;
+    return syntaxError("kernel result type not supported");
   }
   return true;
 }
