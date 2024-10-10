@@ -159,13 +159,24 @@ public:
         customOperationNames(customOperations) {}
 
   /// Add a kernel to the list of kernels to process.
-  void processQpu(std::string &&kernelName, const clang::FunctionDecl *f) {
+  template <bool replace = true>
+  void processQpu(const std::string &kernelName, const clang::FunctionDecl *f) {
     LLVM_DEBUG(llvm::dbgs()
                << "adding kernel: " << kernelName << ", "
                << reinterpret_cast<void *>(const_cast<clang::FunctionDecl *>(f))
                << '\n');
-    functionsToEmit.push_back(std::make_pair(std::move(kernelName), f));
-    callGraphBuilder.addToCallGraph(const_cast<clang::FunctionDecl *>(f));
+    auto iter = std::find_if(functionsToEmit.begin(), functionsToEmit.end(),
+                             [&](auto p) { return p.first == kernelName; });
+    if constexpr (replace) {
+      if (iter == functionsToEmit.end())
+        functionsToEmit.push_back(std::make_pair(kernelName, f));
+      else
+        iter->second = f;
+      callGraphBuilder.addToCallGraph(const_cast<clang::FunctionDecl *>(f));
+    } else {
+      if (iter == functionsToEmit.end())
+        functionsToEmit.push_back(std::make_pair(kernelName, f));
+    }
   }
 
   // Check some of the restrictions and limitations on kernel classes. These
@@ -250,7 +261,8 @@ public:
       }
     } else if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(x)) {
       // Add declarations to support separate compilation.
-      processQpu(cudaq::details::getTagNameOfFunctionDecl(x, mangler), x);
+      processQpu</*replace=*/false>(
+          cudaq::details::getTagNameOfFunctionDecl(x, mangler), x);
     }
     return true;
   }

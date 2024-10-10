@@ -67,10 +67,7 @@ public:
     auto *ctx = rewriter.getContext();
     auto loc = call.getLoc();
     auto funcTy = call.getCalleeType();
-    auto [fn, defn] =
-        cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, module);
-    if (!defn)
-      fn.setPrivate();
+    cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, module);
     rewriter.startRootUpdate(call);
     call.setCalleeAttr(SymbolRefAttr::get(ctx, directName));
     rewriter.finalizeRootUpdate(call);
