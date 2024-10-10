@@ -7,11 +7,9 @@
 
 #include "cudaq/orca.h"
 #include "cudaq.h"
-
+#include <chrono>
 #include <fstream>
 #include <iostream>
-
-#include <chrono>
 #include <thread>
 
 // define helper function to generate linear spaced vectors
