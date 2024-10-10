@@ -26,7 +26,7 @@ Let's see the output of :code:`nvq++` in verbose mode. Consider a simple code li
     $ nvq++ simple.cpp -v --save-temps
     
     cudaq-quake --emit-llvm-file simple.cpp -o simple.qke
-    cudaq-opt --pass-pipeline=builtin.module(canonicalize,lambda-lifting,canonicalize,apply-op-specialization,kernel-execution,inline{default-pipeline=func.func(indirect-to-direct-calls)},func.func(quake-add-metadata),device-code-loader{use-quake=1},expand-measurements,func.func(lower-to-cfg),canonicalize,cse) simple.qke -o simple.qke.LpsXpu
+    cudaq-opt --pass-pipeline=builtin.module(canonicalize,lambda-lifting,canonicalize,apply-op-specialization,kernel-execution,indirect-to-direct-calls,inline,func.func(quake-add-metadata),device-code-loader{use-quake=1},expand-measurements,func.func(lower-to-cfg),canonicalize,cse) simple.qke -o simple.qke.LpsXpu
     cudaq-translate --convert-to=qir simple.qke.LpsXpu -o simple.ll.p3De4L
     fixup-linkage.pl simple.qke simple.ll
     llc --relocation-model=pic --filetype=obj -O2 simple.ll.p3De4L -o simple.qke.o
