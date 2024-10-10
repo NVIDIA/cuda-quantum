@@ -284,7 +284,7 @@ void FermioniqServerHelper::refreshTokens(bool force_refresh) {
   RestClient client;
 
   if (!force_refresh) {
-    auto now = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::system_clock::now();
 
     cudaq::debug("now: {}, tokenExpTime: {}", now, tokenExpTime);
 
