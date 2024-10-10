@@ -16,6 +16,7 @@ struct error1 {
   cudaq::qvector<4> wrong;
 };
 
+// expected-error@+1 {{kernel argument type not supported}}
 __qpu__ void bug1(error1&);
 
 // expected-error@+1 {{quantum struct has invalid member type}}
@@ -23,6 +24,7 @@ struct error2 {
   cudaq::qubit cubit;
 };
 
+// expected-error@+1 {{kernel argument type not supported}}
 __qpu__ void bug2(error2&);
 
 // expected-error@+2 {{quantum struct has invalid member type}}
@@ -32,6 +34,7 @@ struct error3 {
   cudaq::qvector<2> sorry;
 };
 
+// expected-error@+1 {{kernel argument type not supported}}
 __qpu__ void bug3(error3&);
 
 __qpu__ void funny() {

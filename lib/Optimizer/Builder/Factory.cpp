@@ -614,4 +614,26 @@ factory::readGlobalConstantArray(cudaq::cc::GlobalOp &global) {
   return result;
 }
 
+std::pair<mlir::func::FuncOp, bool>
+factory::getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
+                      mlir::FunctionType funcTy, mlir::ModuleOp module) {
+  auto func = module.lookupSymbol<func::FuncOp>(funcName);
+  if (func) {
+    if (!func.empty()) {
+      // Already lowered function func, skip it.
+      return {func, /*defined=*/true};
+    }
+    // Function was declared but not defined.
+    return {func, /*defined=*/false};
+  }
+  // Function not found, so add it to the module.
+  OpBuilder build(module.getBodyRegion());
+  OpBuilder::InsertionGuard guard(build);
+  build.setInsertionPointToEnd(module.getBody());
+  SmallVector<NamedAttribute> attrs;
+  func = build.create<func::FuncOp>(loc, funcName, funcTy, attrs);
+  func.setPrivate();
+  return {func, /*defined=*/false};
+}
+
 } // namespace cudaq::opt
