@@ -22,23 +22,37 @@ void S1::operator()(bool b) {
   cudaq::qubit q;
   S2 s2;
   s2(b);
+  x(q);
 }
 
 void S2::operator()(bool b) {
   cudaq::qubit q;
+  z(q);
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__S1(
-// CHECK-SAME:      %[[VAL_0:.*]]: i1{{.*}}) attributes
+// CHECK-SAME:      %[[VAL_0:.*]]: i1)
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i1
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<"S2" {} [8,1]>
-// CHECK:           call @_ZN2S2C1Ev(%[[VAL_3]]) : (!cc.ptr<!cc.struct<"S2" {} [8,1]>>) -> () 
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i1> 
-// CHECK:           call @_ZN2S2clEb(%[[VAL_5]]) : (i1) -> () 
-// CHECK:           return 
-// CHECK:         } 
+// CHECK:           call @_ZN2S2C1Ev(%[[VAL_3]]) : (!cc.ptr<!cc.struct<"S2" {} [8,1]>>) -> ()
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i1>
+// CHECK:           call @_ZN2S2clEb(%[[VAL_4]]) : (i1) -> ()
+// CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__S2
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__S2(
+// CHECK-SAME:      %[[VAL_0:.*]]: i1)
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.z %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
 
+// CHECK:         func.func private @_ZN2S2C1Ev(!cc.ptr<!cc.struct<"S2" {} [8,1]>>)
+// CHECK:         func.func private @_ZN2S2clEb(i1)
+
+// CHECK:         func.func @_ZN2S1clEb(

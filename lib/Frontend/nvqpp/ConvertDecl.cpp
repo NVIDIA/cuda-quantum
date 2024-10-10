@@ -115,26 +115,10 @@ void QuakeBridgeVisitor::createEntryBlock(func::FuncOp func,
   addArgumentSymbols(entryBlock, x->parameters());
 }
 
-std::pair<func::FuncOp, /*alreadyDefined=*/bool>
+std::pair<func::FuncOp, bool>
 QuakeBridgeVisitor::getOrAddFunc(Location loc, StringRef funcName,
                                  FunctionType funcTy) {
-  auto func = module.lookupSymbol<func::FuncOp>(funcName);
-  if (func) {
-    if (!func.empty()) {
-      // Already lowered function func, skip it.
-      return {func, /*defined=*/true};
-    }
-    // Function was declared but not defined.
-    return {func, /*defined=*/false};
-  }
-  // Function not found, so add it to the module.
-  OpBuilder build(module.getBodyRegion());
-  OpBuilder::InsertionGuard guard(build);
-  build.setInsertionPointToEnd(module.getBody());
-  SmallVector<NamedAttribute> attrs;
-  func = build.create<func::FuncOp>(loc, funcName, funcTy, attrs);
-  func.setPrivate();
-  return {func, /*defined=*/false};
+  return cudaq::opt::factory::getOrAddFunc(loc, funcName, funcTy, module);
 }
 
 bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {

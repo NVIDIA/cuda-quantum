@@ -168,8 +168,7 @@ def ConstPropComplex : Pass<"const-prop-complex", "mlir::ModuleOp"> {
   }];
 }
 
-def ConvertToDirectCalls :
-    Pass<"indirect-to-direct-calls", "mlir::func::FuncOp"> {
+def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   let summary = "Convert calls to direct calls to Quake routines.";
   let description = [{
     Rewrite the calls in the IR so that they point to the generated code and not

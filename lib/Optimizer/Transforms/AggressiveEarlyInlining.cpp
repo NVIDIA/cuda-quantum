@@ -26,15 +26,15 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-static bool isIndirectFunc(llvm::StringRef funcName,
-                           llvm::StringMap<llvm::StringRef> indirectMap) {
+static bool isIndirectFunc(StringRef funcName,
+                           llvm::StringMap<StringRef> indirectMap) {
   return indirectMap.find(funcName) != indirectMap.end();
 }
 
 // Return the inverted mangled name map.
-static std::optional<llvm::StringMap<llvm::StringRef>>
+static std::optional<llvm::StringMap<StringRef>>
 getConversionMap(ModuleOp module) {
-  llvm::StringMap<llvm::StringRef> result;
+  llvm::StringMap<StringRef> result;
   if (auto mangledNameMap = module->getAttrOfType<DictionaryAttr>(
           cudaq::runtime::mangledNameMap)) {
     for (auto namedAttr : mangledNameMap) {
@@ -53,25 +53,31 @@ namespace {
 /// dialect calls and callables as well.]
 class RewriteCall : public OpRewritePattern<func::CallOp> {
 public:
-  RewriteCall(MLIRContext *ctx, llvm::StringMap<llvm::StringRef> &indirectMap)
-      : OpRewritePattern(ctx), indirectMap(indirectMap) {}
+  RewriteCall(MLIRContext *ctx, llvm::StringMap<StringRef> &indirectMap,
+              ModuleOp m)
+      : OpRewritePattern(ctx), indirectMap(indirectMap), module(m) {}
 
-  LogicalResult matchAndRewrite(func::CallOp op,
+  LogicalResult matchAndRewrite(func::CallOp call,
                                 PatternRewriter &rewriter) const override {
-    if (!isIndirectFunc(op.getCallee(), indirectMap))
+    if (!isIndirectFunc(call.getCallee(), indirectMap))
       return failure();
 
-    rewriter.startRootUpdate(op);
-    auto callee = op.getCallee();
-    llvm::StringRef directName = indirectMap[callee];
-    op.setCalleeAttr(SymbolRefAttr::get(op.getContext(), directName));
+    auto callee = call.getCallee();
+    StringRef directName = indirectMap[callee];
+    auto *ctx = rewriter.getContext();
+    auto loc = call.getLoc();
+    auto funcTy = call.getCalleeType();
+    cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, module);
+    rewriter.startRootUpdate(call);
+    call.setCalleeAttr(SymbolRefAttr::get(ctx, directName));
+    rewriter.finalizeRootUpdate(call);
     LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
-    rewriter.finalizeRootUpdate(op);
     return success();
   }
 
 private:
-  llvm::StringMap<llvm::StringRef> &indirectMap;
+  llvm::StringMap<StringRef> &indirectMap;
+  ModuleOp module;
 };
 
 /// Translate indirect calls to direct calls.
@@ -81,14 +87,13 @@ public:
   using ConvertToDirectCallsBase::ConvertToDirectCallsBase;
 
   void runOnOperation() override {
-    auto op = getOperation();
+    ModuleOp module = getOperation();
     auto *ctx = &getContext();
-    auto module = op->template getParentOfType<ModuleOp>();
     if (auto indirectMapOpt = getConversionMap(module)) {
-      LLVM_DEBUG(llvm::dbgs() << "Processing: " << op << '\n');
+      LLVM_DEBUG(llvm::dbgs() << "Processing: " << module << '\n');
       RewritePatternSet patterns(ctx);
-      patterns.insert<RewriteCall>(ctx, *indirectMapOpt);
-      if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
+      patterns.insert<RewriteCall>(ctx, *indirectMapOpt, module);
+      if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
         signalPassFailure();
     }
   }
@@ -136,7 +141,7 @@ static void defaultInlinerOptPipeline(OpPassManager &pm) {
 /// graph.
 void cudaq::opt::addAggressiveEarlyInlining(OpPassManager &pm) {
   llvm::StringMap<OpPassManager> opPipelines;
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConvertToDirectCalls());
+  pm.addPass(cudaq::opt::createConvertToDirectCalls());
   pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCheckKernelCalls());
 }

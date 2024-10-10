@@ -266,6 +266,10 @@ mlir::Value createCast(mlir::OpBuilder &builder, mlir::Location loc,
 std::vector<std::complex<double>>
 readGlobalConstantArray(cudaq::cc::GlobalOp &global);
 
+std::pair<mlir::func::FuncOp, /*alreadyDefined=*/bool>
+getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
+             mlir::FunctionType funcTy, mlir::ModuleOp module);
+
 } // namespace factory
 
 std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);
