@@ -792,6 +792,42 @@ std::vector<measure_result> mz(QubitRange &q) {
   return b;
 }
 
+// Measure all qubits in the range, return vector of 0,1
+#if CUDAQ_USE_STD20
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+#else
+template <
+    typename QubitRange,
+    typename = std::enable_if_t<!std::is_same_v<
+        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
+#endif
+std::vector<measure_result> my(QubitRange &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.push_back(my(qq));
+  }
+  return b;
+}
+
+// Measure all qubits in the range, return vector of 0,1
+#if CUDAQ_USE_STD20
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+#else
+template <
+    typename QubitRange,
+    typename = std::enable_if_t<!std::is_same_v<
+        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
+#endif
+std::vector<measure_result> mx(QubitRange &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.push_back(mx(qq));
+  }
+  return b;
+}
+
 template <typename... Qs>
 std::vector<measure_result> mz(qubit &q, Qs &&...qs);
 
