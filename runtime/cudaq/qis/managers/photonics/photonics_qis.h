@@ -15,6 +15,21 @@
 #include <vector>
 
 namespace cudaq {
+
+/// @brief The `create` gate
+// U|0> -> |1>, U|1> -> |2>, ..., and U|d> -> |d>
+template <std::size_t Levels>
+void create(qudit<Levels> &q) {
+  getExecutionManager()->apply("create", {}, {}, {{q.n_levels(), q.id()}});
+}
+
+/// @brief The `annihilate` gate
+// U|0> -> |0>, U|1> -> |0>, ..., and U|d> -> |d-1>
+template <std::size_t Levels>
+void annihilate(qudit<Levels> &q) {
+  getExecutionManager()->apply("annihilate", {}, {}, {{q.n_levels(), q.id()}});
+}
+
 /// @brief The `plus` gate
 // U|0> -> |1>, U|1> -> |2>, ..., and U|d> -> |0>
 template <std::size_t Levels>

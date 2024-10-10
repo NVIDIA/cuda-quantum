@@ -62,8 +62,6 @@ protected:
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
     photonic_simulator()->setLevels(qudits[0].levels);
     photonic_simulator()->allocateQudits(qudits.size());
-    // for (auto &q : qudits)
-    //   allocateQudit(q);
   }
 
   void initializeState(const std::vector<cudaq::QuditInfo> &targets,
@@ -172,6 +170,10 @@ protected:
 
     // Apply the gate
     llvm::StringSwitch<std::function<void()>>(gateName)
+        .Case("create",
+              [&]() { photonic_simulator()->create(localC, localT[0]); })
+        .Case("annihilate",
+              [&]() { photonic_simulator()->annihilate(localC, localT[0]); })
         .Case("plus", [&]() { photonic_simulator()->plus(localC, localT[0]); })
         .Case("beam_splitter",
               [&]() {
@@ -184,15 +186,6 @@ protected:
                                                   localT[0]);
               })
         .Default([&]() {
-          if (cudaq::customOpRegistry::getInstance().isOperationRegistered(
-                  gateName)) {
-            const auto &op =
-                cudaq::customOpRegistry::getInstance().getOperation(gateName);
-            auto data = op.unitary(parameters);
-            photonic_simulator()->applyCustomOperation(data, localC, localT,
-                                                       gateName);
-            return;
-          }
           throw std::runtime_error("[PhotonicsExecutionManager] invalid gate "
                                    "application requested " +
                                    gateName + ".");
