@@ -79,20 +79,11 @@ public:
 
   void refreshTokens(bool force_refresh);
 
-#if 0
-  /// @brief Update `passPipeline` with architecture-specific pass options
-  void updatePassPipeline(const std::filesystem::path &platformPath,
-                          std::string &passPipeline) override;
-#endif
-
   /// @brief Return next results polling interval
   std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override;
 
 private:
-  /// @brief RestClient used for HTTP requests.
-  // RestClient client;
-
   /// @brief API Key for Fermioniq API
   std::string token;
 
