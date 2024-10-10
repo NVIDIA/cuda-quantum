@@ -12,7 +12,7 @@ import json
 from typing import Callable
 from ..mlir.ir import *
 from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc
+from ..mlir.dialects import quake, cc, func
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli, globalRegisteredTypes
 from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
@@ -219,6 +219,49 @@ class PyKernelDecorator(object):
         # Grab the dependent capture variables, if any
         self.dependentCaptures = extraMetadata[
             'dependent_captures'] if 'dependent_captures' in extraMetadata else None
+
+    def merge_kernel(self, otherMod):
+        """
+        Merge the kernel in this PyKernelDecorator (the ModuleOp) with 
+        the provided ModuleOp. 
+        """
+        self.compile()
+        if not isinstance(otherMod, str):
+            otherMod = str(otherMod)
+        newMod = cudaq_runtime.mergeExternalMLIR(self.module, otherMod)
+        # Get the name of the kernel entry point
+        name = self.name
+        for op in newMod.body:
+            if isinstance(op, func.FuncOp):
+                for attr in op.attributes:
+                    if 'cudaq-entrypoint' == attr.name:
+                        name = op.name.value.replace(nvqppPrefix, '')
+                        break
+
+        return PyKernelDecorator(None, kernelName=name, module=newMod)
+
+    def synthesize_callable_arguments(self, funcNames):
+        """
+        Given this Kernel has callable block arguments, synthesize away these 
+        callable arguments with the in-module FuncOps with given names. The 
+        name at index 0 in the list corresponds to the first callable block 
+        argument, index 1 to the second callable block argument, etc. 
+        """
+        self.compile()
+        cudaq_runtime.synthPyCallable(self.module, funcNames)
+        # Reset the argument types by removing the Callable
+        self.argTypes = [
+            a for a in self.argTypes if not cc.CallableType.isinstance(a)
+        ]
+
+    def extract_c_function_pointer(self, name=None):
+        """
+        Return the C function pointer for the function with given name, or 
+        with the name of this kernel if not provided.
+        """
+        self.compile()
+        return cudaq_runtime.jitAndGetFunctionPointer(
+            self.module, nvqppPrefix + self.name if name is None else name)
 
     def __str__(self):
         """
