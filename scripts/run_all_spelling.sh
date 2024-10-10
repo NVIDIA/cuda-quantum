@@ -82,7 +82,7 @@ for f in $ff; do
 done
 
 # cxx_examples
-ff=`find $ALL_FILES_TO_CONSIDER -name "*.cpp" | grep -P "^docs/sphinx/examples/"`
+ff=`find $ALL_FILES_TO_CONSIDER -name "*.cpp" | grep -E "^docs/sphinx/applications/|^docs/sphinx/targets/|^docs/sphinx/examples/"`
 NCHECK=0; for f in $ff; do NCHECK=$((NCHECK+1)); done
 echo "Beginning cxx_examples check ($NCHECK files to check)"
 for f in $ff; do

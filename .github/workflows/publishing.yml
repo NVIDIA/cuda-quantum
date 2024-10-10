@@ -789,7 +789,7 @@ jobs:
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
-          rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
+          rm -rf examples applications targets && mv docs/sphinx/examples examples && mv docs/sphinx/applications applications && mv docs/sphinx/targets targets && rm -rf examples/python && rm -rf applications/python && rm -rf targets/python
 
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash -l scripts/validate_container.sh | tee /tmp/validation.out
@@ -835,6 +835,8 @@ jobs:
           # Setup links for validate_wheel.sh script
           ln -s $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
           ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/applications/python /tmp/applications
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/targets/python /tmp/targets
           ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
           ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
           ln -s $GITHUB_WORKSPACE/python/README.md .
@@ -941,7 +943,7 @@ jobs:
                   fi; \
               done`
 
-          rm -rf examples && mv github-repo/docs/sphinx/examples examples
+          rm -rf examples applications targets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets
           mv github-repo/docs/notebook_validation.py .
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out

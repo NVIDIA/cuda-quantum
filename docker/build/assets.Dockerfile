@@ -92,6 +92,8 @@ FROM prereqs AS cpp_build
 ADD "cmake" /cuda-quantum/cmake
 ADD "docs/CMakeLists.txt" /cuda-quantum/docs/CMakeLists.txt
 ADD "docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
+ADD "docs/sphinx/applications" /cuda-quantum/docs/sphinx/applications
+ADD "docs/sphinx/targets" /cuda-quantum/docs/sphinx/targets
 ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "include" /cuda-quantum/include
 ADD "lib" /cuda-quantum/lib

@@ -104,7 +104,7 @@ Quantum Phase Estimation
 
 .. tab:: C++ 
 
-  .. literalinclude:: ../../examples/cpp/algorithms/phase_estimation.cpp
+  .. literalinclude:: ../../applications/cpp/phase_estimation.cpp
       :language: cpp
 
 .. tab:: Python 
@@ -227,7 +227,7 @@ Grover's Algorithm
 
 .. tab:: C++ 
 
-  .. literalinclude:: ../../examples/cpp/algorithms/grover.cpp
+  .. literalinclude:: ../../applications/cpp/grover.cpp
       :language: cpp
 
 .. tab:: Python 
@@ -264,7 +264,7 @@ Grover's Algorithm
 Iterative Phase Estimation
 --------------------------
 
-.. literalinclude:: ../../examples/cpp/other/iterative_qpe.cpp
+.. literalinclude:: ../../applications/cpp/iterative_qpe.cpp
     :language: cpp
     :start-after: [Begin Documentation]
     :end-before: [End Documentation]
