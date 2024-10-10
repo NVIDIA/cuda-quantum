@@ -119,6 +119,39 @@ def qudit(level: int) -> PyQudit:
     """
     return QuditManager.allocate(level)
 
+def create(qudit: PyQudit):
+    """
+    Apply create gate on the input qudit.
+    U|0> -> |1>, U|1> -> |2>, ..., and U|d> -> |d>
+
+    Args:
+        qudit: An instance of `PyQudit` class.
+
+    Raises:
+        RuntimeError: If the qudit level is not set.
+        Exception: If input argument is not instance of `PyQudit` class.
+    """
+    _check_args(qudit)
+    cudaq_runtime.photonics.apply_operation("create", [],
+                                            [[qudit.level, qudit.id]])
+
+
+def annihilate(qudit: PyQudit):
+    """
+    Apply annihilate gate on the input qudit.
+    U|0> -> |0>, U|1> -> |0>, ..., and U|d> -> |d-1>
+
+    Args:
+        qudit: An instance of `PyQudit` class.
+
+    Raises:
+        RuntimeError: If the qudit level is not set.
+        Exception: If input argument is not instance of `PyQudit` class.
+    """
+    _check_args(qudit)
+    cudaq_runtime.photonics.apply_operation("annihilate", [],
+                                            [[qudit.level, qudit.id]])
+
 
 def plus(qudit: PyQudit):
     """
@@ -209,7 +242,8 @@ class PhotonicsHandler(object):
     `qudit(level=N)` or a list of qudits. The qudits within a kernel must be of
     the same level.
 
-    Allowed quantum operations are: `plus`, `phase_shift`, `beam_splitter`, and `mz`.
+    Allowed quantum operations are: `create`, `annihilate`, `plus`,
+    `phase_shift`, `beam_splitter`, and `mz`.
     """
 
     def __init__(self, function):
@@ -221,11 +255,13 @@ class PhotonicsHandler(object):
         QuditManager.reset()
         self.kernelFunction = function
 
-        self.kernelFunction.__globals__['qudit'] = qudit
-        self.kernelFunction.__globals__['plus'] = plus
-        self.kernelFunction.__globals__['phase_shift'] = phase_shift
-        self.kernelFunction.__globals__['beam_splitter'] = beam_splitter
-        self.kernelFunction.__globals__['mz'] = mz
+        self.kernelFunction.__globals__["qudit"] = qudit
+        self.kernelFunction.__globals__["create"] = create
+        self.kernelFunction.__globals__["annihilate"] = annihilate
+        self.kernelFunction.__globals__["plus"] = plus
+        self.kernelFunction.__globals__["phase_shift"] = phase_shift
+        self.kernelFunction.__globals__["beam_splitter"] = beam_splitter
+        self.kernelFunction.__globals__["mz"] = mz
 
     def __call__(self, *args):
         with QuditManager():

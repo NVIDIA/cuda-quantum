@@ -17,15 +17,15 @@ int main() {
   printf("Number of QPUs: %zu\n", num_qpus);
 
   // A time-bin boson sampling experiment
-  std::vector<std::size_t> input_state{1, 0, 1, 0, 1, 0, 1, 0};
-  std::vector<std::size_t> loop_lengths{1, 1};
+  std::vector<std::size_t> input_state = {1, 0, 1, 0, 1, 0, 1, 0};
+  std::vector<std::size_t> loop_lengths = {1, 1};
   std::size_t sum_loop_lengths{std::accumulate(
       loop_lengths.begin(), loop_lengths.end(), static_cast<std::size_t>(0))};
   const std::size_t n_loops = loop_lengths.size();
   const std::size_t n_modes = input_state.size();
   const std::size_t n_beam_splitters = n_loops * n_modes - sum_loop_lengths;
   std::vector<double> bs_angles =
-      cudaq::linspace(M_PI / 8, M_PI / 3, n_beam_splitters);
+      cudaq::linspace(M_PI / 3, M_PI / 6, n_beam_splitters);
   int n_samples{10000};
 
   std::cout << "Submitting to ORCA Server asynchronously" << std::endl;
