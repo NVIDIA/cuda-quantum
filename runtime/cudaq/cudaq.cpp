@@ -28,6 +28,7 @@
 namespace nvqir {
 void tearDownBeforeMPIFinalize();
 void setRandomSeed(std::size_t);
+void setPhotonicRandomSeed(std::size_t seed);
 } // namespace nvqir
 
 namespace cudaq::mpi {
@@ -402,7 +403,14 @@ thread_local static std::size_t cudaq_random_seed = 0;
 /// will not be repeatable for those operations.
 void set_random_seed(std::size_t seed) {
   cudaq_random_seed = seed;
-  nvqir::setRandomSeed(seed);
+  try {
+    nvqir::setRandomSeed(seed);
+  } catch (std::exception &e) {
+    cudaq::info("Failed to set random seed in NVQIR, setting photonic random "
+                "seed in PhotonicNVQIR");
+    nvqir::setPhotonicRandomSeed(seed);
+  }
+
   auto &platform = cudaq::get_platform();
   // Notify the platform that a new random seed value is set.
   platform.onRandomSeedSet(seed);

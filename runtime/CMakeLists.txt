@@ -21,7 +21,9 @@ install (DIRECTORY cudaq DESTINATION include
             PATTERN "nlopt-src" EXCLUDE)
 install (DIRECTORY common DESTINATION include FILES_MATCHING PATTERN "*.h")
 install (FILES nvqir/CircuitSimulator.h
+               nvqir/photonics/PhotonicCircuitSimulator.h
                nvqir/QIRTypes.h
                nvqir/Gates.h
+               nvqir/photonics/PhotonicGates.h
         DESTINATION include/nvqir)
 install (FILES cudaq.h DESTINATION include)

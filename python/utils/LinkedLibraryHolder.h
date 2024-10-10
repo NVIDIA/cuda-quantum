@@ -18,7 +18,8 @@
 
 namespace nvqir {
 class CircuitSimulator;
-}
+class PhotonicCircuitSimulator;
+} // namespace nvqir
 
 namespace cudaq {
 
@@ -80,6 +81,10 @@ public:
 
   /// @brief Return the registered simulator with the given name.
   nvqir::CircuitSimulator *getSimulator(const std::string &name);
+
+  /// @brief Return the registered photonic simulator with the given name.
+  nvqir::PhotonicCircuitSimulator *
+  getPhotonicSimulator(const std::string &simName);
 
   /// @brief Return the registered quantum_platform with the given name.
   quantum_platform *getPlatform(const std::string &name);

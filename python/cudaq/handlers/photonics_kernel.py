@@ -17,24 +17,26 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 @dataclass
 class PyQudit:
     """
-    A data structure to represent `qudit` which models a general d-level 
+    A data structure to represent `qudit` which models a general d-level
     quantum system.
 
     Args:
-        level (int): An integer representing the level of quantum system to 
+        level (int): An integer representing the level of quantum system to
             which this qudit belongs to.
         id (int): An integer representing the unique identifier for this qudit
             in the system.
     """
+
     level: int
     id: int
 
 
 class QuditManager(object):
     """
-    A class to explicitly manage resource allocation for qudits within a 
-    `PhotonicsKernel`.    
+    A class to explicitly manage resource allocation for qudits within a
+    `PhotonicsKernel`.
     """
+
     qudit_level = None
     allocated_ids = []
 
@@ -66,11 +68,11 @@ class QuditManager(object):
 
 def _is_qudit_type(q: any) -> bool:
     """
-    Utility function to check whether the input argument is instance of 
+    Utility function to check whether the input argument is instance of
     `PyQudit` class.
 
     Returns:
-        bool: `True` if input argument is instance or a list of `PyQudit` 
+        bool: `True` if input argument is instance or a list of `PyQudit`
                class, else `False`
     """
     if isinstance(q, PyQudit):
@@ -109,31 +111,64 @@ def qudit(level: int) -> PyQudit:
 
     Args:
         level (int): An integer representing the level of quantum system.
-    
+
     Returns:
         An instance of `PyQudit`.
-    
+
     Raises:
-        RuntimeError: If a qudit of level different than one already defined 
+        RuntimeError: If a qudit of level different than one already defined
             in the kernel is requested.
     """
     return QuditManager.allocate(level)
 
-
-def plus(qudit: PyQudit):
+def create(qudit: PyQudit):
     """
-    Apply plus gate on the input qudit. 
-    U|0> -> |1>, U|1> -> |2>, ..., and U|d> -> |0>
+    Apply create gate on the input qudit.
+    U|0> -> |1>, U|1> -> |2>, ..., and U|d> -> |d>
 
-    Args: 
+    Args:
         qudit: An instance of `PyQudit` class.
-    
+
     Raises:
         RuntimeError: If the qudit level is not set.
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args(qudit)
-    cudaq_runtime.photonics.apply_operation('plusGate', [],
+    cudaq_runtime.photonics.apply_operation("create", [],
+                                            [[qudit.level, qudit.id]])
+
+
+def annihilate(qudit: PyQudit):
+    """
+    Apply annihilate gate on the input qudit.
+    U|0> -> |0>, U|1> -> |0>, ..., and U|d> -> |d-1>
+
+    Args:
+        qudit: An instance of `PyQudit` class.
+
+    Raises:
+        RuntimeError: If the qudit level is not set.
+        Exception: If input argument is not instance of `PyQudit` class.
+    """
+    _check_args(qudit)
+    cudaq_runtime.photonics.apply_operation("annihilate", [],
+                                            [[qudit.level, qudit.id]])
+
+
+def plus(qudit: PyQudit):
+    """
+    Apply plus gate on the input qudit.
+    U|0> -> |1>, U|1> -> |2>, ..., and U|d> -> |0>
+
+    Args:
+        qudit: An instance of `PyQudit` class.
+
+    Raises:
+        RuntimeError: If the qudit level is not set.
+        Exception: If input argument is not instance of `PyQudit` class.
+    """
+    _check_args(qudit)
+    cudaq_runtime.photonics.apply_operation("plus", [],
                                             [[qudit.level, qudit.id]])
 
 
@@ -141,7 +176,7 @@ def phase_shift(qudit: PyQudit, phi: float):
     """
     Apply phase shift gate.
     TBD
-    
+
     Args:
         qudit: An instance of `PyQudit` class.
         phi: A floating point number for the angle.
@@ -151,7 +186,7 @@ def phase_shift(qudit: PyQudit, phi: float):
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args(qudit)
-    cudaq_runtime.photonics.apply_operation('phaseShiftGate', [phi],
+    cudaq_runtime.photonics.apply_operation("phase_shift", [phi],
                                             [[qudit.level, qudit.id]])
 
 
@@ -159,31 +194,31 @@ def beam_splitter(q: PyQudit, r: PyQudit, theta: float):
     """
     Apply beam splitter gate.
     TBD
-    
+
     Args:
         q: An instance of `PyQudit` class TBD.
         r: An instance of `PyQudit` class TBD.
         theta: A floating point number for the angle.
-    
+
     Raises:
         RuntimeError: If the qudit level is not set.
         Exception: If input argument is not instance of `PyQudit` class.
     """
     _check_args([q, r])
-    cudaq_runtime.photonics.apply_operation('beamSplitterGate', [theta],
+    cudaq_runtime.photonics.apply_operation("beam_splitter", [theta],
                                             [[q.level, q.id], [r.level, r.id]])
 
 
-def mz(qudits: PyQudit | List[PyQudit], register_name=''):
+def mz(qudits: PyQudit | List[PyQudit], register_name=""):
     """
     Measure a single qudit or list of qudits.
 
     Args:
         qudits: A single instance or a list of objects of `PyQudit` class.
-    
+
     Returns:
         Measurement results.
-    
+
     Raises:
         RuntimeError: If the qudit level is not set.
         Exception: If input argument is not instance of `PyQudit` class.
@@ -201,31 +236,34 @@ def mz(qudits: PyQudit | List[PyQudit], register_name=''):
 
 class PhotonicsHandler(object):
     """
-    The `PhotonicsHandler` class serves as to process CUDA-Q kernels for the 
-    `photonics` target.
-    The target must be set to `photonics` prior to invoking a `PhotonicsHandler`.
+    The `PhotonicsHandler` class serves as to process CUDA-Q kernels for the
+    `photonics-cpu` target.
+    The target must be set to `photonics-cpu` prior to invoking a `PhotonicsHandler`.
 
-    The quantum operations in this kernel apply to qudits defined by 
+    The quantum operations in this kernel apply to qudits defined by
     `qudit(level=N)` or a list of qudits. The qudits within a kernel must be of
     the same level.
 
-    Allowed quantum operations are: `plus`, `phase_shift`, `beam_splitter`, and `mz`.
+    Allowed quantum operations are: `create`, `annihilate`, `plus`,
+    `phase_shift`, `beam_splitter`, and `mz`.
     """
 
     def __init__(self, function):
-
-        if 'photonics' != cudaq_runtime.get_target().name:
+        if "photonics-cpu" != cudaq_runtime.get_target().name:
             raise RuntimeError(
-                "A photonics kernel can only be used with 'photonics' target.")
+                "A photonics kernel can only be used with 'photonics-cpu' target."
+            )
 
         QuditManager.reset()
         self.kernelFunction = function
 
-        self.kernelFunction.__globals__['qudit'] = qudit
-        self.kernelFunction.__globals__['plus'] = plus
-        self.kernelFunction.__globals__['phase_shift'] = phase_shift
-        self.kernelFunction.__globals__['beam_splitter'] = beam_splitter
-        self.kernelFunction.__globals__['mz'] = mz
+        self.kernelFunction.__globals__["qudit"] = qudit
+        self.kernelFunction.__globals__["create"] = create
+        self.kernelFunction.__globals__["annihilate"] = annihilate
+        self.kernelFunction.__globals__["plus"] = plus
+        self.kernelFunction.__globals__["phase_shift"] = phase_shift
+        self.kernelFunction.__globals__["beam_splitter"] = beam_splitter
+        self.kernelFunction.__globals__["mz"] = mz
 
     def __call__(self, *args):
         with QuditManager():

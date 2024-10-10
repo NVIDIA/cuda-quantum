@@ -142,6 +142,7 @@ state pyGetStateLibraryMode(py::object kernel, py::args args) {
     if (0 == args.size())
       cudaq::invokeKernel(std::forward<py::object>(kernel));
     else {
+      args = simplifiedValidateInputArguments(args);
       std::vector<py::object> argsData;
       for (size_t i = 0; i < args.size(); i++) {
         py::object arg = args[i];
@@ -644,7 +645,7 @@ index pair.
         if (holder.getTarget().name == "remote-mqpu" ||
             holder.getTarget().name == "nvqc")
           return pyGetStateRemote(kernel, args);
-        if (holder.getTarget().name == "photonics")
+        if (holder.getTarget().name == "photonics-cpu")
           return pyGetStateLibraryMode(kernel, args);
         return pyGetState(kernel, args);
       },

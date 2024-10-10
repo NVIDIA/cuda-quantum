@@ -15,6 +15,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 set(NVQIR_RUNTIME_SRC
   QIRTypes.cpp
   NVQIR.cpp
+  ./photonics/PhotonicNVQIR.cpp
   ../cudaq/qis/state.cpp
 )
 
