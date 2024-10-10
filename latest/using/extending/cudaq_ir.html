@@ -624,7 +624,7 @@
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nvq++<span class="w"> </span>simple.cpp<span class="w"> </span>-v<span class="w"> </span>--save-temps
 
 <span class="go">cudaq-quake --emit-llvm-file simple.cpp -o simple.qke</span>
-<span class="go">cudaq-opt --pass-pipeline=builtin.module(canonicalize,lambda-lifting,canonicalize,apply-op-specialization,kernel-execution,inline{default-pipeline=func.func(indirect-to-direct-calls)},func.func(quake-add-metadata),device-code-loader{use-quake=1},expand-measurements,func.func(lower-to-cfg),canonicalize,cse) simple.qke -o simple.qke.LpsXpu</span>
+<span class="go">cudaq-opt --pass-pipeline=builtin.module(canonicalize,lambda-lifting,canonicalize,apply-op-specialization,kernel-execution,indirect-to-direct-calls,inline,func.func(quake-add-metadata),device-code-loader{use-quake=1},expand-measurements,func.func(lower-to-cfg),canonicalize,cse) simple.qke -o simple.qke.LpsXpu</span>
 <span class="go">cudaq-translate --convert-to=qir simple.qke.LpsXpu -o simple.ll.p3De4L</span>
 <span class="go">fixup-linkage.pl simple.qke simple.ll</span>
 <span class="go">llc --relocation-model=pic --filetype=obj -O2 simple.ll.p3De4L -o simple.qke.o</span>
