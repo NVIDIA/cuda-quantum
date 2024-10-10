@@ -5,23 +5,12 @@
 // To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL
 // environment variable or pass the URL to the `--orca-url` flag.
 
-#include "cudaq/orca.h"
-#include "cudaq.h"
 #include <chrono>
+#include <cudaq.h>
+#include <cudaq/orca.h>
 #include <fstream>
 #include <iostream>
 #include <thread>
-
-// define helper function to generate linear spaced vectors
-template <typename T>
-void linear_spaced_vector(std::vector<T> &xs, T min, T max, std::size_t N) {
-  T h = (max - min) / static_cast<T>(N - 1);
-  typename std::vector<T>::iterator x;
-  T val;
-  for (x = xs.begin(), val = min; x != xs.end(); ++x, val += h) {
-    *x = val;
-  }
-}
 
 int main() {
   using namespace std::this_thread;     // sleep_for, sleep_until
@@ -53,14 +42,14 @@ int main() {
   const std::size_t n_beam_splitters = n_loops * n_modes - sum_loop_lengths;
 
   // beam splitter angles (created as a linear spaced vector of angles)
-  std::vector<double> bs_angles(n_beam_splitters);
-  linear_spaced_vector(bs_angles, M_PI / 8, M_PI / 3, n_beam_splitters);
+  std::vector<double> bs_angles =
+      cudaq::linspace(M_PI / 8, M_PI / 3, n_beam_splitters);
 
   // Optionally, we can also specify the phase shifter angles (created as a
   // linear spaced vector of angles), if the system includes phase shifters
   // ```
-  // std::vector<double> ps_angles(n_beam_splitters);
-  // linear_spaced_vector(ps_angles, M_PI / 6, M_PI / 3, n_beam_splitters);
+  // std::vector<double> ps_angles = cudaq::linspace(M_PI / 6, M_PI / 3,
+  // n_beam_splitters);
   // ```
 
   // we can also set number of requested samples
