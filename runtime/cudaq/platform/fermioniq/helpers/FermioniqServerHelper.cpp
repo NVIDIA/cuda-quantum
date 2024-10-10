@@ -388,14 +388,6 @@ FermioniqServerHelper::processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) {
   cudaq::debug("processResults for job: {}", jobID);
 
-  /*
-  auto &output_names = outputNames[jobID];
-  for (auto &[result, info] : output_names) {
-    cudaq::info("Qubit {} Name {}", info.qubitNum,
-                info.registerName);
-  }
-  */
-
   RestClient client;
 
   refreshTokens(false);
@@ -414,10 +406,7 @@ FermioniqServerHelper::processResults(ServerMessage &postJobResponse,
 
   cudaq::sample_result sample_result;
 
-  // to-do: restrict to 1 circuit
   for (const auto &it : output.items()) {
-    // cudaq::info("result: {}", it.value().dump());
-    // int circuit_number = it.value().at("circuit_number");
 
     // "samples":{"00000":500,"11111":500}
     auto output = it.value().at("output");
@@ -443,47 +432,11 @@ FermioniqServerHelper::processResults(ServerMessage &postJobResponse,
     break;
   }
 
-#if 0
-  // First reorder the global register by QIR qubit number.
-  std::vector<std::size_t> qirQubitMeasurements;
-  qirQubitMeasurements.reserve(output_names.size());
-  for (auto &[result, info] : output_names)
-    qirQubitMeasurements.push_back(info.qubitNum);
-
-  std::vector<std::size_t> idx(output_names.size());
-  std::iota(idx.begin(), idx.end(), 0);
-  std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
-    return qirQubitMeasurements[i1] < qirQubitMeasurements[i2];
-  });
-  cudaq::info("Reordering global result to map QIR result order to QIR qubit "
-              "allocation order is {}",
-              idx);
-  sample_result.reorder(idx);
-
-  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
-  // original user qubit allocation order.
-  auto thisJobReorderIdxIt = reorderIdx.find(jobID);
-  if (thisJobReorderIdxIt != reorderIdx.end()) {
-    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
-    if (!thisJobReorderIdx.empty())
-      sample_result.reorder(thisJobReorderIdx);
-  }
-
-  // We will also make registers for each result using output_names.
-  for (auto &[result, info] : output_names) {
-    cudaq::sample_result singleBitResult = sample_result.get_marginal({result});
-    ExecutionResult executionResult{singleBitResult.to_map(),
-                                    info.registerName};
-    sample_result.append(executionResult);
-  }
-#endif
-
   return sample_result;
 }
 
-// Get the headers for the API requests
 RestHeaders FermioniqServerHelper::getHeaders() {
-  // Construct the headers
+
   RestHeaders headers;
   if (keyExists(CFG_API_KEY_KEY) && backendConfig.at(CFG_API_KEY_KEY) != "") {
     headers["x-functions-key"] = backendConfig.at(CFG_API_KEY_KEY);
@@ -501,8 +454,7 @@ RestHeaders FermioniqServerHelper::getHeaders() {
 
 std::chrono::microseconds
 FermioniqServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
-  return std::chrono::seconds(
-      POLLING_INTERVAL_IN_SECONDS); // jobs never take less than few seconds
+  return std::chrono::seconds(POLLING_INTERVAL_IN_SECONDS);
 };
 
 } // namespace cudaq
