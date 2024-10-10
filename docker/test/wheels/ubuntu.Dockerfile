@@ -15,7 +15,13 @@ ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python${python_version} python$(echo ${python_version} | cut -d . -f 1)-pip
+        python${python_version} python${python_version}-venv
+
+# We need to make sure the virtual Python environment remains
+# activated for all subsequent commands.
+ENV VIRTUAL_ENV=/opt/venv
+RUN python${python_version} -m venv "$VIRTUAL_ENV"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN if [ -n "$preinstalled_modules" ]; then \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi

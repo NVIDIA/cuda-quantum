@@ -39,7 +39,9 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
 
 # Patch the pyproject.toml file to change the CUDA version if needed
 RUN if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
-        sed -i "s/-cu11/-cu12/g" cuda-quantum/pyproject.toml; \
+        sed -i "s/-cu11/-cu12/g" cuda-quantum/pyproject.toml && \
+        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
+        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
     fi
 
 # Build the wheel

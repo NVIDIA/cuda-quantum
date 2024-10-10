@@ -22,9 +22,9 @@ dependencies = [
   'graphlib-backport >= 1.0',
   'numpy >= 1.24',
   'requests >= 2.31',
-  'nvidia-cublas-cu11 == 11.11.3.6; platform_machine == "x86_64"',
-  'nvidia-cuda-runtime-cu11 == 11.8.89; platform_machine == "x86_64"',
-  'nvidia-cusolver-cu11 == 11.4.1.48; platform_machine == "x86_64"'
+  'nvidia-cublas-cu11 ~= 11.11; platform_machine == "x86_64"',
+  'nvidia-cuda-runtime-cu11 ~= 11.8; platform_machine == "x86_64"',
+  'nvidia-cusolver-cu11 ~= 11.4; platform_machine == "x86_64"'
 ]
 classifiers = [
     'Intended Audience :: Science/Research',
