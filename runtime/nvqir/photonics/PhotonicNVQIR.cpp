@@ -5,25 +5,15 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-// #include "CircuitSimulator.h"
 #include "nvqir/photonics/PhotonicCircuitSimulator.h"
-// #include "QIRTypes.h"
-// #include "common/Logger.h"
 #include "common/PluginUtils.h"
-// #include "cudaq/qis/state.h"
-// #include "cudaq/spin_op.h"
-// #include <cmath>
-// #include <complex>
-// #include <string>
-// #include <type_traits>
-// #include <vector>
 
 thread_local nvqir::PhotonicCircuitSimulator *photonic_simulator;
 inline static constexpr std::string_view GetPhotonicCircuitSimulatorSymbol =
     "getPhotonicCircuitSimulator";
 
 /// @brief Provide a holder for externally created
-/// CircuitSimulator pointers (like from Python) that
+/// PhotonicCircuitSimulator pointers (like from Python) that
 /// will invoke clone on the simulator when requested, which
 /// in turn will create the simulator if there isn't one on the
 /// current thread, otherwise it will reuse the existing one

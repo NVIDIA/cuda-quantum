@@ -15,6 +15,8 @@ namespace nvqir {
 
 /// @brief Enumeration of supported CUDA-Q operations
 enum class PhotonicGateName {
+  CreateGate,
+  AnnihilateGate,
   PlusGate,
   BeamSplitterGate,
   PhaseShiftGate,
@@ -129,6 +131,25 @@ std::vector<std::complex<Scalar>>
 getPhotonicGateByName(PhotonicGateName name, const std::size_t levels,
                       std::vector<Scalar> angles = {}) {
   switch (name) {
+
+  case (PhotonicGateName::CreateGate): {
+    auto length = levels * levels;
+    std::vector<std::complex<Scalar>> u(length, 0.0);
+    u.at(length - 1) = 1.;
+    for (std::size_t i = 1; i < levels; i++) {
+      u.at(i * levels + (i - 1)) = 1.;
+    }
+    return u;
+  }
+  case (PhotonicGateName::AnnihilateGate): {
+    auto length = levels * levels;
+    std::vector<std::complex<Scalar>> u(length, 0.0);
+    u.at(0) = 1.;
+    for (std::size_t i = 0; i < levels-1; i++) {
+      u.at(i * levels + (i + 1)) = 1.;
+    }
+    return u;
+  }
   case (PhotonicGateName::PlusGate): {
     auto length = levels * levels;
     std::vector<std::complex<Scalar>> u(length, 0.0);
@@ -161,6 +182,28 @@ getPhotonicGateByName(PhotonicGateName name, const std::size_t levels,
 
   throw std::runtime_error("Invalid gate provided to getGateByName.");
 }
+
+/// @brief The create operation as a type. Can instantiate and request
+/// its matrix data.
+template <typename ScalarType = double>
+struct create {
+  auto getGate(const std::size_t levels, std::vector<ScalarType> angles = {}) {
+    return getPhotonicGateByName<ScalarType>(PhotonicGateName::CreateGate,
+                                             levels);
+  }
+  const std::string name() const { return "create"; }
+};
+
+/// @brief The annihilate operation as a type. Can instantiate and request
+/// its matrix data.
+template <typename ScalarType = double>
+struct annihilate {
+  auto getGate(const std::size_t levels, std::vector<ScalarType> angles = {}) {
+    return getPhotonicGateByName<ScalarType>(PhotonicGateName::AnnihilateGate,
+                                             levels);
+  }
+  const std::string name() const { return "annihilate"; }
+};
 
 /// @brief The plus operation as a type. Can instantiate and request
 /// its matrix data.

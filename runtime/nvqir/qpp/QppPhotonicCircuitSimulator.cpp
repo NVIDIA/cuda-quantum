@@ -47,15 +47,9 @@ struct QppPhotonicState : public cudaq::PhotonicState {
   getAmplitude(const std::vector<int> &basisState) override {
     if (getNumQudits() != basisState.size())
       throw std::runtime_error(
-          fmt::format("[qpp-state] getAmplitude with an invalid number "
-                      "of bits in the "
-                      "basis state: expected {}, provided {}.",
+          fmt::format("[photonic-state] getAmplitude with an invalid number "
+                      "of qudits in the basis state: expected{}, provided{}.",
                       getNumQudits(), basisState.size()));
-    // if (std::any_of(basisState.begin(), basisState.end(),
-    //                 [](int x) { return x != 0 && x != 1; }))
-    //   throw std::runtime_error(
-    //       "[qpp-state] getAmplitude with an invalid basis state: only "
-    //       "qudit state (0 or 1) is supported.");
 
     // Convert the basis state to an index value
     const std::size_t idx = std::accumulate(
@@ -133,7 +127,6 @@ protected:
 
   std::size_t convertQuditIndex(std::size_t quditIndex) {
     assert(stateDimension > 0 && "The state is empty, and thus has no qudits");
-    // return (std::log2(stateDimension) / std::log2(levels)) - quditIndex - 1;
     return quditIndex;
   }
 
@@ -229,7 +222,7 @@ protected:
 
   int measureQudit(const std::size_t index) override {
     const auto quditIdx = convertQuditIndex(index);
-    // If here, then we care about the result bit, so compute it.
+    // If here, then we care about the result digit, so compute it.
     const auto measurement_tuple =
         qpp::measure(state, qpp::cmat::Identity(levels, levels), {quditIdx},
                      /*qudit dimension=*/levels, /*destructive measmt=*/false);
@@ -244,12 +237,10 @@ protected:
                                           collapsed_state.rows(),
                                           collapsed_state.cols());
     }
-    cudaq::info("Measured qubit {} -> {}", quditIdx, measurement_result);
+    cudaq::info("Measured qudit {} -> {}", quditIdx, measurement_result);
     return measurement_result;
   }
 
-  // QuditOrdering getQuditOrdering() const override { return
-  // QuditOrdering::lsb; }
 
 public:
   QppPhotonicCircuitSimulator() {
@@ -275,12 +266,6 @@ public:
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qudits,
                                 const int shots) override {
 
-    // if (shots < 1) {
-    //   double expectationValue = calculateExpectationValue(qudits);
-    //   cudaq::info("Computed expectation value = {}", expectationValue);
-    //   return cudaq::ExecutionResult{{}, expectationValue};
-    // }
-
     std::vector<std::size_t> measuredDigits;
     for (auto index : qudits) {
       measuredDigits.push_back(convertQuditIndex(index));
@@ -288,33 +273,23 @@ public:
 
     auto sampleResult = qpp::sample(shots, state, measuredDigits, levels);
     // Convert to what we expect
-    std::stringstream bitstream;
+    std::stringstream digit_stream;
     cudaq::ExecutionResult counts;
 
-    // Expectation value from the counts
-    // double expVal = 0.0;
     for (auto [result, count] : sampleResult) {
-      // Push back each term in the vector of digits to the digit_string.
-      std::stringstream digit_string;
+      // Push back each term in the vector of digits to the digit_stream.
       for (const auto &digit : result) {
-        digit_string << digit;
+        digit_stream << digit;
       }
 
       // Add to the sample result
-      // in mid-circ sampling mode this will append 1 bitstring
-      counts.appendResult(digit_string.str(), count);
-      // auto par = cudaq::sample_result::has_even_parity(bitstring);
-      // auto p = count / (double)shots;
-      // if (!par) {
-      //   p = -p;
-      // }
-      // expVal += p;
+      // in mid-circ sampling mode this will append 1 digit_stream
+      counts.appendResult(digit_stream.str(), count);
       // Reset the state.
-      bitstream.str("");
-      bitstream.clear();
+      digit_stream.str("");
+      digit_stream.clear();
     }
 
-    // counts.expectationValue = expVal;
     return counts;
   }
 

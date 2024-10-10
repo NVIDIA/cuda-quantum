@@ -35,9 +35,6 @@ protected:
   }
 
 public:
-  // /// @brief The levels of the qudits
-  // std::size_t levels;
-
   virtual std::unique_ptr<PhotonicState>
   createPSFromData(const state_data &data) {
     if (std::holds_alternative<TensorStateData>(data)) {
@@ -53,9 +50,8 @@ public:
           data.index());
     }
     // Flat array state data
-    // Check the precision first. Get the size and
-    // data pointer from the input data.
-
+    // Check the precision first. Get the size and data pointer from the input
+    // data.
     if (getPrecision() == precision::fp32) {
       auto [size, ptr] = getSizeAndPtr<float>(data);
       return createPSFromSizeAndPtr(size, ptr, data.index());
@@ -91,8 +87,6 @@ public:
     throw std::runtime_error(
         "overlap not available for this photonic simulator backend.");
   }
-
-  // virtual std::complex<double> PSoverlap(const PhotonicState &other) = 0;
 
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
