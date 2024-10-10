@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 name: fermioniq
-description: "CUDA-Q target for Orca."
+description: "CUDA-Q target for Fermioniq."
 config:
   # Tell DefaultQuantumPlatform what QPU subtype to use
   platform-qpu: fermioniq
