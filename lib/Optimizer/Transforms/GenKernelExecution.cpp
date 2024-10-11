@@ -1046,7 +1046,7 @@ public:
                             func::FuncOp thunkFunc) {
     auto *ctx = builder.getContext();
     auto i64Ty = builder.getI64Type();
-    auto offset = devFuncTy.getNumInputs();
+    std::int32_t offset = devFuncTy.getNumInputs();
     auto thunkTy = getThunkType(ctx);
     auto structPtrTy = cudaq::cc::PointerType::get(structTy);
     Block *hostFuncEntryBlock = hostFunc.addEntryBlock();
@@ -1379,7 +1379,7 @@ public:
     SmallVector<Value> results;
     auto hostFuncTy = hostFunc.getFunctionType();
     assert(hostFuncTy.getResults().empty() ||
-           hostFuncTy.getNumResults() == 1 &&
+           (hostFuncTy.getNumResults() == 1) &&
                "C++ function expected to have 0 or 1 return value");
     const bool resultVal = !hostFuncTy.getResults().empty();
     if (resultVal || cudaq::opt::factory::hasSRet(hostFunc)) {
