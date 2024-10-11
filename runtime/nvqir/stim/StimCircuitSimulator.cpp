@@ -24,11 +24,34 @@ namespace nvqir {
 /// https://github.com/quantumlib/Stim.
 class StimCircuitSimulator : public nvqir::CircuitSimulatorBase<double> {
 protected:
-  stim::Circuit stimCircuit;
+  // Follow Stim naming convention (W) for bit width (required for templates).
+  static constexpr std::size_t W = stim::MAX_BITWORD_WIDTH;
+
+  /// @brief Number of measurements performed so far.
+  std::size_t num_measurements = 0;
+
+  /// @brief Top-level random engine. Stim simulator RNGs are based off of this
+  /// engine.
   std::mt19937_64 randomEngine;
+
+  /// @brief Stim Tableau simulator (noiseless)
+  std::unique_ptr<stim::TableauSimulator<W>> tableau;
+
+  /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
+  std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
+
+  /// @brief Get the batch size to use for the Stim sample simulator.
+  std::size_t getBatchSize() {
+    // Default to single shot
+    std::size_t batch_size = 1;
+    if (getExecutionContext() && getExecutionContext()->name == "sample" &&
+        !getExecutionContext()->hasConditionalsOnMeasureResults)
+      batch_size = getExecutionContext()->shots;
+    return batch_size;
+  }
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
@@ -37,11 +60,52 @@ protected:
     if (stateDataIn)
       throw std::runtime_error("The Stim simulator does not support "
                                "initialization of qubits from state data.");
-    return;
+
+    if (!tableau) {
+      cudaq::info("Creating new Stim Tableau simulator");
+      // Bump the randomEngine before cloning and giving to the Tableau
+      // simulator.
+      randomEngine.discard(
+          std::uniform_int_distribution<int>(1, 30)(randomEngine));
+      tableau = std::make_unique<stim::TableauSimulator<W>>(
+          std::mt19937_64(randomEngine), /*num_qubits=*/0, /*sign_bias=*/+0);
+    }
+    if (!sampleSim) {
+      auto batch_size = getBatchSize();
+      cudaq::info("Creating new Stim frame simulator with batch size {}",
+                  batch_size);
+      // Bump the randomEngine before cloning and giving to the sample
+      // simulator.
+      randomEngine.discard(
+          std::uniform_int_distribution<int>(1, 30)(randomEngine));
+      sampleSim = std::make_unique<stim::FrameSimulator<W>>(
+          stim::CircuitStats(),
+          stim::FrameSimulatorMode::STORE_MEASUREMENTS_TO_MEMORY, batch_size,
+          std::mt19937_64(randomEngine));
+      sampleSim->reset_all();
+    }
   }
 
   /// @brief Reset the qubit state.
-  void deallocateStateImpl() override { stimCircuit.clear(); }
+  void deallocateStateImpl() override {
+    tableau.reset();
+    // Update the randomEngine so that future invocations will use the updated
+    // RNG state.
+    if (sampleSim)
+      randomEngine = std::move(sampleSim->rng);
+    sampleSim.reset();
+    num_measurements = 0;
+  }
+
+  /// @brief Apply operation to all Stim simulators.
+  void applyOpToSims(const std::string &gate_name,
+                     const std::vector<uint32_t> &targets) {
+    stim::Circuit tempCircuit;
+    cudaq::info("Calling applyOpToSims {} - {}", gate_name, targets);
+    tempCircuit.safe_append_u(gate_name, targets);
+    tableau->safe_do_circuit(tempCircuit);
+    sampleSim->safe_do_circuit(tempCircuit);
+  }
 
   /// @brief Apply the noise channel on \p qubits
   void applyNoiseChannel(const std::string_view gateName,
@@ -78,19 +142,21 @@ protected:
     cudaq::info("Applying {} kraus channels to qubits {}", krausChannels.size(),
                 stimTargets);
 
+    stim::Circuit noiseOps;
     for (auto &channel : krausChannels) {
       if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
-        stimCircuit.safe_append_ua("X_ERROR", stimTargets,
-                                   channel.parameters[0]);
+        noiseOps.safe_append_ua("X_ERROR", stimTargets, channel.parameters[0]);
       else if (channel.noise_type ==
                cudaq::noise_model_type::phase_flip_channel)
-        stimCircuit.safe_append_ua("Z_ERROR", stimTargets,
-                                   channel.parameters[0]);
+        noiseOps.safe_append_ua("Z_ERROR", stimTargets, channel.parameters[0]);
       else if (channel.noise_type ==
                cudaq::noise_model_type::depolarization_channel)
-        stimCircuit.safe_append_ua("DEPOLARIZE1", stimTargets,
-                                   channel.parameters[0]);
+        noiseOps.safe_append_ua("DEPOLARIZE1", stimTargets,
+                                channel.parameters[0]);
     }
+    // Only apply the noise operations to the sample simulator (not the Tableau
+    // simulator).
+    sampleSim->safe_do_circuit(noiseOps);
   }
 
   void applyGate(const GateApplicationTask &task) override {
@@ -119,7 +185,7 @@ protected:
     for (auto t : task.targets)
       stimTargets.push_back(t);
     try {
-      stimCircuit.safe_append_u(gateName, stimTargets);
+      applyOpToSims(gateName, stimTargets);
     } catch (std::out_of_range &e) {
       throw std::runtime_error(
           fmt::format("Gate not supported by Stim simulator: {}. Note that "
@@ -137,14 +203,31 @@ protected:
     return 0;
   }
 
-  /// @brief Measure the qubit and return the result. Collapse the
-  /// state vector.
-  bool measureQubit(const std::size_t index) override { return false; }
+  /// @brief Measure the qubit and return the result.
+  bool measureQubit(const std::size_t index) override {
+    // Perform measurement
+    applyOpToSims(
+        "M", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
+    num_measurements++;
+
+    // Get the tableau bit that was just generated.
+    const std::vector<bool> &v = tableau->measurement_record.storage;
+    const bool tableauBit = *v.crbegin();
+
+    // Get the mid-circuit sample to be XOR-ed with tableauBit.
+    bool sampleSimBit =
+        sampleSim->m_record.storage[num_measurements - 1][/*shot=*/0];
+
+    // Calculate the result.
+    bool result = tableauBit ^ sampleSimBit;
+
+    return result;
+  }
 
   QubitOrdering getQubitOrdering() const override { return QubitOrdering::msb; }
 
 public:
-  StimCircuitSimulator() {
+  StimCircuitSimulator() : randomEngine(std::random_device{}()) {
     // Populate the correct name so it is printed correctly during
     // deconstructor.
     summaryData.name = name();
@@ -162,26 +245,33 @@ public:
   void resetQubit(const std::size_t index) override {
     flushGateQueue();
     flushAnySamplingTasks();
-    stimCircuit.safe_append_u(
+    applyOpToSims(
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
   }
 
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots) override {
+    assert(shots <= sampleSim->batch_size);
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
-    stimCircuit.safe_append_u("M", stimTargetQubits);
-    if (false) {
-      std::stringstream ss;
-      ss << stimCircuit << '\n';
-      cudaq::log("Stim circuit is\n{}", ss.str());
+    applyOpToSims("M", stimTargetQubits);
+    num_measurements += stimTargetQubits.size();
+
+    // Generate a reference sample
+    const std::vector<bool> &v = tableau->measurement_record.storage;
+    stim::simd_bits<W> ref(v.size());
+    for (size_t k = 0; k < v.size(); k++)
+      ref[k] ^= v[k];
+
+    // Now XOR results on a per-shot basis
+    stim::simd_bit_table<W> sample = sampleSim->m_record.storage;
+    auto nShots = sampleSim->batch_size;
+    if (ref.not_zero()) {
+      sample = stim::transposed_vs_ref(nShots, sample, ref);
+      sample = sample.transposed();
     }
-    auto ref_sample = stim::TableauSimulator<
-        stim::MAX_BITWORD_WIDTH>::reference_sample_circuit(stimCircuit);
-    stim::simd_bit_table<stim::MAX_BITWORD_WIDTH> sample =
-        stim::sample_batch_measurements(stimCircuit, ref_sample, shots,
-                                        randomEngine, false);
-    size_t bits_per_sample = stimCircuit.count_measurements();
+
+    size_t bits_per_sample = num_measurements;
     std::vector<std::string> sequentialData;
     // Only retain the final "qubits.size()" measurements. All other
     // measurements were mid-circuit measurements that have been previously
@@ -191,9 +281,8 @@ public:
     CountsDictionary counts;
     for (std::size_t shot = 0; shot < shots; shot++) {
       std::string aShot(qubits.size(), '0');
-      for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++) {
+      for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++)
         aShot[b - first_bit_to_save] = sample[b][shot] ? '1' : '0';
-      }
       counts[aShot]++;
       sequentialData.push_back(std::move(aShot));
     }
