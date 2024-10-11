@@ -34,11 +34,5 @@ n_beam_splitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
 bs_angles = np.linspace(np.pi / 3, np.pi / 6, n_beam_splitters)
 ps_angles = np.linspace(np.pi / 3, np.pi / 5, n_beam_splitters)
 
-counts = cudaq.sample(TBI,
-                      bs_angles,
-                      ps_angles,
-                      input_state,
-                      loop_lengths,
-                      shots_count=1000000)
-counts.dump()
-
+state = cudaq.get_state(TBI, bs_angles, ps_angles, input_state, loop_lengths)
+state.dump()
