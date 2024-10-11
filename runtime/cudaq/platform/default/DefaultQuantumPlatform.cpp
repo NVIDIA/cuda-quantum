@@ -33,11 +33,12 @@ public:
     execution_queue->enqueue(task);
   }
 
-  void launchKernel(const std::string &name, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t, std::uint64_t,
-                    const std::vector<void *> &rawArgs) override {
+  cudaq::KernelThunkResultType
+  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
+               void *args, std::uint64_t argsSize, std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
-    kernelFunc(args);
+    return kernelFunc(args, /*isRemote=*/false);
   }
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager

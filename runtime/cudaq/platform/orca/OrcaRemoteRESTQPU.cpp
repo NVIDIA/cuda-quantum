@@ -59,11 +59,10 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
 }
 
 /// @brief Launch the experiment.
-void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
-                                     void (*kernelFunc)(void *), void *args,
-                                     std::uint64_t voidStarSize,
-                                     std::uint64_t resultOffset,
-                                     const std::vector<void *> &rawArgs) {
+KernelThunkResultType OrcaRemoteRESTQPU::launchKernel(
+    const std::string &kernelName, KernelThunkType kernelFunc, void *args,
+    std::uint64_t voidStarSize, std::uint64_t resultOffset,
+    const std::vector<void *> &rawArgs) {
 
   cudaq::info("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
               kernelName, qpu_id);
@@ -88,11 +87,14 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
   // Keep this asynchronous if requested
   if (ctx->asyncExec) {
     ctx->futureResult = future;
-    return;
+    return {};
   }
 
   // Otherwise make this synchronous
   ctx->result = future.get();
+
+  // TODO: support dynamic result types.
+  return {};
 }
 
 } // namespace cudaq

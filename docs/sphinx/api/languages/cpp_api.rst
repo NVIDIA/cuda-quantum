@@ -190,6 +190,10 @@ Platform
 
 .. doxygentypedef:: cudaq::KernelExecutionTask
 
+.. doxygentypedef:: cudaq::KernelThunkResultType
+
+.. doxygentypedef:: cudaq::KernelThunkType
+
 Utilities
 =========
 

@@ -23,8 +23,8 @@ cudaq::sample_result runSampling(TBIParameters &parameters,
   platform.set_exec_ctx(ctx.get(), qpu_id);
   platform.set_current_qpu(qpu_id);
 
-  cudaq::altLaunchKernel("orca_launch", nullptr, &parameters,
-                         sizeof(TBIParameters), 0);
+  [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
+      "orca_launch", nullptr, &parameters, sizeof(TBIParameters), 0);
 
   platform.reset_exec_ctx(qpu_id);
   return ctx->result;
@@ -43,8 +43,8 @@ async_sample_result runAsyncSampling(TBIParameters &parameters,
   platform.set_exec_ctx(ctx.get(), qpu_id);
   platform.set_current_qpu(qpu_id);
 
-  cudaq::altLaunchKernel("orca_launch", nullptr, &parameters,
-                         sizeof(TBIParameters), 0);
+  [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
+      "orca_launch", nullptr, &parameters, sizeof(TBIParameters), 0);
 
   // If we have a non-null future, set it
   futureResult = ctx->futureResult;
