@@ -34,7 +34,7 @@ on:
       cudaq_test_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
+        default: '' # picked up from repo variable if not provided
         description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image'
       commit_sha:
         type: string
@@ -43,7 +43,7 @@ on:
       cudaq_nvqc_deploy_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
+        default: '' # picked up from repo variable if not provided
         description: 'CUDA Quantum image to use for NVQC deployment to NVCF. Default to the latest CUDA Quantum nightly image'
       workflow_id:
         type: string
@@ -52,7 +52,6 @@ on:
       python_version:
         type: choice
         required: true
-        default: '3.10' # If changed, update env defaults, too
         description: 'Python version to run wheel test'
         options:
         - '3.8'
@@ -70,10 +69,6 @@ env:
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
   NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40S:gl40s_1.br25_2xlarge:1:1
-  # If vars below are changed, it is recommended to also update the
-  # workflow_dispatch defaults above so they stay in sync.
-  cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
-  cudaq_nvqc_deploy_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
   python_version: '3.10'
 
 jobs:
@@ -84,11 +79,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cudaq_test_image: ${{ steps.vars.outputs.cudaq_test_image }}
+      cudaq_nvqc_deploy_image: ${{ steps.vars.outputs.cudaq_nvqc_deploy_image }}
     steps:
       - name: Set variables
         id: vars
         run: |
-          echo "cudaq_test_image=${{ inputs.cudaq_test_image || env.cudaq_test_image }}" >> $GITHUB_OUTPUT
+          echo "cudaq_test_image=${{ inputs.cudaq_test_image || vars.cudaq_test_image }}" >> $GITHUB_OUTPUT
+          echo "cudaq_nvqc_deploy_image=${{ inputs.cudaq_nvqc_deploy_image || vars.cudaq_nvqc_deploy_image }}" >> $GITHUB_OUTPUT
 
   metadata:
     name: Retrieve commit info
@@ -112,7 +109,7 @@ jobs:
   build_nvqc_image:
     name: Build NVQC deployment image
     runs-on: ubuntu-latest
-    needs: metadata
+    needs: [setup, metadata]
     environment: ghcr-deployment
     if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
     steps:
@@ -153,7 +150,7 @@ jobs:
           context: .
           file: ./docker/release/cudaq.nvqc.Dockerfile
           build-args: |
-            base_image=${{ inputs.cudaq_nvqc_deploy_image || env.cudaq_nvqc_deploy_image }}
+            base_image=${{ needs.setup.outputs.cudaq_nvqc_deploy_image }}
           tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
