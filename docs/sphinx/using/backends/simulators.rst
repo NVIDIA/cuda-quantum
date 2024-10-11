@@ -484,11 +484,27 @@ Fermioniq
 
 .. _fermioniq-backend:
 
-Programmers of CUDA-Q may access the Fermioniq API from either
-C++ or Python. Fermioniq requires you to set two environment variables:
-`FERMIONIQ_ACCESS_TOKEN_ID` and `FERMIONIQ_ACCESS_TOKEN_SECRET`.
-You can obtain them from Fermioniq directly.
+`Fermioniq <https://fermioniq.com/>`__ offers a cloud-based tensor-network emulation platform, `Ava <https://www.fermioniq.com/ava/>`__, 
+for the approximate simulation of large-scale quantum circuits beyond the memory limit of state vector and exact tensor network based methods. 
 
+The level of approximation can be controlled by setting the bond dimension: larger values yield more accurate simulations at the expense 
+of slower computation time. For a detailed description of Ava users are referred to the `online documentation <https://docs.fermioniq.com/>`__.
+
+Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (`Ava <https://www.fermioniq.com/ava/>`__) from either
+C++ or Python. This version currently supports emulation of quantum circuits without noise, and can return measurement samples and/or 
+compute expectation values of observables.
+
+
+Setting Credentials
+`````````````````````````
+In order to use the Fermioniq emulator, users must provide access credentials. These can be requested by contacting info@fermioniq.com 
+
+The credentials must be set via two environment variables:
+`FERMIONIQ_ACCESS_TOKEN_ID` and `FERMIONIQ_ACCESS_TOKEN_SECRET`.
+
+
+Submission from C++
+`````````````````````````
 
 .. tab:: C++
 
@@ -508,7 +524,7 @@ You can obtain them from Fermioniq directly.
 
         nvq++ --target fermioniq --fermioniq-remote-config <remote_config_id> src.cpp ...
 
-    For a comprehensive list of all remote configurations, please consult with Fermioniq.
+    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
 
     When your organization requires you to define a project id, you have to specify
     the project id during compilation.
@@ -517,12 +533,15 @@ You can obtain them from Fermioniq directly.
 
         nvq++ --target fermioniq --fermioniq-project-id <project_id> src.cpp ...
 
-    To specify the bond dimensions, you can pass the ``fermioniq-bond-dim`` parameter.
+    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
 
     .. code:: bash
 
-        nvq++ --target fermioniq --fermioniq-bind-dim 10 src.cpp ...
+        nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...
 
+
+Submission from Python
+`````````````````````````
 
 .. tab:: Python
 
@@ -542,7 +561,7 @@ You can obtain them from Fermioniq directly.
             "remote-config": remote_config_id
         })
 
-    For a comprehensive list of all remote configurations, please consult with Fermioniq.
+    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
 
     When your organization requires you to define a project id, you have to specify
     the project id during compilation.
@@ -553,7 +572,7 @@ You can obtain them from Fermioniq directly.
             "project-id": project_id
         })
 
-    To specify the bond dimensions, you can pass the ``fermioniq-bond-dim`` parameter.
+    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
 
     .. code:: python 
 
