@@ -1378,9 +1378,9 @@ public:
     // them to our caller.
     SmallVector<Value> results;
     auto hostFuncTy = hostFunc.getFunctionType();
-    assert(hostFuncTy.getResults().empty() ||
-           (hostFuncTy.getNumResults() == 1) &&
-               "C++ function expected to have 0 or 1 return value");
+    assert((hostFuncTy.getResults().empty() ||
+            (hostFuncTy.getNumResults() == 1)) &&
+           "C++ function expected to have 0 or 1 return value");
     const bool resultVal = !hostFuncTy.getResults().empty();
     if (resultVal || cudaq::opt::factory::hasSRet(hostFunc)) {
       // Host function returns a value. Either returning by value or via an sret
