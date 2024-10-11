@@ -1,13 +1,15 @@
 import cudaq
+import os
+
+remote_config = os.environ.get("FERMIONIQ_REMOTE_CONFIG_ID", "")
+project_id = os.environ.get("FERMIONIQ_PROJECT_ID", "")
 
 # You only have to set the target once! No need to redefine it
 # for every execution call on your kernel.
-cudaq.set_target(
-    "fermioniq", **{
-        "remote-config": "95ab08ab-7b8c-480a-914b-c1206dd6f373",
-        "project-id": "943977db-7264-4b66-addf-c9d6085d9d8f"
-    })
-
+cudaq.set_target("fermioniq", **{
+    "remote-config": remote_config,
+    "project-id": project_id
+})
 
 # Create the kernel we'd like to execute on Fermioniq.
 @cudaq.kernel
