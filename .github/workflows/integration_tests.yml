@@ -40,11 +40,6 @@ on:
         type: string
         required: false
         description: 'Commit SHA to pull the code (examples/tests) for testing. Default to the commit associated with the CUDA Quantum docker image if left blank'
-      cudaq_nvqc_deploy_image:
-        type: string
-        required: false
-        default: '' # picked up from repo variable if not provided
-        description: 'CUDA Quantum image to use for NVQC deployment to NVCF. Default to the latest CUDA Quantum nightly image'
       workflow_id:
         type: string
         required: false
@@ -79,13 +74,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cudaq_test_image: ${{ steps.vars.outputs.cudaq_test_image }}
-      cudaq_nvqc_deploy_image: ${{ steps.vars.outputs.cudaq_nvqc_deploy_image }}
     steps:
       - name: Set variables
         id: vars
         run: |
           echo "cudaq_test_image=${{ inputs.cudaq_test_image || vars.cudaq_test_image }}" >> $GITHUB_OUTPUT
-          echo "cudaq_nvqc_deploy_image=${{ inputs.cudaq_nvqc_deploy_image || vars.cudaq_nvqc_deploy_image }}" >> $GITHUB_OUTPUT
 
   metadata:
     name: Retrieve commit info
@@ -150,7 +143,7 @@ jobs:
           context: .
           file: ./docker/release/cudaq.nvqc.Dockerfile
           build-args: |
-            base_image=${{ needs.setup.outputs.cudaq_nvqc_deploy_image }}
+            base_image=${{ needs.setup.outputs.cudaq_test_image }}
           tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
