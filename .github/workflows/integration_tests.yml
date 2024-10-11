@@ -85,7 +85,7 @@ jobs:
         id: vars
         run: |
           echo "cudaq_test_image=${{ inputs.cudaq_test_image || vars.cudaq_test_image }}" >> $GITHUB_OUTPUT
-          echo "cudaq_nvqc_deploy_image=${{ inputs.cudaq_nvqc_deploy_image || vars.cudaq_nvqc_deploy_image }}" >> $GITHUB_OUTPUT
+          echo "cudaq_nvqc_deploy_image=${{ inputs.cudaq_nvqc_deploy_image || vars.cudaq_test_image }}" >> $GITHUB_OUTPUT
 
   metadata:
     name: Retrieve commit info
