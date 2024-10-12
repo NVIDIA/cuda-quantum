@@ -500,39 +500,6 @@ compute expectation values of observables.
     The credentials must be set via two environment variables:
     `FERMIONIQ_ACCESS_TOKEN_ID` and `FERMIONIQ_ACCESS_TOKEN_SECRET`.
 
-.. tab:: C++
-
-    To target quantum kernel code for execution in the Fermioniq backends,
-    pass the flag ``--target fermioniq`` to the ``nvq++`` compiler. CUDA-Q will 
-    authenticate via the Fermioniq REST API using the environment variables 
-    set earlier.
-
-    .. code:: bash
-
-        nvq++ --target fermioniq src.cpp ...
-
-    You will have to specify a remote configuration id for the Fermioniq backend
-    during compilation.
-
-    .. code:: bash
-
-        nvq++ --target fermioniq --fermioniq-remote-config <remote_config_id> src.cpp ...
-
-    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
-
-    When your organization requires you to define a project id, you have to specify
-    the project id during compilation.
-
-    .. code:: bash
-
-        nvq++ --target fermioniq --fermioniq-project-id <project_id> src.cpp ...
-
-    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
-
-    .. code:: bash
-
-        nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...
-
 .. tab:: Python
 
     The target to which quantum kernels are submitted 
@@ -569,6 +536,39 @@ compute expectation values of observables.
         cudaq.set_target("fermioniq", **{
             "bond-dim": 5
         })
+
+.. tab:: C++
+
+    To target quantum kernel code for execution in the Fermioniq backends,
+    pass the flag ``--target fermioniq`` to the ``nvq++`` compiler. CUDA-Q will 
+    authenticate via the Fermioniq REST API using the environment variables 
+    set earlier.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq src.cpp ...
+
+    You will have to specify a remote configuration id for the Fermioniq backend
+    during compilation.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-remote-config <remote_config_id> src.cpp ...
+
+    For a comprehensive list of all remote configurations, please contact Fermioniq directly.
+
+    When your organization requires you to define a project id, you have to specify
+    the project id during compilation.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-project-id <project_id> src.cpp ...
+
+    To specify the bond dimension, you can pass the ``fermioniq-bond-dim`` parameter.
+
+    .. code:: bash
+
+        nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...
 
 Default Simulator
 ==================================
