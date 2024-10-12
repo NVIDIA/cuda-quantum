@@ -494,17 +494,11 @@ Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (
 C++ or Python. This version currently supports emulation of quantum circuits without noise, and can return measurement samples and/or 
 compute expectation values of observables.
 
+.. note::
+    In order to use the Fermioniq emulator, users must provide access credentials. These can be requested by contacting info@fermioniq.com 
 
-Setting Credentials
-`````````````````````````
-In order to use the Fermioniq emulator, users must provide access credentials. These can be requested by contacting info@fermioniq.com 
-
-The credentials must be set via two environment variables:
-`FERMIONIQ_ACCESS_TOKEN_ID` and `FERMIONIQ_ACCESS_TOKEN_SECRET`.
-
-
-Submission from C++
-`````````````````````````
+    The credentials must be set via two environment variables:
+    `FERMIONIQ_ACCESS_TOKEN_ID` and `FERMIONIQ_ACCESS_TOKEN_SECRET`.
 
 .. tab:: C++
 
@@ -538,10 +532,6 @@ Submission from C++
     .. code:: bash
 
         nvq++ --target fermioniq --fermioniq-bond-dim 10 src.cpp ...
-
-
-Submission from Python
-`````````````````````````
 
 .. tab:: Python
 
