@@ -11,6 +11,7 @@ cudaq.set_target("fermioniq", **{
     "project-id": project_id
 })
 
+
 # Create the kernel we'd like to execute on Fermioniq.
 @cudaq.kernel
 def kernel():
