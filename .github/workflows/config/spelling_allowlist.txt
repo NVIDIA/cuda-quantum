@@ -236,6 +236,7 @@ namespaces
 natively
 normalization
 nullary
+observables
 optimizer
 optimizers
 parallelization
