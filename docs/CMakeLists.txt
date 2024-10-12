@@ -130,6 +130,8 @@ if (CUDAQ_ENABLE_PYTHON)
     endif()
   endfunction()
 
+  add_pycudaq_test(Intro intro.py)
+
   if (CUTENSORNET_ROOT AND CUDA_FOUND) 
     # This example uses tensornet backend.
     add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
