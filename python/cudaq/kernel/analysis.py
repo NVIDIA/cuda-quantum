@@ -167,11 +167,11 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                         return
 
                     # This will throw if the function / module is invalid
-                    try: 
+                    try:
                         m = importlib.import_module('.'.join(moduleNames))
-                    except: 
-                        return 
-                    
+                    except:
+                        return
+
                     getattr(m, node.func.attr)
                     name = node.func.attr
 
