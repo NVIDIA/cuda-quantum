@@ -18,6 +18,9 @@ using namespace mlir;
 
 namespace cudaq::opt {
 
+// The common small struct limit for architectures cudaq is supporting.
+static constexpr unsigned CommonSmallStructSize = 128;
+
 bool factory::isX86_64(ModuleOp module) {
   std::string triple;
   if (auto ta = module->getAttr(targetTripleAttrName))
@@ -417,7 +420,7 @@ static bool shouldExpand(SmallVectorImpl<Type> &packedTys,
     } else {
       return false;
     }
-    if (bits > 128)
+    if (bits > CommonSmallStructSize)
       return false;
   }
 
@@ -505,7 +508,8 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
 bool factory::structUsesTwoArguments(mlir::Type ty) {
   // Unchecked! This is only valid if target is X86-64.
   auto structTy = dyn_cast<cc::StructType>(ty);
-  if (!structTy || structTy.getBitSize() == 0 || structTy.getBitSize() > 128)
+  if (!structTy || structTy.getBitSize() == 0 ||
+      structTy.getBitSize() > CommonSmallStructSize)
     return false;
   SmallVector<Type> unused;
   return shouldExpand(unused, structTy);
@@ -532,7 +536,8 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
   Type resultTy;
   if (funcTy.getNumResults() == 1)
     if (auto strTy = dyn_cast<cc::StructType>(funcTy.getResult(0)))
-      if (strTy.getBitSize() != 0 && strTy.getBitSize() <= 128) {
+      if (strTy.getBitSize() != 0 &&
+          strTy.getBitSize() <= CommonSmallStructSize) {
         SmallVector<Type, 2> packedTys;
         if (shouldExpand(packedTys, strTy) || !packedTys.empty()) {
           if (packedTys.size() == 1)
@@ -569,7 +574,8 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
       // On x86_64 and aarch64, a struct that is smaller than 128 bits may be
       // passed in registers as separate arguments. See classifyArgumentType()
       // in CodeGen/TargetInfo.cpp.
-      if (strTy.getBitSize() != 0 && strTy.getBitSize() <= 128) {
+      if (strTy.getBitSize() != 0 &&
+          strTy.getBitSize() <= CommonSmallStructSize) {
         if (isX86_64(module)) {
           SmallVector<Type, 2> packedTys;
           if (shouldExpand(packedTys, strTy)) {
