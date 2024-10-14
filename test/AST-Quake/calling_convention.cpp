@@ -6,8 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: x86-registered-target
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
+// This test is only valid for x86_64.
+// RUN: if [ `uname -m` = "x86_64" ] ; then \
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s ; fi
 
 #include <cudaq.h>
 #include <tuple>
