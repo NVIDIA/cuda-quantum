@@ -50,7 +50,7 @@ struct PhotonicsState : public cudaq::SimulationState {
     const std::size_t idx = std::accumulate(
         std::make_reverse_iterator(basisState.end()),
         std::make_reverse_iterator(basisState.begin()), 0ull,
-        [&](std::size_t acc, int bit) { return (acc * levels) + bit; });
+        [&](std::size_t acc, int qudit) { return (acc * levels) + qudit; });
     return state[idx];
   }
 
@@ -104,6 +104,9 @@ private:
   /// @brief Current state
   qpp::ket state;
 
+  /// @brief The qudit-levels (`qumodes`)
+  std::size_t levels;
+
   /// @brief Instructions are stored in a map
   std::unordered_map<std::string, std::function<void(const Instruction &)>>
       instructions;
@@ -119,6 +122,7 @@ protected:
       // qubit will give [1,0], qutrit will give [1,0,0] and so on...
       state = qpp::ket::Zero(q.levels);
       state(0) = 1.0;
+      levels = q.levels;
       return;
     }
 
@@ -162,6 +166,7 @@ protected:
         ids.push_back(s.id);
       }
       if (executionContext->name == "sample") {
+        cudaq::info("Sampling");
         auto shots = executionContext->shots;
         auto sampleResult =
             qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
@@ -180,9 +185,21 @@ protected:
         }
         executionContext->result.append(counts);
       } else if (executionContext->name == "extract-state") {
+        cudaq::info("Extracting state");
+        // If here, then we care about the result qudit, so compute it.
+        for (auto &q : sampleQudits) {
+          const auto measurement_tuple = qpp::measure(
+              state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
+              /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
+          const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
+          const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+          const auto &collapsed_state = post_meas_states[measurement_result];
+          state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
+                                             collapsed_state.size());
+        }
+
         executionContext->simulationState =
-            std::make_unique<cudaq::PhotonicsState>(
-                std::move(state), sampleQudits.begin()->levels);
+            std::make_unique<cudaq::PhotonicsState>(std::move(state), levels);
       }
       // Reset the state and qudits
       state.resize(0);
@@ -204,7 +221,12 @@ protected:
       return 0;
     }
 
-    // If here, then we care about the result bit, so compute it.
+    if (executionContext && executionContext->name == "extract-state") {
+      sampleQudits.push_back(q);
+      return 0;
+    }
+
+    // If here, then we care about the result qudit, so compute it.
     const auto measurement_tuple = qpp::measure(
         state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
         /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
