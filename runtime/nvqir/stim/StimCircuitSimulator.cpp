@@ -266,10 +266,15 @@ public:
     // Now XOR results on a per-shot basis
     stim::simd_bit_table<W> sample = sampleSim->m_record.storage;
     auto nShots = sampleSim->batch_size;
-    if (ref.not_zero()) {
-      sample = stim::transposed_vs_ref(nShots, sample, ref);
-      sample = sample.transposed();
-    }
+
+    // This is a slightly modified version of `sample_batch_measurements`, where
+    // we already have the `sample` from the frame simulator. It also places the
+    // `sample` in a layout amenable to the order of the loops below (shot
+    // major).
+    sample = sample.transposed();
+    if (ref.not_zero())
+      for (size_t s = 0; s < nShots; s++)
+        sample[s].word_range_ref(0, ref.num_simd_words) ^= ref;
 
     size_t bits_per_sample = num_measurements;
     std::vector<std::string> sequentialData;
@@ -282,7 +287,7 @@ public:
     for (std::size_t shot = 0; shot < shots; shot++) {
       std::string aShot(qubits.size(), '0');
       for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++)
-        aShot[b - first_bit_to_save] = sample[b][shot] ? '1' : '0';
+        aShot[b - first_bit_to_save] = sample[shot][b] ? '1' : '0';
       counts[aShot]++;
       sequentialData.push_back(std::move(aShot));
     }
