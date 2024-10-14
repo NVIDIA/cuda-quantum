@@ -1448,3 +1448,28 @@ CUDAQ_TEST(BuilderTester, checkQuakeValueOperators) {
 }
 
 #endif
+
+CUDAQ_TEST(BuilderTester, checkMidCircuitMeasureWithReset) {
+  // The following kernel can be executed without
+  // context.hasConditionalsOnMeasureResults having to be set.
+  auto kernel = cudaq::make_kernel<>();
+  auto q = kernel.qalloc(4);
+  kernel.h(q);
+  kernel.mz(q, "midCircuit");
+  kernel.reset(q);
+  kernel.h(q);
+  auto counts = cudaq::sample(kernel);
+  auto countsMidCircuit = counts.to_map("midCircuit");
+  auto countsFinal = counts.to_map();
+
+  // Verify that all possible outcomes were indeed reported.
+  EXPECT_EQ(countsMidCircuit.size(), 16);
+  EXPECT_EQ(countsFinal.size(), 16);
+
+  // The results should *not* be identical to each other.
+  bool match = true;
+  for (auto &[k, v] : countsMidCircuit)
+    if (countsFinal[k] != countsMidCircuit[k])
+      match = false;
+  EXPECT_EQ(match, false);
+}
