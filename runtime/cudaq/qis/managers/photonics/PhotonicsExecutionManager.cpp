@@ -288,32 +288,16 @@ protected:
     return FACTORIAL_TABLE[n];
   }
 
-  /// @brief Computes the kronecker delta of two values
-  int _kron(int a, int b) {
-    if (a == b)
-      return 1;
-    else
-      return 0;
-  }
-
-  /// @brief Computes if two double values are within some absolute and relative
-  /// tolerance
-  bool _isclose(double a, double b, double rtol = 1e-08, double atol = 1e-9) {
-    return std::fabs(a - b) <= (atol + rtol * std::fabs(b));
-  }
-
   /// @brief Computes a single element in the matrix representing a beam
   /// splitter gate
-  double _calc_beamsplitter_elem(int N1, int N2, int n1, int n2, double theta) {
+  double _calc_beam_splitter_elem(int N1, int N2, int n1, int n2, double theta) {
 
-    const double t = cos(theta); // transmission coeffient
-    const double r = sin(theta); // reflection coeffient
+    const double t = cos(theta); // transmission coefficient
+    const double r = sin(theta); // reflection coefficient
     double sum = 0;
     for (int k = 0; k <= n1; ++k) {
       int l = N1 - k;
       if (l >= 0 && l <= n2) {
-        // int term4 = _kron(N1, k + l); //* kron(N1 + N2, n1 + n2);
-
         double term1 = pow(r, (n1 - k + l)) * pow(t, (n2 + k - l));
         if (term1 == 0) {
           continue;
@@ -334,7 +318,7 @@ protected:
   }
 
   /// @brief Computes matrix representing a beam splitter gate
-  void beamsplitter(const double theta, qpp::cmat &BS) {
+  void beam_splitter(const double theta, qpp::cmat &BS) {
     int d = sqrt(BS.rows());
     //     """Returns a matrix representing a beam splitter
     for (int n1 = 0; n1 < d; ++n1) {
@@ -348,7 +332,7 @@ protected:
           } else {
 
             BS(n1 * d + n2, N1 * d + N2) =
-                _calc_beamsplitter_elem(N1, N2, n1, n2, theta);
+                _calc_beam_splitter_elem(N1, N2, n1, n2, theta);
           }
         }
       }
@@ -378,7 +362,7 @@ public:
       size_t d = target1.levels;
       const double theta = params[0];
       qpp::cmat BS{qpp::cmat::Zero(d * d, d * d)};
-      beamsplitter(theta, BS);
+      beam_splitter(theta, BS);
       cudaq::info("Applying beamSplitterGate on {}<{}> and {}<{}>", target1.id,
                   target1.levels, target2.id, target2.levels);
       state = qpp::apply(state, BS, {target1.id, target2.id}, d);
