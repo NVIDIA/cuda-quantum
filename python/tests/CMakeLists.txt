@@ -8,7 +8,9 @@
 
 # Tests that generate MLIR and are run through both pytest and FileCheck.
 add_subdirectory(mlir)
-add_subdirectory(interop)
+if (TARGET nvq++) 
+  add_subdirectory(interop)
+endif() 
 
 if (MPI_CXX_FOUND AND CUDA_FOUND)
   add_subdirectory(parallel)

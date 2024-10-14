@@ -177,7 +177,7 @@ def testSynthTwoArgs():
     assert '00' in counts and len(counts) == 1
 
 
-def test_cpp_kernel_from_python():
+def test_cpp_kernel_from_python_0():
 
     from cudaq_test_cpp_algo import qstd
 
@@ -193,3 +193,41 @@ def test_cpp_kernel_from_python():
     counts = cudaq.sample(callQftAndAnother)
     counts.dump()
     assert len(counts) == 1 and '0010' in counts
+
+
+def test_cpp_kernel_from_python_1():
+
+    @cudaq.kernel
+    def callQftAndAnother():
+        q = cudaq.qvector(4)
+        cudaq_test_cpp_algo.qstd.qft(q)
+        h(q)
+        cudaq_test_cpp_algo.qstd.another(q, 2)
+
+    callQftAndAnother()
+
+    counts = cudaq.sample(callQftAndAnother)
+    counts.dump()
+    assert len(counts) == 1 and '0010' in counts
+
+
+def test_cpp_kernel_from_python_2():
+
+    @cudaq.kernel
+    def callUCCSD():
+        q = cudaq.qvector(4)
+        cudaq_test_cpp_algo.qstd.uccsd(q, 2)
+
+    callUCCSD()
+
+def test_capture():
+    @cudaq.kernel
+    def takesCapture(s : int):
+        pass
+
+    spin = 0
+
+    @cudaq.kernel(verbose=True)
+    def entry():
+        takesCapture(spin)
+    entry.compile()

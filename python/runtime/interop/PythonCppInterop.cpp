@@ -57,9 +57,9 @@ std::string extractSubstring(const std::string &input,
 }
 
 std::tuple<std::string, std::string>
-getMLIRCodeAndName(const std::string &name) {
+getMLIRCodeAndName(const std::string &name, const std::string mangledArgs) {
   auto cppMLIRCode =
-      cudaq::get_quake(std::remove_cvref_t<decltype(name)>(name));
+      cudaq::get_quake(std::remove_cvref_t<decltype(name)>(name), mangledArgs);
   auto kernelName = cudaq::getKernelName(cppMLIRCode);
   cppMLIRCode = "module {\nfunc.func @" + kernelName +
                 cudaq::extractSubstring(cppMLIRCode, "func.func @" + kernelName,
@@ -68,13 +68,25 @@ getMLIRCodeAndName(const std::string &name) {
   return std::make_tuple(kernelName, cppMLIRCode);
 }
 
+/// Map device kernels represented as mod1.mod2...function to their MLIR
+/// representation.
 static std::unordered_map<std::string, std::tuple<std::string, std::string>>
     deviceKernelMLIRMap;
 
 __attribute__((visibility("default"))) void
-registerDeviceKernel(const std::string &module, const std::string &name) {
+registerDeviceKernel(const std::string &module, const std::string &name,
+                     const std::string &mangled) {
   auto key = module + "." + name;
-  deviceKernelMLIRMap.insert({key, getMLIRCodeAndName(name)});
+  deviceKernelMLIRMap.insert({key, getMLIRCodeAndName(name, mangled)});
+}
+
+bool isRegisteredDeviceModule(const std::string &compositeName) {
+  for (auto &[k, v] : deviceKernelMLIRMap) {
+    if (k.starts_with(compositeName)) // FIXME is this valid?
+      return true;
+  }
+
+  return false;
 }
 
 std::tuple<std::string, std::string>
@@ -82,7 +94,6 @@ getDeviceKernel(const std::string &compositeName) {
   auto iter = deviceKernelMLIRMap.find(compositeName);
   if (iter == deviceKernelMLIRMap.end())
     throw std::runtime_error("Invalid composite name for device kernel map.");
-
   return iter->second;
 }
 

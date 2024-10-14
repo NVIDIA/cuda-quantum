@@ -1315,6 +1315,59 @@ class PyASTBridge(ast.NodeVisitor):
             # FindDepKernels has found something like this, loaded it, and now we just
             # want to get the function name and call it.
 
+            # First let's check for registered C++ kernels
+            cppDevModNames = []
+            value = node.func.value
+            if isinstance(value, ast.Name) and value.id != 'cudaq':
+                cppDevModNames = [node.func.attr, value.id]
+            else:
+                while isinstance(value, ast.Attribute):
+                    cppDevModNames.append(value.attr)
+                    value = value.value
+                    if isinstance(value, ast.Name):
+                        cppDevModNames.append(value.id)
+                        break
+
+            devKey = '.'.join(cppDevModNames[::-1])
+
+            def get_full_module_path(partial_path):
+                parts = partial_path.split('.')
+                for module_name, module in sys.modules.items():
+                    if module_name.endswith(parts[0]):
+                        try:
+                            obj = module
+                            for part in parts[1:]:
+                                obj = getattr(obj, part)
+                            return f"{module_name}.{'.'.join(parts[1:])}"
+                        except AttributeError:
+                            continue
+                return partial_path
+
+            devKey = get_full_module_path(devKey)
+            if cudaq_runtime.isRegisteredDeviceModule(devKey):
+                maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                    self.module, devKey + '.' + node.func.attr)
+                if maybeKernelName == None:
+                    maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                        self.module, devKey)
+                if maybeKernelName != None:
+                    otherKernel = SymbolTable(
+                        self.module.operation)[maybeKernelName]
+                    fType = otherKernel.type
+                    if len(fType.inputs) != len(node.args):
+                        funcName = node.func.id if hasattr(
+                            node.func, 'id') else node.func.attr
+                        self.emitFatalError(
+                            f"invalid number of arguments passed to callable {funcName} ({len(node.args)} vs required {len(fType.inputs)})",
+                            node)
+
+                    [self.visit(arg) for arg in node.args]
+                    values = [self.popValue() for _ in node.args]
+                    values.reverse()
+                    values = [self.ifPointerThenLoad(v) for v in values]
+                    func.CallOp(otherKernel, values)
+                    return
+
             # Start by seeing if we have mod1.mod2.mod3...
             moduleNames = []
             value = node.func.value
@@ -1335,32 +1388,6 @@ class PyASTBridge(ast.NodeVisitor):
 
                 self.__insertDbgStmt(self.popValue(), node.func.attr)
                 return
-
-            # Handle the case of `mod.func`, where mod is not cudaq.
-            if isinstance(node.func, ast.Attribute) and isinstance(
-                    node.func.value,
-                    ast.Name) and node.func.value.id != 'cudaq':
-                # This could be a C++ generated kernel,
-                # if so we should get it and add it to
-                # the module
-                maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                    self.module, node.func.value.id + '.' + node.func.attr)
-                if maybeKernelName != None:
-                    otherKernel = SymbolTable(
-                        self.module.operation)[maybeKernelName]
-                    fType = otherKernel.type
-                    if len(fType.inputs) != len(node.args):
-                        funcName = node.func.id if hasattr(
-                            node.func, 'id') else node.func.attr
-                        self.emitFatalError(
-                            f"invalid number of arguments passed to callable {funcName} ({len(node.args)} vs required {len(fType.inputs)})",
-                            node)
-
-                    [self.visit(arg) for arg in node.args]
-                    values = [self.popValue() for _ in node.args]
-                    values.reverse()
-                    func.CallOp(otherKernel, values)
-                    return
 
             # If we did have module names, then this is what we are looking for
             if len(moduleNames):
@@ -1842,6 +1869,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 values = [self.popValue() for _ in node.args]
                 values.reverse()
+                values = [self.ifPointerThenLoad(v) for v in values]
                 func.CallOp(otherKernel, values)
                 return
 

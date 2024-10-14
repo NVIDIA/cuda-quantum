@@ -40,9 +40,16 @@ PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
     return cudaq::sample(entryPointPtr);
   });
 
+  // // Demo / Test overloaded kernel functions.
+  // cudaq::addDeviceKernelInterop<cudaq::qview<>, const std::vector<double> &,
+  //                               std::size_t>(m, "qstd", "qft", "");
+
   // Example of how to expose C++ kernels.
   cudaq::addDeviceKernelInterop<cudaq::qview<>>(
       m, "qstd", "qft", "(Fake) Quantum Fourier Transform.");
   cudaq::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
       m, "qstd", "another", "Demonstrate we can have multiple ones.");
+
+  cudaq::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(m, "qstd", "uccsd",
+                                                             "");
 }

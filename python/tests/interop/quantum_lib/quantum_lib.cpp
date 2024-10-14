@@ -20,6 +20,13 @@ __qpu__ void qft(cudaq::qview<> qubits) {
   h(qubits);
 }
 
+__qpu__ void qft(cudaq::qview<> qubits, const std::vector<double> &x,
+                 std::size_t k) {
+  h(qubits[k]);
+  ry(x[0], qubits[k]);
+}
+
 __qpu__ void another(cudaq::qview<> qubits, std::size_t i) { x(qubits[i]); }
 
+__qpu__ void uccsd(cudaq::qview<> qubits, std::size_t) { h(qubits[0]); }
 } // namespace cudaq
