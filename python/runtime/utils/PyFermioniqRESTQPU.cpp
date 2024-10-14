@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "common/ArgumentWrapper.h"
-#include "common/BaseRemoteRESTQPU.h"
+#include "cudaq/platform/fermioniq/FermioniqBaseQPU.h"
 
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 
@@ -26,7 +26,7 @@ void registerLLVMDialectTranslation(MLIRContext *context);
 
 namespace cudaq {
 
-class PyFermioniqRESTQPU : public cudaq::BaseRemoteRESTQPU {
+class PyFermioniqRESTQPU : public cudaq::FermioniqBaseQPU {
 protected:
   std::tuple<ModuleOp, MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
@@ -71,6 +71,7 @@ protected:
       llvm::raw_string_ostream os(moduleStr);
       cloned.print(os);
     }
+
     // The remote rest qpu workflow will need the module string in
     // the internal registry.
     __cudaq_deviceCodeHolderAdd(kernelName.c_str(), moduleStr.c_str());
