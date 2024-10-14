@@ -23,12 +23,14 @@ public:
 
   /// @brief Set the noise model, only allow this for
   /// emulation.
-  void setNoiseModel(const cudaq::noise_model *model) override {
-    throw std::runtime_error("Noise modeling is not allowed on this backend");
+  virtual void setNoiseModel(const cudaq::noise_model *model) override {
+    if (model) {
+      throw std::runtime_error("Noise modeling is not allowed on this backend");
+    }
   }
 
   /// Reset the execution context
-  void resetExecutionContext() override {
+  virtual void resetExecutionContext() override {
     // set the pre-computed expectation value.
     if (executionContext->name == "observe") {
       auto expectation =
@@ -39,9 +41,11 @@ public:
     executionContext = nullptr;
   }
 
-  void launchKernel(const std::string &kernelName,
+  void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
+                    void *args, std::uint64_t voidStarSize,
+                    std::uint64_t resultOffset,
                     const std::vector<void *> &rawArgs) override {
-    cudaq::info("launching remote rest kernel ({})", kernelName);
+    cudaq::info("FermioniqBaseQPU launching kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -60,7 +64,8 @@ public:
     if (executionContext->name == "observe")
       executionContext = &defaultContext;
 
-    auto codes = lowerQuakeCode(kernelName, nullptr, rawArgs);
+    auto codes = rawArgs.empty() ? lowerQuakeCode(kernelName, args, {})
+                                 : lowerQuakeCode(kernelName, nullptr, rawArgs);
     if (codes.size() != 1) {
       throw std::runtime_error("Provider only allows 1 circuit at a time.");
     }
@@ -97,6 +102,11 @@ public:
     }
 
     completeLaunchKernel(kernelName, std::move(codes));
+  }
+
+  void launchKernel(const std::string &kernelName,
+                    const std::vector<void *> &rawArgs) override {
+    return launchKernel(kernelName, nullptr, nullptr, 0, 0, rawArgs);
   }
 };
 } // namespace cudaq
