@@ -248,6 +248,7 @@ prepend
 preprocessor
 probability
 programmatically
+pseudocode
 pybind
 quantize
 quantized
@@ -255,6 +256,7 @@ qubit
 qubits
 qudit
 qudits
+qutrit
 reStructuredText
 reconfigurable
 runtime
