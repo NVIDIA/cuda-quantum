@@ -6,7 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, cudaq_test_cpp_algo
+import cudaq, pytest
+
+cudaq_test_cpp_algo = pytest.importorskip('cudaq_test_cpp_algo')
 
 
 @pytest.fixture(autouse=True)
