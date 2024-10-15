@@ -160,7 +160,7 @@ def CombineQuantumAllocations :
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
-def ConstPropComplex : Pass<"const-prop-complex", "mlir::ModuleOp"> {
+def ConstPropComplex : Pass<"const-prop-complex", "mlir::func::FuncOp"> {
   let summary = "Create and propagate complex constants.";
   let description = [{
     Rewrite the complex.CreateOp to complex.ConstantOp when possible.
@@ -383,11 +383,11 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
 
 def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
   let summary =
-    "Replace the unitary matrix generator function with concrete matrix.";
+    "Replace the unitary matrix generator function with a constant matrix.";
   let description = [{
     Given a custom operation whose generator attribute is another function 
     within the module, such that if `LiftArrayAlloc` pass has run, there will
-    be a global constant within the module which holds the concrete matrix 
+    be a global constant within the module which holds the constant matrix 
     representation for the custom operation. This pass will find that global
     variable and update the custom operation to directly point to it. 
 
@@ -424,6 +424,22 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
   }];
 }
 
+// GlobalizeArrayValues must be a module pass because it may promoted array
+// constants from functions to global constants (changes their scope).
+def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
+  let summary = "Convert const_array ops to globals.";
+  let description = [{
+    Often a `const_array` op can be canonicalized into scalar constants that
+    are then constant propagated to their uses in the quake ops. When this
+    happens, the `const_array` may become unused and be eliminated.
+
+    However, there can also be cases where the `const_array` remains alive, such
+    as when it is used in a `state_init` op. In such cases, we may be able to go
+    ahead and replace the `const_array` with a global constant. This pass makes
+    such conversions.
+  }];
+}
+
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
 // new FuncOps.
 def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
@@ -439,7 +455,7 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createLambdaLiftingPass()";
 }
 
-def LiftArrayAlloc : Pass<"lift-array-value", "mlir::ModuleOp"> {
+def LiftArrayAlloc : Pass<"lift-array-alloc", "mlir::func::FuncOp"> {
   let summary = "Convert constant arrays built on the stack to array values";
   let description = [{
     The bridge or other passes may generate inline code to build an array of
@@ -476,6 +492,10 @@ def LiftArrayAlloc : Pass<"lift-array-value", "mlir::ModuleOp"> {
     updated or escapes the function, it cannot be replaced by a value. If
     it is elements are accessed in a read-only way, it is a legal transform
     and will enable further constant folding in other passes.
+
+    See the globalize array values pass for converting `const_array` values
+    to global constants. Conversion to globals is intentionally deferred to
+    allow constant propagation to take place correctly.
   }];
 
   let dependentDialects = ["mlir::complex::ComplexDialect"];
