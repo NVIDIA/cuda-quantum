@@ -290,7 +290,8 @@ protected:
 
   /// @brief Computes a single element in the matrix representing a beam
   /// splitter gate
-  double _calc_beam_splitter_elem(int N1, int N2, int n1, int n2, double theta) {
+  double _calc_beam_splitter_elem(int N1, int N2, int n1, int n2,
+                                  double theta) {
 
     const double t = cos(theta); // transmission coefficient
     const double r = sin(theta); // reflection coefficient
