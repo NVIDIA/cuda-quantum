@@ -23,6 +23,7 @@ on:
           - quantinuum
           - nvqc
           - orca
+          - fermioniq
       single_test_name:
         type: string
         required: false
