@@ -528,6 +528,56 @@ jobs:
           fi
         shell: bash
 
+      - name: Submit to Fermioniq test server
+        if: (success() || failure()) && (inputs.target == 'fermioniq' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### Submit to Fermioniq server" >> $GITHUB_STEP_SUMMARY
+          export FERMIONIQ_ACCESS_TOKEN_ID='${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}'
+          export FERMIONIQ_ACCESS_TOKEN_SECRET='${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}'
+          export FERMIONIQ_PROJECT_ID='c86e2cb8-d776-41ae-8240-d3d55e18b7c3'
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          cpp_tests="docs/sphinx/examples/cpp/providers/fermioniq.cpp"
+          for filename in $cpp_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            nvq++ \
+              --target fermioniq \
+              --fermioniq-project-id $FERMIONIQ_PROJECT_ID \
+              $filename
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out 1> /dev/null
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          python_tests="docs/sphinx/examples/python/providers/fermioniq.py docs/sphinx/examples/python/providers/fermioniq_observables.py"
+          for filename in $python_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            python3 $filename 1> /dev/null
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+            else
+              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
       - name: Submit to ${{ inputs.target }}
         # The full set of tests used by this step is currently only supported on
         # Quantinuum.  The other supported tests are tested by the step above.

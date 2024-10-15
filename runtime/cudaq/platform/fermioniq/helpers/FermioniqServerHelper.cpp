@@ -42,6 +42,9 @@ class FermioniqServerHelper : public ServerHelper {
   static constexpr const char *CFG_BOND_DIM_KEY = "bond_dim";
   static constexpr const char *CFG_PROJECT_ID_KEY = "project_id";
 
+  static constexpr const char *DEFAULT_REMOTE_CONFIG_ID =
+      "8aa426bd-7a4e-4209-9f8a-746c40bc1816";
+
 public:
   /// @brief Returns the name of the server helper.
   const std::string name() const override { return "fermioniq"; }
@@ -133,6 +136,10 @@ void FermioniqServerHelper::initialize(BackendConfig config) {
 
   if (config.find("remote_config") != config.end()) {
     backendConfig[CFG_REMOTE_CONFIG_KEY] = config["remote_config"];
+  } else {
+    cudaq::info("Set default remote config {}", DEFAULT_REMOTE_CONFIG_ID);
+    backendConfig[CFG_REMOTE_CONFIG_KEY] =
+        std::string(DEFAULT_REMOTE_CONFIG_ID);
   }
   if (config.find("noise_model") != config.end()) {
     backendConfig[CFG_NOISE_MODEL_KEY] = config["noise_model"];

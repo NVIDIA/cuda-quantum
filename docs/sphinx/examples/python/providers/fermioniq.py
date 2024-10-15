@@ -7,8 +7,8 @@ project_id = os.environ.get("FERMIONIQ_PROJECT_ID", "")
 # You only have to set the target once! No need to redefine it
 # for every execution call on your kernel.
 cudaq.set_target("fermioniq", **{
-    "remote-config": remote_config,
-    "project-id": project_id
+    "remote_config": remote_config,
+    "project_id": project_id
 })
 
 
