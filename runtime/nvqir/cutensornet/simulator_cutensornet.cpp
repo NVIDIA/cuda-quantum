@@ -107,6 +107,7 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
 /// @brief Reset the state of a given qubit to zero
 void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   flushGateQueue();
+  flushAnySamplingTasks();
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();

@@ -161,6 +161,7 @@ public:
   /// @param index 0-based index of qubit to reset
   void resetQubit(const std::size_t index) override {
     flushGateQueue();
+    flushAnySamplingTasks();
     stimCircuit.safe_append_u(
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
   }

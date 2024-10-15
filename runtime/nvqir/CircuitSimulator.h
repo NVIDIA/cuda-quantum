@@ -685,6 +685,7 @@ protected:
         cudaq::ExecutionResult tmp(regName);
         for (auto &[bits, count] : execResult.counts) {
           std::string b = "";
+          b.reserve(qubits.size());
           for (auto &qb : qubits)
             b += bits[qubitLocMap[qb]];
           tmp.appendResult(b, count);
