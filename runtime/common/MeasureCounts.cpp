@@ -467,15 +467,28 @@ void sample_result::clear() {
   totalShots = 0;
 }
 
+/// @brief This is a helper function to sort the keys of an unordered map
+/// without making any deep copies.
+template <typename T>
+std::vector<typename T::const_iterator> sortByKeys(const T &unordered_map) {
+  std::vector<typename T::const_iterator> iterators;
+  iterators.reserve(unordered_map.size());
+  for (auto it = unordered_map.begin(); it != unordered_map.end(); ++it)
+    iterators.push_back(it);
+  std::sort(iterators.begin(), iterators.end(),
+            [](const auto &a, const auto &b) { return a->first < b->first; });
+  return iterators;
+}
+
 void sample_result::dump(std::ostream &os) const {
   os << "{ ";
   if (sampleResults.size() > 1) {
     os << "\n  ";
     std::size_t counter = 0;
-    for (auto &result : sampleResults) {
-      os << result.first << " : { ";
-      for (auto &kv : result.second.counts) {
-        os << kv.first << ":" << kv.second << " ";
+    for (auto &result : sortByKeys(sampleResults)) {
+      os << result->first << " : { ";
+      for (auto &kv : sortByKeys(result->second.counts)) {
+        os << kv->first << ":" << kv->second << " ";
       }
       bool isLast = counter == sampleResults.size() - 1;
       counter++;
@@ -494,8 +507,8 @@ void sample_result::dump(std::ostream &os) const {
       counts = sampleResults.begin()->second.counts;
     }
 
-    for (auto &kv : counts) {
-      os << kv.first << ":" << kv.second << " ";
+    for (auto &kv : sortByKeys(counts)) {
+      os << kv->first << ":" << kv->second << " ";
     }
 
     if (iter == sampleResults.end())
