@@ -42,7 +42,7 @@ jobs:
               /repos/nvidia/cuda-quantum/git/refs/heads/$branch 
           done
         env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN || github.token }}
 
   draft_releases:
     name: Delete draft release
