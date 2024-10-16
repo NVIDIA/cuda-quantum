@@ -40,7 +40,8 @@ public:
       return failure();
 
     LLVM_DEBUG(llvm::dbgs() << "Candidate was found\n");
-    auto arrTy = cast<cudaq::cc::ArrayType>(alloc.getElementType());
+    auto eleTy = alloc.getElementType();
+    auto arrTy = cast<cudaq::cc::ArrayType>(eleTy);
     SmallVector<Attribute> values;
 
     // Every element of `stores` must be a cc::StoreOp with a ConstantOp as the
@@ -57,7 +58,6 @@ public:
     }
 
     // Create the cc.const_array.
-    auto eleTy = arrTy.getElementType();
     auto valuesAttr = rewriter.getArrayAttr(values);
     auto loc = alloc.getLoc();
     Value conArr =

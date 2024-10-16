@@ -273,11 +273,11 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
 }
 
 template <typename A>
-SmallVector<std::int32_t> asI32(const SmallVectorImpl<A> &v) {
-  SmallVector<std::int32_t> result(v.size());
-  for (auto iter : llvm::enumerate(v))
-    result[iter.index()] = static_cast<std::int32_t>(iter.value());
-  return result;
+SmallVector<Attribute> asIntAttr(MLIRContext *ctx, unsigned bits,
+                                 const SmallVectorImpl<A> &vec) {
+  return llvm::to_vector<8>(llvm::map_range(vec, [=](A v) -> Attribute {
+    return IntegerAttr::get(IntegerType::get(ctx, bits), APInt(bits, v));
+  }));
 }
 
 // TODO: consider using DenseArrayAttr here instead. NB: such a change may alter
@@ -285,7 +285,7 @@ SmallVector<std::int32_t> asI32(const SmallVectorImpl<A> &v) {
 static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument, SmallVectorImpl<bool> &vec) {
-  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+  auto arrayAttr = builder.getBoolArrayAttr(vec);
   return synthesizeVectorArgument<IntegerType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeIntegerElement<bool>);
@@ -295,7 +295,8 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          SmallVectorImpl<std::int8_t> &vec) {
-  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+  auto arrayAttr =
+      builder.getArrayAttr(asIntAttr(builder.getContext(), 8, vec));
   return synthesizeVectorArgument<IntegerType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeIntegerElement<std::int8_t>);
@@ -305,7 +306,8 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          SmallVectorImpl<std::int16_t> &vec) {
-  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+  auto arrayAttr =
+      builder.getArrayAttr(asIntAttr(builder.getContext(), 16, vec));
   return synthesizeVectorArgument<IntegerType>(
       builder, module, counter, argument, vec, arrayAttr,
       makeIntegerElement<std::int16_t>);
