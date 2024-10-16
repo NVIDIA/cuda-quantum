@@ -1,0 +1,109 @@
+on:
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        required: false
+        default: linux/amd64
+      devdeps_cache:
+        required: true
+        type: string
+      devdeps_archive:
+        required: true
+        type: string
+      export_environment:
+        required: false
+        type: boolean
+
+
+name: Show Code Coverage Diff
+
+jobs:
+  gen_code_coverage:
+    runs-on: 'linux-amd64-cpu8'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Restore environment
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: builder_context
+
+      - name: Build CUDA Quantum
+        id: cudaq_build
+        run: |
+          load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+          base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
+          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
+            -t cuda-quantum-cc:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-arg base_image=$base_image
+          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
+          echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
+
+      - name: Create Shared Dir
+        run: |
+          mkdir -p ${{ github.workspace }}/shared
+      - name: Test CUDA Quantum And Generate CC
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: cuda-quantum-cc:local
+          shell: bash
+          volume: ${{ github.workspace }}/shared:/shared
+          run: |
+            cd $CUDAQ_REPO_ROOT
+            bash scripts/generate_cc.sh -v -c -p
+            if [ ! $? -eq 0 ]; then
+              echo "generate_cc status = " $?
+            else
+              chmod -R 777 ./build/ccoverage
+              chmod -R 777 ./build/pycoverage
+              cp ./build/ccoverage/coverage.txt /shared
+              cp ./build/pycoverage/coverage.xml /shared
+            fi
+      - name: Upload C/C++ & Python Coverage To Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: false
+          files: ${{ github.workspace }}/shared/coverage.txt,${{ github.workspace }}/shared/coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
+      - name: Delete Shared Dir
+        run: |
+          rm -r ${{ github.workspace }}/shared
+
+      - name: Save environment
+        id: env_save
+        if: inputs.export_environment
+        run: |
+          output_directory=/tmp
+          filename=${{ steps.cudaq_build.outputs.tag_prefix }}_build
+          docker run --name cuda-quantum-cc cuda-quantum-cc:local
+          docker export cuda-quantum-cc > $output_directory/$filename.tar
+          docker rm -f cuda-quantum-cc
+
+          echo "filename=$filename" >> $GITHUB_OUTPUT
+          echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
+
+      - name: Upload environment
+        uses: actions/upload-artifact@v4
+        if: inputs.export_environment
+        with:
+          name: ${{ steps.env_save.outputs.filename }}
+          path: ${{ steps.env_save.outputs.output_directory }}/${{ steps.env_save.outputs.filename }}.tar
+          retention-days: 1
