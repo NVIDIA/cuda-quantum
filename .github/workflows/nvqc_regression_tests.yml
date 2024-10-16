@@ -12,7 +12,7 @@ on:
       cudaq_test_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
+        default: '' # picked up from repo variable if not provided
         description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image'
       commit_sha:
         type: string
@@ -25,7 +25,6 @@ on:
       python_version:
         type: choice
         required: true
-        default: '3.10' # If changed, update env defaults, too
         description: 'Python version to run wheel test'
         options:
         - '3.8'
@@ -37,9 +36,6 @@ on:
     - cron: 0 3 * * *
 
 env:
-  # If vars below are changed, it is recommended to also update the
-  # workflow_dispatch defaults above so they stay in sync.
-  cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
   python_version: '3.10'
 
 jobs:
@@ -54,7 +50,7 @@ jobs:
       - name: Set variables
         id: vars
         run: |
-          echo "cudaq_test_image=${{ inputs.cudaq_test_image || env.cudaq_test_image }}" >> $GITHUB_OUTPUT
+          echo "cudaq_test_image=${{ inputs.cudaq_test_image || vars.cudaq_test_image }}" >> $GITHUB_OUTPUT
 
   metadata:
     name: Retrieve commit info
