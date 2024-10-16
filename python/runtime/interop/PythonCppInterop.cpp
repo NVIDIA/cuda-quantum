@@ -8,7 +8,7 @@
 #include "PythonCppInterop.h"
 #include "cudaq.h"
 
-namespace cudaq {
+namespace cudaq::python {
 
 std::string getKernelName(std::string &input) {
   size_t pos = 0;
@@ -60,11 +60,11 @@ std::tuple<std::string, std::string>
 getMLIRCodeAndName(const std::string &name, const std::string mangledArgs) {
   auto cppMLIRCode =
       cudaq::get_quake(std::remove_cvref_t<decltype(name)>(name), mangledArgs);
-  auto kernelName = cudaq::getKernelName(cppMLIRCode);
-  cppMLIRCode = "module {\nfunc.func @" + kernelName +
-                cudaq::extractSubstring(cppMLIRCode, "func.func @" + kernelName,
-                                        "func.func") +
-                "\n}";
+  auto kernelName = cudaq::python::getKernelName(cppMLIRCode);
+  cppMLIRCode =
+      "module {\nfunc.func @" + kernelName +
+      extractSubstring(cppMLIRCode, "func.func @" + kernelName, "func.func") +
+      "\n}";
   return std::make_tuple(kernelName, cppMLIRCode);
 }
 
@@ -97,4 +97,4 @@ getDeviceKernel(const std::string &compositeName) {
   return iter->second;
 }
 
-} // namespace cudaq
+} // namespace cudaq::python

@@ -20,12 +20,13 @@ PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
   m.def("test_cpp_qalgo", [](py::object statePrepIn) {
     // Wrap the kernel and compile, will throw
     // if not a valid kernel
-    cudaq::CppPyKernelDecorator statePrep(statePrepIn);
+    cudaq::python::CppPyKernelDecorator statePrep(statePrepIn);
     statePrep.compile();
 
     // Our library exposes an "entryPoint" kernel, get its
     // mangled name and MLIR code
-    auto [kernelName, cppMLIRCode] = cudaq::getMLIRCodeAndName("entryPoint");
+    auto [kernelName, cppMLIRCode] =
+        cudaq::python::getMLIRCodeAndName("entryPoint");
 
     // Merge the entryPoint kernel into the input stateprep kernel
     auto merged = statePrep.merge_kernel(cppMLIRCode);
@@ -40,16 +41,12 @@ PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
     return cudaq::sample(entryPointPtr);
   });
 
-  // // Demo / Test overloaded kernel functions.
-  // cudaq::addDeviceKernelInterop<cudaq::qview<>, const std::vector<double> &,
-  //                               std::size_t>(m, "qstd", "qft", "");
-
   // Example of how to expose C++ kernels.
-  cudaq::addDeviceKernelInterop<cudaq::qview<>>(
+  cudaq::python::addDeviceKernelInterop<cudaq::qview<>>(
       m, "qstd", "qft", "(Fake) Quantum Fourier Transform.");
-  cudaq::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
+  cudaq::python::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
       m, "qstd", "another", "Demonstrate we can have multiple ones.");
 
-  cudaq::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(m, "qstd", "uccsd",
-                                                             "");
+  cudaq::python::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
+      m, "qstd", "uccsd", "");
 }

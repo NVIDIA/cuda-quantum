@@ -96,8 +96,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     auto cloned = mod.clone();
     auto context = cloned.getContext();
     PassManager pm(context);
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createPySynthCallableBlockArgs(names));
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
+        SmallVector<StringRef>(names.begin(), names.end())));
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
@@ -771,7 +771,9 @@ void bindAltLaunchKernel(py::module &mod) {
         auto context = m.getContext();
         PassManager pm(context);
         pm.addNestedPass<func::FuncOp>(
-            cudaq::opt::createPySynthCallableBlockArgs(funcNames, true));
+            cudaq::opt::createPySynthCallableBlockArgs(
+                SmallVector<StringRef>(funcNames.begin(), funcNames.end()),
+                true));
         if (failed(pm.run(m)))
           throw std::runtime_error(
               "cudaq::jit failed to remove callable block arguments.");

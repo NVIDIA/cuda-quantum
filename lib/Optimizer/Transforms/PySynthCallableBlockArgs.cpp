@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -22,12 +23,13 @@ namespace {
 
 class ReplaceCallIndirect : public OpConversionPattern<func::CallIndirectOp> {
 public:
-  const std::vector<std::string> &names;
-  const std::map<std::size_t, std::size_t> &blockArgToNameMap;
+  const SmallVector<StringRef> &names;
+  // const llvm::DenseMap<std::size_t, std::size_t>& blockArgToNameMap;
+  llvm::DenseMap<std::size_t, std::size_t> &blockArgToNameMap;
 
   ReplaceCallIndirect(MLIRContext *ctx,
-                      const std::vector<std::string> &functionNames,
-                      const std::map<std::size_t, std::size_t> &map)
+                      const SmallVector<StringRef> &functionNames,
+                      llvm::DenseMap<std::size_t, std::size_t> &map)
       : OpConversionPattern<func::CallIndirectOp>(ctx), names(functionNames),
         blockArgToNameMap(map) {}
 
@@ -41,13 +43,11 @@ public:
       if (auto blockArg =
               dyn_cast<BlockArgument>(ccCallableFunc.getOperand())) {
         auto argIdx = blockArg.getArgNumber();
-        auto replacementName = names[blockArgToNameMap.at(argIdx)];
+        auto replacementName = names[blockArgToNameMap[argIdx]];
         auto replacement = module.lookupSymbol<func::FuncOp>(
-            "__nvqpp__mlirgen__" + replacementName);
-        if (!replacement) {
-          op.emitError("Invalid replacement function " + replacementName);
+            cudaq::runtime::cudaqGenPrefixName + replacementName.str());
+        if (!replacement)
           return failure();
-        }
 
         rewriter.replaceOpWithNewOp<func::CallOp>(op, replacement,
                                                   adaptor.getCalleeOperands());
@@ -62,12 +62,12 @@ public:
 class ReplaceCallCallable
     : public OpConversionPattern<cudaq::cc::CallCallableOp> {
 public:
-  const std::vector<std::string> &names;
-  const std::map<std::size_t, std::size_t> &blockArgToNameMap;
+  const SmallVector<StringRef> &names;
+  llvm::DenseMap<std::size_t, std::size_t> &blockArgToNameMap;
 
   ReplaceCallCallable(MLIRContext *ctx,
-                      const std::vector<std::string> &functionNames,
-                      const std::map<std::size_t, std::size_t> &map)
+                      const SmallVector<StringRef> &functionNames,
+                      llvm::DenseMap<std::size_t, std::size_t> &map)
       : OpConversionPattern<cudaq::cc::CallCallableOp>(ctx),
         names(functionNames), blockArgToNameMap(map) {}
 
@@ -78,13 +78,11 @@ public:
     auto module = op->getParentOp()->getParentOfType<ModuleOp>();
     if (auto blockArg = dyn_cast<BlockArgument>(callableOperand)) {
       auto argIdx = blockArg.getArgNumber();
-      auto replacementName = names[blockArgToNameMap.at(argIdx)];
+      auto replacementName = names[blockArgToNameMap[argIdx]];
       auto replacement = module.lookupSymbol<func::FuncOp>(
-          "__nvqpp__mlirgen__" + replacementName);
-      if (!replacement) {
-        op.emitError("Invalid replacement function " + replacementName);
+          cudaq::runtime::cudaqGenPrefixName + replacementName.str());
+      if (!replacement)
         return failure();
-      }
 
       rewriter.replaceOpWithNewOp<func::CallOp>(op, replacement,
                                                 adaptor.getArgs());
@@ -96,11 +94,11 @@ public:
 
 class UpdateQuakeApplyOp : public OpConversionPattern<quake::ApplyOp> {
 public:
-  const std::vector<std::string> &names;
-  const std::map<std::size_t, std::size_t> &blockArgToNameMap;
+  const SmallVector<StringRef> &names;
+  llvm::DenseMap<std::size_t, std::size_t> &blockArgToNameMap;
   UpdateQuakeApplyOp(MLIRContext *ctx,
-                     const std::vector<std::string> &functionNames,
-                     const std::map<std::size_t, std::size_t> &map)
+                     const SmallVector<StringRef> &functionNames,
+                     llvm::DenseMap<std::size_t, std::size_t> &map)
       : OpConversionPattern<quake::ApplyOp>(ctx), names(functionNames),
         blockArgToNameMap(map) {}
 
@@ -112,13 +110,11 @@ public:
     auto ctx = op.getContext();
     if (auto blockArg = dyn_cast<BlockArgument>(callableOperand)) {
       auto argIdx = blockArg.getArgNumber();
-      auto replacementName = names[blockArgToNameMap.at(argIdx)];
+      auto replacementName = names[blockArgToNameMap[argIdx]];
       auto replacement = module.lookupSymbol<func::FuncOp>(
-          "__nvqpp__mlirgen__" + replacementName);
-      if (!replacement) {
-        op.emitError("Invalid replacement function " + replacementName);
+          "__nvqpp__mlirgen__" + replacementName.str());
+      if (!replacement)
         return failure();
-      }
 
       rewriter.replaceOpWithNewOp<quake::ApplyOp>(
           op, TypeRange{}, FlatSymbolRefAttr::get(ctx, replacement.getName()),
@@ -136,8 +132,8 @@ private:
   bool removeBlockArg = false;
 
 public:
-  std::vector<std::string> names;
-  PySynthCallableBlockArgs(const std::vector<std::string> &_names, bool remove)
+  SmallVector<StringRef> names;
+  PySynthCallableBlockArgs(const SmallVector<StringRef> &_names, bool remove)
       : removeBlockArg(remove), names(_names) {}
 
   void runOnOperation() override {
@@ -147,7 +143,7 @@ public:
 
     std::size_t numCallableBlockArgs = 0;
     // need to map blockArgIdx -> counter(0,1,2,...)
-    std::map<std::size_t, std::size_t> blockArgToNamesMap;
+    llvm::DenseMap<std::size_t, std::size_t> blockArgToNamesMap;
     for (std::size_t i = 0, k = 0; auto ty : op.getFunctionType().getInputs()) {
       if (isa<cudaq::cc::CallableType>(ty)) {
         numCallableBlockArgs++;
@@ -201,7 +197,8 @@ public:
 };
 } // namespace
 
-std::unique_ptr<Pass> cudaq::opt::createPySynthCallableBlockArgs(
-    const std::vector<std::string> &names, bool removeBlockArg) {
+std::unique_ptr<Pass>
+cudaq::opt::createPySynthCallableBlockArgs(const SmallVector<StringRef> &names,
+                                           bool removeBlockArg) {
   return std::make_unique<PySynthCallableBlockArgs>(names, removeBlockArg);
 }

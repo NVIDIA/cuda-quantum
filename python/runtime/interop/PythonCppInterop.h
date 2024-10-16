@@ -11,7 +11,7 @@
 
 namespace py = pybind11;
 
-namespace cudaq {
+namespace cudaq::python {
 
 /// @class CppPyKernelDecorator
 /// @brief A C++ wrapper for a Python object representing a CUDA-Q kernel.
@@ -162,8 +162,8 @@ void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
 
   sub.def(
       kernelName.c_str(), [](Signature...) {}, docstring.c_str());
-  cudaq::registerDeviceKernel(sub.attr("__name__").cast<std::string>(),
-                              kernelName, mangledArgs);
+  cudaq::python::registerDeviceKernel(sub.attr("__name__").cast<std::string>(),
+                                      kernelName, mangledArgs);
   return;
 }
-} // namespace cudaq
+} // namespace cudaq::python

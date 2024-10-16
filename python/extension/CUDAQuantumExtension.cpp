@@ -250,7 +250,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaqRuntime.def(
       "isRegisteredDeviceModule",
       [](const std::string &name) {
-        return cudaq::isRegisteredDeviceModule(name);
+        return cudaq::python::isRegisteredDeviceModule(name);
       },
       "Return true if the input name (mod1.mod2...) is a registered C++ device "
       "module.");
@@ -261,7 +261,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
          const std::string &moduleName) -> std::optional<std::string> {
         std::tuple<std::string, std::string> ret;
         try {
-          ret = cudaq::getDeviceKernel(moduleName);
+          ret = cudaq::python::getDeviceKernel(moduleName);
         } catch (...) {
           return std::nullopt;
         }
