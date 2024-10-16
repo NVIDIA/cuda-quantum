@@ -191,8 +191,10 @@ public:
         toErase.push_back(user);
     }
     if (toGlobal) {
-      rewriter.setInsertionPointAfter(alloc);
-      rewriter.replaceOp(alloc, conGlobal);
+      if (conGlobal) {
+        rewriter.setInsertionPointAfter(alloc);
+        rewriter.replaceOp(alloc, conGlobal);
+      }
     } else {
       toErase.push_back(alloc);
     }
