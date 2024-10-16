@@ -86,6 +86,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    OptTransforms
    MLIRPass
    CUDAQTargetConfigUtil
+   cudaq-python-interop
 )
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
@@ -98,7 +99,6 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq-common 
     cudaq-em-default
     cudaq-em-photonics
-    cudaq-python-interop
     fmt::fmt-header-only
     unzip_util
 )
