@@ -112,7 +112,7 @@ public:
       auto argIdx = blockArg.getArgNumber();
       auto replacementName = names[blockArgToNameMap[argIdx]];
       auto replacement = module.lookupSymbol<func::FuncOp>(
-          "__nvqpp__mlirgen__" + replacementName.str());
+          cudaq::runtime::cudaqGenPrefixName + replacementName.str());
       if (!replacement)
         return failure();
 
