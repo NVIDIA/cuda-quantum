@@ -235,6 +235,8 @@ jobs:
           for info_file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
             delete_staging_branch $info_file '${{ steps.artifacts.outputs.installers }}'
           done
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Retrieve 
         id: assets_retrieval
