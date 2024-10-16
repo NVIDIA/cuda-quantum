@@ -120,6 +120,23 @@ jobs:
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-python
 
+  ccovdeps:
+    name: Load code coverage dependencies
+    needs: metadata
+    strategy:
+      matrix:
+        platform: [amd64]
+        toolchain: [clang16]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      platforms: linux/${{ matrix.platform }}
+      dockerfile: build/devdeps.Dockerfile
+      toolchain: ${{ matrix.toolchain }}
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}-cc
+
   source_build:
     name: Load source build cache
     needs: metadata
@@ -150,7 +167,7 @@ jobs:
   config:
     name: Configure build
     runs-on: ubuntu-latest
-    needs: [devdeps, wheeldeps, source_build]
+    needs: [devdeps, wheeldeps, ccovdeps, source_build]
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
@@ -182,6 +199,21 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+
+  gen_code_coverage:
+    name: Gen code coverage
+    needs: config
+    strategy:
+      matrix:
+        platform: [amd64]
+        toolchain: [clang16]
+      fail-fast: false
+    uses: ./.github/workflows/generate_cc.yml
+    with:
+      platform: linux/${{ matrix.platform }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}-cc', matrix.platform, matrix.toolchain)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}-cc', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:

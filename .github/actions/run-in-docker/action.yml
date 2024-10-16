@@ -11,6 +11,10 @@ inputs:
   shell:
     default: "bash"
     required: false
+  # Adding a new optional parameter for directory mapping
+  volume:
+    default: ""
+    required: false
 
 runs:
   using: "composite"
@@ -21,6 +25,12 @@ runs:
         then additional_run_args="--gpus all"
         fi
 
+        # Check if a volume mapping is specified and set the option
+        volume_option=""
+        if [ ! -z "${{ inputs.volume }}" ]; then
+          volume_option="-v ${{ inputs.volume }}"
+        fi
+
         # Note: "bash -s << EOF" does not play nice with mpirun/mpiexec. It
         # silently skips any shell commands that come after the mpirun/mpiexec,
         # so don't use it. Use this instead, which seems to work better.
@@ -29,7 +39,7 @@ runs:
         ${{ inputs.run }}
         EOF
 
-        container=$(docker run --user ${{ inputs.user }} $additional_run_args -id ${{ inputs.image }})
+        container=$(docker run --user ${{ inputs.user }} $additional_run_args $volume_option -id ${{ inputs.image }})
         docker cp $tmpFile $container:$tmpFile
         docker exec --user root $container chown -R ${{ inputs.user }} $tmpFile
         docker exec $container ${{ inputs.shell }} $tmpFile
