@@ -88,7 +88,7 @@ jobs:
           create_output cxx_examples 'docs/sphinx/examples/**/*.cpp'
           create_output python '*.py :!:python/tests :!:test :!:targettests :!:tpls :!:docs/sphinx/conf.py'
           create_output markdown '*.md :!:tpls'
-          create_output rst '*.rst :!:tpls'
+          create_output rst '*.rst :!:tpls :!:docs/sphinx/_templates/**/*.rst'
           echo "json=$(echo $json)" >> $GITHUB_OUTPUT
 
   formatting:

@@ -46,6 +46,7 @@ matrix:
 - name: rst
   sources:
   - '**/*.rst|!docs/sphinx/_templates/**/*.rst'
+  glob_flags: N|G|B
   expect_match: false
   aspell:
     lang: en
