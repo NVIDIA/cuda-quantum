@@ -69,14 +69,28 @@ protected:
 
     // Get the Kraus channels specified for this gate and qubits
     auto krausChannels = executionContext->noiseModel->get_channels(
-        gName, controls, targets, params);
+        gName, targets, controls, params);
 
     // If none, do nothing
     if (krausChannels.empty())
       return;
 
-    // TODO
-    return;
+    cudaq::info("Applying {} kraus channels to qubits {}", krausChannels.size(),
+                stimTargets);
+
+    for (auto &channel : krausChannels) {
+      if (channel.noise_type == cudaq::noise_model_type::bit_flip_channel)
+        stimCircuit.safe_append_ua("X_ERROR", stimTargets,
+                                   channel.parameters[0]);
+      else if (channel.noise_type ==
+               cudaq::noise_model_type::phase_flip_channel)
+        stimCircuit.safe_append_ua("Z_ERROR", stimTargets,
+                                   channel.parameters[0]);
+      else if (channel.noise_type ==
+               cudaq::noise_model_type::depolarization_channel)
+        stimCircuit.safe_append_ua("DEPOLARIZE1", stimTargets,
+                                   channel.parameters[0]);
+    }
   }
 
   void applyGate(const GateApplicationTask &task) override {
@@ -169,7 +183,6 @@ public:
                                         randomEngine, false);
     size_t bits_per_sample = stimCircuit.count_measurements();
     std::vector<std::string> sequentialData;
-    sequentialData.reserve(shots);
     // Only retain the final "qubits.size()" measurements. All other
     // measurements were mid-circuit measurements that have been previously
     // accounted for and saved.
