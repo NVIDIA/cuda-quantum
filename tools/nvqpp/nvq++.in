@@ -712,7 +712,7 @@ if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 fi
 if ${ENABLE_DEVICE_CODE_LOADERS}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(quake-add-metadata),const-prop-complex,lift-array-value,func.func(get-concrete-matrix),device-code-loader")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(quake-add-metadata,const-prop-complex,lift-array-alloc),globalize-array-values,func.func(get-concrete-matrix),device-code-loader")
 fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true

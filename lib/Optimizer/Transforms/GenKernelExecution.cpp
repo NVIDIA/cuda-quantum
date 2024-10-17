@@ -48,6 +48,12 @@ static bool isCodegenArgumentGather(std::size_t kind) {
   return kind == 0 || kind == 2;
 }
 
+/// This pass adds a `<kernel name>.thunk` function and a rewritten C++ host
+/// side (mangled) stub to the code for every entry-point kernel in the module.
+/// It may also generate a `<kernel name>.argsCreator` function. Finally, it
+/// creates registration hooks for the CUDA-Q runtime to be able to find the
+/// kernel by name and, as appropriate, the `<kernel name>.argsCreator`
+/// function.
 namespace {
 class GenerateKernelExecution
     : public cudaq::opt::impl::GenerateKernelExecutionBase<
@@ -57,6 +63,19 @@ public:
 
   /// Creates the function signature for a thunk function. The signature is
   /// always the same for all thunk functions.
+  ///
+  /// Every thunk function has an identical signature, making it callable from a
+  /// generic "kernel launcher" in the CUDA-Q runtime.
+  ///
+  /// This signature is defined as: `(ptr, bool) -> {ptr, i64}`.
+  ///
+  /// The first argument is a pointer to a data buffer that encodes all the
+  /// arguments (and static return) values to (and from) the kernel in the
+  /// pointer-free encoding. The second argument indicates if this call is to a
+  /// remote process (if true). The result is a pointer and size (span) if the
+  /// kernel returns a dynamically sized result, otherwise it will be
+  /// `{nullptr, 0}`. It is the responsibility of calling code to free any
+  /// dynamic result buffer(s) and convert those to `std::vector` objects.
   FunctionType getThunkType(MLIRContext *ctx) {
     auto ptrTy = cudaq::cc::PointerType::get(IntegerType::get(ctx, 8));
     return FunctionType::get(ctx, {ptrTy, IntegerType::get(ctx, 1)},
@@ -769,24 +788,6 @@ public:
       auto *thenBlock = builder.createBlock(reg);
       auto *elseBlock = builder.createBlock(reg);
       builder.setInsertionPointToEnd(currentBlock);
-      builder.create<cf::CondBranchOp>(loc, isClientServer, thenBlock,
-                                       elseBlock);
-      builder.setInsertionPointToEnd(thenBlock);
-      auto gepRes = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, cudaq::cc::PointerType::get(structTy.getMember(offset)), castOp,
-          ArrayRef<cudaq::cc::ComputePtrArg>{offset});
-      auto resAsVec = builder.create<cudaq::cc::CastOp>(
-          loc, cudaq::cc::PointerType::get(funcTy.getResult(0)), gepRes);
-      builder.create<cudaq::cc::StoreOp>(loc, call.getResult(0), resAsVec);
-      auto resAsArg = builder.create<cudaq::cc::CastOp>(
-          loc, cudaq::cc::PointerType::get(thunkTy.getResults()[0]), gepRes);
-      // createDynamicResult packs the input values and the dynamic results
-      // into a single buffer to pass back as a message.
-      auto res = builder.create<func::CallOp>(
-          loc, thunkTy.getResults()[0], "__nvqpp_createDynamicResult",
-          ValueRange{thunkEntry->getArgument(0), structSize, resAsArg});
-      builder.create<func::ReturnOp>(loc, res.getResult(0));
-      builder.setInsertionPointToEnd(elseBlock);
       auto eleTy = structTy.getMember(offset);
       auto memTy = cudaq::cc::PointerType::get(eleTy);
       auto mem = builder.create<cudaq::cc::ComputePtrOp>(
@@ -794,6 +795,25 @@ public:
       auto resPtrTy = cudaq::cc::PointerType::get(call.getResult(0).getType());
       auto castMem = builder.create<cudaq::cc::CastOp>(loc, resPtrTy, mem);
       builder.create<cudaq::cc::StoreOp>(loc, call.getResult(0), castMem);
+      builder.create<cf::CondBranchOp>(loc, isClientServer, thenBlock,
+                                       elseBlock);
+      builder.setInsertionPointToEnd(thenBlock);
+      auto resAsArg = builder.create<cudaq::cc::CastOp>(
+          loc, cudaq::cc::PointerType::get(thunkTy.getResults()[0]), mem);
+      auto retOffset = genComputeReturnOffset(loc, builder, funcTy, structTy);
+      // createDynamicResult allocates a new buffer and packs the input values
+      // and the dynamic results into this single new buffer to pass back as a
+      // message.
+      // NB: This code only handles one dimensional vectors of static types. It
+      // will have to be changed if there is a need to return recursively
+      // dynamic structures, i.e., vectors of vectors.
+      auto res = builder.create<func::CallOp>(
+          loc, thunkTy.getResults()[0], "__nvqpp_createDynamicResult",
+          ValueRange{thunkEntry->getArgument(0), structSize, resAsArg,
+                     retOffset});
+      builder.create<func::ReturnOp>(loc, res.getResult(0));
+      builder.setInsertionPointToEnd(elseBlock);
+      // For the else case, the span was already copied to the block.
     } else {
       // FIXME: Should check for recursive vector case.
       // If the kernel returns non-dynamic results (no spans), then take those
@@ -854,8 +874,6 @@ public:
     auto ptrPtrTy = cudaq::cc::PointerType::get(ptrTy);
     auto sret0 = builder.create<cudaq::cc::ComputePtrOp>(
         loc, ptrPtrTy, castSret, SmallVector<cudaq::cc::ComputePtrArg>{0});
-    Value vecPtr = builder.create<cudaq::cc::LoadOp>(loc, ptrTy, sret0);
-    builder.create<func::CallOp>(loc, std::nullopt, "free", ValueRange{vecPtr});
     auto arrI8Ty = cudaq::cc::ArrayType::get(i8Ty);
     auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
     auto buffPtr0 = builder.create<cudaq::cc::CastOp>(loc, ptrTy, data);
@@ -1338,21 +1356,72 @@ public:
     auto castLoadKernName =
         builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, loadKernName);
 
+    auto hostFuncTy = hostFunc.getFunctionType();
+    assert((hostFuncTy.getResults().empty() ||
+            (hostFuncTy.getNumResults() == 1)) &&
+           "C++ function expected to have 0 or 1 return value");
+    const bool resultVal = !hostFuncTy.getResults().empty();
+    const bool kernelReturnsValue =
+        resultVal || cudaq::opt::factory::hasSRet(hostFunc);
+    Value launchResult;
+    Value launchResultToFree;
+    auto decodeLaunchResults = [&](Value spanReturned) {
+      if (!kernelReturnsValue)
+        return;
+      Type res0Ty = structTy.getMember(offset);
+      auto ptrResTy = cudaq::cc::PointerType::get(res0Ty);
+      auto rptr = builder.create<cudaq::cc::ExtractValueOp>(loc, ptrI8Ty,
+                                                            spanReturned, 0);
+      launchResultToFree = rptr;
+      auto rIntPtr = builder.create<cudaq::cc::CastOp>(loc, i64Ty, rptr);
+      auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+      auto cmp = builder.create<arith::CmpIOp>(loc, arith::CmpIPredicate::ne,
+                                               rIntPtr, zero);
+      auto *currentBlock = builder.getBlock();
+      auto *reg = currentBlock->getParent();
+      auto *thenBlock = builder.createBlock(reg);
+      auto *elseBlock = builder.createBlock(reg);
+      auto *endifBlock = builder.createBlock(
+          reg, reg->end(), TypeRange{ptrResTy}, SmallVector<Location>(1, loc));
+      builder.setInsertionPointToEnd(currentBlock);
+      builder.create<cf::CondBranchOp>(loc, cmp, thenBlock, elseBlock);
+      builder.setInsertionPointToEnd(thenBlock);
+      // dynamic result was returned.
+      // We need to free() this buffer before the end of this function.
+      auto rStructPtr =
+          builder.create<cudaq::cc::CastOp>(loc, structPtrTy, rptr);
+      Value lRes = builder.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrResTy, rStructPtr,
+          ArrayRef<cudaq::cc::ComputePtrArg>{offset});
+      builder.create<cf::BranchOp>(loc, endifBlock, ArrayRef<Value>{lRes});
+      builder.setInsertionPointToEnd(elseBlock);
+      // span was returned in the original buffer.
+      Value mRes = builder.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrResTy, temp, ArrayRef<cudaq::cc::ComputePtrArg>{0, offset});
+      builder.create<cf::BranchOp>(loc, endifBlock, ArrayRef<Value>{mRes});
+      builder.setInsertionPointToEnd(endifBlock);
+      launchResult = endifBlock->getArgument(0);
+    };
+
     // Generate the call to `launchKernel`.
     switch (codegenKind) {
     case 0: {
       assert(vecArgPtrs && castLoadThunk);
-      builder.create<func::CallOp>(
-          loc, std::nullopt, cudaq::runtime::launchKernelHybridFuncName,
+      auto launch = builder.create<func::CallOp>(
+          loc, cudaq::opt::factory::getDynamicBufferType(ctx),
+          cudaq::runtime::launchKernelHybridFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
                           extendedStructSize, resultOffset, vecArgPtrs});
+      decodeLaunchResults(launch.getResult(0));
     } break;
     case 1: {
       assert(!vecArgPtrs && castLoadThunk);
-      builder.create<func::CallOp>(
-          loc, std::nullopt, cudaq::runtime::launchKernelFuncName,
+      auto launch = builder.create<func::CallOp>(
+          loc, cudaq::opt::factory::getDynamicBufferType(ctx),
+          cudaq::runtime::launchKernelFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
                           extendedStructSize, resultOffset});
+      decodeLaunchResults(launch.getResult(0));
     } break;
     case 2: {
       assert(vecArgPtrs && !castLoadThunk);
@@ -1377,17 +1446,13 @@ public:
     // result value(s) from the struct returned by `launchKernel` and return
     // them to our caller.
     SmallVector<Value> results;
-    auto hostFuncTy = hostFunc.getFunctionType();
-    assert((hostFuncTy.getResults().empty() ||
-            (hostFuncTy.getNumResults() == 1)) &&
-           "C++ function expected to have 0 or 1 return value");
-    const bool resultVal = !hostFuncTy.getResults().empty();
-    if (resultVal || cudaq::opt::factory::hasSRet(hostFunc)) {
+    if (kernelReturnsValue) {
+      Type res0Ty = structTy.getMember(offset);
+      auto ptrResTy = cudaq::cc::PointerType::get(res0Ty);
       // Host function returns a value. Either returning by value or via an sret
       // reference.
       if (resultVal) {
-        Type res0Ty = structTy.getMember(offset);
-        auto ptrResTy = cudaq::cc::PointerType::get(res0Ty);
+        // Static values. std::vector are necessarily sret, see below.
         auto resPtr = builder.create<cudaq::cc::ComputePtrOp>(
             loc, ptrResTy, temp, ArrayRef<cudaq::cc::ComputePtrArg>{0, offset});
         Type castToTy = cudaq::cc::PointerType::get(hostFuncTy.getResult(0));
@@ -1398,22 +1463,22 @@ public:
         }();
         results.push_back(builder.create<cudaq::cc::LoadOp>(loc, castResPtr));
       } else {
-        // Check if device is returning a span. If it is, then we will need to
-        // convert it to a std::vector here. The vector is constructed in-place
-        // on the sret memory block.
+        // This is an sret return. Check if device is returning a span. If it
+        // is, then we will need to convert it to a std::vector here. The vector
+        // is constructed in-place on the sret memory block.
         Value arg0 = hostFuncEntryBlock->getArguments().front();
         if (auto spanTy =
                 dyn_cast<cudaq::cc::SpanLikeType>(devFuncTy.getResult(0))) {
           auto eleTy = spanTy.getElementType();
           auto ptrTy = cudaq::cc::PointerType::get(eleTy);
           auto gep0 = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, cudaq::cc::PointerType::get(ptrTy), temp,
-              SmallVector<cudaq::cc::ComputePtrArg>{0, offset, 0});
+              loc, cudaq::cc::PointerType::get(ptrTy), launchResult,
+              SmallVector<cudaq::cc::ComputePtrArg>{0});
           auto dataPtr = builder.create<cudaq::cc::LoadOp>(loc, gep0);
           auto lenPtrTy = cudaq::cc::PointerType::get(i64Ty);
           auto gep1 = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, lenPtrTy, temp,
-              SmallVector<cudaq::cc::ComputePtrArg>{0, offset, 1});
+              loc, lenPtrTy, launchResult,
+              SmallVector<cudaq::cc::ComputePtrArg>{1});
           auto vecLen = builder.create<cudaq::cc::LoadOp>(loc, gep1);
           if (spanTy.getElementType() == builder.getI1Type()) {
             genStdvecBoolFromInitList(loc, builder, arg0, dataPtr, vecLen);
@@ -1422,13 +1487,14 @@ public:
                 builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, eleTy);
             genStdvecTFromInitList(loc, builder, arg0, dataPtr, tSize, vecLen);
           }
+          // free(nullptr) is defined to be a nop in the standard.
+          builder.create<func::CallOp>(loc, std::nullopt, "free",
+                                       ArrayRef<Value>{launchResultToFree});
         } else {
           // Otherwise, we can just copy the aggregate into the sret memory
           // block. Uses the size of the host function's sret pointer element
           // type for the memcpy, so the device should return an (aggregate)
           // value of suitable size.
-          Type res0Ty = structTy.getMember(offset);
-          auto ptrResTy = cudaq::cc::PointerType::get(res0Ty);
           auto resPtr = builder.create<cudaq::cc::ComputePtrOp>(
               loc, ptrResTy, temp,
               ArrayRef<cudaq::cc::ComputePtrArg>{0, offset});
