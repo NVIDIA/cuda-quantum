@@ -1,13 +1,12 @@
-Multi-control Synthesis 
+Multi-control Synthesis
 -------------------------
-
 Now let's take a look at how CUDA-Q allows one to control a general unitary 
 on an arbitrary number of control qubits. 
 
 .. tab:: Python
 
    Our first option is to describe our general unitary by another pre-defined
-   CUDA-Q kernel. 
+   CUDA-Q kernel.
 
    .. literalinclude:: ../../examples/python/multi_controlled_operations.py
       :language: python
@@ -21,7 +20,6 @@ on an arbitrary number of control qubits.
       :language: python
       :start-after: [Begin OptionB]
       :end-before: [End OptionB]
-
 
 .. tab:: C++ 
 
