@@ -9,7 +9,6 @@
 #include "common/EigenDense.h"
 #include "common/EigenSparse.h"
 #include "common/FmtCore.h"
-#include <cstdlib>
 #include <cudaq/spin_op.h>
 #include <stdint.h>
 #include <unsupported/Eigen/KroneckerProduct>
@@ -434,8 +433,8 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
   std::vector<term_and_coeff> result(numTerms);
   std::size_t min = std::min(num_terms(), v.num_terms());
 
-  // Take the `unordered_map` iterators to minimize pointer chasing when doing
-  // the cartesian product of the terms of these spin operators.
+  // Put the `unordered_map` iterators into vectors to minimize pointer chasing
+  // when doing the cartesian product of the spin operators' terms.
   using Iter =
       std::unordered_map<spin_op_term, std::complex<double>>::const_iterator;
   std::vector<Iter> thisTermIt;
