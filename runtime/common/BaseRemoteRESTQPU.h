@@ -18,6 +18,7 @@
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -398,8 +399,13 @@ public:
 
     for (auto &op : m_module.getOps()) {
       if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
-        // Add function definitions for runtime functions.
-        if (funcOp.getBody().empty())
+        // Add function definitions for runtime functions that must
+        // be removed after synthesis in cleanup ops.
+        if (funcOp.getBody().empty() &&
+            (funcOp.getName().equals(cudaq::getNumQubitsFromCudaqState) ||
+             funcOp.getName().equals(cudaq::createCudaqStateFromDataFP64) ||
+             funcOp.getName().equals(cudaq::createCudaqStateFromDataFP32) ||
+             funcOp.getName().equals(cudaq::getCudaqState)))
           moduleOp.push_back(funcOp.clone());
       }
       // Add globals defined in the module.
