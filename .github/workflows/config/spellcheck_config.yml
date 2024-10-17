@@ -193,6 +193,8 @@ matrix:
 - name: cxx_examples
   sources:
   - 'docs/sphinx/examples/**/*.cpp'
+  - 'docs/sphinx/applications/cpp/*.cpp'
+  - 'docs/sphinx/targets/cpp/*.cpp'
   expect_match: false
   aspell:
     lang: en
