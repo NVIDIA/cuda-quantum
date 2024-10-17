@@ -55,36 +55,37 @@ state::operator()(const std::initializer_list<std::size_t> &indices,
 
 std::complex<double> state::operator[](std::size_t idx) const {
   std::size_t numQubits = internal->getNumQubits();
-  std::size_t numElements =  internal->getNumElements();
+  std::size_t numElements = internal->getNumElements();
 
   if (!internal->isArrayLike()) {
     // Use amplitude accessor if linear indexing is not supported, e.g., tensor
     // network state.
     std::vector<int> basisState(numQubits, 0);
     // Are we dealing with qudits or qubits?
-    if (std::log2(numElements)/numQubits > 1) {
+    if (std::log2(numElements) / numQubits > 1) {
       for (std::size_t i = 0; i < numQubits; ++i) {
-          basisState[i] = 1; // TODO: This is a placeholder. We need to figure out how to handle qudits.
+        basisState[i] = 1; // TODO: This is a placeholder. We need to figure out
+                           // how to handle qudits.
       }
-    } else{
+    } else {
       for (std::size_t i = 0; i < numQubits; ++i) {
         if (idx & (1ULL << i))
           basisState[(numQubits - 1) - i] = 1;
       }
-      }
+    }
     return internal->getAmplitude(basisState);
   }
 
   std::size_t newIdx = 0;
   if (std::log2(numElements) / numQubits > 1) {
-      newIdx = idx;
+    newIdx = idx;
   } else {
     for (std::size_t i = 0; i < numQubits; ++i)
       if (idx & (1ULL << i))
         newIdx |= (1ULL << ((numQubits - 1) - i));
   }
-    return operator()({newIdx}, 0);
-  }
+  return operator()({newIdx}, 0);
+}
 
 std::complex<double> state::operator()(std::size_t idx, std::size_t jdx) const {
   return operator()({idx, jdx}, 0);
