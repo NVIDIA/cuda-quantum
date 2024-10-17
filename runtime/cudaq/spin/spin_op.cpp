@@ -431,25 +431,19 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
   using term_and_coeff = std::pair<std::vector<bool>, std::complex<double>>;
   std::size_t numTerms = num_terms() * v.num_terms();
   std::vector<term_and_coeff> result(numTerms);
-
   std::size_t min = std::min(num_terms(), v.num_terms());
 
-  // Ugh, I take the iterators from the unordered_map to minimize pointer
-  // chasing. This way we don't need to walk from the begining all the way to
-  // the element on every iteration.
-  //
-  // TODO: Name this things better.
+  // Take the `unordered_map` iterators to minimize pointer chasing when doing
+  // the cartesian product of the terms of these spin operators.
   using Iter = std::unordered_map<spin_op_term, std::complex<double>>::const_iterator;
-  std::vector<Iter> vec1;
-  std::vector<Iter> vec2;
-  vec1.reserve(terms.size());
-  vec2.reserve(v.terms.size());
-  for (auto it = terms.begin(); it != terms.end(); ++it) {
-    vec1.push_back(it);
-  }
-  for (auto it = v.terms.begin(); it != v.terms.end(); ++it) {
-    vec2.push_back(it);
-  }
+  std::vector<Iter> thisTermIt;
+  std::vector<Iter> otherTermIt;
+  thisTermIt.reserve(terms.size());
+  otherTermIt.reserve(v.terms.size());
+  for (auto it = terms.begin(); it != terms.end(); ++it)
+    thisTermIt.push_back(it);
+  for (auto it = v.terms.begin(); it != v.terms.end(); ++it)
+    otherTermIt.push_back(it);
 
 #if defined(_OPENMP)
   // Threshold to start OpenMP parallelization.
@@ -458,11 +452,11 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
 #pragma omp parallel for shared(result) if (numTerms > spin_op_omp_threshold)
 #endif
   for (std::size_t i = 0; i < numTerms; ++i) {
-    Iter s = vec1[i % min];
-    Iter t = vec2[i / min];
+    Iter s = thisTermIt[i % min];
+    Iter t = otherTermIt[i / min];
     if (terms.size() > v.terms.size()) {
-      s = vec1[i / min];
-      t = vec2[i % min];
+      s = thisTermIt[i / min];
+      t = otherTermIt[i % min];
     }
     result[i] = details::mult(s->first, t->first, s->second, t->second);
   }
