@@ -24,6 +24,8 @@
 # COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 # COPY scripts/validate_wheel.sh validate_wheel.sh
 # COPY docs/sphinx/examples/python /tmp/examples/
+# COPY docs/sphinx/applications/python /tmp/applications/
+# COPY docs/sphinx/targets/python /tmp/targets/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
 # COPY python/README.md /tmp/README.md
@@ -153,7 +155,7 @@ for ex in `find "$root_folder/snippets" -name '*.py'`; do
 done
 
 # Run examples
-for ex in `find "$root_folder/examples" -name '*.py' -not -path '*/providers/*'`; do
+for ex in `find "$root_folder/examples" "$root_folder/applications" "$root_folder/targets" -name '*.py'`; do
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
         echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
