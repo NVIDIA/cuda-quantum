@@ -255,6 +255,8 @@ qubit
 qubits
 qudit
 qudits
+qumode
+qumodes
 reStructuredText
 reconfigurable
 runtime
