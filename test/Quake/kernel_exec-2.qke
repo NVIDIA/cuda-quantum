@@ -71,11 +71,11 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           %[[VAL_33:.*]] = arith.constant 2147483647 : i64
 // CHECK:           %[[VAL_28:.*]] = llvm.mlir.addressof @function_hawaiian.kernelName : !llvm.ptr<array<18 x i8>>
 // CHECK:           %[[VAL_30:.*]] = cc.cast %[[VAL_28]] : (!llvm.ptr<array<18 x i8>>) -> !cc.ptr<i8>
-// CHECK:           call @altLaunchKernel(%[[VAL_30]], %[[VAL_31]], %[[VAL_32]], %[[VAL_17]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
+// CHECK:           call @altLaunchKernel(%[[VAL_30]], %[[VAL_31]], %[[VAL_32]], %[[VAL_17]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-DAG:     func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64)
+// CHECK-DAG:     func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK-DAG:     func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
 // CHECK-DAG:     func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
 // CHECK-DAG:     func.func private @malloc(i64) -> !cc.ptr<i8>
