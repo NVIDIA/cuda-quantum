@@ -110,14 +110,23 @@ func.func @test_0(%1: !cc.ptr<!cc.struct<{!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>}
 // CHECK:         %[[VAL_4:.*]] = bitcast { i32, { i1*, i64 } }* %[[VAL_3]] to i8*
 // CHECK:         %[[VAL_5:.*]] = getelementptr inbounds { i32, { i1*, i64 } }, { i32, { i1*, i64 } }* %[[VAL_3]], i64 0, i32 0
 // CHECK:         store i32 %[[VAL_2]], i32* %[[VAL_5]], align 8
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_0.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_0.thunk to i8*), i8* nonnull %[[VAL_4]], i64 24, i64 8)
-// CHECK:         %[[VAL_6:.*]] = getelementptr inbounds { i32, { i1*, i64 } }, { i32, { i1*, i64 } }* %[[VAL_3]], i64 0, i32 1, i32 0
-// CHECK:         %[[VAL_7:.*]] = bitcast i1** %[[VAL_6]] to i8**
-// CHECK:         %[[VAL_8:.*]] = load i8*, i8** %[[VAL_7]], align 8
-// CHECK:         %[[VAL_9:.*]] = getelementptr inbounds { i32, { i1*, i64 } }, { i32, { i1*, i64 } }* %[[VAL_3]], i64 0, i32 1, i32 1
-// CHECK:         %[[VAL_10:.*]] = load i64, i64* %[[VAL_9]], align 8
-// CHECK:         %[[VAL_11:.*]] = bitcast { i8*, i8*, i8* }* %[[VAL_0]] to i8*
-// CHECK:         call void @__nvqpp_initializer_list_to_vector_bool(i8* %[[VAL_11]], i8* %[[VAL_8]], i64 %[[VAL_10]])
+// CHECK:         %[[VAL_6:.*]] = call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_0.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_0.thunk to i8*), i8* nonnull %[[VAL_4]], i64 24, i64 8)
+// CHECK:         %[[VAL_7:.*]] = extractvalue { i8*, i64 } %[[VAL_6]], 0
+// CHECK:         %[[VAL_8:.*]] = icmp eq i8* %[[VAL_7]], null
+// CHECK:         %[[VAL_9:.*]] = getelementptr i8, i8* %[[VAL_7]], i64 8
+// CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_9]] to { i1*, i64 }*
+// CHECK:         %[[VAL_11:.*]] = getelementptr inbounds { i32, { i1*, i64 } }, { i32, { i1*, i64 } }* %[[VAL_3]], i64 0, i32 1
+// CHECK:         %[[VAL_12:.*]] = select i1 %[[VAL_8]], { i1*, i64 }* %[[VAL_11]], { i1*, i64 }* %[[VAL_10]]
+// CHECK:         %[[VAL_13:.*]] = bitcast { i1*, i64 }* %[[VAL_12]] to i8**
+// CHECK:         %[[VAL_14:.*]] = load i8*, i8** %[[VAL_13]], align 8
+// CHECK:         %[[VAL_15:.*]] = getelementptr inbounds { i32, { i1*, i64 } }, { i32, { i1*, i64 } }* %[[VAL_3]], i64 0, i32 1, i32 1
+// CHECK:         %[[VAL_16:.*]] = getelementptr i8, i8* %[[VAL_7]], i64 16
+// CHECK:         %[[VAL_17:.*]] = bitcast i8* %[[VAL_16]] to i64*
+// CHECK:         %[[VAL_18:.*]] = select i1 %[[VAL_8]], i64* %[[VAL_15]], i64* %[[VAL_17]]
+// CHECK:         %[[VAL_19:.*]] = load i64, i64* %[[VAL_18]], align 4
+// CHECK:         %[[VAL_20:.*]] = bitcast { i8*, i8*, i8* }* %[[VAL_0]] to i8*
+// CHECK:         call void @__nvqpp_initializer_list_to_vector_bool(i8* %[[VAL_20]], i8* %[[VAL_14]], i64 %[[VAL_19]])
+// CHECK:         call void @free(i8* %[[VAL_7]])
 // CHECK:         ret void
 // CHECK:       }
 
@@ -169,7 +178,7 @@ func.func @test_1(%this: !cc.ptr<i8>) -> i16 {
 // CHECK-SAME:    %[[VAL_0:.*]]) {{.*}}{
 // CHECK-NEXT:    %[[VAL_2:.*]] = alloca i16, align 8
 // CHECK:         %[[VAL_3:.*]] = bitcast i16* %[[VAL_2]] to i8*
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_1.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_1.thunk to i8*), i8* nonnull %[[VAL_3]], i64 2, i64 0)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_1.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_1.thunk to i8*), i8* nonnull %[[VAL_3]], i64 2, i64 0)
 // CHECK:         %[[VAL_4:.*]] = load i16, i16* %[[VAL_2]], align 8
 // CHECK:         ret i16 %[[VAL_4]]
 // CHECK:       }
@@ -200,7 +209,7 @@ func.func @test_2(%1: !cc.ptr<!cc.struct<{i16, f32, f64, i64}>> {llvm.sret = !cc
 // CHECK-SAME:          %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]]) {{.*}}{
 // CHECK:         %[[VAL_2:.*]] = alloca { { i16, float, double, i64 } }, align 8
 // CHECK:         %[[VAL_3:.*]] = bitcast { { i16, float, double, i64 } }* %[[VAL_2]] to i8*
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_2.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_2.thunk to i8*), i8* nonnull %[[VAL_3]], i64 24, i64 0)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_2.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_2.thunk to i8*), i8* nonnull %[[VAL_3]], i64 24, i64 0)
 // CHECK:         %[[VAL_4:.*]] = bitcast { i16, float, double, i64 }* %[[VAL_0]] to i8*
 // CHECK:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(24) %[[VAL_4]], i8* noundef nonnull align 8 dereferenceable(24) %[[VAL_3]], i64 24, i1 false)
 // CHECK:         ret void
@@ -234,7 +243,7 @@ func.func @test_3(%1: !cc.ptr<!cc.array<i64 x 5>> {llvm.sret = !cc.array<i64 x 5
 // CHECK-SAME:      %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]]) {{.*}}{
 // CHECK:         %[[VAL_2:.*]] = alloca { [5 x i64] }, align 8
 // CHECK:         %[[VAL_3:.*]] = bitcast { [5 x i64] }* %[[VAL_2]] to i8*
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_3.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_3.thunk to i8*), i8* nonnull %[[VAL_3]], i64 40, i64 0)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_3.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_3.thunk to i8*), i8* nonnull %[[VAL_3]], i64 40, i64 0)
 // CHECK:         %[[VAL_4:.*]] = bitcast [5 x i64]* %[[VAL_0]] to i8*
 // CHECK:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(40) %[[VAL_4]], i8* noundef nonnull align 8 dereferenceable(40) %[[VAL_3]], i64 40, i1 false)
 // CHECK:         ret void
@@ -259,7 +268,7 @@ func.func @test_4(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 // CHECK-SAME:     %[[VAL_0:.*]], i8* nocapture readnone %[[VAL_1:.*]]) {{.*}}{
 // CHECK:         %[[VAL_2:.*]] = alloca { i64, double }, align 8
 // CHECK:         %[[VAL_3:.*]] = bitcast { i64, double }* %[[VAL_2]] to i8*
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_4.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_4.thunk to i8*), i8* nonnull %[[VAL_3]], i64 16, i64 0)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_4.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_4.thunk to i8*), i8* nonnull %[[VAL_3]], i64 16, i64 0)
 // CHECK:         %[[VAL_4:.*]] = bitcast { i64, double }* %[[VAL_0]] to i8*
 // CHECK:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_4]], i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_3]], i64 16, i1 false)
 // CHECK:         ret void
@@ -283,7 +292,7 @@ func.func @test_5(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 // CHECK-SAME:       %[[VAL_0:.*]]) {{.*}}{
 // CHECK:         %[[VAL_1:.*]] = alloca { i64, double }, align 8
 // CHECK:         %[[VAL_2:.*]] = bitcast { i64, double }* %[[VAL_1]] to i8*
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_5.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_5.thunk to i8*), i8* nonnull %[[VAL_2]], i64 16, i64 0)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_5.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_5.thunk to i8*), i8* nonnull %[[VAL_2]], i64 16, i64 0)
 // CHECK:         %[[VAL_3:.*]] = bitcast { i64, double }* %[[VAL_0]] to i8*
 // CHECK:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_3]], i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_2]], i64 16, i1 false)
 // CHECK:         ret void
