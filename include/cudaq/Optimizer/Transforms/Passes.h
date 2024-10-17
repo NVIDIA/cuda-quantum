@@ -46,9 +46,10 @@ std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
 std::unique_ptr<mlir::Pass>
-createPySynthCallableBlockArgs(const std::vector<std::string> &);
+createPySynthCallableBlockArgs(const llvm::SmallVector<llvm::StringRef> &,
+                               bool removeBlockArg = false);
 inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
-  return createPySynthCallableBlockArgs({});
+  return createPySynthCallableBlockArgs({}, false);
 }
 
 /// Helper function to build an argument synthesis pass. The names of the
