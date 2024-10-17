@@ -63,7 +63,7 @@ actionOnBra(spin_op &term, const std::string &bitConfiguration) {
 }
 
 std::pair<std::vector<bool>, std::complex<double>>
-mult(const std::vector<bool>& p1, const std::vector<bool>& p2,
+mult(const std::vector<bool> &p1, const std::vector<bool> &p2,
      const std::complex<double> &p1Coeff, const std::complex<double> &p2Coeff) {
   auto [minSize, maxSize] = std::minmax({p1.size(), p2.size()});
   std::size_t minNumQubits = minSize / 2;
@@ -82,18 +82,19 @@ mult(const std::vector<bool>& p1, const std::vector<bool>& p2,
     result[i] = p1_x ^ p2_x;
     result[i + maxNumQubits] = p1_z ^ p2_z;
 
-    yCount += (p1_x & p1_z) + (p2_x & p2_z) - (result[i] & result[i + maxNumQubits]);
+    yCount +=
+        (p1_x & p1_z) + (p2_x & p2_z) - (result[i] & result[i + maxNumQubits]);
     cPhase += p1_x & p2_z;
   }
 
-  const std::vector<bool>& big = p1.size() < p2.size() ? p2 : p1;
+  const std::vector<bool> &big = p1.size() < p2.size() ? p2 : p1;
   for (std::size_t i = minNumQubits; i < maxNumQubits; ++i) {
     result[i] = big[i];
     result[i + maxNumQubits] = big[i + maxNumQubits];
   }
 
   // Normalize the phase to a value in the range [0, 3]
-  int phaseFactor = (2*cPhase + yCount) % 4;
+  int phaseFactor = (2 * cPhase + yCount) % 4;
   if (phaseFactor < 0)
     phaseFactor += 4;
 
@@ -435,7 +436,8 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
 
   // Take the `unordered_map` iterators to minimize pointer chasing when doing
   // the cartesian product of the terms of these spin operators.
-  using Iter = std::unordered_map<spin_op_term, std::complex<double>>::const_iterator;
+  using Iter =
+      std::unordered_map<spin_op_term, std::complex<double>>::const_iterator;
   std::vector<Iter> thisTermIt;
   std::vector<Iter> otherTermIt;
   thisTermIt.reserve(terms.size());
@@ -463,7 +465,7 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
 
   terms.clear();
   terms.reserve(numTerms);
-  for (auto&& [term, coeff] : result) {
+  for (auto &&[term, coeff] : result) {
     auto [it, created] = terms.emplace(term, coeff);
     if (!created)
       it->second += coeff;

@@ -11,26 +11,32 @@
 #include "cudaq/spin_op.h"
 
 enum Pauli : int8_t { I = 0, X, Y, Z };
-constexpr Pauli paulis[4] = {Pauli::I, Pauli::X, Pauli::Y, Pauli::Z };
+constexpr Pauli paulis[4] = {Pauli::I, Pauli::X, Pauli::Y, Pauli::Z};
 
 // Function to multiply two single-qubit Pauli operators
-static std::pair<std::complex<double>, Pauli> multiply_paulis(Pauli a, Pauli b) {
+static std::pair<std::complex<double>, Pauli> multiply_paulis(Pauli a,
+                                                              Pauli b) {
   using namespace std::complex_literals;
-                                               // I    X    Y    Z
-  constexpr std::complex<double> table[4][4] = {{ 1.,  1.,  1,    1}, // I
-                                                { 1.,  1.,  1i, -1i}, // X 
-                                                { 1., -1i,   1,  1i}, // Y
-                                                { 1.,  1i, -1i,   1}  // Z
+  // I    X    Y    Z
+  constexpr std::complex<double> table[4][4] = {
+      {1., 1., 1, 1},    // I
+      {1., 1., 1i, -1i}, // X
+      {1., -1i, 1, 1i},  // Y
+      {1., 1i, -1i, 1}   // Z
   };
-  if (a == b) return {1.0, Pauli::I};
-  if (a == Pauli::I) return {1.0, b};
-  if (b == Pauli::I) return {1.0, a};
+  if (a == b)
+    return {1.0, Pauli::I};
+  if (a == Pauli::I)
+    return {1.0, b};
+  if (b == Pauli::I)
+    return {1.0, a};
   return {table[a][b], paulis[a ^ b]};
 }
 
 // Function to multiply two multi-qubit Pauli words
 static std::pair<std::complex<double>, std::vector<Pauli>>
-multiply_pauli_words(const std::vector<Pauli>& a, const std::vector<Pauli>& b, bool verbose = false) {
+multiply_pauli_words(const std::vector<Pauli> &a, const std::vector<Pauli> &b,
+                     bool verbose = false) {
   std::complex<double> phase = 1.0;
   std::string info;
   std::vector<Pauli> result(a.size(), Pauli::I);
@@ -54,32 +60,33 @@ static std::vector<Pauli> generate_pauli_word(int64_t id, int64_t num_qubits) {
   return word;
 }
 
-static std::string generate_pauli_string(const std::vector<Pauli>& word) {
-  constexpr char paulis_name[4] = {'I', 'X', 'Y', 'Z' };
+static std::string generate_pauli_string(const std::vector<Pauli> &word) {
+  constexpr char paulis_name[4] = {'I', 'X', 'Y', 'Z'};
   std::string result(word.size(), 'I');
   for (int64_t i = 0; i < word.size(); ++i)
     result[i] = paulis_name[word[i]];
   return result;
 }
 
-static cudaq::spin_op generate_cudaq_spin(int64_t id, int64_t num_qubits, bool addI = true) {
+static cudaq::spin_op generate_cudaq_spin(int64_t id, int64_t num_qubits,
+                                          bool addI = true) {
   constexpr int64_t mask = 0x3;
   cudaq::spin_op result;
   for (int64_t i = 0; i < num_qubits; ++i) {
     switch (paulis[id & mask]) {
-      case Pauli::I:
-        if (addI)
-          result *= cudaq::spin::i(i);
-        break;
-      case Pauli::X:
-        result *= cudaq::spin::x(i);
-        break;
-      case Pauli::Y:
-        result *= cudaq::spin::y(i);
-        break;
-      case Pauli::Z:
-        result *= cudaq::spin::z(i);
-        break;
+    case Pauli::I:
+      if (addI)
+        result *= cudaq::spin::i(i);
+      break;
+    case Pauli::X:
+      result *= cudaq::spin::x(i);
+      break;
+    case Pauli::Y:
+      result *= cudaq::spin::y(i);
+      break;
+    case Pauli::Z:
+      result *= cudaq::spin::z(i);
+      break;
     }
     id >>= 2;
   }
