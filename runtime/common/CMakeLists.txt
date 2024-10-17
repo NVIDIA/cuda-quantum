@@ -102,7 +102,7 @@ set_source_files_properties(
     JIT.cpp
     Logger.cpp
     RuntimeMLIR.cpp
-  PROPERTIES COMPILE_FLAGS -fno-rtti
+#  PROPERTIES COMPILE_FLAGS -fno-rtti
 )
 
 target_include_directories(cudaq-mlir-runtime
