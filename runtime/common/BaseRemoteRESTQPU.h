@@ -393,14 +393,13 @@ public:
     if (!func->hasAttr(cudaq::entryPointAttrName))
       func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
     auto moduleOp = builder.create<mlir::ModuleOp>();
+    moduleOp.push_back(func.clone());
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
     for (auto &op : m_module.getOps()) {
       if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
-        // Add quantum kernels defined in the module.
-        if (funcOp->hasAttr(cudaq::kernelAttrName) ||
-            funcOp.getName().startswith("__nvqpp__mlirgen__") ||
-            funcOp.getBody().empty())
+        // Add function definitions for runtime functions.
+        if (funcOp.getBody().empty())
           moduleOp.push_back(funcOp.clone());
       }
       // Add globals defined in the module.
