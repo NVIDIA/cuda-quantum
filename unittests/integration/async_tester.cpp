@@ -41,6 +41,7 @@ CUDAQ_TEST(AsyncTester, checkObserveAsync) {
                                2.368439,  0.355775,  -1.055327, -1.711953,
                                -1.542948, -0.566625, 1.111216,  3.308754,
                                5.787853,  8.279863,  10.514736, 12.250290};
+
   for (auto &r : results) {
     EXPECT_NEAR(expected[i], r.second.get(), 1e-3);
     i++;

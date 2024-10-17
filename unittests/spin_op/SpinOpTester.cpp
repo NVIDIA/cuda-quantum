@@ -93,6 +93,31 @@ TEST(SpinOpTester, checkMultiplication) {
   auto mult2 = x(3) * tmp;
   mult2.dump();
 
+  std::cout << "X * Y: iZ\n";
+  (x(3) * y(3)).dump();
+  EXPECT_EQ(z(3), x(3) * y(3));
+  EXPECT_EQ((x(3) * y(3)).get_coefficient(), std::complex<double>(0, 1));
+
+  std::cout << "Y * Z: iX\n";
+  (y(3) * z(3)).dump();
+  EXPECT_EQ(x(3), y(3) * z(3));
+  EXPECT_EQ((y(3) * z(3)).get_coefficient(), std::complex<double>(0, 1));
+
+  std::cout << "Z * X: iY\n";
+  (z(3) * x(3)).dump();
+  EXPECT_EQ(y(3), z(3) * x(3));
+  EXPECT_EQ((z(3) * x(3)).get_coefficient(), std::complex<double>(0, 1));
+
+  std::cout << "Y * X: -iZ\n";
+  (y(3) * x(3)).dump();
+  EXPECT_EQ(z(3), y(3) * x(3));
+  EXPECT_EQ((y(3) * x(3)).get_coefficient(), std::complex<double>(0, -1));
+
+  std::cout << "Z * Y: -iX\n";
+  (z(3) * y(3)).dump();
+  EXPECT_EQ(x(3), z(3) * y(3));
+  EXPECT_EQ((z(3) * y(3)).get_coefficient(), std::complex<double>(0, -1));
+
   std::cout << "X * Z: -iY\n";
   (x(3) * z(3)).dump();
   EXPECT_EQ(y(3), x(3) * z(3));
@@ -113,20 +138,72 @@ TEST(SpinOpTester, checkMultiplication) {
   EXPECT_EQ(cudaq::spin_op(), z(0) * z(0));
   EXPECT_EQ((z(0) * z(0)).get_coefficient(), std::complex<double>(1, 0));
 
-  std::cout << "X * Y: iZ\n";
-  (x(3) * y(3)).dump();
-  EXPECT_EQ(z(3), x(3) * y(3));
-  EXPECT_EQ((x(3) * y(3)).get_coefficient(), std::complex<double>(0, 1));
-
   std::cout << "I * I: I\n";
   (i(2) * i(2)).dump();
   EXPECT_EQ(i(2), i(2) * i(2));
   EXPECT_EQ((i(2) * i(2)).get_coefficient(), std::complex<double>(1, 0));
 
+  std::cout << "I * X: X\n";
+  (i(3) * x(3)).dump();
+  EXPECT_EQ(x(3), i(3) * x(3));
+  EXPECT_EQ((i(3) * x(3)).get_coefficient(), std::complex<double>(1, 0));
+
+  std::cout << "I * Y: Y\n";
+  (i(3) * y(3)).dump();
+  EXPECT_EQ(y(3), i(3) * y(3));
+  EXPECT_EQ((i(3) * y(3)).get_coefficient(), std::complex<double>(1, 0));
+
   std::cout << "I * Z: Z\n";
-  (i(3) * i(3)).dump();
+  (i(3) * z(3)).dump();
   EXPECT_EQ(z(3), i(3) * z(3));
   EXPECT_EQ((i(3) * z(3)).get_coefficient(), std::complex<double>(1, 0));
+
+  std::cout << "X * I: X\n";
+  (x(3) * i(3)).dump();
+  EXPECT_EQ(x(3), x(3) * i(3));
+  EXPECT_EQ((x(3) * i(3)).get_coefficient(), std::complex<double>(1, 0));
+
+  std::cout << "Y * I: Y\n";
+  (y(3) * i(3)).dump();
+  EXPECT_EQ(y(3), y(3) * i(3));
+  EXPECT_EQ((y(3) * i(3)).get_coefficient(), std::complex<double>(1, 0));
+
+  std::cout << "Z * I: Z\n";
+  (z(3) * i(3)).dump();
+  EXPECT_EQ(z(3), z(3) * i(3));
+  EXPECT_EQ((z(3) * i(3)).get_coefficient(), std::complex<double>(1, 0));
+
+  std::cout << "Eliminate zero coefficient terms\n";
+  auto result = (0.0 * x(0)) * z(1);
+  result.dump();
+  EXPECT_EQ(result.num_terms(), 0);
+
+  std::cout << "X(0) * Y(0) = -Y(0) * X(0)\n";
+  auto left_side = x(0) * y(0);
+  auto right_side = -1.0 * y(0) * x(0);
+  left_side.dump();
+  right_side.dump();
+  EXPECT_EQ(left_side, right_side);
+
+  std::cout << "X(0) * (Z(0) + Z(1)) = (Z(0) + Z(1)) * X(0)\n";
+  left_side = x(0) * (z(0) + z(1));
+  right_side = (z(0) + z(1)) * x(0);
+  left_side.dump();
+  right_side.dump();
+  EXPECT_EQ(left_side, right_side);
+
+  std::cout << "(X(0) * Y(1)) * Z(2) = X(0) * (Y(1) * Z(2))\n";
+  left_side = (x(0) * y(1)) * z(2);
+  right_side = x(0) * (y(1) * z(2));
+  left_side.dump();
+  right_side.dump();
+  EXPECT_EQ(left_side, right_side);
+
+  std::cout << "X(0) * (Z(0) * Z(1) + Y(0) * Y(1))\n";
+  result = x(0) * (z(0) * z(1) + y(0) * y(1));
+  result.dump();
+  auto expected = x(0) * z(0) * z(1) + x(0) * y(0) * y(1);
+  EXPECT_EQ(result, expected);
 
   auto tmp2 = 2 * x(0) * x(1) * y(2) * y(3) + 3 * y(0) * y(1) * x(2) * x(3);
   std::cout << "START\n";
@@ -134,8 +211,7 @@ TEST(SpinOpTester, checkMultiplication) {
   tmp2.dump();
 
   EXPECT_EQ(2, tmp2.num_terms());
-  auto expected =
-      13 * i(0) * i(1) * i(2) * i(3) + 12 * z(0) * z(1) * z(2) * z(3);
+  expected = 13 * i(0) * i(1) * i(2) * i(3) + 12 * z(0) * z(1) * z(2) * z(3);
   EXPECT_EQ(expected, tmp2);
 }
 
@@ -172,8 +248,8 @@ TEST(SpinOpTester, checkGetMatrix) {
   {
     EXPECT_NEAR(groundEnergy.real(), -1.74, 1e-2);
 
-    std::vector<double> expected{.00029,  0, 0, 0,       0,       -.43619,
-                                 -4.2866, 0, 0, -4.2866, 12.2503, 0,
+    std::vector<double> expected{.00029,  0, 0, 0,       0,        12.2503,
+                                 -4.2866, 0, 0, -4.2866, -0.43629, 0,
                                  0,       0, 0, 11.8137};
     for (std::size_t i = 0; i < 16; ++i)
       EXPECT_NEAR(matrix.data()[i].real(), expected[i], 1e-3);
@@ -182,8 +258,8 @@ TEST(SpinOpTester, checkGetMatrix) {
     // Create the G=ground state for the above hamiltonian
     cudaq::complex_matrix vec(4, 1);
     vec.set_zero();
-    vec(2, 0) = .292786;
-    vec(1, 0) = .956178;
+    vec(1, 0) = .292786;
+    vec(2, 0) = .956178;
 
     // Compute H |psi_g>
     auto tmp = matrix * vec;
@@ -195,7 +271,7 @@ TEST(SpinOpTester, checkGetMatrix) {
   }
   {
     // do the same thing, but use std vector instead
-    std::vector<std::complex<double>> vec{0.0, .956178, .292786, 0.0};
+    std::vector<std::complex<double>> vec{0.0, .292786, .956178, 0.0};
 
     // Compute H |psi_g>
     auto tmp = matrix * vec;
@@ -209,8 +285,8 @@ TEST(SpinOpTester, checkGetMatrix) {
     // test <psi_g | H | psi_g>
     cudaq::complex_matrix psig(4, 1);
     psig.set_zero();
-    psig(2, 0) = .292786;
-    psig(1, 0) = .956178;
+    psig(1, 0) = .292786;
+    psig(2, 0) = .956178;
     auto prod = matrix * psig;
     double sum = 0.0;
     for (std::size_t i = 0; i < 4; i++) {
