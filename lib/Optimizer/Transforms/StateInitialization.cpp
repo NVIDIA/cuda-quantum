@@ -121,26 +121,17 @@ public:
 
   void runOnOperation() override {
     auto *ctx = &getContext();
-    auto module = getOperation();
-    for (Operation &op : *module.getBody()) {
-      auto func = dyn_cast<func::FuncOp>(op);
-      if (!func)
-        continue;
+    auto func = getOperation();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<StateInitPattern>(ctx);
 
-      std::string funcName = func.getName().str();
-      RewritePatternSet patterns(ctx);
-      patterns.insert<StateInitPattern>(ctx);
+    LLVM_DEBUG(llvm::dbgs() << "Before state initialization: " << func << '\n');
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "Before state initialization: " << func << '\n');
+    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+                                            std::move(patterns))))
+      signalPassFailure();
 
-      if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                              std::move(patterns))))
-        signalPassFailure();
-
-      LLVM_DEBUG(llvm::dbgs()
-                 << "After state initialization: " << func << '\n');
-    }
+    LLVM_DEBUG(llvm::dbgs() << "After state initialization: " << func << '\n');
   }
 };
 } // namespace

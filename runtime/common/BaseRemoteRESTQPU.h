@@ -447,7 +447,7 @@ public:
                                                    substs.end()}));
         pm.addPass(mlir::createCanonicalizerPass());
         pm.addPass(opt::createDeleteStates());
-        pm.addPass(opt::createStateInitialization());
+        pm.addNestedPass<mlir::func::FuncOp>(opt::createStateInitialization());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));

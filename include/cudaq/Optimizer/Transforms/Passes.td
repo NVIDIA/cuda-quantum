@@ -779,7 +779,7 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   }];
 }
 
-def StateInitialization : Pass<"state-initialization", "mlir::ModuleOp"> {
+def StateInitialization : Pass<"state-initialization", "mlir::func::FuncOp"> {
   let summary =
     "Replace `quake.init_state` instructions with call to the kernel generating the state";
   let description = [{
