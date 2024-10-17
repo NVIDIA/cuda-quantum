@@ -53,7 +53,7 @@ int main() {
   // ```
 
   // we can also set number of requested samples
-  int n_samples{10000};
+  int n_samples = 10000;
 
   // Submit to ORCA synchronously (e.g., wait for the job result to be
   // returned before proceeding with the rest of the execution).

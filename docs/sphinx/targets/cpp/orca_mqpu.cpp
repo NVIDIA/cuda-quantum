@@ -26,7 +26,7 @@ int main() {
   const std::size_t n_beam_splitters = n_loops * n_modes - sum_loop_lengths;
   std::vector<double> bs_angles =
       cudaq::linspace(M_PI / 3, M_PI / 6, n_beam_splitters);
-  int n_samples{10000};
+  int n_samples = 10000;
 
   std::cout << "Submitting to ORCA Server asynchronously" << std::endl;
   std::vector<cudaq::async_sample_result> countFutures;
