@@ -680,7 +680,7 @@
 <span class="go">We see the following output from :code:`nvq++` verbose mode (up to some absolute paths).</span>
 </pre></div>
 </div>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nvq++<span class="w"> </span>simple.cpp<span class="w"> </span>-v<span class="w"> </span>--save-temps
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nvq++<span class="w"> </span>simple.cpp<span class="w"> </span>-v<span class="w"> </span>-save-temps
 
 <span class="go">cudaq-quake --emit-llvm-file simple.cpp -o simple.qke</span>
 <span class="go">cudaq-opt --pass-pipeline=builtin.module(canonicalize,lambda-lifting,canonicalize,apply-op-specialization,kernel-execution,indirect-to-direct-calls,inline,func.func(quake-add-metadata),device-code-loader{use-quake=1},expand-measurements,func.func(lower-to-cfg),canonicalize,cse) simple.qke -o simple.qke.LpsXpu</span>
@@ -695,7 +695,7 @@
 <p>This workflow orchestration is represented in the figure below:</p>
 <img alt="../../_images/nvqpp_workflow.png" src="../../_images/nvqpp_workflow.png" />
 <p>We start by mapping CUDA-Q C++ kernel representations (structs, lambdas, and free functions)
-to the Quake dialect. Since we added <code class="code docutils literal notranslate"><span class="pre">--save-temps</span></code>,
+to the Quake dialect. Since we added <code class="code docutils literal notranslate"><span class="pre">-save-temps</span></code>,
 we can look at the IR code that was produced. The base Quake file, <code class="code docutils literal notranslate"><span class="pre">simple.qke</span></code>, contains the following:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__ghz = &quot;_ZN3ghzclEi&quot;}} {</span>
 <span class="go">    func.func @__nvqpp__mlirgen__ghz(%arg0: i32) attributes {&quot;cudaq-entrypoint&quot;, &quot;cudaq-kernel&quot;} {</span>
