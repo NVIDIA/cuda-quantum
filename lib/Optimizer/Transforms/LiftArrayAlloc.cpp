@@ -72,19 +72,17 @@ LogicalResult genVectorOfConstantsFromAttributes(cudaq::IRBuilder irBuilder,
         return success();
       }
     }
-  } else if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
-    if (floatTy == irBuilder.getF64Type()) {
-      auto vals = readConstantValues<double>(values, floatTy);
-      if (vals.size() == values.size()) {
-        irBuilder.genVectorOfConstants(loc, module, name, vals);
-        return success();
-      }
-    } else if (floatTy == irBuilder.getF32Type()) {
-      auto vals = readConstantValues<float>(values, floatTy);
-      if (vals.size() == values.size()) {
-        irBuilder.genVectorOfConstants(loc, module, name, vals);
-        return success();
-      }
+  } else if (eleTy == irBuilder.getF64Type()) {
+    auto vals = readConstantValues<double>(values, eleTy);
+    if (vals.size() == values.size()) {
+      irBuilder.genVectorOfConstants(loc, module, name, vals);
+      return success();
+    }
+  } else if (eleTy == irBuilder.getF32Type()) {
+    auto vals = readConstantValues<float>(values, eleTy);
+    if (vals.size() == values.size()) {
+      irBuilder.genVectorOfConstants(loc, module, name, vals);
+      return success();
     }
   }
   return failure();
@@ -147,7 +145,9 @@ public:
           rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
     }
 
-    SmallVector<Operation *> toErase;
+    assert(conArr && "must have created the constant array");
+    LLVM_DEBUG(llvm::dbgs() << "constant array is:\n" << conArr << '\n');
+    bool cannotEraseAlloc = false;
 
     // Rewalk all the uses of alloc, u, which must be cc.cast or cc.compute_ptr.
     // For each,u, remove a store and replace a load with a cc.extract_value.
@@ -176,8 +176,9 @@ public:
           continue;
         }
         if (isa<cudaq::cc::StoreOp>(useuser))
-          toErase.push_back(useuser);
-        isLive = true;
+          rewriter.eraseOp(useuser);
+        LLVM_DEBUG(llvm::dbgs() << "alloc is live\n");
+        cannotEraseAlloc = isLive = true;
       }
       if (auto ist = dyn_cast<quake::InitializeStateOp>(user)) {
         rewriter.setInsertionPointAfter(user);
@@ -188,18 +189,20 @@ public:
         continue;
       }
       if (!isLive)
-        toErase.push_back(user);
+        rewriter.eraseOp(user);
     }
-    if (toGlobal) {
+
+    if (toGlobal && conGlobal) {
       rewriter.setInsertionPointAfter(alloc);
       rewriter.replaceOp(alloc, conGlobal);
-    } else {
-      toErase.push_back(alloc);
+      return success();
     }
-
-    for (auto *op : toErase)
-      rewriter.eraseOp(op);
-
+    if (cannotEraseAlloc) {
+      rewriter.setInsertionPointAfter(alloc);
+      rewriter.create<cudaq::cc::StoreOp>(loc, conArr, alloc);
+      return success();
+    }
+    rewriter.eraseOp(alloc);
     return success();
   }
 
@@ -303,12 +306,16 @@ public:
         }
         // Process casts that are used in quake.init_state.
         if (cast.getType() == ptrUnsizedArrTy) {
-          if (getWriteOp(cast, 0))
-            LLVM_DEBUG(
-                llvm::dbgs()
-                << "unexpected use of array size removing cast in a store"
-                << *op << '\n');
-          continue;
+          if (cast->hasOneUse()) {
+            auto &use = *cast->getUses().begin();
+            Operation *u = use.getOwner();
+            if (isa_and_present<quake::InitializeStateOp>(u)) {
+              toGlobalUses.push_back(op);
+              toGlobal = true;
+              continue;
+            }
+          }
+          return false;
         }
         LLVM_DEBUG(llvm::dbgs() << "unexpected cast: " << *op << '\n');
         toGlobalUses.push_back(op);
