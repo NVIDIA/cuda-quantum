@@ -405,6 +405,7 @@ public:
             (funcOp.getName().equals(cudaq::getNumQubitsFromCudaqState) ||
              funcOp.getName().equals(cudaq::createCudaqStateFromDataFP64) ||
              funcOp.getName().equals(cudaq::createCudaqStateFromDataFP32) ||
+             funcOp.getName().equals(cudaq::deleteCudaqState) ||
              funcOp.getName().equals(cudaq::getCudaqState)))
           moduleOp.push_back(funcOp.clone());
       }
@@ -448,6 +449,7 @@ public:
         pm.addPass(mlir::createCanonicalizerPass());
         pm.addPass(opt::createDeleteStates());
         pm.addNestedPass<mlir::func::FuncOp>(opt::createStateInitialization());
+        pm.addPass(opt::createStateValidation());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));

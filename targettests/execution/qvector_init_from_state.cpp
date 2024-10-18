@@ -7,8 +7,16 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --enable-mlir                                     %s -o %t  && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum --emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
+// Simulators
+// RUN: nvq++ %cpp_std --enable-mlir  %s                              -o %t && %t | FileCheck %s
+
+// Quantum emulators
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// 2 different IQM machines for 2 different topologies
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -91,7 +99,10 @@ int main() {
     std::cout
         << "Passing large state from another kernel as argument (kernel mode)"
         << std::endl;
-    auto largeState = cudaq::get_state(test_init_state{}, 14);
+    // TODO: State larger than 5 qubits fails on iqm machines with Adonis architecture
+    // TODO: State larger than 8 qubits fails on oqc and anyon
+    // Up to 14 bits works with quantinuum an ionq
+    auto largeState = cudaq::get_state(test_init_state{}, 5);
     auto counts = cudaq::sample(test_state_param{}, &largeState);
     printCounts(counts);
   }

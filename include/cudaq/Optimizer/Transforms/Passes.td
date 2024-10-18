@@ -866,6 +866,17 @@ def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
   ];
 }
 
+def StateValidation : Pass<"state-validation", "mlir::ModuleOp"> {
+  let summary =
+    "Make sure MLIR is valid after synthesis for quantum devices";
+  let description = [{
+    Argument synthesis should replace all `quake.init` from state instructions
+    and calls to state-related runtime functions.
+    Make sure none of them left, and remove definitions for state-related
+    runtime functions.
+  }];
+}
+
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
   let summary = "Promote single qubit allocations.";
   let description = [{

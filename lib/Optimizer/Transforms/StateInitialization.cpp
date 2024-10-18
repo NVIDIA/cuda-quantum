@@ -30,10 +30,10 @@ using namespace mlir;
 
 namespace {
 
-static bool isCall(Operation *callOp, std::vector<const char *> &&names) {
-  if (callOp) {
-    if (auto createStateCall = dyn_cast<func::CallOp>(callOp)) {
-      if (auto calleeAttr = createStateCall.getCalleeAttr()) {
+static bool isCall(Operation *op, std::vector<const char *> &&names) {
+  if (op) {
+    if (auto callOp = dyn_cast<func::CallOp>(op)) {
+      if (auto calleeAttr = callOp.getCalleeAttr()) {
         auto funcName = calleeAttr.getValue().str();
         if (std::find(names.begin(), names.end(), funcName) != names.end())
           return true;
@@ -43,12 +43,12 @@ static bool isCall(Operation *callOp, std::vector<const char *> &&names) {
   return false;
 }
 
-static bool isGetStateCall(Operation *callOp) {
-  return isCall(callOp, {cudaq::getCudaqState});
+static bool isGetStateCall(Operation *op) {
+  return isCall(op, {cudaq::getCudaqState});
 }
 
-static bool isNumberOfQubitsCall(Operation *callOp) {
-  return isCall(callOp, {cudaq::getNumQubitsFromCudaqState});
+static bool isNumberOfQubitsCall(Operation *op) {
+  return isCall(op, {cudaq::getNumQubitsFromCudaqState});
 }
 
 // clang-format off
