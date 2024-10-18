@@ -55,6 +55,10 @@ static constexpr const char createCudaqStateFromDataFP32[] =
 // Delete a state created by the runtime functions above.
 static constexpr const char deleteCudaqState[] = "__nvqpp_cudaq_state_delete";
 
+// Get state of a kernel (placeholder function, calls are always replaced in
+// opts)
+static constexpr const char getCudaqState[] = "__nvqpp_cudaq_state_get";
+
 /// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
 /// the transformation of both quantum and classical computation. Different
 /// features of the CUDA-Q programming model are lowered into different dialects

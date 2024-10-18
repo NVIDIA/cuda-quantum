@@ -18,6 +18,7 @@
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -397,11 +398,19 @@ public:
     moduleOp->setAttrs(m_module->getAttrDictionary());
 
     for (auto &op : m_module.getOps()) {
-      // Add any global symbols, including global constant arrays.
-      // Global constant arrays can be created during compilation,
-      // `lift-array-value`, `quake-synthesizer`, and `get-concrete-matrix`
-      // passes.
-      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
+      if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
+        // Add function definitions for runtime functions that must
+        // be removed after synthesis in cleanup ops.
+        if (funcOp.getBody().empty() &&
+            (funcOp.getName().equals(cudaq::getNumQubitsFromCudaqState) ||
+             funcOp.getName().equals(cudaq::createCudaqStateFromDataFP64) ||
+             funcOp.getName().equals(cudaq::createCudaqStateFromDataFP32) ||
+             funcOp.getName().equals(cudaq::deleteCudaqState) ||
+             funcOp.getName().equals(cudaq::getCudaqState)))
+          moduleOp.push_back(funcOp.clone());
+      }
+      // Add globals defined in the module.
+      if (auto globalOp = dyn_cast<cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
     }
 
@@ -428,16 +437,19 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
-        opt::ArgumentConverter argCon(kernelName, moduleOp, false);
+        opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
-        std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-        mlir::SmallVector<mlir::StringRef> kernels = {kernName};
-        std::string substBuff;
-        llvm::raw_string_ostream ss(substBuff);
-        ss << argCon.getSubstitutionModule();
-        mlir::SmallVector<mlir::StringRef> substs = {substBuff};
+        auto [kernels, substs] = argCon.collectAllSubstitutions();
         pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createArgumentSynthesisPass(kernels, substs));
+            cudaq::opt::createArgumentSynthesisPass(
+                mlir::SmallVector<mlir::StringRef>{kernels.begin(),
+                                                   kernels.end()},
+                mlir::SmallVector<mlir::StringRef>{substs.begin(),
+                                                   substs.end()}));
+        pm.addPass(mlir::createCanonicalizerPass());
+        pm.addPass(opt::createDeleteStates());
+        pm.addNestedPass<mlir::func::FuncOp>(opt::createStateInitialization());
+        pm.addPass(opt::createStateValidation());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));

@@ -50,7 +50,9 @@ add_cudaq_library(OptTransforms
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
+  StateInitialization.cpp
   StatePreparation.cpp
+  StateValidation.cpp
   UnitarySynthesis.cpp
   WiresToWiresets.cpp
 
