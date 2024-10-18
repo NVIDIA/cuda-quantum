@@ -520,7 +520,7 @@ while [ $# -ne 0 ]; do
 		CUDAQ_OPT_EXTRA_PASSES=$(add_pass_to_pipeline "${CUDAQ_OPT_EXTRA_PASSES}" "$2") 
 		shift
 		;;
-	-save-temps)
+	-save-temps|--save-temps)
 		DELETE_TEMPS=false
 		;;
 	-h|--help)
