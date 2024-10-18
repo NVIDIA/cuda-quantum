@@ -23,7 +23,7 @@ Let's see the output of :code:`nvq++` in verbose mode. Consider a simple code li
 
 .. code-block:: console 
 
-    $ nvq++ simple.cpp -v --save-temps
+    $ nvq++ simple.cpp -v -save-temps
     
     cudaq-quake --emit-llvm-file simple.cpp -o simple.qke
     cudaq-opt --pass-pipeline=builtin.module(canonicalize,lambda-lifting,canonicalize,apply-op-specialization,kernel-execution,indirect-to-direct-calls,inline,func.func(quake-add-metadata),device-code-loader{use-quake=1},expand-measurements,func.func(lower-to-cfg),canonicalize,cse) simple.qke -o simple.qke.LpsXpu
@@ -39,7 +39,7 @@ This workflow orchestration is represented in the figure below:
 .. image:: ../../_static/nvqpp_workflow.png
 
 We start by mapping CUDA-Q C++ kernel representations (structs, lambdas, and free functions) 
-to the Quake dialect. Since we added :code:`--save-temps`, 
+to the Quake dialect. Since we added :code:`-save-temps`, 
 we can look at the IR code that was produced. The base Quake file, :code:`simple.qke`, contains the following: 
 
 .. code-block:: console 
