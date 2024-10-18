@@ -26,9 +26,9 @@ def test_qudit():
     @cudaq.kernel
     def kernel():
         q = qudit(level=4)
-        plus(q)
-        plus(q)
-        plus(q)
+        create(q)
+        create(q)
+        create(q)
         mz(q)
 
     counts = cudaq.sample(kernel)
@@ -44,10 +44,10 @@ def test_qudit_list():
 
     @cudaq.kernel
     def kernel():
-        qutrits = [qudit(3) for _ in range(2)]
-        plus(qutrits[0])
-        plus(qutrits[1])
-        mz(qutrits)
+        qumodes = [qudit(3) for _ in range(2)]
+        create(qumodes[0])
+        create(qumodes[1])
+        mz(qumodes)
 
     counts = cudaq.sample(kernel)
     assert len(counts) == 1
@@ -59,7 +59,7 @@ def test_qudit_invalid():
     @cudaq.kernel
     def kernel():
         q = [i for i in range(2)]
-        plus(q[0])
+        create(q[0])
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(kernel)
@@ -70,16 +70,16 @@ def test_supported_gates():
 
     @cudaq.kernel
     def kernel():
-        quds = [qudit(5) for _ in range(3)]
+        qumodes = [qudit(5) for _ in range(3)]
 
-        plus(quds[0])
-        plus(quds[1])
-        plus(quds[2])
+        create(qumodes[0])
+        create(qumodes[1])
+        create(qumodes[2])
 
-        phase_shift(quds[1], 0.5)
-        beam_splitter(quds[0], quds[1], 1.3)
+        phase_shift(qumodes[1], 0.5)
+        beam_splitter(qumodes[0], qumodes[1], 1.3)
 
-        mz(quds)
+        mz(qumodes)
 
     counts = cudaq.sample(kernel)
     counts.dump()
@@ -92,7 +92,7 @@ def test_kernel_with_args():
     @cudaq.kernel
     def kernel_1f(theta: float):
         q = qudit(4)
-        plus(q)
+        create(q)
         phase_shift(q, theta)
         mz(q)
 
@@ -104,11 +104,11 @@ def test_kernel_with_args():
 
     @cudaq.kernel
     def kernel_2f(theta: float, phi: float):
-        quds = [qudit(3) for _ in range(2)]
-        plus(quds[0])
-        phase_shift(quds[0], theta)
-        beam_splitter(quds[0], quds[1], phi)
-        mz(quds)
+        qumodes = [qudit(3) for _ in range(2)]
+        create(qumodes[0])
+        phase_shift(qumodes[0], theta)
+        beam_splitter(qumodes[0], qumodes[1], phi)
+        mz(qumodes)
 
     result = cudaq.sample(kernel_2f, 0.7854, 0.3927)
     result.dump()
@@ -118,11 +118,11 @@ def test_kernel_with_args():
 
     @cudaq.kernel
     def kernel_list(angles: List[float]):
-        quds = [qudit(2) for _ in range(3)]
-        plus(quds[0])
-        phase_shift(quds[1], angles[0])
-        phase_shift(quds[2], angles[1])
-        mz(quds)
+        qumodes = [qudit(2) for _ in range(3)]
+        create(qumodes[0])
+        phase_shift(qumodes[1], angles[0])
+        phase_shift(qumodes[2], angles[1])
+        mz(qumodes)
 
     result = cudaq.sample(kernel_list, [0.5236, 1.0472])
     result.dump()
@@ -136,7 +136,7 @@ def test_target_change():
     @cudaq.kernel
     def kernel():
         q = qudit(level=2)
-        plus(q)
+        create(q)
         mz(q)
 
     res = cudaq.sample(kernel)
@@ -185,7 +185,7 @@ def test_unsupported_types():
     @cudaq.kernel
     def kernel1():
         q = cudaq.qubit()
-        plus(q)
+        create(q)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(kernel1)
@@ -194,7 +194,7 @@ def test_unsupported_types():
     @cudaq.kernel
     def kernel2():
         q = cudaq.qvector(2)
-        plus(q[0])
+        create(q[0])
 
     with pytest.raises(Exception) as e:
         cudaq.sample(kernel2)
@@ -207,7 +207,7 @@ def test_target_handler():
     @cudaq.kernel
     def kernel():
         q = qudit(level=3)
-        plus(q)
+        create(q)
         mz(q)
 
     with pytest.raises(RuntimeError):
