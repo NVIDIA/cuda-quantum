@@ -435,6 +435,7 @@ public:
   /// @param qubitIdx
   void resetQubit(const std::size_t qubitIdx) override {
     flushGateQueue();
+    this->flushAnySamplingTasks();
     const int basisBits[] = {(int)qubitIdx};
     int parity;
     double rand = randomValues(1, 1.0)[0];
