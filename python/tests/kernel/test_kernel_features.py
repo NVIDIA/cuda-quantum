@@ -263,9 +263,14 @@ def test_exp_pauli():
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 
-def test_dynamic_circuit():
+@pytest.mark.parametrize('target', ['default', 'stim'])
+def test_dynamic_circuit(target):
     """Test that we correctly sample circuits with 
        mid-circuit measurements and conditionals."""
+
+    if target == 'stim':
+        save_target = cudaq.get_target()
+        cudaq.set_target('stim')
 
     @cudaq.kernel
     def simple():
@@ -296,6 +301,9 @@ def test_dynamic_circuit():
     c0 = counts.get_register_counts('i')
     assert '0' in c0 and '1' in c0
     assert '00' in counts and '11' in counts
+
+    if target == 'stim':
+        cudaq.set_target(save_target)
 
 
 def test_teleport():
