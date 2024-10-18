@@ -62,7 +62,8 @@ public:
                                 PatternRewriter &rewriter) const override {
     if (isRuntimeStateCall(callOp)) {
       auto name = callOp.getCalleeAttr().getValue();
-      callOp.emitError("Unsupported call for quantum platform: " + name);
+      callOp.emitError(
+          "Synthesis did not remove func call for quantum platform: " + name);
     }
     return failure();
   }
@@ -77,8 +78,8 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto stateOp = initState.getOperand(1);
     if (isa<cudaq::cc::StateType>(stateOp.getType()))
-      initState.emitError(
-          "Synthesis did not remove `quake.init_state <state>` instruction");
+      initState.emitError("Synthesis did not remove `quake.init_state <veq> "
+                          "<state>` instruction");
 
     return failure();
   }

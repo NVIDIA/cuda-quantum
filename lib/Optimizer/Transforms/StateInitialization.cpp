@@ -73,39 +73,43 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = initState.getLoc();
     auto allocaOp = initState.getOperand(0).getDefiningOp();
-    auto getStateOp = initState.getOperand(1).getDefiningOp();
-    auto numOfQubits = allocaOp->getOperand(0).getDefiningOp();
+    auto stateOp = initState.getOperand(1);
 
-    if (isGetStateCall(getStateOp)) {
-      auto calleeNameOp = getStateOp->getOperand(0);
-      if (auto cast =
-              dyn_cast<cudaq::cc::CastOp>(calleeNameOp.getDefiningOp())) {
-        calleeNameOp = cast.getOperand();
+    if (isa<cudaq::cc::StateType>(stateOp.getType())) {
+      auto getStateOp = stateOp.getDefiningOp();
+      auto numOfQubits = allocaOp->getOperand(0).getDefiningOp();
 
-        if (auto literal = dyn_cast<cudaq::cc::CreateStringLiteralOp>(
-                calleeNameOp.getDefiningOp())) {
-          auto calleeName = literal.getStringLiteral();
+      if (isGetStateCall(getStateOp)) {
+        auto calleeNameOp = getStateOp->getOperand(0);
+        if (auto cast =
+                dyn_cast<cudaq::cc::CastOp>(calleeNameOp.getDefiningOp())) {
+          calleeNameOp = cast.getOperand();
 
-          Value result =
-              rewriter
-                  .create<func::CallOp>(loc, initState.getType(), calleeName,
-                                        mlir::ValueRange{})
-                  .getResult(0);
-          rewriter.replaceAllUsesWith(initState, result);
-          initState.erase();
-          allocaOp->dropAllUses();
-          rewriter.eraseOp(allocaOp);
-          if (isNumberOfQubitsCall(numOfQubits)) {
-            numOfQubits->dropAllUses();
-            rewriter.eraseOp(numOfQubits);
+          if (auto literal = dyn_cast<cudaq::cc::CreateStringLiteralOp>(
+                  calleeNameOp.getDefiningOp())) {
+            auto calleeName = literal.getStringLiteral();
+
+            Value result =
+                rewriter
+                    .create<func::CallOp>(loc, initState.getType(), calleeName,
+                                          mlir::ValueRange{})
+                    .getResult(0);
+            rewriter.replaceAllUsesWith(initState, result);
+            initState.erase();
+            allocaOp->dropAllUses();
+            rewriter.eraseOp(allocaOp);
+            if (isNumberOfQubitsCall(numOfQubits)) {
+              numOfQubits->dropAllUses();
+              rewriter.eraseOp(numOfQubits);
+            }
+            getStateOp->dropAllUses();
+            rewriter.eraseOp(getStateOp);
+            cast->dropAllUses();
+            rewriter.eraseOp(cast);
+            literal->dropAllUses();
+            rewriter.eraseOp(literal);
+            return success();
           }
-          getStateOp->dropAllUses();
-          rewriter.eraseOp(getStateOp);
-          cast->dropAllUses();
-          rewriter.eraseOp(cast);
-          literal->dropAllUses();
-          rewriter.eraseOp(literal);
-          return success();
         }
       }
     }
