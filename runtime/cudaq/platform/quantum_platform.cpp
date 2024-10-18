@@ -30,11 +30,11 @@ namespace cudaq {
 std::string get_quake(const std::string &);
 
 static quantum_platform *platform;
-inline static constexpr std::string_view GetQuantumPlatformSymbol =
+static constexpr std::string_view GetQuantumPlatformSymbol =
     "getQuantumPlatform";
 
 void setQuantumPlatformInternal(quantum_platform *p) {
-  cudaq::info("external caller setting the platform.");
+  info("external caller setting the platform.");
   platform = p;
 }
 
@@ -43,8 +43,8 @@ void setQuantumPlatformInternal(quantum_platform *p) {
 quantum_platform *getQuantumPlatformInternal() {
   if (platform)
     return platform;
-  platform = cudaq::getUniquePluginInstance<quantum_platform>(
-      GetQuantumPlatformSymbol);
+  platform =
+      getUniquePluginInstance<quantum_platform>(GetQuantumPlatformSymbol);
   return platform;
 }
 
@@ -94,8 +94,7 @@ std::size_t quantum_platform::get_current_qpu() { return platformCurrentQPU; }
 
 // Specify the execution context for this platform.
 // This delegates to the targeted QPU
-void quantum_platform::set_exec_ctx(cudaq::ExecutionContext *ctx,
-                                    std::size_t qid) {
+void quantum_platform::set_exec_ctx(ExecutionContext *ctx, std::size_t qid) {
   executionContext = ctx;
   auto &platformQPU = platformQPUs[qid];
   platformQPU->setExecutionContext(ctx);
@@ -130,9 +129,8 @@ bool quantum_platform::supports_conditional_feedback(
 }
 
 void quantum_platform::launchVQE(const std::string kernelName,
-                                 const void *kernelArgs,
-                                 cudaq::gradient *gradient, cudaq::spin_op H,
-                                 cudaq::optimizer &optimizer,
+                                 const void *kernelArgs, gradient *gradient,
+                                 spin_op H, optimizer &optimizer,
                                  const int n_params, const std::size_t shots) {
   std::size_t qpu_id = 0;
 
@@ -151,11 +149,10 @@ quantum_platform::get_remote_capabilities(const std::size_t qpu_id) const {
   return platformQPUs[qpu_id]->getRemoteCapabilities();
 }
 
-void quantum_platform::launchKernel(std::string kernelName,
-                                    void (*kernelFunc)(void *), void *args,
-                                    std::uint64_t voidStarSize,
-                                    std::uint64_t resultOffset,
-                                    const std::vector<void *> &rawArgs) {
+KernelThunkResultType quantum_platform::launchKernel(
+    std::string kernelName, KernelThunkType kernelFunc, void *args,
+    std::uint64_t voidStarSize, std::uint64_t resultOffset,
+    const std::vector<void *> &rawArgs) {
   std::size_t qpu_id = 0;
 
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
@@ -164,8 +161,8 @@ void quantum_platform::launchKernel(std::string kernelName,
     qpu_id = iter->second;
 
   auto &qpu = platformQPUs[qpu_id];
-  qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset,
-                    rawArgs);
+  return qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize,
+                           resultOffset, rawArgs);
 }
 
 void quantum_platform::launchKernel(std::string kernelName,
@@ -183,7 +180,7 @@ void quantum_platform::launchKernel(std::string kernelName,
 
 void quantum_platform::launchSerializedCodeExecution(
     const std::string &name,
-    cudaq::SerializedCodeExecutionContext &serializeCodeExecutionObject) {
+    SerializedCodeExecutionContext &serializeCodeExecutionObject) {
   std::size_t qpu_id = 0;
 
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
@@ -208,37 +205,46 @@ std::ostream *quantum_platform::getLogStream() { return platformLogStream; }
 void quantum_platform::setLogStream(std::ostream &logStream) {
   platformLogStream = &logStream;
 }
-} // namespace cudaq
 
-void cudaq::altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
-                            void *kernelArgs, std::uint64_t argsSize,
-                            std::uint64_t resultOffset) {
+KernelThunkResultType altLaunchKernel(const char *kernelName,
+                                      KernelThunkType kernelFunc,
+                                      void *kernelArgs, std::uint64_t argsSize,
+                                      std::uint64_t resultOffset) {
   ScopedTraceWithContext("altLaunchKernel", kernelName, argsSize);
-  auto &platform = *cudaq::getQuantumPlatformInternal();
+  auto &platform = *getQuantumPlatformInternal();
   std::string kernName = kernelName;
-  platform.launchKernel(kernName, kernelFunc, kernelArgs, argsSize,
-                        resultOffset, {});
+  return platform.launchKernel(kernName, kernelFunc, kernelArgs, argsSize,
+                               resultOffset, {});
 }
 
-void cudaq::streamlinedLaunchKernel(const char *kernelName,
-                                    const std::vector<void *> &rawArgs) {
+KernelThunkResultType
+streamlinedLaunchKernel(const char *kernelName,
+                        const std::vector<void *> &rawArgs) {
   std::size_t argsSize = rawArgs.size();
   ScopedTraceWithContext("streamlinedLaunchKernel", kernelName, argsSize);
-  auto &platform = *cudaq::getQuantumPlatformInternal();
+  auto &platform = *getQuantumPlatformInternal();
   std::string kernName = kernelName;
   platform.launchKernel(kernName, rawArgs);
+  // NB: The streamlined launch will never return results. Use alt or hybrid if
+  // the kernel returns results.
+  return {};
 }
 
-void cudaq::hybridLaunchKernel(const char *kernelName, void (*kernel)(void *),
-                               void *args, std::uint64_t argsSize,
-                               std::uint64_t resultOffset,
-                               const std::vector<void *> &rawArgs) {
+KernelThunkResultType hybridLaunchKernel(const char *kernelName,
+                                         KernelThunkType kernel, void *args,
+                                         std::uint64_t argsSize,
+                                         std::uint64_t resultOffset,
+                                         const std::vector<void *> &rawArgs) {
   ScopedTraceWithContext("hybridLaunchKernel", kernelName);
-  auto &platform = *cudaq::getQuantumPlatformInternal();
+  auto &platform = *getQuantumPlatformInternal();
   const std::string kernName = kernelName;
-  if (platform.is_remote(platform.get_current_qpu()))
+  if (platform.is_remote(platform.get_current_qpu())) {
+    // This path should never call a kernel that returns results.
     platform.launchKernel(kernName, rawArgs);
-  else
-    platform.launchKernel(kernName, kernel, args, argsSize, resultOffset,
-                          rawArgs);
+    return {};
+  }
+  return platform.launchKernel(kernName, kernel, args, argsSize, resultOffset,
+                               rawArgs);
 }
+
+} // namespace cudaq
