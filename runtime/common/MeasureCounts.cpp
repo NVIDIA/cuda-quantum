@@ -422,15 +422,6 @@ sample_result::to_map(const std::string_view registerName) const {
   return iter->second.counts;
 }
 
-ExecutionResult sample_result::get_result_for_register(
-    const std::string_view registerName) const {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return ExecutionResult();
-
-  return iter->second;
-}
-
 sample_result
 sample_result::get_marginal(const std::vector<std::size_t> &marginalIndices,
                             const std::string_view registerName) {

@@ -229,9 +229,6 @@ public:
   CountsDictionary
   to_map(const std::string_view registerName = GlobalRegisterName) const;
 
-  ExecutionResult get_result_for_register(
-      const std::string_view registerName = GlobalRegisterName) const;
-
   /// @brief Extract marginal counts, that is those counts for a subset
   /// of measured qubits
   /// @param marginalIndices The qubit indices as an `rvalue`
