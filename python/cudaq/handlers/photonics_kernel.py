@@ -119,6 +119,7 @@ def qudit(level: int) -> PyQudit:
     """
     return QuditManager.allocate(level)
 
+
 def create(qudit: PyQudit):
     """
     Apply create gate on the input qudit.
