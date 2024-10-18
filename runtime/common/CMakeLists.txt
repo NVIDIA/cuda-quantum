@@ -96,13 +96,11 @@ add_library(cudaq-mlir-runtime
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
-# Note: JIT.cpp contains throw statements. Should RTTI be enabled?
 set_source_files_properties(
     Environment.cpp
     JIT.cpp
     Logger.cpp
     RuntimeMLIR.cpp
-#  PROPERTIES COMPILE_FLAGS -fno-rtti
 )
 
 target_include_directories(cudaq-mlir-runtime

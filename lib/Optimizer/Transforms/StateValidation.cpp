@@ -27,20 +27,17 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-
-/// Validate that quantum code does not contain runtime calls and remove runtime function definitions. 
+/// Validate that quantum code does not contain runtime calls and remove runtime
+/// function definitions.
 namespace {
 
 static bool isRuntimeStateCallName(llvm::StringRef funcName) {
   static std::vector<const char *> names = {
-    cudaq::getCudaqState,
-    cudaq::createCudaqStateFromDataFP32,
-    cudaq::createCudaqStateFromDataFP64,
-    cudaq::deleteCudaqState,
-    cudaq::getNumQubitsFromCudaqState
-  };
+      cudaq::getCudaqState, cudaq::createCudaqStateFromDataFP32,
+      cudaq::createCudaqStateFromDataFP64, cudaq::deleteCudaqState,
+      cudaq::getNumQubitsFromCudaqState};
   if (std::find(names.begin(), names.end(), funcName) != names.end())
-      return true; 
+    return true;
   return false;
 }
 
@@ -71,20 +68,21 @@ public:
   }
 };
 
-class ValidateStateInitPattern : public OpRewritePattern<quake::InitializeStateOp> {
+class ValidateStateInitPattern
+    : public OpRewritePattern<quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
                                 PatternRewriter &rewriter) const override {
     auto stateOp = initState.getOperand(1);
-    if (isa<cudaq::cc::StateType>(stateOp.getType())) 
-      initState.emitError("Synthesis did not remove `quake.init_state <state>` instruction");
-    
+    if (isa<cudaq::cc::StateType>(stateOp.getType()))
+      initState.emitError(
+          "Synthesis did not remove `quake.init_state <state>` instruction");
+
     return failure();
   }
 };
-
 
 class StateValidationPass
     : public cudaq::opt::impl::StateValidationBase<StateValidationPass> {
@@ -107,8 +105,7 @@ public:
       RewritePatternSet patterns(ctx);
       patterns.insert<ValidateStateCallPattern, ValidateStateInitPattern>(ctx);
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "Before state validation: " << func << '\n');
+      LLVM_DEBUG(llvm::dbgs() << "Before state validation: " << func << '\n');
 
       if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                               std::move(patterns))))
@@ -118,8 +115,7 @@ public:
       if (func.getBody().empty() && isRuntimeStateCallName(func.getName()))
         toErase.push_back(func);
 
-      LLVM_DEBUG(llvm::dbgs()
-                 << "After state validation: " << func << '\n');
+      LLVM_DEBUG(llvm::dbgs() << "After state validation: " << func << '\n');
     }
 
     for (auto *op : toErase)

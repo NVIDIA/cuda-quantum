@@ -200,14 +200,14 @@ private:
 /// measurement basis change operations.
 struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
   explicit AppendMeasurements(MLIRContext *ctx, const AnsatzFunctionInfo &info,
-                              std::vector<bool> &bsf)
+                              ArrayRef<bool> bsf)
       : OpRewritePattern(ctx), infoMap(info), termBSF(bsf) {}
 
   /// The pre-computed analysis information
   AnsatzFunctionInfo infoMap;
 
   /// The Pauli term representation
-  std::vector<bool> &termBSF;
+  ArrayRef<bool> termBSF;
 
   LogicalResult matchAndRewrite(func::FuncOp funcOp,
                                 PatternRewriter &rewriter) const override {
@@ -215,31 +215,24 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 
     // Use an Analysis to count the number of qubits.
     auto iter = infoMap.find(funcOp);
-    if (iter == infoMap.end()) {
-      std::string msg = "Errors encountered in pass analysis\n";
-      funcOp.emitError(msg);
-      return failure();
-    }
+    if (iter == infoMap.end())
+      return funcOp.emitOpError("Errors encountered in pass analysis");
     auto nQubits = iter->second.nQubits;
 
-    if (nQubits != termBSF.size() / 2) {
-      std::string msg = "Invalid number of binary-symplectic elements "
-                        "provided. Must provide 2 * NQubits = " +
-                        std::to_string(2 * nQubits) + "\n";
-      funcOp.emitError(msg);
-      return failure();
-    }
+    if (nQubits != termBSF.size() / 2)
+      return funcOp.emitOpError("Invalid number of binary-symplectic elements "
+                                "provided. Must provide 2 * NQubits = " +
+                                std::to_string(2 * nQubits));
 
     // If the mapping pass was not run, we expect no pre-existing measurements.
-    if (!iter->second.mappingPassRan && !iter->second.measurements.empty()) {
-      std::string msg = "Cannot observe kernel with measures in it.\n";
-      funcOp.emitError(msg);
-      return failure();
-    }
+    if (!iter->second.mappingPassRan && !iter->second.measurements.empty())
+      return funcOp.emitOpError("Cannot observe kernel with measures in it.");
+
     // Attempt to remove measurements. Note that the mapping pass may add
-    // measurements to kernels that don't contain any measurements. For
-    // observe kernels, we remove them here since we are adding specific
-    // measurements below.
+    // measurements to kernels that don't contain any measurements. For observe
+    // kernels, we remove them here since we are adding specific measurements
+    // below. Note: each `op` in the list of measurements must be removed by the
+    // end of this loop, otherwise the end result may be incorrect.
     for (auto *op : iter->second.measurements) {
       bool safeToRemove = [&]() {
         for (auto user : op->getUsers())
@@ -247,15 +240,16 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
             return false;
         return true;
       }();
-      if (!safeToRemove) {
-        std::string msg =
-            "Cannot observe kernel with non dangling measurements.\n";
-        funcOp.emitError(msg);
-        return failure();
-      }
+      if (!safeToRemove)
+        return funcOp.emitOpError(
+            "Cannot observe kernel with non dangling measurements.");
+
       for (auto result : op->getResults())
         if (quake::isLinearType(result.getType()))
           result.replaceAllUsesWith(op->getOperand(0));
+
+      // Force remove `op`.
+      op->dropAllReferences();
       op->erase();
     }
 
@@ -272,7 +266,7 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 
     // Loop over the binary-symplectic form provided and append
     // measurements as necessary.
-    std::vector<Value> qubitsToMeasure;
+    SmallVector<Value> qubitsToMeasure;
     for (std::size_t i = 0; i < termBSF.size() / 2; i++) {
       bool xElement = termBSF[i];
       bool zElement = termBSF[i + nQubits];
@@ -328,13 +322,13 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 class ObserveAnsatzPass
     : public cudaq::opt::impl::ObserveAnsatzBase<ObserveAnsatzPass> {
 protected:
-  std::vector<bool> binarySymplecticForm;
+  SmallVector<bool> binarySymplecticForm;
 
 public:
   using ObserveAnsatzBase::ObserveAnsatzBase;
 
-  ObserveAnsatzPass(std::vector<bool> &bsfData)
-      : binarySymplecticForm(bsfData) {}
+  ObserveAnsatzPass(const std::vector<bool> &bsfData)
+      : binarySymplecticForm{bsfData.begin(), bsfData.end()} {}
 
   void runOnOperation() override {
     auto funcOp = dyn_cast<func::FuncOp>(getOperation());
@@ -359,16 +353,14 @@ public:
     target.addLegalDialect<quake::QuakeDialect>();
 
     if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns)))) {
-      emitError(funcOp.getLoc(), "failed to observe ansatz");
+                                      std::move(patterns))))
       signalPassFailure();
-    }
   }
 };
 
 } // namespace
 
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createObserveAnsatzPass(std::vector<bool> &bsfData) {
-  return std::make_unique<ObserveAnsatzPass>(bsfData);
+cudaq::opt::createObserveAnsatzPass(const std::vector<bool> &packed) {
+  return std::make_unique<ObserveAnsatzPass>(packed);
 }

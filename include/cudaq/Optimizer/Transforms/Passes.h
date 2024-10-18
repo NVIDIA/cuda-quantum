@@ -34,7 +34,7 @@ std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
 std::unique_ptr<mlir::Pass> createLowerToCFGPass();
-std::unique_ptr<mlir::Pass> createObserveAnsatzPass(std::vector<bool> &);
+std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
