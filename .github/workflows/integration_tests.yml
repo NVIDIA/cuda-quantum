@@ -261,7 +261,7 @@ jobs:
         #if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'anyon'
         if: inputs.target == 'anyon'
         run: |
-          curl -X POST -H "Content Type: application/json" -d '{ "username":"${{ secrets.BACKEND_LOGIN_USERNAME }}","password":"${{ secrets.BACKEND_LOGIN_PASSWORD }}" }' https://api.anyon.cloud/login > credentials.json
+          curl -X POST -H "Content Type: application/json" -d '{ "username":"${{ secrets.BACKEND_LOGIN_USERNAME }}","password":"${{ secrets.BACKEND_LOGIN_PASSWORD }}" }' https://api.anyon.cloud:5000/login > credentials.json
           id_token=`cat credentials.json | jq -r '."id_token"'`
           refresh_token=`cat credentials.json | jq -r '."refresh_token"'`
           echo "key: $id_token" > ~/.anyon_config
