@@ -112,7 +112,7 @@ the ``shots_count`` is set to 1000.
 
 To see a complete example for using IonQ's backends, take a look at our :doc:`Python examples <../examples/examples>`.
 
-Anyon Technologies
+Anyon Technologies/Anyon Computing
 ==================================
 
 .. _anyon-backend:
@@ -126,11 +126,24 @@ The configuration file can be generated as follows, replacing
 the ``<username>`` and ``<password>`` in the first line with your Anyon Technologies
 account details. The credential in the file will be used by the Cuda-Q to login Anyon quantum services 
 and will be updatd by Cuda-Q with obtained api_token and refresh_token. 
-Note, the credential line will be deleted in the updated configuration file.
+Note, the credential line will be deleted in the updated configuration file. Please note that 
 
 .. code:: bash
     
     echo 'credentials: {"username":"<username>","password":"<password>"}' >> $HOME/.anyon_config
+
+Users can also login and get the keys manually using the following commands:
+
+.. code:: bash
+
+    # You may need to run: `apt-get update && apt-get install curl jq`
+    curl -X POST -H "Content Type: application/json" \
+        -d '{ "username":"<username>","password":"<password>" }' \
+        https://api.anyon.cloud:5000/login > credentials.json
+    id_token=`cat credentials.json | jq -r '."id_token"'`
+    refresh_token=`cat credentials.json | jq -r '."refresh_token"'`
+    echo "key: $id_token" > ~/.anyon_config
+    echo "refresh: $refresh_token" >> ~/.anyon_config
 
 The path to the configuration can be specified as an environment variable:
 
