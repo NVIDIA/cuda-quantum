@@ -125,7 +125,7 @@ C++ or Python. Anyon requires a credential configuration file with username and 
 The configuration file can be generated as follows, replacing
 the ``<username>`` and ``<password>`` in the first line with your Anyon Technologies
 account details. The credential in the file will be used by CUDA-Q to login to Anyon quantum services 
-and will be updatd by Cuda-Q with obtained api_token and refresh_token. 
+and will be updated by CUDA-Q with an obtained API token and refresh token. 
 Note, the credential line will be deleted in the updated configuration file. Please note that 
 
 .. code:: bash
