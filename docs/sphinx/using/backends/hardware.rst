@@ -199,7 +199,7 @@ If :code:`machine` is not specified, the default machine will be ``telegraph-8q`
 
     cudaq.set_target('anyon', machine='telegraph-8q')
 
-where ``telegraph-8q`` is an example of a physical QPU.
+As shown above, ``telegraph-8q`` is an example of a physical QPU.
 
 To emulate the Anyon Technologies machine locally, without submitting through the cloud,
 you can also set the ``emulate`` flag to ``True``. This will emit any target 
