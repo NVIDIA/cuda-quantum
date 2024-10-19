@@ -189,7 +189,7 @@ Submission from Python
 `````````````````````````
 
 The target to which quantum kernels are submitted 
-can be controlled with the ``cudaq::set_target()`` function.
+can be controlled with the ``cudaq.set_target()`` function.
 
 To execute your kernels using Anyon Technologies backends, specify which machine to submit quantum kernels to
 by setting the :code:`machine` parameter of the target. 
