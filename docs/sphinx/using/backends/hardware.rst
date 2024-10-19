@@ -124,8 +124,8 @@ Programmers of CUDA-Q may access the Anyon API from either
 C++ or Python. Anyon requires a credential configuration file with username and password. 
 The configuration file can be generated as follows, replacing
 the ``<username>`` and ``<password>`` in the first line with your Anyon Technologies
-account details. The credential in the file will be used by the Cuda-Q to login Anyon quantum services 
-and will be updatd by Cuda-Q with obtained api_token and refresh_token. 
+account details. The credential in the file will be used by CUDA-Q to login to Anyon quantum services 
+and will be updated by CUDA-Q with an obtained API token and refresh token. 
 Note, the credential line will be deleted in the updated configuration file. Please note that 
 
 .. code:: bash
@@ -188,7 +188,7 @@ Submission from Python
 `````````````````````````
 
 The target to which quantum kernels are submitted 
-can be controlled with the ``cudaq::set_target()`` function.
+can be controlled with the ``cudaq.set_target()`` function.
 
 To execute your kernels using Anyon Technologies backends, specify which machine to submit quantum kernels to
 by setting the :code:`machine` parameter of the target. 
@@ -198,7 +198,7 @@ If :code:`machine` is not specified, the default machine will be ``telegraph-8q`
 
     cudaq.set_target('anyon', machine='telegraph-8q')
 
-where ``telegraph-8q`` is an example of a physical QPU.
+As shown above, ``telegraph-8q`` is an example of a physical QPU.
 
 To emulate the Anyon Technologies machine locally, without submitting through the cloud,
 you can also set the ``emulate`` flag to ``True``. This will emit any target 
