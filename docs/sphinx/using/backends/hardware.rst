@@ -130,16 +130,15 @@ Note, the credential line will be deleted in the updated configuration file. Ple
 
 .. code:: bash
     
-    echo 'credentials: {"username":"<username>","password":"<password>"}' >> $HOME/.anyon_config
+    echo 'credentials: {"username":"<username>","password":"<password>"}' > $HOME/.anyon_config
 
 Users can also login and get the keys manually using the following commands:
 
 .. code:: bash
 
     # You may need to run: `apt-get update && apt-get install curl jq`
-    curl -X POST -H "Content Type: application/json" \
-        -d '{ "username":"<username>","password":"<password>" }' \
-        https://api.anyon.cloud:5000/login > credentials.json
+    curl -X POST --user "<username>:<password>"  -H "Content-Type: application/json" \
+    https://api.anyon.cloud:5000/login > credentials.json
     id_token=`cat credentials.json | jq -r '."id_token"'`
     refresh_token=`cat credentials.json | jq -r '."refresh_token"'`
     echo "key: $id_token" > ~/.anyon_config
