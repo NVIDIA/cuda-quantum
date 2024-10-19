@@ -1,11 +1,11 @@
 ABI
 AFQMC
-Anyon
 API
 APIs
 AST
 Aer
 AlmaLinux
+Anyon
 Asynchronous
 BFGS
 Bloch
