@@ -847,11 +847,11 @@ operations are automatically added to the kernel with the <code class="docutils 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-UCCSD-VQE energy =   -70.21326908850249
+UCCSD-VQE energy =   -70.21455023422772
 Total number of qubits =  14
 Total number of parameters =  140
 Total number of terms in the spin hamiltonian =  1086
-Total elapsed time (s) =  22.492175551946275
+Total elapsed time (s) =  3.9171073289999185
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -879,7 +879,7 @@ Total elapsed time (s) =  22.492175551946275
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
 
-<span class="n">num_qpus</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">num_qpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
 
 <span class="n">epsilon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span>
 
@@ -905,7 +905,7 @@ Total elapsed time (s) =  22.492175551946275
                                 <span class="n">qubit_count</span><span class="p">,</span>
                                 <span class="n">electron_count</span><span class="p">,</span>
                                 <span class="n">xplus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu_counter</span><span class="p">))</span>
+                                <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu_counter</span><span class="o">%</span><span class="k">num_qpus</span>))
         <span class="n">qpu_counter</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="n">g_minus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -914,11 +914,8 @@ Total elapsed time (s) =  22.492175551946275
                                 <span class="n">qubit_count</span><span class="p">,</span>
                                 <span class="n">electron_count</span><span class="p">,</span>
                                 <span class="n">xminus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu_counter</span><span class="p">))</span>
+                                <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu_counter</span><span class="o">%</span><span class="k">num_qpus</span>))
         <span class="n">qpu_counter</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="k">if</span> <span class="n">qpu_counter</span> <span class="o">%</span> <span class="n">num_qpus</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">qpu_counter</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="n">gradients</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="n">g_plus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="o">-</span> <span class="n">g_minus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span> <span class="o">/</span>
@@ -998,8 +995,8 @@ Total elapsed time (s) =  22.492175551946275
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-VQE-UCCSD energy=  -73.193931573793
-Total elapsed time (s) =  85.9417030060431
+VQE-UCCSD energy=  -73.19471262288755
+Total elapsed time (s) =  57.27010986900132
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1035,7 +1032,7 @@ Total elapsed time (s) =  85.9417030060431
 </div>
 </div>
 <p>The Hamiltonian is now constrcuted with the same steps, but only models the active space.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
@@ -1050,15 +1047,6 @@ Total elapsed time (s) =  85.9417030060431
 <span class="n">spin_ham</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">qubit_hamiltonian</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/tmp/ipykernel_827694/1900341958.py:9: ComplexWarning: Casting complex values to real discards the imaginary part
-  spin_ham = cudaq.SpinOperator(qubit_hamiltonian)
-</pre></div></div>
 </div>
 <p>Similarly, the kernel is defined only by the orbitals and electrons in the active space. Notice how this means you only need to optimize 8 parameters now.</p>
 <div class="nbinput docutils container">
@@ -1154,11 +1142,11 @@ Total elapsed time (s) =  85.9417030060431
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-UCCSD-VQE energy =   -74.96454272080882
+UCCSD-VQE energy =   -74.96341992791962
 Total number of qubits =  6
 Total number of parameters =  8
 Total number of terms in the spin hamiltonian =  62
-Total elapsed time (s) =  3.145601095049642
+Total elapsed time (s) =  1.754178541001238
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
