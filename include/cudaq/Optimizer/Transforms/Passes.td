@@ -779,7 +779,7 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   }];
 }
 
-def StateInitialization : Pass<"state-initialization", "mlir::func::FuncOp"> {
+def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::FuncOp"> {
   let summary =
     "Replace `quake.init_state` instructions with call to the kernel generating the state";
   let description = [{
@@ -794,7 +794,7 @@ def StateInitialization : Pass<"state-initialization", "mlir::func::FuncOp"> {
 
     For example:
 
-    Before StateInitialization (state-initialization):
+    Before ReplaceStateWithKernel (replace-state-with-kernel):
     ```
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       %0 = cc.string_literal "__nvqpp__mlirgen__test_init_state.modified_0" : !cc.ptr<!cc.array<i8 x 45>>
@@ -807,7 +807,7 @@ def StateInitialization : Pass<"state-initialization", "mlir::func::FuncOp"> {
     }
     ```
 
-    After StateInitialization (state-initialization):
+    After ReplaceStateWithKernel (replace-state-with-kernel):
     ```
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       %5 = call @__nvqpp__mlirgen__test_init_state.modified_0() : () -> !quake.veq<?>
@@ -864,17 +864,6 @@ def StatePreparation : Pass<"state-prep", "mlir::ModuleOp"> {
     Option<"phaseThreshold", "threshold", "double",
       /*default=*/"1e-10", "Threshold to trigger phase equalization">,
   ];
-}
-
-def StateValidation : Pass<"state-validation", "mlir::ModuleOp"> {
-  let summary =
-    "Make sure MLIR is valid after synthesis for quantum devices";
-  let description = [{
-    Argument synthesis should replace all `quake.init` from state instructions
-    and calls to state-related runtime functions.
-    Make sure none of them left, and remove definitions for state-related
-    runtime functions.
-  }];
 }
 
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {

@@ -437,6 +437,9 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
+        // For quantum hardware, we collect substitutions for the
+        // whole call tree of states, which are treated as calls to
+        // the kernels and their arguments that produced the state.
         opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
         auto [kernels, substs] = argCon.collectAllSubstitutions();
@@ -446,10 +449,11 @@ public:
                                                    kernels.end()},
                 mlir::SmallVector<mlir::StringRef>{substs.begin(),
                                                    substs.end()}));
-        pm.addPass(mlir::createCanonicalizerPass());
         pm.addPass(opt::createDeleteStates());
-        pm.addNestedPass<mlir::func::FuncOp>(opt::createStateInitialization());
-        pm.addPass(opt::createStateValidation());
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createReplaceStateWithKernel());
+        pm.addPass(mlir::createCanonicalizerPass());
+        pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));

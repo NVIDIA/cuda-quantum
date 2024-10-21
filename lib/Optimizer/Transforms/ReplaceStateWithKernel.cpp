@@ -20,11 +20,11 @@
 #include <span>
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_STATEINITIALIZATION
+#define GEN_PASS_DEF_REPLACESTATEWITHKERNEL
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "state-initialization"
+#define DEBUG_TYPE "replace-state-with-kernel"
 
 using namespace mlir;
 
@@ -52,7 +52,9 @@ static bool isNumberOfQubitsCall(Operation *op) {
 }
 
 // clang-format off
-/// Replace `quake.init_state` by a call to a (modified) kernel that produced the state.
+/// Replace `quake.init_state` by a call to a (modified) kernel that produced
+/// the state.
+///
 /// ```
 ///  %0 = cc.string_literal "callee.modified_0" : !cc.ptr<!cc.array<i8 x 27>>
 ///  %1 = cc.cast %0 : (!cc.ptr<!cc.array<i8 x 27>>) -> !cc.ptr<i8>
@@ -65,50 +67,54 @@ static bool isNumberOfQubitsCall(Operation *op) {
 ///  %5 = call @callee.modified_0() : () -> !quake.veq<?>
 /// ```
 // clang-format on
-class StateInitPattern : public OpRewritePattern<quake::InitializeStateOp> {
+class ReplaceStateWithKernelPattern : public OpRewritePattern<quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
                                 PatternRewriter &rewriter) const override {
-    auto loc = initState.getLoc();
-    auto allocaOp = initState.getOperand(0).getDefiningOp();
+    //auto loc = initState.getLoc();
+    auto *alloca = initState.getOperand(0).getDefiningOp();
     auto stateOp = initState.getOperand(1);
 
-    if (isa<cudaq::cc::StateType>(stateOp.getType())) {
-      auto getStateOp = stateOp.getDefiningOp();
-      auto numOfQubits = allocaOp->getOperand(0).getDefiningOp();
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
+      if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+        auto *getState = stateOp.getDefiningOp();
+        auto *numOfQubits = alloca->getOperand(0).getDefiningOp();
 
-      if (isGetStateCall(getStateOp)) {
-        auto calleeNameOp = getStateOp->getOperand(0);
-        if (auto cast =
-                dyn_cast<cudaq::cc::CastOp>(calleeNameOp.getDefiningOp())) {
-          calleeNameOp = cast.getOperand();
+        if (isGetStateCall(getState)) {
+          auto calleeNameOp = getState->getOperand(0);
+          if (auto cast = calleeNameOp.getDefiningOp<cudaq::cc::CastOp>()) {
+            calleeNameOp = cast.getOperand();
 
-          if (auto literal = dyn_cast<cudaq::cc::CreateStringLiteralOp>(
-                  calleeNameOp.getDefiningOp())) {
-            auto calleeName = literal.getStringLiteral();
+            if (auto literal = 
+                    calleeNameOp.getDefiningOp<cudaq::cc::CreateStringLiteralOp>()) {
+              auto calleeName = literal.getStringLiteral();
+              rewriter.replaceOpWithNewOp<func::CallOp>(initState, initState.getType(), calleeName,
+                                            mlir::ValueRange{});
 
-            Value result =
-                rewriter
-                    .create<func::CallOp>(loc, initState.getType(), calleeName,
-                                          mlir::ValueRange{})
-                    .getResult(0);
-            rewriter.replaceAllUsesWith(initState, result);
-            initState.erase();
-            allocaOp->dropAllUses();
-            rewriter.eraseOp(allocaOp);
-            if (isNumberOfQubitsCall(numOfQubits)) {
-              numOfQubits->dropAllUses();
-              rewriter.eraseOp(numOfQubits);
+              if (alloca->getUses().empty()) 
+                rewriter.eraseOp(alloca);
+              else  {
+                alloca->emitError("Failed to remove `quake.alloca` in state synthesis");
+                return failure();
+              }
+              if (isNumberOfQubitsCall(numOfQubits)) {
+                if (numOfQubits->getUses().empty())
+                  rewriter.eraseOp(numOfQubits);
+                else  {
+                  numOfQubits->emitError("Failed to remove runtime call to get number of qubits in state synthesis");
+                  return failure();
+                }
+              }
+              if (getState->getUses().empty())
+                rewriter.eraseOp(getState);
+              else  {
+                alloca->emitError("Failed to remove runtime call to get state in state synthesis");
+                return failure();
+              }
+              return success();
             }
-            getStateOp->dropAllUses();
-            rewriter.eraseOp(getStateOp);
-            cast->dropAllUses();
-            rewriter.eraseOp(cast);
-            literal->dropAllUses();
-            rewriter.eraseOp(literal);
-            return success();
           }
         }
       }
@@ -117,25 +123,25 @@ public:
   }
 };
 
-class StateInitializationPass
-    : public cudaq::opt::impl::StateInitializationBase<
-          StateInitializationPass> {
+class ReplaceStateWithKernelPass
+    : public cudaq::opt::impl::ReplaceStateWithKernelBase<
+          ReplaceStateWithKernelPass> {
 public:
-  using StateInitializationBase::StateInitializationBase;
+  using ReplaceStateWithKernelBase::ReplaceStateWithKernelBase;
 
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto func = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<StateInitPattern>(ctx);
+    patterns.insert<ReplaceStateWithKernelPattern>(ctx);
 
-    LLVM_DEBUG(llvm::dbgs() << "Before state initialization: " << func << '\n');
+    LLVM_DEBUG(llvm::dbgs() << "Before replace state with kernel: " << func << '\n');
 
     if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                             std::move(patterns))))
       signalPassFailure();
 
-    LLVM_DEBUG(llvm::dbgs() << "After state initialization: " << func << '\n');
+    LLVM_DEBUG(llvm::dbgs() << "After replace state with kerenl: " << func << '\n');
   }
 };
 } // namespace

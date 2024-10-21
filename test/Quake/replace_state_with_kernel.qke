@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -state-initialization -canonicalize %s | FileCheck %s
+// RUN: cudaq-opt -replace-state-with-kernel -canonicalize %s | FileCheck %s
 
 module {
   func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
