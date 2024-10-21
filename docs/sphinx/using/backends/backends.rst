@@ -15,6 +15,7 @@ CUDA-Q Backends
 * :ref:`density-matrix-cpu <default-simulator>`
 * :ref:`fermioniq <fermioniq-backend>`
 * :ref:`ionq <ionq-backend>`
+* :ref:`anyon <anyon-backend>`
 * :ref:`iqm <iqm-backend>`
 * :ref:`nvidia <nvidia-backend>`
 * :ref:`nvidia-fp64 <nvidia-fp64-backend>`

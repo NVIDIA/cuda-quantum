@@ -30,6 +30,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/InitAllPasses.h"
+#include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include <fmt/core.h>
@@ -95,8 +96,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     auto cloned = mod.clone();
     auto context = cloned.getContext();
     PassManager pm(context);
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createPySynthCallableBlockArgs(names));
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
+        SmallVector<StringRef>(names.begin(), names.end())));
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
@@ -253,7 +254,7 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   if (!thunkPtr)
     throw std::runtime_error("cudaq::builder failed to get thunk function");
 
-  auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
+  auto thunk = reinterpret_cast<KernelThunkType>(*thunkPtr);
 
   std::string properName = name;
 
@@ -326,15 +327,21 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   if (launch) {
     auto &platform = cudaq::get_platform();
+    auto uReturnOffset = static_cast<std::uint64_t>(returnOffset);
     if (platform.is_remote() || platform.is_emulated()) {
       auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
-      cudaq::altLaunchKernel(name.c_str(), thunk,
-                             reinterpret_cast<void *>(wrapper), size,
-                             (uint64_t)returnOffset);
+      auto dynamicResult = cudaq::altLaunchKernel(
+          name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
+          uReturnOffset);
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
       delete wrapper;
-    } else
-      cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
-                             (uint64_t)returnOffset);
+    } else {
+      auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
+                                                  size, uReturnOffset);
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
+    }
   }
 
   return std::make_tuple(rawArgs, size, returnOffset);
@@ -747,5 +754,72 @@ void bindAltLaunchKernel(py::module &mod) {
         }
       },
       "Remove our pointers to the cudaq states.");
+
+  mod.def(
+      "mergeExternalMLIR",
+      [](MlirModule modA, const std::string &modBStr) {
+        auto ctx = unwrap(modA).getContext();
+        auto moduleB = parseSourceString<ModuleOp>(modBStr, ctx);
+        auto moduleA = unwrap(modA).clone();
+        moduleB->walk([&moduleA](func::FuncOp op) {
+          if (!moduleA.lookupSymbol<func::FuncOp>(op.getName()))
+            moduleA.push_back(op.clone());
+          return WalkResult::advance();
+        });
+        return wrap(moduleA);
+      },
+      "Merge the two Modules into a single Module.");
+
+  mod.def(
+      "synthPyCallable",
+      [](MlirModule modA, const std::vector<std::string> &funcNames) {
+        auto m = unwrap(modA);
+        auto context = m.getContext();
+        PassManager pm(context);
+        pm.addNestedPass<func::FuncOp>(
+            cudaq::opt::createPySynthCallableBlockArgs(
+                SmallVector<StringRef>(funcNames.begin(), funcNames.end()),
+                true));
+        if (failed(pm.run(m)))
+          throw std::runtime_error(
+              "cudaq::jit failed to remove callable block arguments.");
+
+        // fix up the mangled name map
+        DictionaryAttr attr;
+        m.walk([&](func::FuncOp op) {
+          if (op->hasAttrOfType<UnitAttr>("cudaq-entrypoint")) {
+            auto strAttr = StringAttr::get(
+                context, op.getName().str() + "_PyKernelEntryPointRewrite");
+            attr = DictionaryAttr::get(
+                context, {NamedAttribute(StringAttr::get(context, op.getName()),
+                                         strAttr)});
+            return WalkResult::interrupt();
+          }
+          return WalkResult::advance();
+        });
+        if (attr)
+          m->setAttr("quake.mangled_name_map", attr);
+      },
+      "Synthesize away the callable block argument from the entrypoint in modA "
+      "with the FuncOp of given name.");
+
+  mod.def(
+      "jitAndGetFunctionPointer",
+      [](MlirModule mod, const std::string &funcName) {
+        OpaqueArguments runtimeArgs;
+        auto noneType = mlir::NoneType::get(unwrap(mod).getContext());
+        auto [jit, rawArgs, size, returnOffset] =
+            jitAndCreateArgs(funcName, mod, runtimeArgs, {}, noneType);
+
+        auto funcPtr = jit->lookup(funcName);
+        if (!funcPtr) {
+          throw std::runtime_error(
+              "cudaq::builder failed to get kernelReg function.");
+        }
+
+        return py::capsule(*funcPtr);
+      },
+      "JIT compile and return the C function pointer for the FuncOp of given "
+      "name.");
 }
 } // namespace cudaq
