@@ -575,7 +575,7 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
 
 // Conditional execution on the tensornet backend is slow for a large number of
 // shots.
-#if !defined(CUDAQ_BACKEND_TENSORNET) && !defined(CUDAQ_BACKEND_STIM)
+#if !defined(CUDAQ_BACKEND_TENSORNET)
 CUDAQ_TEST(BuilderTester, checkConditional) {
   {
     cudaq::set_random_seed(13);
@@ -985,7 +985,6 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 
     EXPECT_EQ(counts.count("0", "c1"), 1000);
     EXPECT_EQ(counts.count("1", "c0"), 1000);
-    return;
   }
 
   {
@@ -1004,6 +1003,27 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     EXPECT_EQ(counts.count("0", "hello"), 0);
     EXPECT_EQ(counts.count("1", "hello2"), 0);
     EXPECT_EQ(counts.count("0", "hello2"), 1000);
+  }
+
+  {
+    // Force conditional sample
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc(2);
+    entryPoint.h(q[0]);
+    auto mres = entryPoint.mz(q[0], "res0");
+    entryPoint.c_if(mres, [&]() { entryPoint.x(q[1]); });
+    entryPoint.mz(q, "final");
+
+    printf("%s\n", entryPoint.to_quake().c_str());
+    auto counts = cudaq::sample(entryPoint);
+    counts.dump();
+
+    EXPECT_GT(counts.count("0", "res0"), 0);
+    EXPECT_GT(counts.count("1", "res0"), 0);
+    EXPECT_GT(counts.count("00", "final"), 0);
+    EXPECT_EQ(counts.count("01", "final"), 0);
+    EXPECT_EQ(counts.count("10", "final"), 0);
+    EXPECT_GT(counts.count("11", "final"), 0);
   }
 }
 #endif

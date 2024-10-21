@@ -34,7 +34,10 @@
 #include "utils/OpaqueArguments.h"
 
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+
+#include "runtime/interop/PythonCppInterop.h"
 
 #include <pybind11/complex.h>
 #include <pybind11/pytypes.h>
@@ -243,4 +246,41 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
     return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
   });
+
+  cudaqRuntime.def(
+      "isRegisteredDeviceModule",
+      [](const std::string &name) {
+        return cudaq::python::isRegisteredDeviceModule(name);
+      },
+      "Return true if the input name (mod1.mod2...) is a registered C++ device "
+      "module.");
+
+  cudaqRuntime.def(
+      "checkRegisteredCppDeviceKernel",
+      [](MlirModule mod,
+         const std::string &moduleName) -> std::optional<std::string> {
+        std::tuple<std::string, std::string> ret;
+        try {
+          ret = cudaq::python::getDeviceKernel(moduleName);
+        } catch (...) {
+          return std::nullopt;
+        }
+
+        // Take the code for the kernel we found
+        // and add it to the input module, return
+        // the func op.
+        auto [kName, code] = ret;
+        auto ctx = unwrap(mod).getContext();
+        auto moduleB = mlir::parseSourceString<ModuleOp>(code, ctx);
+        auto moduleA = unwrap(mod);
+        moduleB->walk([&moduleA](func::FuncOp op) {
+          if (!moduleA.lookupSymbol<func::FuncOp>(op.getName()))
+            moduleA.push_back(op.clone());
+          return WalkResult::advance();
+        });
+        return kName;
+      },
+      "Given a python module name like `mod1.mod2.func`, see if there is a "
+      "registered C++ quantum kernel. If so, add the kernel to the Module and "
+      "return its name.");
 }

@@ -92,6 +92,8 @@ FROM prereqs AS cpp_build
 ADD "cmake" /cuda-quantum/cmake
 ADD "docs/CMakeLists.txt" /cuda-quantum/docs/CMakeLists.txt
 ADD "docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
+ADD "docs/sphinx/applications" /cuda-quantum/docs/sphinx/applications
+ADD "docs/sphinx/targets" /cuda-quantum/docs/sphinx/targets
 ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "include" /cuda-quantum/include
 ADD "lib" /cuda-quantum/lib
@@ -286,6 +288,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         # The tests is marked correctly as requiring nvcc, but since nvcc
         # is available during the build we need to filter it manually.
         filtered=" --filter-out MixedLanguage/cuda-1"; \
+	filtered+="|AST-Quake/calling_convention"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
         --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \

@@ -236,6 +236,10 @@ createMonotonicLoop(mlir::OpBuilder &builder, mlir::Location loc,
 
 bool hasHiddenSRet(mlir::FunctionType funcTy);
 
+/// Check a function to see if argument 0 has the `sret` attribute. Typically,
+/// one may find this on a host-side entry point function.
+bool hasSRet(mlir::func::FuncOp funcOp);
+
 /// Convert the function type \p funcTy to a signature compatible with the code
 /// on the host side. This will add hidden arguments, such as the `this`
 /// pointer, convert some results to `sret` pointers, etc.
@@ -251,7 +255,8 @@ bool isX86_64(mlir::ModuleOp);
 bool isAArch64(mlir::ModuleOp);
 
 /// A small structure may be passed as two arguments on the host side. (e.g., on
-/// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`.
+/// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`. Note
+/// also, some small structs may be packed into a single register.
 bool structUsesTwoArguments(mlir::Type ty);
 
 std::optional<std::int64_t> getIntIfConstant(mlir::Value value);
