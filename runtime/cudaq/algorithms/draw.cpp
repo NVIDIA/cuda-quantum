@@ -538,7 +538,7 @@ std::string string_diagram_from_trace(const Trace &trace,
   }
 
   std::string str;
-  str.reserve(curr_width * diagram.height() * 4);
+  str.reserve(static_cast<std::size_t>(curr_width) * diagram.height() * 4);
 
   int start = 0;
   for (auto i = 0u; i < cutting_point.size(); ++i) {
