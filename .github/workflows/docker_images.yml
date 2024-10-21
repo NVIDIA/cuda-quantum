@@ -118,7 +118,7 @@ jobs:
         run: |
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/open-mpi
+          image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}open-mpi
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
 
           docker pull ${{ inputs.ompidev_image }} # to get the tag
@@ -270,7 +270,7 @@ jobs:
 
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/cuda-quantum-dev
+          image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-dev
           image_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           docker image rm $base_image
           docker image prune --force
@@ -457,8 +457,8 @@ jobs:
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
           ngc_registry=`${{ needs.metadata.outputs.push_to_ngc == 'true' }} && echo nvcr.io/${repo_owner,,}/nightly || echo ''`
-          dev_image_name=${registry}/cuda-quantum-dev
-          image_name=${ngc_registry:-$registry}/cuda-quantum
+          dev_image_name=${registry}/${{ vars.packages_prefix }}cuda-quantum-dev
+          image_name=${ngc_registry:-$registry}/${{ vars.packages_prefix }}cuda-quantum
           image_description="CUDA Quantum toolkit for heterogeneous quantum-classical workflows"
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}

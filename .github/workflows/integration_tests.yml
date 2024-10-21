@@ -154,7 +154,7 @@ jobs:
           file: ./docker/release/cudaq.nvqc.Dockerfile
           build-args: |
             base_image=${{ inputs.cudaq_nvqc_deploy_image || env.cudaq_nvqc_deploy_image }}
-          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly
+          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/${{ vars.packages_prefix }}cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
           push: true

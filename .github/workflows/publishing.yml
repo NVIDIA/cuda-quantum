@@ -354,7 +354,7 @@ jobs:
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
-          echo "image_name=$registry/cuda-quantum" >> $GITHUB_OUTPUT
+          echo "image_name=$registry/${{ vars.packages_prefix }}cuda-quantum" >> $GITHUB_OUTPUT
           echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT

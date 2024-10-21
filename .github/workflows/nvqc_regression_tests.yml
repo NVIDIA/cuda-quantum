@@ -1,7 +1,6 @@
 name: Nvqc regression tests
 
 concurrency:
-  # only one integration tests workflow to be run at a time, since it involves pushing/cleaning up a test image (same tag).
   group: ${{ github.workflow }}${{ github.event.workflow_run.name }}
   cancel-in-progress: false
 
