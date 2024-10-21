@@ -11,7 +11,7 @@
 #include <set>
 #include <stdio.h>
 
-#ifdef CUDAQ_BACKEND_DM
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
 struct xOp {
   void operator()() __qpu__ {
     cudaq::qubit q;
@@ -26,6 +26,10 @@ struct bell {
     x<cudaq::ctrl>(q, r);
   }
 };
+
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support arbitrary cudaq::kraus_channel specification.
 
 CUDAQ_TEST(NoiseTest, checkSimple) {
   cudaq::set_random_seed(13);
@@ -68,6 +72,10 @@ CUDAQ_TEST(NoiseTest, checkSimple) {
   EXPECT_EQ(1, counts.size());
 }
 
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support arbitrary cudaq::kraus_channel specification.
+
 CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
@@ -83,6 +91,10 @@ CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
   EXPECT_NEAR(counts.probability("1"), .75, .1);
   cudaq::unset_noise(); // clear for subsequent tests
 }
+
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support arbitrary cudaq::kraus_op specification.
 
 CUDAQ_TEST(NoiseTest, checkCNOT) {
   cudaq::set_random_seed(13);
@@ -161,6 +173,10 @@ CUDAQ_TEST(NoiseTest, checkCNOT) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support arbitrary cudaq::kraus_channel specification.
+
 CUDAQ_TEST(NoiseTest, checkExceptions) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
@@ -170,6 +186,9 @@ CUDAQ_TEST(NoiseTest, checkExceptions) {
     noise.add_channel<cudaq::types::x>({0, 1}, amplitudeDamping);
   });
 }
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(NoiseTest, checkDepolType) {
   cudaq::set_random_seed(13);
@@ -182,6 +201,9 @@ CUDAQ_TEST(NoiseTest, checkDepolType) {
   EXPECT_EQ(2, counts.size());
   cudaq::unset_noise(); // clear for subsequent tests
 }
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
   cudaq::set_random_seed(13);
@@ -197,6 +219,10 @@ CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support cudaq::amplitude_damping_channel.
+
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
   cudaq::set_random_seed(13);
   cudaq::amplitude_damping_channel ad(.25);
@@ -211,6 +237,10 @@ CUDAQ_TEST(NoiseTest, checkAmpDampType) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support cudaq::amplitude_damping_channel.
+
 CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
   cudaq::set_random_seed(13);
   cudaq::amplitude_damping_channel ad(1.);
@@ -223,6 +253,9 @@ CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
   EXPECT_NEAR(counts.probability("0"), 1., .1);
   cudaq::unset_noise(); // clear for subsequent tests
 }
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(NoiseTest, checkBitFlipType) {
   cudaq::set_random_seed(13);
@@ -238,6 +271,9 @@ CUDAQ_TEST(NoiseTest, checkBitFlipType) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
   cudaq::set_random_seed(13);
   cudaq::bit_flip_channel bf(1.);
@@ -251,6 +287,8 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
 // Same as above but use alternate sample interface that specifies the number of
 // shots and the noise model to use.
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimpleOptions) {
@@ -268,6 +306,9 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimpleOptions) {
     totalShots += count;
   EXPECT_EQ(totalShots, shots);
 }
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   cudaq::set_random_seed(13);
@@ -291,6 +332,9 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
+
 template <std::size_t N>
 struct xOpAll {
   void operator()() __qpu__ {
@@ -298,6 +342,9 @@ struct xOpAll {
     x(q);
   }
 };
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
   cudaq::set_random_seed(13);
@@ -315,6 +362,10 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
     totalShots += count;
   EXPECT_EQ(totalShots, shots);
 }
+
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support arbitrary cudaq::kraus_op specification.
 
 static cudaq::kraus_channel create2pNoiseChannel() {
   cudaq::kraus_op op0{cudaq::complex{0.99498743710662, 0.0},
@@ -395,6 +446,10 @@ struct bellRandom {
   }
 };
 
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support arbitrary cudaq::kraus_op specification.
+
 CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControl) {
   cudaq::set_random_seed(13);
   cudaq::noise_model noise;
@@ -420,6 +475,10 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControl) {
   } while (std::next_permutation(qubitIds.begin(), qubitIds.end()));
 }
 
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support arbitrary cudaq::kraus_op specification.
+
 CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
   cudaq::set_random_seed(13);
   cudaq::noise_model noise;
@@ -443,6 +502,9 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
     EXPECT_GT(counts.size(), 2);
   } while (std::next_permutation(qubitIds.begin(), qubitIds.end()));
 }
+
+#endif
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM)
 
 CUDAQ_TEST(NoiseTest, checkCallbackChannel) {
   cudaq::set_random_seed(13);
@@ -473,6 +535,10 @@ struct rxOp {
     rx(angle, q);
   }
 };
+
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support rx gate.
 
 CUDAQ_TEST(NoiseTest, checkCallbackChannelWithParams) {
   cudaq::set_random_seed(13);
@@ -506,6 +572,10 @@ CUDAQ_TEST(NoiseTest, checkCallbackChannelWithParams) {
     EXPECT_NEAR(counts.probability("1"), 1., .1);
   }
 }
+
+#endif
+#if defined(CUDAQ_BACKEND_DM)
+// Stim does not support custom operations.
 
 CUDAQ_REGISTER_OPERATION(CustomX, 1, 0, {0, 1, 1, 0});
 CUDAQ_TEST(NoiseTest, checkCustomOperation) {

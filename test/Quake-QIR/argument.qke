@@ -55,7 +55,7 @@ func.func @test_0(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i
 // CHECK:         %[[VAL_12:.*]] = getelementptr i8, i8* %[[VAL_10]], i64 8
 // CHECK:         %[[VAL_13:.*]] = bitcast { i32, double }* %[[VAL_5]] to i8*
 // CHECK:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %[[VAL_12]], i8* align 1 %[[VAL_13]], i64 %[[VAL_8]], i1 false)
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_0.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_0.thunk to i8*), i8* nonnull %[[VAL_10]], i64 %[[VAL_9]], i64 2147483647)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_0.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_0.thunk to i8*), i8* nonnull %[[VAL_10]], i64 %[[VAL_9]], i64 2147483647)
 // CHECK:         ret void
 // CHECK:       }
 
@@ -122,7 +122,7 @@ func.func @test_1(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         %[[VAL_24:.*]] = getelementptr i8, i8* %[[VAL_22]], i64 %[[VAL_8]]
 // CHECK:         %[[VAL_25:.*]] = bitcast float* %[[VAL_12]] to i8*
 // CHECK:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %[[VAL_24]], i8* align 1 %[[VAL_25]], i64 %[[VAL_15]], i1 false)
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_1.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_1.thunk to i8*), i8* nonnull %[[VAL_18]], i64 %[[VAL_17]], i64 2147483647)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_1.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_1.thunk to i8*), i8* nonnull %[[VAL_18]], i64 %[[VAL_17]], i64 2147483647)
 // CHECK:         ret void
 // CHECK:       }
 
@@ -163,7 +163,7 @@ func.func @test_2(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i
 // CHECK:         %[[VAL_12:.*]] = getelementptr i8, i8* %[[VAL_10]], i64 8
 // CHECK:         %[[VAL_13:.*]] = bitcast { i32, double }* %[[VAL_5]] to i8*
 // CHECK:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %[[VAL_12]], i8* align 1 %[[VAL_13]], i64 %[[VAL_8]], i1 false)
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_2.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_2.thunk to i8*), i8* nonnull %[[VAL_10]], i64 %[[VAL_9]], i64 2147483647)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_2.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_2.thunk to i8*), i8* nonnull %[[VAL_10]], i64 %[[VAL_9]], i64 2147483647)
 // CHECK:         ret void
 // CHECK:       }
 
@@ -231,7 +231,7 @@ func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         %[[VAL_24:.*]] = getelementptr i8, i8* %[[VAL_22]], i64 %[[VAL_8]]
 // CHECK:         %[[VAL_25:.*]] = bitcast float* %[[VAL_12]] to i8*
 // CHECK:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %[[VAL_24]], i8* align 1 %[[VAL_25]], i64 %[[VAL_15]], i1 false)
-// CHECK:         call void @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_3.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_3.thunk to i8*), i8* nonnull %[[VAL_18]], i64 %[[VAL_17]], i64 2147483647)
+// CHECK:         call { i8*, i64 } @altLaunchKernel(i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @test_3.kernelName, i64 0, i64 0), i8* nonnull bitcast ({ i8*, i64 } (i8*, i1)* @test_3.thunk to i8*), i8* nonnull %[[VAL_18]], i64 %[[VAL_17]], i64 2147483647)
 // CHECK:         ret void
 // CHECK:       }
 

@@ -93,8 +93,8 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       auto parmTy = entryBlock->getArgument(index).getType();
       if (isa<FunctionType, cc::CallableType, cc::IndirectCallableType,
               cc::PointerType, cc::SpanLikeType, LLVM::LLVMStructType,
-              quake::ControlType, quake::RefType, quake::VeqType,
-              quake::WireType>(parmTy)) {
+              quake::ControlType, quake::RefType, quake::StruqType,
+              quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
@@ -115,26 +115,10 @@ void QuakeBridgeVisitor::createEntryBlock(func::FuncOp func,
   addArgumentSymbols(entryBlock, x->parameters());
 }
 
-std::pair<func::FuncOp, /*alreadyDefined=*/bool>
+std::pair<func::FuncOp, bool>
 QuakeBridgeVisitor::getOrAddFunc(Location loc, StringRef funcName,
                                  FunctionType funcTy) {
-  auto func = module.lookupSymbol<func::FuncOp>(funcName);
-  if (func) {
-    if (!func.empty()) {
-      // Already lowered function func, skip it.
-      return {func, /*defined=*/true};
-    }
-    // Function was declared but not defined.
-    return {func, /*defined=*/false};
-  }
-  // Function not found, so add it to the module.
-  OpBuilder build(module.getBodyRegion());
-  OpBuilder::InsertionGuard guard(build);
-  build.setInsertionPointToEnd(module.getBody());
-  SmallVector<NamedAttribute> attrs;
-  func = build.create<func::FuncOp>(loc, funcName, funcTy, attrs);
-  func.setPrivate();
-  return {func, /*defined=*/false};
+  return cudaq::opt::factory::getOrAddFunc(loc, funcName, funcTy, module);
 }
 
 bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
@@ -658,9 +642,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   if (auto qType = dyn_cast<quake::RefType>(type)) {
     // Variable is of !quake.ref type.
     if (x->hasInit() && !valueStack.empty()) {
-      auto val = popValue();
-      symbolTable.insert(name, val);
-      return pushValue(val);
+      symbolTable.insert(name, peekValue());
+      return true;
     }
     auto zero = builder.create<mlir::arith::ConstantIntOp>(
         loc, 0, builder.getIntegerType(64));
@@ -670,6 +653,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
     return pushValue(addressTheQubit);
+  }
+
+  if (isa<quake::StruqType>(type)) {
+    // A pure quantum struct is just passed along by value. It cannot be stored
+    // to a variable.
+    symbolTable.insert(name, peekValue());
+    return true;
   }
 
   // Here we maybe have something like auto var = mz(qreg)
@@ -803,6 +793,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     Value cast = builder.create<cc::CastOp>(loc, type, initValue);
     symbolTable.insert(x->getName(), cast);
     return pushValue(cast);
+  }
+
+  // Don't allocate memory for a quantum or value-semantic struct.
+  if (auto insertValOp = initValue.getDefiningOp<cc::InsertValueOp>()) {
+    symbolTable.insert(x->getName(), initValue);
+    return pushValue(initValue);
   }
 
   // Initialization expression resulted in a value. Create a variable and save

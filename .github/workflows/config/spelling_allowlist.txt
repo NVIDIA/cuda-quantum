@@ -5,6 +5,7 @@ APIs
 AST
 Aer
 AlmaLinux
+Anyon
 Asynchronous
 BFGS
 Bloch
@@ -21,6 +22,7 @@ Cartesian
 CentOS
 Conda
 CuPy
+DCO
 DGX
 DOI
 Deuteron

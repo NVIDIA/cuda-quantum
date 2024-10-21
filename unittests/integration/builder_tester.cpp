@@ -575,7 +575,7 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
 
 // Conditional execution on the tensornet backend is slow for a large number of
 // shots.
-#if !defined(CUDAQ_BACKEND_TENSORNET) && !defined(CUDAQ_BACKEND_STIM)
+#if !defined(CUDAQ_BACKEND_TENSORNET)
 CUDAQ_TEST(BuilderTester, checkConditional) {
   {
     cudaq::set_random_seed(13);
@@ -985,7 +985,6 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 
     EXPECT_EQ(counts.count("0", "c1"), 1000);
     EXPECT_EQ(counts.count("1", "c0"), 1000);
-    return;
   }
 
   {
@@ -1004,6 +1003,27 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     EXPECT_EQ(counts.count("0", "hello"), 0);
     EXPECT_EQ(counts.count("1", "hello2"), 0);
     EXPECT_EQ(counts.count("0", "hello2"), 1000);
+  }
+
+  {
+    // Force conditional sample
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc(2);
+    entryPoint.h(q[0]);
+    auto mres = entryPoint.mz(q[0], "res0");
+    entryPoint.c_if(mres, [&]() { entryPoint.x(q[1]); });
+    entryPoint.mz(q, "final");
+
+    printf("%s\n", entryPoint.to_quake().c_str());
+    auto counts = cudaq::sample(entryPoint);
+    counts.dump();
+
+    EXPECT_GT(counts.count("0", "res0"), 0);
+    EXPECT_GT(counts.count("1", "res0"), 0);
+    EXPECT_GT(counts.count("00", "final"), 0);
+    EXPECT_EQ(counts.count("01", "final"), 0);
+    EXPECT_EQ(counts.count("10", "final"), 0);
+    EXPECT_GT(counts.count("11", "final"), 0);
   }
 }
 #endif
@@ -1448,3 +1468,28 @@ CUDAQ_TEST(BuilderTester, checkQuakeValueOperators) {
 }
 
 #endif
+
+CUDAQ_TEST(BuilderTester, checkMidCircuitMeasureWithReset) {
+  // The following kernel can be executed without
+  // context.hasConditionalsOnMeasureResults having to be set.
+  auto kernel = cudaq::make_kernel<>();
+  auto q = kernel.qalloc(4);
+  kernel.h(q);
+  kernel.mz(q, "midCircuit");
+  kernel.reset(q);
+  kernel.h(q);
+  auto counts = cudaq::sample(kernel);
+  auto countsMidCircuit = counts.to_map("midCircuit");
+  auto countsFinal = counts.to_map();
+
+  // Verify that all possible outcomes were indeed reported.
+  EXPECT_EQ(countsMidCircuit.size(), 16);
+  EXPECT_EQ(countsFinal.size(), 16);
+
+  // The results should *not* be identical to each other.
+  bool match = true;
+  for (auto &[k, v] : countsMidCircuit)
+    if (countsFinal[k] != countsMidCircuit[k])
+      match = false;
+  EXPECT_EQ(match, false);
+}

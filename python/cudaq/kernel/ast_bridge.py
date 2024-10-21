@@ -251,7 +251,8 @@ class PyASTBridge(ast.NodeVisitor):
         Return True if the given type is quantum (is a `VeqType` or `RefType`). 
         Return False otherwise.
         """
-        return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty)
+        return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
+            ty) or quake.StruqType.isinstance(ty)
 
     def isMeasureResultType(self, ty, value):
         """
@@ -526,7 +527,10 @@ class PyASTBridge(ast.NodeVisitor):
         the index of the variable in the struct and the specific 
         MLIR type for the variable.
         """
-        structName = cc.StructType.getName(structTy)
+        if cc.StructType.isinstance(structTy):
+            structName = cc.StructType.getName(structTy)
+        else:
+            structName = quake.StruqType.getName(structTy)
         structIdx = None
         _, userType = globalRegisteredTypes[structName]
         for i, (k, _) in enumerate(userType.items()):
@@ -665,18 +669,11 @@ class PyASTBridge(ast.NodeVisitor):
 
         return retValues
 
-    def isQuantumStructType(self, structTy):
+    def isQuantumStructType(self, ty):
         """
-        Return True if the given struct type has one or more quantum member variables.
+        Return True if the given struct type has only quantum member variables.
         """
-        if not cc.StructType.isinstance(structTy):
-            self.emitFatalError(
-                f'isQuantumStructType called on type that is not a struct ({structTy})'
-            )
-
-        return True in [
-            self.isQuantumType(t) for t in cc.StructType.getTypes(structTy)
-        ]
+        return quake.StruqType.isinstance(ty)
 
     def mlirTypeFromAnnotation(self, annotation):
         """
@@ -843,9 +840,6 @@ class PyASTBridge(ast.NodeVisitor):
         function. 
         """
         # FIXME add more as we need them
-        if cc.StructType.isinstance(type) and self.isQuantumStructType(type):
-            # If we have a quantum struct, we don't want to add a stack slot
-            return False
         return ComplexType.isinstance(type) or F64Type.isinstance(
             type) or F32Type.isinstance(type) or IntegerType.isinstance(
                 type) or cc.StructType.isinstance(type)
@@ -927,7 +921,7 @@ class PyASTBridge(ast.NodeVisitor):
             # Set this kernel as an entry point if the argument types are classical only
             def isQuantumTy(ty):
                 return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
-                    ty)
+                    ty) or quake.StruqType.isinstance(ty)
 
             areQuantumTypes = [isQuantumTy(ty) for ty in self.argTypes]
             if True not in areQuantumTypes and not self.disableEntryPointTag:
@@ -1179,17 +1173,16 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.value,
                       ast.Name) and node.value.id in self.symbolTable:
             value = self.symbolTable[node.value.id]
-            if cc.StructType.isinstance(
-                    value.type) and self.isQuantumStructType(value.type):
+            if self.isQuantumStructType(value.type):
                 # Here we have a quantum struct, need to use extract value instead
                 # of load from compute pointer.
                 structIdx, memberTy = self.getStructMemberIdx(
                     node.attr, value.type)
                 self.pushValue(
-                    cc.ExtractValueOp(
-                        memberTy, value, [],
-                        DenseI32ArrayAttr.get([structIdx],
-                                              context=self.ctx)).result)
+                    quake.GetMemberOp(
+                        memberTy, value,
+                        IntegerAttr.get(self.getIntegerType(32),
+                                        structIdx)).result)
                 return
 
             if cc.PointerType.isinstance(value.type):
@@ -1321,6 +1314,59 @@ class PyASTBridge(ast.NodeVisitor):
             # e.g. `cudaq.lib.test.hello.fermionic_swap``. In this case, we assume
             # FindDepKernels has found something like this, loaded it, and now we just
             # want to get the function name and call it.
+
+            # First let's check for registered C++ kernels
+            cppDevModNames = []
+            value = node.func.value
+            if isinstance(value, ast.Name) and value.id != 'cudaq':
+                cppDevModNames = [node.func.attr, value.id]
+            else:
+                while isinstance(value, ast.Attribute):
+                    cppDevModNames.append(value.attr)
+                    value = value.value
+                    if isinstance(value, ast.Name):
+                        cppDevModNames.append(value.id)
+                        break
+
+            devKey = '.'.join(cppDevModNames[::-1])
+
+            def get_full_module_path(partial_path):
+                parts = partial_path.split('.')
+                for module_name, module in sys.modules.items():
+                    if module_name.endswith(parts[0]):
+                        try:
+                            obj = module
+                            for part in parts[1:]:
+                                obj = getattr(obj, part)
+                            return f"{module_name}.{'.'.join(parts[1:])}"
+                        except AttributeError:
+                            continue
+                return partial_path
+
+            devKey = get_full_module_path(devKey)
+            if cudaq_runtime.isRegisteredDeviceModule(devKey):
+                maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                    self.module, devKey + '.' + node.func.attr)
+                if maybeKernelName == None:
+                    maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                        self.module, devKey)
+                if maybeKernelName != None:
+                    otherKernel = SymbolTable(
+                        self.module.operation)[maybeKernelName]
+                    fType = otherKernel.type
+                    if len(fType.inputs) != len(node.args):
+                        funcName = node.func.id if hasattr(
+                            node.func, 'id') else node.func.attr
+                        self.emitFatalError(
+                            f"invalid number of arguments passed to callable {funcName} ({len(node.args)} vs required {len(fType.inputs)})",
+                            node)
+
+                    [self.visit(arg) for arg in node.args]
+                    values = [self.popValue() for _ in node.args]
+                    values.reverse()
+                    values = [self.ifPointerThenLoad(v) for v in values]
+                    func.CallOp(otherKernel, values)
+                    return
 
             # Start by seeing if we have mod1.mod2.mod3...
             moduleNames = []
@@ -1823,6 +1869,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 values = [self.popValue() for _ in node.args]
                 values.reverse()
+                values = [self.ifPointerThenLoad(v) for v in values]
                 func.CallOp(otherKernel, values)
                 return
 
@@ -1903,24 +1950,51 @@ class PyASTBridge(ast.NodeVisitor):
                     mlirTypeFromPyType(v, self.ctx)
                     for _, v in annotations.items()
                 ]
-                structTy = cc.StructType.getNamed(self.ctx, node.func.id,
-                                                  structTys)
+                # Ensure we don't use hybrid data types
+                numQuantumMemberTys = sum(
+                    [1 if self.isQuantumType(ty) else 0 for ty in structTys])
+                if numQuantumMemberTys != 0:  # we have quantum member types
+                    if numQuantumMemberTys != len(structTys):
+                        self.emitFatalError(
+                            f'hybrid quantum-classical data types not allowed in kernel code',
+                            node)
+
+                isStruq = not (not structTys)
+                for fieldTy in structTys:
+                    if not self.isQuantumType(fieldTy):
+                        isStruq = False
+                if isStruq:
+                    structTy = quake.StruqType.getNamed(self.ctx, node.func.id,
+                                                        structTys)
+                    # Disallow recursive quantum struct types.
+                    for fieldTy in structTys:
+                        if self.isQuantumStructType(fieldTy):
+                            self.emitFatalError(
+                                'recursive quantum struct types not allowed.',
+                                node)
+                else:
+                    structTy = cc.StructType.getNamed(self.ctx, node.func.id,
+                                                      structTys)
+
+                # Disallow user specified methods on structs
+                if len({
+                        k: v
+                        for k, v in cls.__dict__.items()
+                        if not (k.startswith('__') and k.endswith('__'))
+                }) != 0:
+                    self.emitFatalError(
+                        'struct types with user specified methods are not allowed.',
+                        node)
+
                 nArgs = len(self.valueStack)
                 ctorArgs = [self.popValue() for _ in range(nArgs)]
                 ctorArgs.reverse()
 
-                if self.isQuantumStructType(structTy):
-                    # If we have a struct with quantum types, we do not
-                    # want to allocate struct memory and load / store pointers
-                    # to quantum memory, so we'll instead use value semantics
-                    # with InsertValue
-                    undefOp = cc.UndefOp(structTy).result
-                    for i, arg in enumerate(ctorArgs):
-                        undefOp = cc.InsertValueOp(
-                            structTy, undefOp, arg,
-                            DenseI64ArrayAttr.get([i], context=self.ctx)).result
-
-                    self.pushValue(undefOp)
+                if isStruq:
+                    # If we have a quantum struct. We cannot allocate classical
+                    # memory and load / store quantum type values to that memory
+                    # space, so use `quake.MakeStruqOp`.
+                    self.pushValue(quake.MakeStruqOp(structTy, ctorArgs).result)
                     return
 
                 stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
