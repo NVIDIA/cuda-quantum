@@ -81,8 +81,7 @@ def __isBroadcast(kernel, *args):
             'list', 'np.ndarray', 'List', 'List[float]', 'List[complex]',
             'List[int]'
         ])
-        checkList.extend(
-            [list[float], list[complex], list[int], list[bool]])
+        checkList.extend([list[float], list[complex], list[int], list[bool]])
         checkList.extend(
             ['list[float]', 'list[complex]', 'list[int]', 'list[bool]'])
         firstArgTypeIsStdvec = argTypes[firstArgType] in checkList
