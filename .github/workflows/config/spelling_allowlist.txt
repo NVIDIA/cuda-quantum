@@ -28,7 +28,6 @@ DOI
 Deuteron
 Doxygen
 FPGAs
-Fermioniq
 Fortran
 Fourier
 GHCR
