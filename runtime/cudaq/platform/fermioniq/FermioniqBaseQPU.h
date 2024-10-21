@@ -41,10 +41,11 @@ public:
     executionContext = nullptr;
   }
 
-  void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset,
-                    const std::vector<void *> &rawArgs) override {
+  KernelThunkResultType
+  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
+               void *args, std::uint64_t voidStarSize,
+               std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
     cudaq::info("FermioniqBaseQPU launching kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
@@ -102,11 +103,13 @@ public:
     }
 
     completeLaunchKernel(kernelName, std::move(codes));
+
+    return {};
   }
 
   void launchKernel(const std::string &kernelName,
                     const std::vector<void *> &rawArgs) override {
-    return launchKernel(kernelName, nullptr, nullptr, 0, 0, rawArgs);
+    launchKernel(kernelName, nullptr, nullptr, 0, 0, rawArgs);
   }
 };
 } // namespace cudaq
