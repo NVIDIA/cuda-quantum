@@ -734,7 +734,7 @@ convert them back into the circuit form. An overview of these steps is provided 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[INFO]: Cuda device has a capability of 8.0 (&gt;= 8), allowing tf32 matmul.
+[INFO]: Cuda device has a capability of 8.6 (&gt;= 8), allowing tf32 matmul.
 cuda
 </pre></div></div>
 </div>
@@ -742,7 +742,7 @@ cuda
 <section id="Load-model">
 <h2>Load model<a class="headerlink" href="#Load-model" title="Permalink to this heading">¶</a></h2>
 <p>First, we load the pre-trained model weights and setup the DM pipeline.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
@@ -751,22 +751,6 @@ cuda
 <span class="n">pipeline</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">set_timesteps</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "543d6667d288478d8d64b8e32c6675f3", "version_major": 2, "version_minor": 0}</script></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[INFO]: `genQC.models.unet_qc.QC_Compilation_UNet` instantiated from given config on cuda.
-[INFO]: `genQC.models.frozen_open_clip.CachedFrozenOpenCLIPEmbedder` instantiated from given config on cuda.
-[INFO]: `genQC.models.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. No save_path` provided. No state dict loaded.
-</pre></div></div>
 </div>
 <p>Set parameters the model was trained on. Note that these are fixed and depend on the pre-trained model.</p>
 <div class="nbinput nblast docutils container">
@@ -878,7 +862,7 @@ tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
 <h2>Convert tensors to CUDA-Q<a class="headerlink" href="#Convert-tensors-to-CUDA-Q" title="Permalink to this heading">¶</a></h2>
 <p>Next, we convert the generated tensors into <code class="docutils literal notranslate"><span class="pre">cudaq.kernels</span></code>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -890,7 +874,7 @@ tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">kernel_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -922,19 +906,19 @@ tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "1948691023bb4f03b79174564c1b8223", "version_major": 2, "version_minor": 0}</script></div>
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f7cdb66833df4aee8a75c3c7a3558ebc", "version_major": 2, "version_minor": 0}</script></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-The model generated 1 invalid tensors that does not correspond to circuits.
+The model generated 0 invalid tensors that does not correspond to circuits.
 </pre></div></div>
 </div>
 <p>For example, the following tensor encoding</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">valid_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -942,7 +926,7 @@ The model generated 1 invalid tensors that does not correspond to circuits.
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -954,7 +938,7 @@ tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
 </div>
 <p>corresponds to the following <code class="docutils literal notranslate"><span class="pre">cudaq.kernel</span></code></p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Arbitrary input state to the circuit for plotting</span>
@@ -995,7 +979,7 @@ the desired unitary operation.</p>
 \end{equation}\]</div>
 <p>where <span class="math notranslate nohighlight">\(|i\rangle\)</span> and <span class="math notranslate nohighlight">\(|j\rangle\)</span> are computational basis states (typically in the <span class="math notranslate nohighlight">\(z\)</span>-basis), with <span class="math notranslate nohighlight">\(|n\rangle\)</span> representing the standard basis vector that has a 1 in the <span class="math notranslate nohighlight">\(n\)</span>-th position and 0 elsewhere.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">N</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span>
@@ -1017,11 +1001,11 @@ the desired unitary operation.</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "fdba942957904d7ea41ce9edeb6b9f48", "version_major": 2, "version_minor": 0}</script></div>
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "2f3961ae5e254402a4dcd5124de3a5d6", "version_major": 2, "version_minor": 0}</script></div>
 </div>
 <p>For example, the circuit printed above corresponds to the following unitary:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
@@ -1049,7 +1033,7 @@ the desired unitary operation.</p>
 <h2>Compare unitaries<a class="headerlink" href="#Compare-unitaries" title="Permalink to this heading">¶</a></h2>
 <p>Now that we have the unitaries for each of the kernels, we compare them to the user provided unitary matrix, <code class="docutils literal notranslate"><span class="pre">U</span></code>. To do so, we compute the infidelity between the exact unitary and the generated ones. The infidelity is a value between 0 and 1, where 0 indicates that the unitaries are identical (up to a global phase).</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">infidelity</span><span class="p">(</span><span class="n">want_unitary</span><span class="p">,</span> <span class="n">got_unitary</span><span class="p">):</span>
@@ -1064,7 +1048,7 @@ the desired unitary operation.</p>
 </div>
 <p>Let’s now plot an histogram of the infidelities for our generated circuits:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
@@ -1087,7 +1071,7 @@ the desired unitary operation.</p>
 </div>
 <p>As we can see, the model generated almost 30 circuits that compile the unitary with an infidelity close or equal to zero! The kernel with the lowest infidelity is:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">min_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">infidelities</span><span class="p">)</span>
@@ -1130,7 +1114,7 @@ with the unitary:
 </div>
 <p>which, as we can see, exactly compiled our wanted unitary:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
@@ -1158,7 +1142,7 @@ with the unitary:
 <p>As we have seen above, we now have almost 30 kernels that compile the desired unitary! This is particularly valuable when dealing with hardware constraints, where, for instance, we might want to avoid using certain qubits or specific gates. One practical example is finding the circuit with the fewest Toffoli gates (also known as <code class="docutils literal notranslate"><span class="pre">ccx</span></code>). In our <code class="docutils literal notranslate"><span class="pre">vocab</span></code> definition above, we identified that <code class="docutils literal notranslate"><span class="pre">ccx</span></code> corresponds to the label 5 in our tokenized tensors. Let’s use this information to search for the
 circuit that minimizes the number of <code class="docutils literal notranslate"><span class="pre">ccx</span></code> gates:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># First, we remove possible duplicates and only pick distinct circuits</span>
@@ -1185,13 +1169,13 @@ circuit that minimizes the number of <code class="docutils literal notranslate">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-The model generated 17 distinct correct circuits.
-These circuits have this number of ccx gates: tensor([1, 3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 1, 1, 1, 1, 1])
+The model generated 16 distinct correct circuits.
+These circuits have this number of ccx gates: tensor([1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 1, 1, 1, 1, 1])
 </pre></div></div>
 </div>
 <p>As we can see, it appears that the diffusion model (DM) requires at least one Toffoli gate to compile the unitary. We can now print a few of these circuits to select the one that best suits our needs, or to study whether there are any interesting patterns the model employs for this specific unitary.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the correct kernels</span>
@@ -1230,17 +1214,17 @@ q2 : ──●──┤ h ├┤ z ├─╳─┤ h ├
           ╰───╯╰───╯   ╰───╯
 
      ╭───╮╭───╮
-q0 : ┤ x ├┤ z ├──●──────────
-     ╰─┬─╯├───┤╭─┴─╮
-q1 : ──●──┤ h ├┤ x ├─╳──────
-       │  ├───┤├───┤ │ ╭───╮
-q2 : ──●──┤ h ├┤ z ├─╳─┤ h ├
-          ╰───╯╰───╯   ╰───╯
+q0 : ┤ x ├┤ z ├─────●───────
+     ╰─┬─╯├───┤     │  ╭───╮
+q1 : ──●──┤ h ├─╳───┼──┤ z ├
+       │  ├───┤ │ ╭─┴─╮├───┤
+q2 : ──●──┤ h ├─╳─┤ x ├┤ h ├
+          ╰───╯   ╰───╯╰───╯
 
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -1253,7 +1237,7 @@ q2 : ──●──┤ h ├┤ z ├─╳─┤ h ├
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a1ee37087fbd5c14a31d5de3441f92432d0dca68)
+CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 018ba9130a0e5800b93e86d0096a22daf7a132f8)
 genQC Version 0.1.0
 </pre></div></div>
 </div>
