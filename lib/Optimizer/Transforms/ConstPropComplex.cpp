@@ -179,15 +179,15 @@ public:
                     FloatTruncatePattern, ComplexRePattern, ComplexImPattern>(
         ctx);
 
-    LLVM_DEBUG(llvm::dbgs()
-               << "Before lifting constant array: " << func << '\n');
+    LLVM_DEBUG(llvm::dbgs() << "Before constant propagation of complex values: "
+                            << func << '\n');
 
     if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                             std::move(patterns))))
       signalPassFailure();
 
-    LLVM_DEBUG(llvm::dbgs()
-               << "After lifting constant array: " << func << '\n');
+    LLVM_DEBUG(llvm::dbgs() << "After constant propagation of complex values: "
+                            << func << '\n');
   }
 };
 } // namespace
