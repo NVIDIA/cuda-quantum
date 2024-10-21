@@ -411,7 +411,7 @@ public:
       }
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
-      // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`, 
+      // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
       // and `get-concrete-matrix`passes.
       if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());

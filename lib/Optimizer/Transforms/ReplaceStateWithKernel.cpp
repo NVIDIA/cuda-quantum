@@ -67,13 +67,13 @@ static bool isNumberOfQubitsCall(Operation *op) {
 ///  %5 = call @callee.modified_0() : () -> !quake.veq<?>
 /// ```
 // clang-format on
-class ReplaceStateWithKernelPattern : public OpRewritePattern<quake::InitializeStateOp> {
+class ReplaceStateWithKernelPattern
+    : public OpRewritePattern<quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
                                 PatternRewriter &rewriter) const override {
-    //auto loc = initState.getLoc();
     auto *alloca = initState.getOperand(0).getDefiningOp();
     auto stateOp = initState.getOperand(1);
 
@@ -87,30 +87,35 @@ public:
           if (auto cast = calleeNameOp.getDefiningOp<cudaq::cc::CastOp>()) {
             calleeNameOp = cast.getOperand();
 
-            if (auto literal = 
-                    calleeNameOp.getDefiningOp<cudaq::cc::CreateStringLiteralOp>()) {
+            if (auto literal =
+                    calleeNameOp
+                        .getDefiningOp<cudaq::cc::CreateStringLiteralOp>()) {
               auto calleeName = literal.getStringLiteral();
-              rewriter.replaceOpWithNewOp<func::CallOp>(initState, initState.getType(), calleeName,
-                                            mlir::ValueRange{});
+              rewriter.replaceOpWithNewOp<func::CallOp>(
+                  initState, initState.getType(), calleeName,
+                  mlir::ValueRange{});
 
-              if (alloca->getUses().empty()) 
+              if (alloca->getUses().empty())
                 rewriter.eraseOp(alloca);
-              else  {
-                alloca->emitError("Failed to remove `quake.alloca` in state synthesis");
+              else {
+                alloca->emitError(
+                    "Failed to remove `quake.alloca` in state synthesis");
                 return failure();
               }
               if (isNumberOfQubitsCall(numOfQubits)) {
                 if (numOfQubits->getUses().empty())
                   rewriter.eraseOp(numOfQubits);
-                else  {
-                  numOfQubits->emitError("Failed to remove runtime call to get number of qubits in state synthesis");
+                else {
+                  numOfQubits->emitError("Failed to remove runtime call to get "
+                                         "number of qubits in state synthesis");
                   return failure();
                 }
               }
               if (getState->getUses().empty())
                 rewriter.eraseOp(getState);
-              else  {
-                alloca->emitError("Failed to remove runtime call to get state in state synthesis");
+              else {
+                alloca->emitError("Failed to remove runtime call to get state "
+                                  "in state synthesis");
                 return failure();
               }
               return success();
@@ -135,13 +140,15 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<ReplaceStateWithKernelPattern>(ctx);
 
-    LLVM_DEBUG(llvm::dbgs() << "Before replace state with kernel: " << func << '\n');
+    LLVM_DEBUG(llvm::dbgs()
+               << "Before replace state with kernel: " << func << '\n');
 
     if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                             std::move(patterns))))
       signalPassFailure();
 
-    LLVM_DEBUG(llvm::dbgs() << "After replace state with kerenl: " << func << '\n');
+    LLVM_DEBUG(llvm::dbgs()
+               << "After replace state with kerenl: " << func << '\n');
   }
 };
 } // namespace
