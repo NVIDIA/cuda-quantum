@@ -123,7 +123,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
 
     cudaq::IRBuilder irBuilder(ctx);
     auto genConArray = [&]<typename T>() -> Value {
-      std::vector<std::complex<T>> vec(size);
+      SmallVector<std::complex<T>> vec(size);
       for (std::size_t i = 0; i < size; i++) {
         vec[i] = (*v)({i}, 0);
       }
