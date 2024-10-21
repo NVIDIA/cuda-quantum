@@ -321,7 +321,8 @@ KernelArgsCreator getArgsCreator(const std::string &kernelName) {
 }
 
 std::string get_quake_by_name(const std::string &kernelName,
-                              bool throwException) {
+                              bool throwException,
+                              std::optional<std::string> knownMangledArgs) {
   // A prefix name has a '.' before the C++ mangled name suffix.
   auto kernelNamePrefix = kernelName + '.';
 
@@ -342,7 +343,14 @@ std::string get_quake_by_name(const std::string &kernelName,
           throw std::runtime_error("Quake code for '" + kernelName +
                                    "' has multiple matches.\n");
       } else {
-        result = pair.second;
+        if (!knownMangledArgs.has_value())
+          result = pair.second;
+        else {
+          if (pair.first.ends_with(knownMangledArgs.value())) {
+            result = pair.second;
+            break;
+          }
+        }
       }
     }
   }
@@ -357,6 +365,11 @@ std::string get_quake_by_name(const std::string &kernelName,
 
 std::string get_quake_by_name(const std::string &kernelName) {
   return get_quake_by_name(kernelName, true);
+}
+
+std::string get_quake_by_name(const std::string &kernelName,
+                              std::optional<std::string> knownMangledArgs) {
+  return get_quake_by_name(kernelName, true, knownMangledArgs);
 }
 
 bool kernelHasConditionalFeedback(const std::string &kernelName) {
