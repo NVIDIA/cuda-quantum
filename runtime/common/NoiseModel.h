@@ -323,7 +323,7 @@ public:
   /// @brief Return relevant kraus_channels on the specified qubits for
   // the given quantum operation. This will merge Kraus channels
   // that exists for the same quantumOp and qubits.
-  std::vector<kraus_channel>
+  virtual std::vector<kraus_channel>
   get_channels(const std::string &quantumOp,
                const std::vector<std::size_t> &targetQubits,
                const std::vector<std::size_t> &controlQubits = {},
