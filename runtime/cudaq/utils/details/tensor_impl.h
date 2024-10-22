@@ -8,7 +8,6 @@
 #pragma once
 
 #include "cudaq/utils/extension_point.h"
-
 #include <complex>
 #include <iostream>
 #include <memory>
