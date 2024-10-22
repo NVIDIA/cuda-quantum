@@ -134,7 +134,7 @@ jobs:
           build_target=${{ inputs.build_target }}
           image_id=`basename ${{ inputs.dockerfile }} .Dockerfile`${build_target:+.$build_target}
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
-          image_name=$registry/${repo_owner,,}/$image_title
+          image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}$image_title
           toolchain=${{ inputs.toolchain }}
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${toolchain:+$toolchain-}
           tag_suffix=""
@@ -236,7 +236,7 @@ jobs:
         id: cache
         run: |
           toolchain=${{ inputs.toolchain }}
-          registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
+          registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
@@ -385,7 +385,7 @@ jobs:
             # - https://stackoverflow.com/questions/61366738/how-are-the-docker-image-layer-ids-derived/69688979#69688979
             # - https://github.com/docker/cli/issues/3350.
 
-            remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ needs.metadata.outputs.image_title }}
+            remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}${{ needs.metadata.outputs.image_title }}
             remote_tag=${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }}
             echo "Trying to pull remote tag $remote_image:$remote_tag."
             docker pull $remote_image:$remote_tag || true
