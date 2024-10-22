@@ -318,6 +318,9 @@ public:
 
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
+    if (!serverHelper) {
+      throw std::runtime_error("ServerHelper not found for target");
+    }
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
 
@@ -399,7 +402,7 @@ public:
     for (auto &op : m_module.getOps()) {
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
-      // `lift-array-value`, `quake-synthesizer`, and `get-concrete-matrix`
+      // `lift-array-alloc`, `quake-synthesizer`, and `get-concrete-matrix`
       // passes.
       if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
@@ -578,10 +581,11 @@ public:
   /// the representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
-  void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
-                    void *args, std::uint64_t voidStarSize,
-                    std::uint64_t resultOffset,
-                    const std::vector<void *> &rawArgs) override {
+  KernelThunkResultType
+  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
+               void *args, std::uint64_t voidStarSize,
+               std::uint64_t resultOffset,
+               const std::vector<void *> &rawArgs) override {
     cudaq::info("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
@@ -597,6 +601,9 @@ public:
     auto codes = rawArgs.empty() ? lowerQuakeCode(kernelName, args)
                                  : lowerQuakeCode(kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
+
+    // NB: Kernel should/will never return dynamic results.
+    return {};
   }
 
   void completeLaunchKernel(const std::string &kernelName,

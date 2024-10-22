@@ -34,7 +34,7 @@ std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
 std::unique_ptr<mlir::Pass> createLowerToCFGPass();
-std::unique_ptr<mlir::Pass> createObserveAnsatzPass(std::vector<bool> &);
+std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
@@ -46,9 +46,10 @@ std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
 std::unique_ptr<mlir::Pass>
-createPySynthCallableBlockArgs(const std::vector<std::string> &);
+createPySynthCallableBlockArgs(const llvm::SmallVector<llvm::StringRef> &,
+                               bool removeBlockArg = false);
 inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
-  return createPySynthCallableBlockArgs({});
+  return createPySynthCallableBlockArgs({}, false);
 }
 
 /// Helper function to build an argument synthesis pass. The names of the

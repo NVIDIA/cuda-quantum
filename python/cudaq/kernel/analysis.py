@@ -10,6 +10,7 @@ import ast, inspect, importlib, textwrap
 from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
 from ..mlir.dialects import cc
 from ..mlir.ir import *
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
@@ -161,13 +162,23 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
 
                 if len(moduleNames):
                     moduleNames.reverse()
+                    if cudaq_runtime.isRegisteredDeviceModule(
+                            '.'.join(moduleNames)):
+                        return
+
                     # This will throw if the function / module is invalid
-                    m = importlib.import_module('.'.join(moduleNames))
+                    try:
+                        m = importlib.import_module('.'.join(moduleNames))
+                    except:
+                        return
+
                     getattr(m, node.func.attr)
                     name = node.func.attr
+
                     if name not in globalAstRegistry:
                         raise RuntimeError(
-                            f"{name} is not a valid kernel to call.")
+                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)})."
+                        )
 
                     self.depKernels[name] = globalAstRegistry[name]
 

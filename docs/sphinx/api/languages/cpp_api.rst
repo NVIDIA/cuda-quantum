@@ -174,6 +174,8 @@ Platform
 
 .. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
 
+.. doxygenclass:: cudaq::FermioniqBaseQPU
+
 .. doxygenclass:: cudaq::quantum_platform
     :members:
 
@@ -189,6 +191,10 @@ Platform
 .. doxygentypedef:: cudaq::QubitEdge
 
 .. doxygentypedef:: cudaq::KernelExecutionTask
+
+.. doxygenstruct:: cudaq::KernelThunkResultType
+
+.. doxygentypedef:: cudaq::KernelThunkType
 
 Utilities
 =========

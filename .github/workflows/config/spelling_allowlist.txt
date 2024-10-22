@@ -5,6 +5,7 @@ APIs
 AST
 Aer
 AlmaLinux
+Anyon
 Asynchronous
 BFGS
 Bloch
@@ -199,6 +200,7 @@ expressivity
 extensibility
 extremal
 fermionic
+fermioniq
 fmt
 frontend
 frontends
@@ -234,6 +236,7 @@ namespaces
 natively
 normalization
 nullary
+observables
 optimizer
 optimizers
 parallelization
