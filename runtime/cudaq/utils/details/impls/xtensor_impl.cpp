@@ -8,7 +8,6 @@
 
 #include "cudaq/utils/details/tensor_impl.h"
 #include "cudaq/utils/type_traits.h"
-
 #include <xtensor/xadapt.hpp>
 #include <xtensor/xio.hpp>
 #include <fmt/ranges.h>
