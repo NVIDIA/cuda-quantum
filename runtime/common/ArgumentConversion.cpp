@@ -243,27 +243,10 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     converter.genCallee(modifiedCalleeName, calleeArgs);
 
     // Create a subst for state pointer.
-    auto strLitTy = cudaq::cc::PointerType::get(
-        cudaq::cc::ArrayType::get(builder.getContext(), builder.getI8Type(),
-                                  modifiedCalleeKernelName.size() + 1));
-    auto callee = builder.create<cudaq::cc::CreateStringLiteralOp>(
-        loc, strLitTy, builder.getStringAttr(modifiedCalleeKernelName));
-
-    auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-    auto calleeCast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, callee);
-
-    cudaq::IRBuilder irBuilder(ctx);
-    auto result = irBuilder.loadIntrinsic(substMod, cudaq::getCudaqState);
-    assert(succeeded(result) && "loading intrinsic should never fail");
-
     auto statePtrTy =
         cudaq::cc::PointerType::get(cudaq::cc::StateType::get(ctx));
-    auto statePtr =
-        builder
-            .create<func::CallOp>(loc, statePtrTy, cudaq::getCudaqState,
-                                  ValueRange{calleeCast})
-            .getResult(0);
-    return builder.create<cudaq::cc::CastOp>(loc, statePtrTy, statePtr);
+    return builder.create<cudaq::cc::GetStateOp>(
+        loc, statePtrTy, builder.getStringAttr(modifiedCalleeKernelName));
   }
 
   TODO("cudaq::state* argument synthesis for quantum hardware for c functions");

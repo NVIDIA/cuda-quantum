@@ -458,7 +458,6 @@ public:
         pm.addPass(opt::createDeleteStates());
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createReplaceStateWithKernel());
-        pm.addPass(mlir::createCanonicalizerPass());
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");

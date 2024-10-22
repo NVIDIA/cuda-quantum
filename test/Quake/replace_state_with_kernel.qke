@@ -10,18 +10,13 @@
 
 module {
   func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-    %0 = cc.string_literal "callee.modified_0" : !cc.ptr<!cc.array<i8 x 27>>
-    %1 = cc.cast %0 : (!cc.ptr<!cc.array<i8 x 27>>) -> !cc.ptr<i8>
-    %2 = call @__nvqpp_cudaq_state_get(%1) : (!cc.ptr<i8>) -> !cc.ptr<!cc.state>
-    %3 = call @__nvqpp_cudaq_state_numberOfQubits(%2) : (!cc.ptr<!cc.state>) -> i64
-    %4 = quake.alloca !quake.veq<?>[%3 : i64]
-    %5 = quake.init_state %4, %2 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
-    return
+    %0 = cc.get_state "__nvqpp__mlirgen__test_init_state.modified_0" : !cc.ptr<!cc.state>
+    %1 = call @__nvqpp_cudaq_state_numberOfQubits(%0) : (!cc.ptr<!cc.state>) -> i64
+    %2 = quake.alloca !quake.veq<?>[%1 : i64]
+    %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+return
   }
-
   func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.ptr<!cc.state>) -> i64
-  func.func private @__nvqpp_cudaq_state_get(!cc.ptr<i8>) -> !cc.ptr<!cc.state>
-
   func.func private @callee.modified_0() -> !quake.veq<?> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %cst = arith.constant 1.5707963267948966 : f64
     %0 = quake.alloca !quake.veq<2>
