@@ -105,6 +105,7 @@ public:
   /// @param shape The shape of the source data
   virtual void borrow(const scalar_type *data,
                       const std::vector<std::size_t> &shape) = 0;
+
   /// @brief Get a pointer to the raw data of the tensor.
   /// This method provides direct access to the underlying data storage of the
   /// tensor. It returns a pointer to the first element of the data array.
