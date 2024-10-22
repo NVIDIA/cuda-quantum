@@ -317,6 +317,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#fermioniq">Fermioniq</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
@@ -3433,7 +3434,8 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq17BaseRemoteRESTQPUE">
 <span class="target" id="classcudaq_1_1BaseRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd></dd></dl>
+<dd><p>Subclassed by <a class="reference internal" href="#classcudaq_1_1FermioniqBaseQPU"><span class="std std-ref">cudaq::FermioniqBaseQPU</span></a></p>
+</dd></dl>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq22BaseRemoteSimulatorQPUE">
@@ -3451,6 +3453,12 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq17OrcaRemoteRESTQPUE">
 <span class="target" id="classcudaq_1_1OrcaRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OrcaRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17OrcaRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <a class="reference internal" href="#classcudaq_1_1OrcaRemoteRESTQPU"><span class="std std-ref">OrcaRemoteRESTQPU</span></a> is a subtype of <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that enables the execution of CUDA-Q kernels on remotely hosted quantum computing services via a REST Client / Server interaction. This type is meant to be general enough to support any remotely hosted service. Moreover, this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> handles launching kernels under the Execution Context that includes sampling via synchronous client invocations. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16FermioniqBaseQPUE">
+<span class="target" id="classcudaq_1_1FermioniqBaseQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FermioniqBaseQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="cudaq::BaseRemoteRESTQPU"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq16FermioniqBaseQPUE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1FermioniqBaseQPU"><span class="std std-ref"><span class="pre">FermioniqBaseQPU</span></span></a></code> is a <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that allows users to. </p>
 </dd></dl>
 
 <dl class="cpp class">

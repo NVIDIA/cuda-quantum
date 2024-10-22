@@ -317,6 +317,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#fermioniq">Fermioniq</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
@@ -1097,6 +1098,76 @@ If you expect a large number of singular values (e.g., increasing the <code clas
 </div>
 </section>
 </section>
+<section id="fermioniq">
+<h2>Fermioniq<a class="headerlink" href="#fermioniq" title="Permalink to this heading">¶</a></h2>
+<p id="fermioniq-backend"><a class="reference external" href="https://fermioniq.com/">Fermioniq</a> offers a cloud-based tensor-network emulation platform, <a class="reference external" href="https://www.fermioniq.com/ava/">Ava</a>,
+for the approximate simulation of large-scale quantum circuits beyond the memory limit of state vector and exact tensor network based methods.</p>
+<p>The level of approximation can be controlled by setting the bond dimension: larger values yield more accurate simulations at the expense
+of slower computation time. For a detailed description of Ava users are referred to the <a class="reference external" href="https://docs.fermioniq.com/">online documentation</a>.</p>
+<p>Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (<a class="reference external" href="https://www.fermioniq.com/ava/">Ava</a>) from either
+C++ or Python. This version currently supports emulation of quantum circuits without noise, and can return measurement samples and/or
+compute expectation values of observables.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In order to use the Fermioniq emulator, users must provide access credentials. These can be requested by contacting <a class="reference external" href="mailto:info&#37;&#52;&#48;fermioniq&#46;com">info<span>&#64;</span>fermioniq<span>&#46;</span>com</a></p>
+<p>The credentials must be set via two environment variables:
+<code class="code docutils literal notranslate"><span class="pre">FERMIONIQ_ACCESS_TOKEN_ID</span></code> and <code class="code docutils literal notranslate"><span class="pre">FERMIONIQ_ACCESS_TOKEN_SECRET</span></code>.</p>
+</div>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--9-input--1" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--1">Python</label><div class="tab-content docutils">
+<p>The target to which quantum kernels are submitted
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;fermioniq&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You will have to specify a remote configuration id for the Fermioniq backend
+during compilation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;fermioniq&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span>
+    <span class="s2">&quot;remote-config&quot;</span><span class="p">:</span> <span class="n">remote_config_id</span>
+<span class="p">})</span>
+</pre></div>
+</div>
+<p>For a comprehensive list of all remote configurations, please contact Fermioniq directly.</p>
+<p>When your organization requires you to define a project id, you have to specify
+the project id during compilation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;fermioniq&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span>
+    <span class="s2">&quot;project-id&quot;</span><span class="p">:</span> <span class="n">project_id</span>
+<span class="p">})</span>
+</pre></div>
+</div>
+<p>To specify the bond dimension, you can pass the <code class="docutils literal notranslate"><span class="pre">fermioniq-bond-dim</span></code> parameter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;fermioniq&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span>
+    <span class="s2">&quot;bond-dim&quot;</span><span class="p">:</span> <span class="mi">5</span>
+<span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--9-input--2" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--2">C++</label><div class="tab-content docutils">
+<p>To target quantum kernel code for execution in the Fermioniq backends,
+pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">fermioniq</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. CUDA-Q will
+authenticate via the Fermioniq REST API using the environment variables
+set earlier.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>fermioniq<span class="w"> </span>src.cpp<span class="w"> </span>...
+</pre></div>
+</div>
+<p>You will have to specify a remote configuration id for the Fermioniq backend
+during compilation.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>fermioniq<span class="w"> </span>--fermioniq-remote-config<span class="w"> </span>&lt;remote_config_id&gt;<span class="w"> </span>src.cpp<span class="w"> </span>...
+</pre></div>
+</div>
+<p>For a comprehensive list of all remote configurations, please contact Fermioniq directly.</p>
+<p>When your organization requires you to define a project id, you have to specify
+the project id during compilation.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>fermioniq<span class="w"> </span>--fermioniq-project-id<span class="w"> </span>&lt;project_id&gt;<span class="w"> </span>src.cpp<span class="w"> </span>...
+</pre></div>
+</div>
+<p>To specify the bond dimension, you can pass the <code class="docutils literal notranslate"><span class="pre">fermioniq-bond-dim</span></code> parameter.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>fermioniq<span class="w"> </span>--fermioniq-bond-dim<span class="w"> </span><span class="m">10</span><span class="w"> </span>src.cpp<span class="w"> </span>...
+</pre></div>
+</div>
+</div>
+</div>
+</section>
 <section id="default-simulator">
 <h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
 <p id="id3">If no explicit target is set, i.e., if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA-Q makes a default choice for the simulator.</p>
@@ -1107,12 +1178,12 @@ This environment variable can be set to any non-hardware backend. Any invalid va
 <p>For CUDA-Q Python API, the environment variable at the time when <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.</p>
 <p>For example,</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--9-input--1" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--10-input--1" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_DEFAULT_SIMULATOR</span><span class="o">=</span>density-matrix-cpu<span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--9-input--2" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--10-input--2" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_DEFAULT_SIMULATOR</span><span class="o">=</span>density-matrix-cpu<span class="w"> </span>nvq++<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
