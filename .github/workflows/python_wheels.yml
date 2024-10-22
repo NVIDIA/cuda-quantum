@@ -353,7 +353,8 @@ jobs:
     needs: [build_wheel, validation]
     if: inputs.create_staging_info
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository

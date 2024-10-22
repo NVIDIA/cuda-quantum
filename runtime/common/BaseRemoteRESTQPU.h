@@ -318,6 +318,9 @@ public:
 
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
+    if (!serverHelper) {
+      throw std::runtime_error("ServerHelper not found for target");
+    }
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
 
