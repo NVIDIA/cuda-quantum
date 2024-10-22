@@ -23,7 +23,7 @@ private:
 
 public:
   /// @brief Type alias for the scalar type used in the tensor
-  using scalar_type = details::tensor_impl<Scalar>::scalar_type;
+  using scalar_type = typename details::tensor_impl<Scalar>::scalar_type;
   static constexpr auto ScalarAsString = type_to_string<Scalar>();
 
   /// @brief Construct an empty tensor
