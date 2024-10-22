@@ -1,10 +1,14 @@
 import cudaq
 import numpy as np
+import os
 
 # See accompanying example `orca.py` for detailed explanation.
 
-# Provide list of URLs to the remote ORCA targets
-orca_urls = "http://localhost:3035,http://localhost:3037"
+# To use the ORCA Computing target you will need to set the ORCA_ACCESS_URL
+# environment variable or pass URL(s).
+orca_urls = os.getenv("ORCA_ACCESS_URL",
+                      "http://localhost:3035,http://localhost:3037")
+
 cudaq.set_target("orca", url=orca_urls)
 
 qpu_count = cudaq.get_target().num_qpus()
