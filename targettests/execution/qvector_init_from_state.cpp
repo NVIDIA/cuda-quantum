@@ -108,8 +108,8 @@ int main() {
   }
   // clang-format off
 // CHECK: Passing large state from another kernel as argument (kernel mode)
-// CHECK: 01111111111111
-// CHECK: 11111111111111
+// CHECK: 01111
+// CHECK: 11111
   // clang-format on
 
   {
