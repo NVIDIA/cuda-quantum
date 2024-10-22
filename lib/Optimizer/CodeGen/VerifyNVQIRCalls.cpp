@@ -49,8 +49,7 @@ struct VerifyNVQIRCallOpsPass
           cudaq::getNumQubitsFromCudaqState,
           cudaq::createCudaqStateFromDataFP32,
           cudaq::createCudaqStateFromDataFP64,
-          cudaq::deleteCudaqState,
-          cudaq::getCudaqState};
+          cudaq::deleteCudaqState};
       // It must be either NVQIR extension functions or in the allowed list.
       return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
                  NVQIR_FUNCS.end() ||

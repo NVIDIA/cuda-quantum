@@ -408,8 +408,7 @@ public:
             (funcOp.getName().equals(cudaq::getNumQubitsFromCudaqState) ||
              funcOp.getName().equals(cudaq::createCudaqStateFromDataFP64) ||
              funcOp.getName().equals(cudaq::createCudaqStateFromDataFP32) ||
-             funcOp.getName().equals(cudaq::deleteCudaqState) ||
-             funcOp.getName().equals(cudaq::getCudaqState)))
+             funcOp.getName().equals(cudaq::deleteCudaqState)))
           moduleOp.push_back(funcOp.clone());
       }
       // Add any global symbols, including global constant arrays.
