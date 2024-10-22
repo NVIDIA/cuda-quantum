@@ -16,22 +16,30 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
 # LinkedLibraryHolder.
 if not "CUDAQ_DYNLIBS" in os.environ:
+    # FIXME: NEED TO DETECT CUDA VERSION HERE!
     try:
+        # FIXME: NEED libnvidia-ml.so.1
         custatevec_libs = get_library_path("custatevec-cu11")
         custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
 
         cutensornet_libs = get_library_path("cutensornet-cu11")
         cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
-        os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
-
         # The following package is only available on `x86_64` (not `aarch64`). For
         # `aarch64`, the library must be provided another way (likely with
         # LD_LIBRARY_PATH).
-        if platform.processor() == "x86_64":
+        # Note: platform.processor does not work in all cases (if uname -p returns unknown, e.g. on WSL)
+        if platform.processor() == "x86_64" or platform.uname().machine == "x86_64":
+            cublas_libs = get_library_path("nvidia-cublas-cu11")
+            cublas_path = os.path.join(cublas_libs, "libcublas.so.11")
+            cublasLT_path = os.path.join(cublas_libs, "libcublasLt.so.11")
+            cusolver_libs = get_library_path("nvidia-cusolver-cu11")
+            cusolver_path = os.path.join(cusolver_libs, "libcusolver.so.11")
             cudart_libs = get_library_path("nvidia-cuda_runtime-cu11")
             cudart_path = os.path.join(cudart_libs, "libcudart.so.11.0")
-            os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}"
+            os.environ["CUDAQ_DYNLIBS"] = f"{cudart_path}:{cublas_path}:{cublasLT_path}:{cusolver_path}:{custatevec_path}:{cutensornet_path}"
+        else: 
+            os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
     except:
         import importlib.util
         package_spec = importlib.util.find_spec("cuda-quantum")

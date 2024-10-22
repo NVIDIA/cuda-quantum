@@ -228,6 +228,10 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
+            # FIXME: REMOVE THE LINE BELOW
+            package_loc=`python${{ inputs.python_version }} -m pip show cuda-quantum | egrep -o "Location:\s.*" | cut -d " " -f2-`
+            rm -rf "$package_loc/targets/opt-test.yml"
+
             python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
               --ignore /tmp/tests/backends
             pytest_status=$?

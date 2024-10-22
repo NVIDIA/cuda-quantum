@@ -63,14 +63,13 @@ RUN echo "Building wheel for python${python_version}." \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
         $python -m auditwheel -v repair dist/cuda_quantum*linux_*.whl \
             --exclude libcustatevec.so.1 \
-            --exclude libcutensornet.so.2\
+            --exclude libcutensornet.so.2 \
             --exclude libcublas.so.$cudaq_major \
             --exclude libcublasLt.so.$cudaq_major \
             --exclude libcusolver.so.$cudaq_major \
             --exclude libcutensor.so.2 \
             --exclude libnvToolsExt.so.1 \ 
-            --exclude libcudart.so.$cudaq_major.0 \
-            --exclude libnvidia-ml.so.1
+            --exclude libcudart.so.$cudaq_major.0
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
