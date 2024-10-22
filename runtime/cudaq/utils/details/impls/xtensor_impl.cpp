@@ -11,7 +11,6 @@
 
 #include <xtensor/xadapt.hpp>
 #include <xtensor/xio.hpp>
-
 #include <fmt/ranges.h>
 
 namespace cudaq {
