@@ -13,6 +13,7 @@
 #include <memory>
 #include <numeric>
 #include <vector>
+
 namespace cudaq::details {
 
 /// @brief Implementation class for tensor operations following the PIMPL idiom
