@@ -86,7 +86,7 @@ public:
     auto size = std::accumulate(shape.begin(), shape.end(), 1,
                                 std::multiplies<size_t>());
     if (m_data)
-      std::free(m_data);
+      delete m_data;
 
     m_data = m_data = new Scalar[size];
     std::copy(d, d + size, m_data);
