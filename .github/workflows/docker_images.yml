@@ -819,7 +819,8 @@ jobs:
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && inputs.environment && needs.metadata.outputs.platform_tag == '' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions: 
+      contents: read
 
     steps:
       - name: Checkout repository

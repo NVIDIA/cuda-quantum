@@ -473,7 +473,8 @@ jobs:
     needs: [build_installer, build_openmpi, validation]
     if: inputs.environment
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository

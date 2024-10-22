@@ -726,6 +726,8 @@ jobs:
     name: Installer validation
     needs: [assets, cudaq_installer]
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     strategy:
       matrix:
@@ -808,8 +810,9 @@ jobs:
   wheel_validation:
     name: Python wheel instructions validation
     needs: [assets, cudaq_wheels]
-
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     container:
       image: ubuntu:22.04
@@ -855,8 +858,9 @@ jobs:
   wheel_validation_x86_simple:
     name: Simple Python wheel installation validation
     needs: [assets, cudaq_wheels]
-
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     container:
       image: ubuntu:22.04
