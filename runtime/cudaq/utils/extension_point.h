@@ -33,47 +33,47 @@ namespace cudaq {
 ///    This class should declare pure virtual methods that extensions will
 ///    implement.
 ///
-/// @code
+/// <code>
 /// class MyExtensionPoint : public cudaq::extension_point<MyExtensionPoint> {
 /// public:
-///   virtual std::string parrotBack(const std::string &msg) const = 0;
+///   virtual std::string parrotBack(const std::string &) const = 0;
 /// };
-/// @endcode
+/// </code>
 ///
 /// 2. Implement concrete extensions:
 ///    Create classes that inherit from your extension point and implement its
 ///    methods. Use the CUDAQ_EXTENSION_CREATOR_FUNCTION macro to define a
 ///    creator function.
 ///
-/// @code
+/// <code>
 /// class RepeatBackOne : public MyExtensionPoint {
 /// public:
-///   std::string parrotBack(const std::string &msg) const override {
-///     return msg + " from RepeatBackOne.";
+///   std::string parrotBack(const std::string &message) const override {
+///     return message + " from RepeatBackOne.";
 ///   }
 ///
 ///   CUDAQ_EXTENSION_CREATOR_FUNCTION(MyExtensionPoint, RepeatBackOne)
 /// };
-/// @endcode
+/// </code>
 ///
 /// 3. Register your extensions:
 ///    Use the CUDAQ_REGISTER_TYPE macro to register each extension.
 ///
-/// @code
-/// CUDAQ_REGISTER_TYPE(RepeatBackOne)
-/// @endcode
+/// <code>
+///   CUDAQ_REGISTER_TYPE(RepeatBackOne)
+/// </code>
 ///
 /// 4. Use your extensions:
 ///    You can now create instances of your extensions, check registrations, and
 ///    more.
 ///
-/// @code
+/// <code>
 /// auto extension = MyExtensionPoint::get("RepeatBackOne");
 /// std::cout << extension->parrotBack("Hello") << std::endl;
 ///
 /// auto registeredTypes = MyExtensionPoint::get_registered();
 /// bool isRegistered = MyExtensionPoint::is_registered("RepeatBackOne");
-/// @endcode
+/// </code>
 ///
 /// This approach allows for a flexible, extensible design where new
 /// functionality can be added without modifying existing code.

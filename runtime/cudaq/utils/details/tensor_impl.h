@@ -83,7 +83,7 @@ public:
   /// @return A reference to the element at the specified indices
   virtual scalar_type &at(const std::vector<size_t> &indices) = 0;
 
-  /// @brief Access a const element of the tensor
+  /// @brief Access a constant element of the tensor
   /// @param indices The indices of the element to access
   /// @return A const reference to the element at the specified indices
   virtual const scalar_type &at(const std::vector<size_t> &indices) const = 0;
@@ -112,19 +112,19 @@ public:
   ///
   /// @return scalar_type* A pointer to the mutable data of the tensor.
   /// @note Care should be taken when directly manipulating the raw data to
-  /// avoid invalidating the tensor's internal state or violating its
-  /// invariants.
+  /// avoid invalidating the internal state of the tensor or violating its
+  /// `invariants`.
   virtual scalar_type *data() = 0;
 
-  /// @brief Get a const pointer to the raw data of the tensor.
+  /// @brief Get a constant pointer to the raw data of the tensor.
   /// This method provides read-only access to the underlying data storage of
-  /// the tensor. It returns a const pointer to the first element of the data
+  /// the tensor. It returns a constant pointer to the first element of the data
   /// array.
   ///
-  /// @return const scalar_type * A const pointer to the immutable data of the
-  /// tensor.
-  /// @note This const version ensures that the tensor's data cannot be modified
-  ///       through the returned pointer, preserving const correctness.
+  /// @return constant scalar_type * A constant pointer to the immutable data of
+  /// the tensor.
+  /// @note This constant version ensures that the data of the tensor cannot be
+  /// modified through the returned pointer, preserving `const` correctness.
   virtual const scalar_type *data() const = 0;
 
   virtual void dump() const = 0;
