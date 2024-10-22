@@ -54,12 +54,6 @@ jobs:
       cudaq_version: ${{ steps.artifacts.outputs.cudaq_version }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
       - name: Download build info
         id: artifacts
         run: |
@@ -147,6 +141,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.assets_repo || github.repository }}
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
       - name: Trigger assets creation
         id: assets_creation
         if: inputs.assets_from_run == ''
@@ -200,7 +201,7 @@ jobs:
       - name: Wait for assets
         run: |
           for release_id in `echo ${{ steps.artifacts.outputs.releases }}`; do
-            while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
+            while [ -z "$(gh release list -R ${{ vars.assets_repo || github.repository }} | grep -s $release_id)" ];
             do echo "Waiting for assets $release_id ..." && sleep 300; 
             done
           done
@@ -254,7 +255,7 @@ jobs:
             release_id=`echo "$2" | jq -r ".$1.release_id"`
             while ! [ -f "$1.txt" ]; do
               echo "Download $release_id assets..."
-              (gh release download $release_id -R ${{ github.repository }}) || true
+              (gh release download $release_id -R ${{ vars.assets_repo || github.repository }}) || true
               sleep 30
             done
             cd ..
@@ -356,7 +357,7 @@ jobs:
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
-          echo "image_name=$registry/cuda-quantum" >> $GITHUB_OUTPUT
+          echo "image_name=$registry/${{ vars.packages_prefix }}cuda-quantum" >> $GITHUB_OUTPUT
           echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
@@ -447,7 +448,7 @@ jobs:
       - name: Update release information
         run: |
           release_id=${{ steps.release_info.outputs.release_id }}
-          gh release view $release_id --json body --jq .body > rel_notes.txt
+          gh release view $release_id -R ${{ vars.assets_repo || github.repository }} --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
           echo -e "\nImages for ${{ steps.release_info.outputs.platforms }}:\n" >> new_notes.txt
@@ -456,7 +457,7 @@ jobs:
           echo "- cuda-quantum-dev (for extension development): ${{ steps.release_info.outputs.cudaqdev_image }}" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqdevdeps_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
+          gh release edit $release_id -R ${{ vars.assets_repo || github.repository }} --notes-file new_notes.txt
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -558,13 +559,13 @@ jobs:
       - name: Update release information
         run: |
           release_id=${{ steps.release_info.outputs.release_id }}
-          gh release view $release_id --json body --jq .body > rel_notes.txt
+          gh release view $release_id -R ${{ vars.assets_repo || github.repository }} --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
           echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} installer for CUDA ${{ steps.release_info.outputs.cuda_major_version }}:\n" >> new_notes.txt
           echo "- cuda-quantum-assets: ${{ steps.release_info.outputs.assets_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
+          gh release edit $release_id -R ${{ vars.assets_repo || github.repository }} --notes-file new_notes.txt
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -701,13 +702,13 @@ jobs:
           release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
           platform=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].platform }}
           cudaqwheeldeps_image=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].image_hash }}
-          gh release view $release_id -R ${{ github.repository }} --json body --jq .body > rel_notes.txt
+          gh release view $release_id -R ${{ vars.assets_repo || github.repository }} --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
           echo -e "\nImage to create $platform wheels:\n" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): $cudaqwheeldeps_image" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
+          gh release edit $release_id -R ${{ vars.assets_repo || github.repository }} --notes-file new_notes.txt
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -736,6 +737,8 @@ jobs:
     name: Installer validation
     needs: [assets, cudaq_installer]
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     strategy:
       matrix:
@@ -831,8 +834,9 @@ jobs:
   wheel_validation:
     name: Python wheel instructions validation
     needs: [assets, cudaq_wheels]
-
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     container:
       image: ubuntu:22.04
@@ -878,8 +882,9 @@ jobs:
   wheel_validation_x86_simple:
     name: Simple Python wheel installation validation
     needs: [assets, cudaq_wheels]
-
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
 
     container:
       image: ubuntu:22.04
@@ -1062,7 +1067,7 @@ jobs:
           release_title="${{ needs.assets.outputs.release_title }}"
           github_commit=${{ needs.assets.outputs.github_commit }}
           version=${{ needs.assets.outputs.release_version }}
-          versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+          versions=`gh release list -R ${{ vars.assets_repo || github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
           latest_tag=`echo $versions | cut -d ' ' -f 1`
           prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo '') || echo '--prerelease'`
           
@@ -1096,12 +1101,12 @@ jobs:
         run: |
           # Delete the draft release(s) used to exchange data between GitLab and GitHub.
           for release_id in `echo ${{ needs.assets.outputs.releases }}`; do
-            if [ -n "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ]; then
+            if [ -n "$(gh release list -R ${{ vars.assets_repo || github.repository }} | grep -s $release_id)" ]; then
               echo "## Draft Release $release_id:" >> $GITHUB_STEP_SUMMARY
-              gh release view $release_id -R ${{ github.repository }} --json body --jq .body > rel_notes.txt
+              gh release view $release_id -R ${{ vars.assets_repo || github.repository }} --json body --jq .body > rel_notes.txt
               header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
               head -n $(($header_length - 1)) rel_notes.txt >> $GITHUB_STEP_SUMMARY
-              gh release delete $release_id -R ${{ github.repository }} -y
+              gh release delete $release_id -R ${{ vars.assets_repo || github.repository }} -y
               echo "Deleted release $release_id."
             fi
           done

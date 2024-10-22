@@ -16,6 +16,9 @@ on:
       - 'releases/*'
       - 'experimental/*'
       - 'features/*'
+  merge_group:
+    types: 
+      - checks_requested
   schedule:
     - cron: '37 9 * * 2'
 

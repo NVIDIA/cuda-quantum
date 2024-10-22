@@ -88,7 +88,7 @@ jobs:
 
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/cuda-quantum-assets
+          image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}cuda-quantum-assets
           build_config_id=${{ inputs.build_config_id }}
           tag_prefix=${platform_tag}-${build_config_id:+$build_config_id-}
 
@@ -488,7 +488,8 @@ jobs:
     needs: [build_installer, build_openmpi, create_test_config, validation]
     if: inputs.environment
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
