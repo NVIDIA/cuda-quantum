@@ -5,12 +5,12 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "cudaq/utils/tensor.h"
 #include <limits>
 #include <pybind11/complex.h>
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
-#include "cudaq/utils/tensor.h"
 
 namespace py = pybind11;
 

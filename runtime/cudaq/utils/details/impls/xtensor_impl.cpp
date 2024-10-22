@@ -8,9 +8,9 @@
 
 #include "cudaq/utils/details/tensor_impl.h"
 #include "cudaq/utils/type_traits.h"
+#include <fmt/ranges.h>
 #include <xtensor/xadapt.hpp>
 #include <xtensor/xio.hpp>
-#include <fmt/ranges.h>
 
 namespace cudaq {
 

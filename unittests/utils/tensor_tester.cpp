@@ -7,8 +7,8 @@
  ******************************************************************************/
 #include "cudaq/utils/tensor.h"
 #include <algorithm>
-#include <tuple>
 #include <gtest/gtest.h>
+#include <tuple>
 
 TEST(CoreTester, checkTensorSimple) {
   auto registeredNames = cudaq::details::tensor_impl<>::get_registered();
@@ -219,8 +219,9 @@ TEST(TensorTest, CopyData) {
 
 TEST(TensorTest, TakeData) {
   std::vector<std::size_t> shape = {2, 2};
-  auto data = new std::complex<double>[4]{
-      {1.0, 0.0}, {0.0, 1.0}, {0.0, -1.0}, {1.0, 0.0}};
+  auto data = new std::complex<double>[4] {
+    {1.0, 0.0}, {0.0, 1.0}, {0.0, -1.0}, { 1.0, 0.0 }
+  };
   cudaq::tensor t(shape);
 
   t.take(data, shape);
