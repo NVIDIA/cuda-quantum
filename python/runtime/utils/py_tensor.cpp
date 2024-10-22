@@ -133,6 +133,7 @@ void bindTensor(py::module &mod) {
   declare_tensor<int>(utils, "int32");
   declare_tensor<std::size_t>(utils, "int64");
   declare_tensor<std::complex<double>>(utils, "complex128");
+  declare_tensor<uint8_t>(utils, "uint8");
 }
 
 } // namespace cudaq

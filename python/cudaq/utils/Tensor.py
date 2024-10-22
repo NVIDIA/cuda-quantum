@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2024 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2022-2024 NVIDIA Corporation & Affiliates.                     #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import numpy as np
-# from cudaq import utils
 from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import utils
 
 
@@ -40,10 +39,9 @@ class Tensor:
         self._tensor = None
         self._dtype = None
 
-        if isinstance(
-                data,
-            (utils.Tensor_float, utils.Tensor_int32, utils.Tensor_int64,
-             utils.Tensor_complex64, utils.Tensor_complex128)):
+        if isinstance(data,
+                      (utils.Tensor_float, utils.Tensor_int32, utils.Tensor_int64,
+                       utils.Tensor_complex64, utils.Tensor_complex128, utils.Tensor_uint8)):
             if dtype is None:
                 raise RuntimeError(
                     "Tensor init from CUDA-QX Tensor must provide dtype.")
@@ -91,6 +89,8 @@ class Tensor:
             self._tensor = utils.Tensor_int64(data)
         elif dtype == np.complex128:
             self._tensor = utils.Tensor_complex128(data)
+        elif dtype == np.uint8:
+            self._tensor = utils.Tensor_uint8(data)
         else:
             raise ValueError("Unsupported dtype")
 
@@ -116,6 +116,8 @@ class Tensor:
             self._tensor = utils.Tensor_int64(shape)
         elif dtype == np.complex128:
             self._tensor = utils.Tensor_complex128(shape)
+        elif dtype == np.uint8:
+            self._tensor = utils.Tensor_uint8(shape)
         else:
             raise ValueError("Unsupported dtype")
 
