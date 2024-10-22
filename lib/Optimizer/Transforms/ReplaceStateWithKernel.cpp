@@ -74,7 +74,6 @@ public:
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
       if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
         auto *numOfQubits = alloca->getOperand(0).getDefiningOp();
-        stateOp.getDefiningOp()->dump();
 
         if (auto getState = stateOp.getDefiningOp<cudaq::cc::GetStateOp>()) {
           auto calleeName = getState.getCalleeName();
