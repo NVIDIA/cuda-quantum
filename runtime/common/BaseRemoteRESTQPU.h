@@ -403,18 +403,21 @@ public:
     for (auto &op : m_module.getOps()) {
       if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
         // Add function definitions for runtime functions that must
-        // be removed after synthesis in cleanup ops.
+        // be removed after synthesis in cleanup passes.
+        static const std::vector<llvm::StringRef> stateFuncs = {
+            cudaq::getNumQubitsFromCudaqState,
+            cudaq::createCudaqStateFromDataFP32,
+            cudaq::createCudaqStateFromDataFP64};
+
         if (funcOp.getBody().empty() &&
-            (funcOp.getName().equals(cudaq::getNumQubitsFromCudaqState) ||
-             funcOp.getName().equals(cudaq::createCudaqStateFromDataFP64) ||
-             funcOp.getName().equals(cudaq::createCudaqStateFromDataFP32) ||
-             funcOp.getName().equals(cudaq::deleteCudaqState)))
+            std::find(stateFuncs.begin(), stateFuncs.end(), funcOp.getName()) !=
+                stateFuncs.end())
           moduleOp.push_back(funcOp.clone());
       }
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
       // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
-      // and `get-concrete-matrix`passes.
+      // and `get-concrete-matrix` passes.
       if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
     }
