@@ -10,7 +10,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
-
 #include "cudaq/utils/tensor.h"
 
 namespace py = pybind11;
