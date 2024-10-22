@@ -13,6 +13,10 @@ endif()
 include(HandleLLVMOptions)
 include(AddMLIRPython)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  add_link_options(-Wl,--no-as-needed)
+endif()
+
 # Specifies that all MLIR packages are co-located under the cudaq
 # top level package (the API has been embedded in a relocatable way).
 add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq.mlir.")
@@ -70,6 +74,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/utils/PyFermioniqRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
+    ../runtime/utils/py_tensor.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/ArgumentConversion.cpp
     ../../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
@@ -137,6 +142,9 @@ add_mlir_python_modules(CUDAQuantumPythonModules
   COMMON_CAPI_LINK_LIBS
     CUDAQuantumPythonCAPI
   )
+
+set_target_properties(CUDAQuantumPythonModules.extension._quakeDialects.dso PROPERTIES CXX_VISIBILITY_PRESET "default")
+target_compile_options(CUDAQuantumPythonModules.extension._quakeDialects.dso PRIVATE -Wno-attributes)                     
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set

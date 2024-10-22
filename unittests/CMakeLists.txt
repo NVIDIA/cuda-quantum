@@ -242,7 +242,7 @@ target_link_libraries(test_photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 
-add_executable(test_utils main.cpp utils/UtilsTester.cpp)
+add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/tensor_tester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
 endif()

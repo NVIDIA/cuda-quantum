@@ -47,6 +47,7 @@ from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import to_cupy
 from .kernel.register_op import register_operation
+from .utils.Tensor import Tensor
 
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -73,7 +74,8 @@ Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
-Tensor = cudaq_runtime.Tensor
+# FIXME What to do with this Tensor, is it used publicly?
+StateTensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
