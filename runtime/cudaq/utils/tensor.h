@@ -13,7 +13,9 @@
 
 namespace cudaq {
 
-/// @brief A tensor class implementing the PIMPL idiom.
+/// @brief A tensor class implementing the PIMPL idiom. The flattened data is
+/// stored where the strides grow from right to left (similar to a
+/// multi-dimensional C array).
 template <typename Scalar = std::complex<double>>
 class tensor {
 private:
