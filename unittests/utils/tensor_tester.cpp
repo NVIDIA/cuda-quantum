@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "cudaq/utils/tensor.h"
-
 #include <algorithm>
 #include <tuple>
 #include <gtest/gtest.h>
