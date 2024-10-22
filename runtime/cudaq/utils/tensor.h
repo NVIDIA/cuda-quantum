@@ -73,9 +73,9 @@ public:
     return pimpl->at(indices);
   }
 
-  /// @brief Access a const element of the tensor
+  /// @brief Access a constant element of the tensor
   /// @param indices The indices of the element to access
-  /// @return A const reference to the element at the specified indices
+  /// @return A constant reference to the element at the specified indices
   const scalar_type &at(const std::vector<size_t> &indices) const {
     return pimpl->at(indices);
   }
@@ -121,25 +121,24 @@ public:
   /// This method provides direct access to the underlying data storage of the
   /// tensor. It returns a pointer to the first element of the data array.
   ///
-  /// @return scalar_type* A pointer to the mutable data of the tensor.
+  /// @return `scalar_type*` A pointer to the mutable data of the tensor.
   ///
   /// @note Care should be taken when directly manipulating the raw data to
-  /// avoid
-  ///       invalidating the tensor's internal state or violating its
-  ///       invariants.
+  /// avoid invalidating the internal state of a tensor or violating its
+  /// `invariants`.
   scalar_type *data() { return pimpl->data(); }
 
   /// @brief Get a const pointer to the raw data of the tensor.
   ///
   /// This method provides read-only access to the underlying data storage of
-  /// the tensor. It returns a const pointer to the first element of the data
+  /// the tensor. It returns a constant pointer to the first element of the data
   /// array.
   ///
-  /// @return const scalar_type * A const pointer to the immutable data of the
-  /// tensor.
+  /// @return `const scalar_type *` A constant pointer to the immutable data of
+  /// the tensor.
   ///
-  /// @note This const version ensures that the tensor's data cannot be modified
-  ///       through the returned pointer, preserving const correctness.
+  /// @note This constant version ensures that the data of a tensor cannot be
+  /// modified through the returned pointer, preserving `const` correctness.
   const scalar_type *data() const { return pimpl->data(); }
 
   void dump() const { pimpl->dump(); }
