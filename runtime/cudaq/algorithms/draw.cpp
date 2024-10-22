@@ -538,7 +538,16 @@ std::string string_diagram_from_trace(const Trace &trace,
   }
 
   std::string str;
-  str.reserve(curr_width * diagram.height() * 4);
+  std::size_t max_safe_size = std::numeric_limits<std::size_t>::max() / 4;
+  std::size_t reserve_size =
+      static_cast<std::size_t>(curr_width) * diagram.height() * 4;
+
+  if (reserve_size > max_safe_size) {
+    throw std::overflow_error(
+        "String length may exceed the maximum safe limit.");
+  }
+
+  str.reserve(reserve_size);
 
   int start = 0;
   for (auto i = 0u; i < cutting_point.size(); ++i) {
