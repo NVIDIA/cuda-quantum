@@ -239,7 +239,6 @@ ndarray
 normalization
 nullary
 numpy
-NumPy
 observables
 optimizer
 optimizers
@@ -318,3 +317,4 @@ verifier
 vertices
 wavefunction
 workflow
+NumPy
