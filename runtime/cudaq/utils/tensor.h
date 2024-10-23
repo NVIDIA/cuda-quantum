@@ -95,7 +95,7 @@ public:
   /// @brief Take ownership of the given data
   /// @param data Pointer to the source data
   /// @param shape The shape of the source data
-  void take(const scalar_type *data,
+  void take(std::unique_ptr<scalar_type[]> &data,
             const std::vector<std::size_t> shape = {}) {
     if (pimpl->shape().empty() && shape.empty())
       throw std::runtime_error(
