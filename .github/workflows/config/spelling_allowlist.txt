@@ -66,6 +66,7 @@ NVIDIA
 NVLink
 NVQC
 NVQIR
+NumPy
 OQC
 ORCA
 OpenACC
@@ -89,6 +90,7 @@ QPU
 QPUs
 QPU’s
 QTX
+QX
 Qiskit
 QuTiP
 Quake
@@ -313,5 +315,3 @@ verifier
 vertices
 wavefunction
 workflow
-NumPy
-QX
