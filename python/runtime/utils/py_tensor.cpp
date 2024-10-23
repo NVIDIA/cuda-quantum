@@ -93,7 +93,7 @@ Notes:
              py::buffer_info info = b.request();
              std::vector<std::size_t> shape(info.shape.begin(),
                                             info.shape.end());
-             t.take(static_cast<Scalar *>(info.ptr), shape);
+             //t.take(static_cast<Scalar *>(info.ptr), shape);
            })
       .def("borrow",
            [](Tensor &t, py::array_t<Scalar, py::array::c_style> b) {
