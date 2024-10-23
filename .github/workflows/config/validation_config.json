@@ -2,22 +2,6 @@
     "python":
     [
         {
-            "version": 3.8,
-            "operating_systems": 
-            [
-                "fedora:38"
-            ]
-        },
-        {
-            "version": 3.9,
-            "operating_systems": 
-            [
-                "debian:11",
-                "fedora:38",
-                "opensuse/leap:15.5"
-            ]
-        },
-        {
             "version": 3.10,
             "operating_systems": 
             [
