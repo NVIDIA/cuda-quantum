@@ -25,7 +25,6 @@
             "version": 3.12,
             "operating_systems": 
             [
-                "ubuntu:24.04",
                 "fedora:38",
                 "redhat/ubi9:9.2"
             ]
