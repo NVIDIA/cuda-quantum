@@ -25,11 +25,9 @@
             "version": 3.12,
             "operating_systems": 
             [
-                "ubuntu:22.04",
-                "debian:12",
+                "ubuntu:24.04",
                 "fedora:38",
-                "redhat/ubi9:9.2",
-                "opensuse/leap:15.5"
+                "redhat/ubi9:9.2"
             ]
         }
     ],
