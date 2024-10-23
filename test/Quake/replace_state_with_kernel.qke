@@ -10,7 +10,7 @@
 
 module {
   func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-    %0 = cc.get_state "__nvqpp__mlirgen__test_init_state.modified_0" : !cc.ptr<!cc.state>
+    %0 = cc.get_state "callee.modified_0" : !cc.ptr<!cc.state>
     %1 = call @__nvqpp_cudaq_state_numberOfQubits(%0) : (!cc.ptr<!cc.state>) -> i64
     %2 = quake.alloca !quake.veq<?>[%1 : i64]
     %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
