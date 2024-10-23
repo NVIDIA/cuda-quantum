@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2024 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -45,7 +45,7 @@ namespace cudaq {
 ///    methods. Use the CUDAQ_EXTENSION_CREATOR_FUNCTION macro to define a
 ///    creator function.
 ///
-/// <code>
+/// ```
 /// class RepeatBackOne : public MyExtensionPoint {
 /// public:
 ///   std::string parrotBack(const std::string &message) const override {
@@ -54,7 +54,7 @@ namespace cudaq {
 ///
 ///   CUDAQ_EXTENSION_CREATOR_FUNCTION(MyExtensionPoint, RepeatBackOne)
 /// };
-/// </code>
+/// ```
 ///
 /// 3. Register your extensions:
 ///    Use the CUDAQ_REGISTER_TYPE macro to register each extension.

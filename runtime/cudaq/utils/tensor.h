@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2024 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -128,7 +128,7 @@ public:
   /// `invariants`.
   scalar_type *data() { return pimpl->data(); }
 
-  /// @brief Get a const pointer to the raw data of the tensor.
+  /// @brief Get a `const` pointer to the raw data of the tensor.
   ///
   /// This method provides read-only access to the underlying data storage of
   /// the tensor. It returns a constant pointer to the first element of the data

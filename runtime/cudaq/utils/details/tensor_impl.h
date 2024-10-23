@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2024 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -85,7 +85,7 @@ public:
 
   /// @brief Access a constant element of the tensor
   /// @param indices The indices of the element to access
-  /// @return A const reference to the element at the specified indices
+  /// @return A `const` reference to the element at the specified indices
   virtual const scalar_type &at(const std::vector<size_t> &indices) const = 0;
 
   /// @brief Copy data into the tensor
