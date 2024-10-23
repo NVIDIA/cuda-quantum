@@ -14,7 +14,7 @@ description="Python bindings for the CUDA-Q toolkit for heterogeneous quantum-cl
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = "python/README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = { file="LICENSE" }
 dependencies = [
   'astpretty ~= 3.0',
