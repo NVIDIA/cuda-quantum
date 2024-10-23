@@ -14,8 +14,8 @@ class Tensor:
     """
     A multi-dimensional array class for CUDA-QX quantum computing libraries.
 
-    This class wraps CUDA-QX core tensor types and provides a NumPy-like interface
-    for quantum tensor operations.
+    This class wraps CUDA-QX core tensor types and provides a NumPy-like
+    interface for quantum tensor operations.
 
     Attributes:
         _tensor: The underlying CUDA-Q core tensor object.
@@ -27,14 +27,22 @@ class Tensor:
         Initialize a Tensor object.
 
         Args:
-            data (array-like, optional): Initial data for the tensor. Can be a list, tuple, 
-                                         NumPy array, or CUDA-Q core tensor.
-            shape (tuple, optional): Shape of the tensor if creating an empty tensor.
-            dtype (numpy.dtype, optional): Data type of the tensor elements.
+            `data (array-like, optional)`: Initial data for the tensor.
+                Can be a list, tuple, NumPy array, or CUDA-Q core tensor.
+
+            `shape (tuple, optional)`:
+                Shape of the tensor if creating an empty tensor.
+
+            `dtype (numpy.dtype, optional)`:
+                Data type of the tensor elements.
 
         Raises:
-            RuntimeError: If initializing from a CUDA-Q core tensor without specifying dtype.
-            ValueError: If data is not a supported type or if dtype is unsupported.
+            RuntimeError:
+                If initializing from a CUDA-Q core tensor without specifying
+                `dtype`.
+
+            ValueError:
+                If data is not a supported type or if `dtype` is unsupported.
         """
         self._tensor = None
         self._dtype = None
@@ -46,7 +54,7 @@ class Tensor:
              utils.Tensor_uint8, utils.Tensor_single, utils.Tensor_int16)):
             if dtype is None:
                 raise RuntimeError(
-                    "Tensor init from CUDA-QX Tensor must provide dtype.")
+                    "Tensor init from CUDA-QX Tensor must provide `dtype`.")
             self._tensor = data
             self._dtype = dtype
             return
@@ -71,14 +79,14 @@ class Tensor:
 
     def _create_tensor(self, data, dtype):
         """
-        Create a tensor from given data and dtype.
+        Create a tensor from given data and `dtype`.
 
         Args:
-            data (numpy.ndarray): The data to initialize the tensor with.
-            dtype (numpy.dtype): The data type of the tensor elements.
+            `data (numpy.ndarray)`: The data to initialize the tensor with.
+            `dtype (numpy.dtype)`: The data type of the tensor elements.
 
         Raises:
-            ValueError: If the dtype is unsupported.
+            ValueError: If the `dtype` is unsupported.
         """
         self._dtype = dtype
         if dtype == np.float64:
@@ -102,14 +110,14 @@ class Tensor:
 
     def _create_empty_tensor(self, shape, dtype):
         """
-        Create an empty tensor with given shape and dtype.
+        Create an empty tensor with given shape and `dtype`.
 
         Args:
-            shape (tuple): The shape of the tensor.
-            dtype (numpy.dtype): The data type of the tensor elements.
+           `shape (tuple)`: The shape of the tensor.
+            `dtype (numpy.dtype)`: The data type of the tensor elements.
 
         Raises:
-            ValueError: If the dtype is unsupported.
+            ValueError: If the `dtype` is unsupported.
         """
         self._dtype = dtype
         if dtype == np.float64:
@@ -129,7 +137,7 @@ class Tensor:
         elif dtype == np.uint8:
             self._tensor = utils.Tensor_uint8(shape)
         else:
-            raise ValueError("Unsupported dtype")
+            raise ValueError("Unsupported `dtype`")
 
     def __getitem__(self, key):
         """
@@ -158,20 +166,24 @@ class Tensor:
         Convert the tensor to a NumPy array.
 
         Args:
-            dtype (numpy.dtype, optional): The desired dtype of the resulting array.
+            `dtype (numpy.dtype, optional)`:
+                The desired `dtype` of the resulting array.
 
         Returns:
-           numpy.ndarray: A NumPy array representation of the tensor.
+           `numpy.ndarray:`
+                A NumPy array representation of the tensor.
 
         Raises:
-            RuntimeError: If the requested dtype doesn't match the dtype of the tensor.
+            RuntimeError:
+                If the requested `dtype` doesn't match the `dtype` of the
+                tensor.
         """
         if dtype is None:
             return np.array(self._tensor, copy=False, dtype=dtype)
         else:
             if dtype != self._dtype:
                 raise RuntimeError(
-                    f"invalid NumPy dtype conversion ({dtype} vs {self._dtype})"
+                    f"invalid NumPy `dtype` conversion ({dtype} vs {self._dtype})"
                 )
             return np.array(self._tensor, copy=False, dtype=dtype)
 
@@ -262,6 +274,6 @@ class Tensor:
         Get the data type of the tensor.
 
         Returns:
-            numpy.dtype: The data type of the tensor elements.
+            `numpy.dtype`: The data type of the tensor elements.
         """
         return self._dtype
