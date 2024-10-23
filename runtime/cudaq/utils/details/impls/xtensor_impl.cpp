@@ -138,7 +138,7 @@ public:
   }
 };
 
-/// @brief Register the xtensor types
+// Register all the xtensor types.
 
 template <>
 const bool xtensor<std::complex<double>>::registered_ =
@@ -147,15 +147,20 @@ template <>
 const bool xtensor<std::complex<float>>::registered_ =
     xtensor<std::complex<float>>::register_type();
 template <>
-const bool xtensor<int>::registered_ = xtensor<int>::register_type();
-template <>
-const bool xtensor<uint8_t>::registered_ = xtensor<uint8_t>::register_type();
-template <>
 const bool xtensor<double>::registered_ = xtensor<double>::register_type();
 template <>
 const bool xtensor<float>::registered_ = xtensor<float>::register_type();
 template <>
-const bool xtensor<std::size_t>::registered_ =
-    xtensor<std::size_t>::register_type();
+const bool xtensor<std::int64_t>::registered_ =
+    xtensor<std::int64_t>::register_type();
+template <>
+const bool xtensor<std::int32_t>::registered_ =
+    xtensor<std::int32_t>::register_type();
+template <>
+const bool xtensor<std::int16_t>::registered_ =
+    xtensor<std::int16_t>::register_type();
+template <>
+const bool xtensor<std::uint8_t>::registered_ =
+    xtensor<std::uint8_t>::register_type();
 
 } // namespace cudaq

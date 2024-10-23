@@ -127,12 +127,14 @@ Notes:
 
 void bindTensor(py::module &mod) {
   auto utils = mod.def_submodule("utils");
-  declare_tensor<float>(utils, "float");
+  declare_tensor<double>(utils, "float"); // NB: double -> "float"
+  declare_tensor<float>(utils, "single");
   declare_tensor<std::complex<float>>(utils, "complex64");
-  declare_tensor<int>(utils, "int32");
-  declare_tensor<std::size_t>(utils, "int64");
+  declare_tensor<std::int32_t>(utils, "int32");
+  declare_tensor<std::int64_t>(utils, "int64");
+  declare_tensor<std::int16_t>(utils, "int16");
   declare_tensor<std::complex<double>>(utils, "complex128");
-  declare_tensor<uint8_t>(utils, "uint8");
+  declare_tensor<std::uint8_t>(utils, "uint8");
 }
 
 } // namespace cudaq

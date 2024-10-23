@@ -41,7 +41,7 @@ class Tensor:
 
         if isinstance(data,
                       (utils.Tensor_float, utils.Tensor_int32, utils.Tensor_int64,
-                       utils.Tensor_complex64, utils.Tensor_complex128, utils.Tensor_uint8)):
+                       utils.Tensor_complex64, utils.Tensor_complex128, utils.Tensor_uint8, utils.Tensor_single, utils.Tensor_int16)):
             if dtype is None:
                 raise RuntimeError(
                     "Tensor init from CUDA-QX Tensor must provide dtype.")
@@ -83,6 +83,10 @@ class Tensor:
             self._tensor = utils.Tensor_float(data)
         elif dtype == np.complex64:
             self._tensor = utils.Tensor_complex64(data)
+        elif dtype == np.float32:
+            self._tensor = utils.Tensor_single(data)
+        elif dtype == np.int16:
+            self._tensor = utils.Tensor_int16(data)
         elif dtype == np.int32:
             self._tensor = utils.Tensor_int32(data)
         elif dtype == np.int64:
@@ -110,6 +114,10 @@ class Tensor:
             self._tensor = utils.Tensor_float(shape)
         elif dtype == np.complex64:
             self._tensor = utils.Tensor_complex64(shape)
+        elif dtype == np.float32:
+            self._tensor = utils.Tensor_single(shape)
+        elif dtype == np.int16:
+            self._tensor = utils.Tensor_int16(shape)
         elif dtype == np.int32:
             self._tensor = utils.Tensor_int32(shape)
         elif dtype == np.int64:
