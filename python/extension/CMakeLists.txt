@@ -13,10 +13,6 @@ endif()
 include(HandleLLVMOptions)
 include(AddMLIRPython)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  add_link_options(-Wl,--no-as-needed)
-endif()
-
 # Specifies that all MLIR packages are co-located under the cudaq
 # top level package (the API has been embedded in a relocatable way).
 add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq.mlir.")
