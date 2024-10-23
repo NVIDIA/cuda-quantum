@@ -378,7 +378,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        python_version: ['3.10', '3.11']
+        python_version: ['3.10', '3.11', '3.12']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
