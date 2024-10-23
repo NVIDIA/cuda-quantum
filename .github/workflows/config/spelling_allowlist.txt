@@ -176,6 +176,7 @@ discoverable
 discretization
 discretize
 discretized
+dtype
 eigensolver
 eigensolvers
 eigenstate
@@ -234,8 +235,11 @@ mutex
 namespace
 namespaces
 natively
+ndarray
 normalization
 nullary
+numpy
+NumPy
 observables
 optimizer
 optimizers
@@ -258,6 +262,7 @@ qubit
 qubits
 qudit
 qudits
+qx
 reStructuredText
 reconfigurable
 runtime
