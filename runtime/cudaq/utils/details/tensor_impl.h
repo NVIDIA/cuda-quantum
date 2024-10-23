@@ -97,7 +97,7 @@ public:
   /// @brief Take ownership of the given data
   /// @param data Pointer to the source data
   /// @param shape The shape of the source data
-  virtual void take(const scalar_type *data,
+  virtual void take(std::unique_ptr<scalar_type[]> &data,
                     const std::vector<std::size_t> &shape) = 0;
 
   /// @brief Borrow the given data without taking ownership

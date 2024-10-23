@@ -65,8 +65,10 @@ TEST(CoreTester, checkTensorSimple) {
   }
   {
     cudaq::tensor t;
-    std::vector<std::complex<double>> data{1, 2, 3, 4};
-    EXPECT_THROW({ t.take(data.data()); }, std::runtime_error);
+    const std::vector<std::complex<double>> idata{1, 2, 3, 4};
+    auto data = std::make_unique<std::complex<double>[]>(4);
+    std::copy(idata.begin(), idata.end(), data.get());
+    EXPECT_THROW({ t.take(data); }, std::runtime_error);
   }
   {
     cudaq::tensor t({2, 2});
@@ -125,16 +127,18 @@ TEST(CoreTester, checkTensorSimple) {
   }
   {
     cudaq::tensor t;
-    std::vector<std::complex<double>> data{1, 2, 3, 4};
-    EXPECT_THROW({ t.take(data.data()); }, std::runtime_error);
+    const std::vector<std::complex<double>> idata{1, 2, 3, 4};
+    auto data = std::make_unique<std::complex<double>[]>(4);
+    std::copy(idata.begin(), idata.end(), data.get());
+    EXPECT_THROW({ t.take(data); }, std::runtime_error);
   }
   {
     cudaq::tensor t({2, 2});
     EXPECT_EQ(t.rank(), 2);
     EXPECT_EQ(t.size(), 4);
-    std::complex<double> *data = new std::complex<double>[4];
+    auto data = std::make_unique<std::complex<double>[]>(4);
     double count = 1.0;
-    std::generate_n(data, 4, [&]() { return count++; });
+    std::generate_n(data.get(), 4, [&]() { return count++; });
     t.take(data, {2, 2});
     EXPECT_NEAR(t.at({0, 0}).real(), 1., 1e-8);
     EXPECT_NEAR(t.at({0, 1}).real(), 2., 1e-8);
@@ -219,9 +223,10 @@ TEST(TensorTest, CopyData) {
 
 TEST(TensorTest, TakeData) {
   std::vector<std::size_t> shape = {2, 2};
-  auto data = new std::complex<double>[4] {
-    {1.0, 0.0}, {0.0, 1.0}, {0.0, -1.0}, { 1.0, 0.0 }
-  };
+  auto data = std::make_unique<std::complex<double>[]>(4);
+  const std::vector<std::complex<double>> idata{
+      {1.0, 0.0}, {0.0, 1.0}, {0.0, -1.0}, {1.0, 0.0}};
+  std::copy(idata.begin(), idata.end(), data.get());
   cudaq::tensor t(shape);
 
   t.take(data, shape);

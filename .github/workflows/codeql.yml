@@ -8,12 +8,14 @@ on:
     branches: 
       - 'main'
       - 'releases/*'
+      - 'staging/*'
       - 'experimental/*'
       - 'features/*'
   pull_request:
     branches: 
       - 'main'
       - 'releases/*'
+      - 'staging/*'
       - 'experimental/*'
       - 'features/*'
   merge_group:
