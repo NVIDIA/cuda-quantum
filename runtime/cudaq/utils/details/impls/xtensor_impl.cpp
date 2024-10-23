@@ -70,6 +70,13 @@ private:
     ownership = Invalid;
   }
 
+  static std::size_t compute_shape_size(const xtensor_shape_type &shape) {
+    if (shape.empty())
+      return 0;
+    return std::accumulate(shape.begin(), shape.end(), 1,
+                           std::multiplies<std::size_t>());
+  }
+
 public:
   xtensor() = delete;
   xtensor(const Scalar *d, const xtensor_shape_type &shape) { copy(d, shape); }
@@ -78,8 +85,7 @@ public:
     ownership = from.ownership;
     switch (ownership) {
     case OwnedByCopy: {
-      auto size = std::accumulate(m_shape.begin(), m_shape.end(), 1,
-                                  std::multiplies<std::size_t>());
+      auto size = compute_shape_size(m_shape);
       owned_data = std::make_unique<Scalar[]>(size);
       auto *d = from.owned_data.get();
       std::copy(d, d + size, owned_data.get());
@@ -97,8 +103,7 @@ public:
     ownership = from.ownership;
     switch (ownership) {
     case OwnedByCopy: {
-      auto size = std::accumulate(m_shape.begin(), m_shape.end(), 1,
-                                  std::multiplies<std::size_t>());
+      auto size = compute_shape_size(m_shape);
       owned_data = std::make_unique<Scalar[]>(size);
       auto *d = from.owned_data.get();
       std::copy(d, d + size, owned_data.get());
@@ -122,10 +127,7 @@ public:
 
   /// @brief Get the total size of the tensor
   /// @return The total number of elements in the tensor
-  std::size_t size() const override {
-    return std::accumulate(m_shape.begin(), m_shape.end(), 1,
-                           std::multiplies<std::size_t>());
-  }
+  std::size_t size() const override { return compute_shape_size(m_shape); }
 
   /// @brief Get the shape of the tensor
   /// @return A vector containing the dimensions of the tensor
@@ -160,8 +162,7 @@ public:
   void copy(const Scalar *d, const xtensor_shape_type &shape) override {
     deallocate();
     ownership = OwnedByCopy;
-    auto size = std::accumulate(shape.begin(), shape.end(), 1,
-                                std::multiplies<std::size_t>());
+    auto size = compute_shape_size(shape);
     auto newData = std::make_unique<Scalar[]>(size);
     owned_data.swap(newData);
     std::copy(d, d + size, owned_data.get());
