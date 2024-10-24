@@ -159,6 +159,23 @@ public:
   const scalar_type *data() const { return pimpl->data(); }
 
   void dump() const { pimpl->dump(); }
+
+  friend tensor<Scalar> operator*(const tensor<Scalar> &,
+                                  const tensor<Scalar> &);
+  friend tensor<Scalar> operator+(const tensor<Scalar> &,
+                                  const tensor<Scalar> &);
 };
+
+/// Multiplication of two tensors.
+template <typename T>
+tensor<T> operator*(const tensor<T> &left, const tensor<T> &right) {
+  return (*left.pimpl) * (*right.pimpl);
+}
+
+/// Addition of two tensors.
+template <typename T>
+tensor<T> operator+(const tensor<T> &left, const tensor<T> &right) {
+  return (*left.pimpl) + (*right.pimpl);
+}
 
 } // namespace cudaq
