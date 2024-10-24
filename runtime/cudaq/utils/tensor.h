@@ -13,12 +13,11 @@
 
 namespace cudaq {
 
+// Forward declarations.
 template <typename T>
 class tensor;
-
 template <typename T>
 tensor<T> operator*(const tensor<T> &, const tensor<T> &);
-
 template <typename T>
 tensor<T> operator+(const tensor<T> &, const tensor<T> &);
 
@@ -172,10 +171,10 @@ public:
 
   void dump() const { pimpl->dump(); }
 
-  friend tensor<Scalar> operator*(const tensor<Scalar> &,
-                                  const tensor<Scalar> &);
-  friend tensor<Scalar> operator+(const tensor<Scalar> &,
-                                  const tensor<Scalar> &);
+  template <typename T>
+  friend tensor<T> operator*(const tensor<T> &, const tensor<T> &);
+  template <typename T>
+  friend tensor<T> operator+(const tensor<T> &, const tensor<T> &);
 };
 
 /// Multiplication of two tensors.

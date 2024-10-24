@@ -21,13 +21,11 @@ class xtensor;
 
 namespace cudaq::details {
 
+// Forward declarations.
 template <typename T>
 class tensor_impl;
-
 template <typename T>
 tensor_impl<T> operator*(const tensor_impl<T> &, const tensor_impl<T> &);
-
-/// Addition of two tensors.
 template <typename T>
 tensor_impl<T> operator+(const tensor_impl<T> &, const tensor_impl<T> &);
 
@@ -149,10 +147,12 @@ public:
   virtual ~tensor_impl() = default;
 
   // Operator friends.
-  friend tensor_impl<Scalar> operator*(const tensor_impl<Scalar> &,
-                                       const tensor_impl<Scalar> &);
-  friend tensor_impl<Scalar> operator+(const tensor_impl<Scalar> &,
-                                       const tensor_impl<Scalar> &);
+  template <typename T>
+  friend tensor_impl<T> operator*(const tensor_impl<T> &,
+                                  const tensor_impl<T> &);
+  template <typename T>
+  friend tensor_impl<T> operator+(const tensor_impl<T> &,
+                                  const tensor_impl<T> &);
 
   // Double-dispatch hooks. We use double dispatch to ensure that both arguments
   // are in fact the same derived class of `tensor_impl`.
