@@ -30,6 +30,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -43,6 +44,14 @@ jobs:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
+
+      - name: Log in to GitHub CR
+        if: inputs.devdeps_image != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |
@@ -152,6 +161,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -165,6 +175,14 @@ jobs:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
+
+      - name: Log in to GitHub CR
+        if: inputs.devdeps_image != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |
