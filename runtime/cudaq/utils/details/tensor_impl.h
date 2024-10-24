@@ -25,9 +25,9 @@ namespace cudaq::details {
 template <typename T>
 class tensor_impl;
 template <typename T>
-tensor_impl<T> operator*(const tensor_impl<T> &, const tensor_impl<T> &);
+tensor_impl<T> *operator*(const tensor_impl<T> &, const tensor_impl<T> &);
 template <typename T>
-tensor_impl<T> operator+(const tensor_impl<T> &, const tensor_impl<T> &);
+tensor_impl<T> *operator+(const tensor_impl<T> &, const tensor_impl<T> &);
 
 /// @brief Implementation class for tensor operations following the PIMPL idiom
 template <typename Scalar = std::complex<double>>
@@ -168,15 +168,15 @@ public:
 
 /// Multiplication of two tensors.
 template <typename T>
-tensor_impl<T> operator*(const tensor_impl<T> &left,
-                         const tensor_impl<T> &right) {
+tensor_impl<T> *operator*(const tensor_impl<T> &left,
+                          const tensor_impl<T> &right) {
   return right.dd_multiply(left);
 }
 
 /// Addition of two tensors.
 template <typename T>
-tensor_impl<T> operator+(const tensor_impl<T> &left,
-                         const tensor_impl<T> &right) {
+tensor_impl<T> *operator+(const tensor_impl<T> &left,
+                          const tensor_impl<T> &right) {
   return right.dd_add(left);
 }
 
