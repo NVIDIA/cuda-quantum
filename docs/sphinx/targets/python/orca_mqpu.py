@@ -18,7 +18,7 @@ print("Number of virtual QPUs:", qpu_count)
 input_state = [1, 0, 1, 0, 1, 0, 1, 0]
 loop_lengths = [1, 1]
 n_beam_splitters = len(loop_lengths) * len(input_state) - sum(loop_lengths)
-bs_angles = np.linspace(np.pi / 8, np.pi / 3, n_beam_splitters)
+bs_angles = np.linspace(np.pi / 3, np.pi / 6, n_beam_splitters)
 n_samples = 10000
 
 count_futures = []

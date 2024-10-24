@@ -638,31 +638,67 @@ operations, each operating on 2 qubits.
 Photonic Operations on Qudits
 =============================
 
-These operations are valid only on the `photonics` target which does not support the quantum operations above.
+These operations are valid only on the `photonics` target which does not support
+the quantum operations above.
 
-:code:`plus`
+:code:`create`
 ---------------------
 
-This is a place-holder, to be updated later.
+This operation increments the number of photons in a qumode up to a maximum value
+defined by the qudit level that represents the qumode. If it is applied to a qumode
+where the number of photons is already at the maximum value, the operation has no
+effect.
+
+:math:`U|0\rangle → |1\rangle, U|1\rangle → |2\rangle, U|2\rangle → |3\rangle, \cdots, U|d\rangle → |d\rangle`
+where :math:`d` is the qudit level.
 
 .. tab:: Python
 
     .. code-block:: python
 
         q = qudit(3)
-        plus(q)
+        create(q)
 
 .. tab:: C++
 
     .. code-block:: cpp
 
         cudaq::qvector<3> q(1);
-        plus(q[0]);
+        create(q[0]);
+
+:code:`annihilate`
+---------------------
+
+This operation reduces the number of photons in a qumode up to a minimum value of
+0 representing the vacuum state. If it is applied to a qumode where the number of
+photons is already at the minimum value 0, the operation has no effect.
+
+:math:`U|0\rangle → |0\rangle, U|1\rangle → |0\rangle, U|2\rangle → |1\rangle, \cdots, U|d\rangle → |d-1\rangle`
+where :math:`d` is the qudit level.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        q = qudit(3)
+        annihilate(q)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qvector<3> q(1);
+        annihilate(q[0]);
 
 :code:`phase_shift`
 ---------------------
 
-This is a place-holder, to be updated later.
+A phase shifter adds a phase :math:`\phi` on a qumode. For the annihilation (:math:`a_1`)
+and creation operators (:math:`a_1^\dagger`) of a qumode, the phase shift operator
+is defined  by
+
+.. math::
+    P(\phi) = \exp\left(i \phi a_1^\dagger a_1  \right)
 
 .. tab:: Python
 
@@ -681,7 +717,13 @@ This is a place-holder, to be updated later.
 :code:`beam_splitter`
 ---------------------
 
-This is a place-holder, to be updated later.
+Beam splitters act on two qumodes together and it is parameterized by a single angle 
+:math:`\theta`, relating to reflectivity.
+For the annihilation (:math:`a_1` and :math:`a_2`) and creation operators (:math:`a_1^\dagger`
+and :math:`a_2^\dagger`) of two qumodes, the beam splitter operator is defined by
+
+.. math::
+    B(\theta) = \exp\left[i \theta (a_1^\dagger a_2 + a_1 a_2^\dagger) \right]
 
 .. tab:: Python
 
@@ -700,19 +742,19 @@ This is a place-holder, to be updated later.
 :code:`mz`
 ---------------------
 
-This operation returns the measurement results of the input qudit(s).
+This operation returns the measurement results of the input qumode(s).
 
 .. tab:: Python
 
     .. code-block:: python
 
-        qutrits = [qudit(3) for _ in range(2)]
-        mz(qutrits)
+        qumodes = [qudit(3) for _ in range(2)]
+        mz(qumodes)
 
 
 .. tab:: C++
 
     .. code-block:: cpp
 
-        cudaq::qvector<3> qutrits(2);
-        mz(qutrits);
+        cudaq::qvector<3> qumodes(2);
+        mz(qumodes);
