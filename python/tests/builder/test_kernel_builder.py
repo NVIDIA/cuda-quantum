@@ -18,11 +18,6 @@ from typing import List
 import cudaq
 from cudaq import spin
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
-
 
 def test_sdg_0_state():
     """Tests the adjoint S-gate on a qubit starting in the 0-state."""
@@ -1036,7 +1031,6 @@ def test_from_state1():
     cudaq.reset_target()
 
 
-@skipIfPythonLessThan39
 def test_pauli_word_input():
     h2_data = [
         3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
@@ -1229,7 +1223,6 @@ def test_call_kernel_expressions_List():
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
 
 
-@skipIfPythonLessThan39
 def test_call_kernel_expressions_list():
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -1355,7 +1348,6 @@ q3 : ┤ h ├──────────────────────
     assert circuit == expected_str
 
 
-@skipIfPythonLessThan39
 def test_list_subscript():
     kernelAndArgs = cudaq.make_kernel(bool, list[bool], List[int], list[float])
     print(kernelAndArgs[0])
@@ -1420,7 +1412,6 @@ def test_builder_rotate_state():
     assert '10' in counts
 
 
-@skipIfPythonLessThan39
 def test_issue_9():
 
     kernel, features = cudaq.make_kernel(list)
