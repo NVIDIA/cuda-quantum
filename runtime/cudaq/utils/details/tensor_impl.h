@@ -14,6 +14,11 @@
 #include <numeric>
 #include <vector>
 
+namespace cudaq {
+template <typename T>
+class xtensor;
+}
+
 namespace cudaq::details {
 
 /// @brief Implementation class for tensor operations following the PIMPL idiom
@@ -146,9 +151,8 @@ public:
   virtual tensor_impl<Scalar> dd_add(const tensor_impl<Scalar> &left) const = 0;
 
   // Terminal implementation of operators.
-  virtual tensor_impl<Scalar>
-  multiply(const tensor_impl<Scalar> *right) const = 0;
-  virtual tensor_impl<Scalar> add(const tensor_impl<Scalar> *right) const = 0;
+  virtual tensor_impl<Scalar> multiply(const xtensor<Scalar> &right) const = 0;
+  virtual tensor_impl<Scalar> add(const xtensor<Scalar> &right) const = 0;
 };
 
 /// Multiplication of two tensors.

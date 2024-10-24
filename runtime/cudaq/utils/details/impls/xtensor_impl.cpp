@@ -208,25 +208,23 @@ public:
   // Double dispatch to make sure both arguments are this derived class.
   details::tensor_impl<Scalar>
   dd_multiply(const details::tensor_impl<Scalar> &left) const override {
-    return left.multiply(this);
+    return left.multiply(*this);
   }
   details::tensor_impl<Scalar>
   dd_add(const details::tensor_impl<Scalar> &left) const override {
-    return left.add(this);
+    return left.add(*this);
   }
 
   details::tensor_impl<Scalar>
-  multiply(const details::tensor_impl<Scalar> *r) const override {
-    auto *right = static_cast<const xtensor<Scalar> *>(r);
-    auto *left = this;
+  multiply(const xtensor<Scalar> &right) const override {
+    auto &left = *this;
 
     // TODO: call some library here
   }
 
   details::tensor_impl<Scalar>
-  add(const details::tensor_impl<Scalar> *r) const override {
-    auto *right = static_cast<const xtensor<Scalar> *>(r);
-    auto *left = this;
+  add(const xtensor<Scalar> &right) const override {
+    auto &left = *this;
 
     // TODO: call some library here
   }
